@@ -959,7 +959,6 @@ void NEXUS_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
     pCaps->dsp.rfEncoder.supported = apeCaps.dsp.rfEncoder.supported;
     pCaps->dsp.rfEncoder.encodings[NEXUS_RfAudioEncoding_eBtsc] = apeCaps.dsp.rfEncoder.encodings[BAPE_RfAudioEncoding_eBtsc];
     pCaps->dsp.studioSound = apeCaps.dsp.studioSound;
-    pCaps->dsp.truSurroundHd = apeCaps.dsp.truSurroundHd;
     pCaps->dsp.truVolume = apeCaps.dsp.truVolume;
     pCaps->dsp.karaoke = apeCaps.dsp.karaoke;
     pCaps->equalizer.supported = apeCaps.equalizer.supported;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,11 +41,14 @@
 #include "bxpt.h"
 #include "bkni.h"
 #include "bxpt_xcbuf_priv.h"
-#include "bchp_xpt_xcbuff.h"
 
 #if( BDBG_DEBUG_BUILD == 1 )
 BDBG_MODULE( xpt_xcbuf_priv );
 #endif
+
+#ifdef BXPT_HAS_XCBUF_HW
+
+#include "bchp_xpt_xcbuff.h"
 
 #define INPUT_BAND_BUF_SIZE         (200* 1024)
 #ifdef BXPT_P_TSIO_USE_LARGER_BUFFERS
@@ -932,4 +935,62 @@ BERR_Code BXPT_P_XcBuf_ReportOverflows(
 
     return Status;
 }
+#endif
+
+#else
+/* Some chips do not have XC buffers. */
+
+BERR_Code BXPT_P_XcBuf_Init(
+    BXPT_Handle hXpt,           /* [in] Handle for this transport */
+    const BXPT_BandWidthConfig *BandwidthConfig
+    )
+{
+    BSTD_UNUSED(hXpt);
+    BSTD_UNUSED(BandwidthConfig);
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    return( BERR_SUCCESS );
+}
+
+#ifndef BXPT_FOR_BOOTUPDATER
+BERR_Code BXPT_P_XcBuf_Shutdown(
+    BXPT_Handle hXpt            /* [in] Handle for this transport */
+    )
+{
+    BSTD_UNUSED(hXpt);
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    return( BERR_SUCCESS );
+}
+
+void BXPT_XcBuf_P_EnablePlaybackPausing(
+    BXPT_Handle hXpt,
+    unsigned PbChannelNum,
+    bool PauseEn
+    )
+{
+    BSTD_UNUSED(hXpt);
+    BSTD_UNUSED(PbChannelNum);
+    BSTD_UNUSED(PauseEn);
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+}
+#endif /* BXPT_FOR_BOOTUPDATER */
+
+#if BXPT_HAS_PIPELINE_ERROR_REPORTING
+BERR_Code BXPT_P_XcBuf_ReportOverflows(
+    BXPT_Handle hXpt,
+    BXPT_PipelineErrors *Errors
+    )
+{
+    BERR_Code Status = 0;
+    BSTD_UNUSED(hXpt);
+    BDBG_MSG(( "%s: XC Buffers not present on this chip.", __FUNCTION__ ));
+    Errors->overflow.XcbuffRaveIbp = 0;
+    Errors->overflow.XcbuffRavePbp = 0;
+    Errors->overflow.XcbuffMsgPbp = 0;
+    Errors->overflow.XcbuffRmx0Ibp = 0;
+    Errors->overflow.XcbuffRmx1Ibp = 0;
+    Errors->overflow.XcbuffRmx0Pbp = 0;
+    Errors->overflow.XcbuffRmx1Pbp = 0;
+    return Status;
+}
+#endif
 #endif

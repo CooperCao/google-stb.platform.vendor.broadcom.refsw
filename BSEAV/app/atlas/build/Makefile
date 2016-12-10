@@ -445,7 +445,6 @@ APP_OBJECTS += \
     remote.o \
     control.o \
     power.o \
-    network.o \
     audio_capture_client.o \
     audio_capture.o \
     bluetooth.o \
@@ -951,7 +950,7 @@ ifeq ($(NETAPP_SUPPORT),y)
 include $(BSEAV)/connectivity/netapp.inc
 NETAPP_DIR = $(BSEAV)/../trellis/connectivity/netapp/build
 NETAPP_OUTPUT_DIR = ${B_REFSW_OBJ_ROOT}/BSEAV/bin
-INTERNAL_SERVER		?= git-irv-02.irv.broadcom.com
+INTERNAL_SERVER		?= git-irv-02.lvn.broadcom.net
 FETCH_NETAPP_CMD 	:= repo init -u ssh://$(USER)@${INTERNAL_SERVER}:29418/AppLibs; repo sync
 SERVER_ALIVE        ?= $(shell nslookup -timeout=1 ${INTERNAL_SERVER} | grep Address && echo "1s" || echo "")
 
@@ -966,6 +965,7 @@ CFLAGS += -DHIDE_NETAPP_WIFI_MENU
 endif
 CFLAGS += -DNETAPP_SUPPORT $(NETAPP_CFLAGS)
 LDFLAGS += $(NETAPP_LDFLAGS)
+APP_OBJECTS += network.o
 
 ifneq ($(NXCLIENT_SUPPORT),y)
 export NETAPP_NXCLIENT=n
@@ -981,6 +981,7 @@ export NETAPP_DHCP=n
 export NETAPP_DHCPC=n
 endif
 
+# helper rule for generating defines for eclipse editor
 eclipse:
 	@echo [Generate Eclipse Defines...gccdefines_c.h]
 	${Q_}$(CC) $(CFLAGS) -dM -E - < /dev/null > $(B_REFSW_OBJ_ROOT)/../gccdefines_c.h
@@ -991,7 +992,7 @@ eclipse:
 #
 ifeq ($(WPA_SUPPLICANT_SUPPORT),y)
 include $(BSEAV)/lib/wpa_supplicant/b_wpa_supplicant_targets.inc
-CFLAGS += $(B_WPA_SUPPLICANT_CFLAGS)
+CFLAGS += $(B_WPA_SUPPLICANT_CFLAGS) -DWPA_SUPPLICANT_SUPPORT
 LDFLAGS += $(B_WPA_SUPPLICANT_LDFLAGS)
 WPA_SUPPLICANT_BUILD += b_wpa_supplicant_target_build
 WPA_SUPPLICANT_CLEAN += b_wpa_supplicant_target_clean
@@ -1001,6 +1002,7 @@ B_SUPPLICANT_INSTALL_FILES = $(sort $(filter-out %.a,$(B_WPA_SUPPLICANT_BUILD_FI
 wpa_supplicant_install_files:
 	${Q_}$(foreach file, $(B_SUPPLICANT_INSTALL_FILES),cp -fP $(file) $(STAGING_DIR) &&) true
 
+APP_OBJECTS += wifi.o
 endif
 
 ##########
@@ -1024,7 +1026,7 @@ vpath %.cpp $(VPATH)
 vpath %.c $(VPATH)
 
 # Implicit rule for building local app
-$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LUA_BUILD) $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(WPA_SUPPLICANT_BUILD)
+$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 	@echo [Linking... $(notdir $@)]
 	$(Q_)$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
 
@@ -1052,7 +1054,7 @@ $(ATLAS_ODIR)/%.o: %.c
 
 $(ATLAS_ODIR)/%.o: %.cpp
 	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CXX) -c -o $@ $< $(filter-out $(C_ONLY_FLAGS),$(CFLAGS)) $(CXXFLAGS)
+	$(Q_)$(CXX) -c -o $@ $(abspath $<) $(filter-out $(C_ONLY_FLAGS),$(CFLAGS)) $(CXXFLAGS)
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 .PHONY: nxclient
@@ -1432,6 +1434,7 @@ endif
 	$(Q_)$(CP) $(NEXUS_BIN_DIR)/nexus $(STAGING_DIR)
 ifeq ($(NXCLIENT_SUPPORT),y)
 	$(Q_)$(CP) $(NEXUS_BIN_DIR)/nxserver $(STAGING_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/lib*.so $(STAGING_DIR)
 endif
 	$(Q_)chmod +x $(STAGING_DIR)/nexus
 ifeq ($(CABLECARD_SUPPORT),y)

@@ -44,21 +44,23 @@
 BDBG_MODULE(nexus_platform_cma);
 
 #if NEXUS_BASE_OS_linuxkernel
+#undef BCHP_PHYSICAL_OFFSET
 #include <linux/brcmstb/brcmstb.h>
+#undef BCHP_PHYSICAL_OFFSET
 #if BRCMSTB_H_VERSION >= 1
 typedef struct brcmstb_memory nexus_p_memory_info;
 typedef struct brcmstb_range nexus_p_memory_range;
 #else
 typedef struct brcmstb_range {
-    uint8_t addr;
-    uint8_t size;  /* 0 means no region */
+    uint64_t addr;
+    uint64_t size;  /* 0 means no region */
 } nexus_p_memory_range;
 
 typedef struct brcmstb_memory {
     struct {
         struct brcmstb_range range[1];
         int count;
-    } memc[1];
+    } memc[BCHP_MAX_MEMC_REGIONS];
     /* fixed map space */
     struct {
         struct brcmstb_range range[1];
@@ -90,7 +92,7 @@ typedef struct bcmdriver_memory_range nexus_p_memory_range;
 BDBG_FILE_MODULE(nexus_platform_settings);
 
 struct nexus_linux_cma_region_info {
-    uint64_t length;
+    uint32_t length;
     NEXUS_Addr physicalAddress;
     unsigned memcIndex;
 };
@@ -148,7 +150,7 @@ static unsigned cma_dev_get_num_regions(struct cma_dev *cma_dev)
     return 0;
 }
 
-static int cma_dev_get_region_info(struct cma_dev *cma_dev, unsigned region_num, unsigned *memc, NEXUS_Addr *addr, uint64_t *num_bytes)
+static int cma_dev_get_region_info(struct cma_dev *cma_dev, unsigned region_num, unsigned *memc, NEXUS_Addr *addr, uint32_t *num_bytes)
 {
     BSTD_UNUSED(cma_dev);
     BSTD_UNUSED(addr);
@@ -306,7 +308,7 @@ static unsigned cma_dev_get_num_regions(struct cma_dev *cma_dev)
     return getnumregs_p.num;
 }
 
-static int cma_dev_get_region_info(struct cma_dev *cma_dev, unsigned region_num, unsigned *memc, NEXUS_Addr *addr, uint64_t *num_bytes)
+static int cma_dev_get_region_info(struct cma_dev *cma_dev, unsigned region_num, unsigned *memc, NEXUS_Addr *addr, uint32_t *num_bytes)
 {
     int ret;
     struct bcmdriver_cma_getregion getreginfo_p;
@@ -394,9 +396,9 @@ static void cma_reset_all(unsigned cma_index, struct cma_dev *cma_dev)
     uint32_t count = cma_dev_get_num_regions(cma_dev);
     while (count != 0) {
         int ret;
-        uint32_t memc;
+        unsigned memc;
         NEXUS_Addr addr;
-        uint64_t len;
+        uint32_t len;
         ret = cma_dev_get_region_info(cma_dev, 0, &memc, &addr, &len);
         if (ret) break;
         if (cma_dev_put_mem(cma_dev,addr, len) != 0)
@@ -1144,10 +1146,10 @@ static void NEXUS_Platform_P_PrintCma(const NEXUS_PlatformMemory *pMemory)
             int rc;
             unsigned memc=0;
             NEXUS_Addr addr=0;
-            uint64_t len=0;
+            uint32_t len=0;
             rc = cma_dev_get_region_info(cma_dev, j, &memc, &addr, &len);
             if (rc) continue;
-            BDBG_LOG((" alloc " BDBG_UINT64_FMT " " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(addr), BDBG_UINT64_ARG(len)));
+            BDBG_LOG((" alloc " BDBG_UINT64_FMT " %#x", BDBG_UINT64_ARG(addr), len));
         }
     }
 }
@@ -1191,27 +1193,33 @@ void NEXUS_Platform_P_FreeCma(const NEXUS_PlatformMemory *pMemory, unsigned memc
 NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
 {
     NEXUS_Error rc;
-    nexus_p_memory_info info;
+    struct {
+        nexus_p_memory_info info;
+        BCHP_MemoryInfo memoryInfo;
+    } *state;
     unsigned i, j;
 
-    rc = NEXUS_Platform_P_GetMemoryInfo(&info);
+    state = BKNI_Malloc(sizeof(*state));
+    if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
+
+    rc = NEXUS_Platform_P_GetMemoryInfo(&state->info);
     if (rc) {
-        BCHP_MemoryInfo memoryInfo;
-        BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &memoryInfo);
+        BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &state->memoryInfo);
         /* Running on Linux 3.14-1.7 and earlier (no bmem) requires emulating Linux's report of memory layout. */
-        BKNI_Memset(&info, 0, sizeof(info));
-        info.memc[0].range[0].size = memoryInfo.memc[0].size;
+        BKNI_Memset(&state->info, 0, sizeof(state->info));
+        state->info.memc[0].range[0].size = state->memoryInfo.memc[0].size;
     }
 
     BDBG_CASSERT(BCHP_MAX_MEMC_REGIONS <= NEXUS_NUM_MEMC_REGIONS);
     BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));
     for (i=0;i<NEXUS_MAX_MEMC;i++) {
-        for (j=0;j<BCHP_MAX_MEMC_REGIONS && j<(unsigned)info.memc[i].count;j++) {
-            pMemory->memc[i].region[j].addr = info.memc[i].range[j].addr;
-            pMemory->memc[i].region[j].size = info.memc[i].range[j].size;
-            pMemory->memc[i].size += info.memc[i].range[j].size;
+        for (j=0;j<BCHP_MAX_MEMC_REGIONS && j<(unsigned)state->info.memc[i].count;j++) {
+            pMemory->memc[i].region[j].addr = state->info.memc[i].range[j].addr;
+            pMemory->memc[i].region[j].size = state->info.memc[i].range[j].size;
+            pMemory->memc[i].size += state->info.memc[i].range[j].size;
         }
     }
+    BKNI_Free(state);
     return NEXUS_SUCCESS;
 }
 #endif /* NEXUS_USE_CMA */

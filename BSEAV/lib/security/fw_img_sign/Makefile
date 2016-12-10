@@ -172,6 +172,14 @@ prod_sign : dump_run $(OUT)/AutomatedSigning
 	$(OUT)/AutomatedSigning $(KEY2_SIG_COMMAND_FILE)
 	${KEY2_COPY}
 
+prod_fw_sign : dump_run $(OUT)/AutomatedSigning
+	perl scripts/sign_command.pl pre_process
+	$(OUT)/AutomatedSigning $(COMMAND_FILE) $(BINS_TO_SIGN)
+	perl scripts/ss_sign_req.pl $(BINS_TO_SIGN) $(FW_KEY_VARIANT)
+	perl scripts/sign_command.pl post_process
+	$(OUT)/AutomatedSigning $(SIG_COMMAND_FILE)
+	${SIGNATURE_COPY}
+
 key2_sign: prep_dir $(OUT)/AutomatedSigning
 	perl scripts/sign_command.pl key
 	$(OUT)/AutomatedSigning $(KEY2_COMMAND_FILE) $(BINS_TO_SIGN)

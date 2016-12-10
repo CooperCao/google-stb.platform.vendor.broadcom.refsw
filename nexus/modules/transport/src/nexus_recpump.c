@@ -401,11 +401,10 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     allocSettings.BufferCfg.Cdb.Alignment = pSettings->data.alignment;
     allocSettings.BufferCfg.Itb.Alignment = pSettings->index.alignment;
 
-    /* Program ITB to big endian, CDB to host endianness.
-    When reading from memory, either DMA or CPU, the memory controller will swap on a little endian system. So, on a little
-    endian system, the end result will be ITB little, CDB big. On a big endian system, there is no memory controller swap,
-    therefore the end result will be ITB big, CDB big. Therefore, the end result is: ITB host, CDB big.
-    This is exactly what we want. It's just a little counter intuitive when programming transport here. */
+    /* The end result we want on little endian or big endian CPU's is ITB in host endianness, CDB as big endian (byte stream).
+    To get this, we counter-intuitively program RAVE to output ITB as big endian, CDB in host endianness.
+    A little endian CPU will swap on read, so ITB will be seen in host endianness and CDB as big endian.
+    A big endian CPU will not swap on read, so ITB will be seen in host endianness and CDB as big endian. The same result. */
     allocSettings.BufferCfg.Itb.LittleEndian = false;
 #if (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE)
     allocSettings.BufferCfg.Cdb.LittleEndian = true;

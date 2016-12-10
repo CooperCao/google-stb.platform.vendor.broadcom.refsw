@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2013 Broadcom Corporation
+ *  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ************************************************************/
 
 #include "nexus_types.h"
@@ -66,7 +56,7 @@ static BKNI_MutexHandle g_callback_mutex;
 /* unique key that describes callback */
 struct nexus_driver_callback_key {
     unsigned type;  /* callback type, e.g. id */
-    void *object; /* callback handle */
+    const void *object; /* callback handle */
 };
 
 struct nexus_driver_callback_data {
@@ -83,7 +73,7 @@ struct nexus_driver_callback_entry {
     BDBG_OBJECT(nexus_driver_callback_entry)
     BLST_S_ENTRY(nexus_driver_callback_entry) list;
     struct nexus_driver_callback_scheduler *scheduler;
-    void *client;
+    const struct b_objdb_client *client;
     struct nexus_driver_slave_scheduler *slave;
     struct nexus_driver_callback_key key;
     struct nexus_driver_callback_data now,prev; /* store current and previous data, previous is used when need to restore mapping */
@@ -354,7 +344,7 @@ nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callb
         desc[count].desc.callback = entry->now.callback;
         desc[count].desc.context = entry->now.context;
         desc[count].desc.param = entry->callback_param;
-        desc[count].interfaceHandle = entry->key.object;
+        desc[count].interfaceHandle = (void *)entry->key.object;
         count++;
         BDBG_MSG_TRACE(("nexus_driver_scheduler_dequeue:%#lx(%u) callback:%#lx context:%#lx param:%d", (unsigned long)scheduler, (unsigned)priority, (unsigned long)entry->now.callback, (unsigned long)entry->now.context, entry->callback_param));
     }
@@ -457,7 +447,7 @@ err_alloc:
 
 /* returns an existing entry */
 static struct nexus_driver_callback_entry *
-nexus_driver_p_callback_find_entry_locked(const struct nexus_driver_callback_map *map, void *handle, unsigned id)
+nexus_driver_p_callback_find_entry_locked(const struct nexus_driver_callback_map *map, const void *handle, unsigned id)
 {
     struct nexus_driver_callback_entry *entry;
 
@@ -513,8 +503,8 @@ nexus_driver_p_callback_remove_entry_locked(struct nexus_driver_callback_map *ma
 
 /* returns an existing entry or, if not found, creates a new one */
 static struct nexus_driver_callback_entry *
-nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header *header, struct nexus_driver_callback_map *map, void *handle, unsigned id, 
-    void *client, struct nexus_driver_slave_scheduler *slave)
+nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header *header, struct nexus_driver_callback_map *map, const void *handle, unsigned id,
+    const struct b_objdb_client *client, struct nexus_driver_slave_scheduler *slave)
 {
     struct nexus_driver_callback_entry *entry, *prev, *id_match, *prev_id;
     struct nexus_driver_callback_scheduler *scheduler;
@@ -689,7 +679,7 @@ done:
     return;
 
 err_calback:
-    BDBG_WRN(("nexus_driver_callback_update: %s unknown handler %#lx for %#x:%#lx", (unsigned long)header->name, (unsigned long)callback->callback, (unsigned)id, (unsigned long)new_handle));
+    BDBG_WRN(("nexus_driver_callback_update: %s unknown handler %p for %#x:%p", header->name, (void *)(unsigned long)callback->callback, (unsigned)id, (void *)new_handle));
     goto done;
 }
 
@@ -718,7 +708,7 @@ done:
     return;
 
 err_calback:
-    BDBG_WRN(("nexus_driver_callback_to_driver_cancel: %s unknown handler %#lx for %#x:%#lx", (unsigned long)header->name, (unsigned long)callback->callback, (unsigned)id, (unsigned long)handle));
+    BDBG_WRN(("nexus_driver_callback_to_driver_cancel: %s unknown handler %p for %#x:%p", header->name, (void *)(unsigned long)callback->callback, (unsigned)id, (void *)handle));
 err_map:
     goto done;
 }
@@ -742,7 +732,7 @@ nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *header
 }
 
 void
-nexus_driver_deactivate_callbacks(void *context, void *object, void *client)
+nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client)
 {
     struct nexus_driver_module_header *header = context;
     struct nexus_driver_callback_map *map;

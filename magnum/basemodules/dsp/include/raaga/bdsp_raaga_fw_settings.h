@@ -275,6 +275,15 @@ typedef struct BDSP_Raaga_Audio_DAPv2UserConfig
 }BDSP_Raaga_Audio_DAPv2UserConfig;
 
 
+typedef struct BDSP_Fader_Config{
+    /* <attenuation> in % (0 -100) factor in Q1.31 format . default is 0x7FFFFFFF (No fade)*/
+    /*in cert mode, allow volumes to pass without alteration (value form config in Q1.31 format to handle all cert cases), Only in production  convert to Q1.31 format*/
+    int32_t i32attenuation;
+    /*<duration> in ms, default 0ms, range 0ms ... 60000ms*/
+    int32_t i32duration;
+    /*<type> of easing function, 0: linear, 1: in-cubic, 2: out-cubic*/
+    int32_t i32type;
+  } BDSP_Fader_Config;
 typedef struct BDSP_Raaga_Audio_MixerDapv2ConfigParams
 {
 
@@ -285,7 +294,7 @@ typedef struct BDSP_Raaga_Audio_MixerDapv2ConfigParams
     /* Default: Off, Limiter need can be enabled for system sound and application for clipping protection Set value only when i32Certification_flag is enabled     */
     int32_t i32LimiterEnable;
     /* Default: 0 Channel Matching Mode strigent , 1 for lenient  Set value only when i32Certification_flag is enabled     */
-    int32_t i32LenientMixingEnable;
+    int32_t i32MixingMode;
     /* Default: 0 possible values from -32 to 32    */
     int32_t i32MixerUserBalance;
     /* Default: UNITY:  Channel wise user gains    */
@@ -294,6 +303,13 @@ typedef struct BDSP_Raaga_Audio_MixerDapv2ConfigParams
     int32_t i32Ms12Flag;
     /*Default :1  Make it 0  to disable Dapv2 */
     int32_t i32EnableDapv2;
+    /*< Sets the ramp behavior if no input signal is available  */
+    /*0: pauses ramp until input is present (default)*/
+    /*1: continues ramp in absence of input signal\n"*/
+
+    int32_t  i32RampMode;
+   /* input fade configuration*/
+    BDSP_Fader_Config    sFadeControl[5];
     /* Dapv2 user config might get changed after latest code change for content processing with no channel mixing */
     BDSP_Raaga_Audio_DAPv2UserConfig sDapv2UserConfig;
 
@@ -2477,6 +2493,9 @@ typedef struct  BDSP_Raaga_Audio_DpcmrConfigParams
     /*< Compressor profile for generating DRC, default ui32CompressorProfile = 1; */
     /* This Parameter need not to expose at Nexus level since it is fixed for now */
     uint32_t     ui32CompressorProfile;
+   /* encoded channel mode is locked to 5.1 */
+    /* This Parameter need to be set either 1 or 0 .1-to get the 5.1 output from encoder. do a downmix in the PCM Renderer from 7.1 -> 5.1*/
+    uint32_t    ui32ChannelLockModeEnable;
 }BDSP_Raaga_Audio_DpcmrConfigParams;
 /*
 

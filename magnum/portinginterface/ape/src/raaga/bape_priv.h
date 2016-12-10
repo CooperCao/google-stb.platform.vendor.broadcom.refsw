@@ -88,6 +88,7 @@ BDBG_OBJECT_ID_DECLARE(BAPE_EchoCanceller);
 #define BAPE_P_NUM_ELEMS(x)  (sizeof(x) / sizeof (x)[0])
 #define BAPE_P_MAX(A,B) ((A)>(B)?(A):(B))
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 A macro to compare two values and print a BDBG message that contains one
@@ -110,7 +111,7 @@ And will print this if oldSampleRate is 48000 and newSampleRate is 768000:
             ?      bdbg_log_macro(("%s: " pfmt " -> " pfmt , heading,    (oldprint), (newprint )))   \
             :      bdbg_log_macro(("%s: " pfmt, heading, (newprint) ))                               \
         )
-
+#endif
 /***************************************************************************
 Summary:
 PLL Status
@@ -119,6 +120,7 @@ typedef struct BAPE_AudioPll
 {
     unsigned baseSampleRate;
     unsigned freqCh1;
+    BLST_S_HEAD(PllInputList, BAPE_InputPortObject) inputList; /* List of input ports using this NCO */
     BLST_S_HEAD(PllMixerList, BAPE_Mixer) mixerList;    /* List of mixers using this PLL */
     BAPE_PllSettings settings;
 } BAPE_AudioPll;
@@ -132,6 +134,7 @@ typedef struct BAPE_AudioNco
     unsigned baseSampleRate;
     unsigned long ncoFreq;
     BAVC_Timebase timebase;
+    BLST_S_HEAD(NcoInputList, BAPE_InputPortObject) inputList; /* List of input ports using this NCO */
     BLST_S_HEAD(NcoMixerList, BAPE_Mixer) mixerList;    /* List of mixers using this NCO */
 } BAPE_AudioNco;
 
@@ -764,6 +767,8 @@ typedef struct BAPE_MixerInterface {
     BERR_Code (*applyOutputVolume)  (BAPE_MixerHandle handle, BAPE_OutputPort output);
     BERR_Code (*setSettings)        (BAPE_MixerHandle hMixer, const BAPE_MixerSettings *pSettings);
     BERR_Code (*applyStereoMode)    (BAPE_MixerHandle handle, BAPE_StereoMode stereoMode);
+    BERR_Code (*getInputStatus)     (BAPE_MixerHandle hMixer, BAPE_Connector input, BAPE_MixerInputStatus *pStatus);
+    BERR_Code (*getStatus)          (BAPE_MixerHandle hMixer, BAPE_MixerStatus *pStatus);
 } BAPE_MixerInterface ;
 
 /***************************************************************************
@@ -963,6 +968,8 @@ typedef struct BAPE_InputPortObject
     void      (*consumerDetached_isr)(BAPE_InputPort inputPort, BAPE_PathNode *pConsumer);       /* Called when a consumer detaches */
     bool halted;                /* true => Input halted due to unhandled format change. */
     const char *pName;
+    BLST_S_ENTRY(BAPE_InputPortObject) pllNode;
+    BLST_S_ENTRY(BAPE_InputPortObject) ncoNode;
 } BAPE_InputPortObject;
 
 /***************************************************************************
@@ -1304,6 +1311,19 @@ void BAPE_P_DetachMixerFromPll(BAPE_MixerHandle mixer, BAPE_Pll pll);
 
 /***************************************************************************
 Summary:
+Attach an input port to a NCO
+***************************************************************************/
+void BAPE_P_AttachInputPortToPll(BAPE_InputPort input, BAPE_Pll pll);
+void BAPE_P_AttachInputPortToPll_isrsafe(BAPE_InputPort input, BAPE_Pll pll);
+
+/***************************************************************************
+Summary:
+Detach an input port from a NCO
+***************************************************************************/
+void BAPE_P_DetachInputPortFromPll_isrsafe(BAPE_InputPort input, BAPE_Pll pll);
+
+/***************************************************************************
+Summary:
 Update PLL sample rate
 ***************************************************************************/
 BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll);
@@ -1325,6 +1345,19 @@ Summary:
 Detach a mixer from a NCO
 ***************************************************************************/
 void BAPE_P_DetachMixerFromNco(BAPE_MixerHandle mixer, BAPE_Nco nco);
+
+/***************************************************************************
+Summary:
+Attach an input port to a NCO
+***************************************************************************/
+void BAPE_P_AttachInputPortToNco(BAPE_InputPort input, BAPE_Nco nco);
+void BAPE_P_AttachInputPortToNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco);
+
+/***************************************************************************
+Summary:
+Detach an input port from a NCO
+***************************************************************************/
+void BAPE_P_DetachInputPortFromNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco);
 
 /***************************************************************************
 Summary:
@@ -1897,6 +1930,7 @@ void BAPE_P_SetFsTiming_isr(
     unsigned mclkFreqToFsRatio
     );
 
+
 #if BAPE_DSP_SUPPORT
 /***************************************************************************
 Summary:
@@ -1907,18 +1941,8 @@ BERR_Code BAPE_TruVolume_P_ConvertSettingsToDsp(
     const BAPE_TruVolumeSettings *pSettings,
     BDSP_Raaga_Audio_TruVolumeUserConfig *pUserConfig
     );
-
-/***************************************************************************
-Summary:
-Map User settings to DSP for TruSurroundHd.  Required in both StudioSound
-and TruSurroundHd.
-***************************************************************************/
-BERR_Code BAPE_TruSurroundHd_P_ConvertSettingsToDsp(
-    const BAPE_TruSurroundHdSettings *pSettings,
-    unsigned numChannelPairs,
-    BDSP_Raaga_Audio_TruSurrndHDConfigParams *pUserConfig
-    );
 #endif
+
 
 #if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0 || BAPE_CHIP_MAX_MAI_OUTPUTS > 0
 /***************************************************************************
@@ -2041,6 +2065,68 @@ typedef struct BAPE_MuxOutput
     BAPE_MuxOutputInterruptHandlers interrupts;
     BAVC_Xpt_StcSoftIncRegisters nonRealTimeIncrement;
 } BAPE_MuxOutput;
+
+typedef struct BAPE_MaiInput
+{
+    BDBG_OBJECT(BAPE_MaiInput)
+    BAPE_Handle deviceHandle;
+    BAPE_MaiInputSettings settings;
+    unsigned index;
+    BAPE_InputPortObject inputPort;
+    uint32_t offset;
+    BAPE_MaiInputFormatDetectionSettings clientFormatDetectionSettings;
+    bool localFormatDetectionEnabled;
+    bool formatDetectionEnabled;
+    bool hwAutoMuteEnabled;
+    uint32_t outFormatEna;      /* last value written to OUT_FORMAT_ENA field. */
+    struct
+    {
+        BAPE_MclkSource mclkSource;
+        unsigned pllChannel;    /* only applies if mclkSource refers to a PLL */
+        unsigned mclkFreqToFsRatio;
+    } mclkInfo;
+    bool enable;
+    char name[12];   /* MAI IN %d */
+
+    BINT_CallbackHandle maiRxCallback;
+
+    BAPE_MaiInputFormatDetectionStatus  lastFormatDetectionStatus;
+} BAPE_MaiInput;
+
+typedef struct BAPE_SpdifInput
+{
+    BDBG_OBJECT(BAPE_SpdifInput)
+    BAPE_Handle deviceHandle;
+    BAPE_SpdifInputSettings settings;
+    unsigned index;
+    BAPE_InputPortObject inputPort;
+    uint32_t offset;
+    BAPE_SpdifInputFormatDetectionSettings clientFormatDetectionSettings;
+    bool                            localFormatDetectionEnabled;
+    bool                            formatDetectionEnabled;
+    uint32_t outFormatEna;      /* last value written to OUT_FORMAT_ENA field. */
+    bool enable;
+    char name[12];   /* SPDIF IN %d */
+
+    BINT_CallbackHandle spdifRxCallback;
+
+    BAPE_SpdifInputFormatDetectionStatus  lastFormatDetectionStatus;
+} BAPE_SpdifInput;
+
+typedef struct BAPE_I2sInput
+{
+    BDBG_OBJECT(BAPE_I2sInput)
+    BAPE_Handle deviceHandle;
+    BAPE_I2sInputSettings settings;
+    unsigned index;
+    BAPE_InputPortObject inputPort;
+    uint32_t offset;
+    bool enable;
+    char name[14];   /* I2S Input %d */
+} BAPE_I2sInput;
+
+
+
 
 /***************************************************************************
 Summary:

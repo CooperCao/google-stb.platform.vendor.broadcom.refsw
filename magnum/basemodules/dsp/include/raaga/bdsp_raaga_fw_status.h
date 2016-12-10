@@ -146,6 +146,7 @@
 #define BDSP_Raaga_OutputFormatterStatus        BDSP_Raaga_Audio_OutputFormatterStatusInfo
 #define BDSP_Raaga_VocalPPStatus                BDSP_Raaga_Audio_VocalPPStatusInfo
 #define BDSP_Raaga_FadeCtrlPPStatus             BDSP_Raaga_Audio_FadeCtrlPPStatusInfo
+#define BDSP_Raaga_MixerDapv2PPStatus           BDSP_Raaga_Audio_MixerDapv2StatusInfo
 
 /* BDSP_AudioEncode */
 #define BDSP_Raaga_Mpeg1Layer3Status        BDSP_Raaga_Audio_EncodeStreamInfo
@@ -4246,7 +4247,7 @@ typedef struct BDSP_Raaga_Audio_ALSDecStreamInfo
 */
     uint32_t    ui32StatusValid;
 
- /*
+/*
     This field tells the input sample bit width. Used only inside MPEG-4 ALS decoder.
 */
 
@@ -4307,6 +4308,35 @@ typedef struct BDSP_Raaga_Audio_FadeCtrlPPStatusInfo
     ui32StatusValid=0x7fffffff indicates status as "in-valid" */
     uint32_t                        ui32StatusValid;
 }BDSP_Raaga_Audio_FadeCtrlPPStatusInfo;
+
+#define MAX_NUM_FADE_NODES                         5
+
+typedef struct BDSP_Raaga_Audio_Mixing_FadeCtrl_Info
+{
+    /* ui32FadeActiveStatus=0 indicates status as "Target Reached"
+     ui32FadeActiveStatus=1 indicates status as "Fade Control in Active and Target is not yet reached" */
+    uint32_t ui32FadeActiveStatus;
+
+    /* ui32RemainingDuration represent remaining duration in current active fade.
+     if fade is not active, ui32RemainingDuration will be reported as "0"
+     Duration is specified in miliseconds */
+    uint32_t ui32RemainingDuration;
+
+    /* ui32CurrentVolumeLevel represent percentage current volume level.
+     0 - mute and 100 - full scale. */
+    uint32_t ui32CurrentVolumeLevel;
+
+    /* ui32StatusValid=0 indicates status as "valid"
+     ui32StatusValid=0x7fffffff indicates status as "in-valid" */
+    uint32_t ui32StatusValid;
+} BDSP_Raaga_Audio_Mixing_FadeCtrl_Info;
+
+typedef struct BDSP_Raaga_Audio_MixerDapv2StatusInfo
+{
+
+    BDSP_Raaga_Audio_Mixing_FadeCtrl_Info FadeCtrl_Info[MAX_NUM_FADE_NODES];
+
+} BDSP_Raaga_Audio_MixerDapv2StatusInfo;
 
 typedef struct BDSP_Raaga_VideoH264EncoderInfo
 {
@@ -4390,8 +4420,9 @@ typedef union BDSP_Raaga_Audio_StreamInfo
     BDSP_Raaga_Audio_OpusDecStreamInfo    sOpusDecStreamInfo;
     BDSP_Raaga_Audio_ALSDecStreamInfo    sALSDecStreamInfo;
     BDSP_Raaga_Audio_FadeCtrlPPStatusInfo sFadeCtrlProcessInfo;
+    BDSP_Raaga_Audio_MixerDapv2StatusInfo sMixerDapv2ProcessInfo;
     BDSP_Raaga_VideoH264EncoderInfo      sH264EncoderInfo;
-    BDSP_Raaga_VideoX264EncoderInfo      sX264EncoderInfo;
+	BDSP_Raaga_VideoX264EncoderInfo      sX264EncoderInfo;
     BDSP_Raaga_Audio_PassthruStreamInfo         sPassthruStreamInfo;
     /* Other decoders info */
 } BDSP_Raaga_Audio_StreamInfo;

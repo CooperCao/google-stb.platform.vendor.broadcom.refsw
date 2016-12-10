@@ -99,12 +99,16 @@ typedef enum eNotification
     eNotify_ClosedCaptionMode,        /* command  - set 608/708 closed caption mode */
     eNotify_ipClientTranscodeEnable,  /* command  - enable/disable transcoding in BIP streaming for a given client */
     eNotify_ipClientTranscodeProfile, /* command  - set the IP transcode profile in BIP streaming for a given client */
+#ifdef WPA_SUPPLICANT_SUPPORT
+    eNotify_NetworkWifiList, /* command  - list currently known wifi networks */
+#endif
+    eNotify_NetworkWifiScanStart,              /* command  - start wifi network scan */
+    eNotify_NetworkWifiScanStop,               /* command  - stop wifi network scan */
+    eNotify_NetworkWifiScanResultRetrieve,     /* command  - retrieve results of wifi network scan */
+    eNotify_NetworkWifiConnectedNetworkStatus, /* command  - retrieve status of the currently connected network */
+    eNotify_NetworkWifiConnect,                /* command  - connect to given wifi network */
+    eNotify_NetworkWifiDisconnect,             /* command  - disconnect from current wifi network */
 #ifdef NETAPP_SUPPORT
-    eNotify_NetworkWifiScanStart,  /* command  - start wifi network scan */
-    eNotify_NetworkWifiScanStop,   /* command  - stop wifi network scan */
-    eNotify_NetworkWifiConnect,    /* command  - connect to given wifi network */
-    eNotify_NetworkWifiDisconnect, /* command  - disconnect from current wifi network */
-
     eNotify_BluetoothDiscoveryStart,   /* command  - start bluetooth discovery */
     eNotify_BluetoothDiscoveryStop,    /* command  - stop bluetooth discovery */
     eNotify_BluetoothDiscoveryStopped, /* command  - stopped bluetooth discovery */
@@ -175,21 +179,25 @@ typedef enum eNotification
     eNotify_Capabilities,                /* status   - nexus capabilities */
     eNotify_TunerLockStatus,             /* status   - tuner lock status has changed */
     eNotify_NonTunerLockStatus,          /* status   - non tuner lock status has changed like IP or Streamer */
-#ifdef NETAPP_SUPPORT
     eNotify_NetworkWifiRssiResult,       /* status   - wifi network RSSI status */
-    eNotify_NetworkWifiScanStarted,      /* status   - wifi network scan started 103*/
-    eNotify_NetworkWifiScanStopped,      /* status   - wifi network scan stopped104 */
-    eNotify_NetworkWifiScanResult,       /* status   - results of wifi network scan are available 105*/
-    eNotify_NetworkWifiConnectionStatus, /* status   - wifi network connection status is available 106 */
+    eNotify_NetworkWifiScanStarted,      /* status   - wifi network scan started */
+    eNotify_NetworkWifiScanStopped,      /* status   - wifi network scan stopped */
+    eNotify_NetworkWifiScanResult,       /* status   - results of wifi network scan are available */
+    eNotify_NetworkWifiConnectionStatus, /* status   - wifi network connection status is available */
     eNotify_NetworkWifiConnected,        /* status   - wifi network has been connected */
+    eNotify_NetworkWifiConnectFailure,   /* status   - wifi network connection attempt failture */
     eNotify_NetworkWifiDisconnected,     /* status   - wifi network has been disconnected */
-    eNotify_BluetoothDiscoveryStarted,   /* status   - bluetooth discovery started */
-    eNotify_BluetoothDiscoveryResult,    /* status   - discovery done and results of bluetooth discovery are available */
-    eNotify_BluetoothConnectionStatus,   /* status   - bluetooth connection status is available */
-    eNotify_BluetoothConnectionDone,     /* status   - connection done */
-    eNotify_BluetoothListStatusDone,     /* status   - Bt list status done */
-    eNotify_BluetoothA2DPStarted,        /* status   - bluetooth A2DP started */
-    eNotify_BluetoothA2DPStopped,        /* status   - bluetooth A2DP stopped */
+#ifdef WPA_SUPPLICANT_SUPPORT
+    eNotify_NetworkWifiListUpdated, /* status   - updated list currently known wifi networks */
+#endif
+#ifdef NETAPP_SUPPORT
+    eNotify_BluetoothDiscoveryStarted, /* status   - bluetooth discovery started */
+    eNotify_BluetoothDiscoveryResult,  /* status   - discovery done and results of bluetooth discovery are available */
+    eNotify_BluetoothConnectionStatus, /* status   - bluetooth connection status is available */
+    eNotify_BluetoothConnectionDone,   /* status   - connection done */
+    eNotify_BluetoothListStatusDone,   /* status   - Bt list status done */
+    eNotify_BluetoothA2DPStarted,      /* status   - bluetooth A2DP started */
+    eNotify_BluetoothA2DPStopped,      /* status   - bluetooth A2DP stopped */
 #endif /* ifdef NETAPP_SUPPORT */
     eNotify_PlaylistAdded,            /* status   - a playlist was added to the playlist database */
     eNotify_PlaylistRemoved,          /* status   - a playlist was removed from the playlist database */

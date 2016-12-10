@@ -72,7 +72,7 @@
 #define B_IPC_SERVER_DESTROY_ENUM(api, _class, first_arg) NEXUS_DRIVER_DESTROY_OBJECT(_class, (void *)first_arg);
 #define B_IPC_SERVER_RELEASE(api, _class, first_arg) NEXUS_DRIVER_RELEASE_OBJECT(_class, B_IPC_FIELD(api, in, args.first_arg));
 #define B_IPC_SERVER_SHUTDOWN(api, _class, first_arg) nexus_driver_shutdown_close_##_class(B_IPC_FIELD(api, in, args.first_arg));
-#define B_IPC_SERVER_CALL_HANDLE(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(!B_IPC_FIELD(api, out, ret.__retval)) {__rc=NEXUS_P_SERVER_ERROR_TRACE(NEXUS_UNKNOWN);};
+#define B_IPC_SERVER_CALL_HANDLE(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(!__result) {__rc=NEXUS_UNKNOWN;}
 #define B_IPC_SERVER_CALL_VOID(api, funcname, args) funcname args;
 #define B_IPC_SERVER_SET_OUT_PTR(api, arg) arg = B_IPC_FIELD(api, in, pointer.out_is_null.arg ) ? NULL : &B_IPC_FIELD(api, out, pointer.arg);
 #define B_IPC_SERVER_RECV(api, arg) arg = B_IPC_FIELD(api, in, args.arg);
@@ -84,10 +84,15 @@
 #define B_IPC_SERVER_SEND_ADDR(api, arg) B_IPC_FIELD(api, out, memory.arg) = NEXUS_P_ServerCall_AddrToOffset(*arg);
 #define B_IPC_SERVER_RECV_FIELD_ADDR(api, arg, field, memory_field) B_IPC_FIELD(api, in, pointer.arg.field) = NEXUS_P_ServerCall_OffsetToAddr(B_IPC_FIELD(api, in, memory.memory_field));
 #define B_IPC_SERVER_RECV_ADDR(api, arg) arg = NEXUS_P_ServerCall_OffsetToAddr(B_IPC_FIELD(api, in, memory.arg));
-#define B_IPC_SERVER_RECV_VARARG(api, arg, type, nelem) if(B_IPC_FIELD(api, in, vararg.arg) + sizeof(type)* B_IPC_FIELD(api, in, args.nelem) > in_data_size ) {(void)NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto api##_done;} arg = B_IPC_FIELD(api, in, pointer.is_null.arg ) ? NULL : (void *)((uint8_t *)__in_data + B_IPC_FIELD(api, in, vararg.arg));
+#define B_IPC_SERVER_RECV_VARARG(api, arg, type, nelem) if(!B_IPC_FIELD(api, in, pointer.is_null.arg)) {  if(B_IPC_FIELD(api, in, vararg.arg) + sizeof(type)* B_IPC_FIELD(api, in, args.nelem) > in_data_size ) {(void)NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto api##_done;} arg = (void *)((uint8_t *)__in_data + B_IPC_FIELD(api, in, vararg.arg));} else { arg = NULL;}
+#define B_IPC_SERVER_RECV_VARARG_NELEM_CONVERT(api, arg, type, convert, nelem) if(!B_IPC_FIELD(api, in, pointer.is_null.arg)) {  if(B_IPC_FIELD(api, in, vararg.arg) + convert(B_IPC_FIELD(api, in, args.nelem)) > in_data_size ) {(void)NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto api##_done;} arg = (void *)((uint8_t *)__in_data + B_IPC_FIELD(api, in, vararg.arg));} else { arg = NULL;}
 #define B_IPC_SERVER_RECV_VARARG_ADDR(api, arg, type, field, field_addr, nelem) NEXUS_P_ServerCall_InVarArg_AddrField(in_data_size, __in_data, sizeof(*arg), (uint8_t *)&(arg->field) - (uint8_t *)arg, B_IPC_FIELD(api, in, args.nelem) , B_IPC_FIELD(api, in, vararg.arg), (B_IPC_FIELD(api, in, vararg.field_addr)));
 #define B_IPC_SERVER_TRACE(x) NEXUS_P_TRACE_MSG(x);
-#define B_IPC_SERVER_PREPATE_VARARG(api, arg,  type, length) arg=NEXUS_P_ServerCall_OutVarArg_Allocate(__vout_data, sizeof(type) * length);if(arg) {__out_data=(void *)((uint8_t *)__vout_data->data+__vout_data->header); B_IPC_FIELD(api, out, vararg.arg)=(uint8_t *)arg - (uint8_t *)__out_data;} else {B_IPC_FIELD(api, out, vararg.arg)=-1; __rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto api##_done;}
+#define B_IPC_SERVER_BEGIN_OUT_VARARG(api) {unsigned __varags_size = 0;
+#define B_IPC_SERVER_SIZE_OUT_VARARG(api, arg,  type, length) __varags_size += B_IPC_DATA_ALIGN(sizeof(type) * length); B_IPC_FIELD(api, out, vararg.arg)=-1;
+#define B_IPC_SERVER_ALLOCATE_OUT_VARARG(api)  __rc = NEXUS_P_ServerCall_OutVarArg_Allocate(__vout_data, __varags_size);if(__rc!=NEXUS_SUCCESS) { __rc = NEXUS_P_SERVER_ERROR_TRACE(__rc);goto api##_done; } __out_data=(void *)((uint8_t *)__vout_data->data+__vout_data->header);
+#define B_IPC_SERVER_PLACE_OUT_VARARG(api, arg,  type, length) arg=NEXUS_P_ServerCall_OutVarArg_Place(__vout_data, sizeof(type) * length);if(arg) {B_IPC_FIELD(api, out, vararg.arg)=(uint8_t *)arg - (uint8_t *)__out_data;} else {B_IPC_FIELD(api, out, vararg.arg)=-1; __rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto api##_done;}
+#define B_IPC_SERVER_END_OUT_VARARG(api) }
 
 #define B_IPC_CALLBACK_CONSTRUCTOR_FIELD_IN_PREPARE(api, arg, field, first_arg, id) if(arg) { NEXUS_DRIVER_CALLBACK_TO_DRIVER(&B_IPC_FIELD(api, in, pointer.arg.field), NULL, id);}
 #define B_IPC_CALLBACK_CONSTRUCTOR_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) if(arg) { if(__rc==NEXUS_SUCCESS) { NEXUS_DRIVER_CALLBACK_UPDATE(&B_IPC_FIELD(api, in, pointer.arg.field), NULL, id, B_IPC_FIELD(api, out, ret.__retval));} else {NEXUS_DRIVER_CALLBACK_TO_DRIVER_CANCEL(&B_IPC_FIELD(api, in, pointer.arg.field), NULL, id);} }

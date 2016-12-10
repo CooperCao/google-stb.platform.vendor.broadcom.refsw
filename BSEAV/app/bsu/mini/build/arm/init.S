@@ -54,7 +54,7 @@ x:	_LONG_  0
 
 /* ------------------------------------------------------------------------- */
 	.section .data
-	.align  4
+	.align  8
 
 DECLARE_LONG(__saved_sp)
 DECLARE_LONG(__saved_lr)

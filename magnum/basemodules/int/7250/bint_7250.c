@@ -60,9 +60,7 @@
 #include "bchp_bvnf_intr2_18.h"
 #include "bchp_bvnm_intr2_0.h"
 #include "bchp_clkgen_intr2.h"
-#include "bchp_dvp_hr_intr2.h"
 #include "bchp_m2mc_l2.h"
-#include "bchp_hdmi_rx_intr2_0.h"
 #include "bchp_hdmi_tx_intr2.h"
 #include "bchp_memc_l2_0_0.h"
 #include "bchp_memc_l2_0_1.h"
@@ -333,9 +331,6 @@ static const BINT_P_IntMap bint_7250[] =
     BINT_MAP_STD(0, HDMI_TX, HDMI_TX_INTR2_CPU),
     BINT_MAP_STD(0, HDMI_TX, HDMI_TX_SCDC_INTR2_0_CPU),
     BINT_MAP_STD(0, HDMI_TX, HDMI_TX_HAE_INTR2_0_CPU),
-
-    BINT_MAP_STD(1, DVP_HR, DVP_HR_INTR2_CPU),
-    BINT_MAP_STD(1, HDMI_RX_0, HDMI_RX_INTR2_0_CPU),
 
     BINT_MAP_STD(0, GFX, M2MC_L2_CPU),
 

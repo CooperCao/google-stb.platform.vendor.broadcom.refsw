@@ -103,7 +103,7 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	|| pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eHLG)
 	{
 		uint8_t i ;
-		for (i = 1 ; i < BAVC_HDMI_PACKET_DATA_LENGTH ; i++ )
+		for (i = 2 ; i < BAVC_HDMI_PACKET_DATA_LENGTH ; i++ )
 		{
 #if BDBG_DEBUG_BUILD
 			if (hHDMI->PacketBytes[i] != 0)

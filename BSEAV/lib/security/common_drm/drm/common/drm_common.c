@@ -1,41 +1,39 @@
 /******************************************************************************
-
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *****************************************************************************/
 #include <sys/types.h>
 #include <sys/syscall.h>
@@ -79,7 +77,7 @@
 static BCRYPT_Handle g_bcrypt_handle = 0x00;
 static BKNI_MutexHandle drmCommonMutex = 0;
 static DrmCommonSha1_t drmSha1;
-static 	NEXUS_MemoryAllocationSettings memorySettings;
+static  NEXUS_MemoryAllocationSettings memorySettings;
 static int DrmCommon_InitCounter = 0;
 static bool bUseExternalHeap = false;
 
@@ -101,6 +99,7 @@ static uint8_t askmProcInForKey4[16] = {0x00};
 
 #define MAX_DMA_BLOCKS 5
 
+#define BDBG_MSG(x) BDBG_LOG(x)
 
 /* Add module to BDBG */
 BDBG_MODULE(drm_common);
@@ -191,8 +190,8 @@ DrmRC DRM_Common_CloseHandle(void)
 **   Called by all DRM_xxxxxxx_Initialize APIs
 **
 ** PARAMETERS:
-**	commonDrmInit - DrmCommonInit_t structure to pass on to DRM_Common_BasicInitialize
-**	key_file - path to valid DRM bin file
+**  commonDrmInit - DrmCommonInit_t structure to pass on to DRM_Common_BasicInitialize
+**  key_file - path to valid DRM bin file
 **
 ** RETURNS:
 **   Drm_Success when the operation is successful or an error.
@@ -601,7 +600,7 @@ DrmRC DRM_Common_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct)
     NEXUS_DmaJobBlockSettings jobBlkSettings[MAX_DMA_BLOCKS];
 
     CommonCryptoJobSettings jobSettings;
-	unsigned int i = 0;
+    unsigned int i = 0;
 
     /* The mutex is still protecting the DRM Common Handle (resp CommonCrypto handle) table */
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
@@ -672,7 +671,7 @@ ErrorExit:
 
 
 DrmRC DRM_Common_GenerateRandomNumber(
-    uint32_t	numberOfBytes,
+    uint32_t    numberOfBytes,
     uint8_t *pBuffer)
 {
     DrmRC rc = Drm_Success;
@@ -1165,10 +1164,10 @@ DrmRC DRM_Common_SwSha256(
 
 
 /*************************************************************************************/
-/*				ECDSA Functions														 */
+/*              ECDSA Functions                                                      */
 /*************************************************************************************/
 DrmRC DRM_Common_SwEcdsaVerify(
-        DrmCommon_ECDSASw_Verify_t 	*inoutp_ecdsaSwIO
+        DrmCommon_ECDSASw_Verify_t  *inoutp_ecdsaSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1176,7 +1175,7 @@ DrmRC DRM_Common_SwEcdsaVerify(
 
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
-    BCRYPT_ECDSASw_Verify_t 	*pBcrypt_ecdsaSwIO = NULL;
+    BCRYPT_ECDSASw_Verify_t     *pBcrypt_ecdsaSwIO = NULL;
 
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
@@ -1197,7 +1196,7 @@ DrmRC DRM_Common_SwEcdsaVerify(
 }
 
 DrmRC DRM_Common_SwEcdsaSign(
-        DrmCommon_ECDSASw_Sign_t 	*inoutp_ecdsaSwIO
+        DrmCommon_ECDSASw_Sign_t    *inoutp_ecdsaSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1205,7 +1204,7 @@ DrmRC DRM_Common_SwEcdsaSign(
 
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
-    BCRYPT_ECDSASw_Sign_t 	*pBcrypt_ecdsaSwIO = NULL;
+    BCRYPT_ECDSASw_Sign_t   *pBcrypt_ecdsaSwIO = NULL;
 
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
@@ -1225,7 +1224,7 @@ DrmRC DRM_Common_SwEcdsaSign(
 
 
 DrmRC DRM_Common_SwEcdsaMultiply(
-        DrmCommon_ECDSASw_Multiply_t 	*inoutp_ecdsaSwIO
+        DrmCommon_ECDSASw_Multiply_t    *inoutp_ecdsaSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1233,7 +1232,7 @@ DrmRC DRM_Common_SwEcdsaMultiply(
 
     DrmRC rc = Drm_Success;
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
-    BCRYPT_ECDSASw_Multiply_t 	*pBcrypt_ecdsaSwIO = NULL;
+    BCRYPT_ECDSASw_Multiply_t   *pBcrypt_ecdsaSwIO = NULL;
 
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
@@ -1253,10 +1252,10 @@ DrmRC DRM_Common_SwEcdsaMultiply(
 
 
 /********************************************************************************/
-/*						AES Functionality										*/
+/*                      AES Functionality                                       */
 /********************************************************************************/
 DrmRC DRM_Common_SwAesEcb(
-        DrmCommon_AesEcbSw_t 	*inoutp_aesecbSwIO
+        DrmCommon_AesEcbSw_t    *inoutp_aesecbSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1283,7 +1282,7 @@ DrmRC DRM_Common_SwAesEcb(
 }
 
 DrmRC DRM_Common_SwAesCbc(
-        DrmCommon_AesCbcSw_t 	*inoutp_aescbcSwIO
+        DrmCommon_AesCbcSw_t    *inoutp_aescbcSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1312,10 +1311,10 @@ DrmRC DRM_Common_SwAesCbc(
 
 
 /********************************************************************************/
-/*						CMAC Functionality										*/
+/*                      CMAC Functionality                                      */
 /********************************************************************************/
 DrmRC DRM_Common_SwCmac(
-        DrmCommon_CmacSw_t 	*inoutp_cmacSwIO
+        DrmCommon_CmacSw_t  *inoutp_cmacSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1343,7 +1342,7 @@ DrmRC DRM_Common_SwCmac(
 
 
 /********************************************************************************/
-/*						DES-xxx Functionality									*/
+/*                      DES-xxx Functionality                                   */
 /********************************************************************************/
 DrmRC DRM_Common_SwDesEcb(
         DrmCommon_DesEcbSw_t *inoutp_desEcbSw
@@ -1401,7 +1400,7 @@ DrmRC DRM_Common_SwDesCbc(
 }
 
 /********************************************************************************/
-/*						DSA-xxx Functionality									*/
+/*                      DSA-xxx Functionality                                   */
 /********************************************************************************/
 DrmRC DRM_Common_SwDsa(
         DrmCommon_DsaSw_t *inoutp_dsaSw
@@ -1431,7 +1430,7 @@ DrmRC DRM_Common_SwDsa(
 }
 
 /********************************************************************************/
-/*						MD5 Functionality										*/
+/*                      MD5 Functionality                                       */
 /********************************************************************************/
 DrmRC DRM_Common_SwMd5(
         DrmCommon_Md5Sw_t *inoutp_md5Sw
@@ -1462,7 +1461,7 @@ DrmRC DRM_Common_SwMd5(
 
 
 /********************************************************************************/
-/*						RC4 Functionality										*/
+/*                      RC4 Functionality                                       */
 /********************************************************************************/
 DrmRC DRM_Common_SwRc4(
         DrmCommon_Rc4Sw_t *inoutp_rc4Sw
@@ -1513,10 +1512,10 @@ void DRM_Common_SwRc4SetKey (
 
 
 /********************************************************************************/
-/*						RNG Functionality										*/
+/*                      RNG Functionality                                       */
 /********************************************************************************/
 DrmRC DRM_Common_SwRng(
-        DrmCommon_RngSw_t 	*inoutp_rngSwIO
+        DrmCommon_RngSw_t   *inoutp_rngSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1544,11 +1543,11 @@ DrmRC DRM_Common_SwRng(
 }
 
 /********************************************************************************/
-/*						RSA Functionality										*/
+/*                      RSA Functionality                                       */
 /********************************************************************************/
 DrmRC DRM_Common_GetRSA_From_SubjectPublicKeyInfo(
-		uint8_t *buf, uint32_t length,
-		DrmCommon_RsaKey_t 	*pSwRsaKey
+        uint8_t *buf, uint32_t length,
+        DrmCommon_RsaKey_t  *pSwRsaKey
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1558,32 +1557,32 @@ DrmRC DRM_Common_GetRSA_From_SubjectPublicKeyInfo(
 
     BKNI_AcquireMutex(drmCommonMutex);
 
-	DrmRC rc = Drm_Success;
-	BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
-	BCRYPT_RSAKey_t *pBcrypt_rsaSw = NULL;
+    DrmRC rc = Drm_Success;
+    BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
+    BCRYPT_RSAKey_t *pBcrypt_rsaSw = NULL;
 
-	BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
-	pBcrypt_rsaSw = (BCRYPT_RSAKey_t*)pSwRsaKey;
+    pBcrypt_rsaSw = (BCRYPT_RSAKey_t*)pSwRsaKey;
 
-	errCode = BCrypt_GetRSA_From_SubjectPublicKeyInfo(g_bcrypt_handle, buf, length, pBcrypt_rsaSw);
+    errCode = BCrypt_GetRSA_From_SubjectPublicKeyInfo(g_bcrypt_handle, buf, length, pBcrypt_rsaSw);
 
     if(errCode != BCRYPT_STATUS_eOK)
-	{
-		BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
-		rc = Drm_BcryptErr;
-	}
+    {
+        BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
+        rc = Drm_BcryptErr;
+    }
 
-	BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
 
-	BKNI_ReleaseMutex(drmCommonMutex);
-	return rc;
+    BKNI_ReleaseMutex(drmCommonMutex);
+    return rc;
 }
 
 
 DrmRC DRM_Common_GetRsa_From_PrivateKeyInfo(
-		uint8_t *buf, uint32_t length,
-		DrmCommon_RsaKey_t 	*pSwRsaKey
+        uint8_t *buf, uint32_t length,
+        DrmCommon_RsaKey_t  *pSwRsaKey
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1595,31 +1594,31 @@ DrmRC DRM_Common_GetRsa_From_PrivateKeyInfo(
     BKNI_AcquireMutex(drmCommonMutex);
 
 
-	DrmRC rc = Drm_Success;
-	BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
-	BCRYPT_RSAKey_t *pBcrypt_rsaSw = NULL;
+    DrmRC rc = Drm_Success;
+    BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
+    BCRYPT_RSAKey_t *pBcrypt_rsaSw = NULL;
 
-	BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
-	pBcrypt_rsaSw = (BCRYPT_RSAKey_t*)pSwRsaKey;
+    pBcrypt_rsaSw = (BCRYPT_RSAKey_t*)pSwRsaKey;
 
-	BDBG_ERR(("%s -  RSA %d ", __FUNCTION__, __LINE__));
-	errCode = BCrypt_GetRSA_From_PrivateKeyInfo(g_bcrypt_handle, buf, length, pBcrypt_rsaSw);
+    BDBG_ERR(("%s -  RSA %d ", __FUNCTION__, __LINE__));
+    errCode = BCrypt_GetRSA_From_PrivateKeyInfo(g_bcrypt_handle, buf, length, pBcrypt_rsaSw);
 
     if(errCode != BCRYPT_STATUS_eOK)
-	{
-		BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
-		rc = Drm_BcryptErr;
-	}
+    {
+        BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
+        rc = Drm_BcryptErr;
+    }
 
-	BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
 
-	BKNI_ReleaseMutex(drmCommonMutex);
-	return rc;
+    BKNI_ReleaseMutex(drmCommonMutex);
+    return rc;
 }
 
 DrmRC DRM_Common_SwRsa(
-        DrmCommon_RsaSwParam_t 	*inoutp_rsaSwIO
+        DrmCommon_RsaSwParam_t  *inoutp_rsaSwIO
 )
 {
     BDBG_ASSERT(drmCommonMutex != NULL);
@@ -1631,7 +1630,7 @@ DrmRC DRM_Common_SwRsa(
     BCRYPT_STATUS_eCode errCode = BCRYPT_STATUS_eOK;
     BCRYPT_S_RSASwParam_t *pBcrypt_rsaSw = NULL;
 
-	BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_MSG(("%s - Entered function", __FUNCTION__));
     /*Added field 'padType' to  rsaSWIo struct for Adobe. The following is done so that other drms using this API and not
     and not setting padType don't fail*/
 
@@ -1640,27 +1639,27 @@ DrmRC DRM_Common_SwRsa(
         inoutp_rsaSwIO->padType = DrmCommon_RSAPaddingType_ePKCS1;
     }
 
-	pBcrypt_rsaSw = (BCRYPT_S_RSASwParam_t*)inoutp_rsaSwIO;
+    pBcrypt_rsaSw = (BCRYPT_S_RSASwParam_t*)inoutp_rsaSwIO;
 
-	errCode = BCrypt_RSASw(g_bcrypt_handle, pBcrypt_rsaSw);
+    errCode = BCrypt_RSASw(g_bcrypt_handle, pBcrypt_rsaSw);
 
-	if(errCode != BCRYPT_STATUS_eOK)
-	{
-		BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
-		rc = Drm_BcryptErr;
-	}
+    if(errCode != BCRYPT_STATUS_eOK)
+    {
+        BDBG_ERR(("%s - Error RSA (0x%08x)", __FUNCTION__, errCode));
+        rc = Drm_BcryptErr;
+    }
 
-	BDBG_MSG(("%s - Exiting function", __FUNCTION__));
+    BDBG_MSG(("%s - Exiting function", __FUNCTION__));
 
-	BKNI_ReleaseMutex(drmCommonMutex);
-	return rc;
+    BKNI_ReleaseMutex(drmCommonMutex);
+    return rc;
 }
 
 
 
 
 /********************************************************************************/
-/*						X509 Functionality										*/
+/*                      X509 Functionality                                      */
 /********************************************************************************/
 DrmRC DRM_Common_Swx509ASN1DerDecode(
         const unsigned char*  x509Data,
@@ -1859,7 +1858,7 @@ DrmRC DRM_Common_ConvBinToStr(
     if(BCrypt_ConvBinToStr(g_bcrypt_handle,
                         (unsigned char *)data,
                         (unsigned long)byteLen,
-                        bcrypt_format,	outStr) != BCRYPT_STATUS_eOK)
+                        bcrypt_format,  outStr) != BCRYPT_STATUS_eOK)
     {
         BDBG_ERR(("%s - Error converting to string", __FUNCTION__));
         rc = Drm_BcryptErr;
@@ -2044,9 +2043,9 @@ end_locked:
 DrmRC DRM_Common_FetchDeviceIds(drm_chip_info_t *pStruct)
 {
     int count = 0;
-    DrmRC		rc = Drm_Success;
+    DrmRC       rc = Drm_Success;
     NEXUS_ReadOtpIO readOtpIO;
-    NEXUS_OtpCmdReadRegister	readOtpEnum;
+    NEXUS_OtpCmdReadRegister    readOtpEnum;
     NEXUS_OtpKeyType            keyType;
 
     BKNI_Memset(&readOtpIO, 0x00, sizeof(NEXUS_ReadOtpIO));

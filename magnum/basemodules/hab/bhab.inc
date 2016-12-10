@@ -64,6 +64,10 @@ ifeq ($(BCHP_3462_VER),)
 BCHP_3462_VER := A0
 endif
 
+ifeq ($(BCHP_3466_VER),)
+BCHP_3466_VER := A0
+endif
+
 ifeq ($(BCHP_3472_VER),)
 BCHP_3472_VER := B0
 endif
@@ -100,6 +104,7 @@ BHAB_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_312X_VER)")}')
 
 BHAB_3461_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3461_VER)")}')
 BHAB_3462_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3462_VER)")}')
+BHAB_3466_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3466_VER)")}')
 BHAB_3472_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3472_VER)")}')
 BHAB_7364_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_7364_VER)")}')
 BHAB_4528_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_4528_VER)")}')
@@ -113,6 +118,7 @@ BHAB_3158_VER_LOWER ?= $(shell awk 'BEGIN{print tolower("$(BCHP_3158_VER)")}')
 # Source needs to know which revision
 BHAB_DEFINES += BHAB_312X_VER=BCHP_VER_$(BCHP_312X_VER)
 BHAB_DEFINES += BHAB_3461_VER=BCHP_VER_$(BCHP_3461_VER)
+BHAB_DEFINES += BHAB_3466_VER=BCHP_VER_$(BCHP_3466_VER)
 BHAB_DEFINES += BHAB_45216_VER=BCHP_VER_$(BCHP_45216_VER)
 BHAB_DEFINES += BHAB_45308_VER=BCHP_VER_$(BCHP_45308_VER)
 
@@ -149,6 +155,22 @@ BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3462/bhab_3462.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/bhab_34xx_priv.c
 BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3462/bhab_3462_fw_$(BHAB_3462_VER_LOWER).c
 endif
+endif
+
+ifneq ($(BHAB_3466_SUPPORT),)
+ifeq ($(BHAB_LEAP_UART_ENABLE),y)
+BHAB_DEFINES += BHAB_LEAP_UART_ENABLE
+endif
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/include/3466/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/3466/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/hab/src/leapctfe/common/
+BHAB_INCLUDES += $(MAGNUM)/basemodules/chp/include/3466/rdb/hab/$(BHAB_3466_VER_LOWER)
+ifeq ($(BHAB_IMG_ONLY),)
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3466/bhab_3466.c
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3466/bhab_3466_priv.c
+endif
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3466/bhab_3466_fw_$(BHAB_3466_VER_LOWER).c
+BHAB_SOURCES += $(MAGNUM)/basemodules/hab/src/leapctfe/3466/bhab_3465_fw_$(BHAB_3466_VER_LOWER).c
 endif
 
 ifneq ($(BHAB_3472_SUPPORT),)

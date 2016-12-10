@@ -166,7 +166,7 @@ CSimpleVideoDecode * CAtlasNx::videoDecodeCreate(eWindowType windowType)
     {
         pVideoDecode = (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
     }
-    CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
 
     _model.addSimpleVideoDecode(pVideoDecode, windowType);
 error:

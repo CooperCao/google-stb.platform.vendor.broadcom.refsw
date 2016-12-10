@@ -124,12 +124,7 @@ typedef enum BHAB_CoreType
     BHAB_CoreType_eLast
 } BHAB_CoreType;
 #define BHAB_HAB_DONE               0x03000040
-#if BHAB_STANDALONE_FRONTEND
-#define BHAB_HAB_RESET              0x00100000
-#else
 #define BHAB_HAB_RESET              0x04000000
-#endif
-
 #define BHAB_AP_INIT_DONE           0x80000000
 #define BHAB_AP_ERROR               0x40000000
 #define BHAB_AP_EVENT               0x20000000
@@ -254,6 +249,7 @@ typedef struct BHAB_Leap_P_Handle
     BHAB_RfDaisyChain daisyChain;   /* daisy chain output*/
     BHAB_RecalibrateSettings recalibrateSettings;
     uint8_t inBuf[BHAB_COMMAND_BUF_SIZE];
+    uint8_t ifdacChannelNumber;
 } BHAB_Leap_P_Handle;
 
 

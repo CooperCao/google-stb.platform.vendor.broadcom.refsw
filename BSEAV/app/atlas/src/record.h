@@ -152,7 +152,7 @@ public:
     CParserBand *        getBand(void)                      { return(_pParserBand); }
     void                 setBand(CParserBand * pParserBand) { _pParserBand = pParserBand; }
     eRet                 createVideo(MString fileName, MString path);
-    bool                 hasIndex() { return(_currentVideo->hasIndex()); }
+    bool                 hasIndex() { return(_currentVideo->hasIndexName()); }
     bool                 isActive(void);
     void                 dump(void);
     bool                 isAllocated(void) { return(_allocated); }

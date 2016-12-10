@@ -818,6 +818,12 @@ int media_player_start( media_player_t player, const media_player_start_settings
         NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &settings);
     }
 
+    /* special start settings based on codec */
+    switch (player->audioProgram.primary.codec) {
+    case NEXUS_AudioCodec_eAc4: player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone; break;
+    default: /* just ignore */ break;
+    }
+
     /* set StcChannel to all decoders before starting any */
     if (player->videoProgram.settings.pidChannel && player->stcChannel) {
         rc = NEXUS_SimpleVideoDecoder_SetStcChannel(player->videoDecoder, player->stcChannel);

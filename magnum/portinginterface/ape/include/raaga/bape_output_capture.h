@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -131,6 +131,7 @@ BERR_Code BAPE_OutputCapture_SetSettings(
     const BAPE_OutputCaptureSettings *pSettings
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Flush OutputCapture Buffer
@@ -138,7 +139,7 @@ Flush OutputCapture Buffer
 void BAPE_OutputCapture_Flush(
     BAPE_OutputCaptureHandle handle
     );
-
+#endif
 /***************************************************************************
 Summary:
 Flush OutputCapture Buffer from interrupt context

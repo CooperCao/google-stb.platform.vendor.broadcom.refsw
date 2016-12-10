@@ -494,8 +494,10 @@ sub parse_func
 
         # parse type and name
         my ($type, $name) = $p =~ /(\w[\w\s]*[\s\*]+)(\w+)/;
+        # replace multiple whitespaces with a single whitespace */
+        $type =~ s/\s+/ /g;
         # strip leading and trailing whitespace
-        $type =~ s/^\s*(.*?)\s*$/$1/;
+        $type =~ s/^\s?(.*?)\s?$/$1/;
 
         $paramhash{NAME} = $name;
         $paramhash{TYPE} = $type;

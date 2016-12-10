@@ -2181,6 +2181,9 @@ int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus
     struct b_audio_config *config = &session->server->audio_config;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    if (!session->main_audio) {
+        return 0;
+    }
     if (!session->main_audio->localSession) {
         return 0;
     }

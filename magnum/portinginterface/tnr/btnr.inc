@@ -171,6 +171,12 @@ BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/3462ib/btnr_34
 BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/btnr_34xxib_priv.c
 endif
 
+ifneq ($(BTNR_3466_SUPPORT),)
+BTNR_INCLUDES += $(MAGNUM)/portinginterface/tnr/include/3466ib/
+BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/3466ib/btnr_3466ib.c
+BTNR_SOURCES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband/3466ib/btnr_3466ib_priv.c
+endif
+
 ifneq ($(BTNR_3472_SUPPORT),)
 BTNR_INCLUDES += $(MAGNUM)/portinginterface/tnr/include/3472ib/
 BTNR_INCLUDES += $(MAGNUM)/portinginterface/tnr/src/leapnarrowband

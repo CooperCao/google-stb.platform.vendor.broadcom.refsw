@@ -51,7 +51,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x30011800,
 
 		/* BDSP_AF_P_AlgoId_eAc3Decode */
-		0x30047814,
+		0x30047ff4,
 
 		/* BDSP_AF_P_AlgoId_eAacDecode */
 		0x00000000,
@@ -60,7 +60,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x100c2000,
 
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
-		0x3008782c,
+		0x3008800c,
 
 		/* BDSP_AF_P_AlgoId_eDdLosslessDecode */
 		0x00000000,
@@ -156,10 +156,10 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x305f6560,
 
 		/* BDSP_AF_P_AlgoId_eOpusDecode */
-		0x306a9bb4,
+		0x306a9bbc,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x306cbdc0,
+		0x306cbdd4,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		0x306d3648,
@@ -245,9 +245,6 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		/* BDSP_AF_P_AlgoId_ePcmWavFrameSync */
 		0x30000004,
 
-		/* BDSP_AF_P_AlgoId_eAmrFrameSync */
-		0x30000004,
-
 		/* BDSP_AF_P_AlgoId_eDraFrameSync */
 		0x30000004,
 
@@ -257,34 +254,13 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		/* BDSP_AF_P_AlgoId_eMs10DdpFrameSync */
 		0x30000004,
 
-		/* BDSP_AF_P_AlgoId_eAdpcmFrameSync */
-		0x30000004,
-
-		/* BDSP_AF_P_AlgoId_eG711G726FrameSync */
-		0x30000004,
-
-		/* BDSP_AF_P_AlgoId_eG729FrameSync */
-		0x30000004,
-
 		/* BDSP_AF_P_AlgoId_eVorbisFrameSync */
-		0x30000004,
-
-		/* BDSP_AF_P_AlgoId_eG723_1FrameSync */
 		0x30000004,
 
 		/* BDSP_AF_P_AlgoId_eFlacFrameSync */
 		0x30000004,
 
 		/* BDSP_AF_P_AlgoId_eMacFrameSync */
-		0x30000004,
-
-		/* BDSP_AF_P_AlgoId_eAmrWbFrameSync */
-		0x30000004,
-
-		/* BDSP_AF_P_AlgoId_eiLBCFrameSync */
-		0x30000004,
-
-		/* BDSP_AF_P_AlgoId_eiSACFrameSync */
 		0x30000004,
 
 		/* BDSP_AF_P_AlgoId_eUdcFrameSync */
@@ -501,7 +477,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x1031d000,
 
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
-		0x1032ff60,
+		0x1032ff78,
 
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */
 		0x10295000,
@@ -561,7 +537,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x304fe000,
 
 		/* BDSP_AF_P_AlgoId_eScm3 */
-		0x20002924,
+		0x20002928,
 
 		/* BDSP_AF_P_AlgoId_eEndOfScmAlgos */
 		0x00000000,

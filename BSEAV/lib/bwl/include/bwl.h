@@ -897,5 +897,6 @@ int32_t BWL_SetApSta(BWL_Handle hBwl, uint32_t ulApSta);
 int32_t BWL_SetMchanAlgo(BWL_Handle hBwl, uint32_t ulApSta);
 int32_t BWL_SetMchanBw(BWL_Handle hBwl, uint32_t ulBw);
 int32_t BWL_SetMchanSchedMode(BWL_Handle hBwl, uint32_t ulMode);
+char *  BWL_GetDriverVersion( BWL_Handle hBwl );
 
 #endif /* BWL_H__ */

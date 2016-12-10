@@ -92,12 +92,16 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionEnable).s(), "eNotify_ClosedC
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionMode).s(), "eNotify_ClosedCaptionMode")               /* command  - set 608/708 closed caption mode */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeEnable).s(), "eNotify_ipClientTranscodeEnable")   /* command  - BIP transcoding has been enabled/disabled for a given client */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeProfile).s(), "eNotify_ipClientTranscodeProfile") /* command - BIP transcode profile setting for a given client */
+#ifdef WPA_SUPPLICANT_SUPPORT
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiList).s(), "eNotify_NetworkWifiList") /* command  - list currently known wifi networks*/
+#endif
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStart).s(), "eNotify_NetworkWifiScanStart")                           /* command  - start wifi network scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStop).s(), "eNotify_NetworkWifiScanStop")                             /* command  - stop wifi network scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResultRetrieve).s(), "eNotify_NetworkWifiScanResultRetrieve")         /* command  - retrieve results of wifi network scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectedNetworkStatus).s(), "eNotify_NetworkWifiConnectedNetworkStatus") /* command  - retrieve status of the currently connected network */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnect).s(), "eNotify_NetworkWifiConnect")                               /* command  - connect to given wifi network */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnect).s(), "eNotify_NetworkWifiDisconnect")                         /* command  - disconnect from current wifi network */
 #ifdef NETAPP_SUPPORT
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStart).s(), "eNotify_NetworkWifiScanStart")   /* command  - start wifi network scan */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStop).s(), "eNotify_NetworkWifiScanStop")     /* command  - stop wifi network scan */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnect).s(), "eNotify_NetworkWifiConnect")       /* command  - connect to given wifi network */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnect).s(), "eNotify_NetworkWifiDisconnect") /* command  - disconnect from current wifi network */
-
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryStart).s(), "eNotify_BluetoothDiscoveryStart") /* command  - start bluetooth disovery */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryStop).s(), "eNotify_BluetoothDiscoveryStop")   /* command  - stop bluetooth disovery */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothConnect).s(), "eNotify_BluetoothConnect")               /* command  - connect to given bluetooth device */
@@ -166,15 +170,18 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_DigitalClosedCaptionChanged).s(), "eNotify
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Capabilities).s(), "eNotify_Capabilities")                               /* status   - nexus capabilites */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_TunerLockStatus).s(), "eNotify_TunerLockStatus")                         /* status   - tuner lock status has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NonTunerLockStatus).s(), "eNotify_NonTunerLockStatus")                   /* status   - non tuner lock status has changed like IP or Streamer */
-#ifdef NETAPP_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiRssiResult).s(), "eNotify_NetworkWifiRssiResult")             /* status   - wifi network RSSI status */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStarted).s(), "eNotify_NetworkWifiScanStarted")           /* status   - wifi network scan started */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStopped).s(), "eNotify_NetworkWifiScanStopped")           /* status   - wifi network scan stopped */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResult).s(), "eNotify_NetworkWifiScanResult")             /* status   - results of wifi network scan are available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectionStatus).s(), "eNotify_NetworkWifiConnectionStatus") /* status   - wifi network connection status is available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnected).s(), "eNotify_NetworkWifiConnected")               /* status   - wifi network connected */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailure).s(), "eNotify_NetworkWifiConnectFailure")     /* status   - wifi network connection attempt failure */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnected).s(), "eNotify_NetworkWifiDisconnected")         /* status   - wifi network disconnected */
-
+#ifdef WPA_SUPPLICANT_SUPPORT
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiListUpdated).s(), "eNotify_NetworkWifiListUpdated") /* status   - updated list currently known wifi networks*/
+#endif
+#ifdef NETAPP_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryStarted).s(), "eNotify_BluetoothDiscoveryStarted") /* status  - started bluetooth disovery */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryResult).s(), "eNotify_BluetoothDiscoveryStarted")  /* status   - discovery done and results of bluetooth discovery are available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothConnectionStatus).s(), "eNotify_BluetoothDiscoveryStarted") /* status   - bluetooth connection status is available */

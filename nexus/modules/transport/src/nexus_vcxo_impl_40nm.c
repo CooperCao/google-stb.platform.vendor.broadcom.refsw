@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  **************************************************************************/
 
 #include "bchp_common.h"
@@ -92,6 +87,13 @@
 #define NEXUS_VCXO_FIELD_DATA(regname,fieldname,val) (BCHP_FIELD_DATA(VCXO_0_RM_##regname,fieldname,val))
 #define NEXUS_VCXO_FIELD_ENUM(regname,fieldname,val) (BCHP_FIELD_ENUM(VCXO_0_RM_##regname,fieldname,val))
 #define NEXUS_VCXO_GET_FIELD_DATA(val,regname,fieldname) (BCHP_GET_FIELD_DATA(val,VCXO_0_RM_##regname,fieldname))
+#endif
+
+#ifdef BCHP_VCXO_0_RM_INTEGRATOR_LO
+/* 28nm chips should use a stable count of 64 - the INTEGRATOR_LO register type only appears in 28nm */
+#define VCXO_STABLE_COUNT (64)
+#else
+#define VCXO_STABLE_COUNT (10000)
 #endif
 
 static void NEXUS_Vcxo_P_Init(void)
@@ -152,7 +154,7 @@ static void NEXUS_Vcxo_P_Init(void)
 #endif
         regAddr = NEXUS_VCXO_GET_REG_ADDR(i,FORMAT);
         regVal = NEXUS_VCXO_FIELD_DATA(FORMAT,SHIFT,2) |
-                 NEXUS_VCXO_FIELD_DATA(FORMAT,STABLE_COUNT,10000);
+                 NEXUS_VCXO_FIELD_DATA(FORMAT,STABLE_COUNT,VCXO_STABLE_COUNT);
         BREG_Write32(g_pCoreHandles->reg, regAddr, regVal);
 
         regAddr = NEXUS_VCXO_GET_REG_ADDR(i,OFFSET);
@@ -198,5 +200,3 @@ static void NEXUS_Vcxo_P_SetTimebase(NEXUS_Vcxo vcxo, unsigned timebase)
     regVal |= NEXUS_VCXO_FIELD_DATA(CONTROL,TIMEBASE,timebase);
     BREG_Write32(g_pCoreHandles->reg, regAddr, regVal);    
 }
-
-

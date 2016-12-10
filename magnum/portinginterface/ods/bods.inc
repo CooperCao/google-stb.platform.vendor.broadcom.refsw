@@ -109,3 +109,11 @@ BODS_SOURCES += \
     $(MAGNUM)/portinginterface/ods/src/leap/bods_leap_priv.c \
 	$(MAGNUM)/portinginterface/ods/src/leap/3462/bods_3462.c
 endif
+
+ifneq ($(BODS_3466_SUPPORT),)
+BODS_INCLUDES += $(MAGNUM)/basemodules/chp/3466
+BODS_DEFINES += BODS_CHIP=3466
+BODS_SOURCES += \
+    $(MAGNUM)/portinginterface/ods/src/leap/bods_leap_priv.c \
+	$(MAGNUM)/portinginterface/ods/src/leap/3466/bods_3466.c
+endif

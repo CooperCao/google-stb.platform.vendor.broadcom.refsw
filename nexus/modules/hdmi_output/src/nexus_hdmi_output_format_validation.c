@@ -419,6 +419,7 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     BHDM_TxSupport platformHdmiOutputSupport ;
     unsigned idx = 0;
     bool matchFound;
+    bool b4kHighRateFormat ;
     NEXUS_HdmiOutputVideoSettings localRequested ;
 
     /* make/use a copy of the requested VideoSettings for validation */
@@ -443,12 +444,14 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
 
     preferred->videoFormat = localRequested.videoFormat ;
 
+    b4kHighRateFormat =
+        ((localRequested.videoFormat == NEXUS_VideoFormat_e3840x2160p50hz)
+        || (localRequested.videoFormat == NEXUS_VideoFormat_e3840x2160p60hz)) ;
+
     /* can the platform support 420 */
-    if ((!platformHdmiOutputSupport.YCbCr420)
-    && ((localRequested.videoFormat == NEXUS_VideoFormat_e3840x2160p50hz)
-    || (localRequested.videoFormat == NEXUS_VideoFormat_e3840x2160p60hz)))
+    if (b4kHighRateFormat && !platformHdmiOutputSupport.YCbCr420)
     {
-        BDBG_WRN(("Platform does not support the 422/420 Colorspace required for 4K formats; use Rx preferred format instead")) ;
+        BDBG_WRN(("Platform does not support the 422/420 Colorspace required for 4K formats; selecting a preferred/alternate format instead")) ;
         goto selectPreferredFormat ;
     }
 
@@ -456,6 +459,7 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     if ((!stRequestedVideoFormatSupport.yCbCr420)
     && (!stRequestedVideoFormatSupport.yCbCr444rgb444))
     {
+        BDBG_WRN(("HDMI Rx does not support 422/420 Colorspace required for 4K formats; selecting a preferred/alternate format instead")) ;
         goto selectPreferredFormat ;
     }
 
@@ -470,15 +474,41 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
            pVideoSettingsPriorityTable_priv[idx].colorDepth)) ;
     }
     BDBG_MSG((" ")) ;
+
+    BDBG_MSG(("Requested colorSpace: %d  colordepth: %d",
+		localRequested.colorSpace, localRequested.colorDepth)) ;
+    BDBG_MSG(("EDID: SCDC Support %s; Max TMDS Character Rate: %d",
+		edid.hdmiForumVsdb.scdc ? "Yes" : "No",
+		edid.hdmiForumVsdb.maxTMDSCharacterRate)) ;
 #endif
 
 
     matchFound = false ;
 
-    /* when getting Auto Color Depth always get the best supported for 4K formats */
-    if (localRequested.colorDepth == 0)
+    /********************/
+    /* Auto Color Space */
+    /********************/
+    if (localRequested.colorSpace == NEXUS_ColorSpace_eAuto)
     {
-        BDBG_MSG(("For 4K p50/60, Always use maximum color depth available")) ;
+        if (b4kHighRateFormat)
+        {
+            BDBG_MSG(("For 4K p50/60, Always use best colorspace YCbCr 4:2:2")) ;
+            localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr422 ;
+        }
+        else
+        {
+            BDBG_MSG(("For 4K up to p30, Always use best colorspace YCbCr 4:4:4")) ;
+            localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
+        }
+    }
+
+    /********************/
+    /* Auto Color Depth */
+    /********************/
+    /* when getting Auto Color Depth always get the best supported for 4K formats */
+    if (localRequested.colorDepth == NEXUS_HdmiColorDepth_eAuto)
+    {
+        BDBG_MSG(("For 4K formats; always use maximum color depth available")) ;
         localRequested.colorDepth = NEXUS_HdmiColorDepth_eMax ;
     }
 
@@ -488,6 +518,17 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
         BDBG_WRN(("Attached Rx cannot support Color Depth %d; default to 8",
             requested->colorDepth)) ;
         localRequested.colorDepth = 8 ;
+    }
+
+    /* YCbCr 422/444 requires SCDC support and HF-VSDB Max TMDS Rate > 297 */
+    if ((b4kHighRateFormat)
+    && ((localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr422)
+        || (localRequested.colorSpace == NEXUS_ColorSpace_eYCbCr444))
+    && ((!edid.hdmiForumVsdb.scdc)
+        ||(edid.hdmiForumVsdb.maxTMDSCharacterRate <= BHDM_HDMI_1_4_MAX_RATE)))
+    {
+        BDBG_WRN(("Attached Rx cannot support Color Space YCbCr 422/444; default to YCbCr 4:2:0")) ;
+        localRequested.colorSpace = NEXUS_ColorSpace_eYCbCr420 ;
     }
 
     if (localRequested.colorSpace == NEXUS_ColorSpace_eRgb)

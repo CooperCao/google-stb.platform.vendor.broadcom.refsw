@@ -43,6 +43,7 @@ var MasterDebug=0;
 var REFRESH_IN_MILLISECONDS=1000;
 var BMEMPERF_MAX_NUM_CPUS=8;
 var passcount=0;
+var UUID = ""; // used to allow multiple browsers to access the STB
 var previous_height = 0;
 var CgiTimeoutId=0;
 var CgiRetryTimeoutId=0;
@@ -52,6 +53,7 @@ var ResponseCount=0; // number of times serverHttpResponse() is called
 var objdebug = 0;
 var epochSeconds = 0;
 var tzOffset = 0;
+var localtime = 0; // usually new Date() but could also be time read in from recording file
 var localdatetime = "";
 var userAgent = 0;
 var gNumCpus = 0;
@@ -140,7 +142,29 @@ var iperfPidServer = 0;
 var iperfRunningClient = "";
 var iperfRunningServer = "";
 var iperfClientServerRow = 0;
+var iperfClientRate = "";
 var DvfsControl =  {Value: 0};
+var RecordControl =  {Value: 0};
+var RecordFileSize = 0;
+var RecordFileContents = "";
+var RecordFileContents2 = ""; // used by asynchronous reader.onload() function in readText() function
+var RecordFileContentsArray = new Array();
+var RecordTimeStart = 0;
+var PlaybackControl =  {Value: 0}; // 0=>idle, 1=>read next entry
+var PlaybackTimeSeconds = 0;
+var PlaybackFileContentsArrayIdx = 0;
+var PlaybackTimeoutId=0;
+var PlaybackPLATFORM = "";
+var PlaybackPLATVER = "";
+var PlaybackVERSION = "";
+var PlaybackUNAME = "";
+var PlaybackCPUPERCENTS = "";
+var PlaybacknetStatsInit = "";
+var PlaybackSTBTIME = "";
+var PlaybackSTBTIMEsaved = ""; // used to prevent duplicate records with the same time value
+var PlaybackElementsDisabled = ""; // set to list of element ids that are disabled for playback
+var sRecordFilename = "";
+var gTextFile = null;
 var GovernorSettingNow = 0;
 var GovernorSettingPrev = 0;
 
@@ -158,8 +182,16 @@ function randomFromTo(from, to)
 
 function OneSecond ()
 {
+    var debug=0;
+
     //alert("OneSecond");
     MyLoad();
+
+    // if previous timeout is already pending, cancel it
+    clearTimeoutOneSecond( "OneSecond");
+
+    //console.log( "OneSecond: calling setTimeout()");
+    CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
 }
 function getNumEntries ( arrayname )
 {
@@ -186,7 +218,7 @@ function hideOrShow ( elementid, trueOrFalse )
             //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to HIDE");
             obj.style.display = 'none';
             obj.style.visibility = 'hidden';
-            //alert("hideOrShow: " + elementid + "; HIDE");
+            //console.log("hideOrShow: " + elementid + "; HIDE");
         }
     }
 
@@ -197,7 +229,7 @@ function hideElement ( elementid )
 {
     elemobj = document.getElementById(elementid);
     if (elemobj) {
-        //alert("hiding element " + elementid );
+        //console.log("hiding element " + elementid );
         elemobj.style.visibility = "hidden";
     }
 }
@@ -236,10 +268,12 @@ function showRow ( rownum )
 
 function setButtonDisabled ( targetId, newState )
 {
-    //alert("setButtonDisabled  targetId (" + targetId + ") ... newState (" + newState + ")" );
+    //console.log("setButtonDisabled  targetId (" + targetId + ") ... newState (" + newState + ")" );
     var objButton = document.getElementById( targetId );
     if (objButton) {
         objButton.disabled = newState;
+    } else {
+        console.log( "could not find element ... " + targetId );
     }
 
     return true;
@@ -376,6 +410,27 @@ function Wifi3DDelayed()
     hideOrShow("row_netgfx_all", HIDE );
 }
 
+function uuid()
+{
+  function s4() {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  }
+  //return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+  return s4() + s4() + s4() + s4() + s4() + s4() + s4() + s4();
+}
+
+function UpdateCpuGraphs()
+{
+    var objCheckboxCpus = document.getElementById("checkboxcpus");
+    if (objCheckboxCpus && objCheckboxCpus.checked ) {
+        for (var polylinenumber=1; polylinenumber<(gNumCpus-1)+1 ; polylinenumber++) { //once for all CPUs
+            AppendPolylineXY ( polylinenumber, gCpuData[polylinenumber-1] );
+        }
+    }
+}
+
 function MyLoad()
 {
     userAgent = navigator.userAgent;
@@ -393,6 +448,8 @@ function MyLoad()
     //alert("passcount==" + passcount + "; gNumCpus " + gNumCpus );
     if ( passcount == 0 ) {
         var local = new Date();
+
+        UUID = uuid();
 
         var obj2 = document.getElementById("checkboxwifi");
         if ( obj2 ) {
@@ -444,15 +501,40 @@ function MyLoad()
         GetSataUsb.Stop = 1; // tell the server to stop any SATA/USB data collection that may have been started earlier
 
         hideOrShow("row_DvfsControl", HIDE );
+        hideOrShow("row_Record", HIDE );
+
+        var queryString = "";
+        if( window.location.search.length > 1) {
+            queryString = window.location.search.substring (1);
+            var elements = queryString.split("&");
+            var keyValues = {};
+            for(var i in elements) {
+                var key = elements[i].split("=");
+                if (key.length > 1) {
+                  keyValues[decodeURIComponent(key[0].replace(/\+/g, " "))] = decodeURIComponent(key[1].replace(/\+/g, " "));
+                }
+            }
+            //console.log("keyValue RecordFile is (" + keyValues['RecordFile'] + ")" );
+            //console.log("keyValue RecordButton is (" + keyValues['RecordButton'] + ")" );
+            if ( keyValues['RecordButton'] == 1 ) {
+                //console.log("detected RecordButton is 1");
+                var obj = document.getElementById("checkboxRecord" );
+                if ( obj ) {
+                    obj.checked = true;
+                    hideOrShow("row_Record", SHOW );
+                }
+            }
+        }
+
+        var objChooseFile = document.getElementById("RecordSaveFile");
+        objChooseFile.addEventListener('click', ChooseFileListener, false);
+
+        //console.log( "MyLoad: calling sendCgiRequest()");
+        CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
 
         //alert("pass 0 done");
     } else {
-        var objCheckboxCpus = document.getElementById("checkboxcpus");
-        if (objCheckboxCpus && objCheckboxCpus.checked ) {
-            for (polylinenumber=1; polylinenumber<(gNumCpus-1)+1 ; polylinenumber++) { //once for all CPUs
-                AppendPolylineXY ( polylinenumber, gCpuData[polylinenumber-1] );
-            }
-        }
+        UpdateCpuGraphs();
     }
     //alert("polyline01 points (" + document.getElementById('polyline01').getAttribute('points') + ")" );
     previous_height += 10;
@@ -577,7 +659,7 @@ function checkboxPerfDeepDoit( fieldValue )
 {
     if ( fieldValue == true ) {
         // if previous timeout is already pending, cancel it
-        if (CgiTimeoutId) { clearTimeout(CgiTimeoutId); }
+        clearTimeoutOneSecond( "checkboxPerfDeepDoit");
 
         //alert("checkboxPerfDeepDoit: value " + fieldValue + "; GetPerfDeep.Value (" + GetPerfDeep.Value + ")" );
         SetInternalCheckboxStatus ( "checkboxPerfDeep", GetPerfDeep);
@@ -592,8 +674,7 @@ function checkboxPerfDeepDoit( fieldValue )
 function checkboxPerfCacheDoit( fieldValue )
 {
     if ( fieldValue == true ) {
-        // if previous timeout is already pending, cancel it
-        if (CgiTimeoutId) { clearTimeout(CgiTimeoutId); }
+        clearTimeoutOneSecond( "checkboxPerfCacheDoit");
 
         //alert("checkboxPerfCacheDoit: value " + fieldValue + "; GetPerfCache.Value (" + GetPerfCache.Value + ")" );
         SetInternalCheckboxStatus ( "checkboxPerfCache", GetPerfCache);
@@ -712,223 +793,292 @@ function checkboxwifiDoit( fieldValue )
     GetWifiStats.Init = fieldValue;
 }
 
+function ClearNetGfxGraph ( idx )
+{
+    for ( var RxTxIndex=0; RxTxIndex<2; RxTxIndex++) {
+        var objline = document.getElementById( 'polyline_netgfx_' + RxTxStr[RxTxIndex] + '_' + idx );
+        if ( objline ) {
+            objline.setAttribute('points', '' ); // clear out the polyline coordinates for each of 10 network interfaces ... two graphs each (Rx/Tx)
+        }
+        NetGfxDivisor[RxTxIndex][idx] = 1;
+        NetGfxBytes[RxTxIndex][idx] = "";
+    }
+}
+
+function checkboxSelected ( fieldName, fieldValue )
+{
+    var debug=0;
+    if (debug==1) alert("checkboxSelected: " + fieldName + "; value " + fieldValue );
+    var obj=document.getElementById(fieldName);
+    if ( obj ) obj.checked = fieldValue;
+
+    if (fieldName == "checkboxcpus" ) {
+        SetInternalCheckboxStatus ( "checkboxcpus", GetCpuInfo );
+        hideOrShow("row_cpus", fieldValue);
+    } else if (fieldName == "checkboxnets" ) {
+        SetInternalCheckboxStatus ( "checkboxnets", GetNetStats );
+        hideOrShow("row_net_stats", fieldValue);
+        iperfInit = fieldValue;
+        GetNetStatsInit = fieldValue;
+
+        // hide all ten of the histogram rows
+        for ( var idx=0; idx<10; idx++) {
+            hideOrShow("row_netgfxsvg" + idx, HIDE );
+            hideOrShow("row_netgfxtxt" + idx, HIDE );
+            NetGfxCheckbox[idx] = 0;
+
+            ClearNetGfxGraph ( idx );
+        }
+    } else if (fieldName == "checkboxwifi" ) {
+        checkboxwifiDoit( fieldValue );
+    } else if (fieldName == "checkboxirqs" ) {
+        SetInternalCheckboxStatus ( "checkboxirqs", GetIrqInfo );
+        hideOrShow("row_irqs", fieldValue);
+    } else if (fieldName == "checkboxheapstats" ) {
+        SetInternalCheckboxStatus ( "checkboxheapstats", GetHeapStats );
+    } else if (fieldName == "checkboxsatausb" ) {
+        SetInternalCheckboxStatus ( "checkboxsatausb", GetSataUsb );
+        if (GetSataUsb.Value == 0) { // if user un-checked the box, tell server to stop collecting data
+            GetSataUsb.Stop = 1;
+        }
+    } else if (fieldName == "checkboxprofiling" ) {
+        GetProfiling.Value = fieldValue;
+
+        // when Profiling checkbox is first checked, default PerfTop checkbox to on also
+        GetPerfTop.Value = fieldValue;
+
+        // when hiding profiling, tell server to stop all data collection that might be going on
+        if (fieldValue == false) {
+            GetPerfTop.Value = false;
+            GetLinuxTop.Value = false;
+            GetLinuxTop.Stop = 1;
+            GetPerfDeep.StartReportNow = false;
+            GetPerfDeep.Value = 0;
+            GetContextSwitch.Value = false;
+            //AddToDebugOutput ( "checkboxprofiling: PerfCache.Start (" + GetPerfCache.StartReportNow + "; PerfDeep.Start (" + GetPerfDeep.StartReportNow + "); LinuxTop.Stop (" + GetLinuxTop.Stop + ")" );
+        }
+        SetInternalCheckboxStatus ( "checkboxprofiling", GetProfiling);
+        hideOrShow("row_profiling", fieldValue);
+    } else if (fieldName == "checkboxmemory" ) {
+        GetMemory.Value = fieldValue;
+        SetInternalCheckboxStatus ( "checkboxmemory", GetMemory);
+        // if the box is being unchecked, clear out the html so that it does not display when we check the box in the future
+        if ( fieldValue == false ) {
+            var objmemory = document.getElementById("MEMORY_HTML");
+            if (objmemory) { objmemory.innerHTML = ""; }
+
+            // when hiding, tell server to stop all data collection that might be going on
+            GetPerfCache.StartReportNow = false;
+            //AddToDebugOutput ( "checkboxprofiling: PerfCache.Start (" + GetPerfCache.StartReportNow + "; PerfDeep.Start (" + GetPerfDeep.StartReportNow + "); LinuxTop.Stop (" + GetLinuxTop.Stop + ")" );
+        } else { // we are activating the Memory checkbox
+            GetPerfCache.Value = 0;
+            SetCheckboxStatus ( "checkboxPerfCache", GetPerfCache );
+            SetCheckboxDisabled ( "checkboxPerfCache", false );
+            GetSataUsb.Value = 0;
+            SetCheckboxStatus ( "checkboxsatausb", GetSataUsb );
+            SetCheckboxDisabled ( "checkboxsatausb", false );
+            GetHeapStats.Value = 0;
+            SetCheckboxStatus ( "checkboxheapstats", GetHeapStats );
+            SetCheckboxDisabled ( "checkboxheapstats", false );
+        }
+        hideOrShow("row_memory", fieldValue);
+    } else if (fieldName == "checkboxPerfTop" ) {
+        GetPerfTop.Value = fieldValue;
+        if (fieldValue) { // if turning on, turn others off
+            GetLinuxTop.Value = 0;
+            GetPerfCache.Value = 0;
+            GetPerfDeep.Value = 0;
+        }
+        GetLinuxTop.Stop = 1;
+        //alert("PerfTop (" + GetPerfTop.Value + "); LinuxTop (" + GetLinuxTop.Value + ")" );
+        SetInternalCheckboxStatus ( "checkboxPerfTop", GetPerfTop);
+        SetCheckboxDisabled ( "checkboxPerfDeep", fieldValue );
+        SetCheckboxDisabled ( "checkboxPerfCache", fieldValue );
+        SetCheckboxDisabled ( "checkboxLinuxTop", fieldValue );
+    } else if (fieldName == "checkboxLinuxTop" ) {
+        GetLinuxTop.Value = fieldValue;
+        if (fieldValue) { // if turning on, turn others off
+            GetPerfTop.Value = 0;
+            GetPerfDeep.Value = 0;
+        }
+        //alert("PerfTop 1 (" + GetPerfTop.Value + "); LinuxTop (" + GetLinuxTop.Value + ")" );
+        SetInternalCheckboxStatus ( "checkboxLinuxTop", GetLinuxTop);
+        SetCheckboxDisabled ( "checkboxPerfDeep", fieldValue );
+        SetCheckboxDisabled ( "checkboxPerfCache", fieldValue );
+        SetCheckboxDisabled ( "checkboxPerfTop", fieldValue );
+
+        if (fieldValue == false) { // if we are turning off LinuxTop, tell server to stop collecting data
+            GetLinuxTop.Stop = 1;
+        }
+    } else if (fieldName == "checkboxPerfCache" ) {
+        var objtable = document.getElementById("MEMORY_HTML");
+        GetPerfCache.Value = fieldValue;
+        checkboxPerfCacheDoit( fieldValue );
+        if(debug) alert(fieldName + " checked; value " + fieldValue );
+        GetPerfCache.StartReportNow = fieldValue;
+
+        if (objtable) { objtable.innerHTML = "<textarea style=\"width:860px;\" ></textarea>"; } // turning on and off ... clear out the textarea
+
+        if (fieldValue) { // if turning on
+        } else { // else turning it off
+        }
+    } else if (fieldName == "checkboxPerfDeep" ) {
+        GetPerfDeep.Value = fieldValue;
+        checkboxPerfDeepDoit( fieldValue );
+        if(debug) alert(fieldName + " checked; value " + fieldValue );
+        GetPerfDeep.StartReportNow = fieldValue;
+        if (fieldValue) { // if turning on, turn others off
+            GetPerfCache.Value = 0;
+            GetPerfTop.Value = 0;
+            GetLinuxTop.Value = 0;
+        }
+        SetCheckboxDisabled ( "checkboxLinuxTop", fieldValue );
+        SetCheckboxDisabled ( "checkboxPerfCache", fieldValue );
+        SetCheckboxDisabled ( "checkboxPerfTop", fieldValue );
+    } else if (fieldName == "checkboxContextSwitch" ) {
+        SetInternalCheckboxStatus ( "checkboxContextSwitch", GetContextSwitch );
+        hideOrShow("row_profiling_html", fieldValue);
+    } else if (fieldName == "checkboxPerfFlame" ) {
+
+        // when hiding flame graphs, tell server to stop all data collection that might be going on
+        if (fieldValue == false) {
+            if ( GetPerfFlame.State == GetPerfFlameState.IDLE ) { // if the flame graph is not recording presently
+                GetPerfFlame.Value = false;
+                GetPerfFlameSetStop();
+                SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
+                hideOrShow("row_PerfFlame", fieldValue);
+                var objspan = document.getElementById('PerfFlameContents');
+                if (objspan) {
+                    objspan.innerHTML = ""; // clear out the contents element so old stuff does not display when we check the box in the future
+                }
+            } else {
+                //alert("Please stop any recording before hiding the Flame Graph.");
+            }
+        } else {
+            GetPerfFlame.Value = true;
+            GetPerfFlameSetState( GetPerfFlameState.INIT ); // Init
+            SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
+            hideOrShow("row_PerfFlame", fieldValue);
+        }
+    } else if (fieldName == "checkboxWifiAmpduGraph" ) {
+        checkboxWifiAmpduGraphDoit( fieldValue );
+    } else if (fieldName == "checkboxiperfrow" ) {
+        if (fieldValue == false) {
+            iperfClientServerRow = 0;
+            hideOrShow("row_iperf_client_server", HIDE );
+        } else {
+            iperfClientServerRow = 1;
+            hideOrShow("row_iperf_client_server", SHOW );
+        }
+    } else if ( fieldName.indexOf ( "checkbox_netgfx" ) == 0 ) {
+        var idx = fieldName.substr(15);
+        if ( idx < 10 ) {
+            NetGfxCheckbox[idx] = fieldValue;
+            hideOrShow("row_netgfxsvg" + idx, fieldValue );
+            hideOrShow("row_netgfxtxt" + idx, fieldValue );
+            if (fieldValue) {
+                hideOrShow("row_netgfx_all", fieldValue );
+            } else {
+                var found_row_visible = false;
+                for ( var idx=0; idx<10; idx++) { // determine if at least one row is visible
+                    if ( NetGfxCheckbox[idx] ) {
+                        found_row_visible = true;
+                        break;
+                    }
+                }
+                if ( found_row_visible == false ) { // if not gfx rows are visible, hide the mother row
+                    hideOrShow("row_netgfx_all", fieldValue );
+                }
+            }
+        }
+    } else if (fieldName == "checkboxDvfsControl" ) {
+        hideOrShow("row_DvfsControl", fieldValue);
+
+        if (fieldValue) {
+            DvfsControl.Value = 1;
+        } else {
+            DvfsControl.Value = 0;
+        }
+    } else if (fieldName == "checkboxRecord" ) {
+        hideOrShow("row_Record", fieldValue);
+    }
+
+    if ( fieldValue ) {
+        //alert("calling sendCgiRequest");
+        sendCgiRequest();
+    }
+}
+
+/**
+ *  Function: This function will enable or disable the input buttons when a Playback
+ *            is started. Disabling the inputs will prevent the user from altering the
+ *            the web page and will allow the playback to proceed without any user
+ *            changes.
+ **/
+function RecordPlaybackConfigure ( whichOne )
+{
+    var newState = false;
+    clearTimeoutOneSecond( "RecordPlaybackConfigure");
+
+    if ( whichOne == "START" ) {
+        newState = true;
+    } else {
+        newState = false ;
+    }
+
+    setButtonDisabled( "checkboxDvfsControl", newState );
+    setButtonDisabled( "checkboxmemory", newState );
+    setButtonDisabled( "checkboxnets", newState );
+    setButtonDisabled( "checkboxwifi", newState );
+    setButtonDisabled( "checkboxirqs", newState );
+    setButtonDisabled( "checkboxprofiling", newState );
+    setButtonDisabled( 'checkboxPerfFlame', newState );
+
+    return true;
+}
+
+/**
+ *  Function: This function will change the button image file to the new specified
+ *            image. It is used during playback to change the "play" button to the
+ *            "pause" button and vice-a-versa.
+ **/
+function setButtonImage ( fieldName, newImageName )
+{
+    var obj = document.getElementById( fieldName );
+    if ( obj ) {
+        obj.src = newImageName;
+    }
+}
+
+/**
+ *  Function: This function will control the processing of all user-changeable
+ *            elements ... buttons, images, checkboxes, input fields, etc.
+ **/
 function setVariable(fieldName)
 {
     var debug=0;
     var fieldValue = "";
-    if (debug) alert("setVariable: name " + fieldName );
+    //console.log ("setVariable: name " + fieldName );
     var obj=document.getElementById(fieldName);
 
     SetVariableCount++;
 
     if (debug) alert("setVariable: name " + fieldName + "; type " + obj.type );
+
+    if ( PlaybackControl.Value ) { // if playback is in progress
+        if ( (fieldName == "buttonRecordStart") || (fieldName == "buttonPlaybackRun") || (fieldName == "h1bsysperf") ) {
+            // only allow these inputs to proceed during playback
+        } else {
+            return false;
+        }
+    }
+
     if (obj) {
         gFieldName = fieldName; // used to send the update to the CGI app
 
         if (obj.type == "checkbox" ) {
             fieldValue = obj.checked;
-            if (debug==1) alert("setVariable: " + fieldName + "; value " + fieldValue );
-
-            if (fieldName == "checkboxcpus" ) {
-                SetInternalCheckboxStatus ( "checkboxcpus", GetCpuInfo );
-                hideOrShow("row_cpus", fieldValue);
-            } else if (fieldName == "checkboxnets" ) {
-                SetInternalCheckboxStatus ( "checkboxnets", GetNetStats );
-                hideOrShow("row_net_stats", fieldValue);
-                iperfInit = fieldValue;
-                GetNetStatsInit = fieldValue;
-
-                // hide all ten of the histogram rows
-                for ( var idx=0; idx<10; idx++) {
-                    hideOrShow("row_netgfxsvg" + idx, HIDE );
-                    hideOrShow("row_netgfxtxt" + idx, HIDE );
-                    NetGfxCheckbox[idx] = 0;
-
-                    for ( var RxTxIndex=0; RxTxIndex<2; RxTxIndex++) {
-                        var objline = document.getElementById( 'polyline_netgfx_' + RxTxStr[RxTxIndex] + '_' + idx );
-                        if ( objline ) {
-                            objline.setAttribute('points', '' ); // clear out the polyline coordinates for each of 10 network interfaces ... two graphs each (Rx/Tx)
-                        }
-                        NetGfxDivisor[RxTxIndex][idx] = 1;
-                        NetGfxBytes[RxTxIndex][idx] = "";
-                    }
-                }
-            } else if (fieldName == "checkboxwifi" ) {
-                checkboxwifiDoit( fieldValue );
-            } else if (fieldName == "checkboxirqs" ) {
-                SetInternalCheckboxStatus ( "checkboxirqs", GetIrqInfo );
-                hideOrShow("row_irqs", fieldValue);
-            } else if (fieldName == "checkboxheapstats" ) {
-                SetInternalCheckboxStatus ( "checkboxheapstats", GetHeapStats );
-            } else if (fieldName == "checkboxsatausb" ) {
-                SetInternalCheckboxStatus ( "checkboxsatausb", GetSataUsb );
-                if (GetSataUsb.Value == 0) { // if user un-checked the box, tell server to stop collecting data
-                    GetSataUsb.Stop = 1;
-                }
-            } else if (fieldName == "checkboxprofiling" ) {
-                GetProfiling.Value = fieldValue;
-
-                // when Profiling checkbox is first checked, default PerfTop checkbox to on also
-                GetPerfTop.Value = fieldValue;
-
-                // when hiding profiling, tell server to stop all data collection that might be going on
-                if (fieldValue == false) {
-                    GetPerfTop.Value = false;
-                    GetLinuxTop.Value = false;
-                    GetLinuxTop.Stop = 1;
-                    GetPerfDeep.StartReportNow = false;
-                    GetPerfDeep.Value = 0;
-                    GetContextSwitch.Value = false;
-                    //AddToDebugOutput ( "checkboxprofiling: PerfCache.Start (" + GetPerfCache.StartReportNow + "; PerfDeep.Start (" + GetPerfDeep.StartReportNow + "); LinuxTop.Stop (" + GetLinuxTop.Stop + ")" );
-                }
-                SetInternalCheckboxStatus ( "checkboxprofiling", GetProfiling);
-                hideOrShow("row_profiling", fieldValue);
-            } else if (fieldName == "checkboxmemory" ) {
-                GetMemory.Value = fieldValue;
-                SetInternalCheckboxStatus ( "checkboxmemory", GetMemory);
-                // if the box is being unchecked, clear out the html so that it does not display when we check the box in the future
-                if ( fieldValue == false ) {
-                    var objmemory = document.getElementById("MEMORY_HTML");
-                    if (objmemory) { objmemory.innerHTML = ""; }
-
-                    // when hiding, tell server to stop all data collection that might be going on
-                    GetPerfCache.StartReportNow = false;
-                    //AddToDebugOutput ( "checkboxprofiling: PerfCache.Start (" + GetPerfCache.StartReportNow + "; PerfDeep.Start (" + GetPerfDeep.StartReportNow + "); LinuxTop.Stop (" + GetLinuxTop.Stop + ")" );
-                } else { // we are activating the Memory checkbox
-                    GetPerfCache.Value = 0;
-                    SetCheckboxStatus ( "checkboxPerfCache", GetPerfCache );
-                    SetCheckboxDisabled ( "checkboxPerfCache", false );
-                    GetSataUsb.Value = 0;
-                    SetCheckboxStatus ( "checkboxsatausb", GetSataUsb );
-                    SetCheckboxDisabled ( "checkboxsatausb", false );
-                    GetHeapStats.Value = 0;
-                    SetCheckboxStatus ( "checkboxheapstats", GetHeapStats );
-                    SetCheckboxDisabled ( "checkboxheapstats", false );
-                }
-                hideOrShow("row_memory", fieldValue);
-            } else if (fieldName == "checkboxPerfTop" ) {
-                GetPerfTop.Value = fieldValue;
-                if (fieldValue) { // if turning on, turn others off
-                    GetLinuxTop.Value = 0;
-                    GetPerfCache.Value = 0;
-                    GetPerfDeep.Value = 0;
-                }
-                GetLinuxTop.Stop = 1;
-                //alert("PerfTop (" + GetPerfTop.Value + "); LinuxTop (" + GetLinuxTop.Value + ")" );
-                SetInternalCheckboxStatus ( "checkboxPerfTop", GetPerfTop);
-                SetCheckboxDisabled ( "checkboxPerfDeep", fieldValue );
-                SetCheckboxDisabled ( "checkboxPerfCache", fieldValue );
-                SetCheckboxDisabled ( "checkboxLinuxTop", fieldValue );
-            } else if (fieldName == "checkboxLinuxTop" ) {
-                GetLinuxTop.Value = fieldValue;
-                if (fieldValue) { // if turning on, turn others off
-                    GetPerfTop.Value = 0;
-                    GetPerfDeep.Value = 0;
-                }
-                //alert("PerfTop 1 (" + GetPerfTop.Value + "); LinuxTop (" + GetLinuxTop.Value + ")" );
-                SetInternalCheckboxStatus ( "checkboxLinuxTop", GetLinuxTop);
-                SetCheckboxDisabled ( "checkboxPerfDeep", fieldValue );
-                SetCheckboxDisabled ( "checkboxPerfCache", fieldValue );
-                SetCheckboxDisabled ( "checkboxPerfTop", fieldValue );
-
-                if (fieldValue == false) { // if we are turning off LinuxTop, tell server to stop collecting data
-                    GetLinuxTop.Stop = 1;
-                }
-            } else if (fieldName == "checkboxPerfCache" ) {
-                var objtable = document.getElementById("MEMORY_HTML");
-                GetPerfCache.Value = fieldValue;
-                checkboxPerfCacheDoit( fieldValue );
-                if(debug) alert(fieldName + " checked; value " + fieldValue );
-                GetPerfCache.StartReportNow = fieldValue;
-
-                if (objtable) { objtable.innerHTML = "<textarea style=\"width:860px;\" ></textarea>"; } // turning on and off ... clear out the textarea
-
-                if (fieldValue) { // if turning on
-                } else { // else turning it off
-                }
-            } else if (fieldName == "checkboxPerfDeep" ) {
-                GetPerfDeep.Value = fieldValue;
-                checkboxPerfDeepDoit( fieldValue );
-                if(debug) alert(fieldName + " checked; value " + fieldValue );
-                GetPerfDeep.StartReportNow = fieldValue;
-                if (fieldValue) { // if turning on, turn others off
-                    GetPerfCache.Value = 0;
-                    GetPerfTop.Value = 0;
-                    GetLinuxTop.Value = 0;
-                }
-                SetCheckboxDisabled ( "checkboxLinuxTop", fieldValue );
-                SetCheckboxDisabled ( "checkboxPerfCache", fieldValue );
-                SetCheckboxDisabled ( "checkboxPerfTop", fieldValue );
-            } else if (fieldName == "checkboxContextSwitch" ) {
-                SetInternalCheckboxStatus ( "checkboxContextSwitch", GetContextSwitch );
-                hideOrShow("row_profiling_html", fieldValue);
-            } else if (fieldName == "checkboxPerfFlame" ) {
-
-                // when hiding flame graphs, tell server to stop all data collection that might be going on
-                if (fieldValue == false) {
-                    if ( GetPerfFlame.State == GetPerfFlameState.IDLE ) { // if the flame graph is not recording presently
-                        GetPerfFlame.Value = false;
-                        GetPerfFlameSetStop();
-                        SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
-                        hideOrShow("row_PerfFlame", fieldValue);
-                        var objspan = document.getElementById('PerfFlameContents');
-                        if (objspan) {
-                            objspan.innerHTML = ""; // clear out the contents element so old stuff does not display when we check the box in the future
-                        }
-                    } else {
-                        alert("Please stop any recording before hiding the Flame Graph.");
-                    }
-                } else {
-                    GetPerfFlame.Value = true;
-                    GetPerfFlameSetState( GetPerfFlameState.INIT ); // Init
-                    SetInternalCheckboxStatus ( "checkboxPerfFlame", GetPerfFlame);
-                    hideOrShow("row_PerfFlame", fieldValue);
-                }
-            } else if (fieldName == "checkboxWifiAmpduGraph" ) {
-                checkboxWifiAmpduGraphDoit( fieldValue );
-            } else if (fieldName == "checkboxiperfrow" ) {
-                if (fieldValue == false) {
-                    iperfClientServerRow = 0;
-                    hideOrShow("row_iperf_client_server", HIDE );
-                } else {
-                    iperfClientServerRow = 1;
-                    hideOrShow("row_iperf_client_server", SHOW );
-                }
-            } else if ( fieldName.indexOf ( "checkbox_netgfx" ) == 0 ) {
-                var idx = fieldName.substr(15);
-                if ( idx < 10 ) {
-                    NetGfxCheckbox[idx] = fieldValue;
-                    hideOrShow("row_netgfxsvg" + idx, fieldValue );
-                    hideOrShow("row_netgfxtxt" + idx, fieldValue );
-                    if (fieldValue) {
-                        hideOrShow("row_netgfx_all", fieldValue );
-                    } else {
-                        var found_row_visible = false;
-                        for ( var idx=0; idx<10; idx++) { // determine if at least one row is visible
-                            if ( NetGfxCheckbox[idx] ) {
-                                found_row_visible = true;
-                                break;
-                            }
-                        }
-                        if ( found_row_visible == false ) { // if not gfx rows are visible, hide the mother row
-                            hideOrShow("row_netgfx_all", fieldValue );
-                        }
-                    }
-                }
-            } else if (fieldName == "checkboxDvfsControl" ) {
-                hideOrShow("row_DvfsControl", fieldValue);
-
-                if (fieldValue) {
-                    DvfsControl.Value = 1;
-                } else {
-                    DvfsControl.Value = 0;
-                }
-            }
-
-            if (obj.checked) {
-                //alert("calling sendCgiRequest");
-                sendCgiRequest();
-            }
+            checkboxSelected ( fieldName, fieldValue );
         } else if ( obj.type == "text" ) {
             fieldValue = obj.value;
         } else if ( obj.type == "textarea" ) {
@@ -1025,27 +1175,110 @@ function setVariable(fieldName)
                     set_iperf_button( fieldName );
                     sendCgiRequest();
                 }
+            } else if (fieldName == "buttonRecordStart") {
+                var obj=document.getElementById(fieldName);
+                if (obj) {
+                    if (obj.value.indexOf( "Start") == 0 ) {
+                        var localtime = new Date();
+                        RecordTimeStart = Math.floor(localtime.getTime() / 1000);
+                        RecordControl.Value = 1; // init recording
+                        obj.value = "Stop Record";
+                        obj.style.backgroundColor = "salmon";
+                        setButtonDisabled( 'RecordSaveFile', true );
+
+                        RecordPlaybackConfigure ( "START" );
+
+                        // clear the contents in case we had a previous recording
+                        RecordFileContents = "";
+
+                        PlaybackTimeSeconds = Math.floor(localtime.getTime() / 1000);
+                        RecordFileContents += "\nUNIXTIME " + PlaybackTimeSeconds + "|!|";
+                        RecordFileContents += "PLATFORM~" + PlaybackPLATFORM;
+                        RecordFileContents +=  "~PLATVER~" + PlaybackPLATVER;
+                        RecordFileContents +=  "~VERSION~" + PlaybackVERSION;
+                        RecordFileContents +=  "~UNAME~" + PlaybackUNAME;
+                        //RecordFileContents +=  "~CPUPERCENTS~" + PlaybackCPUPERCENTS;
+                        RecordFileContents +=  "~netStatsInit~" + PlaybacknetStatsInit;
+                        RecordFileContents +=  "~STBTIME~" + PlaybackSTBTIME;
+                        RecordFileContents += "\n";
+                        PlaybackSTBTIMEsaved = PlaybackSTBTIME;
+                        RecordFileSize = RecordFileContents.length;
+
+                        sendCgiRequest();
+                    } else {
+                        RecordControl.Value = 0; // stop recording
+                        obj.value = "Start Record";
+                        obj.style.backgroundColor = "lightgreen";
+                        setButtonDisabled( 'RecordSaveFile', false );
+
+                        RecordPlaybackConfigure ( "STOP" );
+
+                        // do something with the file contents
+                        //alert(RecordFileContents);
+                    }
+                }
+            }
+        } else if ( obj.type == "image" ) {
+            //console.log( fieldName + ": current state:" + PlaybackControl.Value );
+            if (fieldName == "buttonPlaybackRun") {
+                if ( PlaybackControl.Value == 0 ) {
+                    //alert("Start Playback");
+                    setButtonImage ( fieldName, "bmemperf_pause.jpg" );
+
+                    PlaybackControl.Value = 1;
+                    //console.log( fieldName + "; new state:" + PlaybackControl.Value );
+
+                    clearOutCpuGraphsAndTextareas();
+
+                    RecordPlaybackConfigure ( "START" );
+
+                    PlaybackFileContentsArrayIdx = 1; // the first entry is always zero length
+
+                    FindInputElementsThatAreEnabled ();
+
+                    ProcessPlaybackEvents();
+
+                    PlaybackElementsSetDisabled ( true );
+
+                } else if ( PlaybackControl.Value == 2 ) { // we are paused and need to resume playing
+
+                    setButtonImage ( fieldName, "bmemperf_pause.jpg" );
+                    PlaybackControl.Value = 1;
+                    //console.log( fieldName + "; new state:" + PlaybackControl.Value );
+                    ProcessPlaybackEvents();
+
+                } else { // we are running and someone hit pause
+                    if ( PlaybackTimeoutId ) { clearTimeout( PlaybackTimeoutId ); }
+
+                    setButtonImage ( fieldName, "bmemperf_play.jpg" );
+                    PlaybackControl.Value = 2;
+                    //console.log( fieldName + "; new state:" + PlaybackControl.Value );
+                }
             }
         } else if ( obj.type == "select-one" ) {
         } else if (fieldName.indexOf("ChangeCpuState") == 0 ) { // user clicked disable/enable CPU
             ChangeCpuState = fieldName;
-            var iconobj = document.getElementById(fieldName);
-            var iconfill = "unknown";
-            if (iconobj) {
-                var temp;
+            //console.log( fieldName + ": gNumCpus:" + gNumCpus );
 
-                iconfill = iconobj.getAttribute('fill');
-                // Based on the current color of the circle that was clicked, we will either be enabling or disabling the specified CPU.
-                // A green (lime) circle means we want the CPU to go active; a red circle means we want the CPU to stop.
-                if ( iconfill.indexOf("lime") == -1 ) {
-                    temp = ChangeCpuState.replace(/ChangeCpuState/, "ChangeCpuState=-");
-                } else {
-                    temp = ChangeCpuState.replace(/ChangeCpuState/, "ChangeCpuState=+");
+            if ( PlaybackControl.Value == 0 ) { // if we are NOT doing a playback
+                var iconobj = document.getElementById(fieldName);
+                var iconfill = "unknown";
+                if (iconobj) {
+                    var temp;
+
+                    iconfill = iconobj.getAttribute('fill');
+                    // Based on the current color of the circle that was clicked, we will either be enabling or disabling the specified CPU.
+                    // A green (lime) circle means we want the CPU to go active; a red circle means we want the CPU to stop.
+                    if ( iconfill.indexOf("lime") == -1 ) {
+                        temp = ChangeCpuState.replace(/ChangeCpuState/, "ChangeCpuState=-");
+                    } else {
+                        temp = ChangeCpuState.replace(/ChangeCpuState/, "ChangeCpuState=+");
+                    }
+                    ChangeCpuState = temp;
                 }
-                ChangeCpuState = temp;
+                //alert("Checked: (" + fieldName + "); src (" + iconfill + "); ChangeCpuState (" + ChangeCpuState + "); indexOf(lime)=" + iconfill.indexOf("lime") );
+                sendCgiRequest();
             }
-            //alert("Checked: (" + fieldName + "); src (" + iconfill + "); ChangeCpuState (" + ChangeCpuState + "); indexOf(lime)=" + iconfill.indexOf("lime") );
-            sendCgiRequest();
         }
 
         if (fieldName == "h1bsysperf") {
@@ -1082,7 +1315,7 @@ function sendCgiRequestDoItNow( url )
 {
     var debug=0;
 
-    if (debug==1) alert("sending len (" + url.length + ") (" + url + ")" );
+    if (debug==1) console.log ("sending len (" + url.length + ") (" + url + ")" );
 
     xmlhttp=new XMLHttpRequest();
     xmlhttp.onreadystatechange= serverHttpResponse;
@@ -1103,9 +1336,6 @@ function sendCgiRequest( )
     var idx=1;
     var url = "";
 
-    // if previous timeout is already pending, cancel it
-    if (CgiTimeoutId) { clearTimeout(CgiTimeoutId); }
-
     var RandomValue = randomIntFromInterval(1000000,9999999);
     url = "/cgi/bsysperf.cgi?randomvalue=" + RandomValue;
 
@@ -1113,6 +1343,8 @@ function sendCgiRequest( )
         url += "&datetime=" + epochSeconds + "&tzoffset=" + tzOffset;
         epochSeconds = 0;
     }
+
+    url += "&uuid=" + UUID;
 
     if (GetCpuInfo.Value == true) {
         url += "&cpuinfo=1";
@@ -1139,7 +1371,7 @@ function sendCgiRequest( )
     }
 
     if ( iperfStateClient == iperfStateEnum.INIT ) {
-        url += "&iperfCmdLine=" + CreateIperfString( "Client" );
+        url += "&iperfCmdLine=" + CreateIperfString( "Client" ) + " > /tmp/iperf_client_" + UUID + ".log";
         iperfStateClient = iperfStateEnum.RUNNING;
     } else if ( iperfStateClient == iperfStateEnum.STOP ) {
         url += "&iperfCmdLine=STOP iperf -c";
@@ -1219,7 +1451,7 @@ function sendCgiRequest( )
         GetMemory.Value = false;
     }
 
-    if (GetLinuxTop.Stop == true) {
+    if (GetLinuxTop.Stop == true && RecordControl.Value == 0 /* we are not recording */) {
         url += "&LinuxTop=2";
         AddToDebugOutput ( "sendCgiRequest: LinuxTop.Stop (" + GetLinuxTop.Stop + ")" );
         GetLinuxTop.Stop = 0;
@@ -1460,8 +1692,17 @@ function ChangeCpuTag ( idx, idle )
 
 function sendCgiRequestRetry ( )
 {
+    if ( CgiRetryTimeoutId ) {
+        //console.log( "sendCgiRequestRetry: clearTimeout(CgiRetryTimeoutId:" + CgiRetryTimeoutId + ")");
+        clearTimeout ( CgiRetryTimeoutId );
+        CgiRetryTimeoutId = 0;
+    }
+
+    //console.log ( "sendCgiRequestRetry: calling setTimeout(sendCgiRequestRetry(2secs)); ID (" + CgiRetryTimeoutId + ")" + eol );
+    CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS*2 );
+
     // send the previously attempted url request
-    AddToDebugOutput ( "Retry url: " + urlSentPreviously + eol );
+    //console.log ( "sendCgiRequestRetry: Retry url: " + urlSentPreviously + eol );
     sendCgiRequestDoItNow( urlSentPreviously );
 }
 
@@ -1782,6 +2023,8 @@ function UpdateNetGfxElements ( netIfIdx, RxTxIndex, previousBytes, currentBytes
             var delta1 = Math.floor ( Number ( (currentBytes - previousBytes) * 8 ) );
             var objline = document.getElementById( 'polyline_netgfx_' + RxTxStr[RxTxIndex] + '_' + netIfIdx );
 
+            if ( delta1 < 0 ) delta1 = 0; // do not allow the num bytes to go negative
+
             objbox.checked = true;
 
             // determine if the divisor has to change
@@ -1817,13 +2060,1222 @@ function UpdateNetGfxElements ( netIfIdx, RxTxIndex, previousBytes, currentBytes
     return true;
 }
 
+/**
+ *  Function: This function will update the line green progress bar used to show how far
+ *            the playback function has progressed.
+ **/
+function UpdateProgressGraph ( )
+{
+    var objprogressbar =document.getElementById("progressbar");
+    var PlaybackArrayLen = Number ( RecordFileContentsArray.length - 1); // 0th entry is always blank
+    var percentage = Math.ceil ( (PlaybackFileContentsArrayIdx / PlaybackArrayLen ) * 500 ) /* bar is 500 pixels long */;
+    var points = "0,0 " + percentage + ",0 " + percentage + ",10 0,10";
+    //console.log("state:" + PlaybackControl.Value + "; len:" + PlaybackArrayLen + "; idx:" + PlaybackFileContentsArrayIdx + "; points: " + points );
+    if (objprogressbar) {
+        objprogressbar.setAttribute('points', points);
+    }
+}
+
+/**
+ *  Function: This function will enable or disable ALL input buttons when a Playback
+ *            is first selected and when the run/pause button is selected.
+ **/
+function PlaybackElementsSetDisabled ( newState )
+{
+    if ( PlaybackElementsDisabled.length ) { // if there is a list of elements we disabled for playback
+        var elements = PlaybackElementsDisabled.split(",");
+        for ( var idx=0; idx<elements.length; idx++ ) { // loop through all disabled elements and re-disable them
+            setButtonDisabled ( elements[idx], newState );
+        }
+    }
+}
+
+/**
+ *  Function: This function is the main handler when a playback is in progress. It will read the next
+ *            playback record and process the playback record just as it would have been processed during
+ *            regular live processing ... by calling ProcessResponses() ... which is also called during
+ *            a normal response when the XMLHttpRequest comes back with an okay status.
+ **/
+function ProcessPlaybackEvents( )
+{
+    //console.log("ProcessPlaybackEvents: len " + RecordFileContentsArray.length + "; idx:" + PlaybackFileContentsArrayIdx );
+    if ( RecordFileContentsArray.length && PlaybackFileContentsArrayIdx < RecordFileContentsArray.length ) {
+
+        clearTimeout ( CgiRetryTimeoutId );
+
+        var seconds_response = RecordFileContentsArray[PlaybackFileContentsArrayIdx].split("|!|");
+        if ( seconds_response.length > 1 ) {
+            var oResponses;
+            //alert("seconds=" + seconds_response[0] + "; response(" + seconds_response[1] + ")" );
+            oResponses = seconds_response[1].split("~");
+
+            ProcessResponses ( oResponses );
+
+            // If the oResponses included "netStatsInit", then the HTML table was re-created.
+            // We need to re-disable user inputs.
+            if ( PlaybackFileContentsArrayIdx == 1 ) {
+                PlaybackElementsSetDisabled ( true );
+            }
+
+            UpdateCpuGraphs();
+
+            UpdateProgressGraph();
+
+            PlaybackFileContentsArrayIdx++;
+
+            if ( PlaybackFileContentsArrayIdx >= RecordFileContentsArray.length ) { // playback is done
+                PlaybackFileContentsArrayIdx = 0;
+                PlaybackControl.Value = 0;
+                //console.log( "ProcessPlaybackEvents; new state:" + PlaybackControl.Value );
+                setButtonImage ( "buttonPlaybackRun", "bmemperf_play.jpg" );
+                RecordPlaybackConfigure ( "STOP" );
+
+                if ( PlaybackElementsDisabled.length ) { // if there is a list of elements we disabled for playback
+                    PlaybackElementsSetDisabled ( false );
+                }
+            }
+
+            if ( PlaybackTimeoutId ) { clearTimeout( PlaybackTimeoutId ); }
+
+            if ( PlaybackControl.Value ) {
+                // schedule myself for processing one second from now
+                PlaybackTimeoutId = setTimeout ('ProcessPlaybackEvents()', REFRESH_IN_MILLISECONDS );
+            }
+        }
+    }
+}
+
+/**
+ *  Function: This function will step through all of the responses that come back from the
+ *            CGI call. Each response typically has special processing associated with each
+ *            of them. This function is also called during Playback to simulate the same
+ *            response processing.
+ **/
+function ProcessResponses ( oResponses )
+{
+    var debug=0;
+    var i=0;
+    var idx=0;
+    var idx2=0;
+
+    var row_profiling_html = document.getElementById("row_profiling_html");
+    var objPerfTop = document.getElementById("PERFUTILS");
+    if (row_profiling_html) {
+        row_profiling_html.innerHTML = ""; // clear out the row
+    }
+
+    if(debug) console.log("ProcessResponses: for i = 0 to " + oResponses.length );
+    // loop through <response> elements, and add each nested
+    for ( i = 0; i < oResponses.length; i++) {
+        var entry = oResponses[i];
+        if ( entry.length>1 ) if(debug==1) console.log("Entry " + entry + "; next len " + oResponses[i+1].length + eol );
+        if ( entry == "ALLDONE" ) {
+            AddToDebugOutput ( entry + eol );
+            ResponseCount++;
+
+            if ( GetWifiStatsCountdown ) {
+                GetWifiStatsCountdown--;
+                if (GetWifiStatsCountdown == 0) {
+                    GetWifiStats.Value = 1;
+                }
+            }
+
+            //AddToDebugOutput ( entry + ": calling setTimeout(); ID (" + CgiTimeoutId + ")"  + eol );
+        } else if (entry == "FATAL") {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            alert("FATAL ... " + oResponses[i+1]);
+            i++;
+        } else if ( entry == "DEBUG" ) {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            if(debug) alert(entry + ":" + oResponses[i+1]);
+            i++;
+        } else if (entry == "VERSION") {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            PlaybackVERSION = oResponses[i+1];
+            i++;
+        } else if (entry == "STBTIME") {
+            PlaybackSTBTIME = oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            var obj2=document.getElementById("stbtime");
+            if (obj2) {
+                //if (debug) alert("setting stbtime to " + oResponses[i+1] );
+                obj2.innerHTML = oResponses[i+1];
+                i++;
+            } else {
+                alert("id=stbtime not found");
+            }
+        } else if (entry == "CPUPERCENTS") {
+            AddToDebugOutput ( entry + ": len of entry " + oResponses[i+1].length + eol );
+            PlaybackCPUPERCENTS = oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            var obj2=document.getElementById("CPUPERCENTS");
+            if (obj2) {
+                obj2.innerHTML = oResponses[i+1];
+                //alert("CPUPERCENTS (" + obj2.innerHTML + ")" );
+                i++;
+            } else {
+                alert("id=CPUPERCENTS not found");
+            }
+        } else if (entry == "CPUINFO") { // CPUINFO:4  99.97 100.0  100.0  100.0   99.98    0.1  ;
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            var objCheckboxCpus = document.getElementById("checkboxcpus");
+            if (objCheckboxCpus) {
+                // if the checkbox to show CPU utilization is checked
+                if (objCheckboxCpus.checked) {
+                    var response = oResponses[i+1];
+                    var cpupercentage = 0;
+                    var tempNumCpus = 0;
+                    var cpuUsageTotal = 0; // the four CPU usage's combined; used to compute average CPU usage
+                    var cpuActiveCount = 0;
+
+                    //AddToDebugOutput ( entry + ":" + response + ";" + eol );
+
+                    // if the number of cpus has changed
+                    tempNumCpus = Number(response.substr(0,1)) + 1;
+                    if (tempNumCpus && tempNumCpus != gNumCpus ) {
+                        var numlines = 0;
+                        gNumCpus = tempNumCpus;
+                        //alert("CPUINFO: gNumCpus " + gNumCpus );
+                        for (numlines=1; numlines<(gNumCpus-1)+1 ; numlines++) { //once for all CPUs
+                            showRow(numlines);
+                        }
+                    }
+
+                    for (idx=0; idx < gNumCpus; idx++ ) {
+                        var idle=response.substr(2+(idx*7), 7);
+
+                        // if the string has some length of characters to parse
+                        //alert("idx " + idx + "; idle " + idle + "; len " + idle.length );
+                        if (idle.length) {
+                            cpupercentage = Math.floor(idle); // each entry is 6 chars long ... CPUINFO:4 000100 000099 000255 000100
+                            gCpuData[idx] = cpupercentage;
+                            var cpuid="cpudata0" + idx;
+                            //alert("cpu " + idx + "=(" + cpupercentage + "); idle (" + idle + "); cpuid " + cpuid + "; gNumCpus " + gNumCpus );
+                            var cpudataobj = document.getElementById(cpuid);
+                            if (cpudataobj) {
+                                var cputitleid = "cputitle0" + idx;
+                                var objtitle = document.getElementById(cputitleid);
+
+                                ChangeCpuTag ( idx, idle );
+                                if (idle == 255) { // if the cpu has been disabled
+                                    // add inactive to the title
+                                    if (objtitle) {
+                                        objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(<span style=\"background-color:red;\">(INACTIVE)</span>)";
+                                    }
+                                } else {
+                                    var usage = Number(100 - idle);
+                                    cpudataobj.innerHTML += usage + " ";
+
+                                    if (objtitle) {
+                                        var MHz = Number(gCpuFreq[idx]);
+                                        if ( MHz == 0 || MHz == 999999 ) MHz = "__";
+                                        objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(&nbsp;" + usage + "% @ " + MHz + " MHz)";
+                                    }
+
+                                    cpuUsageTotal += Number(usage);
+                                    cpuActiveCount++;
+                                }
+
+                                cpudataobj.scrollTop = cpudataobj.scrollHeight;
+                                if (bCpuDataHeightSet == 0) {
+                                    cpudataobj.style.height ='auto';
+                                    cpudataobj.style.height ="18px";
+                                }
+                            }  // if cpudata00 is valid
+                        } // if idle.length is valid
+                    }  // for each CPU
+
+                    cpuUsageLongAverage[cpuUsageLongAverageIdx] = (cpuUsageTotal / cpuActiveCount);
+                    cpuUsageLongAverageIdx++; // increment index into array ... wrapping around to 0 if it gets too big
+                    if ( cpuUsageLongAverageIdx >= CPU_USAGE_LONG_AVERAGE_MAX ) cpuUsageLongAverageIdx = 0;
+                    cpuUsageLongAverageCount++; // Count is used to only compute average for 2 cycles if we have only been collecting values for 2 seconds
+
+                    // update the total average CPU usage
+                    var objcpuoverall = document.getElementById("cpuoverall");
+                    if (objcpuoverall) {
+                        objcpuoverall.innerHTML = Number( cpuUsageTotal / cpuActiveCount ).toFixed(1) + "%";
+                        var avg = ComputeTotalCpuLongAverage();
+                        objcpuoverall.innerHTML += "&nbsp;<span style=\"color:limegreen;\">(" + CPU_USAGE_LONG_AVERAGE_MAX + "s&nbsp;avg:" + avg + "%)</span>";
+                        objcpuoverall.innerHTML += "<span style=\"font-size:8pt;\" >&nbsp;TOTAL&nbsp;CPU</span>";
+
+                        // if there are two or more CPUs, update the red overall average line and the limegreen 5-second cpu average line
+                        if (gNumCpus > 1) {
+                            AppendPolylineXY ( 0, 100 - Math.floor ( Number( cpuUsageTotal / cpuActiveCount ) ) ); // update red CPU utilization average line
+                            AppendPolylineXY ( gNumCpus, 100 - Math.floor ( Number( avg ) ) ); // line number needs to match the polyline0x definition in bsysperf.c
+                                                                                               // update green 5-second CPU utilization average line
+                        }
+                    }
+
+                    bCpuDataHeightSet = 1;
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "CPUFREQUENCY") {
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            var response = oResponses[i+1];
+            //AddToDebugOutput ( entry + ":" + response + ";" + eol );
+            var objCheckboxCpus = document.getElementById("checkboxcpus");
+            if (objCheckboxCpus) {
+                // if the checkbox to show CPU utilization is checked
+                if (objCheckboxCpus.checked) {
+                    var tempNumCpus = 0;
+                    tempNumCpus = Number(response.substr(0,1));
+                    for (idx=0; idx < tempNumCpus; idx++ ) {
+                        // 000000 means cpu is active but freq is unknown (old BOLT?); 999999 means cpu is inactive
+                        var freq = rtrim ( response.substr(2+(idx*7), 7) );
+                        //AddToDebugOutput ( "cpu " + idx + ":" + freq+ ";" + eol );
+                        gCpuFreq[idx] = freq;
+                    }  // for each CPU
+                }
+            }
+            i++;
+        } else if (entry == "ETHINFO") {
+            var response = oResponses[i+1];
+            AddToDebugOutput ( entry + ":" + response + ";" + eol );
+            i++;
+        } else if (entry == "IRQDETAILS") {
+            var response = oResponses[i+1];
+            var obj2=document.getElementById("IRQDETAILS");
+            if (obj2) {
+                obj2.innerHTML = oResponses[i+1];
+            }
+            i++;
+        } else if (entry == "MEMORY") {
+            var obj2 = document.getElementById("checkboxmemory");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("MEMORY");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                    }
+                    validResponseReceived = 1;
+                    hideOrShow("row_memory", SHOW );
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "netStatsInit") { // only return when user first checks the Network Stats checkbox
+            PlaybacknetStatsInit = oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("NETSTATS");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                        AddToDebugOutput ( entry + ":iperfClientServerRow:" + iperfClientServerRow + eol );
+                    }
+
+                    // hide all ten of the histogram rows because the visibility:hidden attribute in the HTML doesn't work initially
+                    for ( var idx=0; idx<10; idx++) {
+                        hideOrShow("row_netgfxsvg" + idx, HIDE );
+                        hideOrShow("row_netgfxtxt" + idx, HIDE );
+                    }
+
+                    // if we are doing a playback
+                    if ( PlaybackFileContentsArrayIdx ) {
+                        // when the user selects a file for playback, we need to SHOW any graphs that are selected
+                        for ( var idx=0; idx<10; idx++) {
+                            var obj = document.getElementById ( "checkbox_netgfx" + idx );
+                            if ( obj && NetGfxCheckbox[idx] ) {
+                                hideOrShow("row_netgfxsvg" + idx, SHOW );
+                                hideOrShow("row_netgfxtxt" + idx, SHOW );
+                            }
+                        }
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+
+        } else if (entry == "netStatsUpdate") {
+            if(debug) console.log ( entry + ":" + oResponses[i+1] + eol );
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            i++;
+            var num_interfaces = oResponses[i];
+            i++;
+            for ( var idx=0; idx<num_interfaces; idx++ ) {
+                if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + oResponses[i];
+                var splits = oResponses[i].split('|'); // rx_bytes|tx_bytes|rx_error|tx_error
+                if(debug) console.log ( entry + ":" + idx + " - " + oResponses[i] + ": splits.length=" + splits.length + eol );
+                if ( splits.length == 4 ) {
+                    var objcell = "";
+                    var tagid = "";
+                    for ( var jdx=0; jdx<splits.length; jdx++ ) {
+                        if ( jdx==0 ) {
+                            tagid = "netif_rxBytes_" + idx;
+                        } else if ( jdx==1 ) {
+                            tagid = "netif_txBytes_" + idx;
+                        } else if ( jdx==2 ) {
+                            tagid = "netif_rxError_" + idx;
+                        } else if ( jdx==3 ) {
+                            tagid = "netif_txError_" + idx;
+                        }
+                        objcell = document.getElementById( tagid );
+                        if (objcell) {
+                            objcell.innerHTML = splits[jdx];
+                        }
+                    }
+                }
+                i++;
+                if(debug) console.log ( "netif " + idx + ": next response to process ... " + oResponses[i] + eol );
+            }
+
+            // after loop above finishes, the index "i" is pointing to the wrong entry
+            i--;
+
+            // because the checkboxbox gets updated every second, we have to remember the status of the previous second
+            if ( iperfClientServerRow == 1 ) { // if the previous status was checked, set current status to same
+                var objbox=document.getElementById('checkboxiperfrow');
+                if (objbox) {
+                    objbox.checked = true;
+                }
+                hideOrShow("row_iperf_client_server", SHOW );
+            } else {
+                hideOrShow("row_iperf_client_server", HIDE );
+            }
+
+            if ( iperfStateClient != iperfStateEnum.UNINIT || iperfStateServer != iperfStateEnum.UNINIT ) {
+                set_iperf_count_cell();
+                set_iperf_status_cell();
+            }
+
+        } else if (entry == "NETBYTES") {
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            var obj2 = document.getElementById("checkboxnets");
+            var Mbps = 0;
+            var Bits = 0;
+            if (obj2) {
+                if (obj2.checked) {
+                    if(debug) console.log ( entry + ":" + oResponses[i+1] + eol );
+                    NetBytesSeconds++;
+
+                    var response = oResponses[i+1];
+                    if(debug) console.log ( entry + ":" + response + "; NetBytesSeconds " + NetBytesSeconds + eol );
+                    var oRxTxPairs = response.split( "," ); // split the response using comma delimiter
+
+                    for (var idx = 0; idx < oRxTxPairs.length; idx++) {
+                        if(debug) console.log ( "NetIF " + idx + "str(" + oRxTxPairs[idx] + ")" + eol );
+                        if (idx < 10 && oRxTxPairs[idx].length >= 3 ) { // if we haven't exceeded array size and rxtx pair has some values
+                            var oRxTx = oRxTxPairs[idx].split( " " ); // split the response using space as delimiter
+                            var tagRx = "netif" + idx + "rx";
+                            var objRx = document.getElementById(tagRx);
+                            var tagTx = "netif" + idx + "tx";
+                            var objTx = document.getElementById(tagTx);
+
+                            if(debug) console.log( entry + ": objRx (" + objRx + ") objTx (" + objTx + ")" );
+                            if (! objRx ) {
+                                continue;
+                            }
+
+                            if (! objTx ) {
+                                continue;
+                            }
+
+                            // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                            Mbps =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) / 128 / 1024);
+                            Bits =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) * 8 );
+
+                            if (NetBytesPrev[idx][0] > 0 && (oRxTx[0] >= NetBytesPrev[idx][0]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
+                                // if the array has filled up
+                                if (NetBytesRx10SecondsCount[idx] == 10) {
+                                    for (idx2=0; idx2<(NetBytesRx10SecondsCount[idx]-1); idx2++) {
+                                        NetBytesRx10Seconds[idx][idx2] = NetBytesRx10Seconds[idx][idx2+1];
+                                    }
+                                    NetBytesRx10SecondsCount[idx] = 9;
+                                }
+                                NetBytesRx10Seconds[idx][NetBytesRx10SecondsCount[idx]] = Mbps;
+                                NetBytesRx10SecondsCount[idx]++;
+                                if (objRx) {
+                                    // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
+                                    // convert bytes to megabits
+                                    // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                                    objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 ) + ")"; // 0 for RX and 1 for TX
+                                }
+                            } else {
+                                objRx.innerHTML = "0.000 (0.000)";
+                            }
+                            UpdateNetGfxElements ( idx, 0/*RX*/, NetBytesPrev[idx][0], oRxTx[0] );
+                            NetBytesPrev[idx][0] = oRxTx[0];
+
+                            // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                            Mbps =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) / 128 / 1024);
+                            Bits =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) * 8 );
+
+                            if (NetBytesPrev[idx][1] > 0 && (oRxTx[1] >= NetBytesPrev[idx][1]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
+                                // if the array has filled up, move the entries left one position and add new entry to the very end
+                                if (NetBytesTx10SecondsCount[idx] == 10) {
+                                    for (idx2=0; idx2<(NetBytesTx10SecondsCount[idx]-1); idx2++) {
+                                        NetBytesTx10Seconds[idx][idx2] = NetBytesTx10Seconds[idx][idx2+1];
+                                    }
+                                    NetBytesTx10SecondsCount[idx] = 9;
+                                }
+                                NetBytesTx10Seconds[idx][NetBytesTx10SecondsCount[idx]] = Mbps;
+                                NetBytesTx10SecondsCount[idx]++;
+                                if (objTx) {
+                                    // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
+                                    // convert bytes to megabits
+                                    // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                                    objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 ) + ")"; // 0 for RX and 1 for TX
+                                }
+                            } else {
+                                objTx.innerHTML = "0.000 (0.000)";
+                            }
+                            UpdateNetGfxElements ( idx, 1/*TX*/, NetBytesPrev[idx][1], oRxTx[1] );
+                            NetBytesPrev[idx][1] = oRxTx[1];
+                        }
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfInit") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("iperfInit");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfPidClient") {
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    iperfPidClient = oResponses[i+1];
+                    if (iperfPidClient == 0 && iperfStateClient == iperfStateEnum.RUNNING) {
+                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        iperfStateClient = iperfStateEnum.STOP;
+                        set_iperf_button( entry );
+                        iperfPidClient = "terminated";
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfPidServer") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    iperfPidServer = oResponses[i+1];
+                    if (iperfPidServer == 0 && iperfStateServer == iperfStateEnum.RUNNING) {
+                        // The first time after a reboot when we try to start the server, the events happen so slowly that the returned
+                        // PID is 0. This zero PID was causing the logic to change states to STOP inadvertently. By adding a 1-second
+                        // retry, the premature abort after reboot went away.
+                        if ( iperfStateServerRetry < 1 ) {
+                            iperfStateServerRetry++;
+                        } else {
+                            iperfStateServerRetry=0;
+                            iperfStateServer = iperfStateEnum.STOP;
+                            set_iperf_button( entry );
+                            iperfPidServer = "terminated";
+                        }
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfErrorClient") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    iperfPidClient = oResponses[i+1];
+                    iperfStateClient = iperfStateEnum.UNINIT;
+                    set_iperf_button( entry );
+                    set_iperf_status_cell();
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfErrorServer") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    iperfPidServer = oResponses[i+1];
+                    iperfStateServer = iperfStateEnum.UNINIT;
+                    iperfStateServerRetry = 0;
+                    set_iperf_button( entry );
+                    set_iperf_status_cell();
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfRunningClient") {
+            //console.log (entry + " is (" + oResponses[i+1] + ") ... len " + oResponses[i+1].length);
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    if ( oResponses[i+1].length ) {
+                        if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -c running, make sure the START button is enabled
+                            set_iperf_cmd ( "", entry );
+                            setButtonDisabled( 'iperf_start_stop_c', false );
+                        } else {
+                            iperfRunningClient = oResponses[i+1];
+
+                            //fillin_iperf_entry_boxes();
+                            var obj=document.getElementById("iperf_start_stop_c");
+                            if (obj && obj.value == "START") {
+                                obj.value = "STOP";
+                                iperfStateClient = iperfStateEnum.RUNNING;
+                                set_iperf_cmd ( iperfRunningClient.substr(iperfRunningClient.indexOf('iperf ')), entry );
+                                set_iperf_count_value(entry, get_unix_seconds( iperfRunningClient ) ); // if we loaded the page and iperf is already running, set the start time
+                            }
+                            setButtonDisabled( 'iperf_start_stop_c', true ); // will be enabled if browser received iperfClientRate
+                        }
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfRunningServer") {
+            //console.log ( entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    iperfRunningServer = oResponses[i+1];
+                    if (iperfRunningServer.length) {
+                        //fillin_iperf_entry_boxes();
+                        var obj=document.getElementById("iperf_start_stop_s");
+                        if (obj && obj.value == "START") {
+                            // if the running iperf was started by bsysperf (i.e. it has the special -Q option)
+                            if ( oResponses[i+1].indexOf(" iperf -s -Q ") > 0 ) {
+                                obj.value = "STOP";
+                                iperfStateServer = iperfStateEnum.RUNNING;
+                                set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
+                                set_iperf_count_value(entry, get_unix_seconds( iperfRunningServer ) ); // if we loaded the page and iperf is already running, set the start time
+                            } else {
+                                if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -s running, make sure the START button is enabled
+                                    setButtonDisabled( 'iperf_start_stop_s', false );
+                                    set_iperf_cmd ( "", entry );
+                                } else {
+                                    // if someone started iperf -s outside of bsysperf, do not allow bsysperf to start another one
+                                    setButtonDisabled( 'iperf_start_stop_s', true );
+                                    set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')) + " (started outside of bsysperf)", entry );
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "iperfClientRate") {
+            //console.log( entry + " is (" + oResponses[i+1] + ")" + eol );
+            iperfClientRate = oResponses[i+1];
+            setButtonDisabled( 'iperf_start_stop_c', false );
+            i++;
+        } else if (entry == "WIFIINIT") {
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2) {
+                if (obj2.checked) {
+                    //alert( entry + " - (" + oResponses[i+1] + ")" );
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("WIFIINIT");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                        //alert("responses added to element WIFIINIT");
+                    }
+                    GetWifiStatsCountdown = 10;
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                    //alert("checkboxwifi element not checked");
+                }
+            } else {
+                alert("checkboxwifi element not found ");
+            }
+            i++;
+        } else if (entry == "WIFISTATS") {
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2) {
+                if (obj2.checked) {
+                    //alert( entry + " - (" + oResponses[i+1] + ")" );
+                    var obj3=document.getElementById("WIFISTATS");
+                    if (obj3) {
+                        obj3.innerHTML = oResponses[i+1];
+                        GetWifiStats.Value = 0;
+                    }
+                    GetWifiStatsCountdown = 10;
+                } else {
+                    var local = new Date();
+                    var Seconds = Math.floor(local.getTime() / 1000);
+                    AddToDebugOutput ( entry + ": SecondsEnabled:" + GetWifiStats.SecondsEnabled + " ... delta ... " + (Seconds - GetWifiStats.SecondsEnabled ) + eol );
+                    if ( GetWifiStats.SecondsEnabled ) {
+                        if ( (Seconds - GetWifiStats.SecondsEnabled ) > 10 ) {
+                            setButtonDisabled( 'checkboxwifi', false );
+                        }
+                    }
+                }
+            }
+            i++;
+        } else if (entry == "WIFIRATE") {
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2) {
+                if (obj2.checked) {
+                    //alert( entry + " - (" + oResponses[i+1] + ")" );
+                    var obj3=document.getElementById("WIFIRATE");
+                    if (obj3) {
+                        obj3.innerHTML = oResponses[i+1];
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "WIFIDISABLED") {
+            //alert( entry );
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2) {
+                obj2.disabled = true;
+                obj2.checked = false;
+                GetWifiStats.SecondsEnabled = 0;
+                hideOrShow("row_wifi_stats", HIDE );
+                hideOrShow("row_wifi_ampdu", HIDE );
+            }
+        } else if (entry == "WIFIENABLED") {
+            //alert( entry );
+            AddToDebugOutput ( entry + ": SecondsEnabled:" + GetWifiStats.SecondsEnabled + eol );
+            var local = new Date();
+            if ( GetWifiStats.SecondsEnabled == 0) {
+                GetWifiStats.SecondsEnabled = Math.floor(local.getTime() / 1000);
+            }
+        } else if (entry == "WIFISCANMAXAPS") {
+            // The interface with bsysperf_server can accommodate a certain number of access points; this is the maximum it can handle each second
+            // If the max is 8 and we have 12 APs to send back to client, ask for 1st set of 8, and then ask for 2nd set of 8 of which only 4 will be returned
+            if ( oResponses[i+1] ) {
+                //alert( entry + "-" + oResponses[i+1] );
+                GetWifiScan.MaxNumAps = oResponses[i+1];
+            }
+            i++;
+        } else if (entry == "WIFISCANNUMAPS") {
+            //alert( entry + "-" + oResponses[i+1] );
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2 && obj2.checked ) {
+                //alert(entry + "-" + oResponses[i+1] );
+                if ( Number(oResponses[i+1]) < Number(GetWifiScan.MaxNumAps) ) {
+                    // if the number of APs returned from the server is less than the maximum, we have reached the end of the number of APs
+                    GetWifiScan.State = GetWifiScanState.UNINIT;
+                    setButtonDisabled ( "WifiScan", false );
+                } else {
+                    // we have transferred 8 of 12 APs; increment the starting index from 0 to 8 and get the last 4
+                    GetWifiScan.ServerIdx = Number(GetWifiScan.ServerIdx) + Number(GetWifiScan.MaxNumAps);
+                    AddToDebugOutput ( entry + ": GetWifiScan.ServerIdx:" + GetWifiScan.ServerIdx + eol );
+                    //alert( entry + "- ServerIdx =" + GetWifiScan.ServerIdx );
+                }
+            }
+            i++;
+        } else if (entry == "WIFISCANRESULTS") {
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2 && obj2.checked ) {
+                //alert(entry + "-" + oResponses[i+1] );
+                AddToHtml ( "WIFISCANRESULTS", oResponses[i+1] );
+            }
+            i++;
+        } else if (entry == "wifiAmpduGraph") {
+            var obj2 = document.getElementById("checkboxwifi");
+            if (obj2 && obj2.checked ) {
+                var objampdu = document.getElementById("checkboxWifiAmpduGraph");
+                if (objampdu && objampdu.checked ) {
+                    var objdiv=document.getElementById('SVG_DATA_ARRAY');
+                    if (objdiv) {
+                        var element_id = "";
+                        //alert(entry + "-" + oResponses[i+1] );
+                        objdiv.innerHTML = oResponses[i+1];
+
+                        // the table may have some rows that are hidden based on the antenna strength
+                        for (var idx=0; idx<8; idx++) {
+                            element_id = "r_x" + idx;
+                            var objrow = document.getElementById( element_id );
+                            if (objrow) {
+                                if (objrow.style.visibility == "hidden" ) {
+                                    //alert("row " + element_id + " is hidden");
+                                    hideOrShow ( element_id, HIDE );
+                                }
+                            }
+                        }
+                        for (var idx=0; idx<8; idx++) {
+                            element_id = "R_x" + idx;
+                            var objrow = document.getElementById( element_id );
+                            if (objrow) {
+                                if (objrow.style.visibility == "hidden" ) {
+                                    //alert("row " + element_id + " is hidden");
+                                    hideOrShow ( element_id, HIDE );
+                                }
+                            }
+                        }
+
+                        hideOrShow("row_wifi_ampdu", SHOW );
+                        DrawScene(0);
+                        SwapTxRx(0);
+                        DrawScene(1);
+                        SwapTxRx(1);
+                        RadioClick(); // reset sidx based on the radio button selected
+                    }
+                } else {
+                    //alert(entry + ": checkboxWifiAmpduGraphnot checked");
+                }
+            }
+            i++;
+        } else if (entry == "IRQINFO") {
+            var obj2 = document.getElementById("checkboxirqs");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var irqcount = 0;
+                    var tempNumCpus = Number(response.substr(0,1)) + 1;
+                    //alert("IRQINFO: tempNumCpus " + tempNumCpus );
+                    AddToDebugOutput ( entry + ":" + response + "; tempNumCpus " + tempNumCpus + ";" + eol );
+                    for (idx=0; idx < tempNumCpus; idx++ ) {
+                        var idle=response.substr(2+(idx*7), 7);
+
+                        // if the string has some length of characters to parse
+                        if (idle.length) {
+                            gIrqLatestData[idx] = idle;
+                            var irqid="irqdata0" + idx;
+                            //alert("irq " + idx + "; idle (" + idle + "); irqid " + irqid + "; tempNumCpus " + tempNumCpus );
+                            var irqdataobj = document.getElementById(irqid);
+                            if (irqdataobj) {
+                                var usage = Number(idle);
+                                irqdataobj.innerHTML += usage + " ";
+
+                                irqdataobj.scrollTop = irqdataobj.scrollHeight;
+                                if (bIrqDataHeightSet == 0) {
+                                    irqdataobj.style.height ='auto';
+                                    irqdataobj.style.height ="18px";
+                                }
+                            }
+                        }
+                    }
+                    bIrqDataHeightSet = 1;
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "PLATFORM") {
+            PlaybackPLATFORM = oResponses[i+1];
+            var objplatform = document.getElementById("platform");
+            if (objplatform) {
+                objplatform.innerHTML = oResponses[i+1]; CurrentPlatform = oResponses[i+1];
+            }
+            i++;
+        } else if (entry == "PLATVER") {
+            PlaybackPLATVER = oResponses[i+1];
+            var objplatform = document.getElementById("platver");
+            if (objplatform) {
+                objplatform.innerHTML = oResponses[i+1]
+            }
+            window.document.title = CurrentPlatform + " " + oResponses[i+1];
+            i++;
+        } else if (entry == "UNAME") {
+            PlaybackUNAME = oResponses[i+1];
+            //alert(entry + ":" + oResponses[i+1] );
+            var objplatform = document.getElementById("platver");
+            if (objplatform) {
+                objplatform.innerHTML += "&nbsp;" + oResponses[i+1];
+            }
+            i++;
+        } else if (entry == "HEAPTABLE") { // used to populate the MEMORY_HTML TH with heap table and PerfCache
+            AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
+            //alert(entry + ":" + oResponses[i+1] );
+
+            var objtable = document.getElementById("MEMORY_HTML");
+            if (objtable) {
+                if (oResponses[i+1].indexOf("id=textareaPerfCache") > 0 ) { // if the response is the html for the Cache textbox
+                    if ( GetCheckboxStatus ( "checkboxPerfCache" ) ) { // only display the response if the checkbox is still checked
+                        objtable.innerHTML = oResponses[i+1];
+
+                        objtable = document.getElementById("textareaPerfCache");
+                        if (objtable) {
+                            objtable.rows = Number(objtable.scrollHeight/14,0) + 1;
+                            //alert("TEXTAREA height (" + objtable.scrollHeight + "); numrows (" + objtable.rows + ")" );
+                        }
+                    }
+                } else {
+                    objtable.innerHTML = oResponses[i+1];
+                }
+            }
+
+            i++;
+        } else if (entry == "HEAPINFO") {
+            AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
+            //alert(entry + ":" + oResponses[i+1] );
+            var objheapinfo = document.getElementById("heapinfo");
+            if (objheapinfo) {
+                objheapinfo.innerHTML = MsIeCrFix ( oResponses[i+1] );
+            } else {
+                //alert("element heapinfo not found");
+            }
+            AddToDebugOutput ( entry + ": len1:" + oResponses[i+1].length + "; " + oResponses[i+1] + eol );
+
+            if (oResponses[i+1].length > 0) {
+                validResponseReceived = 1;
+                GetHeapStats.Value = 0;
+                SetCheckboxStatus ( "checkboxPerfDeep", GetHeapStats );
+                hideOrShow("row_memory", SHOW );
+            } else {
+                if (objheapinfo) {
+                    //objheapinfo.innerHTML = "Response was invalid; trying again in 1 second!";
+                }
+            }
+            i++;
+        } else if (entry == "HEAPGRAPH") {
+            AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
+            //alert(entry + ":" + oResponses[i+1] );
+
+            var objplatform = document.getElementById("heapgraph");
+            if (objplatform) {
+                objplatform.innerHTML = oResponses[i+1]; CurrentPlatform = oResponses[i+1];
+            } else {
+                //alert("element heapgraph not found");
+            }
+            AddToDebugOutput ( entry + "[1]: len2:" + oResponses[i+1].length + "; " + oResponses[i+1] + eol );
+            i++;
+        } else if (entry == "SATADEBUG") {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            i++;
+        } else if (entry == "SATAUSB") {
+            //alert(entry + ":" + oResponses[i+1]);
+            AddToDebugOutput ( entry + ": html table len " + oResponses[i+1].length + ";" + eol );
+
+            var objcheckbox = document.getElementById("checkboxsatausb");
+            var objtable = document.getElementById("MEMORY_HTML");
+            if (objcheckbox) {
+                objcheckbox.checked = GetSataUsb.Value;
+            }
+            //alert("got SATAUSB; GetSataUsb is " + GetSataUsb.Value );
+            // if the checkbox is still checked, populate the information
+            if (GetSataUsb.Value) {
+                if (objtable) { objtable.innerHTML = oResponses[i+1]; }
+            } else {
+                if (objtable) { objtable.innerHTML = ""; }
+                //alert("got SATAUSB; cleared innerHTML" );
+            }
+            i++;
+        } else if (entry == "ALERT") {
+            alert( oResponses[i+1] );
+            i++;
+        } else if (entry == "PERFDEEPSTARTED" && GetCheckboxStatus ( "checkboxprofiling" ) && GetCheckboxStatus ( "checkboxPerfDeep" ) ) {
+            AddToDebugOutput ( entry + ": response (" + oResponses[i+1] + "); " + eol );
+            //alert ( entry + ": response (" + oResponses[i+1] + "); " + eol );
+            if (oResponses[i+1] == "SUCCESS") {
+                GetPerfDeepCountdown = GetPerfDeep.Duration;
+                GetPerfDeepCountdown++;
+                //alert("Perf Record succeeded; setting timeout for  " + GetPerfDeepCountdown );
+                if ( GetPerfDeepCountdown > 1) {
+                    //alert( entry + "; duration " + GetPerfDeepCountdown );
+                    setTimeout ('GetPerfDeepResultsDoit()', 1000 );
+                }
+            } else {
+                alert("Perf Record failed: " + oResponses[i+1] );
+            }
+            i++;
+        } else if (entry == "PERFCACHESTARTED" && GetCheckboxStatus ( "checkboxmemory" ) && GetCheckboxStatus ( "checkboxPerfCache" ) ) {
+            AddToDebugOutput ( entry + ": response (" + oResponses[i+1] + "); " + eol );
+            //alert ( entry + ": response (" + oResponses[i+1] + "); " + eol );
+            if (oResponses[i+1] == "SUCCESS") {
+                GetPerfCacheCountdown = GetPerfCache.Duration;
+                GetPerfCacheCountdown++;
+                //alert("Perf stat succeeded; setting timeout for  " + GetPerfCacheCountdown );
+                if ( GetPerfCacheCountdown > 1) {
+                    //alert( entry + "; duration " + GetPerfCacheCountdown );
+                    setTimeout ('GetPerfCacheResultsFunc()', 1000 );
+                }
+            } else {
+                alert("Perf Stat failed: " + oResponses[i+1] );
+            }
+            i++;
+        } else if (entry == "PERFDEEPRESULTSDONE") {
+            AddToDebugOutput ( entry + eol );
+            SetCheckboxStatus ( "checkboxPerfDeep", GetPerfDeep );
+            //alert( entry + ": GetPerfDeep.Value " + GetPerfDeep.Value );
+            if ( GetCheckboxStatus ( "checkboxprofiling" ) && GetCheckboxStatus ( "checkboxPerfDeep" ) ) {
+                checkboxPerfDeepDoit( true );
+                //alert("report done; doing it again");
+                GetPerfDeep.StartReportNow = true;
+                //sendCgiRequest();
+            }
+        } else if (entry == "PERFCACHEDONE") {
+            AddToDebugOutput ( entry + eol );
+            SetCheckboxStatus ( "checkboxPerfCache", GetPerfCache );
+            //alert( entry + ": GetPerfCache.Value " + GetPerfCache.Value );
+            if ( GetCheckboxStatus ( "checkboxmemory" ) && GetCheckboxStatus ( "checkboxPerfCache" ) == true ) {
+                checkboxPerfCacheDoit( true );
+                //alert("stat done; doing it again");
+                GetPerfCache.StartReportNow = true;
+                //sendCgiRequest();
+            }
+        } else if (entry == "PERFENABLED") {
+            AddToDebugOutput ( entry + eol );
+
+            PerfError = false;
+        } else if (entry == "PERFERROR") {
+            //AddToDebugOutput ( entry + eol );
+
+            PerfError = true;
+
+            GetPerfTop.Value = 0;
+            SetCheckboxStatus ( "checkboxPerfTop", GetPerfTop );
+            SetCheckboxDisabled ( "checkboxPerfTop", true );
+
+            GetPerfDeep.Value = 0;
+            SetCheckboxStatus ( "checkboxPerfDeep", GetPerfDeep );
+            SetCheckboxDisabled ( "checkboxPerfDeep", true );
+
+            GetPerfCache.Value = 0;
+            SetCheckboxStatus ( "checkboxPerfCache", GetPerfCache );
+            SetCheckboxDisabled ( "checkboxPerfCache", true );
+
+            SetCheckboxDisabled ( "checkboxLinuxTop", false );
+
+            //alert("PERFERROR done");
+        } else if ( (entry == "PerfTop") || (entry == "LinuxTop") || (entry == "PERFDEEPRESULTS") ) {
+            //alert("Response " + entry + "; len=" + oResponses[i+1].length + ":" + oResponses[i+1] );
+            CountdownSeconds = 0;
+            PerfCacheCountdownSeconds = 0;
+            if ( objPerfTop ) {
+                if (entry == "LinuxTop" ) {
+                    // sometimes the LinuxTop command comes back "empty" ... meaning there is a bunch of html that contains nothing useful
+                    if ( oResponses[i+1].length > 1000 ) {
+                        if (GetLinuxTop.Value) { // if LinuxTop checkbox is checked (we are expecting LinuxTop data)
+                            objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
+                        }
+
+                        // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
+                        SetCheckboxDisabled ( "checkboxPerfTop", GetLinuxTop.Value ); // if LinuxTop is true -> disable PerfTop; else Enable it
+                        SetCheckboxDisabled ( "checkboxPerfDeep", GetLinuxTop.Value ); // if LinuxTop is true -> disable PerfDeep
+                    } else { // the LinuxTop command failed to provide data, try again in this many milliseconds
+                        setTimeout ('RetryLinuxTop()', 500 );
+                    }
+                } else {
+                    if ( (entry == "PerfTop") ) {
+                        objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
+
+                        // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
+                        if (PerfError) { // if not compiled for perf, only enable LinuxTop
+                            SetCheckboxDisabled ( "checkboxLinuxTop", false );
+                            SetCheckboxDisabled ( "checkboxPerfDeep", true );
+                            SetCheckboxDisabled ( "checkboxPerfTop", true );
+                        } else {
+                            SetCheckboxDisabled ( "checkboxLinuxTop", true );
+                            SetCheckboxDisabled ( "checkboxPerfDeep", true );
+                            SetCheckboxDisabled ( "checkboxPerfTop", false );
+                        }
+                    } else if (entry == "PERFDEEPRESULTS" && GetCheckboxStatus("checkboxPerfDeep")) {
+                        objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
+
+                        // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
+                        SetCheckboxDisabled ( "checkboxPerfTop", true );
+                        SetCheckboxDisabled ( "checkboxLinuxTop", true );
+                    }
+                    //alert(entry +": adding to PERFUTILS TH html (" + objPerfTop.innerHTML + ")" );
+                }
+
+                // we just re-filled the navigation checkboxes; update the one for context switches
+                SetCheckboxStatus ( "checkboxContextSwitch", GetContextSwitch );
+
+                var objTextareaTopResults = document.getElementById("textareaTopResults");
+                if (objTextareaTopResults) {
+                    objTextareaTopResults.rows = Number(objTextareaTopResults.scrollHeight/14,0) + 1;
+                    //alert(entry + ": objTextareaTopResults rows:" + objTextareaTopResults.rows );
+                }
+
+                if (entry == "PerfTop") {
+                    var checkbox = document.getElementById('checkboxPerfTop');
+                    if (checkbox ) {
+                        checkbox.checked = GetPerfTop.Value;
+                        SetCheckboxDisabled ( "checkboxPerfTop", false );
+                        SetCheckboxDisabled ( "checkboxLinuxTop", true );
+                    }
+                } else if (entry == "LinuxTop") {
+                    var checkbox = document.getElementById('checkboxLinuxTop');
+                    if (checkbox ) { checkbox.checked = GetLinuxTop.Value; }
+                } else if (entry == "PERFDEEPRESULTS") {
+                    var checkbox = document.getElementById('checkboxPerfDeep');
+                    if (checkbox ) { checkbox.checked = GetPerfDeep.Value; }
+                    objTextareaTopResults = document.getElementById("textareaPerfDeep");
+                    if (objTextareaTopResults) {
+                        objTextareaTopResults.rows = Number(objTextareaTopResults.scrollHeight/14,0) + 1;
+                        //alert("TEXTAREA height (" + objTextareaTopResults.scrollHeight + "); numrows (" + objTextareaTopResults.rows + ")" );
+                    }
+                }
+
+                if (oResponses[i+1].length > 0) {
+                    validResponseReceived = 1;
+                    //hideOrShow("row_profiling", SHOW );
+                }
+            } else {
+                alert ("element PERFUTILS not found");
+            }
+            //AddToDebugOutput ( entry + ": len3:" + oResponses[i+1].length + "; " + oResponses[i+1] + eol );
+
+            if (GetPerfDeep.Duration) SetInputValue ( "PerfDeepDuration", GetPerfDeep.Duration );
+            if (GetPerfCache.Duration) SetInputValue ( "PerfCacheDuration", GetPerfCache.Duration );
+            i++;
+        } else if (entry == "CONTEXTSWITCH") {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            var checkbox = document.getElementById('checkboxContextSwitch');
+            if ( checkbox && checkbox.checked ) {
+                var objspan = document.getElementById('spanContextSwitches');
+                if (objspan) {
+                    objspan.innerHTML = "&nbsp;(" + oResponses[i+1] + ")";
+                } else {
+                    alert ( entry + ": object spanContextSwitches not found");
+                }
+            } else {
+                //alert ( entry + ": box not checked");
+            }
+            i++;
+        } else if (entry == "PerfFlameInit") {
+            //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            var checkbox = document.getElementById('checkboxPerfFlame');
+            if ( checkbox && checkbox.checked ) {
+                var objspan = document.getElementById('PerfFlameContents');
+                if (objspan) {
+                    objspan.innerHTML = oResponses[i+1];
+                } else {
+                    alert ( entry + ": object PerfFlameContents not found");
+                }
+                var objtemp = document.getElementById('PerfFlameDuration');
+                if ( objtemp ) {
+                    objtemp.innerHTML = "";
+                }
+            } else {
+                //alert ( entry + ": box not checked");
+            }
+            i++;
+        } else if (entry == "PERFFLAMESTATUS") {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            if (GetPerfFlame.State > GetPerfFlameState.IDLE) {
+                var objtemp = document.getElementById('PerfFlameSize');
+                if ( objtemp ) {
+                    var sizeBytes = oResponses[i+1]; // update the size of the perf.data file
+                    if ( sizeBytes > 1024*1024) { // megabytes
+                        var megabytes = sizeBytes / 1024 / 1024;
+                        objtemp.innerHTML = megabytes.toFixed(1) + "MB";
+                    } else if ( sizeBytes > 1024) { // kilobytes
+                        var kilobytes = sizeBytes / 1024;
+                        objtemp.innerHTML = kilobytes.toFixed(1) + "KB";
+                    } else {
+                        objtemp.innerHTML = sizeBytes;
+                    }
+                }
+                var epochSeconds = Math.floor(localtime.getTime() / 1000) - GetPerfFlameRecordingSeconds;
+                objtemp = document.getElementById('PerfFlameDuration');
+                if ( objtemp ) {
+                    var minutes = Math.floor( epochSeconds / 60 );
+                    var seconds = epochSeconds - (minutes * 60 );
+                    if (minutes > 0) {
+                        objtemp.innerHTML = minutes + "m" + seconds + "s";
+                    } else {
+                        objtemp.innerHTML = epochSeconds + "s";
+                    }
+                }
+                if (GetPerfFlame.State == GetPerfFlameState.STOP) { // oce the record has stopped, proceed to next state ... CREATESCRIPTOUT
+                    GetPerfFlameSetState( GetPerfFlameState.CREATESCRIPTOUT);
+                }
+            }
+            i++;
+        } else if (entry == "PERFFLAMEPIDCOUNT") {
+            var pidCountNow = oResponses[i+1];
+            AddToDebugOutput ( entry + ": pidCountNow:" + pidCountNow + "; GetPerfFlamePidCount:" + GetPerfFlamePidCount + "; State:" + GetPerfFlame.State + eol );
+            //alert("PidCount:" + GetPerfFlamePidCount + "; Now:" + pidCountNow );
+            if (GetPerfFlame.State == GetPerfFlameState.RECORDING) {
+                // if the server reported that the 'perf record' pids are no longer active, something caused the record to end
+                if ( pidCountNow == 0 && GetPerfFlamePidCount > 0 ) {
+                    //alert("ALERT ... looks like perf record is over"); // either the app it was monitoring exited or something unexpected caused it to exit prematurely
+                    GetPerfFlameSetStop();
+                }
+            }
+            GetPerfFlamePidCount = pidCountNow;
+            i++;
+        } else if (entry == "PERFRECORDUUID") {
+            PerfRecordUuid = oResponses[i+1];
+            //alert( entry + ":" + PerfRecordUuid );
+        } else if (entry == "PERFSCRIPTDONE") {
+            //alert( entry + ":" + oResponses[i+1] );
+            GetPerfFlameSetState( GetPerfFlameState.GETSVG);
+            GetSvgContents();
+            i++;
+        } else if (entry == "PerfFlameSvgContents") {
+            var svglength = oResponses[i+1].length;
+            var objtemp = document.getElementById('PerfFlameSvg');
+            if ( objtemp ) {
+                objtemp.innerHTML = oResponses[i+1];
+                //alert("svg:" + objtemp.innerHTML.substr(0,300) );
+            }
+            i++;
+            GetPerfFlameSetState( GetPerfFlameState.IDLE );
+        } else if (entry == "PERFFLAME_DELETEOUTFILE_DONE") {
+            //alert(entry + ":" + oResponses[i+1] );
+            GetPerfFlameSetState( GetPerfFlameState.IDLE );
+            i++;
+        } else if ( entry == "DvfsControl" ) {
+            //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
+            if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
+                var DvfsControl = document.getElementById('DvfsControl');
+                if ( DvfsControl ) {
+                    DvfsControl.innerHTML = oResponses[i+1];
+                }
+            }
+            i++;
+        } else if ( entry == "GovernorSetting" ) {
+            AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+            var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
+            if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
+                var objGovernorSetting = document.getElementById('radioGovernor' + oResponses[i+1] );
+                if ( objGovernorSetting ) {
+                    objGovernorSetting.checked = true;
+                }
+            }
+            i++;
+        } else {
+            if (entry.length > 1 ) {
+                AddToDebugOutput ( entry + eol );
+            }
+        }
+    } // end for each response
+    if(debug) console.log( "------------------------------------------------" + eol );
+}
+
+function clearTimeoutOneSecond( caller ) {
+    // if previous timeout is already pending, cancel it
+    if (CgiTimeoutId) {
+        //console.log( caller + ": calling clearTimeout()");
+        clearTimeout(CgiTimeoutId);
+        CgiTimeoutId = 0;
+    }
+}
+
 // This function runs as an asynchronous response to a previous server request
 function serverHttpResponse ()
 {
     var debug=GlobalDebug;
-    var CgiCountObj = document.getElementById('cgicount');
     var idx=0;
-    var idx2;
+    var idx2=0;
 
     if (debug) alert("serverHttpResponse: got readyState " + xmlhttp.readyState );
 
@@ -1835,9 +3287,16 @@ function serverHttpResponse ()
 
             debug=0;
 
+            if ( CgiRetryTimeoutId ) {
+                //console.log( "Response 200: clearTimeout(CgiRetryTimeoutId:" + CgiRetryTimeoutId + ")");
+                clearTimeout ( CgiRetryTimeoutId );
+                CgiRetryTimeoutId = 0;
+            }
+
             urlSentSuccessfully++; // used to try to determine if a failure is intermittant or we have never been successful
             urlSentRetryCountAfterSuccess = 0;
 
+            localtime = new Date();
             var responseText1 = xmlhttp.responseText.replace(/</g,"&lt;"); // fails on ie7, safari
             var responseText2 = responseText1.replace(/</g,"&lt;"); // fails on ie7, safari
 
@@ -1845,1126 +3304,91 @@ function serverHttpResponse ()
                 eol = "<br>";
             }
 
-            //if(debug) alert("setting debugdiv");
-            //if(objdebug) objdebug.innerHTML = responseText2;
-
-            if (debug) alert("rtrim");
             var responseText = rtrim(xmlhttp.responseText);
 
-            if (debug) alert("responseText:len " + responseText.length + "(" + responseText + ")" );
-            if (debug) alert("split");
+            if( RecordControl.Value > 0 ) {
+                var seconds = Math.floor(localtime.getTime() / 1000);
+                // occasionally, we get two responses within the same second; force two responses to be same time
+                if ( PlaybackSTBTIMEsaved != PlaybackSTBTIME ) {
+                    RecordFileContents += "\nUNIXTIME " + seconds + "|!|";
+                    PlaybackTimeSeconds = seconds;
+                    PlaybackSTBTIMEsaved = PlaybackSTBTIME;
+                }
+                RecordFileSize = RecordFileContents.length;
+
+                var sizeobj=document.getElementById("recordsize");
+                if (sizeobj) {
+                    var seconds = Math.floor(localtime.getTime() / 1000) - RecordTimeStart;
+                    sizeobj.innerHTML =  output_size_in_human( RecordFileSize  ) + " (" + Math.floor(seconds/60) + ":" + ("00" + seconds%60).slice (-2)+ ")"; // leading zero
+                }
+                var descobj=document.getElementById("recorddescriptor");
+                if (descobj) {
+                    descobj.innerHTML = "File&nbsp;size:";
+                }
+            }
+
+            if (debug) console.log ("responseText:len " + responseText.length + "(" + responseText.substr(0,90) + ")" );
+            if (debug) console.log ("split");
             var oResponses = responseText.split( "~" );
-            if (debug) alert("num responses is " + oResponses.length );
+            if (debug) console.log ("num responses is " + oResponses.length );
 
             // sometimes the very first response is blank; if this happens, send another request very soon after we receive the blank response
             if (responseText.length == 0) {
-                if (debug) alert("response is empty; calling setTimeout");
+                if (debug) console.log ("response is empty; calling setTimeout");
                 ResponseCount++;
+
+                clearTimeoutOneSecond( "response 1");
+
+                //console.log( "Response: calling setTimeout(OneSecond)");
                 CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS/10 );
                 AddToDebugOutput ( "calling setTimeout(); ID (" + CgiTimeoutId + ")" + eol );
             } else {
 
                 if (objdebug) objdebug.innerHTML = ""; // clear out any previous entries
 
-                AddToDebugOutput ( "urlSentPreviously: " + urlSentPreviously + eol );
-                AddToDebugOutput ( "urlSentSuccessfully: " + urlSentSuccessfully + "; urlSentRetryCount: " +
-                                    urlSentRetryCount + "; urlSentRetryCountAfterSuccess: " + urlSentRetryCountAfterSuccess+ eol );
+                //console.log ( "urlSentPreviously: " + urlSentPreviously + eol );
+                //console.log ( "urlSentSuccessfully: " + urlSentSuccessfully + "; urlSentRetryCount: " +
+                //               urlSentRetryCount + "; urlSentRetryCountAfterSuccess: " + urlSentRetryCountAfterSuccess+ eol );
 
-                var row_profiling_html = document.getElementById("row_profiling_html");
-                var objPerfTop = document.getElementById("PERFUTILS");
-                if (row_profiling_html) {
-                    row_profiling_html.innerHTML = ""; // clear out the row
-                }
-                //alert("for i = 0 to " + oResponses.length );
-                // loop through <response> elements, and add each nested
-                for (var i = 0; i < oResponses.length; i++) {
-                    var entry = oResponses[i];
-                    //if ( entry.indexOf("WIFI") > 0 ) { debug=1; }
-                    if ( debug==1 && entry.length>1 ) alert("Entry " + entry + "; len " + entry.length );
-                    if ( entry == "ALLDONE" ) {
-                        AddToDebugOutput ( entry + eol );
-                        ResponseCount++;
-                        if (debug==1) alert(entry + " ... response: calling sendCgiRequest()");
-                        CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
-                        if ( GetWifiStatsCountdown ) {
-                            GetWifiStatsCountdown--;
-                            if (GetWifiStatsCountdown == 0) {
-                                GetWifiStats.Value = 1;
-                            }
-                        }
-
-                        //AddToDebugOutput ( entry + ": calling setTimeout(); ID (" + CgiTimeoutId + ")"  + eol );
-                    } else if (entry == "FATAL") {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        alert("FATAL ... " + oResponses[i+1]);
-                        i++;
-                    } else if ( entry == "DEBUG" ) {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        if(debug) alert(entry + ":" + oResponses[i+1]);
-                        i++;
-                    } else if (entry == "VERSION") {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        i++;
-                    } else if (entry == "STBTIME") {
-                        //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        var obj2=document.getElementById("stbtime");
-                        if (obj2) {
-                            //if (debug) alert("setting stbtime to " + oResponses[i+1] );
-                            obj2.innerHTML = oResponses[i+1];
-                            i++;
-                        } else {
-                            alert("id=stbtime not found");
-                        }
-                    } else if (entry == "CPUPERCENTS") {
-                        AddToDebugOutput ( entry + ": len of entry " + oResponses[i+1].length + eol );
-                        var obj2=document.getElementById("CPUPERCENTS");
-                        if (obj2) {
-                            obj2.innerHTML = oResponses[i+1];
-                            //alert("CPUPERCENTS (" + obj2.innerHTML + ")" );
-                            i++;
-                        } else {
-                            alert("id=CPUPERCENTS not found");
-                        }
-                    } else if (entry == "CPUINFO") { // CPUINFO:4  99.97 100.0  100.0  100.0   99.98    0.1  ;
-                        var objCheckboxCpus = document.getElementById("checkboxcpus");
-                        if (objCheckboxCpus) {
-                            // if the checkbox to show CPU utilization is checked
-                            if (objCheckboxCpus.checked) {
-                                var response = oResponses[i+1];
-                                var cpupercentage = 0;
-                                var tempNumCpus = 0;
-                                var cpuUsageTotal = 0; // the four CPU usage's combined; used to compute average CPU usage
-                                var cpuActiveCount = 0;
-
-                                AddToDebugOutput ( entry + ":" + response + ";" + eol );
-
-                                // if the number of cpus has changed
-                                tempNumCpus = Number(response.substr(0,1)) + 1;
-                                if (tempNumCpus && tempNumCpus != gNumCpus ) {
-                                    var numlines = 0;
-                                    gNumCpus = tempNumCpus;
-                                    //alert("CPUINFO: gNumCpus " + gNumCpus );
-                                    for (numlines=1; numlines<(gNumCpus-1)+1 ; numlines++) { //once for all CPUs
-                                        showRow(numlines);
-                                    }
-                                }
-
-                                for (idx=0; idx < gNumCpus; idx++ ) {
-                                    var idle=response.substr(2+(idx*7), 7);
-
-                                    // if the string has some length of characters to parse
-                                    //alert("idx " + idx + "; idle " + idle + "; len " + idle.length );
-                                    if (idle.length) {
-                                        cpupercentage = Math.floor(idle); // each entry is 6 chars long ... CPUINFO:4 000100 000099 000255 000100
-                                        gCpuData[idx] = cpupercentage;
-                                        var cpuid="cpudata0" + idx;
-                                        //alert("cpu " + idx + "=(" + cpupercentage + "); idle (" + idle + "); cpuid " + cpuid + "; gNumCpus " + gNumCpus );
-                                        var cpudataobj = document.getElementById(cpuid);
-                                        if (cpudataobj) {
-                                            var cputitleid = "cputitle0" + idx;
-                                            var objtitle = document.getElementById(cputitleid);
-
-                                            ChangeCpuTag ( idx, idle );
-                                            if (idle == 255) { // if the cpu has been disabled
-                                                // add inactive to the title
-                                                if (objtitle) {
-                                                    objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(<span style=\"background-color:red;\">(INACTIVE)</span>)";
-                                                }
-                                            } else {
-                                                var usage = Number(100 - idle);
-                                                cpudataobj.innerHTML += usage + " ";
-
-                                                if (objtitle) {
-                                                    var MHz = Number(gCpuFreq[idx]);
-                                                    if ( MHz == 0 || MHz == 999999 ) MHz = "__";
-                                                    objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(&nbsp;" + usage + "% @ " + MHz + " MHz)";
-                                                }
-
-                                                cpuUsageTotal += Number(usage);
-                                                cpuActiveCount++;
-                                            }
-
-                                            cpudataobj.scrollTop = cpudataobj.scrollHeight;
-                                            if (bCpuDataHeightSet == 0) {
-                                                cpudataobj.style.height ='auto';
-                                                cpudataobj.style.height ="18px";
-                                            }
-                                        }  // if cpudata00 is valid
-                                    } // if idle.length is valid
-                                }  // for each CPU
-
-                                cpuUsageLongAverage[cpuUsageLongAverageIdx] = (cpuUsageTotal / cpuActiveCount);
-                                cpuUsageLongAverageIdx++; // increment index into array ... wrapping around to 0 if it gets too big
-                                if ( cpuUsageLongAverageIdx >= CPU_USAGE_LONG_AVERAGE_MAX ) cpuUsageLongAverageIdx = 0;
-                                cpuUsageLongAverageCount++; // Count is used to only compute average for 2 cycles if we have only been collecting values for 2 seconds
-
-                                // update the total average CPU usage
-                                var objcpuoverall = document.getElementById("cpuoverall");
-                                if (objcpuoverall) {
-                                    objcpuoverall.innerHTML = Number( cpuUsageTotal / cpuActiveCount ).toFixed(1) + "%";
-                                    var avg = ComputeTotalCpuLongAverage();
-                                    objcpuoverall.innerHTML += "&nbsp;<span style=\"color:limegreen;\">(" + CPU_USAGE_LONG_AVERAGE_MAX + "s&nbsp;avg:" + avg + "%)</span>";
-                                    objcpuoverall.innerHTML += "<span style=\"font-size:8pt;\" >&nbsp;TOTAL&nbsp;CPU</span>";
-
-                                    // if there are two or more CPUs, update the red overall average line and the limegreen 5-second cpu average line
-                                    if (gNumCpus > 1) {
-                                        AppendPolylineXY ( 0, 100 - Math.floor ( Number( cpuUsageTotal / cpuActiveCount ) ) ); // update red CPU utilization average line
-                                        AppendPolylineXY ( gNumCpus, 100 - Math.floor ( Number( avg ) ) ); // line number needs to match the polyline0x definition in bsysperf.c
-                                                                                                           // update green 5-second CPU utilization average line
-                                    }
-                                }
-
-                                bCpuDataHeightSet = 1;
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "CPUFREQUENCY") {
-                        var response = oResponses[i+1];
-                        AddToDebugOutput ( entry + ":" + response + ";" + eol );
-                        var objCheckboxCpus = document.getElementById("checkboxcpus");
-                        if (objCheckboxCpus) {
-                            // if the checkbox to show CPU utilization is checked
-                            if (objCheckboxCpus.checked) {
-                                var tempNumCpus = 0;
-                                tempNumCpus = Number(response.substr(0,1));
-                                for (idx=0; idx < tempNumCpus; idx++ ) {
-                                    // 000000 means cpu is active but freq is unknown (old BOLT?); 999999 means cpu is inactive
-                                    var freq = rtrim ( response.substr(2+(idx*7), 7) );
-                                    //AddToDebugOutput ( "cpu " + idx + ":" + freq+ ";" + eol );
-                                    gCpuFreq[idx] = freq;
-                                }  // for each CPU
-                            }
-                        }
-                        i++;
-                    } else if (entry == "ETHINFO") {
-                        var response = oResponses[i+1];
-                        AddToDebugOutput ( entry + ":" + response + ";" + eol );
-                        i++;
-                    } else if (entry == "IRQDETAILS") {
-                        var response = oResponses[i+1];
-                        var obj2=document.getElementById("IRQDETAILS");
-                        if (obj2) {
-                            obj2.innerHTML = oResponses[i+1];
-                        }
-                        i++;
-                    } else if (entry == "MEMORY") {
-                        var obj2 = document.getElementById("checkboxmemory");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                var response = oResponses[i+1];
-                                var obj2=document.getElementById("MEMORY");
-                                if (obj2) {
-                                    obj2.innerHTML = oResponses[i+1];
-                                }
-                                validResponseReceived = 1;
-                                hideOrShow("row_memory", SHOW );
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "netStatsInit") { // only return when user first checks the Network Stats checkbox
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                var response = oResponses[i+1];
-                                var obj2=document.getElementById("NETSTATS");
-                                if (obj2) {
-                                    obj2.innerHTML = oResponses[i+1];
-                                    AddToDebugOutput ( entry + ":iperfClientServerRow:" + iperfClientServerRow + eol );
-                                }
-
-                                // hide all ten of the histogram rows because the visibility:hidden attribute in the HTML doesn't work initially
-                                for ( var idx=0; idx<10; idx++) {
-                                    hideOrShow("row_netgfxsvg" + idx, HIDE );
-                                    hideOrShow("row_netgfxtxt" + idx, HIDE );
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-
-                    } else if (entry == "netStatsUpdate") {
-                        i++;
-                        var num_interfaces = oResponses[i];
-                        i++;
-                        for ( var idx=0; idx<num_interfaces; idx++ ) {
-                            var splits = oResponses[i].split('|'); // rx_bytes|tx_bytes|rx_error|tx_error
-                            if ( splits.length == 4 ) {
-                                var objcell = "";
-                                var tagid = "";
-                                for ( var jdx=0; jdx<splits.length; jdx++ ) {
-                                    if ( jdx==0 ) {
-                                        tagid = "netif_rxBytes_" + idx;
-                                    } else if ( jdx==1 ) {
-                                        tagid = "netif_txBytes_" + idx;
-                                    } else if ( jdx==2 ) {
-                                        tagid = "netif_rxError_" + idx;
-                                    } else if ( jdx==3 ) {
-                                        tagid = "netif_txError_" + idx;
-                                    }
-                                    objcell = document.getElementById( tagid );
-                                    if (objcell) {
-                                        objcell.innerHTML = splits[jdx];
-                                    }
-                                }
-                            }
-                            //AddToDebugOutput ( "netif " + idx + ":" + oResponses[i] + eol );
-                            i++;
-                        }
-
-                        // because the checkboxbox gets updated every second, we have to remember the status of the previous second
-                        if ( iperfClientServerRow == 1 ) { // if the previous status was checked, set current status to same
-                            var objbox=document.getElementById('checkboxiperfrow');
-                            if (objbox) {
-                                objbox.checked = true;
-                            }
-                            hideOrShow("row_iperf_client_server", SHOW );
-                        } else {
-                            hideOrShow("row_iperf_client_server", HIDE );
-                        }
-
-                        if ( iperfStateClient != iperfStateEnum.UNINIT || iperfStateServer != iperfStateEnum.UNINIT ) {
-                            set_iperf_count_cell();
-                            set_iperf_status_cell();
-                        }
-
-                    } else if (entry == "NETBYTES") {
-                        var obj2 = document.getElementById("checkboxnets");
-                        var Mbps = 0;
-                        var Bits = 0;
-                        if (obj2) {
-                            if (obj2.checked) {
-                                NetBytesSeconds++;
-
-                                var response = oResponses[i+1];
-                                //AddToDebugOutput ( entry + ":" + response + "; NetBytesSeconds " + NetBytesSeconds + eol );
-                                var oRxTxPairs = response.split( "," ); // split the response using comma delimiter
-
-                                for (var idx = 0; idx < oRxTxPairs.length; idx++) {
-                                    //AddToDebugOutput ( "NetIF " + idx + "str(" + oRxTxPairs[idx] + ")" + eol );
-                                    if (idx < 10 && oRxTxPairs[idx].length >= 3 ) { // if we haven't exceeded array size and rxtx pair has some values
-                                        var oRxTx = oRxTxPairs[idx].split( " " ); // split the response using space as delimiter
-                                        var tagRx = "netif" + idx + "rx";
-                                        var objRx = document.getElementById(tagRx);
-                                        var tagTx = "netif" + idx + "tx";
-                                        var objTx = document.getElementById(tagTx);
-
-                                        if (! objRx ) {
-                                            continue;
-                                        }
-
-                                        if (! objTx ) {
-                                            continue;
-                                        }
-
-                                        // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                        Mbps =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) / 128 / 1024);
-                                        Bits =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) * 8 );
-
-                                        if (NetBytesPrev[idx][0] > 0 && (oRxTx[0] >= NetBytesPrev[idx][0]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
-                                            // if the array has filled up
-                                            if (NetBytesRx10SecondsCount[idx] == 10) {
-                                                for (idx2=0; idx2<(NetBytesRx10SecondsCount[idx]-1); idx2++) {
-                                                    NetBytesRx10Seconds[idx][idx2] = NetBytesRx10Seconds[idx][idx2+1];
-                                                }
-                                                NetBytesRx10SecondsCount[idx] = 9;
-                                            }
-                                            NetBytesRx10Seconds[idx][NetBytesRx10SecondsCount[idx]] = Mbps;
-                                            NetBytesRx10SecondsCount[idx]++;
-                                            if (objRx) {
-                                                // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
-                                                // convert bytes to megabits
-                                                // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                                objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 ) + ")"; // 0 for RX and 1 for TX
-                                            }
-                                        } else {
-                                            objRx.innerHTML = 0;
-                                        }
-                                        UpdateNetGfxElements ( idx, 0/*RX*/, NetBytesPrev[idx][0], oRxTx[0] );
-                                        NetBytesPrev[idx][0] = oRxTx[0];
-
-                                        // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                        Mbps =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) / 128 / 1024);
-                                        Bits =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) * 8 );
-
-                                        if (NetBytesPrev[idx][1] > 0 && (oRxTx[1] >= NetBytesPrev[idx][1]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
-                                            // if the array has filled up, move the entries left one position and add new entry to the very end
-                                            if (NetBytesTx10SecondsCount[idx] == 10) {
-                                                for (idx2=0; idx2<(NetBytesTx10SecondsCount[idx]-1); idx2++) {
-                                                    NetBytesTx10Seconds[idx][idx2] = NetBytesTx10Seconds[idx][idx2+1];
-                                                }
-                                                NetBytesTx10SecondsCount[idx] = 9;
-                                            }
-                                            NetBytesTx10Seconds[idx][NetBytesTx10SecondsCount[idx]] = Mbps;
-                                            NetBytesTx10SecondsCount[idx]++;
-                                            if (objTx) {
-                                                // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
-                                                // convert bytes to megabits
-                                                // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                                objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 ) + ")"; // 0 for RX and 1 for TX
-                                            }
-                                        } else {
-                                            objTx.innerHTML = 0;
-                                        }
-                                        UpdateNetGfxElements ( idx, 1/*TX*/, NetBytesPrev[idx][1], oRxTx[1] );
-                                        NetBytesPrev[idx][1] = oRxTx[1];
-                                    }
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfInit") {
-                        //alert(entry + " is (" + oResponses[i+1] + ")" );
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                var response = oResponses[i+1];
-                                var obj2=document.getElementById("iperfInit");
-                                if (obj2) {
-                                    obj2.innerHTML = oResponses[i+1];
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfPidClient") {
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                iperfPidClient = oResponses[i+1];
-                                if (iperfPidClient == 0 && iperfStateClient == iperfStateEnum.RUNNING) {
-                                    //alert(entry + " is (" + oResponses[i+1] + ")" );
-                                    iperfStateClient = iperfStateEnum.STOP;
-                                    set_iperf_button( entry );
-                                    iperfPidClient = "terminated";
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfPidServer") {
-                        //alert(entry + " is (" + oResponses[i+1] + ")" );
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                iperfPidServer = oResponses[i+1];
-                                if (iperfPidServer == 0 && iperfStateServer == iperfStateEnum.RUNNING) {
-                                    // The first time after a reboot when we try to start the server, the events happen so slowly that the returned
-                                    // PID is 0. This zero PID was causing the logic to change states to STOP inadvertently. By adding a 1-second
-                                    // retry, the premature abort after reboot went away.
-                                    if ( iperfStateServerRetry < 1 ) {
-                                        iperfStateServerRetry++;
-                                    } else {
-                                        iperfStateServerRetry=0;
-                                        iperfStateServer = iperfStateEnum.STOP;
-                                        set_iperf_button( entry );
-                                        iperfPidServer = "terminated";
-                                    }
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfErrorClient") {
-                        //alert(entry + " is (" + oResponses[i+1] + ")" );
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                iperfPidClient = oResponses[i+1];
-                                iperfStateClient = iperfStateEnum.UNINIT;
-                                set_iperf_button( entry );
-                                set_iperf_status_cell();
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfErrorServer") {
-                        //alert(entry + " is (" + oResponses[i+1] + ")" );
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                iperfPidServer = oResponses[i+1];
-                                iperfStateServer = iperfStateEnum.UNINIT;
-                                iperfStateServerRetry = 0;
-                                set_iperf_button( entry );
-                                set_iperf_status_cell();
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfRunningClient") {
-                        //console.log (entry + " is (" + oResponses[i+1] + ") ... len " + oResponses[i+1].length);
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                if ( oResponses[i+1].length ) {
-                                    if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -c running, make sure the START button is enabled
-                                        set_iperf_cmd ( "", entry );
-                                    } else {
-                                        iperfRunningClient = oResponses[i+1];
-
-                                        //fillin_iperf_entry_boxes();
-                                        var obj=document.getElementById("iperf_start_stop_c");
-                                        if (obj && obj.value == "START") {
-                                            obj.value = "STOP";
-                                            iperfStateClient = iperfStateEnum.RUNNING;
-                                            set_iperf_cmd ( iperfRunningClient.substr(iperfRunningClient.indexOf('iperf ')), entry );
-                                            set_iperf_count_value(entry, get_unix_seconds( iperfRunningClient ) ); // if we loaded the page and iperf is already running, set the start time
-                                        }
-                                    }
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "iperfRunningServer") {
-                        //console.log ( entry + " is (" + oResponses[i+1] + ")" );
-                        var obj2 = document.getElementById("checkboxnets");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                iperfRunningServer = oResponses[i+1];
-                                if (iperfRunningServer.length) {
-                                    //fillin_iperf_entry_boxes();
-                                    var obj=document.getElementById("iperf_start_stop_s");
-                                    if (obj && obj.value == "START") {
-                                        // if the running iperf was started by bsysperf (i.e. it has the special -Q option)
-                                        if ( oResponses[i+1].indexOf(" iperf -s -Q ") > 0 ) {
-                                            obj.value = "STOP";
-                                            iperfStateServer = iperfStateEnum.RUNNING;
-                                            set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
-                                            set_iperf_count_value(entry, get_unix_seconds( iperfRunningServer ) ); // if we loaded the page and iperf is already running, set the start time
-                                        } else {
-                                            if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -s running, make sure the START button is enabled
-                                                setButtonDisabled( 'iperf_start_stop_s', false );
-                                                set_iperf_cmd ( "", entry );
-                                            } else {
-                                                // if someone started iperf -s outside of bsysperf, do not allow bsysperf to start another one
-                                                setButtonDisabled( 'iperf_start_stop_s', true );
-                                                set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')) + " (started outside of bsysperf)", entry );
-                                            }
-                                        }
-                                    }
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "WIFIINIT") {
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                //alert( entry + " - (" + oResponses[i+1] + ")" );
-                                var response = oResponses[i+1];
-                                var obj2=document.getElementById("WIFIINIT");
-                                if (obj2) {
-                                    obj2.innerHTML = oResponses[i+1];
-                                    //alert("responses added to element WIFIINIT");
-                                }
-                                GetWifiStatsCountdown = 10;
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                                //alert("checkboxwifi element not checked");
-                            }
-                        } else {
-                            alert("checkboxwifi element not found ");
-                        }
-                        i++;
-                    } else if (entry == "WIFISTATS") {
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                //alert( entry + " - (" + oResponses[i+1] + ")" );
-                                var obj3=document.getElementById("WIFISTATS");
-                                if (obj3) {
-                                    obj3.innerHTML = oResponses[i+1];
-                                    GetWifiStats.Value = 0;
-                                }
-                                GetWifiStatsCountdown = 10;
-                            } else {
-                                var local = new Date();
-                                var Seconds = Math.floor(local.getTime() / 1000);
-                                AddToDebugOutput ( entry + ": SecondsEnabled:" + GetWifiStats.SecondsEnabled + " ... delta ... " + (Seconds - GetWifiStats.SecondsEnabled ) + eol );
-                                if ( GetWifiStats.SecondsEnabled ) {
-                                    if ( (Seconds - GetWifiStats.SecondsEnabled ) > 10 ) {
-                                        setButtonDisabled( 'checkboxwifi', false );
-                                    }
-                                }
-                            }
-                        }
-                        i++;
-                    } else if (entry == "WIFIRATE") {
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                //alert( entry + " - (" + oResponses[i+1] + ")" );
-                                var obj3=document.getElementById("WIFIRATE");
-                                if (obj3) {
-                                    obj3.innerHTML = oResponses[i+1];
-                                }
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "WIFIDISABLED") {
-                        //alert( entry );
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2) {
-                            obj2.disabled = true;
-                            obj2.checked = false;
-                            GetWifiStats.SecondsEnabled = 0;
-                            hideOrShow("row_wifi_stats", HIDE );
-                            hideOrShow("row_wifi_ampdu", HIDE );
-                        }
-                    } else if (entry == "WIFIENABLED") {
-                        //alert( entry );
-                        AddToDebugOutput ( entry + ": SecondsEnabled:" + GetWifiStats.SecondsEnabled + eol );
-                        var local = new Date();
-                        if ( GetWifiStats.SecondsEnabled == 0) {
-                            GetWifiStats.SecondsEnabled = Math.floor(local.getTime() / 1000);
-                        }
-                    } else if (entry == "WIFISCANMAXAPS") {
-                        // The interface with bsysperf_server can accommodate a certain number of access points; this is the maximum it can handle each second
-                        // If the max is 8 and we have 12 APs to send back to client, ask for 1st set of 8, and then ask for 2nd set of 8 of which only 4 will be returned
-                        if ( oResponses[i+1] ) {
-                            //alert( entry + "-" + oResponses[i+1] );
-                            GetWifiScan.MaxNumAps = oResponses[i+1];
-                        }
-                        i++;
-                    } else if (entry == "WIFISCANNUMAPS") {
-                        //alert( entry + "-" + oResponses[i+1] );
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2 && obj2.checked ) {
-                            //alert(entry + "-" + oResponses[i+1] );
-                            if ( Number(oResponses[i+1]) < Number(GetWifiScan.MaxNumAps) ) {
-                                // if the number of APs returned from the server is less than the maximum, we have reached the end of the number of APs
-                                GetWifiScan.State = GetWifiScanState.UNINIT;
-                                setButtonDisabled ( "WifiScan", false );
-                            } else {
-                                // we have transferred 8 of 12 APs; increment the starting index from 0 to 8 and get the last 4
-                                GetWifiScan.ServerIdx = Number(GetWifiScan.ServerIdx) + Number(GetWifiScan.MaxNumAps);
-                                AddToDebugOutput ( entry + ": GetWifiScan.ServerIdx:" + GetWifiScan.ServerIdx + eol );
-                                //alert( entry + "- ServerIdx =" + GetWifiScan.ServerIdx );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "WIFISCANRESULTS") {
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2 && obj2.checked ) {
-                            //alert(entry + "-" + oResponses[i+1] );
-                            AddToHtml ( "WIFISCANRESULTS", oResponses[i+1] );
-                        }
-                        i++;
-                    } else if (entry == "wifiAmpduGraph") {
-                        var obj2 = document.getElementById("checkboxwifi");
-                        if (obj2 && obj2.checked ) {
-                            var objampdu = document.getElementById("checkboxWifiAmpduGraph");
-                            if (objampdu && objampdu.checked ) {
-                                var objdiv=document.getElementById('SVG_DATA_ARRAY');
-                                if (objdiv) {
-                                    var element_id = "";
-                                    //alert(entry + "-" + oResponses[i+1] );
-                                    objdiv.innerHTML = oResponses[i+1];
-
-                                    // the table may have some rows that are hidden based on the antenna strength
-                                    for (var idx=0; idx<8; idx++) {
-                                        element_id = "r_x" + idx;
-                                        var objrow = document.getElementById( element_id );
-                                        if (objrow) {
-                                            if (objrow.style.visibility == "hidden" ) {
-                                                //alert("row " + element_id + " is hidden");
-                                                hideOrShow ( element_id, HIDE );
-                                            }
-                                        }
-                                    }
-                                    for (var idx=0; idx<8; idx++) {
-                                        element_id = "R_x" + idx;
-                                        var objrow = document.getElementById( element_id );
-                                        if (objrow) {
-                                            if (objrow.style.visibility == "hidden" ) {
-                                                //alert("row " + element_id + " is hidden");
-                                                hideOrShow ( element_id, HIDE );
-                                            }
-                                        }
-                                    }
-
-                                    hideOrShow("row_wifi_ampdu", SHOW );
-                                    DrawScene(0);
-                                    SwapTxRx(0);
-                                    DrawScene(1);
-                                    SwapTxRx(1);
-                                    RadioClick(); // reset sidx based on the radio button selected
-                                }
-                            } else {
-                                //alert(entry + ": checkboxWifiAmpduGraphnot checked");
-                            }
-                        }
-                        i++;
-                    } else if (entry == "IRQINFO") {
-                        var obj2 = document.getElementById("checkboxirqs");
-                        if (obj2) {
-                            if (obj2.checked) {
-                                var response = oResponses[i+1];
-                                var irqcount = 0;
-                                var tempNumCpus = Number(response.substr(0,1)) + 1;
-                                //alert("IRQINFO: tempNumCpus " + tempNumCpus );
-                                AddToDebugOutput ( entry + ":" + response + "; tempNumCpus " + tempNumCpus + ";" + eol );
-                                for (idx=0; idx < tempNumCpus; idx++ ) {
-                                    var idle=response.substr(2+(idx*7), 7);
-
-                                    // if the string has some length of characters to parse
-                                    if (idle.length) {
-                                        gIrqLatestData[idx] = idle;
-                                        var irqid="irqdata0" + idx;
-                                        //alert("irq " + idx + "; idle (" + idle + "); irqid " + irqid + "; tempNumCpus " + tempNumCpus );
-                                        var irqdataobj = document.getElementById(irqid);
-                                        if (irqdataobj) {
-                                            var usage = Number(idle);
-                                            irqdataobj.innerHTML += usage + " ";
-
-                                            irqdataobj.scrollTop = irqdataobj.scrollHeight;
-                                            if (bIrqDataHeightSet == 0) {
-                                                irqdataobj.style.height ='auto';
-                                                irqdataobj.style.height ="18px";
-                                            }
-                                        }
-                                    }
-                                }
-                                bIrqDataHeightSet = 1;
-                            } else {
-                                AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
-                            }
-                        }
-                        i++;
-                    } else if (entry == "PLATFORM") {
-                        var objplatform = document.getElementById("platform");
-                        if (objplatform) {
-                            objplatform.innerHTML = oResponses[i+1]; CurrentPlatform = oResponses[i+1];
-                        }
-                        i++;
-                    } else if (entry == "PLATVER") {
-                        var objplatform = document.getElementById("platver");
-                        if (objplatform) {
-                            objplatform.innerHTML = oResponses[i+1]
-                        }
-                        window.document.title = CurrentPlatform + " " + oResponses[i+1];
-                        i++;
-                    } else if (entry == "UNAME") {
-                        //alert(entry + ":" + oResponses[i+1] );
-                        var objplatform = document.getElementById("platver");
-                        if (objplatform) {
-                            objplatform.innerHTML += "&nbsp;" + oResponses[i+1];
-                        }
-                        i++;
-                    } else if (entry == "HEAPTABLE") { // used to populate the MEMORY_HTML TH with heap table and PerfCache
-                        AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
-                        //alert(entry + ":" + oResponses[i+1] );
-
-                        var objtable = document.getElementById("MEMORY_HTML");
-                        if (objtable) {
-                            if (oResponses[i+1].indexOf("id=textareaPerfCache") > 0 ) { // if the response is the html for the Cache textbox
-                                if ( GetCheckboxStatus ( "checkboxPerfCache" ) ) { // only display the response if the checkbox is still checked
-                                    objtable.innerHTML = oResponses[i+1];
-
-                                    objtable = document.getElementById("textareaPerfCache");
-                                    if (objtable) {
-                                        objtable.rows = Number(objtable.scrollHeight/14,0) + 1;
-                                        //alert("TEXTAREA height (" + objtable.scrollHeight + "); numrows (" + objtable.rows + ")" );
-                                    }
-                                }
-                            } else {
-                                objtable.innerHTML = oResponses[i+1];
-                            }
-                        }
-
-                        i++;
-                    } else if (entry == "HEAPINFO") {
-                        AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
-                        //alert(entry + ":" + oResponses[i+1] );
-                        var objheapinfo = document.getElementById("heapinfo");
-                        if (objheapinfo) {
-                            objheapinfo.innerHTML = MsIeCrFix ( oResponses[i+1] );
-                        } else {
-                            //alert("element heapinfo not found");
-                        }
-                        AddToDebugOutput ( entry + ": len1:" + oResponses[i+1].length + "; " + oResponses[i+1] + eol );
-
-                        if (oResponses[i+1].length > 0) {
-                            validResponseReceived = 1;
-                            GetHeapStats.Value = 0;
-                            SetCheckboxStatus ( "checkboxPerfDeep", GetHeapStats );
-                            hideOrShow("row_memory", SHOW );
-                        } else {
-                            if (objheapinfo) {
-                                //objheapinfo.innerHTML = "Response was invalid; trying again in 1 second!";
-                            }
-                        }
-                        i++;
-                    } else if (entry == "HEAPGRAPH") {
-                        AddToDebugOutput ( entry + ": len " + oResponses[i+1].length + ";" + eol );
-                        //alert(entry + ":" + oResponses[i+1] );
-
-                        var objplatform = document.getElementById("heapgraph");
-                        if (objplatform) {
-                            objplatform.innerHTML = oResponses[i+1]; CurrentPlatform = oResponses[i+1];
-                        } else {
-                            //alert("element heapgraph not found");
-                        }
-                        AddToDebugOutput ( entry + "[1]: len2:" + oResponses[i+1].length + "; " + oResponses[i+1] + eol );
-                        i++;
-                    } else if (entry == "SATADEBUG") {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        i++;
-                    } else if (entry == "SATAUSB") {
-                        //alert(entry + ":" + oResponses[i+1]);
-                        AddToDebugOutput ( entry + ": html table len " + oResponses[i+1].length + ";" + eol );
-
-                        var objcheckbox = document.getElementById("checkboxsatausb");
-                        var objtable = document.getElementById("MEMORY_HTML");
-                        if (objcheckbox) {
-                            objcheckbox.checked = GetSataUsb.Value;
-                        }
-                        //alert("got SATAUSB; GetSataUsb is " + GetSataUsb.Value );
-                        // if the checkbox is still checked, populate the information
-                        if (GetSataUsb.Value) {
-                            if (objtable) { objtable.innerHTML = oResponses[i+1]; }
-                        } else {
-                            if (objtable) { objtable.innerHTML = ""; }
-                            //alert("got SATAUSB; cleared innerHTML" );
-                        }
-                        i++;
-                    } else if (entry == "ALERT") {
-                        alert( oResponses[i+1] );
-                        i++;
-                    } else if (entry == "PERFDEEPSTARTED" && GetCheckboxStatus ( "checkboxprofiling" ) && GetCheckboxStatus ( "checkboxPerfDeep" ) ) {
-                        AddToDebugOutput ( entry + ": response (" + oResponses[i+1] + "); " + eol );
-                        //alert ( entry + ": response (" + oResponses[i+1] + "); " + eol );
-                        if (oResponses[i+1] == "SUCCESS") {
-                            GetPerfDeepCountdown = GetPerfDeep.Duration;
-                            GetPerfDeepCountdown++;
-                            //alert("Perf Record succeeded; setting timeout for  " + GetPerfDeepCountdown );
-                            if ( GetPerfDeepCountdown > 1) {
-                                //alert( entry + "; duration " + GetPerfDeepCountdown );
-                                setTimeout ('GetPerfDeepResultsDoit()', 1000 );
-                            }
-                        } else {
-                            alert("Perf Record failed: " + oResponses[i+1] );
-                        }
-                        i++;
-                    } else if (entry == "PERFCACHESTARTED" && GetCheckboxStatus ( "checkboxmemory" ) && GetCheckboxStatus ( "checkboxPerfCache" ) ) {
-                        AddToDebugOutput ( entry + ": response (" + oResponses[i+1] + "); " + eol );
-                        //alert ( entry + ": response (" + oResponses[i+1] + "); " + eol );
-                        if (oResponses[i+1] == "SUCCESS") {
-                            GetPerfCacheCountdown = GetPerfCache.Duration;
-                            GetPerfCacheCountdown++;
-                            //alert("Perf stat succeeded; setting timeout for  " + GetPerfCacheCountdown );
-                            if ( GetPerfCacheCountdown > 1) {
-                                //alert( entry + "; duration " + GetPerfCacheCountdown );
-                                setTimeout ('GetPerfCacheResultsFunc()', 1000 );
-                            }
-                        } else {
-                            alert("Perf Stat failed: " + oResponses[i+1] );
-                        }
-                        i++;
-                    } else if (entry == "PERFDEEPRESULTSDONE") {
-                        AddToDebugOutput ( entry + eol );
-                        SetCheckboxStatus ( "checkboxPerfDeep", GetPerfDeep );
-                        //alert( entry + ": GetPerfDeep.Value " + GetPerfDeep.Value );
-                        if ( GetCheckboxStatus ( "checkboxprofiling" ) && GetCheckboxStatus ( "checkboxPerfDeep" ) ) {
-                            checkboxPerfDeepDoit( true );
-                            //alert("report done; doing it again");
-                            GetPerfDeep.StartReportNow = true;
-                            //sendCgiRequest();
-                        }
-                    } else if (entry == "PERFCACHEDONE") {
-                        AddToDebugOutput ( entry + eol );
-                        SetCheckboxStatus ( "checkboxPerfCache", GetPerfCache );
-                        //alert( entry + ": GetPerfCache.Value " + GetPerfCache.Value );
-                        if ( GetCheckboxStatus ( "checkboxmemory" ) && GetCheckboxStatus ( "checkboxPerfCache" ) == true ) {
-                            checkboxPerfCacheDoit( true );
-                            //alert("stat done; doing it again");
-                            GetPerfCache.StartReportNow = true;
-                            //sendCgiRequest();
-                        }
-                    } else if (entry == "PERFENABLED") {
-                        AddToDebugOutput ( entry + eol );
-
-                        PerfError = false;
-                    } else if (entry == "PERFERROR") {
-                        AddToDebugOutput ( entry + eol );
-
-                        PerfError = true;
-
-                        GetPerfTop.Value = 0;
-                        SetCheckboxStatus ( "checkboxPerfTop", GetPerfTop );
-                        SetCheckboxDisabled ( "checkboxPerfTop", true );
-
-                        GetPerfDeep.Value = 0;
-                        SetCheckboxStatus ( "checkboxPerfDeep", GetPerfDeep );
-                        SetCheckboxDisabled ( "checkboxPerfDeep", true );
-
-                        GetPerfCache.Value = 0;
-                        SetCheckboxStatus ( "checkboxPerfCache", GetPerfCache );
-                        SetCheckboxDisabled ( "checkboxPerfCache", true );
-
-                        SetCheckboxDisabled ( "checkboxLinuxTop", false );
-
-                        //alert("PERFERROR done");
-                    } else if ( (entry == "PerfTop") || (entry == "LinuxTop") || (entry == "PERFDEEPRESULTS") ) {
-                        //alert("Response " + entry + "; len=" + oResponses[i+1].length + ":" + oResponses[i+1] );
-                        CountdownSeconds = 0;
-                        PerfCacheCountdownSeconds = 0;
-                        if ( objPerfTop ) {
-                            if (entry == "LinuxTop" ) {
-                                // sometimes the LinuxTop command comes back "empty" ... meaning there is a bunch of html that contains nothing useful
-                                if ( oResponses[i+1].length > 1000 ) {
-                                    if (GetLinuxTop.Value) { // if LinuxTop checkbox is checked (we are expecting LinuxTop data)
-                                        objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
-                                    }
-
-                                    // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
-                                    SetCheckboxDisabled ( "checkboxPerfTop", GetLinuxTop.Value ); // if LinuxTop is true -> disable PerfTop; else Enable it
-                                    SetCheckboxDisabled ( "checkboxPerfDeep", GetLinuxTop.Value ); // if LinuxTop is true -> disable PerfDeep
-                                } else { // the LinuxTop command failed to provide data, try again in this many milliseconds
-                                    setTimeout ('RetryLinuxTop()', 500 );
-                                }
-                            } else {
-                                if ( (entry == "PerfTop") ) {
-                                    objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
-
-                                    // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
-                                    if (PerfError) { // if not compiled for perf, only enable LinuxTop
-                                        SetCheckboxDisabled ( "checkboxLinuxTop", false );
-                                        SetCheckboxDisabled ( "checkboxPerfDeep", true );
-                                        SetCheckboxDisabled ( "checkboxPerfTop", true );
-                                    } else {
-                                        SetCheckboxDisabled ( "checkboxLinuxTop", true );
-                                        SetCheckboxDisabled ( "checkboxPerfDeep", true );
-                                        SetCheckboxDisabled ( "checkboxPerfTop", false );
-                                    }
-                                } else if (entry == "PERFDEEPRESULTS" && GetCheckboxStatus("checkboxPerfDeep")) {
-                                    objPerfTop.innerHTML = MsIeCrFix ( oResponses[i+1] );
-
-                                    // these have to be after the setting of innerHTML; otherwise the checkboxes won't be defined yet
-                                    SetCheckboxDisabled ( "checkboxPerfTop", true );
-                                    SetCheckboxDisabled ( "checkboxLinuxTop", true );
-                                }
-                                //alert(entry +": adding to PERFUTILS TH html (" + objPerfTop.innerHTML + ")" );
-                            }
-
-                            // we just re-filled the navigation checkboxes; update the one for context switches
-                            SetCheckboxStatus ( "checkboxContextSwitch", GetContextSwitch );
-
-                            var objTextareaTopResults = document.getElementById("textareaTopResults");
-                            if (objTextareaTopResults) {
-                                objTextareaTopResults.rows = Number(objTextareaTopResults.scrollHeight/14,0) + 1;
-                                //alert(entry + ": objTextareaTopResults rows:" + objTextareaTopResults.rows );
-                            }
-
-                            if (entry == "PerfTop") {
-                                var checkbox = document.getElementById('checkboxPerfTop');
-                                if (checkbox ) {
-                                    checkbox.checked = GetPerfTop.Value;
-                                    SetCheckboxDisabled ( "checkboxPerfTop", false );
-                                    SetCheckboxDisabled ( "checkboxLinuxTop", true );
-                                }
-                            } else if (entry == "LinuxTop") {
-                                var checkbox = document.getElementById('checkboxLinuxTop');
-                                if (checkbox ) { checkbox.checked = GetLinuxTop.Value; }
-                            } else if (entry == "PERFDEEPRESULTS") {
-                                var checkbox = document.getElementById('checkboxPerfDeep');
-                                if (checkbox ) { checkbox.checked = GetPerfDeep.Value; }
-                                objTextareaTopResults = document.getElementById("textareaPerfDeep");
-                                if (objTextareaTopResults) {
-                                    objTextareaTopResults.rows = Number(objTextareaTopResults.scrollHeight/14,0) + 1;
-                                    //alert("TEXTAREA height (" + objTextareaTopResults.scrollHeight + "); numrows (" + objTextareaTopResults.rows + ")" );
-                                }
-                            }
-
-                            if (oResponses[i+1].length > 0) {
-                                validResponseReceived = 1;
-                                //hideOrShow("row_profiling", SHOW );
-                            }
-                        } else {
-                            alert ("element PERFUTILS not found");
-                        }
-                        //AddToDebugOutput ( entry + ": len3:" + oResponses[i+1].length + "; " + oResponses[i+1] + eol );
-
-                        if (GetPerfDeep.Duration) SetInputValue ( "PerfDeepDuration", GetPerfDeep.Duration );
-                        if (GetPerfCache.Duration) SetInputValue ( "PerfCacheDuration", GetPerfCache.Duration );
-                        i++;
-                    } else if (entry == "CONTEXTSWITCH") {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        var checkbox = document.getElementById('checkboxContextSwitch');
-                        if ( checkbox && checkbox.checked ) {
-                            var objspan = document.getElementById('spanContextSwitches');
-                            if (objspan) {
-                                objspan.innerHTML = "&nbsp;(" + oResponses[i+1] + ")";
-                            } else {
-                                alert ( entry + ": object spanContextSwitches not found");
-                            }
-                        } else {
-                            //alert ( entry + ": box not checked");
-                        }
-                        i++;
-                    } else if (entry == "PerfFlameInit") {
-                        //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        var checkbox = document.getElementById('checkboxPerfFlame');
-                        if ( checkbox && checkbox.checked ) {
-                            var objspan = document.getElementById('PerfFlameContents');
-                            if (objspan) {
-                                objspan.innerHTML = oResponses[i+1];
-                            } else {
-                                alert ( entry + ": object PerfFlameContents not found");
-                            }
-                            var objtemp = document.getElementById('PerfFlameDuration');
-                            if ( objtemp ) {
-                                objtemp.innerHTML = "";
-                            }
-                        } else {
-                            //alert ( entry + ": box not checked");
-                        }
-                        i++;
-                    } else if (entry == "PERFFLAMESTATUS") {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        if (GetPerfFlame.State > GetPerfFlameState.IDLE) {
-                            var objtemp = document.getElementById('PerfFlameSize');
-                            if ( objtemp ) {
-                                var sizeBytes = oResponses[i+1]; // update the size of the perf.data file
-                                if ( sizeBytes > 1024*1024) { // megabytes
-                                    var megabytes = sizeBytes / 1024 / 1024;
-                                    objtemp.innerHTML = megabytes.toFixed(1) + "MB";
-                                } else if ( sizeBytes > 1024) { // kilobytes
-                                    var kilobytes = sizeBytes / 1024;
-                                    objtemp.innerHTML = kilobytes.toFixed(1) + "KB";
-                                } else {
-                                    objtemp.innerHTML = sizeBytes;
-                                }
-                            }
-                            var local = new Date();
-                            var epochSeconds = Math.floor(local.getTime() / 1000) - GetPerfFlameRecordingSeconds;
-                            objtemp = document.getElementById('PerfFlameDuration');
-                            if ( objtemp ) {
-                                var minutes = Math.floor( epochSeconds / 60 );
-                                var seconds = epochSeconds - (minutes * 60 );
-                                if (minutes > 0) {
-                                    objtemp.innerHTML = minutes + "m" + seconds + "s";
-                                } else {
-                                    objtemp.innerHTML = epochSeconds + "s";
-                                }
-                            }
-                            if (GetPerfFlame.State == GetPerfFlameState.STOP) { // oce the record has stopped, proceed to next state ... CREATESCRIPTOUT
-                                GetPerfFlameSetState( GetPerfFlameState.CREATESCRIPTOUT);
-                            }
-                        }
-                        i++;
-                    } else if (entry == "PERFFLAMEPIDCOUNT") {
-                        var pidCountNow = oResponses[i+1];
-                        AddToDebugOutput ( entry + ": pidCountNow:" + pidCountNow + "; GetPerfFlamePidCount:" + GetPerfFlamePidCount + "; State:" + GetPerfFlame.State + eol );
-                        //alert("PidCount:" + GetPerfFlamePidCount + "; Now:" + pidCountNow );
-                        if (GetPerfFlame.State == GetPerfFlameState.RECORDING) {
-                            // if the server reported that the 'perf record' pids are no longer active, something caused the record to end
-                            if ( pidCountNow == 0 && GetPerfFlamePidCount > 0 ) {
-                                //alert("ALERT ... looks like perf record is over"); // either the app it was monitoring exited or something unexpected caused it to exit prematurely
-                                GetPerfFlameSetStop();
-                            }
-                        }
-                        GetPerfFlamePidCount = pidCountNow;
-                        i++;
-                    } else if (entry == "PERFRECORDUUID") {
-                        PerfRecordUuid = oResponses[i+1];
-                        //alert( entry + ":" + PerfRecordUuid );
-                    } else if (entry == "PERFSCRIPTDONE") {
-                        //alert( entry + ":" + oResponses[i+1] );
-                        GetPerfFlameSetState( GetPerfFlameState.GETSVG);
-                        GetSvgContents();
-                        i++;
-                    } else if (entry == "PerfFlameSvgContents") {
-                        var svglength = oResponses[i+1].length;
-                        var objtemp = document.getElementById('PerfFlameSvg');
-                        if ( objtemp ) {
-                            objtemp.innerHTML = oResponses[i+1];
-                            //alert("svg:" + objtemp.innerHTML.substr(0,300) );
-                        }
-                        i++;
-                        GetPerfFlameSetState( GetPerfFlameState.IDLE );
-                    } else if (entry == "PERFFLAME_DELETEOUTFILE_DONE") {
-                        //alert(entry + ":" + oResponses[i+1] );
-                        GetPerfFlameSetState( GetPerfFlameState.IDLE );
-                        i++;
-                    } else if ( entry == "DvfsControl" ) {
-                        //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
-                        if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
-                            var DvfsControl = document.getElementById('DvfsControl');
-                            if ( DvfsControl ) {
-                                DvfsControl.innerHTML = oResponses[i+1];
-                            }
-                        }
-                        i++;
-                    } else if ( entry == "GovernorSetting" ) {
-                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
-                        var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
-                        if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
-                            var objGovernorSetting = document.getElementById('radioGovernor' + oResponses[i+1] );
-                            if ( objGovernorSetting ) {
-                                objGovernorSetting.checked = true;
-                            }
-                        }
-                        i++;
-                    } else {
-                        if (entry.length > 1 ) {
-                            AddToDebugOutput ( entry + eol );
-                        }
-                    }
-                } // end for each response
+                ProcessResponses ( oResponses );
 
                 var objwifi = document.getElementById('WIFICOUNTDOWN');
                 if (objwifi) {
                     objwifi.innerHTML = "(" + Number(GetWifiStatsCountdown%10) + ")";
                 }
+
+                // if this is the response that arrived after a timeout and retry, manually start the one-second timeout
+                //console.log( "Response:200 CgiTimeoutId " + CgiTimeoutId );
+                if ( CgiTimeoutId == 0 ) {
+                    //console.log( "Response:200 calling OneSecond() manually" );
+                    OneSecond();
+                }
             }
         } else {
             var msg = "";
-            // if previous timeout is already pending, cancel it
-            if (CgiTimeoutId) { clearTimeout(CgiTimeoutId); }
-            if (CgiRetryTimeoutId) { clearTimeout(CgiRetryTimeoutId); }
 
-            //alert("TIMEOUT1: urlSentSuccessfully:" + urlSentSuccessfully + "; urlSentRetryCount:" + urlSentRetryCount + "; urlSentRetryCountAfterSuccess:" + urlSentRetryCountAfterSuccess );
+            clearTimeoutOneSecond( "response 2");
+
+            //console.log ("TIMEOUT1: urlSentSuccessfully:" + urlSentSuccessfully + "; urlSentRetryCount:" + urlSentRetryCount + "; urlSentRetryCountAfterSuccess:" + urlSentRetryCountAfterSuccess );
             // if we have previously successfully received some responses (used so we do not ignore the very first failure)
             if ( ( urlSentSuccessfully > 10) && (urlSentRetryCountAfterSuccess < 5 ) ) { // if we have not had too many retries
                 urlSentRetryCount++; // this one should never get reset to zero
                 urlSentRetryCountAfterSuccess++; // this one should get reset to zero if we are ever successful in getting a response
 
                 msg = "TIMEOUT2: urlSentSuccessfully:" + urlSentSuccessfully + "; urlSentRetryCount:" + urlSentRetryCount + "; urlSentRetryCountAfterSuccess:" + urlSentRetryCountAfterSuccess;
-                AddToDebugOutput ( msg + eol );
-                //alert( msg );
+                //console.log ( msg + eol );
 
+                //console.log ( "calling setTimeout(sendCgiRequestRetry); ID (" + CgiRetryTimeoutId + ")" + eol );
                 CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS/4 );
-                AddToDebugOutput ( "calling setTimeout(); ID (" + CgiRetryTimeoutId + ")" + eol );
             } else {
                 msg = "There was a problem retrieving the XML data:" + xmlhttp.statusText;
-                AddToDebugOutput ( msg + eol );
-                //alert( msg );
-                AddToDebugOutput ( "urlSendRetryCount is " + urlSentRetryCount + eol );
+                //console.log ( msg + eol );
+                //console.log ( "urlSendRetryCount is " + urlSentRetryCount + eol );
 
                 if ( urlSentRetryCount < 2 ) {
                     urlSentRetryCount++; // this one should never get reset to zero
+                    //console.log ( "urlSentRetryCount is " + urlSentRetryCount + " ... calling setTimeout(sendCgiRequestRetry); ID (" + CgiRetryTimeoutId + ")" + eol );
                     CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS/4 );
-                    AddToDebugOutput ( "urlSentRetryCount is " + urlSentRetryCount + " ... calling setTimeout(); ID (" + CgiRetryTimeoutId + ")" + eol );
                 }
             }
         }
@@ -3101,6 +3525,9 @@ function CreateIperfString( clientOrServer )
 
             // add a special option to the end of the command line to let other browsers know the start time of this thread
             iperfCmd += " -Q " + Math.floor(local.getTime() / 1000);
+
+            // add the interval count and specify format to be megabits
+            iperfCmd += " -i 1 -f m";
         }
 
         if ( document.getElementById('iperf_duration').value.length ) {
@@ -3218,6 +3645,7 @@ function set_iperf_status_cell()
     if (obj ) {
         if ( iperfStateClient == iperfStateEnum.UNINIT ) {
             obj.innerHTML = "IDLE";
+            iperfClientRate = "";
         } else if ( iperfStateClient == iperfStateEnum.INIT ) {
             obj.innerHTML = "INIT";
         } else if ( iperfStateClient == iperfStateEnum.RUNNING ) {
@@ -3232,6 +3660,7 @@ function set_iperf_status_cell()
             obj.innerHTML += " ... " + iperfPidClient;
         } else if (iperfPidClient.length > 1) { // 5-digit pid
             obj.innerHTML += " ... PID " + iperfPidClient;
+            if ( iperfClientRate.length > 0 ) obj.innerHTML += " (" + iperfClientRate + " Mbps)";
         }
     }
 
@@ -3357,4 +3786,206 @@ function get_unix_seconds( mystring )
     }
 
     return seconds;
+}
+
+/*
+function FetchSubmit()
+{
+    sRecordFilename = "bsysperf_record_" + UUID + ".txt";
+    var obj=document.getElementById("recordfile");
+    console.log("FetchSubmit: file (" + sRecordFilename + "); obj " + obj);
+    if (obj) {
+        obj.value = sRecordFilename;
+        obj.innerHTML = sRecordFilename;
+        return true;
+    }
+
+    return false;
+}
+
+function StateFileSelected(event)
+{
+    console.log("stateFileSelected");
+    document.forms['formdownload'].submit();
+    return false;
+}
+
+function validateForm(event)
+{
+    var id=event.target.id;
+    var objfile = document.getElementById('btnstatefile');
+    console.log("validate form: id " + id + "; sCaptureFilename (" + sCaptureFilename + "); selectedFile (" + objfile.value + ")" );
+    if (sCaptureFilename.length == 0) {
+        console.log("file len " + objfile.value.length );
+        alert("File name is empty; browse for a file.");
+        return false;
+    }
+    return false;
+}
+*/
+
+function makeTextFile (text)
+{
+    var data = new Blob([text], {type: 'text/plain'});
+
+    // If we are replacing a previously generated file we need to
+    // manually revoke the object URL to avoid memory leaks.
+    if ( gTextFile !== null) {
+        window.URL.revokeObjectURL( gTextFile );
+    }
+
+    var gTextFile = window.URL.createObjectURL(data);
+
+    // returns a URL you can use as a href
+    return gTextFile;
+}
+
+/**
+ *  Function: This function will handle the processing when the user selects the
+ *            "Save File" button.
+ **/
+function ChooseFileListener ()
+{
+    var link = document.createElement('a');
+
+    //console.log("calling RecordPlaybackConfigure (START) ");
+
+    link.setAttribute('download', 'bsysperf_record_' + UUID + '.txt' );
+    link.href = makeTextFile( RecordFileContents );
+    document.body.appendChild(link);
+
+    // wait for the link to be added to the document
+    window.requestAnimationFrame(function () {
+    var event = new MouseEvent('click');
+        link.dispatchEvent(event);
+        document.body.removeChild(link);
+    }); // end call to requestAnimationFrame
+}
+
+/**
+ *  Function: This function will clear out the polylines that are used to the CPU Utilization and
+ *            also those used for network utilization.
+ **/
+function clearOutCpuGraphsAndTextareas()
+{
+    // polylines 1-4 are for CPUs 1-4; 0 is the red one for average; gNumCpus one is for green 5-sec average
+    for (var polylinenumber=0; polylinenumber<(gNumCpus+1) ; polylinenumber++) { //once for all CPUs
+        var lineid = "polyline0" + polylinenumber;
+        var svgobj = document.getElementById(lineid);
+        if (svgobj) {
+            svgobj.setAttribute('points', "20,100 " );
+        }
+        var textareaobj = document.getElementById( "cpudata0" + Number(polylinenumber-1) ); // textareas for cpu start with zero
+        if (textareaobj ) {
+            textareaobj.innerHTML = "";
+        }
+    }
+
+
+    // repeat process for possible 10 network graphics polylines
+    for ( var netIfIdx=0; netIfIdx<10; netIfIdx++) {
+        ClearNetGfxGraph ( netIfIdx);
+    }
+}
+
+/**
+ *  Function: This function will find all live elements that are enabled when the user
+ *            starts a playback. When Playback begins, we want to disable user inputs
+ *            so that the Playback is not confused with live user inputs.
+ **/
+function FindInputElementsThatAreEnabled ()
+{
+    var tag;
+    var inputs = document.getElementsByTagName("input");
+
+    // you can also use var allElem=document.all; and loop on it
+    for(i = 0; i < inputs.length; i++) {
+        //tag = inputs[i].tagName;
+        //console.log ( "document.all(" + i + ")" );
+        if ( inputs[i] && inputs[i].id && inputs[i].type ) {
+            //console.log ( "type-> " + inputs[i].type + " ... id-> " + inputs[i].id );
+            tag = "(" + inputs[i].type + ":" + inputs[i].id + ")";
+            if ( inputs[i].type == "checkbox" || inputs[i].type == "button" || inputs[i].type == "submit" ) {
+                var obj= document.getElementById( inputs[i].id );
+                if ( obj && ( obj.disabled == false ) ) {
+                    //console.log ( tag + " is enabled" );
+
+                    // it is possible user added new input elements since the last pass through (checked Wifi box)
+                    if ( PlaybackElementsDisabled.indexOf ( inputs[i].id ) !== -1 ) { // element already in list
+                        // do not add the same element again
+                        //console.log( "FindInputElementsThatAreEnabled: skipping ... " + inputs[i].id );
+                    } else {
+                        if (PlaybackElementsDisabled.length > 0 ) PlaybackElementsDisabled += ",";
+                        PlaybackElementsDisabled += inputs[i].id;
+                    }
+                    setButtonDisabled ( inputs[i].id, true );
+                } else if ( obj && ( obj.disabled == true ) ) {
+                    //console.log ( tag + " is already disabled" );
+                }
+            }
+        }
+    }
+
+    //console.log ("PlaybackElementsDisabled: (" + PlaybackElementsDisabled + ")" );
+}
+
+/**
+ *  Function: This function will handle the processing when the user selects a new Playback file.
+ **/
+function readText(that)
+{
+    //console.log("readText( top of function)");
+    if(that.files && that.files[0]) {
+        RecordPlaybackConfigure ( "START" );
+
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            RecordFileContents2 = e.target.result;
+            //alert("length = " + RecordFileContents2.length + "; contents is (" + RecordFileContents2 + ")" );
+            RecordFileContentsArray = RecordFileContents2.split("UNIXTIME ");
+
+            clearOutCpuGraphsAndTextareas();
+
+            clearTimeoutOneSecond( "readText" );
+
+            PlaybackFileContentsArrayIdx = 1; // the 0th entry is always empty; skip it and start with 1st entry
+
+            PlaybackControl.Value = 1;
+
+            setButtonImage ( "buttonPlaybackRun", "bmemperf_pause.jpg" );
+
+            PlaybackElementsDisabled = "";
+
+            FindInputElementsThatAreEnabled ();
+
+            UpdateProgressGraph ();
+
+            ProcessPlaybackEvents();
+        };//end onload()
+        var filename = that.files[0];
+        reader.readAsText(that.files[0]);
+    }//end if html5 filelist support
+}
+
+/**
+ *  Function: This function will output a human-readable number of bytes.
+ **/
+function output_size_in_human( num_bytes )
+{
+    if ( num_bytes < 1024)
+    {
+        return ( num_bytes + " bytes" );
+    }
+    else if ( num_bytes < 1024*1024)
+    {
+        return ( Number( num_bytes / 1024).toFixed(1) + " KB" );
+    }
+    else if ( num_bytes < 1024*1024*1024)
+    {
+        return ( Number( num_bytes / 1024 / 1024).toFixed(1) + " MB" );
+    }
+    else
+    {
+        return ( Number( num_bytes / 1024 / 1024 / 1024).toFixed(1) + " GB" );
+    }
 }

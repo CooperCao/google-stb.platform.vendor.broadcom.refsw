@@ -136,12 +136,13 @@ static void NEXUS_P_ClientCallbackThread(void *context)
     return;
 }
 
-NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSettings *pSettings, struct nexus_client_init_data *p_client_init_data)
+NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSettings *pSettings)
 {
     int rc;
     NEXUS_P_ClientHandle client;
     unsigned i;
     NEXUS_ClientAuthenticationSettings defaultSettings;
+    uint8_t done;
 
     client = BKNI_Malloc(sizeof(*client));
     if (!client) {
@@ -186,8 +187,8 @@ NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSetting
         BDBG_ERR(("unable to send authentication: %d. check server console for error messages.", rc));
         goto error;
     }
-    rc = b_nexus_read(client->fd, p_client_init_data, sizeof(*p_client_init_data));
-    if (rc != sizeof(*p_client_init_data)) {
+    rc = b_nexus_read(client->fd, &done, sizeof(done));
+    if (rc != sizeof(done))  {
         BDBG_ERR(("unable to receive authentication response: %d. check server console for error messages.", rc));
         goto error;
     }

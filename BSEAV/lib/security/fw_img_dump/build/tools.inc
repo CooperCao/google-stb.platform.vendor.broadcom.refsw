@@ -44,7 +44,7 @@
 #
 	# Running on the build server use the native compiler.
 	B_REFSW_ARCH = host
-	CROSS_COMPILE = /tools/bin/
+	FW_IMG_DUMP_CROSS_COMPILE ?= /tools/bin/
 #
 #else
 #	ifeq ($(B_REFSW_ARCH),arm-linux)
@@ -68,17 +68,17 @@
 #	endif
 #endif
 
-AS		= $(CROSS_COMPILE)as
-LD		= $(CROSS_COMPILE)ld
-CC		= $(CROSS_COMPILE)gcc
-CCPP	= $(CROSS_COMPILE)c++
+AS		= $(FW_IMG_DUMP_CROSS_COMPILE)as
+LD		= $(FW_IMG_DUMP_CROSS_COMPILE)ld
+CC		= $(FW_IMG_DUMP_CROSS_COMPILE)gcc
+CCPP	= $(FW_IMG_DUMP_CROSS_COMPILE)c++
 CPP		= $(CC) -E
-AR		= $(CROSS_COMPILE)ar
-NM		= $(CROSS_COMPILE)nm
-STRIP	= $(CROSS_COMPILE)strip
-OBJCOPY	= $(CROSS_COMPILE)objcopy
-OBJDUMP	= $(CROSS_COMPILE)objdump
-RANLIB	= $(CROSS_COMPILE)ranlib
+AR		= $(FW_IMG_DUMP_CROSS_COMPILE)ar
+NM		= $(FW_IMG_DUMP_CROSS_COMPILE)nm
+STRIP	= $(FW_IMG_DUMP_CROSS_COMPILE)strip
+OBJCOPY	= $(FW_IMG_DUMP_CROSS_COMPILE)objcopy
+OBJDUMP	= $(FW_IMG_DUMP_CROSS_COMPILE)objdump
+RANLIB	= $(FW_IMG_DUMP_CROSS_COMPILE)ranlib
 
 MKDIR   = mkdir -p
 PWD     = pwd

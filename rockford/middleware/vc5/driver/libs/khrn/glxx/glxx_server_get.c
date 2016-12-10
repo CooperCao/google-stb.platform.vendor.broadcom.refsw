@@ -999,9 +999,10 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = KHRN_GLES32_DRIVER ? 2u : (KHRN_GLES31_DRIVER ? 1u : 0u);
       return glxx_get_uint_1;
    case GL_NUM_PROGRAM_BINARY_FORMATS:
-   case GL_PROGRAM_BINARY_FORMATS:
       uints[0] = 0;
       return glxx_get_uint_1;
+   case GL_PROGRAM_BINARY_FORMATS:
+      return glxx_get_uint_0;       // No program binary formats supported
    case GL_FRAGMENT_SHADER_DERIVATIVE_HINT:
       uints[0] = state->hints.fshader_derivative;
       return glxx_get_uint_1;

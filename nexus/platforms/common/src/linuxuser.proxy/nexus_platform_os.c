@@ -624,6 +624,7 @@ static NEXUS_Error NEXUS_P_Init(void)
     {
         FILE *file;
         unsigned boardId = NEXUS_Platform_P_ReadBoardId();
+        unsigned pMapId = NEXUS_Platform_P_ReadPMapId();
 #if !NEXUS_PLATFORM_P_READ_BOX_MODE
         unsigned boxMode = NEXUS_Platform_P_ReadBoxMode();
         file = fopen("/proc/brcm/config", "w");
@@ -635,6 +636,11 @@ static NEXUS_Error NEXUS_P_Init(void)
         file = fopen("/proc/brcm/config", "w");
         if (file) {
             fprintf(file, "B_REFSW_BOARD_ID=%u", boardId);
+            fclose(file);
+        }
+        file = fopen("/proc/brcm/config", "w");
+        if (file) {
+            fprintf(file, "B_REFSW_PMAP_ID=%u", pMapId);
             fclose(file);
         }
     }

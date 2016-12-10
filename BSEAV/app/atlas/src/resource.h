@@ -101,6 +101,9 @@ typedef enum eBoardResource
 #endif
     eBoardResource_uhfRemote,
     eBoardResource_power,
+#ifdef WPA_SUPPLICANT_SUPPORT
+    eBoardResource_wifi,
+#endif
 #ifdef NETAPP_SUPPORT
     eBoardResource_network,
     eBoardResource_bluetooth,

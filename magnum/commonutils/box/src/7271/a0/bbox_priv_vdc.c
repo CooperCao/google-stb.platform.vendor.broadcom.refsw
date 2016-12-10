@@ -64,7 +64,6 @@
 #include "bbox_vdc_box2_config.h"
 #include "bbox_vdc_box3_config.h"
 #include "bbox_vdc_box4_config.h"
-#include "bbox_vdc_box1000_config.h"
 
 BDBG_MODULE(BBOX_PRIV);
 BDBG_OBJECT_ID(BBOX_BOX_PRIV);
@@ -73,11 +72,19 @@ BERR_Code BBOX_P_ValidateId
     (uint32_t                ulId)
 {
     BERR_Code eStatus = BERR_SUCCESS;
-    if (ulId != 1000 && (ulId == 0 || ulId > BBOX_MODES_SUPPORTED))
+    if (ulId == 0 || ulId > BBOX_MODES_SUPPORTED)
     {
         BDBG_ERR(("Box Mode ID %d is not supported on this chip.", ulId));
         eStatus = BBOX_ID_NOT_SUPPORTED;
     }
+
+#if (BCHP_VER == BHCP_VER_A0)
+    if (ulId > 4)
+    {
+        BDBG_ERR(("Running Box Mode %d is not recommended on this chip. The RTS is configured for a b0, you are likely experience strange behaviour.", ulId));
+    }
+#endif
+
     return eStatus;
 }
 
@@ -98,9 +105,6 @@ void BBOX_P_Vdc_SetSourceCapabilities
             break;
         case 4:
             BBOX_P_Vdc_SetBox4SourceCapabilities(pSourceCap);
-            break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000SourceCapabilities(pSourceCap);
             break;
     }
 }
@@ -123,9 +127,6 @@ void BBOX_P_Vdc_SetDisplayCapabilities
         case 4:
             BBOX_P_Vdc_SetBox4DisplayCapabilities(pDisplayCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000DisplayCapabilities(pDisplayCap);
-            break;
     }
 }
 
@@ -147,9 +148,6 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 4:
             BBOX_P_Vdc_SetBox4DeinterlacerCapabilities(pDeinterlacerCap);
             break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000DeinterlacerCapabilities(pDeinterlacerCap);
-            break;
     }
 }
 
@@ -170,9 +168,6 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 4:
             BBOX_P_Vdc_SetBox4XcodeCapabilities(pXcodeCap);
-            break;
-        case 1000:
-            BBOX_P_Vdc_SetBox1000XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -201,9 +196,6 @@ BERR_Code BBOX_P_GetMemConfig
         case 4:
             BBOX_P_GetBox4MemConfig(pBoxMemConfig);
             break;
-        case 1000:
-            BBOX_P_GetBox1000MemConfig(pBoxMemConfig);
-            break;
     }
 
     return BERR_SUCCESS;
@@ -226,9 +218,6 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 4:
             BBOX_P_GetBox4Rts(pBoxRts);
-            break;
-        case 1000:
-            BBOX_P_GetBox1000Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

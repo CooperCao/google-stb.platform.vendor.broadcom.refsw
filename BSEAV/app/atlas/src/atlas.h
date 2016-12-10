@@ -352,15 +352,6 @@ typedef enum eRet
     } while (0)
 
 /* if netapp error, print error, set given err_var with atlas error code, and goto given label */
-#define CHECK_NETAPP_ERR_GOTO(err_str, netapp_err_code, label)                                                    \
-    do {                                                                                                          \
-        if (0 != (netapp_err_code)) {                                                                             \
-            BDBG_ERR(("netapp ERROR: %s - code:%d at %s: %d", (err_str), (netapp_err_code), __FILE__, __LINE__)); \
-            goto label;                                                                                           \
-        }                                                                                                         \
-    } while (0)
-
-/* if netapp error, print error, set given err_var with atlas error code, and goto given label */
 #define CHECK_NETAPP_ERROR(err_str, netapp_err_code)                                                              \
     do {                                                                                                          \
         if (0 != (netapp_err_code)) {                                                                             \
@@ -369,7 +360,40 @@ typedef enum eRet
     } while (0)
 #endif /* ifdef NETAPP_SUPPORT */
 
-/* if atlas error, print error and continue */
+/* if wpa supplicant error, print error, set given err_var with atlas error code, and goto given label */
+#define CHECK_WIFI_ERROR_GOTO(err_str, err_var, wifi_err_code, label)                                         \
+    do {                                                                                                      \
+        if (0 != (wifi_err_code)) {                                                                           \
+            BDBG_ERR(("wifi ERROR: %s - code:%d at %s: %d", (err_str), (wifi_err_code), __FILE__, __LINE__)); \
+            (err_var) = eRet_ExternalError;                                                                   \
+            goto label;                                                                                       \
+        }                                                                                                     \
+        else {                                                                                                \
+            (err_var) = eRet_Ok;                                                                              \
+        }                                                                                                     \
+    } while (0)
+
+/* if wpa supplicant error, print msg, set given err_var with atlas error code, and goto given label */
+#define CHECK_WIFI_MSG_GOTO(err_str, err_var, wifi_err_code, label)                                         \
+    do {                                                                                                    \
+        if (0 != (wifi_err_code)) {                                                                         \
+            BDBG_ERR(("wifi MSG: %s - code:%d at %s: %d", (err_str), (wifi_err_code), __FILE__, __LINE__)); \
+            (err_var) = eRet_ExternalError;                                                                 \
+            goto label;                                                                                     \
+        }                                                                                                   \
+        else {                                                                                              \
+            (err_var) = eRet_Ok;                                                                            \
+        }                                                                                                   \
+    } while (0)
+
+#define CHECK_WIFI_ERROR(err_str, wifi_err_code)                                                              \
+    do {                                                                                                      \
+        if (0 != (wifi_err_code)) {                                                                           \
+            BDBG_ERR(("wifi ERROR: %s - code:%d at %s: %d", (err_str), (wifi_err_code), __FILE__, __LINE__)); \
+        }                                                                                                     \
+    } while (0)
+
+/* if atlas error, print error */
 #define CHECK_ERROR(err_str, err_code)                                                                    \
     do {                                                                                                  \
         if (eRet_Ok != (err_code)) {                                                                      \
@@ -385,6 +409,13 @@ typedef enum eRet
             goto label;                                                                                   \
         }                                                                                                 \
     } while (0)
+
+/* if atlas error, print error and continue */
+#define CHECK_ERROR_CONTINUE(err_str, err_code)                                                       \
+    if (eRet_Ok != (err_code)) {                                                                      \
+        BDBG_ERR(("ATLAS ERROR: %s - code:%d at %s: %d", (err_str), (err_code), __FILE__, __LINE__)); \
+        continue;                                                                                     \
+    }
 
 /* if atlas error, print warning and goto given label */
 #define CHECK_WARN(err_str, err_code)                                                                    \
@@ -428,6 +459,22 @@ typedef enum eRet
             (err_var) = (err_code);                                                                \
         }                                                                                          \
     } while (0)
+
+/* if ptr equals NULL, print error, set given err_code to err_var, and continue */
+#define CHECK_PTR_ERROR_CONTINUE(err_str, ptr, err_var, err_code)                              \
+    if (NULL == (ptr)) {                                                                       \
+        BDBG_ERR(("ATLAS ERROR: %s - NULL pointer at %s: %d", (err_str), __FILE__, __LINE__)); \
+        (err_var) = (err_code);                                                                \
+        continue;                                                                              \
+    }
+
+/* if ptr equals NULL, print error, set given err_code to err_var, and break */
+#define CHECK_PTR_ERROR_BREAK(err_str, ptr, err_var, err_code)                                 \
+    if (NULL == (ptr)) {                                                                       \
+        BDBG_ERR(("ATLAS ERROR: %s - NULL pointer at %s: %d", (err_str), __FILE__, __LINE__)); \
+        (err_var) = (err_code);                                                                \
+        break;                                                                                 \
+    }
 
 /* if ptr equals NULL, print warning, set given err_code to err_var */
 #define CHECK_PTR_WARN(err_str, ptr, err_var, err_code)                                           \

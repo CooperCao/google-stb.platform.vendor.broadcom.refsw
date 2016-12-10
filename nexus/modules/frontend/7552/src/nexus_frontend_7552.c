@@ -245,10 +245,10 @@ static void NEXUS_Frontend_P_7552_ThdBbsEvent(void *pParam)
     BDBG_MSG(("Calling BTHD_ProcessBBSInterruptEvent"));
     BTHD_ProcessBBSInterruptEvent(pDevice->thdHandle);
 }
-static void NEXUS_Frontend_P_7552_ThdTuner_isr(void *pParam)
+static void NEXUS_Frontend_P_7552_ThdTuner(void *pParam)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_Tuner_isr gets called with BTHD_P_ThdCallbackData_t  as its pParam. */
+    /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_Tuner gets called with BTHD_P_ThdCallbackData_t  as its pParam. */
     BTHD_P_ThdCallbackData_t *pCallback;
     BTNR_3x7x_RfStatus_t RfCallbackStatus;
     NEXUS_7552 *pDevice;
@@ -299,10 +299,10 @@ static void NEXUS_Frontend_P_7552_OobLockChange_isr(void *pParam)
     if (NULL != callback) NEXUS_IsrCallback_Fire_isr(callback);
 }
 
-static void NEXUS_Frontend_P_7552_AdsTuner_isr(void *pParam)
+static void NEXUS_Frontend_P_7552_AdsTuner(void *pParam)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
-    /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_Ads_Tuner_isr gets called with BADS_P_AdsCallbackData_s as its pParam. */
+    /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_AdsTuner gets called with BADS_P_AdsCallbackData_s as its pParam. */
     BADS_P_AdsCallbackData_t *pCallback;
     BTNR_3x7x_RfStatus_t RfCallbackStatus;
     NEXUS_7552 *pDevice;
@@ -640,8 +640,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open7552(unsigned index, const N
         pDevice->bbsEventCallback = NEXUS_RegisterEvent(pDevice->bbsEvent, NEXUS_Frontend_P_7552_ThdBbsEvent, pDevice);
         if (NULL == pDevice->bbsEventCallback){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err_open_device; }
 
-        /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_Tuner_isr gets called with BTHD_P_ThdCallbackData_t  as its pParam. */
-        rc = BTHD_InstallCallback(pDevice->thdHandle, BTHD_Callback_eTuner, (BTHD_CallbackFunc)NEXUS_Frontend_P_7552_ThdTuner_isr, (void*)pDevice);
+        /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_Tuner gets called with BTHD_P_ThdCallbackData_t  as its pParam. */
+        rc = BTHD_InstallCallback(pDevice->thdHandle, BTHD_Callback_eTuner, (BTHD_CallbackFunc)NEXUS_Frontend_P_7552_ThdTuner, (void*)pDevice);
         if(rc){rc = BERR_TRACE(rc); goto err_open_device;}
     }
 
@@ -806,8 +806,8 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7552( const NEXUS_7552FrontendSettings *
         rc = BADS_InstallCallback(pDevice->channelHandle, BADS_Callback_eLockChange, (BADS_CallbackFunc)NEXUS_Frontend_P_7552_AdsLockChange_isr, (void*)pDevice);
         if(rc){rc = BERR_TRACE(rc); goto error;}
 
-        /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_Ads_Tuner_isr gets called with BADS_P_AdsCallbackData_s as its pParam. */
-        rc = BADS_InstallCallback(pDevice->channelHandle, BADS_Callback_eTuner, (BADS_CallbackFunc)NEXUS_Frontend_P_7552_AdsTuner_isr, (void*)pDevice);
+        /* NOTE: Even though the pDevice is passed in as the pParam, NEXUS_Frontend_P_7552_AdsTuner gets called with BADS_P_AdsCallbackData_s as its pParam. */
+        rc = BADS_InstallCallback(pDevice->channelHandle, BADS_Callback_eTuner, (BADS_CallbackFunc)NEXUS_Frontend_P_7552_AdsTuner, (void*)pDevice);
         if(rc){rc = BERR_TRACE(rc); goto error;}
 
         pDevice->adsLockAppCallback = callbackLockChange;

@@ -928,10 +928,12 @@ static char *Bsysperf_WifiAmpdu_ParseTot(
     char *eol = NULL;
     char  output_line[256];
 
+    noprintf("%s:%u: buffer (%p); filename (%s) \n", __FUNCTION__, __LINE__, buffer, filename );
     if (( buffer== NULL ) || ( filename == NULL ))
     {
         return( pos );
     }
+    noprintf("%s:%u: buffer len (%u); filename (%s) \n", __FUNCTION__, __LINE__, strlen(buffer), filename );
 
     /* look for a line like this ... tot_mpdus 10000 tot_ampdus 20000 mpduperampdu 30000 */
     pos = strstr(buffer, "tot_mpdus ");
@@ -1002,10 +1004,18 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
         return( 0 );
     }
 
-    noprintf( "%s:%u: BEFORE PROCESSING ... original buffer is (%s)\n---------------------------------\n", __FUNCTION__, __LINE__, buffer );
     beg_of_section = strstr( buffer, keyword );
+    if ( buffer ) {
+        if(debug) printf( "%s:%u: BEFORE PROCESSING (%s) ... original buffer is len (%d) beg_of_section %p \n---------------------------------\n",
+                __FUNCTION__, __LINE__, keyword, (int) strlen(buffer), beg_of_section );
+    } else {
+        if(debug) printf( "%s:%u: BEFORE PROCESSING (%s) ... original buffer is len (0) \n---------------------------------\n",
+                __FUNCTION__, __LINE__, keyword );
+    }
     if (beg_of_section)
     {
+        bool bValidLineFound = false;
+
         memset( keywordStr, 0, sizeof( keywordStr ));
         memset( tempLine, 0, sizeof( tempLine ));
 
@@ -1016,8 +1026,11 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
 
         do
         {
+            bValidLineFound = false;
+
             /* TX VHT  :  33(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)                       */
             pos = strchr( line, ':' );
+            if(debug) printf( "%s:%u: tempLine (%s) pos (%p) \n", __FUNCTION__, __LINE__, tempLine, pos );
             if (pos)
             {
                 bool  bReplacedNewline = false;
@@ -1025,6 +1038,8 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
                 int   value_count      = 0;
 
                 antenna_count++;                           /* used to decide 1x1, 2x2, 3x3, or 4x4 */
+
+                bValidLineFound = true;
 
                 if (( eol = strchr( pos, '\n' )))
                 {
@@ -1040,7 +1055,7 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
                 sprintf( tempStr32, "%s %dx%d %%\t", keywordStr, antenna_count, antenna_count );
                 strcat( percentages, tempStr32 );
 
-                if(debug) printf( "%s:%u: found line (%s) \n", __FUNCTION__, __LINE__, tempLine );
+                if(debug) printf( "%s:%u: found line (%s) ... ant %d \n", __FUNCTION__, __LINE__, tempLine, antenna_count );
                 pos += 3;                                  /*skip over the colon and the 1st two spaces */
                 for (idx = 0; pos; idx++)
                 {
@@ -1065,7 +1080,7 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
                         strcat( values, lvalue );
                         strcat( percentages, lpercentage );
 
-                        if(debug) printf( "%s[%d]: offset (%ld) from (%s) value %d; percentage %d \n", keywordStr, idx,
+                        noprintf( "%s[%d]: offset (%ld) from (%s) value %d; percentage %d \n", keywordStr, idx,
                            (long int) ((unsigned int*)pos-(unsigned int*)line), tempStr32, value, percentage );
                     }
 
@@ -1088,7 +1103,7 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
 
                     memset( tempLine, 0, sizeof( tempLine ));
                     strncpy( tempLine, line, MIN( sizeof(tempLine) - strlen(tempLine) - 1, strchr( line, '\n' ) - line ) );
-                    if(debug) printf( "%s:%u: next line (%s) \n", __FUNCTION__, __LINE__, tempLine );
+                    if(debug) printf( "%s:%u: next line (%s) ... ant %d \n", __FUNCTION__, __LINE__, tempLine, antenna_count );
                 }
 
                 strcat( values, "\t\t\t" );                /* separate this line with a couple of tabs */
@@ -1104,9 +1119,14 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
             }
             else
             {
-                printf( "%s:%u: could not find colon after beg_of_section (%s) \n", __FUNCTION__, __LINE__, beg_of_section );
+                if(debug) printf( "%s:%u: could not find colon after beg_of_section (%s) \n", __FUNCTION__, __LINE__, beg_of_section );
             }
-        } while (line && line[0] == ' ');
+            if(debug) printf( "%s:%u: endwhile: pos %p;  line %p ... line[0] (%c) \n", __FUNCTION__, __LINE__, pos, line, line[0] );
+
+            /* each TX/RX section may have 2, 3, or 4 more lines that begin with a space.
+               If we encounter a blank line or a line that does NOT start with a space, we have found the end of the TX/RX section */
+        } while ( bValidLineFound && line && line[0] == ' ');
+
         if (line)
         {
             memset( tempLine, 0, sizeof( tempLine ));
@@ -1116,7 +1136,7 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
     }
     else
     {
-        printf( "%s:%u: could not find keyword (%s) \n", __FUNCTION__, __LINE__, keyword );
+        if(debug) printf( "%s:%u: could not find keyword (%s) \n", __FUNCTION__, __LINE__, keyword );
     }
 
     if(debug) printf( "%s:%u: end ... line (%p) \n", __FUNCTION__, __LINE__, (void*) line );
@@ -1162,7 +1182,7 @@ int Bsysperf_WifiAmpdu_GetReport(
     int   tRetCode = 0;
     char *ampdu    = NULL;
 
-    /*noprintf( "~DEBUG~%s:%u: hBwl #%p ~", __FILE__, __LINE__, hBwl );*/
+    noprintf( "~DEBUG~%s:%u: hBwl #%p ~", __FILE__, __LINE__, hBwl );
     do
     {
         Bsysperf_WifiInit( ifname );
@@ -1208,6 +1228,7 @@ int Bsysperf_WifiAmpdu_GetReport(
                           :  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  15073(99%)  0(0%)  0(0%)  0(0%)
                           :  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  21(0%)  0(0%)  0(0%)
                 */
+                noprintf("\n\n%s:%u: ampdu buffer len (%d) \n", __FUNCTION__, __LINE__, strlen(ampdu) );
                 noprintf( "%s", ampdu );
 
                 Bsysperf_WifiAmpdu_ParseTot( pos, tempFilename );
@@ -1600,6 +1621,63 @@ int Bsysperf_WifiGetRssiAnt(
             }
         }
         Bsysperf_WifiUninit();
+    } while (0);
+
+    return( tRetCode );
+}
+
+/**
+ *  Function: This function will call a BWL function to get the current driver version string.
+ *            The string will be something similar to:
+ *                wl0: Nov 16 2016 10:11:39 version 15.10.15 (r670222)
+ *            This function will look for the "version" string and then extract the numbers
+ *            that are found after the "version" string.
+ **/
+int Bsysperf_WifiGetDriverVersion(
+    const char *ifname,
+    char *strDriverVersion,
+    int   iDriverVersionLen
+    )
+{
+    int   tRetCode = 0;
+    char *dump_buf = NULL;
+    char *pVersionS = NULL;
+    char *pVersionE = NULL;
+
+    noprintf( "%s:%u: hBwl #%p \n", __FILE__, __LINE__, hBwl );
+    strncpy( strDriverVersion, "unknown", iDriverVersionLen - 1 );
+    do
+    {
+        Bsysperf_WifiInit( ifname );
+
+        if (hBwl == NULL)
+        {
+            printf( "%s() Failed to Init BWL! \n", __FUNCTION__ );
+            tRetCode = -1;
+            break;
+        }
+
+        if (( dump_buf = BWL_GetDriverVersion ( hBwl )) == NULL)
+        {
+            printf( "~FATAL~BWL_GetDriverVersion() failed with error %d~", tRetCode );
+            tRetCode = -1;
+            break;
+        }
+
+        Bsysperf_WifiUninit();
+
+        pVersionS = strstr( dump_buf, "version " );
+        if ( pVersionS )
+        {
+            pVersionS += strlen( "version " );
+
+            pVersionE = strstr( pVersionS, " " );
+            if ( pVersionE )
+            {
+                *pVersionE = '\0'; /* null-terminate the version string part */
+                strncpy( strDriverVersion, pVersionS, iDriverVersionLen - 1 );
+            }
+        }
     } while (0);
 
     return( tRetCode );

@@ -990,9 +990,13 @@ int BNAV_Indexer_completeFrameAux(BNAV_Indexer_Handle handle, void *data, int si
     /* perform sanity check before writing */
     if (BNAV_P_CheckEntry(handle, navEntry))
     {
+        if (handle->hiOverflow.review) {
+            handle->hiOverflow.cnt--;
+            handle->hiOverflow.review = false;
+        }
         return -1;
     }
-
+    handle->hiOverflow.review = false;
 
     if (handle->isISlice)
         handle->hitFirstISlice = 1;
@@ -1124,6 +1128,7 @@ uint64_t BNAV_Indexer_getOffset(BNAV_Indexer_Handle handle, const BSCT_Entry *p_
     /* 40 bit HW SCT may overflow. bcmindexer supports 64 bit. */
     if (offset < handle->hiOverflow.last) {
         handle->hiOverflow.cnt++;
+        handle->hiOverflow.review = true;
         BDBG_WRN(("SCT 40 bit offset overflow. " BDBG_UINT64_FMT " < " BDBG_UINT64_FMT ", handle->hiOverflow.cnt %u",
             BDBG_UINT64_ARG(offset), BDBG_UINT64_ARG(handle->hiOverflow.last), handle->hiOverflow.cnt));
     }
@@ -1544,8 +1549,6 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
         with first_mb_in_slice != 0. So handle all the "other" cases in one spot. */
         if (nal_unit_type != 1 && nal_unit_type != 5 && nal_unit_type != 14 ) {
             handle->picEnd = offset;
-            if (BNAV_get_frameType(avcEntry) == eSCTypeIFrame)
-                handle->prev_I_rfo = handle->rfo;
             BNAV_Indexer_completeAVCFrame( handle );
         }
 
@@ -1587,8 +1590,6 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
             if (first_mb_in_slice == 0) {
                 /* we have the beginning of a new frame. first, complete the previous frame. */
                 handle->picEnd = offset;
-                if (BNAV_get_frameType(avcEntry) == eSCTypeIFrame)
-                    handle->prev_I_rfo = handle->rfo;
                 BNAV_Indexer_completeAVCFrame( handle );
 
                 /* start the next frame */
@@ -1612,17 +1613,12 @@ BNAV_Indexer_FeedAVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEntr
 
                 /* check for P slice, which means it's not a B frame */
                 if (slice_type == 0 || slice_type == 5) {
-                    handle->prev_I_rfo = 0;
                     /* First P after first I allows open GOP B's to be saved */
                     if (handle->hitFirstISlice)
                         handle->allowOpenGopBs = 1;
                 }
 
-                /* Sets the refFrameOffset after adding the prev_I_rfo to the rfo.
-                prev_I_rfo will be non-zero ONLY for open gop B's, which are B's that come
-                after an I but before a P. */
-                BDBG_MSG(("BNAV_set_refFrameOffset %d, %d", handle->rfo, handle->prev_I_rfo));
-                BNAV_set_refFrameOffset(avcEntry, handle->rfo + handle->prev_I_rfo);
+                BNAV_set_refFrameOffset(avcEntry, handle->rfo);
 
                 if (handle->hitFirstISlice) {
                     handle->rfo++;
@@ -1858,7 +1854,6 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
                 switch (returnAvsPictureCode(p_curBfr->recordByteCountHi))
                 {
                 case PC_AVS_P_FRAME:
-                    handle->prev_I_rfo = 0;
                     /* First P after first I allows open GOP B's to be saved */
                     /* if (handle->hitFirstISlice)
                         handle->allowOpenGopBs = 1; */
@@ -1875,17 +1870,7 @@ BNAV_Indexer_FeedAVS(BNAV_Indexer_Handle handle, void *p_bfr, long numEntries)
             BNAV_set_seqHdrSize(navEntry, (unsigned short)handle->seqHdrSize);
             BNAV_set_seqHdrStartOffset(navEntry, handle->picStart - handle->seqHdrStartOffset);
 
-            /* Sets the refFrameOffset after adding the prev_I_rfo to the rfo.
-            prev_I_rfo will be non-zero ONLY for open gop B's, which are B's that come
-            after an I but before a P. */
-            BNAV_set_refFrameOffset(navEntry, handle->rfo + handle->prev_I_rfo);
-
-            if (handle->settings.navVersion >= BNAV_VersionOpenGopBs)
-            {
-                if (sc == SC_AVS_PICTURE_I)
-                    handle->prev_I_rfo = handle->rfo;
-            }
-
+            BNAV_set_refFrameOffset(navEntry, handle->rfo);
             if (handle->hitFirstISlice) {
                 handle->rfo++;
             }
@@ -2004,9 +1989,6 @@ BNAV_Indexer_FeedHEVC(BNAV_Indexer_Handle handle, const void *p_bfr, long numEnt
             handle->hevc.newFrame = false;
             if(handle->hevc.frameTypeValid) {
                 handle->picEnd = offset;
-                if (BNAV_get_frameType(avcEntry) == eSCTypeIFrame) {
-                    handle->prev_I_rfo = handle->rfo;
-                }
                 handle->picStart = handle->hevc.sliceStart;
                 if(handle->hevc.sliceStart != handle->hevc.accessUnitStart) {
                     unsigned offset = handle->picStart - handle->hevc.accessUnitStart;

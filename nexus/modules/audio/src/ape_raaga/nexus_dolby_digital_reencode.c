@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -83,6 +83,7 @@ void NEXUS_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->dualMonoMode = piSettings.dualMonoMode;
     BDBG_CASSERT((int)NEXUS_AudioDecoderDualMonoMode_eMax == (int)BAPE_DualMonoMode_eMax);
     pSettings->multichannelFormat = (piSettings.multichannelFormat == BAPE_MultichannelFormat_e7_1) ? NEXUS_AudioMultichannelFormat_e7_1 : NEXUS_AudioMultichannelFormat_e5_1;
+    pSettings->fixedEncoderFormat = piSettings.fixedEncoderFormat;
 }
 
 NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
@@ -140,6 +141,7 @@ NEXUS_DolbyDigitalReencodeHandle NEXUS_DolbyDigitalReencode_Open(
     {
         piSettings.multichannelFormat = BAPE_MultichannelFormat_e5_1;
     }
+    piSettings.fixedEncoderFormat = pSettings->fixedEncoderFormat;
     errCode = BAPE_DolbyDigitalReencode_Create(NEXUS_AUDIO_DEVICE_HANDLE, &piSettings, &handle->apeHandle);
     if ( errCode )
     {

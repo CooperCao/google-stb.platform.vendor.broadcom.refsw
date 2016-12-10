@@ -261,7 +261,7 @@ struct NEXUS_Platform_P_IrqMap NEXUS_Platform_P_IrqMap[32*NEXUS_NUM_L1_REGISTERS
     {0,   false, false, NULL}
 };
 #elif BCHP_CHIP == 7358
-struct NEXUS_Platform_P_IrqMap NEXUS_Platform_P_IrqMap[32*NEXUS_NUM_L1_REGISTERS] = {
+struct NEXUS_Platform_P_IrqMap NEXUS_Platform_P_IrqMap[32*NEXUS_NUM_L1_REGISTERS+1] = {
     {1,  false, true, "AIO"},
     {2,  false, true, "BSP"},
     {3,  false, true, "BVNB"},

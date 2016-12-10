@@ -87,15 +87,13 @@ static void BVC5_P_ProcessInterrupt(
 
                BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_RENDER_JOBS_COMPLETED, 1);
 
-               hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
+               BVC5_P_HardwareJobDone(hVC5, uiCoreIndex, BVC5_P_HardwareUnit_eRenderer);
 
-               /* TODO - do we need to invalidate the texture cache here? */
-               /* Probably - could be writing to a texture */
+               BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray);
 
                /* This job is done, so add to completed queue and remove from job state map */
-               BVC5_P_BinMemArrayDestroy(&pJob->jobData.sRender.sBinMemArray);
+               hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
                BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
-               BVC5_P_HardwareJobDone(hVC5, uiCoreIndex, BVC5_P_HardwareUnit_eRenderer);
             }
          } while (__sync_sub_and_fetch(&pState->uiCapturedRFC, 1) != 0);
       }
@@ -117,15 +115,14 @@ static void BVC5_P_ProcessInterrupt(
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_BIN_JOBS_COMPLETED, 1);
 
-         hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
+         BVC5_P_HardwareJobDone(hVC5, uiCoreIndex, BVC5_P_HardwareUnit_eBinner);
 
          /* This job is done, so add to completed queue and remove from job state map */
+         hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
          BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
 
          /* Render job's dependency is resolved */
          pJob->jobData.sBin.psInternalRenderJob->jobData.sRender.uiBinJobId = 0;
-
-         BVC5_P_HardwareJobDone(hVC5, uiCoreIndex, BVC5_P_HardwareUnit_eBinner);
       }
    }
 
@@ -198,11 +195,10 @@ static void BVC5_P_ProcessInterrupt(
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_TFU_JOBS_COMPLETED, 1);
 
-         hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
-
-         BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
-
          BVC5_P_HardwareJobDone(hVC5, 0, BVC5_P_HardwareUnit_eTFU);
+
+         hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
+         BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
       }
    }
 

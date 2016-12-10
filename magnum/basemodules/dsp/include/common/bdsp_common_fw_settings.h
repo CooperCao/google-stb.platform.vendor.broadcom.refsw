@@ -93,7 +93,6 @@ typedef enum BDSP_Raaga_Audio_DatasyncType
 
 } BDSP_Raaga_Audio_DatasyncType;
 
-
 typedef enum BDSP_Audio_AudioInputSource
 {
     BDSP_Audio_AudioInputSource_eExtI2s0 = 0,     /* External I2S Capture port */
@@ -139,10 +138,19 @@ typedef struct BDSP_AudioTaskDatasyncSettings
         {
             BDSP_Audio_DtsEndianType              eDtsEndianType; /* Added for DTS-CD Little Endian Support */
         }sDtsConfig;
+
         struct
         {
             BDSP_AF_P_EnableDisable             eContinuousFMMInput; /* Added for handling a continuous FMM Input to mixer */
         }sMixerConfig;
+
+
+        struct
+        {
+            uint32_t        ui32DualMainModeEnable;                  /* Added for Dual Main Mixing  Support */
+        }sMixerDapv2Config;
+
+
     }uAlgoSpecConfigStruct;                                     /* The algo specific structures for configuration */
 
     BDSP_AF_P_EnableDisable               eForceCompleteFirstFrame;   /* If enabled, the first frame will always be entirely rendered to the

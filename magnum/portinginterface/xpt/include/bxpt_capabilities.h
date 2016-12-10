@@ -74,6 +74,12 @@ extern "C" {
 /* playback */
 #define BXPT_NUM_PLAYBACKS                  32
 #define BXPT_HAS_MULTICHANNEL_PLAYBACK      1
+#if (BCHP_CHIP == 7278)
+    #define BXPT_USE_HOST_AGGREGATOR            1
+    #define BXPT_HAS_MCPB_VER_3              1
+#else
+    #define BXPT_HAS_SEPARATE_OOS_INTR       1
+#endif
 #define BXPT_HAS_32BIT_PB_TIMESTAMPS        1
 #define BXPT_HAS_PCR_PACING                 1
 
@@ -95,6 +101,9 @@ extern "C" {
 #endif
 #define BXPT_HAS_PACKETSUB_FORCED_INSERTION 1
 #define BXPT_HAS_PB_PACKETSUB               1
+#if (BCHP_CHIP == 7278)
+   #define BXPT_PSUB_40BIT_SUPPORT           1
+#endif
 
 /* mpod */
 #define BXPT_HAS_MPOD_SCARD_SUPPORT         1
@@ -112,7 +121,6 @@ extern "C" {
 #define BXPT_HAS_TSMUX                      1
 #define BXPT_NUM_PACING_COUNTERS            32
 
-/* RS / XC */
 #define BXPT_HAS_FIXED_RSBUF_CONFIG         1
 #define BXPT_HAS_FIXED_XCBUF_CONFIG         1
 
@@ -174,6 +182,11 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_MEMDMA                      1
 #define BXPT_NUM_MEMDMA_PID_CHANNELS         (BXPT_P_PID_TABLE_SIZE - BXPT_NUM_PID_CHANNELS)
 #define BXPT_P_MEMDMA_PID_CHANNEL_START      BXPT_NUM_PID_CHANNELS
+#if (BCHP_CHIP == 7278)
+    #define BXPT_DMA_USE_HOST_AGGREGATOR            1
+    #define BXPT_DMA_HAS_WDMA_CHX                    1
+    #define BXPT_DMA_HAS_WDMA_SINGLE_CHX_HEADER     1        /* Channel-based, but RDB now has channel defines included in a single header. */
+#endif
 
 #if ( (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_D0) || (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) ||\
         (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7366 && BCHP_VER<BCHP_VER_B0) || \
@@ -199,6 +212,16 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_STC_TRIG_TYPE          1
 #define BXPT_HAS_16BYTE_ES_COUNT        1
 #define BXPT_NUM_TBG                    1
+
+#elif (BCHP_CHIP == 7278)
+#define BXPT_NUM_RAVE_CONTEXTS          48
+#define BXPT_NUM_MTSIF                  4
+#define BXPT_NUM_STCS                   16
+#define BXPT_P_HAS_0_238_PPM_RESOLUTION 1
+#define BXPT_MAX_EXTERNAL_TRIGS         6
+#define BXPT_HAS_STC_TRIG_TYPE          1
+#define BXPT_HAS_16BYTE_ES_COUNT        1
+#define BXPT_NUM_TBG                    8
 #else
 #define BXPT_NUM_RAVE_CONTEXTS              48
 #define BXPT_NUM_MTSIF                  4
@@ -228,6 +251,12 @@ In the math below, the arrays are 0-based.
 #define BXPT_NUM_INPUT_BANDS            13
 #endif
 
+#if (BCHP_CHIP == 7278)
+#define BXPT_TSMF_P_MAX_TSMF 2
+#else
+#define BXPT_TSMF_P_MAX_TSMF 24
+#endif
+
 #if ( (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) ||\
       (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7366 && BCHP_VER<BCHP_VER_B0) ||\
       (BCHP_CHIP==7250 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==74371 && BCHP_VER<BCHP_VER_B0) )
@@ -250,6 +279,13 @@ In the math below, the arrays are 0-based.
 #endif
 
 #endif /* BXPT_IS_CORE28NM */
+
+/* RS / XC */
+#if (BCHP_CHIP == 7278)
+    /* 7278 does NOT have an transport client buffers. */
+#else
+    #define BXPT_HAS_XCBUF_HW                1
+#endif
 
 /* TODO: consider making these private, but shared for both 40nm and 28nm */
 #if (BCHP_CHIP==7228)

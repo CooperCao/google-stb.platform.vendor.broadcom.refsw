@@ -60,6 +60,9 @@
 #include "bsp_s_otp_common.h" /* provide BCMD_Otp_CmdMsp_e */
 #include "bsp_s_keycommon.h" /* provide BCMD_VKLID_e */
 
+#ifdef SAGE_KO
+#include "bsage.h"
+#endif
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -82,16 +85,20 @@ struct BSAGElib_P_RpcRemote {
     void *async_arg;
     BSAGElib_RpcMessage *message;
     BSAGElib_CallbackItem *callbackItem;
+    uint8_t open;
+#ifdef SAGE_KO
+    BSAGE_RpcRemoteHandle hRemote;
+#else
     BSAGElib_InOutContainer *container;
     uint8_t valid;
     uint8_t terminated;
-    uint8_t open;
     /* Resources for callbacks comming from SAGE */
     struct {
         uint32_t sequence;
         BSAGElib_RpcMessage *message;
         BSAGElib_InOutContainer *container;
     } callbacks;
+#endif
 };
 
 BDBG_OBJECT_ID_DECLARE(BSAGElib_P_Client);
@@ -123,12 +130,12 @@ struct BSAGElib_P_Instance {
     struct {
         BREG_Handle hReg;
         BCHP_Handle hChp;
+#ifndef SAGE_KO
         BINT_Handle hInt;
         BTMR_Handle hTmr;
+#endif
         BHSM_Handle hHsm;
     } core_handles;
-
-    BTMR_TimerHandle hTimer;
 
     BSAGElib_MemoryMapInterface i_memory_map;
     BSAGElib_MemorySyncInterface i_memory_sync;
@@ -139,7 +146,10 @@ struct BSAGElib_P_Instance {
     BSAGElib_ClientSettings defaultClientSettings;
 
     BSAGElib_ChipInfo chipInfo;
-
+#ifdef SAGE_KO
+    BSAGE_Interface  bsage;
+#else
+    BTMR_TimerHandle hTimer;
     /* Rpc */
     uint32_t instanceIdGen;
     uint32_t seqIdGen;
@@ -149,6 +159,9 @@ struct BSAGElib_P_Instance {
     /* Management */
     BLST_SQ_HEAD(BSAGElib_Management_WatchdogCallbackList, BSAGElib_Management_CallbackItem) watchdog_callbacks;
     BINT_CallbackHandle watchdogIntCallback; /* watchdog timeout Interrupt Callback */
+
+    bool bBootPostCalled;
+#endif
 
     uint8_t resetPending;
     uint8_t enablePinmux;
@@ -168,7 +181,6 @@ struct BSAGElib_P_Instance {
     BSAGElib_ImageInfo frameworkInfo;
 #endif
 
-    bool bBootPostCalled;
 };
 
 /* common interfaces */

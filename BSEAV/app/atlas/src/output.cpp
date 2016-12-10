@@ -1058,7 +1058,7 @@ eRet COutputHdmi::initialize()
 
     /*
      * manually trigger hotplug event to initialize
-     *coverity[stack_use_overflow]
+     * coverity[stack_use_overflow]
      */
     bwinHdmiHotplugCallback(this, NULL);
 

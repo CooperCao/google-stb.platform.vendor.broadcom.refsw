@@ -265,8 +265,7 @@ static NEXUS_Error NEXUS_HdmiOutputModule_P_LoadTA(
         /* Open file */
         rc = img_interface->open(img_context, &image, holder->id);
         if(rc != NEXUS_SUCCESS) {
-            BDBG_MSG(("%s - Could not find HDCP_TA '%s' file, assuming hdcp22_ta is pre-loaded",
-                      __FUNCTION__, holder->name));
+            BDBG_ERR(("%s - Error opening HDCP_TA bin file (%s)", __FUNCTION__, holder->name));
             holder->raw->buf = NULL;
             holder->raw->len = 0;
             rc = NEXUS_SUCCESS;

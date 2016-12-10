@@ -555,7 +555,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
     if (handle->stcChannel)
     {
         /* notify ssc that something may have changed */
-        NEXUS_SimpleStcChannel_SetAudio_priv(handle->stcChannel, CONNECTED(handle) ? handle : NULL);
+        NEXUS_SimpleStcChannel_SetAudio_priv(handle->stcChannel, handle);
     }
 
     if (configOutputs) {
@@ -566,40 +566,19 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
     return 0;
 }
 
+static bool NEXUS_SimpleAudioDecoder_P_IsPriming(NEXUS_SimpleAudioDecoderHandle handle)
+{
+    return
+        handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].state == state_priming ||
+        handle->decoders[NEXUS_SimpleAudioDecoderSelector_eSecondary].state == state_priming ||
+        handle->decoders[NEXUS_SimpleAudioDecoderSelector_eDescription].state == state_priming;
+}
+
 void NEXUS_SimpleAudioDecoder_GetStcStatus_priv(NEXUS_SimpleAudioDecoderHandle handle, NEXUS_SimpleStcChannelDecoderStatus * pStatus)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleAudioDecoder, handle);
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->connected = CONNECTED(handle);
-    /*
-     * Here "active" just means we are using an stc index or channel and
-     * can't change it or re-open it while it is active. Only the decoder states
-     * in which we are truly stopped and can pass in another stc index or channel
-     * on restart will cause "active" to be false.  Specifically, the suspend
-     * state still uses an stc channel because there is no way to pass a new one
-     * on a resume call.  The "priming" and "started" states use stc channels as
-     * they have active TSM.  During "priming trick" the primer is stopped, and
-     * it will check for new settings (incl stc channel) before restarting, so
-     * it counts as not active.
-     */
-    pStatus->stc.active =
-        (
-            handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].state != state_stopped
-            &&
-            handle->decoders[NEXUS_SimpleAudioDecoderSelector_ePrimary].state != state_priming_trick
-        )
-        ||
-        (
-            handle->decoders[NEXUS_SimpleAudioDecoderSelector_eSecondary].state != state_stopped
-            &&
-            handle->decoders[NEXUS_SimpleAudioDecoderSelector_eSecondary].state != state_priming_trick
-        )
-        ||
-        (
-            handle->decoders[NEXUS_SimpleAudioDecoderSelector_eDescription].state != state_stopped
-            &&
-            handle->decoders[NEXUS_SimpleAudioDecoderSelector_eDescription].state != state_priming_trick
-        );
     pStatus->stc.index = handle->stcIndex;
     NEXUS_SimpleEncoder_GetStcStatus_priv(handle->encoder.handle, &pStatus->encoder);
 }
@@ -631,6 +610,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( NEXUS_SimpleAudioDecode
     dest->currentSpdifInput = src->currentSpdifInput;
     dest->currentHdmiInput = src->currentHdmiInput;
     dest->currentCaptureInput = src->currentCaptureInput;
+    dest->mixers.connected = src->mixers.connected;
     dest->mixers.suspended = src->mixers.suspended;
     dest->encoder = src->encoder;
     if (dest->encoder.displayEncode && !src->displayEncode.slave) {
@@ -661,11 +641,11 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SwapServerSettings( NEXUS_SimpleAudioDecode
 
     if (src->stcChannel) {
         /* source has lost its decoders just above here */
-        NEXUS_SimpleStcChannel_SetAudio_priv(src->stcChannel, NULL);
+        NEXUS_SimpleStcChannel_SetAudio_priv(src->stcChannel, src);
     }
     if (dest->stcChannel) {
         /* dest may have gained some decoders if source had some before */
-        NEXUS_SimpleStcChannel_SetAudio_priv(dest->stcChannel, CONNECTED(dest) ? dest : NULL);
+        NEXUS_SimpleStcChannel_SetAudio_priv(dest->stcChannel, dest);
     }
 
     for (i=0;i<NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS;i++) {
@@ -1004,7 +984,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetStcChannel( NEXUS_SimpleAudioDecoderHand
     }
     if (stcChannel) {
         NEXUS_OBJECT_ACQUIRE(handle, NEXUS_SimpleStcChannel, stcChannel);
-        NEXUS_SimpleStcChannel_SetAudio_priv(stcChannel, CONNECTED(handle) ? handle : NULL);
+        NEXUS_SimpleStcChannel_SetAudio_priv(stcChannel, handle);
     }
     handle->stcChannel = stcChannel;
     return 0;
@@ -1298,6 +1278,10 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_downstream(NEXUS_SimpleAudio
         return NEXUS_SUCCESS;
     }
 
+    if (handle->mixers.connected) {
+        return NEXUS_SUCCESS;
+    }
+
     for ( i = 0; i < NEXUS_SimpleAudioDecoderSelector_eMax; i++ ) {
         switch ( i ) {
         case NEXUS_SimpleAudioDecoderSelector_ePrimary:
@@ -1324,12 +1308,17 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_downstream(NEXUS_SimpleAudio
         }
     }
 
+    handle->mixers.connected = true;
     return NEXUS_SUCCESS;
 }
 
 static void nexus_simpleaudiodecoder_disconnect_downstream(NEXUS_SimpleAudioDecoderHandle handle)
 {
     unsigned i;
+
+    if (!handle->mixers.connected) {
+        return;
+    }
 
     for (i=0;i<NEXUS_SimpleAudioDecoderSelector_eMax;i++) {
         switch ( i ) {
@@ -1344,6 +1333,7 @@ static void nexus_simpleaudiodecoder_disconnect_downstream(NEXUS_SimpleAudioDeco
             break;
         }
     }
+    handle->mixers.connected = false;
 }
 
 typedef enum NEXUS_SimpleAudioDecoderStartOp
@@ -1581,12 +1571,22 @@ static int nexus_simpleaudiodecoder_change_state(NEXUS_SimpleAudioDecoderHandle 
     }
 #if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
     if (wants_priming) {
-        if (desired_state == state_stopped) {
-            desired_state = state_priming;
+        if (!handle->stcChannel) {
+            BDBG_WRN(("%p: cannot prime without stcChannel", (void*)handle));
+            wants_priming = false;
         }
-        if (!*pPrimer) {
-            *pPrimer = NEXUS_AudioDecoderPrimer_Create(NULL);
-            if (!*pPrimer) return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+        else if (!NEXUS_SimpleStcChannel_P_ActiveVideo(handle->stcChannel)) {
+            /* audio priming is only useful if lipsynced video is active */
+            wants_priming = false;
+        }
+        if (wants_priming) {
+            if (desired_state == state_stopped) {
+                desired_state = state_priming;
+            }
+            if (!*pPrimer) {
+                *pPrimer = NEXUS_AudioDecoderPrimer_Create(NULL);
+                if (!*pPrimer) return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+            }
         }
     }
 #else
@@ -1594,11 +1594,6 @@ static int nexus_simpleaudiodecoder_change_state(NEXUS_SimpleAudioDecoderHandle 
     BDBG_ASSERT(desired_state != state_priming);
     wants_priming = false;
 #endif
-
-    if (wants_priming && !handle->stcChannel) {
-        BDBG_WRN(("%p: cannot prime without stcChannel", (void*)handle));
-        wants_priming = false;
-    }
 
     switch (desired_state) {
     case state_suspended:
@@ -2180,6 +2175,22 @@ static void nexus_simpleaudiodecoder_p_stop( NEXUS_SimpleAudioDecoderHandle hand
     else
     {
         nexus_simpleaudiodecoder_disconnect_downstream(handle);
+    }
+}
+
+/* AudioPrimer should only be active if video is active */
+void NEXUS_SimpleAudioDecoder_AdjustAudioPrimerToVideo_priv(NEXUS_SimpleAudioDecoderHandle handle, bool videoActive)
+{
+    bool priming = NEXUS_SimpleAudioDecoder_P_IsPriming(handle);
+    if (videoActive) {
+        if (handle->clientStarted && !CONNECTED(handle) && !priming && (handle->startSettings.primer.pcm || handle->startSettings.primer.compressed)) {
+            nexus_simpleaudiodecoder_p_start_resume(handle, NEXUS_SIMPLEAUDIODECODER_ALL);
+        }
+    }
+    else {
+        if (priming) {
+            nexus_simpleaudiodecoder_p_stop(handle);
+        }
     }
 }
 

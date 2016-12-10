@@ -76,7 +76,7 @@ void BXVD_Reg_Write32(BXVD_Handle hXvd, uint32_t offset, uint32_t data)
    BREG_Write32(hXvd->hReg, offset, data);
 }
 
-#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
 uint64_t BXVD_Reg_Read64(BXVD_Handle hXvd, uint64_t offset)
 {
    uint64_t uiValue;

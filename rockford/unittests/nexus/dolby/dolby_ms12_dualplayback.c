@@ -95,6 +95,11 @@ BDBG_MODULE(dolby_ms12_dualplayback);
 #define EFFECTS_DECODE   2
 #define APPAUDIO_DECODE  3
 
+#define OUTPUT_FADE_IDX  4
+
+#define INVALID_FADE_LEVEL 0x7FFFFFFF
+static unsigned defaultFadeLevel = 0x7FFFFFFF;
+
 #define AC4_MODE_SS_SD    0 /**< single stream, single decode */
 #define AC4_MODE_SS_DD_SI 1 /**< single stream, dual decode, single instance */
 #define AC4_MODE_SS_DD_DI 2 /**< single stream, dual decode, dual instance */
@@ -232,6 +237,83 @@ void Intialize_values(unsigned *freq, unsigned *Default_freq, unsigned num)
         *freq++ = *Default_freq++;
     }
 }
+
+int presid_convert_to_ascii (char * hex, char * ascii)
+{
+    char * final = ascii;
+    unsigned process = 0;
+    bool integer = false;
+    printf("convert hex string %s to ascii\n", hex);
+    switch ( strlen(hex) )
+    {
+    case 32: process = 32; break;
+    case 16: process = 0; break;
+    case 5:
+    case 4:
+    case 3:
+    case 2:
+    case 1:  process = 0; integer = true; break;
+    default:
+        printf("invalid presid length %d\n", strlen(hex));
+        return -1;
+    }
+
+    if ( process == 0 )
+    {
+        if ( integer )
+        {
+            int tmp;
+            tmp = atoi(hex);
+            if ( tmp > 0xffff )
+            {
+                printf("invalid short presid value %d\n", tmp);
+                return -1;
+            }
+
+            *ascii++ = (char)(tmp & 0xff);
+            *ascii++ = (char)((tmp>>8) & 0xff);
+        }
+        else
+        {
+            strcpy(ascii, hex);
+        }
+    }
+    else
+    {
+        unsigned i;
+        for ( i = 0; i < process; i += 8 )
+        {
+            char tmpStr[9];
+            unsigned length = strlen(hex+i);
+            unsigned tmp;
+
+            length = ( length > 8 ) ? 8 : length;
+            memcpy(tmpStr, hex+i, length);
+            tmpStr[8] = '\0';
+            length /= 2;
+            tmp = strtoul(tmpStr, NULL, 16);
+            printf("current dword %x, length %d\n", tmp, length);
+            while ( length > 0 )
+            {
+                #if 0
+                *ascii++ = (char)(tmp&0xff);
+                tmp = tmp >> 8;
+                #else
+                *ascii++ = (char)((tmp>>((length-1)*8))&0xff);
+                #endif
+                printf("%02x(%c)\n", *(ascii-1), *(ascii-1));
+                --length;
+            }
+        }
+        *ascii = '\0';
+    }
+
+    printf("final string \"%s\"\n", final);
+
+    return 0;
+}
+
+#define MAX_FILENAME_LEN    1024
 /*----------------------------------------------------------------------------------------DDP dual playback command line arguments------------------------------------------------------------------*/
 struct dolby_digital_plus_command_args {
     const char *config_file;
@@ -277,20 +359,29 @@ struct dolby_digital_plus_command_args {
     bool targetSyncDisabled;
     bool completeFirstFrame;
     bool directMode;
+    bool enableVideo;
     bool enableDdre;
     bool enableSpdif;
     bool enableHdmi;
     bool enableDac;
     bool enablePlayback;
     bool enableCompressed;
-    bool enableSecondary;
-    bool enableSoundEffects;
-    bool enableAppAudio;
+    bool enableDecode[NUM_DECODES];
     bool enableAtmos;
+    bool dualMain;
     NEXUS_DolbyDigitalReencodeProfile compression;
     int mixerBalance;
     unsigned cut;
     unsigned boost;
+    unsigned fadeLevel[5];
+    unsigned fadeDuration[5];
+    unsigned fadeType[5];
+    bool fixedEncFormat;
+    struct {
+        unsigned pid;
+        NEXUS_AudioCodec codec;
+        char filename[MAX_FILENAME_LEN];
+    } decodeAttributes[NUM_DECODES];
     unsigned ac4PresIdxMain;
     unsigned ac4PresIdxAssoc;
     char ac4PresIdMain[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];
@@ -521,21 +612,56 @@ static void playback_thread_stop(pcm_playback_t *playback)
 }
 #endif
 
+struct app_resources {
+    NEXUS_PlatformSettings platformSettings;
+    NEXUS_StcChannelHandle stcChannel[NUM_DECODES];
+    NEXUS_PidChannelHandle audioPidChannel;
+    NEXUS_PidChannelHandle pcrPidChannel;
+    NEXUS_PidChannelHandle videoPidChannel;
+
+    NEXUS_AudioDecoderHandle audioDecoders[NUM_DECODES];
+    NEXUS_AudioDecoderHandle compressedDecoder;
+    bool initialized[NUM_DECODES];
+    bool started[NUM_DECODES];
+    bool suspended[NUM_DECODES];
+    NEXUS_AudioMixerHandle mixer;
+    NEXUS_AudioMixerHandle directMixer;
+    NEXUS_AudioMixerHandle directMchMixer;
+    NEXUS_AudioDecoderStartSettings audioProgram[NUM_DECODES];
+#if NEXUS_NUM_AUDIO_PLAYBACKS
+    NEXUS_AudioPlaybackHandle audioPlayback;
+    pcm_playback_t pcm_playbacks[1];
+#endif
+    NEXUS_FilePlayHandle file[NUM_DECODES];
+    NEXUS_PlaypumpHandle playpump[NUM_DECODES];
+    NEXUS_PlaybackHandle playback[NUM_DECODES];
+    NEXUS_DolbyDigitalReencodeHandle ddre;
+    NEXUS_VideoDecoderHandle videoDecoder;
+    NEXUS_VideoDecoderStartSettings videoProgram;
+    NEXUS_VideoWindowHandle window;
+    NEXUS_DisplayHandle display;
+    NEXUS_DisplaySettings displaySettings;
+};
+
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*-----------------------------------------------------------Managing the run time change into the config parameters--------------------------------------------------------------------------------*/
 
 static void set_config(char *input, struct dolby_digital_plus_command_args *dolby)
 {
+    unsigned valLen;
     char *value;
     value = strchr(input, '=');
     *value = 0;
     value++;
 
-    /* get rid of the endl */
-    if ( strlen(value) > 0 )
+    valLen = strlen(value);
+    while ( valLen > 0 &&
+            (value[valLen-1] == ' ' || value[valLen-1] == '\r' || value[valLen-1] == '\n' ) )
     {
-        value[strlen(value)-1] = 0;
+        /*printf("converting character number %d to 0\n", (int)value[valLen-1]);*/
+        value[valLen-1] = '\0';
+        valLen--;
     }
 
     if ( !strcmp(input, "OUTPUTMODE") )
@@ -644,6 +770,111 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
         if ( atoi(value) == 1 )
         {
             dolby->dapEnaSurDecoder = true;
+        }
+    }
+    else if ( !strcmp(input, "FADETYPEPRI") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 2 )
+        {
+            dolby->fadeType[PRIMARY_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADEDURATIONPRI") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 60000 )
+        {
+            dolby->fadeDuration[PRIMARY_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADELEVELPRI") )
+    {
+        if ( atoi(value) >= 0 && (unsigned)atoi(value) <= defaultFadeLevel )
+        {
+            dolby->fadeLevel[PRIMARY_DECODE] = (unsigned)atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADETYPESEC") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 2 )
+        {
+            dolby->fadeType[SECONDARY_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADEDURATIONSEC") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 60000 )
+        {
+            dolby->fadeDuration[SECONDARY_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADELEVELSEC") )
+    {
+        if ( atoi(value) >= 0 && (unsigned)atoi(value) <= defaultFadeLevel )
+        {
+            dolby->fadeLevel[SECONDARY_DECODE] = (unsigned)atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADETYPESE") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 2 )
+        {
+            dolby->fadeType[EFFECTS_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADEDURATIONSE") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 60000 )
+        {
+            dolby->fadeDuration[EFFECTS_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADELEVELSE") )
+    {
+        if ( atoi(value) >= 0 && (unsigned)atoi(value) <= defaultFadeLevel )
+        {
+            dolby->fadeLevel[EFFECTS_DECODE] = (unsigned)atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADETYPEAA") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 2 )
+        {
+            dolby->fadeType[APPAUDIO_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADEDURATIONAA") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 60000 )
+        {
+            dolby->fadeDuration[APPAUDIO_DECODE] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADELEVELAA") )
+    {
+        if ( atoi(value) >= 0 && (unsigned)atoi(value) <= defaultFadeLevel )
+        {
+            dolby->fadeLevel[APPAUDIO_DECODE] = (unsigned)atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADETYPEOUT") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 2 )
+        {
+            dolby->fadeType[OUTPUT_FADE_IDX] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADEDURATIONOUT") )
+    {
+        if ( atoi(value) >= 0 && atoi(value) <= 60000 )
+        {
+            dolby->fadeDuration[OUTPUT_FADE_IDX] = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FADELEVELOUT") )
+    {
+        if ( atoi(value) >= 0 && (unsigned)atoi(value) <= defaultFadeLevel )
+        {
+            dolby->fadeLevel[OUTPUT_FADE_IDX] = (unsigned)atoi(value);
         }
     }
     else if ( !strcmp(input, "CERT_DDRE") )
@@ -775,6 +1006,14 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
             dolby->enableDdre = false;
         }
     }
+    else if ( !strcmp(input, "FIXEDENCODE") )
+    {
+        dolby->fixedEncFormat = false;
+        if ( atoi(value) == 1 )
+        {
+            dolby->fixedEncFormat = true;
+        }
+    }
     else if ( !strcmp(input, "PCMPLAYBACK") )
     {
         dolby->enablePlayback = false;
@@ -793,26 +1032,26 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     }
     else if ( !strcmp(input, "SECONDARY") )
     {
-        dolby->enableSecondary = true;
+        dolby->enableDecode[SECONDARY_DECODE] = true;
         if ( atoi(value) == 0 )
         {
-            dolby->enableSecondary = false;
+            dolby->enableDecode[SECONDARY_DECODE] = false;
         }
     }
     else if ( !strcmp(input, "SOUNDEFFECTS") )
     {
-        dolby->enableSoundEffects = true;
+        dolby->enableDecode[EFFECTS_DECODE] = true;
         if ( atoi(value) == 0 )
         {
-            dolby->enableSoundEffects = false;
+            dolby->enableDecode[EFFECTS_DECODE] = false;
         }
     }
     else if ( !strcmp(input, "APPAUDIO") )
     {
-        dolby->enableAppAudio = true;
+        dolby->enableDecode[APPAUDIO_DECODE] = true;
         if ( atoi(value) == 0 )
         {
-            dolby->enableAppAudio = false;
+            dolby->enableDecode[APPAUDIO_DECODE] = false;
         }
     }
     else if ( !strcmp(input, "ATMOS") )
@@ -849,6 +1088,110 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
         if ( atoi(value) == 1 )
         {
             dolby->completeFirstFrame = true;
+        }
+    }
+    else if ( !strcmp(input, "FILEPRIMARY") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
+        {
+            strcpy(dolby->decodeAttributes[PRIMARY_DECODE].filename, "");
+        }
+        else
+        {
+            strcpy(dolby->decodeAttributes[PRIMARY_DECODE].filename, value);
+        }
+    }
+    else if ( !strcmp(input, "CODECPRIMARY") )
+    {
+        if ( ((unsigned)atoi(value)) > NEXUS_AudioCodec_eMax )
+        {
+            dolby->decodeAttributes[PRIMARY_DECODE].codec = NEXUS_AudioCodec_eMax;
+        }
+        else
+        {
+            dolby->decodeAttributes[PRIMARY_DECODE].codec = lookup(g_audioCodecStrs, value);
+        }
+    }
+    else if ( !strcmp(input, "PIDPRIMARY") )
+    {
+        if ( ((unsigned)atoi(value)) > INVALID_PID )
+        {
+            dolby->decodeAttributes[PRIMARY_DECODE].pid = INVALID_PID;
+        }
+        else
+        {
+            dolby->decodeAttributes[PRIMARY_DECODE].pid = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FILESECONDARY") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
+        {
+            strcpy(dolby->decodeAttributes[SECONDARY_DECODE].filename, "");
+        }
+        else
+        {
+            strcpy(dolby->decodeAttributes[SECONDARY_DECODE].filename, value);
+        }
+    }
+    else if ( !strcmp(input, "CODECSECONDARY") )
+    {
+        if ( ((unsigned)atoi(value)) > NEXUS_AudioCodec_eMax )
+        {
+            dolby->decodeAttributes[SECONDARY_DECODE].codec = NEXUS_AudioCodec_eMax;
+        }
+        else
+        {
+            dolby->decodeAttributes[SECONDARY_DECODE].codec = lookup(g_audioCodecStrs, value);
+        }
+    }
+    else if ( !strcmp(input, "PIDSECONDARY") )
+    {
+        if ( ((unsigned)atoi(value)) > INVALID_PID )
+        {
+            dolby->decodeAttributes[SECONDARY_DECODE].pid = INVALID_PID;
+        }
+        else
+        {
+            dolby->decodeAttributes[SECONDARY_DECODE].pid = atoi(value);
+        }
+    }
+    else if ( !strcmp(input, "FILEEFFECTS") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
+        {
+            strcpy(dolby->decodeAttributes[EFFECTS_DECODE].filename, "");
+        }
+        else
+        {
+            strcpy(dolby->decodeAttributes[EFFECTS_DECODE].filename, value);
+        }
+    }
+    else if ( !strcmp(input, "FILEAPPAUDIO") )
+    {
+        if ( strlen(value) > MAX_FILENAME_LEN )
+        {
+            printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(value));
+        }
+        if ( strlen(value) <= 0 || strlen(value) > MAX_FILENAME_LEN )
+        {
+            strcpy(dolby->decodeAttributes[APPAUDIO_DECODE].filename, "");
+        }
+        else
+        {
+            strcpy(dolby->decodeAttributes[APPAUDIO_DECODE].filename, value);
         }
     }
     else if ( dolby->audioCodec == NEXUS_AudioCodec_eAc3 || dolby->audioCodec == NEXUS_AudioCodec_eAc3Plus )
@@ -929,21 +1272,10 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     {
         if ( !strcmp(input, "DOWNMIX_MODE") )
         {
-            if ( atoi(value) == 0 )
+            dolby->ac4CodecSettings.codecSettings.ac4.stereoMode = NEXUS_AudioDecoderStereoDownmixMode_eLtRt; /*Lo/Ro always*/
+            if ( atoi(value) == 1 )
             {
-                dolby->ac4CodecSettings.codecSettings.ac4.stereoMode = NEXUS_AudioDecoderDolbyStereoDownmixMode_eAutomatic; /*Lo/Ro always*/
-            }
-            else if ( atoi(value) == 1 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.stereoMode = NEXUS_AudioDecoderDolbyStereoDownmixMode_eDolbySurroundCompatible; /*Lo/Ro always*/
-            }
-            else if ( atoi(value) == 2 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.stereoMode = NEXUS_AudioDecoderDolbyStereoDownmixMode_eStandard; /*Lo/Ro always*/
-            }
-            else
-            {
-                printf("\n\n Only DOWNMIX_MODE=0,1,2 is allowed for this application. \n\n");
+                dolby->ac4CodecSettings.codecSettings.ac4.stereoMode = NEXUS_AudioDecoderStereoDownmixMode_eLoRo; /*Lo/Ro always*/
             }
         }
         else if ( !strcmp(input, "RFMODE") )
@@ -1044,11 +1376,11 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
         }
         else if ( !strcmp(input, "AC4PRESIDMAIN") )
         {
-            strcpy(dolby->ac4PresIdMain, value);
+            presid_convert_to_ascii(value, dolby->ac4PresIdMain);
         }
         else if ( !strcmp(input, "AC4PRESIDASSOC") )
         {
-            strcpy(dolby->ac4PresIdAssoc, value);
+            presid_convert_to_ascii(value, dolby->ac4PresIdAssoc);
         }
         else if ( !strcmp(input, "AC4DEAMOUNT") )
         {
@@ -1246,7 +1578,7 @@ static void parse_config_file(struct dolby_digital_plus_command_args *dolby, boo
 /*--------------------------------------------------------------------Printing the current values of the config parameters--------------------------------------------------------------------------*/
 static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_AudioDecoderCodecSettings codecSettings, struct dolby_digital_plus_command_args *dolby)
 {
-    printf("\n\n---------------- The current values of the configuration parameters are as follows: ----------------- \n\n");
+    printf("\n\n------------- The current values of the configuration parameters are as follows: -------------- \n\n");
 
     printf("\t OUTPUTMODE = %d\n", decodeSettings.outputMode);
     printf("\t OUTPUTLFECH_MODE = %d\n", decodeSettings.outputLfeMode);
@@ -1279,7 +1611,7 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
     }
     else if ( codecSettings.codec == NEXUS_AudioCodec_eAc4 )
     {
-        printf("AC4 SETTINGS\n");
+        printf("\n\tAC4 SETTINGS:\n");
 
         printf("\t PRES INDEX MAIN = %d\n", dolby->ac4PresIdxMain);
         printf("\t PRES INDEX ASSOC = %d\n", dolby->ac4PresIdxAssoc);
@@ -1299,7 +1631,7 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
         printf("\t MIXING BALANCE = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.programBalance);
         printf("\t SELECTION MODE = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.selectionMode);
         printf("\t PREFERRED LANG1 = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection);
-        printf("\t PREFERRED LANG2 = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection);
+        printf("\t PREFERRED LANG2 = %s\n\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection);
     }
     printf("\t MIXERBALANCE = %d\n", dolby->mixerBalance);
 
@@ -1323,6 +1655,7 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
     printf("\t MDCTBLENABLE = %d\n", dolby->mdctBLEnable);
 
     printf("\t MULTICH = %d\n", dolby->multiCh71 ? 8 : 6);
+    printf("\t FIXEDENCODE = %d\n", dolby->fixedEncFormat);
     printf("\t DIRECT = %d\n", dolby->directMode);
     printf("\t SPDIF = %d\n", dolby->enableSpdif);
     printf("\t HDMI = %d\n", dolby->enableHdmi);
@@ -1330,9 +1663,24 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
     printf("\t DDRE = %d\n", dolby->enableDdre);
     printf("\t PCMPLAYBACK = %d\n", dolby->enablePlayback);
     printf("\t COMPRESSED = %d\n", dolby->enableCompressed);
-    printf("\t SECONDARY = %d\n", dolby->enableSecondary);
-    printf("\t SOUNDEFFECTS = %d\n", dolby->enableSoundEffects);
-    printf("\t APPAUDIO = %d\n", dolby->enableAppAudio);
+    printf("\t SECONDARY = %d\n", dolby->enableDecode[SECONDARY_DECODE]);
+    printf("\t SOUNDEFFECTS = %d\n", dolby->enableDecode[EFFECTS_DECODE]);
+    printf("\t APPAUDIO = %d\n", dolby->enableDecode[APPAUDIO_DECODE]);
+    printf("\t FADEDURATIONPRI = %d\n", dolby->fadeDuration[PRIMARY_DECODE]);
+    printf("\t FADETYPEPRI = %d\n", dolby->fadeType[PRIMARY_DECODE]);
+    printf("\t FADELEVELPRI = %d\n", dolby->fadeLevel[PRIMARY_DECODE]);
+    printf("\t FADEDURATIONSEC = %d\n", dolby->fadeDuration[SECONDARY_DECODE]);
+    printf("\t FADETYPESEC = %d\n", dolby->fadeType[SECONDARY_DECODE]);
+    printf("\t FADELEVELSEC = %d\n", dolby->fadeLevel[SECONDARY_DECODE]);
+    printf("\t FADEDURATIONSE = %d\n", dolby->fadeDuration[EFFECTS_DECODE]);
+    printf("\t FADETYPESE = %d\n", dolby->fadeType[EFFECTS_DECODE]);
+    printf("\t FADELEVELSE = %d\n", dolby->fadeLevel[EFFECTS_DECODE]);
+    printf("\t FADEDURATIONAA = %d\n", dolby->fadeDuration[APPAUDIO_DECODE]);
+    printf("\t FADETYPEAA = %d\n", dolby->fadeType[APPAUDIO_DECODE]);
+    printf("\t FADELEVELAA = %d\n", dolby->fadeLevel[APPAUDIO_DECODE]);
+    printf("\t FADEDURATIONOUT = %d\n", dolby->fadeDuration[OUTPUT_FADE_IDX]);
+    printf("\t FADETYPEOUT = %d\n", dolby->fadeType[OUTPUT_FADE_IDX]);
+    printf("\t FADELEVELOUT = %d\n", dolby->fadeLevel[OUTPUT_FADE_IDX]);
 
     printf("\t ATMOS = %d\n", dolby->enableAtmos);
     printf("\t COMPRESSION = %d\n", dolby->compression);
@@ -1340,6 +1688,7 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
     printf("\t COMPLETE_FIRST_FRAME = %d\n", dolby->completeFirstFrame);
     /*printf("\n(1)OUTPUTMODE = %d\n(2)OUTPUTLFECH_MODE = %d\n(3)DUALMONO_MODE = %d\n(4)DOWNMIX_MODE = %d\n(5)RFMODE = %d\n(6)DRCCUT = %d\n(7)DRCBOOST = %d\n(8)enableCompressed = %d\n(9)SECONDARY_SUBSTREAMID = %d\n(10)MIXERBALANCE = %d\n\n",decodeSettings.outputMode,decodeSettings.outputLfeMode,decodeSettings.dualMonoMode,(codecSettings.codecSettings.ac3Plus.stereoDownmixMode),codecSettings.codecSettings.ac3Plus.drcMode,codecSettings.codecSettings.ac3Plus.cut,codecSettings.codecSettings.ac3Plus.boost,dolby->enableCompressed,codecSettings.codecSettings.ac3Plus.substreamId, dolby->mixerBalance);*/
 
+    printf("\n\n----------------------------------------------------------------------------------------------- \n\n");
     printf("\n\n To change the value of any config parameters, type the command as 'CONFIG PARAMETER NAME= VALUE' \n Type 'quit' to terminate the application. \n\n\n");
     return;
 }
@@ -1348,40 +1697,46 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
 
 /*-----------------------------------------------------------------------Command line arguments parsing---------------------------------------------------------------------------------------------*/
 
-int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_opts_t *opts, struct dolby_digital_plus_command_args *dolby, int j)
+int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_opts_t *opts, struct dolby_digital_plus_command_args *dolby)
 {
     int i;
     unsigned audioPid = INVALID_PID, secondaryAudioPid = INVALID_PID;
     NEXUS_AudioCodec audioCodec = NEXUS_AudioCodec_eMax;
+    NEXUS_AudioCodec secondaryAudioCodec = NEXUS_AudioCodec_eMax;
     NEXUS_TransportType transportType = NEXUS_TransportType_eMax;
 
     dolby->loopback = 0;
 
-    memset(opts, 0, sizeof(*opts));
-    opts->common.transportType = NEXUS_TransportType_eMax;
+    opts[PRIMARY_DECODE].common.transportType = NEXUS_TransportType_eMax;
 
-    opts->common.audioCodec = NEXUS_AudioCodec_eMax;
-    opts->common.contentMode = NEXUS_VideoWindowContentMode_eFull;
-    opts->common.compressedAudio = false;
-    opts->common.decodedAudio = true;
-    opts->common.probe = true;
+    opts[PRIMARY_DECODE].common.audioCodec = NEXUS_AudioCodec_eMax;
+    opts[PRIMARY_DECODE].common.contentMode = NEXUS_VideoWindowContentMode_eFull;
+    opts[PRIMARY_DECODE].common.compressedAudio = false;
+    opts[PRIMARY_DECODE].common.decodedAudio = true;
+    opts[PRIMARY_DECODE].common.probe = true;
 #if NEXUS_DTV_PLATFORM
-    opts->common.displayType = NEXUS_DisplayType_eLvds;
-    opts->common.displayFormat = NEXUS_VideoFormat_eCustom0;
+    opts[PRIMARY_DECODE].common.displayType = NEXUS_DisplayType_eLvds;
+    opts[PRIMARY_DECODE].common.displayFormat = NEXUS_VideoFormat_eCustom0;
 #else
-    opts->common.useCompositeOutput = true;
-    opts->common.useComponentOutput = true;
-    opts->common.displayFormat = NEXUS_VideoFormat_eNtsc;
-    opts->common.displayType = NEXUS_DisplayType_eAuto;
+    opts[PRIMARY_DECODE].common.useCompositeOutput = true;
+    opts[PRIMARY_DECODE].common.useComponentOutput = true;
+    opts[PRIMARY_DECODE].common.displayFormat = NEXUS_VideoFormat_eNtsc;
+    opts[PRIMARY_DECODE].common.displayType = NEXUS_DisplayType_eAuto;
 #endif
-    opts->stcChannelMaster = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
-    opts->common.tsTimestampType = NEXUS_TransportTimestampType_eNone;
-    opts->beginningOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
-    opts->endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
-    opts->common.playpumpTimestampReordering = true;
-    opts->customFileIo = false;
-    opts->playbackMonitor = false;
-    opts->common.videoCodec = NEXUS_VideoCodec_eUnknown;
+    opts[PRIMARY_DECODE].stcChannelMaster = NEXUS_StcChannelAutoModeBehavior_eVideoMaster;
+    opts[PRIMARY_DECODE].common.tsTimestampType = NEXUS_TransportTimestampType_eNone;
+    opts[PRIMARY_DECODE].beginningOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
+    opts[PRIMARY_DECODE].endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
+    opts[PRIMARY_DECODE].common.playpumpTimestampReordering = true;
+    opts[PRIMARY_DECODE].customFileIo = false;
+    opts[PRIMARY_DECODE].playbackMonitor = false;
+    opts[PRIMARY_DECODE].common.videoCodec = NEXUS_VideoCodec_eUnknown;
+
+    for ( i = PRIMARY_DECODE; i < NUM_DECODES; i++ )
+    {
+        dolby->decodeAttributes[i].pid = INVALID_PID;
+        dolby->decodeAttributes[i].codec = NEXUS_AudioCodec_eMax;
+    }
 
     for ( i = 1; i < argc; i++ )
     {
@@ -1392,38 +1747,60 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         else if ( !strcmp(argv[i], "-config") )
         {
             dolby->config_file = argv[++i];
-            if ( j == PRIMARY_DECODE )
-            {
-                printf("\n You entered the config file name :%s\n", dolby->config_file);
-            }
+            printf("\n You entered the config file name :%s\n", dolby->config_file);
         }
         else if ( !strcmp(argv[i], "-loopback") )
         {
             dolby->loopback = 1;
-            if ( j == PRIMARY_DECODE )
-            {
-                printf("\n You have enabled the loopback option\n");
-            }
-        }
-        else if ( !strcmp(argv[i], "-app_audio") )
-        {
-            dolby->app_audio_stream = argv[++i];
-        }
-        else if ( !strcmp(argv[i], "-sound_effects") )
-        {
-            dolby->sound_effects_stream = argv[++i];
+            printf("\n You have enabled the loopback option\n");
         }
         else if ( !strcmp(argv[i], "-pcm") )
         {
             dolby->pcm_stream = argv[++i];
         }
-        else if ( !strcmp(argv[i], "-secondary") )
-        {
-            dolby->secondary_stream = argv[++i];
-        }
         else if ( !strcmp(argv[i], "-primary") )
         {
-            dolby->primary_stream = argv[++i];
+            if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
+            {
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                return -1;
+            }
+            strcpy(dolby->decodeAttributes[PRIMARY_DECODE].filename, argv[i+1]);
+            dolby->primary_stream = dolby->decodeAttributes[PRIMARY_DECODE].filename;
+            ++i;
+        }
+        else if ( !strcmp(argv[i], "-secondary") )
+        {
+            if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
+            {
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                return -1;
+            }
+            strcpy(dolby->decodeAttributes[SECONDARY_DECODE].filename, argv[i+1]);
+            dolby->secondary_stream = dolby->decodeAttributes[SECONDARY_DECODE].filename;
+            ++i;
+        }
+        else if ( !strcmp(argv[i], "-sound_effects") )
+        {
+            if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
+            {
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                return -1;
+            }
+            strcpy(dolby->decodeAttributes[EFFECTS_DECODE].filename, argv[i+1]);
+            dolby->sound_effects_stream = dolby->decodeAttributes[EFFECTS_DECODE].filename;
+            ++i;
+        }
+        else if ( !strcmp(argv[i], "-app_audio") )
+        {
+            if ( strlen(argv[i+1]) > MAX_FILENAME_LEN )
+            {
+                printf("Increase MAX_FILENAME_LEN to be > %d\n", strlen(argv[i+1]));
+                return -1;
+            }
+            strcpy(dolby->decodeAttributes[APPAUDIO_DECODE].filename, argv[i+1]);
+            dolby->app_audio_stream = dolby->decodeAttributes[APPAUDIO_DECODE].filename;
+            ++i;
         }
         else if ( !strcmp(argv[i], "-audio") && i + 1 < argc )
         {
@@ -1437,9 +1814,13 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         {
             audioCodec = lookup(g_audioCodecStrs, argv[++i]);
         }
+        else if ( !strcmp(argv[i], "-secondary_audio_codec") && i + 1 < argc )
+        {
+            secondaryAudioCodec = lookup(g_audioCodecStrs, argv[++i]);
+        }
         else if ( !strcmp(argv[i], "-pcr") && i + 1 < argc )
         {
-            opts->common.pcrPid = strtoul(argv[++i], NULL, 0);
+            opts[PRIMARY_DECODE].common.pcrPid = strtoul(argv[++i], NULL, 0);
         }
         else if ( !strcmp(argv[i], "-external_pcm") && i + 1 < argc )
         {
@@ -1458,6 +1839,14 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         {
             dolby->completeFirstFrame = true;
         }
+        else if ( !strcmp(argv[i], "-no_decoded_video") )
+        {
+            dolby->enableVideo = false;
+        }
+        else if ( !strcmp(argv[i], "-dual_main_audio") )
+        {
+            dolby->dualMain = true;
+        }
         else
         {
             printf("unknown param %s\n", argv[i]);
@@ -1470,65 +1859,832 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
         dolby->secondary_stream = dolby->primary_stream;
     }
 
-    if ( j == PRIMARY_DECODE )
+    /* replicate common settings to other decodes */
+    for ( i = PRIMARY_DECODE+1; i < NUM_DECODES; i++ )
     {
-        opts->filename = dolby->primary_stream;
-        if ( NULL == opts->filename )
-        {
-            printf("No primary stream selected.  Use -primary <filemane> to specify the stream name\n");
-            return -1;
-        }
-        printf("\n You have selected the primary stream : %s \n\n", dolby->primary_stream);
-        opts->common.audioPid = audioPid;
-        opts->common.audioCodec = audioCodec;
-        opts->common.transportType = transportType;
-    }
-    else if ( j == SECONDARY_DECODE && (dolby->secondary_stream != NULL || secondaryAudioPid != INVALID_PID) )
-    {
-        opts->filename = dolby->secondary_stream;
-        if ( NULL == opts->filename )
-        {
-            printf("No secondary stream selected.  Use -secondary <filemane> to specify the stream name\n");
-            return -1;
-        }
-        printf("\n You have selected the secondary stream : %s \n\n", dolby->secondary_stream);
-        opts->common.audioPid = secondaryAudioPid;
-        opts->common.audioCodec = audioCodec;
-        opts->common.transportType = transportType;
-    }
-    else if ( j == EFFECTS_DECODE && dolby->sound_effects_stream )
-    {
-        opts->filename = dolby->sound_effects_stream;
-        if ( NULL == opts->filename )
-        {
-            printf("No sound effects stream selected.  Use -sound_effects <filemane> to specify the stream name\n");
-            return -1;
-        }
-        printf("\n You have selected sound effects stream : %s \n\n", dolby->sound_effects_stream);
-    }
-    else if ( j == APPAUDIO_DECODE && dolby->app_audio_stream )
-    {
-        opts->filename = dolby->app_audio_stream;
-        if ( NULL == opts->filename )
-        {
-            printf("No application audio stream selected.  Use -app_audio <filemane> to specify the stream name\n");
-            return -1;
-        }
-        printf("\n You have selected Application Audio stream : %s \n\n", dolby->app_audio_stream);
+        BKNI_Memcpy(&opts[i], &opts[PRIMARY_DECODE], sizeof(struct util_opts_t) );
     }
 
-    opts->common.displayType = NEXUS_DisplayType_eAuto;
+    if ( dolby->primary_stream )
+    {
+        opts[PRIMARY_DECODE].filename = dolby->primary_stream;
+        dolby->decodeAttributes[PRIMARY_DECODE].pid = opts[PRIMARY_DECODE].common.audioPid = audioPid;
+        dolby->decodeAttributes[PRIMARY_DECODE].codec = opts[PRIMARY_DECODE].common.audioCodec = audioCodec;
+        opts[PRIMARY_DECODE].common.transportType = transportType;
+        printf("\n You have selected the primary stream : %s, pid %u, codec %d \n\n", dolby->primary_stream, audioPid, audioCodec);
+    }
+
+    if ( secondaryAudioCodec == NEXUS_AudioCodec_eMax )
+    {
+        secondaryAudioCodec = audioCodec;
+    }
+
+    if ( dolby->secondary_stream )
+    {
+        /* if secondary stream enabled, make sure we either have a pid, or a separate file */
+        if ( (dolby->primary_stream && strcmp(dolby->secondary_stream, dolby->primary_stream) == 0 && secondaryAudioPid != INVALID_PID) ||
+             (dolby->primary_stream && strcmp(dolby->secondary_stream, dolby->primary_stream) == 0) || dolby->dualMain )
+        {
+            opts[SECONDARY_DECODE].filename = dolby->secondary_stream;
+            opts[SECONDARY_DECODE].common.probe = true;
+            dolby->decodeAttributes[SECONDARY_DECODE].pid = opts[SECONDARY_DECODE].common.audioPid = secondaryAudioPid;
+            dolby->decodeAttributes[SECONDARY_DECODE].codec = opts[SECONDARY_DECODE].common.audioCodec = secondaryAudioCodec;
+            opts[SECONDARY_DECODE].common.transportType = transportType;
+            printf("\n You have selected the secondary stream : %s, pid %u, codec %d \n\n", dolby->secondary_stream, secondaryAudioPid, secondaryAudioCodec);
+        }
+    }
+
+    if ( dolby->sound_effects_stream )
+    {
+        opts[EFFECTS_DECODE].filename = dolby->sound_effects_stream;
+        printf("\n You have selected sound effects stream : %s \n\n", dolby->sound_effects_stream);
+        opts[EFFECTS_DECODE].common.probe = true;
+        opts[EFFECTS_DECODE].common.audioCodec = NEXUS_AudioCodec_eMax;
+        opts[EFFECTS_DECODE].common.transportType = NEXUS_TransportType_eMax;
+        opts[EFFECTS_DECODE].common.audioPid = INVALID_PID;
+    }
+
+    if ( dolby->app_audio_stream )
+    {
+        opts[APPAUDIO_DECODE].filename = dolby->app_audio_stream;
+        printf("\n You have selected Application Audio stream : %s \n\n", dolby->app_audio_stream);
+        opts[APPAUDIO_DECODE].common.probe = true;
+        opts[APPAUDIO_DECODE].common.audioCodec = NEXUS_AudioCodec_eMax;
+        opts[APPAUDIO_DECODE].common.transportType = NEXUS_TransportType_eMax;
+        opts[APPAUDIO_DECODE].common.audioPid = INVALID_PID;
+    }
+
+    opts[PRIMARY_DECODE].common.displayType = NEXUS_DisplayType_eAuto;
 
     /* this allows the user to set: "-mpeg_type es -video_type mpeg" and forget the "-video 1" option */
-    if ( opts->common.transportType == NEXUS_TransportType_eEs && !opts->common.videoPid && !opts->common.audioPid )
+    if ( opts[PRIMARY_DECODE].common.transportType == NEXUS_TransportType_eEs && !opts[PRIMARY_DECODE].common.videoPid && !opts[PRIMARY_DECODE].common.audioPid )
     {
         if ( g_isVideoEs )
         {
-            opts->common.videoPid = 1;
+            opts[PRIMARY_DECODE].common.videoPid = 1;
         }
         else
         {
-            opts->common.audioPid = 1;
+            opts[PRIMARY_DECODE].common.audioPid = 1;
+        }
+    }
+
+    return 0;
+}
+
+static void translate_args_to_decoder_settings(unsigned idx, NEXUS_AudioDecoderHandle *decodes, struct dolby_digital_plus_command_args *dolby, NEXUS_AudioDecoderSettings * decoderSettings)
+{
+    BSTD_UNUSED(idx);
+    BSTD_UNUSED(decodes);
+    decoderSettings->outputMode = dolby->decodeSettings.outputMode;
+    decoderSettings->outputLfeMode = dolby->decodeSettings.outputLfeMode;
+    decoderSettings->dualMonoMode = dolby->decodeSettings.dualMonoMode;
+}
+
+void apply_mixer_settings(NEXUS_AudioMixerSettings *mixerSettings, struct dolby_digital_plus_command_args *dolby)
+{
+    if ( dolby->enable_dap )
+    {
+        unsigned i;
+        mixerSettings->dolby.enablePostProcessing = true;
+        mixerSettings->dolby.volumeLimiter.enableVolumeLimiting = dolby->dv_enable;
+        mixerSettings->dolby.volumeLimiter.enableIntelligentLoudness = dolby->dvOverrideInbandVol ? false : true;
+        mixerSettings->dolby.volumeLimiter.volumeLimiterAmount = dolby->dvContentType;
+        mixerSettings->dolby.dialogEnhancer.enableDialogEnhancer = dolby->dde_enable;
+        mixerSettings->dolby.dialogEnhancer.dialogEnhancerLevel = dolby->ddeDialogBoost;
+        mixerSettings->dolby.dialogEnhancer.contentSuppressionLevel = dolby->ddeContentCut;
+        /* if they have not specified num_bands ieq can be enabled and it will go with default freq and gains*/
+        mixerSettings->dolby.intelligentEqualizer.enabled = dolby->ieq_enable;
+        mixerSettings->dolby.intelligentEqualizer.numBands = dolby->deqNumBands;
+        for ( i = 0; i < mixerSettings->dolby.intelligentEqualizer.numBands; i++ )
+        {
+            mixerSettings->dolby.intelligentEqualizer.band[i].frequency = dolby->deqFrequency[i];
+            mixerSettings->dolby.intelligentEqualizer.band[i].gain = dolby->deqGain[i];
+        }
+    }
+    else
+    {
+        mixerSettings->dolby.enablePostProcessing = false;
+    }
+
+    mixerSettings->dolby.certificationMode = 0;
+    mixerSettings->dolby.certificationMode |= dolby->certificationMode_dap ? DOLBY_DAP_CERT_MODE : 0;
+    if ( (mixerSettings->dolby.certificationMode & DOLBY_DAP_CERT_MODE) )
+    {
+        mixerSettings->dolby.certificationMode |= dolby->miDisable ? DOLBY_DAP_CERT_DISABLE_MI : 0;
+        mixerSettings->dolby.certificationMode |= dolby->miSurCompDisable ? DOLBY_DAP_CERT_DISABLE_MI_SURROUNDCOMP : 0;
+        mixerSettings->dolby.certificationMode |= dolby->miDvDisable ? DOLBY_DAP_CERT_DISABLE_MI_VOLUMELIMITER : 0;
+        mixerSettings->dolby.certificationMode |= dolby->miDdeDisable ? DOLBY_DAP_CERT_DISABLE_MI_DIALOGENHANCER : 0;
+        mixerSettings->dolby.certificationMode |= dolby->miDieqDisable ? DOLBY_DAP_CERT_DISABLE_MI_INTELLIGENTEQ : 0;
+        mixerSettings->dolby.certificationMode |= (dolby->deqAmount << DOLBY_DAP_CERT_EQAMOUNT_SHIFT) & DOLBY_DAP_CERT_EQAMOUNT;
+        mixerSettings->dolby.certificationMode |= dolby->dapEnaSurDecoder ? DOLBY_DAP_CERT_ENABLE_SURROUND_DECODER : 0;
+    }
+    printf("\nMS12 DAP Mixer settings:\n");
+    printf("------------------------------------\n");
+    printf("  certificationMode     %d\n", dolby->certificationMode_dap);
+    if ( dolby->certificationMode_dap )
+    {
+        printf("    disableMi           %d\n", dolby->miDisable);
+        printf("    disableMiSurComp    %d\n", dolby->miSurCompDisable);
+        printf("    disableMiDV         %d\n", dolby->miDvDisable);
+        printf("    disableMiDDE        %d\n", dolby->miDdeDisable);
+        printf("    disableMiDieq       %d\n", dolby->miDieqDisable);
+    }
+    printf("  enableProcessing  %d\n", dolby->enable_dap);
+    if ( dolby->enable_dap )
+    {
+        unsigned i;
+        printf("    enableDV            %d\n", dolby->dv_enable);
+        if ( dolby->dv_enable )
+        {
+            printf("      DvContentType     %d\n", dolby->dvContentType);
+            printf("      DvOverrideInband  %d\n", dolby->dvOverrideInbandVol);
+        }
+        printf("    enableDE            %d\n", dolby->dde_enable);
+        if ( dolby->dde_enable )
+        {
+            printf("      dialogBoost       %d\n", dolby->ddeDialogBoost);
+            printf("      contentCut        %d\n", dolby->ddeContentCut);
+        }
+        printf("    enableDIEQ          %d\n", (dolby->ieq_enable));
+        if ( dolby->ieq_enable > 0 )
+        {
+            printf("      eqAmount          %d\n", dolby->deqAmount);
+            printf("      numEqBands        %d\n", dolby->deqNumBands);
+            for ( i = 0; i < dolby->deqNumBands; i++ )
+            {
+                printf("      Band[%d]:\n", i);
+                printf("        eqFrequency     %dHz\n", dolby->deqFrequency[i]);
+                printf("        eqGain          %d\n", dolby->deqGain[i]);
+            }
+        }
+    }
+    printf("------------------------------------\n");
+}
+/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+static void translate_args_to_codec_settings(unsigned idx, struct dolby_digital_plus_command_args *dolby, struct app_resources * recs, NEXUS_AudioDecoderCodecSettings *codecSettings)
+{
+    if ( codecSettings->codec == NEXUS_AudioCodec_eAc3Plus || codecSettings->codec == NEXUS_AudioCodec_eAc3 )
+    {
+        codecSettings->codecSettings.ac3Plus.certificationMode = 0;
+
+        /* Set up Codec Specific params */
+        if ( idx == PRIMARY_DECODE )
+        {
+            codecSettings->codecSettings.ac3Plus.substreamId = 0;
+        }
+        else if ( idx == SECONDARY_DECODE )
+        {
+            codecSettings->codecSettings.ac3Plus.substreamId = dolby->secondary_substreamId;
+        }
+
+        /* Only Enable Atmos processing if we don't have a Secondary decode */
+        if ( idx == 0 && (!recs->initialized[SECONDARY_DECODE] || dolby->dualMain) )
+        {
+            codecSettings->codecSettings.ac3Plus.enableAtmosProcessing = dolby->enableAtmos;
+        }
+        else
+        {
+            codecSettings->codecSettings.ac3Plus.enableAtmosProcessing = false;
+        }
+
+        codecSettings->codecSettings.ac3Plus.stereoDownmixMode = dolby->ac3CodecSettings.codecSettings.ac3Plus.stereoDownmixMode;
+        codecSettings->codecSettings.ac3Plus.drcMode = dolby->ac3CodecSettings.codecSettings.ac3Plus.drcMode;
+        codecSettings->codecSettings.ac3Plus.drcModeDownmix = dolby->ac3CodecSettings.codecSettings.ac3Plus.drcModeDownmix;
+        codecSettings->codecSettings.ac3Plus.cut = dolby->ac3CodecSettings.codecSettings.ac3Plus.cut;
+        codecSettings->codecSettings.ac3Plus.boost = dolby->ac3CodecSettings.codecSettings.ac3Plus.boost;
+        codecSettings->codecSettings.ac3Plus.cutDownmix = dolby->ac3CodecSettings.codecSettings.ac3Plus.cutDownmix;
+        codecSettings->codecSettings.ac3Plus.boostDownmix = dolby->ac3CodecSettings.codecSettings.ac3Plus.boostDownmix;
+        if ( dolby->udcDecorrelation )
+        {
+            codecSettings->codecSettings.ac3Plus.certificationMode |= DOLBY_UDC_DECORRELATION;
+        }
+        if ( dolby->mdctBLEnable )
+        {
+            codecSettings->codecSettings.ac3Plus.certificationMode |= DOLBY_UDC_MDCT_BANDLIMIT;
+        }
+        if ( dolby->udcOutModeSpecial )
+        {
+            if ( dolby->udcOutModeSpecial == -1 )
+            {
+                dolby->udcOutModeSpecial = 31;
+            }
+            codecSettings->codecSettings.ac3Plus.certificationMode |= (DOLBY_UDC_OUTPUTMODE_CUSTOM_MASK & (dolby->udcOutModeSpecial << DOLBY_UDC_OUTPUTMODE_CUSTOM_SHIFT));
+        }
+    }
+    else if ( codecSettings->codec == NEXUS_AudioCodec_eAc4 )
+    {
+        codecSettings->codecSettings.ac4.certificationMode = 0;
+        if ( dolby->ac4DecodeMode )
+        {
+            codecSettings->codecSettings.ac4.certificationMode |= (dolby->ac4DecodeMode << DOLBY_AC4_DECODEMODE_SHIFT) & DOLBY_AC4_DECODEMODE_MASK;
+        }
+        codecSettings->codecSettings.ac4.stereoMode = dolby->ac4CodecSettings.codecSettings.ac4.stereoMode;
+        codecSettings->codecSettings.ac4.drcMode = dolby->ac4CodecSettings.codecSettings.ac4.drcMode;
+        codecSettings->codecSettings.ac4.drcModeDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcModeDownmix;
+        codecSettings->codecSettings.ac4.drcScaleHi = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHi;
+        codecSettings->codecSettings.ac4.drcScaleLow = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLow;
+        codecSettings->codecSettings.ac4.drcScaleHiDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHiDownmix;
+        codecSettings->codecSettings.ac4.drcScaleLowDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLowDownmix;
+        codecSettings->codecSettings.ac4.programSelection = dolby->ac4CodecSettings.codecSettings.ac4.programSelection;
+        /* Set up Codec type Specific params */
+        if ( idx == PRIMARY_DECODE )
+        {
+            /* certification decode mode overrides programSelection */
+            if ( dolby->ac4DecodeMode != 0 )
+            {
+                codecSettings->codecSettings.ac4.programSelection = 0;
+                if ( (dolby->ac4DecodeMode-1) != AC4_MODE_SS_DD_SI )
+                {
+                    codecSettings->codecSettings.ac4.programSelection = 1;
+                }
+            }
+            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxMain;
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdMain);
+        }
+        else if ( idx == SECONDARY_DECODE )
+        {
+            /* certification decode mode overrides programSelection */
+            if ( dolby->ac4DecodeMode != 0 )
+            {
+                codecSettings->codecSettings.ac4.programSelection = 2;
+                if( (dolby->ac4DecodeMode-1) == AC4_MODE_DS_DD)
+                {
+                    codecSettings->codecSettings.ac4.programSelection  = 0;
+                }
+            }
+            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxAssoc;
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdAssoc);
+        }
+        codecSettings->codecSettings.ac4.programBalance = dolby->ac4CodecSettings.codecSettings.ac4.programBalance;
+        codecSettings->codecSettings.ac4.presentationIndex = dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex;
+        memcpy(codecSettings->codecSettings.ac4.presentationId, dolby->ac4CodecSettings.codecSettings.ac4.presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        codecSettings->codecSettings.ac4.dialogEnhancerAmount = dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount;
+        codecSettings->codecSettings.ac4.selectionMode = dolby->ac4CodecSettings.codecSettings.ac4.selectionMode;
+        codecSettings->codecSettings.ac4.preferLanguageOverAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType;
+        codecSettings->codecSettings.ac4.preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType;
+        codecSettings->codecSettings.ac4.enableAssociateMixing = dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing;
+        memcpy(codecSettings->codecSettings.ac4.languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        memcpy(codecSettings->codecSettings.ac4.languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+    }
+    else if ( codecSettings->codec == NEXUS_AudioCodec_eAacAdts || codecSettings->codec == NEXUS_AudioCodec_eAacLoas ||
+              codecSettings->codec == NEXUS_AudioCodec_eAacPlusAdts || codecSettings->codec == NEXUS_AudioCodec_eAacPlusLoas )
+    {
+        codecSettings->codecSettings.aacPlus.downmixMode = dolby->aacCodecSettings.codecSettings.aacPlus.downmixMode;
+        codecSettings->codecSettings.aacPlus.cut = dolby->aacCodecSettings.codecSettings.aacPlus.cut;
+        codecSettings->codecSettings.aacPlus.boost = dolby->aacCodecSettings.codecSettings.aacPlus.boost;
+        codecSettings->codecSettings.aacPlus.drcMode = dolby->aacCodecSettings.codecSettings.aacPlus.drcMode;
+        codecSettings->codecSettings.aacPlus.drcDefaultLevel = dolby->aacCodecSettings.codecSettings.aacPlus.drcDefaultLevel;
+    }
+}
+
+int decode_path_update_settings( int idx, struct dolby_digital_plus_command_args *dolby, struct app_resources * recs )
+{
+    if ( recs->audioDecoders[idx] )
+    {
+        NEXUS_AudioDecoderSettings decoderSettings;
+        NEXUS_AudioDecoderCodecSettings codecSettings;
+
+        NEXUS_AudioDecoder_GetSettings(recs->audioDecoders[idx], &decoderSettings);
+        translate_args_to_decoder_settings(idx, recs->audioDecoders, dolby, &decoderSettings);
+        NEXUS_AudioDecoder_SetSettings(recs->audioDecoders[idx], &decoderSettings);
+
+        /* store start time settings (to be applied later) */
+        recs->audioProgram[idx].targetSyncEnabled = !dolby->targetSyncDisabled;
+        recs->audioProgram[idx].forceCompleteFirstFrame = dolby->completeFirstFrame;
+
+        NEXUS_AudioDecoder_GetCodecSettings(recs->audioDecoders[idx], recs->audioProgram[idx].codec, &codecSettings);
+        translate_args_to_codec_settings(idx, dolby, recs, &codecSettings);
+        NEXUS_AudioDecoder_SetCodecSettings(recs->audioDecoders[idx], &codecSettings);
+
+        if ( idx == PRIMARY_DECODE )
+        {
+            NEXUS_AudioMixerSettings mixerSettings;
+            NEXUS_AudioMixer_GetSettings(recs->mixer, &mixerSettings);
+            mixerSettings.dolby.multiStreamBalance = dolby->mixerBalance;
+            apply_mixer_settings(&mixerSettings, dolby);
+            if ( recs->audioProgram[PRIMARY_DECODE].codec == NEXUS_AudioCodec_eAc4 )
+            {
+                mixerSettings.dolby.enablePostProcessing = false;
+            }
+            NEXUS_AudioMixer_SetSettings(recs->mixer, &mixerSettings);
+        }
+    }
+
+    return 0;
+}
+
+int decode_path_shutdown( int idx, struct app_resources * recs, bool complete )
+{
+    if ( recs->playback[idx] )
+    {
+        NEXUS_Playback_CloseAllPidChannels(recs->playback[idx]);
+    }
+    if ( recs->file[idx] )
+    {
+        NEXUS_FilePlay_Close(recs->file[idx]);
+        recs->file[idx] = NULL;
+    }
+    if ( complete )
+    {
+        if ( recs->playback[idx] )
+        {
+            printf("destroy playback[%d] %p\n", idx, (void *)recs->playback[idx]);
+            NEXUS_Playback_Destroy(recs->playback[idx]);
+            recs->playback[idx] = NULL;
+        }
+        if ( recs->playpump[idx] )
+        {
+            printf("destroy playpump[%d] %p\n", idx, (void *)recs->playpump[idx]);
+            NEXUS_Playpump_Close(recs->playpump[idx]);
+            recs->playpump[idx] = NULL;
+        }
+    }
+
+    recs->initialized[idx] = false;
+
+    return 0;
+}
+
+int decode_path_initialize( int idx, struct util_opts_t *opts, struct dolby_digital_plus_command_args *dolby, struct app_resources * recs, bool init )
+{
+    BERR_Code rc;
+    NEXUS_PlaybackHandle pb;
+    NEXUS_PlaypumpHandle pp;
+    NEXUS_StcChannelHandle stc;
+    bool requiresPlaypump = true;
+    NEXUS_AudioDecoderOpenSettings decoderOpenSettings;
+    NEXUS_StcChannelSettings stcSettings;
+    NEXUS_FilePlayHandle customFile;
+    NEXUS_FilePlayHandle stickyFile;
+    NEXUS_PlaybackSettings playbackSettings;
+    NEXUS_PlaybackPidChannelSettings playbackPidSettings;
+
+    NEXUS_AudioCodec audioCodec;
+    unsigned audioPid, pcrPid;
+    NEXUS_TransportType transportType;
+
+    decode_path_shutdown(idx, recs, false);
+
+    recs->initialized[idx] = false;
+
+    if ( idx == PRIMARY_DECODE && init )
+    {
+        parse_config_file(dolby, true);
+    }
+
+    if ( !recs->audioDecoders[idx] )
+    {
+        NEXUS_AudioDecoder_GetDefaultOpenSettings(&decoderOpenSettings);
+        decoderOpenSettings.multichannelFormat = dolby->multiCh71 ? NEXUS_AudioMultichannelFormat_e7_1 : NEXUS_AudioMultichannelFormat_e5_1;
+        BDBG_ERR(("---decoderOpenSettings.multichannelFormat %d", decoderOpenSettings.multichannelFormat));
+        recs->audioDecoders[idx] = NEXUS_AudioDecoder_Open(idx, &decoderOpenSettings);
+        BDBG_ASSERT(recs->audioDecoders[idx]);
+    }
+
+    /* explicitly disable secondary when requested */
+    if ( idx == SECONDARY_DECODE && !dolby->enableDecode[SECONDARY_DECODE] )
+    {
+        opts[idx].filename = NULL;
+    }
+    if ( idx == EFFECTS_DECODE && !dolby->enableDecode[EFFECTS_DECODE] )
+    {
+        opts[idx].filename = NULL;
+    }
+    if ( idx == APPAUDIO_DECODE && !dolby->enableDecode[APPAUDIO_DECODE] )
+    {
+        opts[idx].filename = NULL;
+    }
+
+    if ( opts[idx].filename && strlen(opts[idx].filename) <= 0 )
+    {
+        opts[idx].filename = NULL;
+    }
+
+    if ( !opts[idx].filename )
+    {
+        return 0;
+    }
+    else if ( idx == SECONDARY_DECODE &&
+              strcmp(opts[SECONDARY_DECODE].filename, opts[PRIMARY_DECODE].filename) == 0 &&
+              !dolby->dualMain )
+    {
+        printf("SECONDARY is sharing PLAYBACK/PLAYPUMP with PRIMARY\n");
+        requiresPlaypump = false;
+    }
+
+    if ( requiresPlaypump )
+    {
+        /* Bring up all modules for a platform in a default configuration for this platform */
+        if ( !recs->playpump[idx] )
+        {
+            recs->playpump[idx] = NEXUS_Playpump_Open(idx, NULL);
+            BDBG_ASSERT(recs->playpump[idx]);
+        }
+        pp = recs->playpump[idx];
+        if ( !recs->playback[idx] )
+        {
+            recs->playback[idx] = NEXUS_Playback_Create();
+            BDBG_ASSERT(recs->playback[idx]);
+        }
+        pb = recs->playback[idx];
+        if ( !recs->stcChannel[idx] )
+        {
+            NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
+            stcSettings.timebase = NEXUS_Timebase_e0;
+            stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+            stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+            recs->stcChannel[idx] = NEXUS_StcChannel_Open(idx, &stcSettings);
+            BDBG_ASSERT(recs->stcChannel[idx]);
+        }
+        stc = recs->stcChannel[idx];
+    }
+    else
+    {
+        pp = recs->playpump[PRIMARY_DECODE];
+        pb = recs->playback[PRIMARY_DECODE];
+        stc = recs->stcChannel[PRIMARY_DECODE];
+    }
+
+    if ( !pp || !pb || !stc )
+    {
+        printf("ERROR: invalid configuration during initialize(%d), pp=%p, pb=%p, stc=%p\n", idx, (void*)pp, (void*)pb, (void*)stc);
+        BDBG_ASSERT(pp && pb && stc);
+    }
+
+    if ( !recs->ddre )
+    {
+        NEXUS_DolbyDigitalReencodeSettings ddreSettings;
+        NEXUS_DolbyDigitalReencode_GetDefaultSettings(&ddreSettings);
+        ddreSettings.fixedEncoderFormat = dolby->fixedEncFormat;
+        if ( dolby->multiCh71 )
+        {
+            ddreSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e7_1;
+        }
+        else
+        {
+            ddreSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
+        }
+        recs->ddre = NEXUS_DolbyDigitalReencode_Open(&ddreSettings);
+        BDBG_ASSERT(recs->ddre);
+    }
+
+    if ( dolby->loopback == 1 )
+    {
+        opts[idx].endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
+    }
+    else
+    {
+        opts[idx].endOfStreamAction = NEXUS_PlaybackLoopMode_ePause;
+    }
+
+    /* save what we got from command line before we probe */
+    printf("\n From command line - Stream[%d] audioCodec %d, pid %d, transportType %d\n", idx, opts[idx].common.audioCodec, opts[idx].common.audioPid, opts[idx].common.transportType);
+    audioCodec = opts[idx].common.audioCodec;
+    audioPid = opts[idx].common.audioPid;
+    transportType = opts[idx].common.transportType;
+    pcrPid = opts[idx].common.pcrPid;
+
+    if ( cmdline_probe(&opts[idx].common, opts[idx].filename, &opts[idx].indexname) )
+    {
+        if (transportType != NEXUS_TransportType_eEs)
+        {
+            return 1;
+        }
+    }
+
+    printf("\nPROBE of '%s' found:\n\t transport type %d, audio_codec %d, pid %d, pcr %d\n",
+           opts[idx].filename, opts[idx].common.transportType, opts[idx].common.audioCodec, opts[idx].common.audioPid, opts[idx].common.pcrPid);
+
+    /* restore what we got from command line after probe */
+    if ( audioCodec != NEXUS_AudioCodec_eMax && audioCodec != opts[idx].common.audioCodec )
+    {
+        printf("Overriding probed audio codec %d with command line specified codec %d\n", opts[idx].common.audioCodec, audioCodec);
+        opts[idx].common.audioCodec = audioCodec;
+    }
+    if ( audioPid != INVALID_PID && audioPid != opts[idx].common.audioPid )
+    {
+        printf("Overriding probed audio pid %d with command line specified pid %d\n", opts[idx].common.audioPid, audioPid);
+        opts[idx].common.audioPid = audioPid;
+    }
+    if ( transportType != NEXUS_TransportType_eMax && transportType != opts[idx].common.transportType )
+    {
+        printf("Overriding probed transport type %d with command line specified type %d\n", opts[idx].common.transportType, transportType);
+        opts[idx].common.transportType = transportType;
+    }
+    if ( pcrPid != 0 && pcrPid != opts[idx].common.pcrPid )
+    {
+        printf("Overriding probed pcr pid %d with command line specified pid %d\n", opts[idx].common.pcrPid, pcrPid);
+        opts[idx].common.pcrPid = pcrPid;
+    }
+
+    printf("\nFinal Configuration for Decode[%d]:\n\t transport type %d, audio_codec %d, pid %d, pcr %d\n",
+           idx, opts[idx].common.transportType, opts[idx].common.audioCodec, opts[idx].common.audioPid, opts[idx].common.pcrPid);
+
+    /* We have to parse again (silently) now that we have the audio codec from probe */
+    if ( idx == PRIMARY_DECODE )
+    {
+        /* store the primary audio codec here */
+        dolby->audioCodec = opts[idx].common.audioCodec;
+        if ( init )
+        {
+            parse_config_file(dolby, false);
+        }
+    }
+
+    if ( !opts[idx].filename )
+    {
+        return -1;
+    }
+
+    if ( (opts[idx].indexname && !strcmp(opts[idx].indexname, "same")) ||
+         opts[idx].common.transportType == NEXUS_TransportType_eMkv ||
+         opts[idx].common.transportType == NEXUS_TransportType_eMp4
+        )
+    {
+        opts[idx].indexname = opts[idx].filename;
+    }
+
+    if ( requiresPlaypump )
+    {
+        recs->file[idx] = NEXUS_FilePlay_OpenPosix(opts[idx].filename, opts[idx].indexname);
+        if ( !recs->file[idx] )
+        {
+            fprintf(stderr, "can't open files:%s %s\n", opts[idx].filename, opts[idx].indexname);
+            return -1;
+        }
+        if ( opts[idx].customFileIo )
+        {
+            customFile = recs->file[idx] = FileIoCustom_Attach(recs->file[idx]);
+            BDBG_ASSERT(recs->file[idx]);
+        }
+        if ( opts[idx].playbackMonitor )
+        {
+            stickyFile = recs->file[idx] = FileIoSticky_Attach(recs->file[idx]);
+            BDBG_ASSERT(recs->file[idx]);
+        }
+
+        NEXUS_Playback_GetSettings(pb, &playbackSettings);
+        playbackSettings.playpump = pp;
+        playbackSettings.playpumpSettings.transportType = opts[idx].common.transportType;
+        playbackSettings.playpumpSettings.timestamp.pacing = false;
+        playbackSettings.playpumpSettings.timestamp.type = opts[idx].common.tsTimestampType;
+
+        playbackSettings.stcChannel = stc;
+        playbackSettings.stcTrick = opts[idx].stcTrick;
+        playbackSettings.beginningOfStreamAction = opts[idx].beginningOfStreamAction;
+        playbackSettings.endOfStreamAction = opts[idx].endOfStreamAction;
+        playbackSettings.enableStreamProcessing = opts[idx].streamProcessing;
+        rc = NEXUS_Playback_SetSettings(pb, &playbackSettings);
+        BDBG_ASSERT(!rc);
+    }
+
+    if ( opts[idx].common.audioCodec != NEXUS_AudioCodec_eUnknown )
+    {
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
+        playbackPidSettings.pidTypeSettings.audio.primary = recs->audioDecoders[idx];
+        playbackPidSettings.pidSettings.pidTypeSettings.audio.codec = opts[idx].common.audioCodec;
+        recs->audioPidChannel = NEXUS_Playback_OpenPidChannel(pb, opts[idx].common.audioPid, &playbackPidSettings);
+    }
+
+    if ( idx == PRIMARY_DECODE && opts[idx].common.videoCodec != NEXUS_VideoCodec_eUnknown && dolby->enableVideo )
+    {
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
+        playbackPidSettings.pidTypeSettings.video.decoder = recs->videoDecoder;
+        playbackPidSettings.pidTypeSettings.video.codec = opts[idx].common.videoCodec;
+        recs->videoPidChannel = NEXUS_Playback_OpenPidChannel(pb, opts[idx].common.videoPid, &playbackPidSettings);
+
+        NEXUS_VideoDecoder_GetDefaultStartSettings(&(recs->videoProgram));
+        recs->videoProgram.codec = opts[idx].common.videoCodec;
+        recs->videoProgram.pidChannel = recs->videoPidChannel;
+        recs->videoProgram.stcChannel = stc;
+    }
+    else if ( idx == PRIMARY_DECODE )
+    {
+        if (recs->videoDecoder)
+        {
+            NEXUS_VideoWindow_RemoveAllInputs(recs->window);
+            NEXUS_VideoDecoder_Close(recs->videoDecoder);
+            recs->videoDecoder = NULL;
+        }
+    }
+
+    if ( opts[idx].common.pcrPid && opts[idx].common.pcrPid != opts[idx].common.videoPid && opts[idx].common.pcrPid != opts[idx].common.audioPid )
+    {
+        NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+        playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
+        recs->pcrPidChannel = NEXUS_Playback_OpenPidChannel(pb, opts[idx].common.pcrPid, &playbackPidSettings);
+    }
+
+    /* Set up decoder Start structures now. We need to know the audio codec to properly set up
+    the audio outputs. */
+    NEXUS_AudioDecoder_GetDefaultStartSettings(&(recs->audioProgram[idx]));
+
+    recs->audioProgram[idx].targetSyncEnabled = !dolby->targetSyncDisabled;
+    recs->audioProgram[idx].forceCompleteFirstFrame = dolby->completeFirstFrame;
+    recs->audioProgram[idx].codec = opts[idx].common.audioCodec;
+    recs->audioProgram[idx].pidChannel = recs->audioPidChannel;
+    recs->audioProgram[idx].stcChannel = stc;
+    if ( dolby->dualMain &&
+         (idx == PRIMARY_DECODE || idx == SECONDARY_DECODE) )
+    {
+        recs->audioProgram[idx].mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+    }
+
+    if ( idx == SECONDARY_DECODE )
+    {
+        recs->audioProgram[idx].secondaryDecoder = true;
+    }
+    else if ( idx == EFFECTS_DECODE )
+    {
+        recs->audioProgram[idx].mixingMode = NEXUS_AudioDecoderMixingMode_eSoundEffects;
+    }
+    else if ( idx == APPAUDIO_DECODE )
+    {
+        recs->audioProgram[idx].mixingMode = NEXUS_AudioDecoderMixingMode_eApplicationAudio;
+    }
+
+    decode_path_update_settings(idx, dolby, recs);
+    recs->initialized[idx] = true;
+
+    return 0;
+}
+
+int decode_path_start( int idx, struct util_opts_t *opts, struct dolby_digital_plus_command_args *dolby, struct app_resources * recs )
+{
+    BERR_Code rc;
+
+    if ( idx == SECONDARY_DECODE )
+    {
+        printf("enable %d, filename %s\n", dolby->enableDecode[idx], opts[idx].filename ? opts[idx].filename:"");
+    }
+    if ( dolby->enableDecode[idx] && opts[idx].filename )
+    {
+        if ( recs->videoDecoder && idx == PRIMARY_DECODE && !recs->started[idx] )
+        {
+            NEXUS_VideoDecoder_Start(recs->videoDecoder, &(recs->videoProgram));
+        }
+
+        if ( recs->audioDecoders[idx] && !recs->started[idx] )
+        {
+            NEXUS_AudioMixerInputSettings inputSettings;
+            decode_path_update_settings(idx, dolby, recs);
+
+            /* Apply Initial Fade Settings */
+            NEXUS_AudioMixer_GetInputSettings(recs->mixer,
+                                              NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
+                                              &inputSettings);
+            inputSettings.fade.level = dolby->fadeLevel[idx];
+            inputSettings.fade.type = dolby->fadeType[idx];
+            inputSettings.fade.duration = dolby->fadeDuration[idx];
+            NEXUS_AudioMixer_SetInputSettings(recs->mixer,
+                                              NEXUS_AudioDecoder_GetConnector(recs->audioDecoders[idx], NEXUS_AudioConnectorType_eMultichannel),
+                                              &inputSettings);
+
+            if ( idx == PRIMARY_DECODE || idx == SECONDARY_DECODE )
+            {
+                NEXUS_DolbyDigitalReencodeSettings ddreSettings;
+                NEXUS_AudioDecoderCodecSettings codecSettings;
+                NEXUS_AudioMixerSettings mixerSettings;
+
+                NEXUS_AudioMixer_GetSettings(recs->mixer, &mixerSettings);
+                mixerSettings.mainDecodeFade.level = dolby->fadeLevel[OUTPUT_FADE_IDX];
+                mixerSettings.mainDecodeFade.type = dolby->fadeType[OUTPUT_FADE_IDX];
+                mixerSettings.mainDecodeFade.duration = dolby->fadeDuration[OUTPUT_FADE_IDX];
+                NEXUS_AudioMixer_SetSettings(recs->mixer, &mixerSettings);
+
+                NEXUS_AudioDecoder_GetCodecSettings(recs->audioDecoders[idx], recs->audioProgram[idx].codec, &codecSettings);
+                print_settings(dolby->decodeSettings, codecSettings, dolby);
+
+                /* configure DDRE */
+                NEXUS_DolbyDigitalReencode_GetSettings(recs->ddre, &ddreSettings);
+
+                ddreSettings.profile = dolby->compression;
+                ddreSettings.dialogLevel = dolby->dialog_level;
+                if ( dolby->externalPcmSpecified )
+                {
+                    ddreSettings.externalPcmMode = dolby->externalPcm;
+                }
+                else
+                {
+                    unsigned i;
+                    ddreSettings.externalPcmMode = false;
+                    for ( i = 0; i < 2 && !ddreSettings.externalPcmMode; i++ )
+                    {
+                        switch ( opts[i].common.audioCodec )
+                        {
+                        case NEXUS_AudioCodec_eMax:
+                        case NEXUS_AudioCodec_eAc3:
+                        case NEXUS_AudioCodec_eAc3Plus:
+                        case NEXUS_AudioCodec_eAacAdts:
+                        case NEXUS_AudioCodec_eAacLoas:
+                        case NEXUS_AudioCodec_eAacPlusAdts:
+                        case NEXUS_AudioCodec_eAacPlusLoas:
+                        case NEXUS_AudioCodec_eAc4:
+                            break;
+                        default:
+                            BDBG_WRN(("%s file is a non-dolby codec %d.  Forcing external PCM mode.", i == 0 ? "Primary" : "Secondary", recs->audioProgram[i].codec));
+                            ddreSettings.externalPcmMode = true;
+                            break;
+                        }
+                    }
+                }
+
+                if ( ddreSettings.externalPcmMode == true )
+                {
+                    ddreSettings.cut = dolby->cut;
+                    ddreSettings.boost = dolby->boost;
+                    BDBG_WRN(("Cut:%d Boost:%d \n", ddreSettings.cut, ddreSettings.boost));
+                }
+
+                ddreSettings.certificationMode = dolby->certificationMode_ddre;
+                NEXUS_DolbyDigitalReencode_SetSettings(recs->ddre, &ddreSettings);
+            }
+
+            if ( (dolby->enableDecode[SECONDARY_DECODE] && idx == SECONDARY_DECODE) ||
+                 (dolby->enableDecode[EFFECTS_DECODE] && idx == EFFECTS_DECODE) ||
+                 (dolby->enableDecode[APPAUDIO_DECODE] && idx == APPAUDIO_DECODE) ||
+                 (idx == PRIMARY_DECODE) )
+            {
+                BERR_Code rc;
+                printf("\n\n Starting decoder:%d \n\n", idx);
+                rc = NEXUS_AudioDecoder_Start(recs->audioDecoders[idx], &(recs->audioProgram[idx]));
+                BDBG_ASSERT(!rc);
+                recs->started[idx] = true;
+                recs->suspended[idx] = false;
+            }
+
+            if ( recs->compressedDecoder && idx == PRIMARY_DECODE )
+            {
+                printf("\n\n Starting Compressed decoder:%d \n\n", idx);
+                rc = NEXUS_AudioDecoder_Start(recs->compressedDecoder, &recs->audioProgram[idx]);
+                BDBG_ASSERT(!rc);
+            }
+        }
+    }
+
+    return 0;
+}
+
+int decode_path_stop( int idx, struct app_resources * recs )
+{
+    if ( idx == PRIMARY_DECODE && recs->started[idx] )
+    {
+        if ( recs->videoDecoder )
+        {
+            NEXUS_VideoDecoder_Stop(recs->videoDecoder);
+        }
+        if ( recs->compressedDecoder )
+        {
+            NEXUS_AudioDecoder_Stop(recs->compressedDecoder);
+        }
+    }
+
+    if ( recs->audioDecoders[idx] && recs->started[idx] )
+    {
+        printf("stop audioDecoders[%d] %p\n", idx, (void *)recs->audioDecoders[idx]);
+        NEXUS_AudioDecoder_Stop(recs->audioDecoders[idx]);
+        recs->started[idx] = false;
+        recs->suspended[idx] = false;
+    }
+
+    return 0;
+}
+
+int playback_start( int idx, struct util_opts_t *opts, struct app_resources * recs )
+{
+    BERR_Code rc;
+
+    NEXUS_PlaybackStartSettings playbackStartSettings;
+    if ( recs->playback[idx] && recs->started[idx] )
+    {
+        NEXUS_Playback_GetDefaultStartSettings(&playbackStartSettings);
+        if ( opts[idx].autoBitrate )
+        {
+            playbackStartSettings.mode = NEXUS_PlaybackMode_eAutoBitrate;
+        }
+        rc = NEXUS_Playback_Start(recs->playback[idx], recs->file[idx], &playbackStartSettings);
+        BDBG_ASSERT(!rc);
+    }
+
+    return 0;
+}
+
+int playback_stop( int idx, struct app_resources * recs )
+{
+    if ( recs->playback[idx] )
+    {
+        BERR_Code rc;
+        NEXUS_PlaybackStatus pb_status;
+
+        rc = NEXUS_Playback_GetStatus(recs->playback[idx], &pb_status);
+        if ( rc == BERR_SUCCESS && pb_status.state != NEXUS_PlaybackState_eStopped )
+        {
+            printf("stop playback[%d] %p\n", idx, (void *)recs->playback[idx]);
+            NEXUS_Playback_Stop(recs->playback[idx]);
         }
     }
 
@@ -1775,278 +2931,41 @@ static void initializeHdmiOutputHdcpSettings(void)
                                         RevokedKsvs, NumRevokedKsvs);
 
 }
-
 #endif
-
-void apply_mixer_settings(NEXUS_AudioMixerSettings *mixerSettings, struct dolby_digital_plus_command_args *dolby)
-{
-    if ( dolby->enable_dap )
-    {
-        unsigned i;
-        mixerSettings->dolby.enablePostProcessing = true;
-        mixerSettings->dolby.volumeLimiter.enableVolumeLimiting = dolby->dv_enable;
-        mixerSettings->dolby.volumeLimiter.enableIntelligentLoudness = dolby->dvOverrideInbandVol ? false : true;
-        mixerSettings->dolby.volumeLimiter.volumeLimiterAmount = dolby->dvContentType;
-        mixerSettings->dolby.dialogEnhancer.enableDialogEnhancer = dolby->dde_enable;
-        mixerSettings->dolby.dialogEnhancer.dialogEnhancerLevel = dolby->ddeDialogBoost;
-        mixerSettings->dolby.dialogEnhancer.contentSuppressionLevel = dolby->ddeContentCut;
-        /* if they have not specified num_bands ieq can be enabled and it will go with default freq and gains*/
-        mixerSettings->dolby.intelligentEqualizer.enabled = dolby->ieq_enable;
-        mixerSettings->dolby.intelligentEqualizer.numBands = dolby->deqNumBands;
-        for ( i = 0; i < mixerSettings->dolby.intelligentEqualizer.numBands; i++ )
-        {
-            mixerSettings->dolby.intelligentEqualizer.band[i].frequency = dolby->deqFrequency[i];
-            mixerSettings->dolby.intelligentEqualizer.band[i].gain = dolby->deqGain[i];
-        }
-    }
-    else
-    {
-        mixerSettings->dolby.enablePostProcessing = false;
-    }
-
-    mixerSettings->dolby.certificationMode = 0;
-    mixerSettings->dolby.certificationMode |= dolby->certificationMode_dap ? DOLBY_DAP_CERT_MODE : 0;
-    if ( (mixerSettings->dolby.certificationMode & DOLBY_DAP_CERT_MODE) )
-    {
-        mixerSettings->dolby.certificationMode |= dolby->miDisable ? DOLBY_DAP_CERT_DISABLE_MI : 0;
-        mixerSettings->dolby.certificationMode |= dolby->miSurCompDisable ? DOLBY_DAP_CERT_DISABLE_MI_SURROUNDCOMP : 0;
-        mixerSettings->dolby.certificationMode |= dolby->miDvDisable ? DOLBY_DAP_CERT_DISABLE_MI_VOLUMELIMITER : 0;
-        mixerSettings->dolby.certificationMode |= dolby->miDdeDisable ? DOLBY_DAP_CERT_DISABLE_MI_DIALOGENHANCER : 0;
-        mixerSettings->dolby.certificationMode |= dolby->miDieqDisable ? DOLBY_DAP_CERT_DISABLE_MI_INTELLIGENTEQ : 0;
-        mixerSettings->dolby.certificationMode |= (dolby->deqAmount << DOLBY_DAP_CERT_EQAMOUNT_SHIFT) & DOLBY_DAP_CERT_EQAMOUNT;
-        mixerSettings->dolby.certificationMode |= dolby->dapEnaSurDecoder ? DOLBY_DAP_CERT_ENABLE_SURROUND_DECODER : 0;
-    }
-    printf("\nMS12 DAP Mixer settings:\n");
-    printf("------------------------------------\n");
-    printf("  certificationMode     %d\n", dolby->certificationMode_dap);
-    if ( dolby->certificationMode_dap )
-    {
-        printf("    disableMi           %d\n", dolby->miDisable);
-        printf("    disableMiSurComp    %d\n", dolby->miSurCompDisable);
-        printf("    disableMiDV         %d\n", dolby->miDvDisable);
-        printf("    disableMiDDE        %d\n", dolby->miDdeDisable);
-        printf("    disableMiDieq       %d\n", dolby->miDieqDisable);
-    }
-    printf("  enableProcessing  %d\n", dolby->enable_dap);
-    if ( dolby->enable_dap )
-    {
-        unsigned i;
-        printf("    enableDV            %d\n", dolby->dv_enable);
-        if ( dolby->dv_enable )
-        {
-            printf("      DvContentType     %d\n", dolby->dvContentType);
-            printf("      DvOverrideInband  %d\n", dolby->dvOverrideInbandVol);
-        }
-        printf("    enableDE            %d\n", dolby->dde_enable);
-        if ( dolby->dde_enable )
-        {
-            printf("      dialogBoost       %d\n", dolby->ddeDialogBoost);
-            printf("      contentCut        %d\n", dolby->ddeContentCut);
-        }
-        printf("    enableDIEQ          %d\n", (dolby->ieq_enable));
-        if ( dolby->ieq_enable > 0 )
-        {
-            printf("      eqAmount          %d\n", dolby->deqAmount);
-            printf("      numEqBands        %d\n", dolby->deqNumBands);
-            for ( i = 0; i < dolby->deqNumBands; i++ )
-            {
-                printf("      Band[%d]:\n", i);
-                printf("        eqFrequency     %dHz\n", dolby->deqFrequency[i]);
-                printf("        eqGain          %d\n", dolby->deqGain[i]);
-            }
-        }
-    }
-    printf("------------------------------------\n");
-}
-/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-static void translate_args_to_codec_settings(unsigned idx, NEXUS_AudioDecoderHandle *decodes, struct dolby_digital_plus_command_args *dolby, NEXUS_AudioDecoderCodecSettings *codecSettings)
-{
-    if ( codecSettings->codec == NEXUS_AudioCodec_eAc3Plus || codecSettings->codec == NEXUS_AudioCodec_eAc3 )
-    {
-        codecSettings->codecSettings.ac3Plus.certificationMode = 0;
-
-        /* Set up Codec Specific params */
-        if ( idx == PRIMARY_DECODE )
-        {
-            codecSettings->codecSettings.ac3Plus.substreamId = 0;
-        }
-        else if ( idx == SECONDARY_DECODE )
-        {
-            codecSettings->codecSettings.ac3Plus.substreamId = dolby->secondary_substreamId;
-        }
-
-        /* Only Enable Atmos processing if we don't have a Secondary decode */
-        if ( idx == 0 && !decodes[SECONDARY_DECODE] )
-        {
-            codecSettings->codecSettings.ac3Plus.enableAtmosProcessing = dolby->enableAtmos;
-        }
-        else
-        {
-            codecSettings->codecSettings.ac3Plus.enableAtmosProcessing = false;
-        }
-
-        codecSettings->codecSettings.ac3Plus.stereoDownmixMode = dolby->ac3CodecSettings.codecSettings.ac3Plus.stereoDownmixMode;
-        codecSettings->codecSettings.ac3Plus.drcMode = dolby->ac3CodecSettings.codecSettings.ac3Plus.drcMode;
-        codecSettings->codecSettings.ac3Plus.drcModeDownmix = dolby->ac3CodecSettings.codecSettings.ac3Plus.drcModeDownmix;
-        codecSettings->codecSettings.ac3Plus.cut = dolby->ac3CodecSettings.codecSettings.ac3Plus.cut;
-        codecSettings->codecSettings.ac3Plus.boost = dolby->ac3CodecSettings.codecSettings.ac3Plus.boost;
-        codecSettings->codecSettings.ac3Plus.cutDownmix = dolby->ac3CodecSettings.codecSettings.ac3Plus.cutDownmix;
-        codecSettings->codecSettings.ac3Plus.boostDownmix = dolby->ac3CodecSettings.codecSettings.ac3Plus.boostDownmix;
-        if ( dolby->udcDecorrelation )
-        {
-            codecSettings->codecSettings.ac3Plus.certificationMode |= DOLBY_UDC_DECORRELATION;
-        }
-        if ( dolby->mdctBLEnable )
-        {
-            codecSettings->codecSettings.ac3Plus.certificationMode |= DOLBY_UDC_MDCT_BANDLIMIT;
-        }
-        if ( dolby->udcOutModeSpecial )
-        {
-            if ( dolby->udcOutModeSpecial == -1 )
-            {
-                dolby->udcOutModeSpecial = 31;
-            }
-            codecSettings->codecSettings.ac3Plus.certificationMode |= (DOLBY_UDC_OUTPUTMODE_CUSTOM_MASK & (dolby->udcOutModeSpecial << DOLBY_UDC_OUTPUTMODE_CUSTOM_SHIFT));
-        }
-    }
-    else if ( codecSettings->codec == NEXUS_AudioCodec_eAc4 )
-    {
-        codecSettings->codecSettings.ac4.certificationMode = 0;
-        if ( dolby->ac4DecodeMode )
-        {
-            codecSettings->codecSettings.ac4.certificationMode |= (dolby->ac4DecodeMode << DOLBY_AC4_DECODEMODE_SHIFT) & DOLBY_AC4_DECODEMODE_MASK;
-        }
-        codecSettings->codecSettings.ac4.stereoMode = dolby->ac4CodecSettings.codecSettings.ac4.stereoMode;
-        codecSettings->codecSettings.ac4.drcMode = dolby->ac4CodecSettings.codecSettings.ac4.drcMode;
-        codecSettings->codecSettings.ac4.drcModeDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcModeDownmix;
-        codecSettings->codecSettings.ac4.drcScaleHi = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHi;
-        codecSettings->codecSettings.ac4.drcScaleLow = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLow;
-        codecSettings->codecSettings.ac4.drcScaleHiDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHiDownmix;
-        codecSettings->codecSettings.ac4.drcScaleLowDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLowDownmix;
-        codecSettings->codecSettings.ac4.programSelection = dolby->ac4CodecSettings.codecSettings.ac4.programSelection;
-        /* Set up Codec type Specific params */
-        if ( idx == PRIMARY_DECODE )
-        {
-            /* certification decode mode overrides programSelection */
-            if ( dolby->ac4DecodeMode != 0 )
-            {
-                codecSettings->codecSettings.ac4.programSelection = 0;
-                if ( (dolby->ac4DecodeMode-1) != AC4_MODE_SS_DD_SI )
-                {
-                    codecSettings->codecSettings.ac4.programSelection = 1;
-                }
-            }
-            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxMain;
-            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdMain);
-        }
-        else if ( idx == SECONDARY_DECODE )
-        {
-            /* certification decode mode overrides programSelection */
-            if ( dolby->ac4DecodeMode != 0 )
-            {
-                codecSettings->codecSettings.ac4.programSelection = 2;
-                if( (dolby->ac4DecodeMode-1) == AC4_MODE_DS_DD)
-                {
-                    codecSettings->codecSettings.ac4.programSelection  = 0;
-                }
-            }
-            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxAssoc;
-            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdAssoc);
-        }
-        codecSettings->codecSettings.ac4.programBalance = dolby->ac4CodecSettings.codecSettings.ac4.programBalance;
-        codecSettings->codecSettings.ac4.presentationIndex = dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex;
-        memcpy(codecSettings->codecSettings.ac4.presentationId, dolby->ac4CodecSettings.codecSettings.ac4.presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
-        codecSettings->codecSettings.ac4.dialogEnhancerAmount = dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount;
-        codecSettings->codecSettings.ac4.selectionMode = dolby->ac4CodecSettings.codecSettings.ac4.selectionMode;
-        codecSettings->codecSettings.ac4.preferLanguageOverAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType;
-        codecSettings->codecSettings.ac4.preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType;
-        codecSettings->codecSettings.ac4.enableAssociateMixing = dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing;
-        memcpy(codecSettings->codecSettings.ac4.languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
-        memcpy(codecSettings->codecSettings.ac4.languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
-    }
-    else if ( codecSettings->codec == NEXUS_AudioCodec_eAacAdts || codecSettings->codec == NEXUS_AudioCodec_eAacLoas ||
-              codecSettings->codec == NEXUS_AudioCodec_eAacPlusAdts || codecSettings->codec == NEXUS_AudioCodec_eAacPlusLoas )
-    {
-        codecSettings->codecSettings.aacPlus.downmixMode = dolby->aacCodecSettings.codecSettings.aacPlus.downmixMode;
-        codecSettings->codecSettings.aacPlus.cut = dolby->aacCodecSettings.codecSettings.aacPlus.cut;
-        codecSettings->codecSettings.aacPlus.boost = dolby->aacCodecSettings.codecSettings.aacPlus.boost;
-        codecSettings->codecSettings.aacPlus.drcMode = dolby->aacCodecSettings.codecSettings.aacPlus.drcMode;
-        codecSettings->codecSettings.aacPlus.drcDefaultLevel = dolby->aacCodecSettings.codecSettings.aacPlus.drcDefaultLevel;
-    }
-}
-
-static void translate_args_to_decoder_settings(unsigned idx, NEXUS_AudioDecoderHandle *decodes, struct dolby_digital_plus_command_args *dolby, NEXUS_AudioDecoderSettings * decoderSettings)
-{
-    BSTD_UNUSED(idx);
-    BSTD_UNUSED(decodes);
-    decoderSettings->outputMode = dolby->decodeSettings.outputMode;
-    decoderSettings->outputLfeMode = dolby->decodeSettings.outputLfeMode;
-    decoderSettings->dualMonoMode = dolby->decodeSettings.dualMonoMode;
-}
 
 int main(int argc, const char *argv[])
 {
-#if NEXUS_HAS_PLAYBACK
-    NEXUS_PlatformSettings platformSettings;
-    NEXUS_StcChannelHandle stcChannel[NUM_DECODES];
-    NEXUS_StcChannelSettings stcSettings;
-    NEXUS_PidChannelHandle audioPidChannel = NULL, pcrPidChannel = NULL, videoPidChannel;
-
-    NEXUS_AudioDecoderHandle audioDecoders[NUM_DECODES], compressedDecoder = NULL;
-    bool started[NUM_DECODES];
+    #if NEXUS_HAS_PLAYBACK
     NEXUS_AudioMixerSettings mixerSettings;
-    NEXUS_AudioMixerHandle mixer, directMixer, directMchMixer;
-    NEXUS_AudioDecoderStartSettings audioProgram[NUM_DECODES];
-#if NEXUS_NUM_AUDIO_PLAYBACKS
-    NEXUS_AudioPlaybackHandle audioPlayback;
-    pcm_playback_t pcm_playbacks[1];
-#endif
-    NEXUS_FilePlayHandle file[NUM_DECODES], customFile = NULL, stickyFile = NULL;
-    NEXUS_PlaypumpHandle playpump[NUM_DECODES];
     NEXUS_PlaybackStatus pstatus;
-    NEXUS_PlaybackHandle playback[NUM_DECODES];
-    NEXUS_PlaybackSettings playbackSettings;
-    NEXUS_PlaybackPidChannelSettings playbackPidSettings;
-    NEXUS_PlaybackStartSettings playbackStartSettings;
-    NEXUS_DolbyDigitalReencodeHandle ddre = NULL;
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
+    #if NEXUS_NUM_HDMI_OUTPUTS > 0
     NEXUS_HdmiOutputStatus hdmiStatus;
-#endif
-    NEXUS_VideoDecoderHandle videoDecoder;
-    NEXUS_VideoDecoderStartSettings videoProgram;
-    NEXUS_VideoWindowHandle window;
-    NEXUS_DisplayHandle display;
-    NEXUS_DisplaySettings displaySettings;
-
-    /* command line overrides */
-    NEXUS_AudioCodec audioCodec;
-    unsigned audioPid, pcrPid;
-    NEXUS_TransportType transportType;
+    #endif
 
     int i, no_of_streams = NUM_DECODES;
     NEXUS_Error rc;
 
-
+    struct app_resources resources;
     struct dolby_digital_plus_command_args dolby_args;
     struct util_opts_t opts[NUM_DECODES];
 
     FILE *file_params = NULL;
 
     bool exit;
-#ifdef BDSP_FW_RBUF_CAPTURE
+    #ifdef BDSP_FW_RBUF_CAPTURE
     brbuf_init_ringbuf_capture();
-#endif
+    #endif
 
+    /* clear our structures */
+    BKNI_Memset(&dolby_args, 0, sizeof(dolby_args));
+    BKNI_Memset(&resources, 0, sizeof(resources));
+    BKNI_Memset(opts, 0, sizeof(struct util_opts_t) * NUM_DECODES);
 
-    NEXUS_Platform_GetDefaultSettings(&platformSettings);
-    platformSettings.openFrontend = false;
-    rc = NEXUS_Platform_Init(&platformSettings);
+    NEXUS_Platform_GetDefaultSettings(&resources.platformSettings);
+    resources.platformSettings.openFrontend = false;
+    rc = NEXUS_Platform_Init(&resources.platformSettings);
     BDBG_ASSERT(!rc);
     NEXUS_Platform_GetConfiguration(&platformConfig);
-
-    /* Populate our defaults */
-    BKNI_Memset(&dolby_args, 0, sizeof(dolby_args));
 
     /* Populate Default algo parameters */
     {
@@ -2059,13 +2978,15 @@ int main(int argc, const char *argv[])
     }
 
     dolby_args.dialog_level = 31;
+    dolby_args.enableVideo = true;
     dolby_args.enableDac = true;
     dolby_args.enableSpdif = true;
     dolby_args.enableHdmi = true;
     dolby_args.enableDdre = true;
-    dolby_args.enableSecondary = true;
-    dolby_args.enableSoundEffects = true;
-    dolby_args.enableAppAudio = true;
+    dolby_args.enableDecode[PRIMARY_DECODE] = true;
+    dolby_args.enableDecode[SECONDARY_DECODE] = true;
+    dolby_args.enableDecode[EFFECTS_DECODE] = true;
+    dolby_args.enableDecode[APPAUDIO_DECODE] = true;
     dolby_args.enableAtmos = true;
     dolby_args.compression = NEXUS_DolbyDigitalReencodeProfile_eFilmStandardCompression;
     dolby_args.cut = 100;
@@ -2080,301 +3001,75 @@ int main(int argc, const char *argv[])
 
     Intialize_values(&dolby_args.deqFrequency[0], preset_freq[0], dolby_args.deqNumBands);
     Intialize_values((uint32_t *)&dolby_args.deqGain[0], preset_gain[0], dolby_args.deqNumBands);
+
+    dolby_args.fadeLevel[PRIMARY_DECODE] = INVALID_FADE_LEVEL;
+    dolby_args.fadeLevel[SECONDARY_DECODE] = INVALID_FADE_LEVEL;
+    dolby_args.fadeLevel[EFFECTS_DECODE] = INVALID_FADE_LEVEL;
+    dolby_args.fadeLevel[APPAUDIO_DECODE] = INVALID_FADE_LEVEL;
+    dolby_args.fadeLevel[OUTPUT_FADE_IDX] = INVALID_FADE_LEVEL;
+
 /*-------------------------------------------------------------------Initialization----------------------------------------------------------------------------------------------------------------*/
 
     NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
     mixerSettings.mixUsingDsp = true;
-    mixer = NEXUS_AudioMixer_Open(&mixerSettings);
-    directMixer = NEXUS_AudioMixer_Open(NULL);
-    directMchMixer = NEXUS_AudioMixer_Open(NULL);
+    resources.mixer = NEXUS_AudioMixer_Open(&mixerSettings);
+    resources.directMixer = NEXUS_AudioMixer_Open(NULL);
+    resources.directMchMixer = NEXUS_AudioMixer_Open(NULL);
 
-#if NEXUS_NUM_AUDIO_PLAYBACKS
-    audioPlayback = NEXUS_AudioPlayback_Open(0, NULL);
-    if ( NULL == audioPlayback )
+    #if NEXUS_NUM_AUDIO_PLAYBACKS
+    resources.audioPlayback = NEXUS_AudioPlayback_Open(0, NULL);
+    if ( NULL == resources.audioPlayback )
     {
         fprintf(stderr, "Unable to open playback channel\n");
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         BDBG_ASSERT(NEXUS_INVALID_PARAMETER);
     }
-#endif
+    #endif
 
-    videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
-    NEXUS_Display_GetDefaultSettings(&displaySettings);
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
+    resources.videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
+    NEXUS_Display_GetDefaultSettings(&resources.displaySettings);
+    #if NEXUS_NUM_HDMI_OUTPUTS > 0
     NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
     if ( hdmiStatus.connected )
     {
-        displaySettings.format = hdmiStatus.preferredVideoFormat;
+        resources.displaySettings.format = hdmiStatus.preferredVideoFormat;
     }
-#endif
-    display = NEXUS_Display_Open(0, &displaySettings);
-    window = NEXUS_VideoWindow_Open(display, 0);
-    NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
+    #endif
+    resources.display = NEXUS_Display_Open(0, &resources.displaySettings);
+    resources.window = NEXUS_VideoWindow_Open(resources.display, 0);
+    NEXUS_VideoWindow_AddInput(resources.window, NEXUS_VideoDecoder_GetConnector(resources.videoDecoder));
+
+    if ( dolby_digital_plus_cmdline_parse(argc, argv, opts, &dolby_args) )
+    {
+        return 0;
+    }
 
     for ( i = 0; i < no_of_streams; i++ )
     {
-        NEXUS_PlaybackHandle pb;
-        NEXUS_PlaypumpHandle pp;
-        NEXUS_StcChannelHandle stc;
-        bool requiresPlaypump = true;
-        NEXUS_AudioDecoderOpenSettings decoderOpenSettings;
-
-        if ( dolby_digital_plus_cmdline_parse(argc, argv, &opts[i], &dolby_args, i) )
-        {
-            return 0;
-        }
-
-        if ( i == PRIMARY_DECODE )
-        {
-            parse_config_file(&dolby_args, true);
-        }
-
-        /* explicitly disable secondary when requested */
-        if ( i == SECONDARY_DECODE && !dolby_args.enableSecondary )
-        {
-            opts[i].filename = NULL;
-        }
-
-        if ( !opts[i].filename )
-        {
-            audioDecoders[i] = NULL;
-            file[i] = NULL;
-            playpump[i] = NULL;
-            playback[i] = NULL;
-            stcChannel[i] = NULL;
-            continue;
-        }
-        else if ( i == SECONDARY_DECODE && strcmp(opts[SECONDARY_DECODE].filename, opts[PRIMARY_DECODE].filename) == 0 )
-        {
-            printf("SECONDARY is sharing PLAYBACK/PLAYPUMP with PRIMARY\n");
-            requiresPlaypump = false;
-            file[i] = NULL;
-            playpump[i] = NULL;
-            playback[i] = NULL;
-            stcChannel[i] = NULL;
-        }
-
-        if ( requiresPlaypump )
-        {
-            /* Bring up all modules for a platform in a default configuraiton for this platform */
-            playpump[i] = NEXUS_Playpump_Open(i, NULL);
-            BDBG_ASSERT(playpump[i]);
-            pp = playpump[i];
-            playback[i] = NEXUS_Playback_Create();
-            BDBG_ASSERT(playback[i]);
-            pb = playback[i];
-            NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
-            stcSettings.timebase = NEXUS_Timebase_e0;
-            stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-            stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
-            stcChannel[i] = NEXUS_StcChannel_Open(i, &stcSettings);
-            BDBG_ASSERT(stcChannel[i]);
-            stc = stcChannel[i];
-        }
-        else
-        {
-            pp = playpump[PRIMARY_DECODE];
-            pb = playback[PRIMARY_DECODE];
-            stc = stcChannel[PRIMARY_DECODE];
-        }
-
-        NEXUS_AudioDecoder_GetDefaultOpenSettings(&decoderOpenSettings);
-        decoderOpenSettings.multichannelFormat = dolby_args.multiCh71 ? NEXUS_AudioMultichannelFormat_e7_1 : NEXUS_AudioMultichannelFormat_e5_1;
-        BDBG_ERR(("---decoderOpenSettings.multichannelFormat %d", decoderOpenSettings.multichannelFormat));
-        audioDecoders[i] = NEXUS_AudioDecoder_Open(i, &decoderOpenSettings);
-        BDBG_ASSERT(audioDecoders[i]);
-
-        if ( dolby_args.loopback == 1 )
-        {
-            opts[i].endOfStreamAction = NEXUS_PlaybackLoopMode_eLoop;
-        }
-        else
-        {
-            opts[i].endOfStreamAction = NEXUS_PlaybackLoopMode_ePause;
-        }
-
-        /* save what we got from command line before we probe */
-        printf("\n From command line - Stream[%d] audioCodec %d, pid %d, transportType %d", i, opts[i].common.audioCodec, opts[i].common.audioPid, opts[i].common.transportType);
-        audioCodec = opts[i].common.audioCodec;
-        audioPid = opts[i].common.audioPid;
-        transportType = opts[i].common.transportType;
-        pcrPid = opts[i].common.pcrPid;
-
-        if ( cmdline_probe(&opts[i].common, opts[i].filename, &opts[i].indexname) )
-        {
-            if (transportType != NEXUS_TransportType_eEs)
-            {
-                return 1;
-            }
-        }
-
-        printf("\nPROBE of '%s' found:\n\t transport type %d, audio_codec %d\n",
-               opts[i].filename, opts[i].common.transportType, opts[i].common.audioCodec);
-
-        /* restore what we got from command line after probe */
-        if ( audioCodec != NEXUS_AudioCodec_eMax )
-        {
-            printf("Overriding probed audio codec %d with command line specified codec %d\n", opts[i].common.audioCodec, audioCodec);
-            opts[i].common.audioCodec = audioCodec;
-        }
-        if ( audioPid != INVALID_PID )
-        {
-            printf("Overriding probed audio pid %d with command line specified pid %d\n", opts[i].common.audioPid, audioPid);
-            opts[i].common.audioPid = audioPid;
-        }
-        if ( transportType != NEXUS_TransportType_eMax )
-        {
-            printf("Overriding probed transport type %d with command line specified type %d\n", opts[i].common.transportType, transportType);
-            opts[i].common.transportType = transportType;
-        }
-        if ( pcrPid != 0 )
-        {
-            printf("Overriding probed pcr pid %d with command line specified pid %d\n", opts[i].common.pcrPid, pcrPid);
-            opts[i].common.pcrPid = pcrPid;
-        }
-
-        /* We have to parse again (silently) now that we have the audio codec from probe */
-        if ( i == PRIMARY_DECODE )
-        {
-            /* store the primary audio codec here */
-            dolby_args.audioCodec = opts[i].common.audioCodec;
-            parse_config_file(&dolby_args, false);
-        }
-
-        if ( !opts[i].filename )
+        int ret = decode_path_initialize( i, opts, &dolby_args, &resources, true );
+        if ( ret != 0 )
         {
             print_usage(argv[0]);
-            return 0;
+            return ret;
         }
+    }
 
-        if ( (opts[i].indexname && !strcmp(opts[i].indexname, "same")) ||
-             opts[i].common.transportType == NEXUS_TransportType_eMkv ||
-             opts[i].common.transportType == NEXUS_TransportType_eMp4
-            )
+    defaultFadeLevel = 100;
+    if ( dolby_args.certificationMode_dap )
+    {
+        defaultFadeLevel = 0x7FFFFFFF;
+    }
+
+    for ( i = 0; i < 5; i++ )
+    {
+        if ( dolby_args.fadeLevel[i] == INVALID_FADE_LEVEL )
         {
-            opts[i].indexname = opts[i].filename;
-        }
-
-        if ( requiresPlaypump )
-        {
-            file[i] = NEXUS_FilePlay_OpenPosix(opts[i].filename, opts[i].indexname);
-            if ( !file[i] )
-            {
-                fprintf(stderr, "can't open files:%s %s\n", opts[i].filename, opts[i].indexname);
-                return -1;
-            }
-            if ( opts[i].customFileIo )
-            {
-                customFile = file[i] = FileIoCustom_Attach(file[i]);
-                BDBG_ASSERT(file[i]);
-            }
-            if ( opts[i].playbackMonitor )
-            {
-                stickyFile = file[i] = FileIoSticky_Attach(file[i]);
-                BDBG_ASSERT(file[i]);
-            }
-
-            NEXUS_Playback_GetSettings(pb, &playbackSettings);
-            playbackSettings.playpump = pp;
-            playbackSettings.playpumpSettings.transportType = opts[i].common.transportType;
-            playbackSettings.playpumpSettings.timestamp.pacing = false;
-            playbackSettings.playpumpSettings.timestamp.type = opts[i].common.tsTimestampType;
-
-            playbackSettings.stcChannel = stc;
-            playbackSettings.stcTrick = opts[i].stcTrick;
-            playbackSettings.beginningOfStreamAction = opts[i].beginningOfStreamAction;
-            playbackSettings.endOfStreamAction = opts[i].endOfStreamAction;
-            playbackSettings.enableStreamProcessing = opts[i].streamProcessing;
-            rc = NEXUS_Playback_SetSettings(pb, &playbackSettings);
-            BDBG_ASSERT(!rc);
-        }
-
-        if ( opts[i].common.audioCodec != NEXUS_AudioCodec_eUnknown )
-        {
-            NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-            playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-            playbackPidSettings.pidTypeSettings.audio.primary = audioDecoders[i];
-            playbackPidSettings.pidSettings.pidTypeSettings.audio.codec = opts[i].common.audioCodec;
-            audioPidChannel = NEXUS_Playback_OpenPidChannel(pb, opts[i].common.audioPid, &playbackPidSettings);
-        }
-
-        if ( i == PRIMARY_DECODE && opts[i].common.videoCodec != NEXUS_VideoCodec_eUnknown )
-        {
-            NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-            playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
-            playbackPidSettings.pidTypeSettings.video.decoder = videoDecoder;
-            playbackPidSettings.pidTypeSettings.video.codec = opts[i].common.videoCodec;
-            videoPidChannel = NEXUS_Playback_OpenPidChannel(pb, opts[i].common.videoPid, &playbackPidSettings);
-
-            NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
-            videoProgram.codec = opts[i].common.videoCodec;
-            videoProgram.pidChannel = videoPidChannel;
-            videoProgram.stcChannel = stc;
-        }
-        else if (i == PRIMARY_DECODE)
-        {
-            if (videoDecoder)
-            {
-                NEXUS_VideoWindow_RemoveAllInputs(window);
-                NEXUS_VideoDecoder_Close(videoDecoder);
-                videoDecoder = NULL;
-            }
-        }
-
-        if ( opts[i].common.pcrPid && opts[i].common.pcrPid != opts[i].common.videoPid && opts[i].common.pcrPid != opts[i].common.audioPid )
-        {
-            NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
-            playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eOther;
-            pcrPidChannel = NEXUS_Playback_OpenPidChannel(pb, opts[i].common.pcrPid, &playbackPidSettings);
-        }
-
-        /* Set up decoder Start structures now. We need to know the audio codec to properly set up
-        the audio outputs. */
-        NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram[i]);
-
-        audioProgram[i].targetSyncEnabled = !dolby_args.targetSyncDisabled;
-        audioProgram[i].forceCompleteFirstFrame = dolby_args.completeFirstFrame;
-        audioProgram[i].codec = opts[i].common.audioCodec;
-        audioProgram[i].pidChannel = audioPidChannel;
-        audioProgram[i].stcChannel = stc;
-        if ( i==SECONDARY_DECODE )
-        {
-            audioProgram[i].secondaryDecoder = true;
-        }
-        else if ( i == EFFECTS_DECODE )
-        {
-            audioProgram[i].mixingMode = NEXUS_AudioDecoderMixingMode_eSoundEffects;
-        }
-        else if ( i == APPAUDIO_DECODE )
-        {
-            audioProgram[i].mixingMode = NEXUS_AudioDecoderMixingMode_eApplicationAudio;
+            dolby_args.fadeLevel[i] = defaultFadeLevel;
         }
     }
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
-    for ( i = 0; i < no_of_streams; i++ )
-    {
-        if ( audioDecoders[i] )
-        {
-            NEXUS_AudioDecoderSettings decoderSettings;
-            NEXUS_AudioDecoderCodecSettings codecSettings;
-
-            NEXUS_AudioDecoder_GetSettings(audioDecoders[i], &decoderSettings);
-            translate_args_to_decoder_settings(i, audioDecoders, &dolby_args, &decoderSettings);
-            NEXUS_AudioDecoder_SetSettings(audioDecoders[i], &decoderSettings);
-
-            /* store start time settings (to be applied later) */
-            audioProgram[i].targetSyncEnabled = !dolby_args.targetSyncDisabled;
-            audioProgram[i].forceCompleteFirstFrame = dolby_args.completeFirstFrame;
-
-            NEXUS_AudioDecoder_GetCodecSettings(audioDecoders[i], audioProgram[i].codec, &codecSettings);
-            translate_args_to_codec_settings(i, audioDecoders, &dolby_args, &codecSettings);
-            NEXUS_AudioDecoder_SetCodecSettings(audioDecoders[i], &codecSettings);
-        }
-    }
-
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
+    #if NEXUS_NUM_HDMI_OUTPUTS > 0
     /* Wait for HDMI to connect (up to 2 seconds) */
     for ( i = 0; i < 200; i++ )
     {
@@ -2385,109 +3080,53 @@ int main(int argc, const char *argv[])
         }
         BKNI_Sleep(10);
     }
-#endif
+    #endif
 
 /*---------------------------------------------------------------------Configure Video / Display-----------------------------------------------------------------------------------------------------------------*/
 
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
-    NEXUS_Display_AddOutput(display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
-#endif
-#if NEXUS_NUM_COMPONENT_OUTPUTS
+    #if NEXUS_NUM_HDMI_OUTPUTS > 0
+    NEXUS_Display_AddOutput(resources.display, NEXUS_HdmiOutput_GetVideoConnector(platformConfig.outputs.hdmi[0]));
+    #endif
+    #if NEXUS_NUM_COMPONENT_OUTPUTS
     if ( platformConfig.outputs.component[0] )
     {
-        NEXUS_Display_AddOutput(display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
+        NEXUS_Display_AddOutput(resources.display, NEXUS_ComponentOutput_GetConnector(platformConfig.outputs.component[0]));
     }
-#endif
-#if NEXUS_NUM_COMPOSITE_OUTPUTS
-    if ( displaySettings.format == NEXUS_VideoFormat_eNtsc )
+    #endif
+    #if NEXUS_NUM_COMPOSITE_OUTPUTS
+    if ( resources.displaySettings.format == NEXUS_VideoFormat_eNtsc )
     {
-        NEXUS_Display_AddOutput(display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
+        NEXUS_Display_AddOutput(resources.display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
     }
-#endif
-
-    /* Add remaining components */
-    {
-        NEXUS_DolbyDigitalReencodeSettings ddreSettings;
-        NEXUS_DolbyDigitalReencode_GetDefaultSettings(&ddreSettings);
-        if ( dolby_args.multiCh71 )
-        {
-            ddreSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e7_1;
-        }
-        else
-        {
-            ddreSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
-        }
-        ddreSettings.profile = dolby_args.compression;
-        ddreSettings.dialogLevel = dolby_args.dialog_level;
-        if ( dolby_args.externalPcmSpecified )
-        {
-            ddreSettings.externalPcmMode = dolby_args.externalPcm;
-        }
-        else
-        {
-            ddreSettings.externalPcmMode = false;
-            for ( i = 0; i < 2 && !ddreSettings.externalPcmMode; i++ )
-            {
-                switch ( audioProgram[i].codec )
-                {
-                case NEXUS_AudioCodec_eAc3:
-                case NEXUS_AudioCodec_eAc3Plus:
-                case NEXUS_AudioCodec_eAacAdts:
-                case NEXUS_AudioCodec_eAacLoas:
-                case NEXUS_AudioCodec_eAacPlusAdts:
-                case NEXUS_AudioCodec_eAacPlusLoas:
-                case NEXUS_AudioCodec_eAc4:
-                    break;
-                default:
-                    if ( audioDecoders[i] )
-                    {
-                        BDBG_WRN(("%s file is a non-dolby codec.  Forcing external PCM mode.", i == 0 ? "Primary" : "Secondary"));
-                        ddreSettings.externalPcmMode = true;
-                    }
-                    break;
-                }
-            }
-        }
-
-        if ( ddreSettings.externalPcmMode == true )
-        {
-            ddreSettings.cut = dolby_args.cut;
-            ddreSettings.boost = dolby_args.boost;
-            BDBG_WRN(("Cut:%d Boost:%d \n",dolby_args.cut,dolby_args.boost));
-        }
-
-        ddreSettings.certificationMode = dolby_args.certificationMode_ddre;
-        ddre = NEXUS_DolbyDigitalReencode_Open(&ddreSettings);
-        BDBG_ASSERT(NULL != ddre);
-    }
-
-
+    #endif
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------Make our Connections--------------------------------------------------------------------------------------------------------------------------*/
 
+    #if 0
     /* if secondary wasn't enabled, don't connect it */
     if ( dolby_args.secondary_stream == NULL )
     {
-        dolby_args.enableSecondary = false;
+        dolby_args.enableDecode[SECONDARY_DECODE] = false;
     }
 
     /* if sound effects wasn't enabled, don't connect it */
     if ( dolby_args.sound_effects_stream == NULL )
     {
-        dolby_args.enableSoundEffects = false;
+        dolby_args.enableDecode[EFFECTS_DECODE] = false;
     }
 
     /* if sound effects wasn't enabled, don't connect it */
     if ( dolby_args.app_audio_stream == NULL )
     {
-        dolby_args.enableAppAudio = false;
+        dolby_args.enableDecode[APPAUDIO_DECODE] = false;
     }
+    #endif
 
     if ( dolby_args.directMode )
     {
         /* Disable everything except primary and pcm playback in direct mode */
-        dolby_args.enableSecondary = dolby_args.enableSoundEffects = dolby_args.enableAppAudio = false;
+        dolby_args.enableDecode[SECONDARY_DECODE] = dolby_args.enableDecode[EFFECTS_DECODE] = dolby_args.enableDecode[APPAUDIO_DECODE] = false;
 
         printf("\n------------------------------------\n");
         printf("DIRECT Decoder->Output Mode connections:\n");
@@ -2495,21 +3134,21 @@ int main(int argc, const char *argv[])
         #if NEXUS_NUM_HDMI_OUTPUTS > 0
         if ( dolby_args.enableHdmi )
         {
-            printf("  HDMI %s PCM\n", (audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
+            printf("  HDMI %s PCM\n", (resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
             rc = NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                            NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eMultichannel));
+                                            NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eMultichannel));
             BDBG_ASSERT(NEXUS_SUCCESS == rc);
         }
         #endif
         if ( dolby_args.enableCompressed &&
-             (audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[0].codec == NEXUS_AudioCodec_eAc3) )
+             (resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3) )
         {
             #if NEXUS_NUM_SPDIF_OUTPUTS > 0
             if ( dolby_args.enableSpdif )
             {
                 printf("  SPDIF AC3 Compressed\n");
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                                NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eCompressed));
+                                                NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eCompressed));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
             #endif
@@ -2518,158 +3157,173 @@ int main(int argc, const char *argv[])
             {
                 printf("  DUMMY PCM Stereo\n");
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
-                                                NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
+                                                NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
             #endif
         }
-        else if ( audioProgram[0].codec == NEXUS_AudioCodec_eAc4 )
+        else
         {
-            if ( dolby_args.enableCompressed &&
-                 (audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[0].codec == NEXUS_AudioCodec_eAc3) )
+            #if NEXUS_NUM_SPDIF_OUTPUTS > 0
+            if ( dolby_args.enableSpdif )
             {
-                #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-                if ( dolby_args.enableSpdif )
-                {
-                    printf("  SPDIF PCM Stereo\n");
-                    rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                                    NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
-                    BDBG_ASSERT(NEXUS_SUCCESS == rc);
-                }
-                #endif
-                #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-                if ( !dolby_args.enableSpdif && !dolby_args.enableDac && !dolby_args.enableHdmi )
-                {
-                    printf("  DUMMY PCM Stereo\n");
-                    rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
-                                                    NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
-                    BDBG_ASSERT(NEXUS_SUCCESS == rc);
-                }
-                #endif
+                printf("  SPDIF PCM Stereo\n");
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                                                NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
+                BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
+            #endif
+            #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
+            if ( !dolby_args.enableSpdif && !dolby_args.enableDac && !dolby_args.enableHdmi )
+            {
+                printf("  DUMMY PCM Stereo\n");
+                rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
+                                                NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
+                BDBG_ASSERT(NEXUS_SUCCESS == rc);
+            }
+            #endif
         }
-#if NEXUS_NUM_AUDIO_DACS > 0
+
+        #if NEXUS_NUM_AUDIO_DACS > 0
         if ( dolby_args.enableDac )
         {
             printf("  DAC PCM Stereo\n");
             rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                                            NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
+                                            NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eStereo));
             BDBG_ASSERT(NEXUS_SUCCESS == rc);
         }
         #endif
     }
     else
     {
-        NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioConnectorType_eMultichannel));
-        if ( dolby_args.enableSecondary )
+        NEXUS_AudioMixer_AddInput(resources.mixer, NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioConnectorType_eMultichannel));
+        if ( dolby_args.enableDecode[SECONDARY_DECODE] )
         {
-            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoders[1], NEXUS_AudioConnectorType_eMultichannel));
+            NEXUS_AudioMixer_AddInput(resources.mixer, NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[1], NEXUS_AudioConnectorType_eMultichannel));
         }
-        if ( dolby_args.enableSoundEffects )
+        if ( dolby_args.enableDecode[EFFECTS_DECODE] )
         {
-            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoders[2], NEXUS_AudioConnectorType_eMultichannel));
+            NEXUS_AudioMixer_AddInput(resources.mixer, NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[2], NEXUS_AudioConnectorType_eMultichannel));
         }
-        if ( dolby_args.enableAppAudio )
+        if ( dolby_args.enableDecode[APPAUDIO_DECODE] )
         {
-            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoders[3], NEXUS_AudioConnectorType_eMultichannel));
+            NEXUS_AudioMixer_AddInput(resources.mixer, NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[3], NEXUS_AudioConnectorType_eMultichannel));
         }
-#if NEXUS_NUM_AUDIO_PLAYBACKS
+        #if NEXUS_NUM_AUDIO_PLAYBACKS
         if ( dolby_args.enablePlayback )
         {
-            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioPlayback_GetConnector(audioPlayback));
+            NEXUS_AudioMixer_AddInput(resources.mixer, NEXUS_AudioPlayback_GetConnector(resources.audioPlayback));
         }
-#endif
+        #endif
 
         /* Set the Mixer to use DSP mixing */
-        NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
-        mixerSettings.master = NEXUS_AudioDecoder_GetConnector(audioDecoders[0], NEXUS_AudioDecoderConnectorType_eMultichannel);
+        NEXUS_AudioMixer_GetSettings(resources.mixer, &mixerSettings);
+        mixerSettings.master = NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[0], NEXUS_AudioDecoderConnectorType_eMultichannel);
         apply_mixer_settings(&mixerSettings, &dolby_args);
-        NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+        NEXUS_AudioMixer_SetSettings(resources.mixer, &mixerSettings);
 
         printf("\n------------------------------------\n");
         printf("Full MS12 Decoder->DspMixer->DDRE->Outputs Mode connections:\n");
         printf("------------------------------------\n");
         if ( dolby_args.enableDdre )
         {
-            rc = NEXUS_DolbyDigitalReencode_AddInput(ddre, NEXUS_AudioMixer_GetConnector(mixer));
+            rc = NEXUS_DolbyDigitalReencode_AddInput(resources.ddre, NEXUS_AudioMixer_GetConnector(resources.mixer));
             BDBG_ASSERT(NEXUS_SUCCESS == rc);
 
-#if NEXUS_NUM_AUDIO_DACS
+            #if NEXUS_NUM_AUDIO_DACS
             if ( dolby_args.enableDac )
             {
                 printf("  DAC Stereo PCM\n");
                 rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                                                NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+                                                NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
                 BDBG_ASSERT(NEXUS_SUCCESS == rc);
             }
-#endif
+            #endif
             if ( dolby_args.enableCompressed == false )
             {
-#if NEXUS_NUM_SPDIF_OUTPUTS > 0
+                #if NEXUS_NUM_SPDIF_OUTPUTS > 0
                 if ( dolby_args.enableSpdif )
                 {
                     printf("  SPDIF Stereo PCM\n");
                     rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                                    NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+                                                    NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eStereo));
                     BDBG_ASSERT(NEXUS_SUCCESS == rc);
                 }
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
+                #endif
+                #if NEXUS_NUM_HDMI_OUTPUTS > 0
                 if ( dolby_args.enableHdmi )
                 {
-                    printf("  HDMI %s PCM\n", ((audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
+                    printf("  HDMI %s PCM\n", ((resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
                     NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eMultichannel));
+                                               NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eMultichannel));
                 }
-#endif
+                #endif
             }
             else if ( dolby_args.enableCompressed == true )
             {
-#if NEXUS_NUM_SPDIF_OUTPUTS > 0
+                #if NEXUS_NUM_SPDIF_OUTPUTS > 0
                 if ( dolby_args.enableSpdif )
                 {
                     printf("  SPDIF Ac3 Compressed\n");
                     rc = NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                                    NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+                                                    NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed));
                     BDBG_ASSERT(NEXUS_SUCCESS == rc);
                 }
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
+                #endif
+                #if NEXUS_NUM_HDMI_OUTPUTS > 0
                 if ( dolby_args.enableHdmi )
                 {
-                    if ( audioProgram[0].codec == NEXUS_AudioCodec_eAc4 ||
-                         audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[0].codec == NEXUS_AudioCodec_eAc3 ||
-                         audioProgram[0].codec == NEXUS_AudioCodec_eAacAdts || audioProgram[0].codec == NEXUS_AudioCodec_eAacLoas ||
-                         audioProgram[0].codec == NEXUS_AudioCodec_eAacPlusAdts || audioProgram[0].codec == NEXUS_AudioCodec_eAacPlusLoas )
+                    if ( resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4 ||
+                         resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3 ||
+                         resources.audioProgram[0].codec == NEXUS_AudioCodec_eAacAdts || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAacLoas ||
+                         resources.audioProgram[0].codec == NEXUS_AudioCodec_eAacPlusAdts || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAacPlusLoas )
                     {
                         printf("  HDMI DDP Compressed\n");
                         NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                                   NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed4x));
+                                                   NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed4x));
                     }
                     else
                     {
                         printf("  HDMI AC3 Compressed\n");
                         NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                                   NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+                                                   NEXUS_DolbyDigitalReencode_GetConnector(resources.ddre, NEXUS_AudioConnectorType_eCompressed));
                     }
                     BDBG_ASSERT(NEXUS_SUCCESS == rc);
                 }
-#endif
+                #endif
             }
         }
         else
         {
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
+            #if NEXUS_NUM_HDMI_OUTPUTS > 0
             if ( dolby_args.enableHdmi )
             {
-                printf("  HDMI %s PCM\n", ((audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
+                printf("  HDMI %s PCM\n", ((resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[0].codec == NEXUS_AudioCodec_eAc4) && dolby_args.multiCh71) ? "7.1ch" : "5.1ch");
                 NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                           NEXUS_AudioMixer_GetConnector(mixer));
+                                           NEXUS_AudioMixer_GetConnector(resources.mixer));
             }
-#endif
+            #endif
         }
         printf("------------------------------------\n\n");
     }
+
+    /* Nudge HDMI interface with some initial settings and a hotplug */
+    {
+        NEXUS_HdmiOutputSettings hdmiSettings;
+        NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
+        hdmiSettings.hotplugCallback.callback = hotplug_callback;
+        /* TBD - make hdmi callback 64bit compatible */
+        hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
+        hdmiSettings.hotplugCallback.param = (int)resources.display;
+        NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
+
+        /* initalize HDCP settings, keys, etc. */
+        initializeHdmiOutputHdcpSettings();
+
+        /* Force a hotplug to switch to preferred format */
+        hotplug_callback(platformConfig.outputs.hdmi[0], (int)resources.display);
+    }
+
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 
@@ -2677,75 +3331,31 @@ int main(int argc, const char *argv[])
 
     for ( i = 0; i < no_of_streams; i++ )
     {
-        NEXUS_AudioDecoderCodecSettings codecSettings;
-        if ( audioDecoders[i] )
-        {
-            if ( videoDecoder && i == PRIMARY_DECODE )
-            {
-                NEXUS_HdmiOutputSettings hdmiSettings;
-                NEXUS_HdmiOutput_GetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
-                hdmiSettings.hotplugCallback.callback = hotplug_callback;
-                hdmiSettings.hotplugCallback.context = platformConfig.outputs.hdmi[0];
-                hdmiSettings.hotplugCallback.param = (int)display;
-                NEXUS_HdmiOutput_SetSettings(platformConfig.outputs.hdmi[0], &hdmiSettings);
-
-                /* initalize HDCP settings, keys, etc. */
-                initializeHdmiOutputHdcpSettings();
-
-                /* Force a hotplug to switch to preferred format */
-                hotplug_callback(platformConfig.outputs.hdmi[0], (int)display);
-                NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
-            }
-
-            NEXUS_AudioDecoder_GetCodecSettings(audioDecoders[i], audioProgram[i].codec, &codecSettings);
-            translate_args_to_codec_settings(i, audioDecoders, &dolby_args, &codecSettings);
-            NEXUS_AudioDecoder_SetCodecSettings(audioDecoders[i], &codecSettings);
-
-            if ( i == PRIMARY_DECODE )
-            {
-                print_settings(dolby_args.decodeSettings, codecSettings, &dolby_args);
-            }
-
-            if ( (dolby_args.enableSecondary && i == SECONDARY_DECODE) ||
-                 (dolby_args.enableSoundEffects && i == EFFECTS_DECODE) ||
-                 (dolby_args.enableAppAudio && i == APPAUDIO_DECODE) ||
-                 (i == PRIMARY_DECODE) )
-            {
-                printf("\n\n Starting decoder:%d \n\n", i);
-                rc = NEXUS_AudioDecoder_Start(audioDecoders[i], &audioProgram[i]);
-                BDBG_ASSERT(!rc);
-                started[i] = true;
-            }
-#ifdef BDSP_FW_RBUF_CAPTURE
-            start_rbuf_channels_from_env();
-#endif
-
-            if ( compressedDecoder && i == PRIMARY_DECODE )
-            {
-                printf("\n\n Starting Compressed decoder:%d \n\n", i);
-                rc = NEXUS_AudioDecoder_Start(compressedDecoder, &audioProgram[i]);
-                BDBG_ASSERT(!rc);
-            }
-        }
+        decode_path_start(i, opts, &dolby_args, &resources);
     }
+
+    #ifdef BDSP_FW_RBUF_CAPTURE
+    start_rbuf_channels_from_env();
+    #endif
+
 
     if ( !dolby_args.directMode )
     {
-        NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
+        NEXUS_AudioMixer_GetSettings(resources.mixer, &mixerSettings);
         mixerSettings.dolby.multiStreamBalance = dolby_args.mixerBalance;
-        NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+        NEXUS_AudioMixer_SetSettings(resources.mixer, &mixerSettings);
     }
 
-#if NEXUS_NUM_AUDIO_PLAYBACKS
+    #if NEXUS_NUM_AUDIO_PLAYBACKS
     if ( dolby_args.enablePlayback )
     {
         NEXUS_AudioPlaybackStartSettings pbStartSettings;
         NEXUS_AudioPlaybackSettings pbSettings;
 
-        BKNI_Memset(&(pcm_playbacks[0]), 0, sizeof(pcm_playbacks[0]));
-        rc = BKNI_CreateEvent(&(pcm_playbacks[0].event));
+        BKNI_Memset(&(resources.pcm_playbacks[0]), 0, sizeof(resources.pcm_playbacks[0]));
+        rc = BKNI_CreateEvent(&(resources.pcm_playbacks[0].event));
         BDBG_ASSERT(!rc);
-        pcm_playbacks[0].playback = audioPlayback;
+        resources.pcm_playbacks[0].playback = resources.audioPlayback;
 
         /* If we have a wav file, get the sample rate from it */
         if ( dolby_args.pcm_stream != NULL )
@@ -2753,7 +3363,7 @@ int main(int argc, const char *argv[])
             FILE *pFile;
             unsigned long dword, bytesToPlay;
 
-            pFile = pcm_playbacks[0].pPcmFile = fopen(dolby_args.pcm_stream, "rb");
+            pFile = resources.pcm_playbacks[0].pPcmFile = fopen(dolby_args.pcm_stream, "rb");
             if ( NULL == pFile )
             {
                 printf("Unable to open '%s' for reading\n", dolby_args.pcm_stream);
@@ -2838,9 +3448,9 @@ int main(int argc, const char *argv[])
                         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
                         BDBG_ASSERT(!rc);
                     }
-                    pcm_playbacks[0].pcmDataStart = ftell(pFile);
-                    pcm_playbacks[0].pcmDataEnd = pcm_playbacks[0].pcmDataStart + wh.dataLen;
-                    BDBG_ASSERT(pcm_playbacks[0].pcmDataEnd <= bytesToPlay);
+                    resources.pcm_playbacks[0].pcmDataStart = ftell(pFile);
+                    resources.pcm_playbacks[0].pcmDataEnd = resources.pcm_playbacks[0].pcmDataStart + wh.dataLen;
+                    BDBG_ASSERT(resources.pcm_playbacks[0].pcmDataEnd <= bytesToPlay);
                     pbStartSettings.sampleRate = wh.samplesSec;
                     pbStartSettings.bitsPerSample = wh.bps;
                     pbStartSettings.stereo = (wh.channels > 1);
@@ -2848,7 +3458,7 @@ int main(int argc, const char *argv[])
                     pbStartSettings.endian = NEXUS_EndianMode_eLittle;
                 }
 
-                pcm_playbacks[0].wh = wh;
+                resources.pcm_playbacks[0].wh = wh;
             }
         }
         else
@@ -2861,46 +3471,40 @@ int main(int argc, const char *argv[])
         printf("PCM Settings - bitsPerSample %d, sampleRate %d, stereo %d, signed %d\n",
                pbStartSettings.bitsPerSample, pbStartSettings.sampleRate, pbStartSettings.stereo, pbStartSettings.signedData);
         pbStartSettings.dataCallback.callback = pcm_data_callback;
-        pbStartSettings.dataCallback.context = &(pcm_playbacks[0]);
+        pbStartSettings.dataCallback.context = &(resources.pcm_playbacks[0]);
         pbStartSettings.dataCallback.param = 0;
-        rc = NEXUS_AudioPlayback_Start(pcm_playbacks[0].playback, &pbStartSettings);
+        rc = NEXUS_AudioPlayback_Start(resources.pcm_playbacks[0].playback, &pbStartSettings);
         BDBG_ASSERT(!rc);
 
-        printf("Calling playback_thread_start(%p), audioPlayback %p\n", (void *)&(pcm_playbacks[0]), (void *)audioPlayback);
-        playback_thread_start(&(pcm_playbacks[0]));
+        printf("Calling playback_thread_start(%p), audioPlayback %p\n", (void *)&(resources.pcm_playbacks[0]), (void *)resources.audioPlayback);
+        playback_thread_start(&(resources.pcm_playbacks[0]));
 
-        NEXUS_AudioPlayback_GetSettings(audioPlayback, &pbSettings);
+        NEXUS_AudioPlayback_GetSettings(resources.audioPlayback, &pbSettings);
         pbSettings.leftVolume = pbSettings.rightVolume = 0x200000;
-        rc = NEXUS_AudioPlayback_SetSettings(audioPlayback, &pbSettings);
+        rc = NEXUS_AudioPlayback_SetSettings(resources.audioPlayback, &pbSettings);
         BDBG_ASSERT(!rc);
     }
-#endif
+    #endif
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------Start Playback/Playpump-----------------------------------------------------------------------------------------------------*/
     for ( i = 0; i < no_of_streams; i++ )
     {
-        if ( playback[i] )
-        {
-            NEXUS_Playback_GetDefaultStartSettings(&playbackStartSettings);
-            if ( opts[i].autoBitrate )
-            {
-                playbackStartSettings.mode = NEXUS_PlaybackMode_eAutoBitrate;
-            }
-            rc = NEXUS_Playback_Start(playback[i], file[i], &playbackStartSettings);
-            BDBG_ASSERT(!rc);
-        }
+        playback_start(i, opts, &resources);
     }
+/*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
-/*----------------------------------------------------------------------Managing the runtime change of the config parameters----------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------Managing the runtime change of the config parameters------------------------------------------------------------------------*/
     if ( dolby_args.loopback == 1 )
     {
         for ( exit = false; !exit;)
         {
-            char buffer[256];
+            char buffer[1024];
             char *buf;
 
             printf("MS12_Interactive>"); fflush(stdout);
-            fgets(buffer, 256, stdin);
+            fgets(buffer, 1024, stdin);
             if ( feof(stdin) )
             {
                 break;
@@ -2910,12 +3514,12 @@ int main(int argc, const char *argv[])
 
             buf = strtok(buffer, ";");
             if ( !buf ) continue;
-#if B_HAS_PLAYBACK_MONITOR
+            #if B_HAS_PLAYBACK_MONITOR
             if ( stickyFile )
             {
                 BKNI_AcquireMutex(monitorState.lock);
             }
-#endif
+            #endif
             do
             {
                 if ( !strcmp(buf, "?") )
@@ -2942,44 +3546,110 @@ int main(int argc, const char *argv[])
 
                     index = atoi(value);
                     printf("value '%s', %d\n", value, index);
-                    if ((index < NUM_DECODES) && (audioDecoders[index] != NULL))
+                    if ((index < NUM_DECODES) && (resources.audioDecoders[index] != NULL))
                     {
-                        printf("Toggle Start/Stop for Decode[%d] from %s to %s\n", index, started[index] ? "STARTED" : "STOPPED", !started[index] ? "STARTED" : "STOPPED");
-                        if ( started[index] )
+                        printf("Toggle Start/Stop for Decode[%d] from %s to %s\n", index, resources.started[index] ? "STARTED" : "STOPPED", !resources.started[index] ? "STARTED" : "STOPPED");
+                        if ( resources.started[index] && !resources.suspended[index] )
                         {
-                            if ( audioProgram[index].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[index].codec == NEXUS_AudioCodec_eAc3 )
-                            {
-                                if ( index == SECONDARY_DECODE && audioDecoders[index] )
-                                {
-                                    NEXUS_AudioDecoderCodecSettings codecSettings;
-                                    NEXUS_AudioDecoder_GetCodecSettings(audioDecoders[PRIMARY_DECODE], audioProgram[PRIMARY_DECODE].codec, &codecSettings);
-                                    codecSettings.codecSettings.ac3Plus.enableAtmosProcessing = dolby_args.enableAtmos;
-                                    printf("enable ATMOS flag (secondary off):%d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
-                                    NEXUS_AudioDecoder_SetCodecSettings(audioDecoders[PRIMARY_DECODE], &codecSettings);
-                                }
-                            }
-                            NEXUS_AudioDecoder_Suspend(audioDecoders[index]);
+                            NEXUS_AudioDecoder_Suspend(resources.audioDecoders[index]);
+                            resources.suspended[index] = true;
                         }
-                        else
+                        else if ( resources.suspended[index] )
                         {
-                            if ( audioProgram[index].codec == NEXUS_AudioCodec_eAc3Plus || audioProgram[index].codec == NEXUS_AudioCodec_eAc3 )
+                            NEXUS_AudioDecoder_Resume(resources.audioDecoders[index]);
+                            resources.suspended[index] = false;
+                        }
+                        else /* !started && !suspended */
+                        {
+                            decode_path_start(index, opts, &dolby_args, &resources);
+                            playback_start(index, opts, &resources);
+                        }
+
+                        /* assertion - we are either started or suspended here */
+                        if ( index == SECONDARY_DECODE && resources.audioDecoders[index] &&
+                            (resources.audioProgram[index].codec == NEXUS_AudioCodec_eAc3Plus || resources.audioProgram[index].codec == NEXUS_AudioCodec_eAc3) )
+                        {
+                            if ( resources.suspended[index] )
                             {
-                                if ( index == SECONDARY_DECODE && audioDecoders[index] )
+                                NEXUS_AudioDecoderCodecSettings codecSettings;
+                                NEXUS_AudioDecoder_GetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], resources.audioProgram[PRIMARY_DECODE].codec, &codecSettings);
+                                codecSettings.codecSettings.ac3Plus.enableAtmosProcessing = dolby_args.enableAtmos;
+                                printf("enable ATMOS flag (secondary off):%d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
+                                NEXUS_AudioDecoder_SetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], &codecSettings);
+                            }
+                            else
+                            {
+                                NEXUS_AudioDecoderCodecSettings codecSettings;
+                                NEXUS_AudioDecoder_GetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], resources.audioProgram[PRIMARY_DECODE].codec, &codecSettings);
+                                if( !dolby_args.dualMain )
                                 {
-                                    NEXUS_AudioDecoderCodecSettings codecSettings;
-                                    NEXUS_AudioDecoder_GetCodecSettings(audioDecoders[PRIMARY_DECODE], audioProgram[PRIMARY_DECODE].codec, &codecSettings);
                                     codecSettings.codecSettings.ac3Plus.enableAtmosProcessing = false;
-                                    printf("disable ATMOS flag (secondary on):%d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
-                                    NEXUS_AudioDecoder_SetCodecSettings(audioDecoders[PRIMARY_DECODE], &codecSettings);
                                 }
+                                printf("disable ATMOS flag (secondary on):%d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
+                                NEXUS_AudioDecoder_SetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], &codecSettings);
                             }
-                            NEXUS_AudioDecoder_Resume(audioDecoders[index]);
                         }
-                        started[index] = !started[index];
                     }
                     else
                     {
-                        printf("Invalid decode %d, or no active decoder %p\n", index, index < NUM_DECODES ? (void *)audioDecoders[index] : NULL);
+                        printf("Invalid decode %d, or no active decoder %p\n", index, index < NUM_DECODES ? (void *)resources.audioDecoders[index] : NULL);
+                    }
+                }
+                else if ( strstr(buffer, "r ") != NULL )
+                {
+                    unsigned index;
+                    char *value;
+                    value = strchr(buffer, ' ');
+                    *value = 0;
+                    value++;
+
+                    index = atoi(value);
+                    printf("value '%s', %d\n", value, index);
+                    if ((index < NUM_DECODES) && (resources.audioDecoders[index] != NULL))
+                    {
+                        int ret;
+                        bool wasStarted = resources.started[index];
+                        bool wasSuspended = resources.suspended[index];
+                        printf("Reconfigure Decode[%d] (started %d)\n", index, resources.started[index]);
+
+                        if ( wasStarted || wasSuspended )
+                        {
+                            playback_stop(index, &resources);
+                            decode_path_stop(index, &resources);
+                        }
+
+                        decode_path_shutdown(index, &resources, false);
+
+                        /* populate new file, codec, pid */
+                        if ( opts[index].common.audioPid != dolby_args.decodeAttributes[index].pid )
+                        {
+                            opts[index].common.audioPid = dolby_args.decodeAttributes[index].pid;
+                        }
+                        if ( opts[index].common.audioCodec != dolby_args.decodeAttributes[index].codec )
+                        {
+                            opts[index].common.audioCodec = dolby_args.decodeAttributes[index].codec;
+                        }
+                        if ( !opts[index].filename || strcmp(opts[index].filename, dolby_args.decodeAttributes[index].filename) != 0 )
+                        {
+                            opts[index].filename = dolby_args.decodeAttributes[index].filename;
+                        }
+
+                        if ( index == SECONDARY_DECODE && strlen(opts[index].filename) <= 0 && opts[index].common.audioPid != INVALID_PID )
+                        {
+                            opts[index].filename = opts[PRIMARY_DECODE].filename;
+                        }
+
+                        ret = decode_path_initialize(index, opts, &dolby_args, &resources, false);
+
+                        if ( wasStarted && !wasSuspended && ret == 0 )
+                        {
+                            decode_path_start(index, opts, &dolby_args, &resources);
+                            playback_start(index, opts, &resources);
+                        }
+                    }
+                    else
+                    {
+                        printf("Invalid decode %d, or no active decoder %p\n", index, index < NUM_DECODES ? (void *)resources.audioDecoders[index] : NULL);
                     }
                 }
                 else if ( (dolby_args.enable_dap == 1) || (strstr(buf, "DAP_ENABLE") != NULL) || (strstr(buf, "DV") != NULL) ||
@@ -2990,42 +3660,66 @@ int main(int argc, const char *argv[])
                           (strstr(buf, "RFMODE") != NULL) || (strstr(buf, "DRCCUT") != NULL) || (strstr(buf, "DRCBOOST") != NULL) ||
                           (strstr(buf, "enableCompressed") != NULL) || (strstr(buf, "MIXERBALANCE") != NULL) ||
                           (strstr(buf, "AC4PROGSELECT") != NULL) || (strstr(buf, "AC4PROGBALANCE") != NULL) ||
-                          (strstr(buf, "AC4PRESID") != NULL) || (strstr(buf, "AC4DEAMOUNT") != NULL) )
+                          (strstr(buf, "AC4PRESID") != NULL) || (strstr(buf, "AC4DEAMOUNT") != NULL) ||
+                          (strstr(buf, "FADETYPEPRI") != NULL) || (strstr(buf, "FADEDURATIONPRI") != NULL) || (strstr(buf, "FADELEVELPRI") != NULL) ||
+                          (strstr(buf, "FADETYPESEC") != NULL) || (strstr(buf, "FADEDURATIONSEC") != NULL) || (strstr(buf, "FADELEVELSEC") != NULL) ||
+                          (strstr(buf, "FADETYPESE") != NULL) || (strstr(buf, "FADEDURATIONSE") != NULL) || (strstr(buf, "FADELEVELSE") != NULL) ||
+                          (strstr(buf, "FADETYPEAA") != NULL) || (strstr(buf, "FADEDURATIONAA") != NULL) || (strstr(buf, "FADELEVELAA") != NULL) ||
+                          (strstr(buf, "FADETYPEOUT") != NULL) || (strstr(buf, "FADEDURATIONOUT") != NULL) || (strstr(buf, "FADELEVELOUT") != NULL) ||
+                          (strstr(buf, "FILEPRIMARY") != NULL) || (strstr(buf, "CODECPRIMARY") != NULL) || (strstr(buf, "PIDPRIMARY") != NULL) ||
+                          (strstr(buf, "FILESECONDARY") != NULL) || (strstr(buf, "CODECSECONDARY") != NULL) || (strstr(buf, "PIDSECONDARY") != NULL) ||
+                          (strstr(buf, "FILEEFFECTS") != NULL) || (strstr(buf, "FILEAPPAUDIO") != NULL)
+                        )
                 {
-                    NEXUS_AudioDecoderSettings decoderSettings;
-                    NEXUS_AudioDecoderCodecSettings codecSettings;
-
                     set_config(buf, &dolby_args);
 
-                    NEXUS_AudioDecoder_GetSettings(audioDecoders[PRIMARY_DECODE], &decoderSettings);
-                    translate_args_to_decoder_settings(PRIMARY_DECODE, audioDecoders, &dolby_args, &decoderSettings);
-                    NEXUS_AudioDecoder_SetSettings(audioDecoders[PRIMARY_DECODE], &decoderSettings);
-                    NEXUS_AudioDecoder_GetCodecSettings(audioDecoders[PRIMARY_DECODE], audioProgram[PRIMARY_DECODE].codec, &codecSettings);
-                    translate_args_to_codec_settings(PRIMARY_DECODE, audioDecoders, &dolby_args, &codecSettings);
-                    NEXUS_AudioDecoder_SetCodecSettings(audioDecoders[PRIMARY_DECODE], &codecSettings);
+                    decode_path_update_settings(PRIMARY_DECODE, &dolby_args, &resources);
 
-                    if ( audioDecoders[SECONDARY_DECODE] )
+                    if ( resources.audioDecoders[SECONDARY_DECODE] )
                     {
-                        /* Apply new Secondary Settings */
-                        NEXUS_AudioDecoder_GetSettings(audioDecoders[SECONDARY_DECODE], &decoderSettings);
-                        translate_args_to_decoder_settings(SECONDARY_DECODE, audioDecoders, &dolby_args, &decoderSettings);
-                        NEXUS_AudioDecoder_SetSettings(audioDecoders[SECONDARY_DECODE], &decoderSettings);
-                        NEXUS_AudioDecoder_GetCodecSettings(audioDecoders[SECONDARY_DECODE], audioProgram[SECONDARY_DECODE].codec, &codecSettings);
-                        translate_args_to_codec_settings(SECONDARY_DECODE, audioDecoders, &dolby_args, &codecSettings);
-                        NEXUS_AudioDecoder_SetCodecSettings(audioDecoders[SECONDARY_DECODE], &codecSettings);
+                        decode_path_update_settings(SECONDARY_DECODE, &dolby_args, &resources);
                     }
 
-                    NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
-                    mixerSettings.dolby.multiStreamBalance = dolby_args.mixerBalance;
-                    apply_mixer_settings(&mixerSettings, &dolby_args);
-                    if ( audioProgram[PRIMARY_DECODE].codec == NEXUS_AudioCodec_eAc4 )
+                    /* Apply Fade Settings */
                     {
-                        mixerSettings.dolby.enablePostProcessing = false;
-                    }
-                    NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+                        NEXUS_AudioMixerSettings mixerSettings;
+                        unsigned i;
+                        for ( i = 0; i < NUM_DECODES; i++ )
+                        {
+                            if ( resources.audioDecoders[i] && resources.started[i] )
+                            {
+                                NEXUS_AudioMixerInputSettings inputSettings;
+                                NEXUS_AudioMixer_GetInputSettings(resources.mixer,
+                                                                  NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[i], NEXUS_AudioConnectorType_eMultichannel),
+                                                                  &inputSettings);
+                                if ( inputSettings.fade.level != dolby_args.fadeLevel[i] )
+                                {
+                                    inputSettings.fade.level = dolby_args.fadeLevel[i];
+                                    inputSettings.fade.type = dolby_args.fadeType[i];
+                                    inputSettings.fade.duration = dolby_args.fadeDuration[i];
+                                    NEXUS_AudioMixer_SetInputSettings(resources.mixer,
+                                                                      NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[i], NEXUS_AudioConnectorType_eMultichannel),
+                                                                      &inputSettings);
+                                }
+                            }
+                        }
 
-                    printf("\n\n After changing the values, the new values are:\n");
-                    print_settings(dolby_args.decodeSettings, codecSettings, &dolby_args);
+                        NEXUS_AudioMixer_GetSettings(resources.mixer, &mixerSettings);
+                        if ( mixerSettings.mainDecodeFade.level != dolby_args.fadeLevel[OUTPUT_FADE_IDX] )
+                        {
+                            mixerSettings.mainDecodeFade.level = dolby_args.fadeLevel[OUTPUT_FADE_IDX];
+                            mixerSettings.mainDecodeFade.type = dolby_args.fadeType[OUTPUT_FADE_IDX];
+                            mixerSettings.mainDecodeFade.duration = dolby_args.fadeDuration[OUTPUT_FADE_IDX];
+                            NEXUS_AudioMixer_SetSettings(resources.mixer, &mixerSettings);
+                        }
+                    }
+
+                    {
+                        NEXUS_AudioDecoderCodecSettings codecSettings;
+                        printf("\n\n After changing the values, the new values are:\n");
+                        NEXUS_AudioDecoder_GetCodecSettings(resources.audioDecoders[PRIMARY_DECODE], resources.audioProgram[PRIMARY_DECODE].codec, &codecSettings);
+                        print_settings(dolby_args.decodeSettings, codecSettings, &dolby_args);
+                    }
                 }
                 else if ( !*buf )
                 {
@@ -3035,104 +3729,64 @@ int main(int argc, const char *argv[])
                 {
                     printf("unknown command: %s\n", buf);
                 }
-            }while ( (buf = strtok(NULL, ";")) );
-#if B_HAS_PLAYBACK_MONITOR
+            } while ( (buf = strtok(NULL, ";")) );
+            #if B_HAS_PLAYBACK_MONITOR
             if ( stickyFile )
             {
                 BKNI_ReleaseMutex(monitorState.lock);
             }
-#endif
+            #endif
         }
     }
     else
     {
-#if B_HAS_PLAYBACK_MONITOR
+        #if B_HAS_PLAYBACK_MONITOR
         if ( stickyFile )
         {
             BKNI_AcquireMutex(monitorState.lock);
         }
-#endif
+        #endif
 
-        rc = NEXUS_Playback_GetStatus(playback[PRIMARY_DECODE], &pstatus);
+        rc = NEXUS_Playback_GetStatus(resources.playback[PRIMARY_DECODE], &pstatus);
         BDBG_ASSERT(!rc);
         while ( pstatus.state != 2 )
         {
-            rc = NEXUS_Playback_GetStatus(playback[PRIMARY_DECODE], &pstatus);
+            rc = NEXUS_Playback_GetStatus(resources.playback[PRIMARY_DECODE], &pstatus);
             BDBG_ASSERT(!rc);
 
             BKNI_Sleep(100);
         }
 
-#if B_HAS_PLAYBACK_MONITOR
+        #if B_HAS_PLAYBACK_MONITOR
         if ( stickyFile )
         {
             BKNI_ReleaseMutex(monitorState.lock);
         }
-#endif
+        #endif
 
     }
-#if B_HAS_PLAYBACK_MONITOR
+    #if B_HAS_PLAYBACK_MONITOR
     if ( stickyFile )
     {
         monitor_thread_stop(&monitorState);
     }
 
-#endif
+    #endif
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------Stopping,Closing and Removing the Resources---------------------------------------------------------------------------------------*/
 
-#if NEXUS_NUM_AUDIO_PLAYBACKS
+    #if NEXUS_NUM_AUDIO_PLAYBACKS
     if ( dolby_args.enablePlayback )
     {
-        NEXUS_AudioPlayback_Stop(audioPlayback);
-        playback_thread_stop(&(pcm_playbacks[0]));
+        NEXUS_AudioPlayback_Stop(resources.audioPlayback);
+        playback_thread_stop(&(resources.pcm_playbacks[0]));
     }
-#endif
+    #endif
     for ( i = (no_of_streams - 1); i >= 0; i-- )
     {
-        if ( playback[i] )
-        {
-            printf("stop playback[%d] %p\n", i, (void *)playback[i]);
-            NEXUS_Playback_Stop(playback[i]);
-        }
-        if ( audioDecoders[i] )
-        {
-            printf("stop audioDecoders[%d] %p\n", i, (void *)audioDecoders[i]);
-            NEXUS_AudioDecoder_Stop(audioDecoders[i]);
-        }
-    }
-
-    if (videoDecoder)
-    {
-        NEXUS_VideoDecoder_Stop(videoDecoder);
-    }
-
-    if ( compressedDecoder )
-    {
-        NEXUS_AudioDecoder_Stop(compressedDecoder);
-    }
-
-    for ( i = 0; i < no_of_streams; i++ )
-    {
-        if ( playback[i] )
-        {
-            NEXUS_Playback_CloseAllPidChannels(playback[i]);
-        }
-        if ( file[i] )
-        {
-            NEXUS_FilePlay_Close(file[i]);
-        }
-        if ( playback[i] )
-        {
-            printf("destroy playback[%d] %p\n", i, (void *)playback[i]);
-            NEXUS_Playback_Destroy(playback[i]);
-        }
-        if ( playpump[i] )
-        {
-            printf("destroy playpump[%d] %p\n", i, (void *)playpump[i]);
-            NEXUS_Playpump_Close(playpump[i]);
-        }
+        playback_stop( i, &resources );
+        decode_path_stop( i, &resources );
     }
 
     #if NEXUS_NUM_HDMI_OUTPUTS > 0
@@ -3147,58 +3801,71 @@ int main(int argc, const char *argv[])
     #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
     NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]));
     #endif
-    NEXUS_DolbyDigitalReencode_Close(ddre);
+    NEXUS_DolbyDigitalReencode_Close(resources.ddre);
+    resources.ddre = NULL;
 
-    NEXUS_AudioMixer_RemoveAllInputs(mixer);
-    NEXUS_AudioMixer_Close(mixer);
-    NEXUS_AudioMixer_RemoveAllInputs(directMixer);
-    NEXUS_AudioMixer_Close(directMixer);
-    NEXUS_AudioMixer_RemoveAllInputs(directMchMixer);
-    NEXUS_AudioMixer_Close(directMchMixer);
+    NEXUS_AudioMixer_RemoveAllInputs(resources.mixer);
+    NEXUS_AudioMixer_Close(resources.mixer);
+    resources.mixer = NULL;
+    NEXUS_AudioMixer_RemoveAllInputs(resources.directMixer);
+    NEXUS_AudioMixer_Close(resources.directMixer);
+    resources.directMixer = NULL;
+    NEXUS_AudioMixer_RemoveAllInputs(resources.directMchMixer);
+    NEXUS_AudioMixer_Close(resources.directMchMixer);
+    resources.directMchMixer = NULL;
 
     for ( i = 0; i < no_of_streams; i++ )
     {
-        if ( audioDecoders[i] )
+        decode_path_shutdown( i, &resources, true );
+    }
+
+    for ( i = 0; i < no_of_streams; i++ )
+    {
+        if ( resources.audioDecoders[i] )
         {
-            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoders[i], NEXUS_AudioConnectorType_eMultichannel));
-            NEXUS_AudioDecoder_Close(audioDecoders[i]);
+            NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(resources.audioDecoders[i], NEXUS_AudioConnectorType_eMultichannel));
+            NEXUS_AudioDecoder_Close(resources.audioDecoders[i]);
+            resources.audioDecoders[i] = NULL;
         }
     }
-    if ( compressedDecoder )
+    if ( resources.compressedDecoder )
     {
-        NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed));
-        NEXUS_AudioDecoder_Close(compressedDecoder);
+        NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(resources.compressedDecoder, NEXUS_AudioConnectorType_eCompressed));
+        NEXUS_AudioDecoder_Close(resources.compressedDecoder);
+        resources.compressedDecoder = NULL;
     }
-#ifdef BDSP_FW_RBUF_CAPTURE
+    #ifdef BDSP_FW_RBUF_CAPTURE
     sleep(4);
-#endif
-#if NEXUS_NUM_AUDIO_PLAYBACKS
-    NEXUS_AudioPlayback_Close(audioPlayback);
-#endif
+    #endif
+    #if NEXUS_NUM_AUDIO_PLAYBACKS
+    NEXUS_AudioPlayback_Close(resources.audioPlayback);
+    #endif
 
     if ( file_params )
     {
         fclose(file_params);
     }
 
-    if (videoDecoder)
+    if (resources.videoDecoder)
     {
-        NEXUS_VideoDecoder_Close(videoDecoder);
+        NEXUS_VideoDecoder_Close(resources.videoDecoder);
+        resources.videoDecoder = NULL;
     }
-    NEXUS_VideoWindow_Close(window);
+    NEXUS_VideoWindow_Close(resources.window);
+    resources.window = NULL;
 
     /* stop/remove HDMI callbacks associated with display,
     so those callbacks do not access display once it is removed */
     #if NEXUS_NUM_HDMI_OUTPUTS > 0
     NEXUS_StopCallbacks(platformConfig.outputs.hdmi[0]);
     #endif
-    NEXUS_Display_Close(display);
-#ifdef BDSP_FW_RBUF_CAPTURE
+    NEXUS_Display_Close(resources.display);
+    #ifdef BDSP_FW_RBUF_CAPTURE
     brbuf_uninit_ringbuf_capture();
-#endif
+    #endif
 
     NEXUS_Platform_Uninit();
-#endif
+    #endif
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
     return 0;
 }
@@ -5585,7 +6252,7 @@ void brbuf_init_ringbuf_capture(void)
 
         for ( i = 0; i < 2; i++ )
         {
-            for ( j = 0; j < 8; j++ )
+            for ( j = 0; j < 10; j++ )
             {
                 sprintf(&buf[0], "DECODER%1d%1d", i, j);
                 str_ptr = getenv(&buf[0]);
@@ -5634,7 +6301,7 @@ void start_rbuf_channels_from_env(void)
 
     for ( i = 0; i < 2; i++ )
     {
-        for ( j = 0; j < 8; j++ )
+        for ( j = 0; j < 10; j++ )
         {
             sprintf(&buf[0], "DECODER%1d%1d", i, j);
             str_ptr = getenv(&buf[0]);

@@ -118,7 +118,7 @@ public:
     eRet              addButton(CWidgetButton * pWidgetItem, const char * strName, bool bVisible = true);
     void              removeButton(CWidgetButton * pWidgetItem);
     void              removeButton(uint16_t index);
-    eRet              sortListView(void) { return(_pListView->sort()); }
+    eRet              sortListView(CWidgetButton * pButtonFocus = NULL) { return(_pListView->sort(pButtonFocus)); }
     void              setListButtonActive(CWidgetButton * pWidgetItem, bool bShow = true);
     bool              isListButtonActive(CWidgetButton * pWidgetItem);
     void              clearButtons(void);

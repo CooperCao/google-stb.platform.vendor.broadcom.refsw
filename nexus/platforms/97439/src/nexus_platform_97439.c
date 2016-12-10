@@ -89,6 +89,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
          case 22:
          case 23:
          case 26:
+         case 28:
             pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 124*1024*1024;
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
             break;

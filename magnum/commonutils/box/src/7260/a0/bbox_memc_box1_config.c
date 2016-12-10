@@ -109,7 +109,7 @@ static const uint32_t aulMemc0_20160823083850_DualHDwPiP[] = {
            0x3ffff0ff,  /*  35: UNASSIGNED off */
            0x3ffff0ff,  /*  36: UNASSIGNED off */
            0x3ffff0ff,  /*  37: UNASSIGNED off */
-           0x3ffff0ff,  /*  38: UNASSIGNED off */
+           0xbffff0ff,  /*  38: USB_X_BDC_0 RR */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
            0x802db01a,  /*  40: RAAGA RR 2400ns */
            0x8776402a,  /*  41: RAAGA_1 RR 100000ns */

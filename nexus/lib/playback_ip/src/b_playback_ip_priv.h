@@ -664,11 +664,13 @@ typedef struct HlsSessionState {
     bool useLowestBitRateSegmentOnly; /* Set if we are doing trickmodes for HLS protocol where we use simulated STC mode to drive it faster and need to feed segments as fast as we can. */
     unsigned segmentCounter; /* counter that increments by 1 for every segment that we download. */
     bool restartPlaylistRampUpByBandwidth; /* set during seek, enables logic to re-start the next segment from the lowest bandwidth & go up from there! */
-    unsigned dropEveryNthSegment; /* which segment should get dropped at the higher speeds. */
     unsigned segmentCount; /* how many segments have been downloaded & fed during a particular trickmode speed. */
     NEXUS_PlaybackPosition segmentsRemovedDuration; /* set to the duration of segments removed when a live playlist is updated, needed to calculate the next segment position. */
     bmedia_pes_info pesInfo;
     bool useIFrameTrickmodes;
+    B_Time currentSampleTime;
+    unsigned totalIdealElapsedTimeInSec;
+    unsigned totalRealElapsedTimeInSec;
 }HlsSessionState;
 #endif
 

@@ -1254,7 +1254,7 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
 
-#elif (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==75635) || (BCHP_CHIP==75525)
+#elif (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==75635)
 
     BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
     BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),

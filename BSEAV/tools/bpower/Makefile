@@ -104,30 +104,24 @@ bpower_tree:
 ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
 	@echo [Skipping ... bpower_tree.txt];
 else
-	@if [ -a ${NEXUS_BIN_DIR}/bpower_tree.txt ] ; then \
-		echo "[Exists ... bpower_tree.txt]" > /dev/null; \
-	else \
-		echo "[Creating ... bpower_tree.txt]"; \
-		chmod u+x ${CLKGEN_PATH}/clkgen.pl; \
-		echo "[Running ... clkgen.pl $(BCHP_CHIP) $(BCHP_VER) perf]"; \
-		(cd ${NEXUS_BIN_DIR} && ${CLKGEN_PATH}/clkgen.pl $(BCHP_CHIP) $(BCHP_VER) perf > /dev/null && echo [clkgen.pl done] > /dev/null); \
-		mv -f ${NEXUS_BIN_DIR}/bpower_$(BCHP_CHIP)_tree.txt ${NEXUS_BIN_DIR}/bpower_tree.txt; \
-	fi
+	@test ! -f ${NEXUS_BIN_DIR}/bpower_tree.txt || echo "[Exists ... bpower_tree.txt]" > /dev/null;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || echo "[Creating ... bpower_tree.txt]";
+	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || chmod u+x ${CLKGEN_PATH}/clkgen.pl;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || echo "[Running ... clkgen.pl $(BCHP_CHIP) $(BCHP_VER) perf]";
+	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || (cd ${NEXUS_BIN_DIR} && ${CLKGEN_PATH}/clkgen.pl $(BCHP_CHIP) $(BCHP_VER) perf > /dev/null && echo [clkgen.pl done] > /dev/null);
+	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || mv -f ${NEXUS_BIN_DIR}/bpower_$(BCHP_CHIP)_tree.txt ${NEXUS_BIN_DIR}/bpower_tree.txt;
 endif
 
 bpower_regs.h:
 ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
-	@echo "CLK_TREE_REG_INFO registerInfo[] = {{\"none\",\"none\",0,0,0,0 }}" > ${NEXUS_BIN_DIR}/bpower_regs.h;
+	@echo "CLK_TREE_REG_INFO registerInfo[] = {{\"none\",\"none\",0,0,0,0 }};" > ${NEXUS_BIN_DIR}/bpower_regs.h;
 else
-	@if [ -a ${NEXUS_BIN_DIR}/bpower_regs.h ] ; then \
-		echo "[Exists ... bpower_regs.h]" > /dev/null; \
-	else \
-		echo "[Creating ... bpower_regs.h]"; \
-		awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower1.awk ${NEXUS_BIN_DIR}/bpower_tree.txt | sort -u > ${NEXUS_BIN_DIR}/temp.c; \
-		awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower2.awk ${NEXUS_BIN_DIR}/temp.c  > ${NEXUS_BIN_DIR}/bpower_regs.h; \
-		rm -f ${NEXUS_BIN_DIR}/temp.c; \
-		rm -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower_tree.txt; \
-	fi
+	@test ! -f ${NEXUS_BIN_DIR}/bpower_regs.h || echo "[Exists ... bpower_regs.h]" > /dev/null;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || echo "[Creating ... bpower_regs.h]";
+	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower1.awk ${NEXUS_BIN_DIR}/bpower_tree.txt | sort -u > ${NEXUS_BIN_DIR}/temp.c;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower2.awk ${NEXUS_BIN_DIR}/temp.c  > ${NEXUS_BIN_DIR}/bpower_regs.h;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || rm -f ${NEXUS_BIN_DIR}/temp.c;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || rm -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower_tree.txt;
 endif
 
 clean_bpower_regs:

@@ -206,7 +206,7 @@ static void stop_video(const struct util_opts_t *opts, NEXUS_VideoDecoderHandle 
 }
 
 #if NEXUS_HAS_AUDIO
-static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle audioDecoder, NEXUS_AudioDecoderHandle compressedDecoder, const NEXUS_AudioDecoderStartSettings *audioProgram)
+static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle audioDecoder, NEXUS_AudioDecoderHandle compressedDecoder, NEXUS_AudioDecoderStartSettings *audioProgram)
 {
     NEXUS_Error rc;
     if (opts->common.audioPid) {
@@ -260,6 +260,7 @@ static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle
                     codecSettings.codecSettings.ac4.drcMode = NEXUS_AudioDecoderDolbyDrcMode_eLine;
                     codecSettings.codecSettings.ac4.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eLine;
                 }
+                audioProgram->mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
                 break;
             case NEXUS_AudioCodec_eAacAdts:
             case NEXUS_AudioCodec_eAacLoas:
@@ -311,7 +312,7 @@ static void stop_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle 
     return;
 }
 #else
-static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle audioDecoder, NEXUS_AudioDecoderHandle compressedDecoder, const NEXUS_AudioDecoderStartSettings *audioProgram)
+static void start_audio(const struct util_opts_t *opts, NEXUS_AudioDecoderHandle audioDecoder, NEXUS_AudioDecoderHandle compressedDecoder, NEXUS_AudioDecoderStartSettings *audioProgram)
 {
     BSTD_UNUSED(opts);
     BSTD_UNUSED(audioDecoder);

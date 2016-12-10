@@ -59,8 +59,9 @@
 #ifdef POWERSTANDBY_SUPPORT
 #include "pmlib.h"
 #endif
-#ifdef NETAPP_SUPPORT
 #include "network.h"
+#include "wifi.h"
+#ifdef NETAPP_SUPPORT
 #include "bluetooth.h"
 #endif
 #include "playlist.h"
@@ -1621,15 +1622,20 @@ void CControl::processNotification(CNotification & notification)
     }
 #endif /* ifdef DCC_SUPPORT */
 
-#ifdef NETAPP_SUPPORT
+#if defined (NETAPP_SUPPORT) || defined (WPA_SUPPLICANT_SUPPORT)
     case eNotify_NetworkWifiScanStart:
+    case eNotify_NetworkWifiScanResultRetrieve:
     case eNotify_NetworkWifiScanStop:
     case eNotify_NetworkWifiConnect:
     case eNotify_NetworkWifiDisconnect:
     case eNotify_NetworkWifiConnectionStatus:
     {
         CBoardResources * pBoardResources = _pConfig->getBoardResources();
-        CNetwork *        pNetwork        = (CNetwork *)pBoardResources->checkoutResource(_id, eBoardResource_network);
+#ifdef NETAPP_SUPPORT
+        CNetwork * pNetwork = (CNetwork *)pBoardResources->checkoutResource(_id, eBoardResource_network);
+#elif WPA_SUPPLICANT_SUPPORT
+        CWifi * pNetwork = (CWifi *)pBoardResources->checkoutResource(_id, eBoardResource_wifi);
+#endif
         CHECK_PTR_ERROR_GOTO("unable to checkout network resource", pNetwork, ret, eRet_NotAvailable, errorWifi);
 
         switch (notification.getId())
@@ -1638,6 +1644,11 @@ void CControl::processNotification(CNotification & notification)
             pNetwork->startScanWifi();
             break;
 
+#ifdef WPA_SUPPLICANT_SUPPORT
+        case eNotify_NetworkWifiScanResultRetrieve:
+            pNetwork->retrieveScanResults();
+            break;
+#endif
         case eNotify_NetworkWifiScanStop:
             pNetwork->stopScanWifi();
             break;
@@ -1660,6 +1671,7 @@ void CControl::processNotification(CNotification & notification)
 
         case eNotify_NetworkWifiConnectionStatus:
         {
+#ifdef PLAYBACK_IP_SUPPORT
             /* ip address updated from dhcp */
             CAutoDiscoveryServer * pAutoDiscoveryServer = _pModel->getAutoDiscoveryServer();
             CAutoDiscoveryClient * pAutoDiscoveryClient = _pModel->getAutoDiscoveryClient();
@@ -1673,9 +1685,9 @@ void CControl::processNotification(CNotification & notification)
                 ret = pAutoDiscoveryClient->updateIfAddrs();
                 CHECK_ERROR("unable update ip address in auto discovery client", ret);
             }
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
         }
         break;
-
         default:
             break;
         }   /* switch */
@@ -1684,8 +1696,10 @@ errorWifi:
         pBoardResources->checkinResource(pNetwork);
         pNetwork = NULL;
     }
-    break;
+#endif /* if defined (NETAPP_SUPPORT) || defined (WPA_SUPPLICANT_SUPPORT) */
+        break;
 
+#ifdef NETAPP_SUPPORT
     case eNotify_BluetoothDiscoveryStart:
     case eNotify_BluetoothDiscoveryStop:
     case eNotify_BluetoothConnect:

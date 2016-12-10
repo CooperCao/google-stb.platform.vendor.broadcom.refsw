@@ -194,14 +194,14 @@ ifeq ($(B_REFSW_OS),linuxkernel)
     NEXUS_PLATFORM_PRIVATE_INCLUDES +=$(MAGNUM)/../BSEAV/linux/driver/usermode
     NEXUS_PLATFORM_SOURCES += \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_procfs.c \
-        $(FLOATLIB)/src/fp-bit-single.c \
-        $(FLOATLIB)/src/fp-bit-double.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/linuxuser/nexus_platform_cma.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_platform_os.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_interrupt_map.c
 
     ifeq ($(findstring mips, ${B_REFSW_ARCH}),mips)
     NEXUS_PLATFORM_SOURCES += \
+        $(FLOATLIB)/src/fp-bit-single.c \
+        $(FLOATLIB)/src/fp-bit-double.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/qdivrem.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/divdi3.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/moddi3.c \
@@ -215,9 +215,6 @@ ifeq ($(B_REFSW_OS),linuxkernel)
         $(NEXUS_PLATFORM_COMMON_DIR)/src/support/libgcc/moddi3.c \
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_arm.c
     endif
-
-    # Remove warnings for 3rd-party FP code
-    NEXUS_PLATFORM_EXTRA_CFLAGS += -w
 
     ifeq ($(NEXUS_MODE),driver)
     ifneq ($(LINUX_VER_GE_2_6_31),y)

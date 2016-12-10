@@ -208,5 +208,9 @@ int                output_cpu_frequencies( void );
 int                set_governor_control ( int cpu, DVFS_GOVERNOR_TYPES GovernorSetting );
 int                get_governor_control ( int cpu );
 int                get_cpu_frequencies_supported( int cpu, char *cpu_frequencies_supported, int cpu_frequencies_supported_size );
+int                output_file_size_in_human( const char *sFilename );
+char              *decodeFilename( const char *filename );
+int                sendFileToBrowser( const char *filename);
+int                readFileFromBrowser( const char *contentType, const char *contentLength, char *sFilename, unsigned long int lFilenameLen);
 
 #endif /* __BMEMPERF_LIB_H__ */

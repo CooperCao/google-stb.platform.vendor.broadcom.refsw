@@ -47,7 +47,6 @@
 BDBG_MODULE(bape_mixer);
 BDBG_FILE_MODULE(bape_mixer_get_mclk_source);
 BDBG_FILE_MODULE(bape_fci);
-BDBG_FILE_MODULE(bape_mixer_input_coeffs);
 BDBG_FILE_MODULE(bape_mixer_input_coeffs_detail);
 
 #define BAPE_MIXER_INPUT_INDEX_INVALID ((unsigned)-1)
@@ -2840,4 +2839,6 @@ static const BAPE_MixerInterface  standardMixerInterface  = {
     BAPE_StandardMixer_P_ApplyOutputVolume,      /*       (*applyOutputVolume) */
     BAPE_StandardMixer_P_SetSettings,            /*       (*setSettings) */
     BAPE_StandardMixer_P_ApplyStereoMode,        /*       (*applyStereoMode) */
+    NOT_SUPPORTED(BAPE_StandardMixer_P_GetInputStatus),
+    NOT_SUPPORTED(BAPE_StandardMixer_P_GetStatus)
 };

@@ -27,7 +27,6 @@ Drivers use this interface to interact with hardware
 #include <stddef.h> /* for offsetof */
 #include <stdio.h>
 #ifdef __mips__
-#define __USE_GNU
 #include <dlfcn.h>
 #endif /* __mips__ */
 

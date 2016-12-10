@@ -101,7 +101,15 @@ typedef struct
 
     uint8_t *pFramework;  /* SAGE Framework image loaded into memory.                        */
     uint32_t frameworkSize;
+#ifdef SAGE_KO
+    uint8_t *pBootloaderDev; /* SAGE bootloader image loaded into memory.                    */
+    uint32_t bootloaderDevSize;
 
+    uint8_t *pFrameworkDev;  /* SAGE Framework image loaded into memory.                        */
+    uint32_t frameworkDevSize;
+
+    uint32_t HSIBufferOffset;
+#endif
     /* Buffer holding the parameters of SAGE log buffer*/
     uint32_t logBufferOffset;
     uint32_t logBufferSize;

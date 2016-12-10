@@ -65,6 +65,7 @@
 #include "still_decode.h"
 #include "thumb.h"
 #include "config.h"
+#include "wifi.h"
 
 #ifdef MPOD_SUPPORT
 #include "cablecard.h"
@@ -163,21 +164,38 @@ public:
     virtual void            audioCaptureUninitialize(void);
 #endif
 
-    bwin_engine_t   getWinEngine(void);
-    CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
-    eRet            run(void);
-    CControl *      getControl(void) { return(_pControl); }
-    void            controlDestroy(CControl * pControl);
-    void            displayDestroy(CDisplay * pDisplay);
-    CDisplay *      displayInitialize(NEXUS_VideoFormat videoFormat, uint32_t framebufferWidth, uint32_t framebufferHeight);
-    void            displayUninitialize(CDisplay ** pDisplay);
-    void            graphicsDestroy(CGraphics * pGraphics);
-    CGraphics *     graphicsInitialize(CDisplay * pDisplayHD, CDisplay * pDisplaySD);
-    void            graphicsUninitialize(void);
-    CIrRemote *     irRemoteCreate(void);
-    void            irRemoteDestroy(CIrRemote * pIrRemote);
-    CIrRemote *     irRemoteInitialize(void);
-    void            irRemoteUninitialize(void);
+    bwin_engine_t        getWinEngine(void);
+    CWidgetEngine *      getWidgetEngine(void) { return(_pWidgetEngine); }
+    eRet                 run(void);
+    CControl *           getControl(void) { return(_pControl); }
+    void                 controlDestroy(CControl * pControl);
+    void                 displayDestroy(CDisplay * pDisplay);
+    CDisplay *           displayInitialize(NEXUS_VideoFormat videoFormat, uint32_t framebufferWidth, uint32_t framebufferHeight);
+    void                 displayUninitialize(CDisplay ** pDisplay);
+    void                 graphicsDestroy(CGraphics * pGraphics);
+    CGraphics *          graphicsInitialize(CDisplay * pDisplayHD, CDisplay * pDisplaySD);
+    void                 graphicsUninitialize(void);
+    CIrRemote *          irRemoteCreate(void);
+    void                 irRemoteDestroy(CIrRemote * pIrRemote);
+    CIrRemote *          irRemoteInitialize(void);
+    void                 irRemoteUninitialize(void);
+    CStc *               stcInitialize(eWindowType windowType);
+    void                 stcUninitialize(CStc ** pStc, eWindowType windowType);
+    void                 videoDecodeDestroy(eWindowType windowType);
+    void                 audioDecodeDestroy(eWindowType windowType);
+    CSimpleAudioDecode * audioDecodeInitialize(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
+    void                 audioDecodeUninitialize(CSimpleAudioDecode ** pAudioDecode, eWindowType winType);
+    eRet                 guiInitialize(CConfig * pConfig, CGraphics * pGraphics);
+    void                 guiUninitialize(void);
+    void                 notificationsInitialize(void);
+    void                 notificationsUninitialize(void);
+    eRet                 snmpInitialize(void);
+    void                 snmpUninitialize(void);
+    eRet                 setPreferredVideoFormat(COutputHdmi * pOutputHdmi, COutputComponent * pOutputComponent, COutputComposite * pOutputComposite, COutputRFM * pOutputRFM);
+    eRet                 wifiInitialize(void);
+    void                 wifiUninitialize(void);
+    void                 mvcRelationshipsInitialize(CConfig * pConfig);
+    void                 mvcRelationshipsUninitialize(void);
 #ifdef RF4CE_SUPPORT
     CRf4ceRemote * rf4ceRemoteCreate(void);
     void           rf4ceRemoteDestroy(CRf4ceRemote * pRf4ceRemote);
@@ -194,19 +212,6 @@ public:
     eRet digitalClosedCaptionsInitialize(CConfig * pConfig);
     void digitalClosedCaptionsUninitialize(void);
 #endif
-    CStc *               stcInitialize(eWindowType windowType);
-    void                 stcUninitialize(CStc ** pStc, eWindowType windowType);
-    void                 videoDecodeDestroy(eWindowType windowType);
-    void                 audioDecodeDestroy(eWindowType windowType);
-    CSimpleAudioDecode * audioDecodeInitialize(COutputHdmi * pOutputHdmi, COutputSpdif * pOutputSpdif, COutputAudioDac * pOutputAudioDac, COutputRFM * pOutputRFM, CStc * pStc, eWindowType winType);
-    void                 audioDecodeUninitialize(CSimpleAudioDecode ** pAudioDecode, eWindowType winType);
-    eRet                 guiInitialize(CConfig * pConfig, CGraphics * pGraphics);
-    void                 guiUninitialize(void);
-    void                 notificationsInitialize(void);
-    void                 notificationsUninitialize(void);
-    eRet                 snmpInitialize(void);
-    void                 snmpUninitialize(void);
-    eRet                 setPreferredVideoFormat(COutputHdmi * pOutputHdmi, COutputComponent * pOutputComponent, COutputComposite * pOutputComposite, COutputRFM * pOutputRFM);
 #ifdef DVR_LIB_SUPPORT
     CTsb * dvrLibInitialize(void);
     void   dvrLibUninitialize(void);
@@ -235,8 +240,6 @@ public:
     void estbInitialize(void);
     void estbUninitialize(void);
 #endif
-    void mvcRelationshipsInitialize(CConfig * pConfig);
-    void mvcRelationshipsUninitialize(void);
 
 protected:
     CConfig *         _pConfig;

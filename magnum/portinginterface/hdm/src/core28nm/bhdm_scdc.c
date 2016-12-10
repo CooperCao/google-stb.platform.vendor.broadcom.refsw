@@ -76,7 +76,7 @@ BERR_Code BHDM_SCDC_Initialize(
 
 	if (hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport == 0)
 	{
-		BDBG_WRN(("Attached Rx <%s> does not support SCDC (Status and Control Data Channel)",
+		BDBG_MSG(("Attached Rx <%s> does not support SCDC (Status and Control Data Channel)",
 			hHDMI->AttachedEDID.MonitorName)) ;
 		rc = BERR_NOT_AVAILABLE ;
 		goto done ;
@@ -801,10 +801,12 @@ BERR_Code BHDM_SCDC_ConfigureScrambling(const BHDM_Handle hHDMI)
 	/* make sure Tx is not scrambling from a previous connection */
 	BHDM_SCDC_DisableScrambleTx(hHDMI) ;
 
+	/* skip writing to SCDC configuration if the Rx does not support it */
 	if ((!hHDMI->AttachedEDID.RxHdmiForumVsdb.exists)
 	|| (hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport == 0))
 	{
-		BDBG_WRN(("Attached Rx does not support SCDC (Status and Control Data Channel)")) ;
+		BDBG_WRN(("Rx <%s> does not support SCDC; Scrambling cannot be configured",
+			hHDMI->AttachedEDID.MonitorName)) ;
 
 		goto done ;
 	}

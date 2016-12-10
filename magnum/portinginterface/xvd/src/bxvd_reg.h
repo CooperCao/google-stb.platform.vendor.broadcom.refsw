@@ -67,7 +67,7 @@ void BXVD_Reg_Write32(
     uint32_t data     /* Data */
     );
 
-#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
 uint64_t BXVD_Reg_Read64(
     BXVD_Handle hXvd, /* XVD handle */
     uint64_t offset   /* Register offset to read */

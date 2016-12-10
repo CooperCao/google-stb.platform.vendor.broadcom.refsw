@@ -628,7 +628,7 @@ static void *Bsysperf_WifiScanThread(
     int rc = 0;
     BSTD_UNUSED( data );
 
-    printf( "%s:%u: calling Bsysperf_WifiScanGetResults() \n", __FUNCTION__, __LINE__ );
+    noprintf( "%s:%u: calling Bsysperf_WifiScanGetResults() \n", __FUNCTION__, __LINE__ );
     rc = Bsysperf_WifiScanGetResults( WIFI_INTERFACE_NAME );
 
     if ( rc == 0 )
@@ -636,7 +636,7 @@ static void *Bsysperf_WifiScanThread(
         g_WifiScanApCount = BWL_escanresults_count();
     }
 
-    printf( "%s:%u: complete. g_WifiScanApCount %lu ... pthread_exit(0). \n", __FUNCTION__, __LINE__, g_WifiScanApCount );
+    noprintf( "%s:%u: complete. g_WifiScanApCount %lu ... pthread_exit(0). \n", __FUNCTION__, __LINE__, g_WifiScanApCount );
 
     g_WifiScanThreadId = 0;
 
@@ -706,7 +706,7 @@ static void *Bsysperf_iperf_thread(
     }
 
     sprintf( line, "%s", (const char *) data );
-    printf( "%s:%u: %lx ... issuing system(%s)\n", __FUNCTION__, __LINE__, pthread_self(), line );
+    /*printf( "%s:%u: %lx ... issuing system(%s)\n", __FUNCTION__, __LINE__, pthread_self(), line );*/
 
     system( line );
 
@@ -719,7 +719,7 @@ static void *Bsysperf_iperf_thread(
         g_iperfThreadId[1] = 0;
     }
 
-    printf( "%s:%u: %lx ... exiting \n", __FUNCTION__, __LINE__, pthread_self() );
+    PRINTF( "%s:%u: %lx ... exiting \n", __FUNCTION__, __LINE__, pthread_self() );
 
     pthread_exit( 0 );
 
@@ -734,7 +734,7 @@ static void Bsysperf_iperf_sigusr(
     int signum
     )
 {
-    printf( "%s: %lx ... got signal %d; g_iperfThreadId %lx and %lx ... exiting \n", __FUNCTION__, pthread_self(), signum, g_iperfThreadId[0], g_iperfThreadId[1] );
+    PRINTF( "%s: %lx ... got signal %d; g_iperfThreadId %lx and %lx ... exiting \n", __FUNCTION__, pthread_self(), signum, g_iperfThreadId[0], g_iperfThreadId[1] );
 
     if (signum == SIGUSR1)
     {
@@ -768,7 +768,7 @@ static int Bsysperf_iperf_start(
     }
     else
     {
-        printf("%s:%u: %lx ... started Bsysperf_iperf_thread() ... g_iperfThreadId %lx \n", __FUNCTION__, __LINE__, pthread_self(), g_iperfThreadId[cmdSecondaryOption] );
+        /*printf("%s:%u: %lx ... started Bsysperf_iperf_thread() ... g_iperfThreadId %lx \n", __FUNCTION__, __LINE__, pthread_self(), g_iperfThreadId[cmdSecondaryOption] );*/
     }
 
     return( 0 );
@@ -783,13 +783,25 @@ static int Bsysperf_iperf_stop(
 {
     int pid = 0;
 
+    /* if we are to stop ipef -c ... client */
     if ( g_iperfThreadId[cmdSecondaryOption] )
     {
-        printf( "%s:%u: %lx ... pthread_kill ( %lx ) \n", __FUNCTION__, __LINE__, pthread_self(), (long int) g_iperfThreadId[cmdSecondaryOption] );
+        /*PRINTF( "%s:%u: %lx ... pthread_kill ( %lx ) \n", __FUNCTION__, __LINE__, pthread_self(), (long int) g_iperfThreadId[cmdSecondaryOption] );*/
         pthread_kill( g_iperfThreadId[cmdSecondaryOption], g_sigusr[cmdSecondaryOption] );
         /*PRINTF( "%s:%u: %lx ... pthread_kill ( %lx ) (%s) \n", __FUNCTION__, __LINE__, pthread_self(), (long int) g_iperfThreadId[cmdSecondaryOption], strerror(errno) );*/
+
+        pid = getPidOf( "iperf -c" );
+        /* if one is found, kill it */
+        if (pid > 0)
+        {
+            char cmd[128];
+            sprintf( cmd, "kill -9 %d", (int) pid );
+            /*PRINTF( "%s:%u: system (%s) \n", __FUNCTION__, __LINE__, cmd );*/
+            system( cmd );
+        }
     }
 
+    /* if we are to stop ipef -s ... server */
     if ( cmdSecondaryOption == 1 )
     {
         /* determine the pid of any other running iperf server ... in case iperf server was launched outside of bsysperf */
@@ -1453,7 +1465,7 @@ static int Bmemperf_ReadRequest(
 #ifdef BWL_SUPPORT
                 else if ( pRequest->cmdSecondary == BMEMPERF_CMD_WIFI_SCAN_START )
                 {
-                    printf("%s:%u: BMEMPERF_CMD_WIFI_SCAN_START recvd \n", __FUNCTION__, __LINE__  );
+                    PRINTF("%s:%u: BMEMPERF_CMD_WIFI_SCAN_START recvd \n", __FUNCTION__, __LINE__  );
                     if ( g_WifiScanThreadId == 0 )
                     {
                         /* start new wifi scan thread */
@@ -1461,25 +1473,25 @@ static int Bmemperf_ReadRequest(
                     }
                     else
                     {
-                        printf("%s:%u: BMEMPERF_CMD_WIFI_SCAN_START ... thread is already running \n", __FUNCTION__, __LINE__  );
+                        PRINTF("%s:%u: BMEMPERF_CMD_WIFI_SCAN_START ... thread is already running \n", __FUNCTION__, __LINE__  );
                     }
                 }
                 else if ( pRequest->cmdSecondary == BMEMPERF_CMD_WIFI_AMPDU_START )
                 {
-                    printf("%s:%u: BMEMPERF_CMD_WIFI_AMPDU_START recvd \n", __FUNCTION__, __LINE__  );
+                    PRINTF("%s:%u: BMEMPERF_CMD_WIFI_AMPDU_START recvd \n", __FUNCTION__, __LINE__  );
                     Bsysperf_WifiAmpduStart();
                 }
 #endif /* BWL_SUPPORT */
 
                 else if ( pRequest->cmdSecondary == BMEMPERF_CMD_IPERF_START )
                 {
-                    printf("%s:%u: BMEMPERF_CMD_IPERF_START recvd ... secondary %d \n", __FUNCTION__, __LINE__, (int) pRequest->cmdSecondaryOption );
+                    PRINTF("%s:%u: BMEMPERF_CMD_IPERF_START recvd ... secondary %d \n", __FUNCTION__, __LINE__, (int) pRequest->cmdSecondaryOption );
                     Bsysperf_iperf_start( pRequest->request.strCmdLine, pRequest->cmdSecondaryOption );
                 }
 
                 else if ( pRequest->cmdSecondary == BMEMPERF_CMD_IPERF_STOP )
                 {
-                    printf("%s:%u: BMEMPERF_CMD_IPERF_STOP recvd ... secondary %d \n", __FUNCTION__, __LINE__, (int) pRequest->cmdSecondaryOption );
+                    PRINTF("%s:%u: BMEMPERF_CMD_IPERF_STOP recvd ... secondary %d \n", __FUNCTION__, __LINE__, (int) pRequest->cmdSecondaryOption );
                     Bsysperf_iperf_stop( pRequest->cmdSecondaryOption );
                 }
                 /*if ( g_iperfThreadId[pRequest->cmdSecondaryOption] ) printf("%s:%u: g_iperfThreadId (%lx) \n", __FUNCTION__, __LINE__, (long int) g_iperfThreadId[pRequest->cmdSecondaryOption] );*/
@@ -1489,7 +1501,7 @@ static int Bmemperf_ReadRequest(
 #ifdef BWL_SUPPORT
                 if ( pRequest->cmdSecondary == BMEMPERF_CMD_WIFI_SCAN_GET_RESULTS )
                 {
-                    printf("%s:%u: SCAN_GET_RESULTS recvd: ApCount %lu; ServerIdx %lu ... g_WifiScanApCount %lu \n", __FUNCTION__, __LINE__, g_WifiScanApCount, pRequest->cmdSecondaryOption, g_WifiScanApCount );
+                    PRINTF("%s:%u: SCAN_GET_RESULTS recvd: ApCount %lu; ServerIdx %lu ... g_WifiScanApCount %lu \n", __FUNCTION__, __LINE__, g_WifiScanApCount, pRequest->cmdSecondaryOption, g_WifiScanApCount );
                     if ( g_WifiScanApCount && pRequest->cmdSecondaryOption < g_WifiScanApCount )
                     {
                         /* the copy starting index can be 0 .. 8 .. 16 .. 24 .. 32 .. etc until all 40 APs have been sent back to the client ... sending 8 at a time */

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -512,6 +532,94 @@ void BAPE_P_DetachMixerFromPll(BAPE_MixerHandle mixer, BAPE_Pll pll)
     BLST_S_REMOVE(&mixer->deviceHandle->audioPlls[pll].mixerList, mixer, BAPE_Mixer, pllNode);
 }
 
+void BAPE_P_AttachInputPortToPll(BAPE_InputPort input, BAPE_Pll pll)
+{
+    BKNI_EnterCriticalSection();
+    BAPE_P_AttachInputPortToPll_isrsafe(input, pll);
+    BKNI_LeaveCriticalSection();
+}
+
+void BAPE_P_AttachInputPortToPll_isrsafe(BAPE_InputPort input, BAPE_Pll pll)
+{
+    unsigned pllIndex = pll - BAPE_Pll_e0;
+    BAPE_Handle deviceHandle;
+    BAPE_I2sInputHandle i2sHandle;
+    BAPE_MaiInputHandle maiHandle;
+    BAPE_SpdifInputHandle spdifHandle;
+
+    BDBG_OBJECT_ASSERT(input, BAPE_InputPort);
+
+    if ( pllIndex >= BAPE_CHIP_MAX_PLLS )
+    {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        BDBG_ASSERT(pllIndex < BAPE_CHIP_MAX_PLLS);
+        return;
+    }
+
+    BDBG_MSG(("Attaching InputPort(%s) %p to PLL:%u", input->pName,(void *)input, pllIndex ));
+    switch (input->type)
+    {
+    case BAPE_InputPortType_eI2s:
+        i2sHandle = input->pHandle;
+        deviceHandle = i2sHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eMai:
+        maiHandle = input->pHandle;
+        deviceHandle = maiHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eSpdif:
+        spdifHandle = input->pHandle;
+        deviceHandle = spdifHandle->deviceHandle;
+        break;
+    default:
+        BDBG_ERR(("Invalid InputPort Type (%d)", input->type));
+        return;
+    }
+
+    BLST_S_INSERT_HEAD(&deviceHandle->audioPlls[pllIndex].inputList, input, pllNode);
+    /* Update MCLK source for attached outputs */
+    BAPE_P_UpdatePll_isr(deviceHandle, pll);
+}
+
+void BAPE_P_DetachInputPortFromPll_isrsafe(BAPE_InputPort input, BAPE_Pll pll)
+{
+
+    unsigned pllIndex = pll - BAPE_Pll_e0;
+    BAPE_Handle deviceHandle;
+    BAPE_I2sInputHandle i2sHandle;
+    BAPE_MaiInputHandle maiHandle;
+    BAPE_SpdifInputHandle spdifHandle;
+
+    BDBG_OBJECT_ASSERT(input, BAPE_InputPort);
+    if ( pllIndex >= BAPE_CHIP_MAX_PLLS )
+    {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        BDBG_ASSERT(pllIndex < BAPE_CHIP_MAX_PLLS);
+        return;
+    }
+    BDBG_MSG(("Detaching InputPort(%s) %p from PLL:%u", input->pName, (void *)input, pllIndex ));
+    switch (input->type)
+    {
+    case BAPE_InputPortType_eI2s:
+        i2sHandle = input->pHandle;
+        deviceHandle = i2sHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eMai:
+        maiHandle = input->pHandle;
+        deviceHandle = maiHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eSpdif:
+        spdifHandle = input->pHandle;
+        deviceHandle = spdifHandle->deviceHandle;
+        break;
+    default:
+        BDBG_ERR(("Invalid InputPort Type (%d)", input->type));
+        return;
+    }
+
+    BLST_S_REMOVE(&deviceHandle->audioPlls[pllIndex].inputList, input, BAPE_InputPortObject, pllNode);
+}
+
 static BERR_Code BAPE_P_GetPllBaseSampleRate_isr(unsigned sampleRate, unsigned *pBaseRate)
 {
     switch ( sampleRate )
@@ -598,6 +706,7 @@ void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2)
     BAPE_Handle handle = pParam1;
     BAPE_Pll pll = param2;
     BAPE_Mixer *pMixer;
+    BAPE_InputPortObject *pInputPort;
     BERR_Code errCode;
     unsigned baseRate = 0;
 
@@ -631,7 +740,31 @@ void BAPE_P_VerifyPllCallback_isr(void *pParam1, int param2)
                 BDBG_WRN(("Sample rate conflict on PLL %d.  One mixer requests %u another requests %u", pll, baseRate, mixerRate));
             }
         }
-    }    
+    }
+
+    /* Walk through each InputPort and make sure we have no conflicts */
+    for ( pInputPort = BLST_S_FIRST(&handle->audioPlls[pll].inputList);
+          pInputPort != NULL;
+          pInputPort = BLST_S_NEXT(pInputPort, pllNode) )
+    {
+        unsigned mixerRate;
+
+        if (pInputPort->format.sampleRate == 0)
+        {
+            continue;
+        }
+
+        mixerRate = pInputPort->format.sampleRate;
+
+        if ( baseRate == 0 )
+        {
+            baseRate = mixerRate;
+        }
+        else if ( baseRate != mixerRate )
+        {
+            BDBG_WRN(("Sample rate conflict on PLL %d.  One mixer requests %u, and InputPort(%s) %u", pll, baseRate, pInputPort->pName, mixerRate));
+        }
+    }
 }
 
 BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
@@ -639,6 +772,7 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
     unsigned baseRate = 0;
     unsigned idleRate = 0;
     BAPE_Mixer *pMixer;
+    BAPE_InputPortObject *pInputPort;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
@@ -665,6 +799,12 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
         {
             return BERR_TRACE(errCode);
         }
+
+        if (pMixer->pathNode.subtype == BAPE_MixerType_eDsp)
+        {
+            mixerRate = 48000;
+        }
+
         if ( pMixer->running )
         {
             if ( baseRate == 0 )
@@ -685,6 +825,34 @@ BERR_Code BAPE_P_UpdatePll_isr(BAPE_Handle handle, BAPE_Pll pll)
     if ( baseRate == 0 )
     {
         baseRate = idleRate;
+    }
+
+    /* Walk through each InputPort and make sure we have no conflicts */
+    for ( pInputPort = BLST_S_FIRST(&handle->audioPlls[pll].inputList);
+          pInputPort != NULL;
+          pInputPort = BLST_S_NEXT(pInputPort, pllNode) )
+    {
+        unsigned mixerRate;
+
+        if (pInputPort->format.sampleRate == 0)
+        {
+            continue;
+        }
+
+        errCode = BAPE_P_GetPllBaseSampleRate_isr(pInputPort->format.sampleRate, &mixerRate);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        if ( baseRate == 0 )
+        {
+            baseRate = mixerRate;
+        }
+        else if ( baseRate != mixerRate )
+        {
+            errCode = BTMR_StartTimer_isr(handle->pllTimer[pll], 100*100);
+        }
     }
 
     if ( baseRate != 0 )
@@ -1017,5 +1185,3 @@ BERR_Code BAPE_Pll_P_ResumeFromStandby(BAPE_Handle bapeHandle)
     }
     return errCode;
 }
-
-

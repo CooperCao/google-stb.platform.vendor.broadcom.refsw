@@ -65,6 +65,8 @@ typedef enum NEXUS_OtpIdType
     NEXUS_OtpIdType_eD,
     NEXUS_OtpIdType_eE,
     NEXUS_OtpIdType_eF,
+    NEXUS_OtpIdType_eG,
+    NEXUS_OtpIdType_eH,
 
     NEXUS_OtpIdType_eMax
 }   NEXUS_OtpIdType;

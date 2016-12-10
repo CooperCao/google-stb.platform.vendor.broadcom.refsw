@@ -106,6 +106,10 @@ typedef struct NEXUS_AudioMixerDolbySettings
             int gain;                   /* Gain in 0.0625 dB steps, achieving +/- 30dB of gain. Valid values [-480 - 480] */
         } band [20];
     } intelligentEqualizer;
+    struct {
+        bool continuousFading;          /* When true, fade operation will proceed even in the absence of active input data.
+                                           Default is false. */
+    } fade;
     /* End Dolby MS12 DAP features */
 } NEXUS_AudioMixerDolbySettings;
 
@@ -152,6 +156,9 @@ typedef struct NEXUS_AudioMixerSettings
                                                       Default value is NEXUS_AUDIO_VOLUME_LINEAR_NORMAL (no attenuation or boost) */
     bool outputMuted;           /* Output mute control to be applied to downstream connections.
                                    This control is valid ONLY for mixers with intermediate=true */
+
+    NEXUS_AudioFadeSettings mainDecodeFade; /* Fade control for main decode output mixer stage (Main+Associate or Dual Main)
+                                               -- only supported for MS12 DSP Mixers */
 
     int32_t loopbackVolumeMatrix[NEXUS_AudioChannel_eMax][NEXUS_AudioChannel_eMax]; /* If this is a DSP mixer, and we have one
                                            or more PcmPlayback/FMM (loopback) inputs, apply these mixing coefficients.
@@ -296,24 +303,41 @@ NEXUS_AudioInputHandle NEXUS_AudioMixer_GetConnector(
 
 /***************************************************************************
 Summary:
-    Acquire mixer input volume into a mixer object in nexus
- ***************************************************************************/
+Get Mixer Input Settings
+***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
     NEXUS_AudioMixerHandle handle,
     NEXUS_AudioInputHandle input,
-    NEXUS_AudioMixerInputSettings *pSettings
+    NEXUS_AudioMixerInputSettings *pSettings       /* [out] Mixer Input Settings */
     );
-
-
 
 /***************************************************************************
 Summary:
-    Propagate mixer input volume into a mixer object in nexus
- ***************************************************************************/
+Set Mixer Input Settings
+***************************************************************************/
 NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
     NEXUS_AudioMixerHandle handle,
     NEXUS_AudioInputHandle input,
     const NEXUS_AudioMixerInputSettings *pSettings
+    );
+
+/***************************************************************************
+Summary:
+Get Status of Mixer Input
+***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_GetInputStatus(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInputHandle input,
+    NEXUS_AudioMixerInputStatus *pStatus       /* [out] Mixer Input Status */
+    );
+
+/***************************************************************************
+Summary:
+Get Status of Mixer
+***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_GetStatus(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioMixerStatus *pStatus      /* [out] Mixer Status */
     );
 
 #ifdef __cplusplus

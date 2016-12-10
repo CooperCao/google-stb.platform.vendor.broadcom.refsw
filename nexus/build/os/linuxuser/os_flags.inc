@@ -94,6 +94,11 @@ endif
 endif
 endif
 
+ifeq ($(filter $(B_REFSW_DEBUG_LEVEL),none wrn err),$(B_REFSW_DEBUG_LEVEL))
+# Release builds generate unused values. We suppress this warning.
+NEXUS_C_WARNINGS += -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function
+endif
+
 NEXUS_INTERNAL_CFLAGS += $(NEXUS_C_WARNINGS)
 NEXUS_CFLAGS += $(NEXUS_INTERNAL_CFLAGS)
 

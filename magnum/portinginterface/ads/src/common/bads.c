@@ -1,26 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2005-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bads.h"
 #include "bads_priv.h"
@@ -92,7 +106,7 @@ BERR_Code BADS_Open(
 
 
     BDBG_ENTER(BADS_Open);
-    
+
     if( pDefSettings->funcPtr.Open != NULL )
     {
         retCode = pDefSettings->funcPtr.Open(pAds, hChip, hRegister, hInterrupt, pDefSettings );
@@ -139,7 +153,7 @@ BERR_Code BADS_Init(
 
     BDBG_ENTER(BADS_Init);
     BDBG_ASSERT( hDev );
-    
+
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
     if( hDev->settings.funcPtr.Init != NULL )
@@ -181,7 +195,7 @@ BERR_Code BADS_GetVersion(
 }
 
 BERR_Code BADS_GetVersionInfo(
-    BADS_Handle hDev,                        /* [in] Device handle */
+    BADS_Handle hDev,                   /* [in] Device handle */
     BFEC_VersionInfo *pVersionInfo /* [out] Returns version Info */
     )
 {
@@ -204,7 +218,7 @@ BERR_Code BADS_GetVersionInfo(
     BDBG_LEAVE(BADS_GetVersionInfo);
     return( retCode );
 }
-    
+
 BERR_Code BADS_GetBondingCapability(
     BADS_Handle hDev,                   /* [in] Device handle */
     unsigned int *bondedChannels         /* [out] Returns the number of bonded channels stored & reserved for Docsis */
@@ -314,7 +328,7 @@ BERR_Code BADS_CloseChannel(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
+
 
     BDBG_ENTER(BADS_CloseChannel);
     BDBG_ASSERT( hChn );
@@ -470,7 +484,7 @@ BERR_Code BADS_GetStatus(
     BDBG_ENTER(BADS_GetStatus);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.GetStatus != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.GetStatus( hChn, pStatus);
@@ -494,7 +508,7 @@ BERR_Code BADS_RequestAsyncStatus(
     BDBG_ENTER(BADS_RequestAsyncStatus);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.RequestAsyncStatus != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.RequestAsyncStatus( hChn);
@@ -519,7 +533,7 @@ BERR_Code BADS_GetAsyncStatus(
     BDBG_ENTER(BADS_GetAsyncStatus);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.GetAsyncStatus != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.GetAsyncStatus( hChn, pStatus);
@@ -544,7 +558,7 @@ BERR_Code BADS_GetScanStatus(
     BDBG_ENTER(BADS_GetScanStatus);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.GetScanStatus != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.GetScanStatus( hChn, pScanStatus);
@@ -698,7 +712,7 @@ BERR_Code BADS_InstallCallback(
     BDBG_ENTER(BADS_InstallCallback);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.InstallCallback != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.InstallCallback( hChn, callbackType, pCallback, pParam );
@@ -718,8 +732,8 @@ BERR_Code BADS_SetDaisyChain(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
-    
+
+
     BDBG_ENTER(BADS_SetDaisyChain);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
@@ -745,8 +759,8 @@ BERR_Code BADS_GetDaisyChain(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
-    
+
+
     BDBG_ENTER(BADS_GetDaisyChain);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
@@ -772,11 +786,11 @@ BERR_Code BADS_ResetStatus(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_ResetStatus);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.ResetStatus != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.ResetStatus( hChn);
@@ -796,8 +810,8 @@ BERR_Code BADS_GetInterruptEventHandle(
 )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
-    
+
+
     BDBG_ENTER(BADS_GetInterruptEventHandle);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
@@ -821,8 +835,8 @@ BERR_Code BADS_ProcessInterruptEvent(
 )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
-    
+
+
     BDBG_ENTER(BADS_ProcessInterruptEvent);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
@@ -874,11 +888,11 @@ BERR_Code BADS_ReadSlave(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_ReadSlave);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.ReadSlave != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.ReadSlave( hChn, chipAddr, subAddr, subAddrLen, data, dataLen );
@@ -902,11 +916,11 @@ BERR_Code BADS_WriteSlave(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_WriteSlave);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.WriteSlave != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.WriteSlave(  hChn, chipAddr, subAddr, subAddrLen, data, dataLen );
@@ -925,21 +939,21 @@ BERR_Code BADS_WriteSlave(
 Summary:
    This function will pass the scan parameter to ADS.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BADS_SetScanParam(
-		BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+		BADS_ChannelHandle hChn,     /* [in] Device channel handle */
 	    BADS_ChannelScanSettings *pChnScanSettings /* [in] Set Channel setting */
 )
 {
 	BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_SetScanParam);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.SetScanParam != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.SetScanParam(  hChn, pChnScanSettings);
@@ -956,21 +970,21 @@ BERR_Code BADS_SetScanParam(
 Summary:
    This function will get the scan parameter from ADS.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BADS_GetScanParam (
-		BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+		BADS_ChannelHandle hChn,     /* [in] Device channel handle */
 		BADS_ChannelScanSettings *pChnScanSettings /* [out] Returns channel default setting */
 )
 {
 	BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_GetScanParam);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.GetScanParam != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.GetScanParam(  hChn, pChnScanSettings);
@@ -988,21 +1002,21 @@ BERR_Code BADS_GetScanParam (
 Summary:
    This function sends request for spectrum analyzer data to the LEAP.
 Description:
-  
+
 Returns:
    BERR_Code
 ******************************************************************************/
 BERR_Code BADS_RequestSpectrumAnalyzerData(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumSettings *pSettings /* [in] spectrum settings */
     )
 {
 	BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_RequestSpectrumAnalyzerData);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.RequestSpectrumAnalyzerData != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.RequestSpectrumAnalyzerData(  hChn, pSettings);
@@ -1014,27 +1028,27 @@ BERR_Code BADS_RequestSpectrumAnalyzerData(
 
     BDBG_LEAVE(BADS_RequestSpectrumAnalyzerData);
     return( retCode );
-}    
+}
 
 /******************************************************************************
 Summary:
    This function gets spectrum analyzer data from the LEAP.
 Description:
-  
+
 Returns:
    BERR_Code
-******************************************************************************/    
+******************************************************************************/
 BERR_Code BADS_GetSpectrumAnalyzerData(
-    BADS_ChannelHandle hChn,     /* [in] Device channel handle */ 
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumData  *pSpectrumData /* [out] spectrum Data*/
     )
 {
 	BERR_Code retCode = BERR_SUCCESS;
-    
+
     BDBG_ENTER(BADS_GetSpectrumAnalyzerData);
     BDBG_ASSERT( hChn );
     BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
-    
+
     if( hChn->hAds->settings.funcPtr.GetSpectrumAnalyzerData != NULL )
     {
         retCode = hChn->hAds->settings.funcPtr.GetSpectrumAnalyzerData(  hChn, pSpectrumData);
@@ -1047,4 +1061,97 @@ BERR_Code BADS_GetSpectrumAnalyzerData(
     BDBG_LEAVE(BADS_GetSpectrumAnalyzerData);
     return( retCode );
 }
-    
+
+BERR_Code BADS_TuneIfDac(
+    BADS_ChannelHandle hChn,     /* [in] Device channel handle */
+    BADS_IfDacSettings *pSettings       /* [in] IF DAC Settings */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BADS_TuneIfDac);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    if( hChn->hAds->pTuneIfDac != NULL )
+    {
+        CHK_RETCODE( retCode, hChn->hAds->pTuneIfDac( hChn, pSettings ) );
+    }
+    else {
+        retCode = BERR_NOT_SUPPORTED;
+    }
+
+done:
+    BDBG_LEAVE(BADS_TuneIfDac);
+    return( retCode );
+}
+
+BERR_Code BADS_ResetIfDacStatus(
+    BADS_ChannelHandle hChn     /* [in] Device channel handle */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BADS_ResetIfDacStatus);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    if( hChn->hAds->pResetIfDacStatus != NULL )
+    {
+        CHK_RETCODE( retCode, hChn->hAds->pResetIfDacStatus( hChn ) );
+    }
+    else {
+        retCode = BERR_NOT_SUPPORTED;
+    }
+
+done:
+    BDBG_LEAVE(BADS_ResetIfDacStatus);
+    return( retCode );
+}
+
+BERR_Code BADS_RequestIfDacStatus(
+    BADS_ChannelHandle hChn     /* [in] Device channel handle */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BADS_GetIfDacStatus);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    if( hChn->hAds->pRequestIfDacStatus != NULL )
+    {
+        CHK_RETCODE( retCode, hChn->hAds->pRequestIfDacStatus( hChn ) );
+    }
+    else {
+        retCode = BERR_NOT_SUPPORTED;
+    }
+
+done:
+    BDBG_LEAVE(BADS_RequestIfDacStatus);
+    return( retCode );
+}
+
+BERR_Code BADS_GetIfDacStatus(
+    BADS_ChannelHandle hChn,      /* [in] Device channel handle */
+    BADS_IfDacStatus *pStatus       /* [out] Returns status */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+
+    BDBG_ENTER(BADS_GetIfDacStatus);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    if( hChn->hAds->pGetIfDacStatus != NULL )
+    {
+        CHK_RETCODE( retCode, hChn->hAds->pGetIfDacStatus( hChn, pStatus ) );
+    }
+    else {
+        retCode = BERR_NOT_SUPPORTED;
+    }
+
+done:
+    BDBG_LEAVE(BADS_GetIfDacStatus);
+    return( retCode );
+}

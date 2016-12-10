@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -161,6 +160,10 @@ typedef struct DrmNetflixSageContext_s
 #define SETUP_SHARED_BLOCK(_blk, _ptr, _len)  do {                        \
     _blk.len = _len;                                                      \
     _blk.data.ptr = SRAI_Memory_Allocate(_len, SRAI_MemoryType_Shared);   \
+    if(_blk.data.ptr == NULL){                                            \
+        BDBG_ERR(("%s - SRAI mem alloca failed", __FUNCTION__));          \
+        CHK_RC(Drm_Err); }                                                \
+    BDBG_MSG(("SETUP_SHARED_BLOCK alloc %u to %p",_len,_blk.data.ptr));   \
     BKNI_Memcpy(_blk.data.ptr, _ptr, _len);                               \
     }while(0)
 
@@ -183,16 +186,16 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
     uint32_t                        binfilesize = 0;
     DrmNetflixSageContext_t        *handle=NULL;
     uint32_t                        ii=0;
-    DrmCommonInit_t                 drmCmnInit;
+    DrmCommonInit_TL_t              drmCmnInit;
     ChipType_e                      chip_type;
 
-    BDBG_MSG(("%s - Entered function", __FUNCTION__));
+    BDBG_LOG(("%s - Entered function", __FUNCTION__));
     printf("%s:%d\n",__FUNCTION__,__LINE__);
 
     NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
     nrc = NEXUS_Memory_Allocate(sizeof(DrmNetflixSageContext_t), &allocSettings, (void *)&handle);
     if(nrc != NEXUS_SUCCESS) {
-        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for NetflixSage handle, rc = %d\n", __FUNCTION__, nrc));
+        BDBG_ERR(("%s - NEXUS_Memory_Allocate failed for NetflixSage handle, rc = %d", __FUNCTION__, nrc));
         (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         rc = nrc;
         goto ErrorExit;
@@ -205,13 +208,29 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
 
     BKNI_Memset(handle, 0, sizeof(DrmNetflixSageContext_t));
 
-    drmCmnInit.heap=NULL;
+    drmCmnInit.drmCommonInit.heap=NULL;
 
     chip_type = DRM_Common_GetChipType();
+#ifdef USE_UNIFIED_COMMON_DRM
     if(chip_type == ChipType_eZS)
+    {
         drmCmnInit.ta_bin_file_path = bdrm_get_ta_dev_bin_file_path();
+    }
     else
+    {
         drmCmnInit.ta_bin_file_path = bdrm_get_ta_bin_file_path();
+    }
+#else
+    drmCmnInit.drmType = BSAGElib_BinFileDrmType_eNetflix;
+    if(chip_type == ChipType_eZS)
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_nflx_dev_bin_file_path();
+    }
+    else
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_nflx_bin_file_path();
+    }
+#endif
 
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if(rc != Drm_Success)
@@ -241,21 +260,27 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
         BDBG_ERR(("%s - Error allocating SRAI memory for PD certificate", __FUNCTION__));
         goto ErrorExit;
     }
-
+    BDBG_MSG(("%s: allocated %u for PD certificate at container->blocks[1].data.ptr %p",__FUNCTION__,binfilesize, container->blocks[1].data.ptr));
     handle->pNetflixSageModuleHandle = NULL;
+
+#ifdef USE_UNIFIED_COMMON_DRM
     rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eNetflix, (char *) bin_file, container, &(handle->pNetflixSageModuleHandle));
+#else
+    rc = DRM_Common_TL_ModuleInitialize_TA(Common_Platform_Netflix, Netflix_ModuleId_eDRM, (char *) bin_file, container, &(handle->pNetflixSageModuleHandle));
+#endif
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
         goto ErrorExit;
     }
-    /*printf("%s:%d DRM_Common_ModuleInitialize succeeded, SageModuleHandle 0x%p\n",__FUNCTION__,__LINE__,(void *)handle->pNetflixSageModuleHandle); */
+printf("%s:%d DRM_Common_TL_ModuleInitialize_TA succeeded, SageModuleHandle 0x%p\n",__FUNCTION__,__LINE__,(void *)handle->pNetflixSageModuleHandle);
     handle->pSageNetflixCtx = (void *)container->basicOut[2];
 
     /* initialize the SRAI command nodes */
     if( handle->pSageNetflixCtx !=NULL)
     {
         if(BKNI_CreateMutex(&handle->mutex) != BERR_SUCCESS){
+            BDBG_ERR(("%s: failed to create mutex",__FUNCTION__));
             goto ErrorExit;
         }
         NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
@@ -293,6 +318,7 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
 
     /* Clean up the SRAI container */
     if(container->blocks[1].data.ptr != NULL){
+        BDBG_MSG(("%s: freeing container->blocks[1].data.ptr %p",__FUNCTION__,container->blocks[1].data.ptr));
         SRAI_Memory_Free(container->blocks[1].data.ptr);
         container->blocks[1].data.ptr = NULL;
     }
@@ -306,15 +332,19 @@ DrmRC DRM_Netflix_Initialize(char                    *bin_file,
 ErrorExit:
 
     if(container){
-    if(container->blocks[1].data.ptr != NULL){
-        SRAI_Memory_Free(container->blocks[1].data.ptr);
-        container->blocks[1].data.ptr = NULL;
-    }
-    SRAI_Container_Free(container);
+        if(container->blocks[1].data.ptr != NULL){
+            SRAI_Memory_Free(container->blocks[1].data.ptr);
+            container->blocks[1].data.ptr = NULL;
+        }
+        SRAI_Container_Free(container);
     }
 
     if( handle != NULL) {
+#ifdef USE_UNIFIED_COMMON_DRM
         DRM_Common_TL_ModuleFinalize(handle->pNetflixSageModuleHandle);
+#else
+        DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Netflix, handle->pNetflixSageModuleHandle);
+#endif
         handle->pNetflixSageModuleHandle = NULL;
         while(!BLST_D_EMPTY(&handle->cmds)){
             pNode = BLST_D_FIRST(&handle->cmds);
@@ -354,7 +384,11 @@ DrmRC DRM_Netflix_Finalize(DrmNetFlixSageHandle   netflixSageHandle)
     paramStructureSetExternally = false;
 
     if( ctx != NULL) {
+#ifdef USE_UNIFIED_COMMON_DRM
         DRM_Common_TL_ModuleFinalize(ctx->pNetflixSageModuleHandle);
+#else
+        DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Netflix, ctx->pNetflixSageModuleHandle);
+#endif
         ctx->pNetflixSageModuleHandle = NULL;
         while(!BLST_D_EMPTY(&ctx->cmds)){
             pNode = BLST_D_FIRST(&ctx->cmds);
@@ -365,9 +399,11 @@ DrmRC DRM_Netflix_Finalize(DrmNetFlixSageHandle   netflixSageHandle)
         if(ctx->mutex)BKNI_DestroyMutex(ctx->mutex);
         NEXUS_Memory_Free(ctx);
     }
-
+#ifdef USE_UNIFIED_COMMON_DRM
     DRM_Common_TL_Finalize();
-
+#else
+    DRM_Common_TL_Finalize_TA(Common_Platform_Netflix);
+#endif
     BDBG_MSG(("%s - Exiting function", __FUNCTION__));
     return rc;
 }
@@ -2074,21 +2110,21 @@ DrmRC DRM_Netflix_HMAC(DrmNetFlixSageHandle    pHandle,
     BKNI_Memcpy(outDataPtr, pNode->pCmd->blocks[1].data.ptr, pNode->pCmd->blocks[1].len);
     *outDataSize = pNode->pCmd->blocks[1].len;
 
-    /*printf("%s:%d - successfully performed hmac for the key handle %d out data size %d.\n", __FUNCTION__,__LINE__,hmacKeyHandle,*outDataSize);*/
+    BDBG_MSG(("%s:%d successfully performed hmac for the key handle 0x%p out data size %u", __FUNCTION__,__LINE__,hmacKeyHandle,*outDataSize));
 
 ErrorExit:
-    if(pNode->pCmd->blocks[0].data.ptr) {
-        SRAI_Memory_Free(pNode->pCmd->blocks[0].data.ptr);
-        pNode->pCmd->blocks[0].data.ptr = NULL;
+    if (pNode) {
+        if(pNode->pCmd->blocks[0].data.ptr) {
+            SRAI_Memory_Free(pNode->pCmd->blocks[0].data.ptr);
+            pNode->pCmd->blocks[0].data.ptr = NULL;
+        }
+        if(pNode->pCmd->blocks[1].data.ptr) {
+            SRAI_Memory_Free(pNode->pCmd->blocks[1].data.ptr);
+            pNode->pCmd->blocks[1].data.ptr = NULL;
+        }
+        RELEASE_COMMAND_CONTAINER(pNode);
     }
-    if(pNode->pCmd->blocks[1].data.ptr) {
-        SRAI_Memory_Free(pNode->pCmd->blocks[1].data.ptr);
-        pNode->pCmd->blocks[1].data.ptr = NULL;
-    }
-    if(pNode) RELEASE_COMMAND_CONTAINER(pNode);
-
     BDBG_MSG(("%s - Exiting, rc %d.", __FUNCTION__, rc));
-
     return rc;
 }
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2006-2014 Broadcom Corporation
+ *  Copyright (C) 2006-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ************************************************************/
 
@@ -94,7 +84,7 @@ BERR_Code nexus_driver_scheduler_init(void);
 void nexus_driver_scheduler_uninit(void);
 int nexus_driver_run_scheduler(NEXUS_ModulePriority priority, unsigned timeout, bool *p_has_callbacks, struct nexus_driver_slave_scheduler *slave);
 unsigned nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave);
-void nexus_driver_deactivate_callbacks(void *context, void *object, void *client);
+void nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client);
 void nexus_driver_scheduler_lock(void *client, NEXUS_ModulePriority priority, bool lock);
 void nexus_driver_unlock_schedulers(void *client);
 
@@ -112,11 +102,17 @@ void nexus_driver_slave_scheduler_destroy(struct nexus_driver_module_header *hea
 struct nexus_driver_client_state *nexus_driver_create_client(const NEXUS_Certificate *pCertificate, const NEXUS_ClientConfiguration *pConfig);
 void nexus_driver_destroy_client(struct nexus_driver_client_state *client);
 void nexus_driver_disable_clients(bool including_server);
-void nexus_driver_get_client_configuration(void *client_id, NEXUS_ClientConfiguration *pSettings);
+void nexus_driver_get_client_configuration(const struct b_objdb_client *client_id, NEXUS_ClientConfiguration *pSettings);
 void nexus_driver_server_close_module_headers(void);
 
-void nexus_driver_module_init_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings);
+NEXUS_Error nexus_driver_module_init_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings);
 void nexus_driver_module_uninit_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings);
+
+int nexus_driver_server_postinit(void);
+void nexus_driver_server_preuninit(void);
+
+void NEXUS_P_Proxy_StopCallbacks( void *interfaceHandle );
+void NEXUS_P_Proxy_StartCallbacks( void *interfaceHandle );
 
 #endif /* NEXUS_GENERIC_DRIVER_IMPL_H__ */
 

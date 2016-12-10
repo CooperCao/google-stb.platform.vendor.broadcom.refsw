@@ -11,7 +11,6 @@ FILE DESCRIPTION
 VideoCore OS Abstraction Layer - pthreads types
 =============================================================================*/
 
-#define _GNU_SOURCE /* required for CPU_SET/CPU_ZERO (defined in sched.h) */
 #define VCOS_INLINE_BODIES
 #include "interface/vcos/vcos.h"
 #include <string.h>

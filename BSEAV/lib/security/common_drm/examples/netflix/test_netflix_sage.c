@@ -1,41 +1,40 @@
-/***************************************************************************
- *    (c)2012 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
-*******************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -63,8 +62,8 @@
 int main(int argc, char* argv[])
 {
     NEXUS_Error                     nrc = NEXUS_SUCCESS;
-	DrmRC rc = Drm_Success;
-	NEXUS_PlatformSettings platformSettings;
+    DrmRC rc = Drm_Success;
+    NEXUS_PlatformSettings platformSettings;
     NEXUS_MemoryAllocationSettings allocationSettings;
     DrmNetFlixSageHandle netflixSageCtx=NULL;
     uint32_t esnSize = 0;
@@ -72,16 +71,17 @@ int main(int argc, char* argv[])
     uint8_t clearBuf[] = { 0x4B, 0x45, 0x59, 0x00, 0x4C, 0x00, 0x45, 0x00, 0x4E, 0x00, 0x3E, 0x00, 0x3C, 0x41, 0x4C };
     uint8_t * pClearBuf = NULL;
     uint8_t * pEncBuf = NULL;
+    uint8_t * pOutBuf = NULL;
     size_t  allocSize = 0;
     uint32_t encSize = 0;
     uint32_t outSize = 0;
 
-	/* init Nexus */
+    /* init Nexus */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
 
-	/* initialize */
+    /* initialize */
     rc = DRM_Netflix_Initialize( "drm.bin", (DrmNetFlixSageHandle *) &netflixSageCtx);
     if((rc != Drm_Success) || (netflixSageCtx == NULL))
     {
@@ -93,9 +93,9 @@ int main(int argc, char* argv[])
         printf("%s:%d - DRM_Netflix_Initialize() succeeded.\n",__FUNCTION__,__LINE__);
     }
 
-    /********************************************************************
-     * Get ESN
-    ********************************************************************/
+    /********************************************************************/
+    /* Get ESN                                                                                                       */
+    /********************************************************************/
     rc = DRM_Netflix_Get_EsnSize((DrmNetFlixSageHandle)netflixSageCtx, &esnSize);
     if( rc != Drm_Success) {
         printf("%s:%d - DRM_Netflix_Get_EsnSize() failed\n",__FUNCTION__,__LINE__);
@@ -126,20 +126,27 @@ int main(int argc, char* argv[])
     NEXUS_Memory_Free(pStr);
 
     /********************************************************************/
-    /* Netflix_Encrypt                                                  */
+    /* Netflix_Encrypt                                                                                             */
     /********************************************************************/
     allocSize = sizeof(clearBuf);
-    allocSize += (16 - (allocSize % 16));
+    allocSize += 15 & (16 - (allocSize % 16));
     NEXUS_Memory_GetDefaultAllocationSettings(&allocationSettings);
     allocationSettings.alignment = 16;
+    encSize = allocSize + 48; /* IV + digest */
 
-    NEXUS_Memory_Allocate(allocSize+32, &allocationSettings, (void**)&pEncBuf);
-    memset(pEncBuf,0,allocSize+32);
-    memcpy((uint8_t*)pEncBuf, clearBuf,sizeof(clearBuf));
-    rc = DRM_Netflix_Encrypt((DrmNetFlixSageHandle)netflixSageCtx,
-                              pEncBuf,
-                              allocSize+32,  /* buffer length including 16-byte alignment + 32-byte digest*/
-                             &encSize);     /* result encrypted data size */
+    NEXUS_Memory_Allocate(encSize, &allocationSettings, (void**)&pEncBuf);
+    NEXUS_Memory_Allocate(allocSize, &allocationSettings, (void**)&pClearBuf);
+    memset(pEncBuf,0,encSize);
+    memset(pClearBuf,0,allocSize);
+    memcpy((uint8_t*)pClearBuf, clearBuf,sizeof(clearBuf));
+
+    rc = DRM_Netflix_Secure_Store_Op((DrmNetFlixSageHandle)netflixSageCtx,
+        pClearBuf,
+        allocSize,  /* the actual data size */
+        pEncBuf,
+        &encSize, /* output encrypted data size */
+        e_NETFLIX_TL_ENCRYPT);
+
     if( rc != Drm_Success) {
         printf("%s:%d - DRM_Netflix_Encrypt() failed\n",__FUNCTION__,__LINE__);
         goto ErrExit;
@@ -147,19 +154,22 @@ int main(int argc, char* argv[])
     printf("%s:%d - DRM_Netflix_Encrypt() success with size %d.\n",__FUNCTION__,__LINE__,encSize);
 
     /********************************************************************/
-    /* Netflix_Decrypt                                                  */
+    /* Netflix_Decrypt                                                                                            */
     /********************************************************************/
-    allocSize = encSize;
-    allocSize += (16 - (allocSize % 16));
-
+    encSize += 15 & (16 - (encSize % 16));
+    outSize = encSize;
     NEXUS_Memory_GetDefaultAllocationSettings(&allocationSettings);
     allocationSettings.alignment = 16;
-    NEXUS_Memory_Allocate(encSize, &allocationSettings, (void**)&pClearBuf);
-    memcpy((uint8_t*)pClearBuf, pEncBuf, encSize);
-    rc = DRM_Netflix_Decrypt((DrmNetFlixSageHandle)netflixSageCtx,
-                                    pClearBuf,
-                                    encSize,
-                                    &outSize);     /* result encrypted data size */
+    NEXUS_Memory_Allocate(outSize, &allocationSettings, (void**)&pOutBuf);
+
+    memset(pOutBuf,0,outSize);
+
+    rc = DRM_Netflix_Secure_Store_Op((DrmNetFlixSageHandle)netflixSageCtx,
+        pEncBuf,
+        encSize,
+        pOutBuf,
+        &outSize, /* output decrypted data size */
+        e_NETFLIX_TL_DECRYPT);
     if( rc != Drm_Success) {
         printf("%s:%d - DRM_Netflix_Decrypt() failed\n",__FUNCTION__,__LINE__);
         goto ErrExit;
@@ -190,9 +200,14 @@ ErrExit:
         NEXUS_Memory_Free(pClearBuf);
         pClearBuf = NULL;
     }
+    if(pOutBuf != NULL)
+    {
+        NEXUS_Memory_Free(pOutBuf);
+        pOutBuf = NULL;
+    }
 
     DRM_Netflix_Finalize((DrmNetFlixSageHandle)netflixSageCtx);
     NEXUS_Platform_Uninit();
-	printf("\n\tMAIN - Done\n");
+    printf("\n\tMAIN - Done\n");
     return 0;
 }

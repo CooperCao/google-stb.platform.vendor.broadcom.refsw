@@ -81,9 +81,9 @@
     NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open7366(unsigned index, const NEXUS_FrontendDeviceOpenSettings *pSettings);
     NEXUS_FrontendHandle NEXUS_Frontend_P_Open7366(const NEXUS_FrontendChannelSettings *pSettings);
 #endif
-#if NEXUS_FRONTEND_75525
-    NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open75525(unsigned index, const NEXUS_FrontendDeviceOpenSettings *pSettings);
-    NEXUS_FrontendHandle NEXUS_Frontend_P_Open75525(const NEXUS_FrontendChannelSettings *pSettings);
+#if NEXUS_FRONTEND_3466
+    NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_Open3466(unsigned index, const NEXUS_FrontendDeviceOpenSettings *pSettings);
+    NEXUS_FrontendHandle NEXUS_Frontend_P_Open3466(const NEXUS_FrontendChannelSettings *pSettings);
 #endif
 
 static struct {
@@ -117,8 +117,9 @@ static struct {
 #if NEXUS_FRONTEND_7366
     NEXUS_PLATFORM_P_FRONTEND_SUPPORT(7366)
 #endif
-#if NEXUS_FRONTEND_75525
-    NEXUS_PLATFORM_P_FRONTEND_SUPPORT(75525)
+#if NEXUS_FRONTEND_3466
+    NEXUS_PLATFORM_P_FRONTEND_SUPPORT(3466)
+    NEXUS_PLATFORM_P_FRONTEND_SUPPORT_FAMILY(3465,3466)
 #endif
     {0, NULL, NULL}
 };

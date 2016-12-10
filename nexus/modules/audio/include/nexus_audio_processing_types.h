@@ -288,9 +288,11 @@ typedef struct NEXUS_DolbyDigitalReencodeSettings
                                                                for testing and/or certification purposes. */
     NEXUS_AudioDecoderOutputLfeMode         outputLfeMode;  /* LFE output flag.  In general, eAuto is correct, but this may be overridden
                                                                for testing and/or certification purposes. */
-    NEXUS_AudioMultichannelFormat           multichannelFormat; /* specify the multichannel output format desired.
+    NEXUS_AudioMultichannelFormat           multichannelFormat; /* Specify the maximum multichannel output format desired.
                                                                    Valid settings are 5.1 or 7.1.
                                                                    7.1ch output is only supported for MS12 Config A supported products */
+    bool                                    fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
+                                                                        multichannelFormat specified. This control only applies when MS12 is enabled. */
 
     NEXUS_AudioDecoderDolbyDrcMode          drcMode;    /* DRC Mode for multichannel connector.  This will be the DRC mode applied for multichannel outputs */
     NEXUS_AudioDecoderDolbyDrcMode          drcModeDownmix; /* DRC Mode for stereo connector.   This will be the DRC mode applied for stereo outputs */
@@ -365,32 +367,6 @@ typedef struct NEXUS_KaraokeVocalSettings
                                        Valid values are 0-200. Default is 200 */
     } echo;
 } NEXUS_KaraokeVocalSettings;
-
-/***************************************************************************
-Summary:
-Audio Fade Settings
-***************************************************************************/
-typedef struct NEXUS_AudioFadeSettings
-{
-    unsigned level;             /* Percentage representing the volume level.
-                                   0 is muted, 100 is full volume. Default is 100. */
-    unsigned duration;          /* duration in milliseconds it will take to change
-                                   to a new level. Valid values are 3 - 1000 */
-    unsigned type;              /* specifies the type of fade -
-                                   0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
-} NEXUS_AudioFadeSettings;
-
-/***************************************************************************
-Summary:
-Audio Fade Status
-***************************************************************************/
-typedef struct NEXUS_AudioFadeStatus
-{
-    bool active;
-    unsigned remaining;         /* MilliSeconds remaining in the current active fade */
-    unsigned level;             /* Percentage representing the current volume level.
-                                   0 is muted, 100 is full volume. Default is 100. */
-} NEXUS_AudioFadeStatus;
 
 #ifdef __cplusplus
 }

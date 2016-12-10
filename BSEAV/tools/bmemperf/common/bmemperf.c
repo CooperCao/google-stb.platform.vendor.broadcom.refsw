@@ -306,6 +306,7 @@ int bmemperf_init(
     )
 {
     int ret = 0, i;
+    int scbFreqInMhz = 0;
     bmemperf_boxmode_source boxmodeSource;
 
     get_boxmode( &boxmodeSource );
@@ -340,8 +341,10 @@ int bmemperf_init(
         g_ddr_clock_frequency = g_bmemperf_info.ddrFreqInMhz;
     }
 
-    PRINTF( "%s: num_memc %d; ddrFreqInMhz %d; scb %d\n", __FUNCTION__, g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, g_bmemperf_info.scbFreqInMhz );
-    g_clock_time = ( g_bmemperf_info.scbFreqInMhz*1000 );  /**1msec in scb frequency , since time is in msec unit**/
+    scbFreqInMhz = bmemperf_get_scbFreqInMhz(g_bmemperf_info.scbFreqInMhz);
+    g_clock_time = ( scbFreqInMhz * 1000 );  /**1msec in scb frequency , since time is in msec unit**/
+    printf( "%s: num_memc %d; ddrFreqInMhz %d; scbFreqInMhz %d (compile %d); g_clock_time1 %d; g_interval %d \n", __FUNCTION__,
+            g_bmemperf_info.num_memc, g_bmemperf_info.ddrFreqInMhz, scbFreqInMhz, g_bmemperf_info.scbFreqInMhz, g_clock_time, g_interval );
 
     g_clock_time *= g_interval;
 

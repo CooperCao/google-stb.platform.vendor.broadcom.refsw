@@ -142,6 +142,9 @@ endif
 ifdef NEXUS_PLATFORM_VERSION_MAJOR
 BCM_DRIVER_CFLAGS += -DNEXUS_VERSION_MAJOR=$(NEXUS_PLATFORM_VERSION_MAJOR) -DNEXUS_VERSION_MINOR=$(NEXUS_PLATFORM_VERSION_MINOR)
 endif
+ifeq ($(NEXUS_CACHEFLUSHALL),y)
+BCM_DRIVER_CFLAGS += -DNEXUS_CACHEFLUSHALL=1
+endif
 ifeq ($(LINUX_VER_GE_3),y)
 BCM_DRIVER_CFLAGS += -include linux/kconfig.h
 else
@@ -193,11 +196,10 @@ ifeq ($(B_VIRTUAL_IRQ_DISABLED),y)
 BCM_DRIVER_CFLAGS += -DB_VIRTUAL_IRQ_DISABLED=1
 endif
 
-include $(B_REFSW_ROOT)/nexus/platforms/common/build/nexus_platforms.inc
 BCM_DRIVER_CFLAGS += -I$(B_REFSW_ROOT)/magnum/commonutils/lst/
 BCM_DRIVER_CFLAGS += -I.
 BCM_DRIVER_CFLAGS += -DHAVE_RSRVD=1
-BCM_DRIVER_CFLAGS += -DBCHP_CHIP=$(BCHP_CHIP) -DBCHP_VER=BCHP_VER_$(BCHP_VER)
+BCM_DRIVER_CFLAGS += -DBCHP_VER=BCHP_VER_$(BCHP_VER)
 
 # compile bcmdriver the same for webcpu servers. client gets just m2mc1.
 ifeq ($(NEXUS_WEBCPU),core1_server)

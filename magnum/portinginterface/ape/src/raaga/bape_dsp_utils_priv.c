@@ -370,34 +370,6 @@ uint32_t BAPE_P_FloatToQ131(int32_t floatVar, unsigned int uiRange)
 }
 
 /*----------------------------------------------------------------------------*/
-uint32_t BAPE_P_FloatToQ230(int16_t floatVar)
-{
-    int32_t     temp;
-
-    BDBG_ASSERT(floatVar >= 0);
-    /* TODO: conversion for negative values */
-    /* Conversion formula for float to Q2.30 is
-     * q = float * 2^30,
-     * Since we take float values scaled by 100 from application, we need to
-     * scale it down
-     * by 100. Hence above formula would become
-     * q = float * ( 2^30/100 )
-     * However this won't be a precise computation, as reminder of (2^30/100)
-     * gets dropped
-     * in this calculation. To compesate for this reminder formula needs to be
-     * modified as below
-     * q = float * ( 2^30/100 ) + ( float * ( 2^30 %100))/100
-     */
-    if (floatVar >= 100)
-        return(uint32_t) 0x40000000;
-
-    temp = floatVar * (0x40000000/100) + ( floatVar * (0x40000000 % 100))/100;
-
-    return temp;
-}
-
-
-/*----------------------------------------------------------------------------*/
 uint32_t BAPE_P_FloatToQ521(uint32_t floatVar, unsigned int uiRange)
 {
     int32_t     temp;
@@ -434,31 +406,6 @@ uint32_t BAPE_P_FloatToQ521(uint32_t floatVar, unsigned int uiRange)
     return temp;
 }
 
-
-/*----------------------------------------------------------------------------*/
-/*
-    This function converts the floating point value to 8.24 fixed format
-*/
-int32_t BAPE_P_FloatToQ824(int32_t floatVar, unsigned int uiRange)
-{
-    int32_t     temp;
-
-    /*Range should be multiple of 127 i.e. 127,254,381,508.....*/
-
-    if (floatVar >= (int32_t)uiRange)
-        return(uint32_t) 0x7F000000;
-
-    if (floatVar <= -(int32_t)(uiRange + (uiRange/127)))
-        return(uint32_t)0x80000000;
-
-    temp = floatVar *   (0x7F000000/uiRange) +
-           (unsigned int)(( floatVar * (0x7F000000 % uiRange) +
-                            (uiRange/2))/uiRange);
-
-    return temp;
-}
-
-
 /*----------------------------------------------------------------------------*/
 int32_t BAPE_P_FloatToQ923(uint32_t floatVar, unsigned int uiRange)
 {
@@ -492,6 +439,115 @@ int32_t BAPE_P_FloatToQ923(uint32_t floatVar, unsigned int uiRange)
     temp = floatVar *(0x007fffff/uiRange) +
            (unsigned int)(((floatVar * (0x7fffff % uiRange)) +
                            (uiRange/2)) / uiRange);
+
+    return temp;
+}
+
+/*
+    This function converts the floating point value to 8.15 fixed format
+*/
+uint32_t BAPE_P_FloatToQ815(uint32_t floatVar, unsigned int uiRange)
+{
+    int32_t     temp;
+
+    /* TODO: conversion for negative values */
+    /* Conversion formula for float to Q8.15 is
+     * q = float * 2^23,
+     * Since the entire range of values in PI is mapped to the range of 0 to 2^23 in FW,
+     * a given value in PI gets converted to corresponding Q8.15 value as below,
+     * q = float * ( 2^23/uiRange )
+     * However this won't be a precise computation, as remainder of (2^23/uiRange) gets dropped
+     * in this calculation. To compensate for this remainder formula needs to be modified as below
+     * q = float * ( 2^23/uiRange ) + ( float * ( 2^23 % uiRange))/uiRange
+     * But if the value corresponding to the multiplication of reminder turns out to be
+     * a fractional value then the value gets rounded off to zero but if the value is >= uiRange/2
+     * it should be rounded off to 1(as per SRS). Hence forth the formula becomes,
+     * q = float * ( 2^23/uiRange ) + (unsigned int)((float * ( 2^23 % uiRange) + (uiRange/2))/uiRange)
+     */
+
+    if (floatVar >= uiRange)
+        return(uint32_t)0x007FFFFF;
+
+    temp = floatVar * (0x007FFFFF/uiRange) +
+           (unsigned int)(( floatVar * (0x007FFFFF % uiRange) +
+                            (uiRange/2))/uiRange);
+
+    return temp;
+}
+
+/* Function to convert input floating point value into Q3.29 format
+ * Intended floating point value to be converted, should be
+ * multiplied by uiRange value and then passed to this function
+ */
+uint32_t BAPE_P_FloatToQ329(uint32_t floatVar, unsigned int uiRange)
+{
+    int32_t     temp;
+
+    /* Conversion formula for float to Q3.29 is
+     * q = float * 2^29,
+     * Since we take float values scaled by uiRange from application, we need to scale it down
+     * by uiRange. Hence above formula would become
+     * q = float * ( 2^29/uiRange )
+     * However this won't be a precise computation, as reminder of (2^29/uiRange) gets dropped
+     * in this calculation. To compesate for this reminder formula needs to be modified as below
+     * q = float * ( 2^29/uiRange ) + (float * (2^29 %uiRange))/uiRange
+     */
+
+    temp = floatVar * (0x1FFFFFFF/uiRange) +
+           ( floatVar * (0x1FFFFFFF % uiRange))/uiRange;
+
+    return temp;
+}
+
+/*----------------------------------------------------------------------------*/
+uint32_t BAPE_P_FloatToQ230(int16_t floatVar)
+{
+    int32_t     temp;
+
+    BDBG_ASSERT(floatVar >= 0);
+    /* TODO: conversion for negative values */
+    /* Conversion formula for float to Q2.30 is
+     * q = float * 2^30,
+     * Since we take float values scaled by 100 from application, we need to
+     * scale it down
+     * by 100. Hence above formula would become
+     * q = float * ( 2^30/100 )
+     * However this won't be a precise computation, as reminder of (2^30/100)
+     * gets dropped
+     * in this calculation. To compesate for this reminder formula needs to be
+     * modified as below
+     * q = float * ( 2^30/100 ) + ( float * ( 2^30 %100))/100
+     */
+    if (floatVar >= 100)
+        return(uint32_t) 0x40000000;
+
+    temp = floatVar * (0x40000000/100) + ( floatVar * (0x40000000 % 100))/100;
+
+    return temp;
+}
+
+#if !B_REFSW_MINIMAL
+
+
+/*----------------------------------------------------------------------------*/
+/*
+    This function converts the floating point value to 8.24 fixed format
+*/
+int32_t BAPE_P_FloatToQ824(int32_t floatVar, unsigned int uiRange)
+{
+    int32_t     temp;
+
+    /*Range should be multiple of 127 i.e. 127,254,381,508.....*/
+
+    if (floatVar >= (int32_t)uiRange)
+        return(uint32_t) 0x7F000000;
+
+    if (floatVar <= -(int32_t)(uiRange + (uiRange/127)))
+        return(uint32_t)0x80000000;
+
+    temp = floatVar *   (0x7F000000/uiRange) +
+           (unsigned int)(( floatVar * (0x7F000000 % uiRange) +
+                            (uiRange/2))/uiRange);
 
     return temp;
 }
@@ -571,39 +627,6 @@ uint32_t BAPE_P_FloatToQ518(uint32_t floatVar, unsigned int uiRange)
 }
 
 /*
-    This function converts the floating point value to 8.15 fixed format
-*/
-uint32_t BAPE_P_FloatToQ815(uint32_t floatVar, unsigned int uiRange)
-{
-    int32_t     temp;
-
-    /* TODO: conversion for negative values */
-    /* Conversion formula for float to Q8.15 is
-     * q = float * 2^23,
-     * Since the entire range of values in PI is mapped to the range of 0 to 2^23 in FW,
-     * a given value in PI gets converted to corresponding Q8.15 value as below,
-     * q = float * ( 2^23/uiRange )
-     * However this won't be a precise computation, as remainder of (2^23/uiRange) gets dropped
-     * in this calculation. To compensate for this remainder formula needs to be modified as below
-     * q = float * ( 2^23/uiRange ) + ( float * ( 2^23 % uiRange))/uiRange
-     * But if the value corresponding to the multiplication of reminder turns out to be
-     * a fractional value then the value gets rounded off to zero but if the value is >= uiRange/2
-     * it should be rounded off to 1(as per SRS). Hence forth the formula becomes,
-     * q = float * ( 2^23/uiRange ) + (unsigned int)((float * ( 2^23 % uiRange) + (uiRange/2))/uiRange)
-     */
-
-    if (floatVar >= uiRange)
-        return(uint32_t)0x007FFFFF;
-
-    temp = floatVar * (0x007FFFFF/uiRange) +
-           (unsigned int)(( floatVar * (0x007FFFFF % uiRange) +
-                            (uiRange/2))/uiRange);
-
-    return temp;
-}
-
-
-/*
     This function converts the floating point value to 5.27 fixed format
 */
 uint32_t BAPE_P_FloatToQ527(uint32_t floatVar, unsigned int uiRange)
@@ -634,30 +657,6 @@ uint32_t BAPE_P_FloatToQ527(uint32_t floatVar, unsigned int uiRange)
     return temp;
 }
 
-/* Function to convert input floating point value into Q3.29 format
- * Intended floating point value to be converted, should be
- * multiplied by uiRange value and then passed to this function
- */
-uint32_t BAPE_P_FloatToQ329(uint32_t floatVar, unsigned int uiRange)
-{
-    int32_t     temp;
-
-    /* Conversion formula for float to Q3.29 is
-     * q = float * 2^29,
-     * Since we take float values scaled by uiRange from application, we need to scale it down
-     * by uiRange. Hence above formula would become
-     * q = float * ( 2^29/uiRange )
-     * However this won't be a precise computation, as reminder of (2^29/uiRange) gets dropped
-     * in this calculation. To compesate for this reminder formula needs to be modified as below
-     * q = float * ( 2^29/uiRange ) + (float * (2^29 %uiRange))/uiRange
-     */
-
-    temp = floatVar * (0x1FFFFFFF/uiRange) +
-           ( floatVar * (0x1FFFFFFF % uiRange))/uiRange;
-
-    return temp;
-}
-
 /* Function to convert input floating point value into Q4.28 format
  * Intended floating point value to be converted, should be
  * multiplied by uiRange value and then passed to this function
@@ -683,7 +682,7 @@ uint32_t BAPE_P_FloatToQ428(uint32_t floatVar, unsigned int uiRange)
 
     return temp;
 }
-
+#endif
 /***************************************************************************
 Summary:
 Add FMM Buffer Output to a stage

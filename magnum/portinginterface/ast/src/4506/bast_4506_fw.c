@@ -36,7 +36,7 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-unsigned char bcm4506_ap_image[] = {
+const unsigned char bcm4506_ap_image[] = {
 
    0x00, 0x52, 0x00, 0x00,
    0x02, 0xD5, 0x30, 0x02, 0xF3, 0xAA, 0x78, 0x93,

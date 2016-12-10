@@ -121,6 +121,24 @@ BERR_Code BADS_Leap_P_EventCallback_isr(
                 }
             }
             break;
+#if BADS_CHIP==3158
+        case BHAB_Interrupt_eIfDacAcquireComplete:
+            {
+                if( hImplChnDev->pCallback[BADS_Callback_eIfDacAcquireComplete] != NULL )
+                {
+                    (hImplChnDev->pCallback[BADS_Callback_eIfDacAcquireComplete])(hImplChnDev->pCallbackParam[BADS_Callback_eIfDacAcquireComplete] );
+                }
+            }
+            break;
+        case BHAB_Interrupt_eIfDacStatusReady:
+            {
+                if( hImplChnDev->pCallback[BADS_Callback_eIfDacStatusReady] != NULL )
+                {
+                    (hImplChnDev->pCallback[BADS_Callback_eIfDacStatusReady])(hImplChnDev->pCallbackParam[BADS_Callback_eIfDacStatusReady] );
+                }
+            }
+            break;
+#endif
         default:
             BDBG_WRN((" unknown event code from leap"));
             break;
@@ -165,7 +183,12 @@ BERR_Code BADS_Leap_Open(
     BKNI_Memset( hDev, 0x00, sizeof( BADS_P_Handle ) );
     hDev->magicId = DEV_MAGIC_ID;
     hDev->settings = *pDefSettings;
-
+#if BADS_CHIP==3158
+    hDev->pTuneIfDac = (BADS_TuneIfDacFunc) BADS_Leap_TuneIfDac;
+    hDev->pResetIfDacStatus = (BADS_ResetIfDacStatusFunc) BADS_Leap_ResetIfDacStatus;
+    hDev->pRequestIfDacStatus = (BADS_RequestIfDacStatusFunc) BADS_Leap_RequestIfDacStatus;
+    hDev->pGetIfDacStatus = (BADS_GetIfDacStatusFunc) BADS_Leap_GetIfDacStatus;
+#endif
     hImplDev = (BADS_Leap_Handle) BKNI_Malloc( sizeof( BADS_P_Leap_Handle ) );
     if( hImplDev == NULL )
     {
@@ -207,11 +230,17 @@ BERR_Code BADS_Leap_Open(
         {
             if(capabilities.channelCapabilities[i].demodCoreType.ads)
                 maxAdsChannels++;
+#if BADS_CHIP==3158
+            if(capabilities.channelCapabilities[i].demodCoreType.ifdac) {
+                hImplDev->ifdacChannelNo=i;
+                maxAdsChannels++;
+                }
+#endif
         }
         hImplDev->mxChnNo = maxAdsChannels;
         if (hImplDev->mxChnNo == 0) {
-            BDBG_WRN((">>>>> No ADS Channels, defaulting to 16 <<<<<"));
-            hImplDev->mxChnNo = 16;
+            BDBG_WRN((">>>>> No ADS Channels, defaulting to %d <<<<<", MX_ADS_CHANNELS));
+            hImplDev->mxChnNo = MX_ADS_CHANNELS;
         }
     }
 
@@ -983,7 +1012,7 @@ BERR_Code BADS_Leap_GetScanStatus(
 {
     BERR_Code retCode = BERR_SUCCESS;
     BADS_Leap_ChannelHandle hImplChnDev;
-    uint8_t buf[17] = HAB_MSG_HDR(BADS_eGetScanStatus, 0, BADS_CORE_TYPE);
+    uint8_t buf[19] = HAB_MSG_HDR(BADS_eGetScanStatus, 0, BADS_CORE_TYPE);
     uint8_t annex, modulation;
 
     BDBG_ENTER(BADS_Leap_GetScanStatus);
@@ -1002,7 +1031,11 @@ BERR_Code BADS_Leap_GetScanStatus(
     else
     {
         buf[3] = hImplChnDev->chnNo;
+#if BADS_CHIP==3158
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 19, false, true, 19));
+#else
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 17, false, true, 17));
+#endif
 
         switch (buf[0x4])
         {
@@ -1210,6 +1243,12 @@ BERR_Code BADS_Leap_EnablePowerSaver(
     if(!hImplChnDev->bPowerdown)
     {
         buf[3] = hImplChnDev->chnNo;
+#if BADS_CHIP==3158
+        if(hImplChnDev->chnNo == BADS_IFDAC_CHANNEL_NUMBER) {
+            buf[2] = (buf[2] & 0xF0) | BADS_IFDAC_CORE_TYPE;
+            buf[3] = 0;
+        }
+#endif
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 0, false, true, 5));
         hImplChnDev->bPowerdown = true;
 
@@ -1241,6 +1280,12 @@ BERR_Code BADS_Leap_DisablePowerSaver(
     if(hImplChnDev->bPowerdown)
     {
         buf[3] = hImplChnDev->chnNo;
+#if BADS_CHIP==3158
+        if(hImplChnDev->chnNo == BADS_IFDAC_CHANNEL_NUMBER) {
+            buf[2] = (buf[2] & 0xF0) | BADS_IFDAC_CORE_TYPE;
+            buf[3] = 0;
+        }
+#endif
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, buf, 0, false, true, 5));
         hImplChnDev->bPowerdown = false;
     }
@@ -1287,6 +1332,10 @@ BERR_Code BADS_Leap_InstallCallback(
         case BADS_Callback_eNoSignal:
         case BADS_Callback_eAsyncStatusReady:
         case BADS_Callback_eSpectrumDataReady:
+#if BADS_CHIP==3158
+        case BADS_Callback_eIfDacAcquireComplete:
+        case BADS_Callback_eIfDacStatusReady:
+#endif
             hImplChnDev->pCallback[callbackType] = pCallback;
             hImplChnDev->pCallbackParam[callbackType] = pParam;
             break;
@@ -1597,3 +1646,151 @@ done:
     BDBG_LEAVE(BADS_Leap_GetSpectrumAnalyzerData);
     return( retCode );
 }
+
+#if BADS_CHIP==3158
+BERR_Code BADS_Leap_TuneIfDac(
+    BADS_ChannelHandle hChn,        /* [in] Device handle */
+    BADS_IfDacSettings *pSettings   /* [in] IF DAC Settings */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BADS_Leap_ChannelHandle hImplChnDev;
+    uint8_t buf[35] = HAB_MSG_HDR(BADS_SET_IFDAC_PARAMETERS, 0x1E, BADS_IFDAC_CORE_TYPE);
+    uint8_t bandwidth=0;
+
+    BDBG_ENTER(BADS_Leap_TuneIfDac);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    hImplChnDev = (BADS_Leap_ChannelHandle) hChn->pImpl;
+    BDBG_ASSERT( hImplChnDev );
+    BDBG_ASSERT( hImplChnDev->hHab );
+
+    if(hImplChnDev->bPowerdown)
+    {
+        BDBG_ERR(("IFDAC core %d Powered Off", hImplChnDev->chnNo));
+        retCode = BERR_TRACE(BADS_ERR_POWER_DOWN);
+    }
+    else
+    {
+        if(pSettings->bandwidth == 6000000)
+            bandwidth = 1;
+        buf[5] = (bandwidth << 4) | 0x8;
+        buf[6] = 0x80;
+        buf[8] = (pSettings->frequency >> 24);
+        buf[9] = (pSettings->frequency >> 16);
+        buf[10] = (pSettings->frequency >> 8);
+        buf[11] = pSettings->frequency;
+        buf[12] = (pSettings->outputFrequency >> 24);
+        buf[13] = (pSettings->outputFrequency >> 16);
+        buf[14] = (pSettings->outputFrequency >> 8);
+        buf[15] = pSettings->outputFrequency;
+        buf[16] = (pSettings->dacAttenuation >> 8);
+        buf[17] = pSettings->dacAttenuation;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 35, buf, 0, false, true, 35));
+        hImplChnDev->ifDacSettings = *pSettings;
+    }
+
+done:
+    BDBG_LEAVE(BADS_Leap_TuneIfDac);
+    return( retCode );
+}
+
+BERR_Code BADS_Leap_ResetIfDacStatus(
+    BADS_ChannelHandle hChn        /* [in] Device handle */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BADS_Leap_ChannelHandle hImplChnDev;
+    uint8_t buf[17] = HAB_MSG_HDR(BADS_RESET_IFDAC_STATUS, 0xc, BADS_IFDAC_CORE_TYPE);
+
+    BDBG_ENTER(BADS_Leap_ResetIfDacStatus);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    hImplChnDev = (BADS_Leap_ChannelHandle) hChn->pImpl;
+    BDBG_ASSERT( hImplChnDev );
+    BDBG_ASSERT( hImplChnDev->hHab );
+
+    if(hImplChnDev->bPowerdown)
+    {
+        BDBG_ERR(("IFDAC core %d Powered Off", hImplChnDev->chnNo));
+        retCode = BERR_TRACE(BADS_ERR_POWER_DOWN);
+    }
+    else
+    {
+        buf[3] = 0;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 17, buf, 0, false, true, 17));
+    }
+
+done:
+    BDBG_LEAVE(BADS_Leap_ResetIfDacStatus);
+    return( retCode );
+}
+
+BERR_Code BADS_Leap_RequestIfDacStatus(
+    BADS_ChannelHandle hChn        /* [in] Device handle */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BADS_Leap_ChannelHandle hImplChnDev;
+    uint8_t buf[17] = HAB_MSG_HDR(BADS_REQ_IFDAC_STATUS, 0xc, BADS_IFDAC_CORE_TYPE);
+
+    BDBG_ENTER(BADS_Leap_RequestIfDacStatus);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    hImplChnDev = (BADS_Leap_ChannelHandle) hChn->pImpl;
+    BDBG_ASSERT( hImplChnDev );
+    BDBG_ASSERT( hImplChnDev->hHab );
+    if(hImplChnDev->bPowerdown)
+    {
+        BDBG_ERR(("IFDAC core %d Powered Off", hImplChnDev->chnNo));
+        retCode = BERR_TRACE(BADS_ERR_POWER_DOWN);
+    }
+    else
+    {
+        buf[3] = 0;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 17, buf, 0, false, true, 17));
+    }
+
+done:
+    BDBG_LEAVE(BADS_Leap_RequestIfDacStatus);
+    return( retCode );
+}
+
+BERR_Code BADS_Leap_GetIfDacStatus(
+    BADS_ChannelHandle hChn,               /* [in] Device handle */
+    BADS_IfDacStatus *pStatus       /* [out] Returns status */
+    )
+{
+    BERR_Code retCode = BERR_SUCCESS;
+    BADS_Leap_ChannelHandle hImplChnDev;
+    uint8_t buf[69] = HAB_MSG_HDR(BADS_GET_IFDAC_STATUS, 0xc, BADS_IFDAC_CORE_TYPE);
+
+    BDBG_ENTER(BADS_Leap_GetIfDacStatus);
+    BDBG_ASSERT( hChn );
+    BDBG_ASSERT( hChn->magicId == DEV_MAGIC_ID );
+
+    hImplChnDev = (BADS_Leap_ChannelHandle) hChn->pImpl;
+    BDBG_ASSERT( hImplChnDev );
+    BDBG_ASSERT( hImplChnDev->hHab );
+    if(hImplChnDev->bPowerdown)
+    {
+        BDBG_ERR(("IFDAC core %d Powered Off", hImplChnDev->chnNo));
+        retCode = BERR_TRACE(BADS_ERR_POWER_DOWN);
+    }
+    else
+    {
+        pStatus->ifDacSettings = hImplChnDev->ifDacSettings;
+        buf[3] = 0;
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 17, buf, 69, false, true, 69));
+        pStatus->rssi = (int16_t)((buf[20] << 8) | buf[21])*100/256;
+    }
+
+done:
+
+    BDBG_LEAVE(BADS_Leap_GetIfDacStatus);
+    return( retCode );
+}
+#endif

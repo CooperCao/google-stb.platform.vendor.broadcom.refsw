@@ -11,6 +11,7 @@ FILE DESCRIPTION
 #define LOG_TAG "V3D"
 #include <cutils/log.h>
 #include <cutils/properties.h>
+#include <string.h>
 
 #include "interface/vcos/vcos_log.h"
 

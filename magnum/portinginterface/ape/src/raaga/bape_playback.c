@@ -313,6 +313,9 @@ BERR_Code BAPE_Playback_Start(
     unsigned numBuffers;
     unsigned sampleRate;
     bool hbr=false;
+    BAPE_PathNode *pNode;
+    unsigned numFound;
+    bool mixedWithDsp;
 
     BDBG_OBJECT_ASSERT(hPlayback, BAPE_Playback);
     BDBG_ASSERT(NULL != pSettings);
@@ -461,6 +464,25 @@ BERR_Code BAPE_Playback_Start(
     #if BDBG_DEBUG_BUILD
         BAPE_Mixer_P_PrintMixers(hPlayback->hApe);
     #endif
+
+    BAPE_PathNode_P_FindConsumersBySubtype(&hPlayback->node, BAPE_PathNodeType_eMixer, BAPE_MixerType_eDsp, 1, &numFound, &pNode);
+    mixedWithDsp = (numFound > 0) ? true : false;
+    if (mixedWithDsp)
+    {
+        BAPE_PathConnection *pLink=NULL;
+
+        for ( pLink = BLST_SQ_FIRST(&hPlayback->node.connectors[0].connectionList);
+              NULL != pLink;
+              pLink = BLST_SQ_NEXT(pLink, downstreamNode) )
+        {
+            if ( pLink->srcGroup )
+            {
+                BKNI_EnterCriticalSection();
+                BAPE_SrcGroup_P_SetSampleRate_isr(pLink->srcGroup, sampleRate, 48000);
+                BKNI_LeaveCriticalSection();
+            }
+        }
+    }
 
     /* Start */
     errCode = BAPE_PathNode_P_StartPaths(&hPlayback->node);

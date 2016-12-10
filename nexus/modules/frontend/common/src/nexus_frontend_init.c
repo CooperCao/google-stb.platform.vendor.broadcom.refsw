@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend Module
 *    Frontend module private APIs and module data.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -151,7 +143,7 @@ NEXUS_Error NEXUS_FrontendModule_Standby_priv(bool enabled, const NEXUS_StandbyS
 
             }
         }
-        if((frontend->mode < NEXUS_StandbyMode_ePassive) && (pSettings->mode >= NEXUS_StandbyMode_ePassive)){
+        if((frontend->mode <= NEXUS_StandbyMode_ePassive) && (pSettings->mode >= NEXUS_StandbyMode_ePassive)){
             rc = NEXUS_Frontend_Standby_priv(frontend, enabled, pSettings);
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
             frontend->mode = pSettings->mode;
@@ -172,7 +164,7 @@ NEXUS_Error NEXUS_FrontendModule_Standby_priv(bool enabled, const NEXUS_StandbyS
                 BLST_D_INSERT_HEAD(&g_frontendDeviceList.deviceList, deviceHandle, node);
             }
         }
-        if((tuner->mode < NEXUS_StandbyMode_ePassive) && (pSettings->mode >= NEXUS_StandbyMode_ePassive)){
+        if((tuner->mode <= NEXUS_StandbyMode_ePassive) && (pSettings->mode >= NEXUS_StandbyMode_ePassive)){
             rc = NEXUS_Tuner_Standby_priv(tuner, enabled, pSettings);
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
             tuner->mode = pSettings->mode;
@@ -188,7 +180,7 @@ NEXUS_Error NEXUS_FrontendModule_Standby_priv(bool enabled, const NEXUS_StandbyS
 
     for (frontend = BLST_SQ_FIRST(&g_frontendList.frontends); frontend; frontend = BLST_SQ_NEXT(frontend, link))
     {
-        if((frontend->mode >= NEXUS_StandbyMode_ePassive) && (pSettings->mode < NEXUS_StandbyMode_ePassive)){
+        if((frontend->mode >= NEXUS_StandbyMode_ePassive) && (pSettings->mode <= NEXUS_StandbyMode_ePassive)){
             rc = NEXUS_Frontend_Standby_priv(frontend, enabled, pSettings);
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
             frontend->mode = pSettings->mode;
@@ -197,7 +189,7 @@ NEXUS_Error NEXUS_FrontendModule_Standby_priv(bool enabled, const NEXUS_StandbyS
 
     for (tuner = BLST_SQ_FIRST(&g_tunerList.tuners); tuner; tuner = BLST_SQ_NEXT(tuner, link))
     {
-        if((tuner->mode >= NEXUS_StandbyMode_ePassive) && pSettings->mode < NEXUS_StandbyMode_ePassive){
+        if((tuner->mode >= NEXUS_StandbyMode_ePassive) && pSettings->mode <= NEXUS_StandbyMode_ePassive){
             rc = NEXUS_Tuner_Standby_priv(tuner, enabled, pSettings);
             if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
             tuner->mode = pSettings->mode;
@@ -216,6 +208,3 @@ error:
 #endif
     return NEXUS_SUCCESS;
 }
-
-
-

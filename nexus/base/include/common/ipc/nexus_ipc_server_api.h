@@ -74,6 +74,7 @@ NEXUS_Addr NEXUS_P_ServerCall_AddrToOffset(const void *ptr);
 void *NEXUS_P_ServerCall_OffsetToAddr(NEXUS_Addr addr);
 NEXUS_Error NEXUS_P_ServerCall_InVarArg_AddrField(unsigned in_data_size, void *in_data, unsigned struct_size, unsigned field_offset, unsigned count, int varArg, int varArgField);
 void NEXUS_P_ServerCall_OutVarArg_Init(NEXUS_P_ServerOutVarArg_State *state, struct b_objdb_client *client, void *data, unsigned size);
-void *NEXUS_P_ServerCall_OutVarArg_Allocate(NEXUS_P_ServerOutVarArg_State *state, unsigned data_size);
+NEXUS_Error NEXUS_P_ServerCall_OutVarArg_Allocate(NEXUS_P_ServerOutVarArg_State *state, unsigned total_data_size);
+void *NEXUS_P_ServerCall_OutVarArg_Place(NEXUS_P_ServerOutVarArg_State *state, unsigned data_size);
 
 #endif /* _NEXUS_IPC_SERVER_API_H_ */

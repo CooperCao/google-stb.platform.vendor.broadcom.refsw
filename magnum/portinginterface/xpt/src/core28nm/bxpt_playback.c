@@ -47,7 +47,11 @@
 #include "bchp_xpt_mcpb.h"
 #include "bchp_xpt_mcpb_ch0.h"
 #include "bchp_xpt_mcpb_ch1.h"
+#ifdef BXPT_USE_HOST_AGGREGATOR
+#include "bchp_xpt_mcpb_host_intr_aggregator.h"
+#else
 #include "bchp_xpt_mcpb_cpu_intr_aggregator.h"
+#endif
 #include "bchp_xpt_bus_if.h"
 
 #if BCHP_PWR_SUPPORT
@@ -62,10 +66,33 @@
     BDBG_FILE_MODULE( xpt_playback_regs );
 #endif
 
+#if BXPT_HAS_MCPB_VER_3
+    /* These definitions came from the SW Guide to MCPB 3.0 doc, definition of the 12 word descriptor. */
+    #define DESC_CFG_WORD  3
+    #define MUX_CFG_WORD   4
+    #define PID_CHNL_WORD  5
+    #define NEXT_PKT_PACING_TIMESTAMP_WORD 7
+    #define PKT2PKT_TIMESTAMP_DELTA_WORD  8
+    #define NEXT_DESC_WORD_HI 10
+    #define NEXT_DESC_WORD_LO 11
+#else
+    /* These definitions came from the SW Guide to MCPB 2.0 doc, definition of the 12 word descriptor. */
+    #define DESC_CFG_WORD  4
+    #define MUX_CFG_WORD   5
+    #define PID_CHNL_WORD  6
+    #define NEXT_PKT_PACING_TIMESTAMP_WORD 8
+    #define PKT2PKT_TIMESTAMP_DELTA_WORD  9
+    #define NEXT_DESC_WORD_LO 2
+#endif
+
 #define BXPT_P_PLAYBACK_DEFAULT_USE_PCR_TIMEBASE        false
 #define BXPT_P_PLAYBACK_DEFAULT_TIMESTAMP_MODE          BXPT_TimestampMode_e30_2U_Mod300
 #define BXPT_PB_MAX_SYNC_LENGTH                         ( 256 )
-#define PB_PARSER_REG_STEPSIZE                          (BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL)
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    #define PB_PARSER_REG_STEPSIZE                          (BCHP_XPT_MCPB_CH1_DMA_DESC_ADDR - BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR)
+#else
+    #define PB_PARSER_REG_STEPSIZE                          (BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL)
+#endif
 #define GPC_REG_STEPSIZE                                (BCHP_XPT_MCPB_GPC1_CTRL - BCHP_XPT_MCPB_GPC0_CTRL)
 
 #if ((BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0))
@@ -85,8 +112,53 @@
         BXPT_Playback_P_WriteReg( handle, BCHP_##regname, LocalReg ); \
     };
 
+#define MCPB_CHNL_WRITE_ADDR( handle, regname, bitfield, val ) \
+    { \
+        uint64_t LocalReg; \
+        LocalReg = BXPT_Playback_P_ReadAddr( handle, BCHP_##regname ); \
+        LocalReg &= ~( BCHP_MASK( regname, bitfield ) ); \
+        LocalReg |= ( BCHP_FIELD_DATA( regname, bitfield, val ) ); \
+        BXPT_Playback_P_WriteAddr( handle, BCHP_##regname, LocalReg ); \
+    };
+
 #define MCPB_TOP_READ_STATUS( handle, regname, bitfield ) \
     (BCHP_GET_FIELD_DATA( BXPT_Playback_P_ReadReg( handle, BCHP_##regname ), regname, bitfield ) & (1 << hPb->ChannelNo))
+
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+#define BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+#endif
+
+void BXPT_Playback_P_WriteAddr(
+    BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
+    uint32_t Pb0RegAddr,
+    uint64_t RegVal
+    )
+{
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR + hPb->BaseAddr;
+#else
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + hPb->BaseAddr;
+#endif
+    BDBG_MODULE_MSG( xpt_playback_regs, ( "write reg 0x%08X: value " BDBG_UINT64_FMT "", RegAddr, BDBG_UINT64_ARG(RegVal) ));
+    BREG_WriteAddr( hPb->hRegister, RegAddr, RegVal );
+}
+
+uint64_t BXPT_Playback_P_ReadAddr(
+    BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
+    uint32_t Pb0RegAddr
+    )
+{
+    uint64_t Reg;
+
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR + hPb->BaseAddr;
+#else
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + hPb->BaseAddr;
+#endif
+    Reg = BREG_ReadAddr( hPb->hRegister, RegAddr );
+    BDBG_MODULE_MSG( xpt_playback_regs, ( "read reg 0x%08X: value " BDBG_UINT64_FMT "", RegAddr, BDBG_UINT64_ARG(Reg) ));
+    return Reg;
+}
 
 static BERR_Code SetGlobalPacingCounter(
     BXPT_Playback_Handle hPb
@@ -349,8 +421,11 @@ BERR_Code BXPT_Playback_OpenChannel(
     ** Use the address of the first register in the playback block as the
     ** base address of the entire block.
     */
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    hPb->BaseAddr = BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR + ( ChannelNo * PB_PARSER_REG_STEPSIZE );
+#else
     hPb->BaseAddr = BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + ( ChannelNo * PB_PARSER_REG_STEPSIZE );
-
+#endif
     hPb->hChip = hXpt->hChip;
     hPb->hRegister = hXpt->hRegister;
     hPb->ChannelNo = ChannelNo;
@@ -373,9 +448,17 @@ BERR_Code BXPT_Playback_OpenChannel(
     MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_MODE_SET_CLEAR, SET_CLEAR, 0 );
 
     /* Configure for 12-word descriptor */
-    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DESC_CONTROL, LLD_TYPE, 2 );
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    MCPB_CHNL_WRITE_ADDR( hPb, XPT_MCPB_CH0_DMA_DESC_ADDR, LLD_TYPE, 2 );
+#else
+    MCPB_CHNL_WRITE_ADDR( hPb, XPT_MCPB_CH0_DMA_DESC_CONTROL, LLD_TYPE, 2 );
+#endif
 
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DATA_CTRL
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CTRL, DRAM_REQ_SIZE, 256 );
+#else
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CONTROL, DRAM_REQ_SIZE, 256 );
+#endif
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_BBUFF_CTRL, STREAM_PROC_FEED_SIZE, 192 );
 
 #ifdef BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL1
@@ -469,7 +552,11 @@ BERR_Code BXPT_Playback_SetChannelSettings(
 
     BXPT_Playback_SetChannelPacketSettings(hPb, &PacketSettings );
 
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DATA_CTRL
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CTRL, ENDIAN_CONTROL, hPb->settings.SwapBytes == true ? 1 : 0 );
+#else
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CONTROL, ENDIAN_CONTROL, hPb->settings.SwapBytes == true ? 1 : 0 );
+#endif
 
     /* To implement RaveOutputOnly, need to walk through the PID table. Then remvoe this check. */
     if( hPb->settings.RaveOutputOnly )
@@ -607,7 +694,8 @@ BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
     BXPT_PvrDescriptor **LastCompletedDesc       /* [in] Address of the current descriptor. */
     )
 {
-    uint32_t Reg, DescAddr;
+    uint64_t Reg;
+    BMMA_DeviceOffset DescAddr;
 
     void *UserSpaceDescAddr = NULL;     /* return NULL if no descriptors have completed. */
     BERR_Code ExitCode = BERR_SUCCESS;
@@ -619,14 +707,13 @@ BERR_Code BXPT_Playback_GetLastCompletedDescriptorAddress(
     if( BCHP_GET_FIELD_DATA( Reg, XPT_MCPB_CH0_DCPM_STATUS, DESC_ADDRESS_STATUS ) )
     {
         /* A descriptor has completed. Status is good. */
-        Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_DESC_ADDR );
+        Reg = BXPT_Playback_P_ReadAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_DESC_ADDR );
         DescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_MCPB_CH0_DCPM_DESC_ADDR, DESC_ADDRESS );
         DescAddr <<= 4;  /* Convert to byte-address. */
         UserSpaceDescAddr = (uint8_t*) hPb->mma.descPtr + (DescAddr - hPb->mma.descOffset); /* offset -> cached address */
     }
 
     *LastCompletedDesc = ( BXPT_PvrDescriptor * ) UserSpaceDescAddr;
-    BDBG_MSG(( "LastCompletedDescriptor (channel %u): 0x%08lX", hPb->ChannelNo, (unsigned long) UserSpaceDescAddr ));
     return( ExitCode );
 }
 
@@ -821,7 +908,7 @@ BERR_Code BXPT_Playback_AddDescriptors(
     BXPT_PvrDescriptor *FirstDesc   /* [in] First descriptor in new chain */
     )
 {
-    uint32_t DescPhysAddr;
+    uint64_t DescPhysAddr;
     uint32_t *DescWords;
 
     BERR_Code ExitCode = BERR_SUCCESS;
@@ -837,17 +924,26 @@ BERR_Code BXPT_Playback_AddDescriptors(
     {
         BXPT_PvrDescriptor *Desc = FirstDesc;
         BXPT_PvrDescriptor *HeadOfChain = FirstDesc;
+        BMMA_DeviceOffset nextDescAddr;
 
         do {
             uint32_t *DescContents = (uint32_t*)Desc;
+
             BDBG_MODULE_MSG( xpt_playback_descriptors, ( "Desc %p: %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X", (void *) Desc,
                 DescContents[0], DescContents[1], DescContents[2], DescContents[3], DescContents[4], DescContents[5],
                 DescContents[6], DescContents[7], DescContents[8], DescContents[9], DescContents[10], DescContents[11]
             ));
 
+#if BXPT_HAS_MCPB_VER_3
+            nextDescAddr = Desc->NextDescAddrHi;
+            nextDescAddr <<= 32;
+            nextDescAddr += Desc->NextDescAddr;
+#else
+            nextDescAddr = Desc->NextDescAddr;
+#endif
             if (Desc->NextDescAddr & TRANS_DESC_LAST_DESCR_IND) { break; }
 
-            Desc = (BXPT_PvrDescriptor*)((uint8_t*)hPb->mma.descPtr + (Desc->NextDescAddr - hPb->mma.descOffset)); /* convert NextDescAddr -> cached ptr */
+            Desc = (BXPT_PvrDescriptor*)((uint8_t*)hPb->mma.descPtr + (nextDescAddr - hPb->mma.descOffset)); /* convert NextDescAddr -> cached ptr */
             BMMA_FlushCache(hPb->mma.descBlock, Desc, sizeof(BXPT_PvrDescriptor));
         }
         while( Desc != HeadOfChain );
@@ -864,11 +960,11 @@ BERR_Code BXPT_Playback_AddDescriptors(
         do {
             BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
             DescWords = (uint32_t*)CurrDesc;
-            DescWords[4] |= TRANS_DESC_FORCE_RESYNC_FLAG;
 
-            if (DescWords[2] & TRANS_DESC_LAST_DESCR_IND) {
+            DescWords[DESC_CFG_WORD] |= TRANS_DESC_FORCE_RESYNC_FLAG;
+            if (DescWords[NEXT_DESC_WORD_LO] & TRANS_DESC_LAST_DESCR_IND) {
                 #define MCPB_DW4_PUSH_PARTIAL_PKT (1 << 28)
-                DescWords[4] |= MCPB_DW4_PUSH_PARTIAL_PKT;
+                DescWords[DESC_CFG_WORD] |= MCPB_DW4_PUSH_PARTIAL_PKT;
                 BMMA_FlushCache(hPb->mma.descBlock, CurrDesc, sizeof (*CurrDesc));
                 break;
             }
@@ -883,16 +979,21 @@ BERR_Code BXPT_Playback_AddDescriptors(
 
     /* fail if descriptor not on MEMC0 */
     if (!BCHP_OffsetOnMemc(hPb->hChip, DescPhysAddr, 0)) {
-        BDBG_ERR(("Descriptor at offset 0x%08x is not on MEMC0 and inaccessible by default RTS", DescPhysAddr));
+        BDBG_ERR(("Descriptor at offset " BDBG_UINT64_FMT " is not on MEMC0 and inaccessible by default RTS", BDBG_UINT64_ARG(DescPhysAddr)));
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if( LastDescriptor )
     {
         /* Channel has a linked-list loaded already. Append this descriptor to the end and use WAKE_MODE = 0 (resume from the last descriptor). */
-        DescWords = (uint32_t*)LastDescriptor;
-        BMMA_FlushCache(hPb->mma.descBlock, LastDescriptor, sizeof(*LastDescriptor));
-        DescWords[2] = DescPhysAddr;
+       DescWords = (uint32_t*)LastDescriptor;
+       BMMA_FlushCache(hPb->mma.descBlock, LastDescriptor, sizeof(*LastDescriptor));
+#if BXPT_HAS_MCPB_VER_3
+       DescWords[NEXT_DESC_WORD_HI] = DescPhysAddr >> 32;
+       DescWords[NEXT_DESC_WORD_LO] = DescPhysAddr & 0xFFFFFFFF;
+#else
+        DescWords[NEXT_DESC_WORD_LO] = DescPhysAddr;
+#endif
         BMMA_FlushCache(hPb->mma.descBlock, LastDescriptor, sizeof(*LastDescriptor));
         MCPB_TOP_WRITE( hPb, XPT_MCPB_WAKE_SET, SET, 1 );
     }
@@ -908,7 +1009,11 @@ BERR_Code BXPT_Playback_AddDescriptors(
         ** bitfield starts at bit 4. Confusing, but thats what the hardware and the
         ** RDB macros require to make this work.
         */
-        MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DESC_CONTROL, FIRST_DESC_ADDRESS, DescPhysAddr >> 4 );
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+       MCPB_CHNL_WRITE_ADDR(hPb, XPT_MCPB_CH0_DMA_DESC_ADDR, FIRST_DESC_ADDRESS, DescPhysAddr >> 4);
+#else
+       MCPB_CHNL_WRITE_ADDR(hPb, XPT_MCPB_CH0_DMA_DESC_CONTROL, FIRST_DESC_ADDRESS, DescPhysAddr >> 4);
+#endif
         BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_STATUS, 0 );
 
 #if BXPT_P_PLAYBACK_DISABLE_SLOT_WISE_READ
@@ -957,16 +1062,25 @@ BERR_Code BXPT_Playback_StartChannel(
 
     /* Need to enable the parser band. */
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_SP_PARSER_CTRL, PARSER_ENABLE, 1 );
-
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DATA_CTRL
+    MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CTRL, RUN_VERSION, 0 );
+#else
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DMA_DATA_CONTROL, RUN_VERSION, 0 );
+#endif
     MCPB_CHNL_WRITE( hPb, XPT_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER, PACKET_COUNTER, 0 );
 
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_STATUS, 0 );
-    BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_DESC_ADDR, 0 );
-    BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_DESC_DONE_INT_ADDR, 0 );
+
+    BXPT_Playback_P_WriteAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_DESC_ADDR, 0 );
+    BXPT_Playback_P_WriteAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_DESC_DONE_INT_ADDR, 0 );
+    BXPT_Playback_P_WriteAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_CURR_DESC_ADDR, 0 );
+
+#ifdef BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR
+    BXPT_Playback_P_WriteAddr( hPb, BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR, 0 );
+#else
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR_UPPER, 0 );
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_DATA_ADDR_LOWER, 0 );
-    BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_DCPM_CURR_DESC_ADDR, 0 );
+#endif
 
     hPb->Running = true;
 
@@ -1494,7 +1608,11 @@ void BXPT_Playback_P_WriteReg(
     ** block, plus the base address of the block ( which changes from
     ** channel to channel ).
     */
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR + hPb->BaseAddr;
+#else
     uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + hPb->BaseAddr;
+#endif
     BDBG_MODULE_MSG( xpt_playback_regs, ( "write reg 0x%08X: value 0x%08X", RegAddr, RegVal ));
     BREG_Write32( hPb->hRegister, RegAddr, RegVal );
 }
@@ -1511,7 +1629,11 @@ uint32_t BXPT_Playback_P_ReadReg(
     ** block, plus the base address of the block ( which changes from
     ** channel to channel ).
     */
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR + hPb->BaseAddr;
+#else
     uint32_t RegAddr = Pb0RegAddr - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL + hPb->BaseAddr;
+#endif
     Reg = BREG_Read32( hPb->hRegister, RegAddr );
     BDBG_MODULE_MSG( xpt_playback_regs, ( "read reg 0x%08X: value 0x%08X", RegAddr, Reg ));
     return Reg;
@@ -1556,7 +1678,9 @@ void BXPT_Playback_SetDescBuf(
 
 #include "bchp_xpt_mcpb_desc_done_intr_l2.h"
 #include "bchp_xpt_mcpb_misc_ts_range_err_intr_l2.h"
+#ifdef BXPT_HAS_SEPARATE_OOS_INTR
 #include "bchp_xpt_mcpb_misc_oos_intr_l2.h"
+#endif
 #include "bchp_xpt_mcpb_misc_tei_intr_l2.h"
 
 BINT_Id BXPT_Playback_GetIntId(
@@ -1571,19 +1695,36 @@ BINT_Id BXPT_Playback_GetIntId(
     switch( PbInt )
     {
         case BXPT_PbInt_eDone:
+#ifdef BCHP_XPT_MCPB_DESC_DONE_INTR_L2_HOST_STATUS
+        RegAddr = BCHP_XPT_MCPB_DESC_DONE_INTR_L2_HOST_STATUS;
+#else
         RegAddr = BCHP_XPT_MCPB_DESC_DONE_INTR_L2_CPU_STATUS;
+#endif
         break;
 
         case BXPT_PbInt_eTsRangeErr:
+#ifdef BCHP_XPT_MCPB_MISC_TS_RANGE_ERR_INTR_L2_HOST_STATUS
+        RegAddr = BCHP_XPT_MCPB_MISC_TS_RANGE_ERR_INTR_L2_HOST_STATUS;
+#else
         RegAddr = BCHP_XPT_MCPB_MISC_TS_RANGE_ERR_INTR_L2_CPU_STATUS;
+#endif
         break;
 
         case BXPT_PbInt_eOutOfSync:
+#ifdef BXPT_HAS_SEPARATE_OOS_INTR
         RegAddr = BCHP_XPT_MCPB_MISC_OOS_INTR_L2_CPU_STATUS;
+#else
+        RegAddr = 0;
+        BDBG_ERR(( "BXPT_PbInt_eOutOfSync not supported at this time." ));
+#endif
         break;
 
         case BXPT_PbInt_eTeiError:
+#ifdef BCHP_XPT_MCPB_MISC_TEI_INTR_L2_HOST_STATUS
+        RegAddr = BCHP_XPT_MCPB_MISC_TEI_INTR_L2_HOST_STATUS;
+#else
         RegAddr = BCHP_XPT_MCPB_MISC_TEI_INTR_L2_CPU_STATUS;
+#endif
         break;
 
         default:
@@ -1639,6 +1780,16 @@ void BXPT_Playback_P_EnableInterrupts(
         )
 {
     /* Forward all interrupts to the host. */
+#ifdef BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR
+    BREG_Write32( hXpt->hRegister, BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR,
+            BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_STATUS_INTR_MASK |
+            BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_PAUSE_AT_DESC_END_INTR_MASK |
+            BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_TS_RANGE_ERR_INTR_MASK |
+            BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_TEI_INTR_MASK |
+            BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_FALSE_WAKE_INTR_MASK |
+            BCHP_XPT_MCPB_HOST_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_DESC_DONE_INTR_MASK
+    );
+#else
     BREG_Write32( hXpt->hRegister, BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR,
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_CRC_COMPARE_ERROR_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_FALSE_WAKE_INTR_MASK |
@@ -1657,6 +1808,7 @@ void BXPT_Playback_P_EnableInterrupts(
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_MISC_DESC_TAGID_MISMATCH_INTR_MASK |
         BCHP_XPT_MCPB_CPU_INTR_AGGREGATOR_INTR_W0_MASK_CLEAR_MCPB_DESC_DONE_INTR_MASK
     );
+#endif
 }
 
 void BXPT_Playback_P_Init(
@@ -1702,6 +1854,14 @@ void BXPT_Playback_P_Init(
     /* Set the defaults, since the register contents don't reflect them after chip reset */
     for( ii = 0; ii < BXPT_NUM_PLAYBACKS; ii++ )
     {
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+        {
+            Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * ii);
+            BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_SEL, 1);
+            BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID, ii);
+            BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * ii, Reg);
+        }
+#else
         RegAddr = BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL + ii * PB_PARSER_REG_STEPSIZE;
         Reg = BREG_Read32( hXpt->hRegister, RegAddr );
         Reg &= ~(
@@ -1713,6 +1873,7 @@ void BXPT_Playback_P_Init(
             BCHP_FIELD_DATA( XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID, ii )
         );
         BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+#endif
 
         hXpt->BandMap.Playback[ ii ].VirtualParserIsPlayback = true;
         hXpt->BandMap.Playback[ ii ].VirtualParserBandNum = ii;
@@ -1800,6 +1961,7 @@ void BXPT_Playback_SetDescriptorFlags(
     )
 {
     uint32_t *descWords = NULL;
+
     BDBG_ASSERT( Desc );
     BDBG_ASSERT( flags );
 
@@ -1811,52 +1973,51 @@ void BXPT_Playback_SetDescriptorFlags(
     BMMA_FlushCache(hPb->mma.descBlock, Desc, sizeof(*Desc));
     descWords = (uint32_t *) Desc;
 
-    /* These definitions came from the SW Guide to MCPB 2.0 doc, definition of the 12 word descriptor. */
-    descWords[5] &= ~(1 << 2);
+    descWords[MUX_CFG_WORD] &= ~(1 << 2);
     if( flags->muxFlags.bRandomAccessIndication )
-        descWords[5] |= 1 << 2;
+        descWords[MUX_CFG_WORD] |= 1 << 2;
 
-    descWords[5] &= ~(1 << 1);
+    descWords[MUX_CFG_WORD] &= ~(1 << 1);
     if( flags->muxFlags.bNextPacketPacingTimestampValid )
     {
-        descWords[5] |= 1 << 1;
-        descWords[8] = flags->muxFlags.uiNextPacketPacingTimestamp;
+        descWords[MUX_CFG_WORD] |= 1 << 1;
+        descWords[NEXT_PKT_PACING_TIMESTAMP_WORD] = flags->muxFlags.uiNextPacketPacingTimestamp;
     }
 
-    descWords[5] &= ~1;
+    descWords[MUX_CFG_WORD] &= ~1;
     if( flags->muxFlags.bPacket2PacketTimestampDeltaValid )
     {
-        descWords[5] |= 1;
-        descWords[9] = flags->muxFlags.uiPacket2PacketTimestampDelta;
+        descWords[MUX_CFG_WORD] |= 1;
+        descWords[PKT2PKT_TIMESTAMP_DELTA_WORD] = flags->muxFlags.uiPacket2PacketTimestampDelta;
     }
 
-    descWords[4] &= ~(1 << 28);
+    descWords[DESC_CFG_WORD] &= ~(1 << 28);
     if( flags->PushPartialPacket || flags->muxFlags.bPushPartialPacket )
-        descWords[4] |= 1 << 28;
+        descWords[DESC_CFG_WORD] |= 1 << 28;
 
-    descWords[4] &= ~(1 << 27);
+    descWords[DESC_CFG_WORD] &= ~(1 << 27);
     if( flags->muxFlags.bPushPreviousPartialPacket )
-        descWords[4] |= 1 << 27;
+        descWords[DESC_CFG_WORD] |= 1 << 27;
 
-    descWords[5] &= ~(1 << 20);
+    descWords[MUX_CFG_WORD] &= ~(1 << 20);
     if( flags->PauseAtDescEnd )
-        descWords[5] |= 1 << 20;
+        descWords[MUX_CFG_WORD] |= 1 << 20;
 
-    descWords[4] &= ~(1 << 29 );
+    descWords[DESC_CFG_WORD] &= ~(1 << 29 );
     if( flags->muxFlags.bHostDataInsertion )
-        descWords[4] |= 1 << 29;
+        descWords[DESC_CFG_WORD] |= 1 << 29;
 
-    descWords[5] &= ~(1 << 19);
+    descWords[MUX_CFG_WORD] &= ~(1 << 19);
     if( flags->muxFlags.bPidChannelValid )
     {
-        descWords[5] |= 1 << 19;
-        descWords[6] = flags->muxFlags.uiPidChannelNo;
+        descWords[MUX_CFG_WORD] |= 1 << 19;
+        descWords[PID_CHNL_WORD] = flags->muxFlags.uiPidChannelNo;
     }
 
-    descWords[5] &= ~(1 << 22);
+    descWords[MUX_CFG_WORD] &= ~(1 << 22);
     if( flags->muxFlags.bInsertHostDataAsBtp )
     {
-        descWords[5] |= (1 << 22);
+        descWords[MUX_CFG_WORD] |= (1 << 22);
     }
 
     BMMA_FlushCache(hPb->mma.descBlock, Desc, sizeof(*Desc));
@@ -1867,9 +2028,16 @@ unsigned BXPT_Playback_P_GetBandId(
     BXPT_Playback_Handle hPb
     )
 {
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+    uint32_t Reg;
+
+    Reg = BREG_Read32(hPb->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * hPb->ChannelNo);
+    return (unsigned) BCHP_GET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID);
+#else
     /* RESUME SW7425-5193 here, then port to 65 and 40 nm code.*/
     return (unsigned) BCHP_GET_FIELD_DATA( BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL ),
         XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID );
+#endif
 }
 
 unsigned int BXPT_PB_P_GetPbBandId(
@@ -1877,9 +2045,16 @@ unsigned int BXPT_PB_P_GetPbBandId(
     unsigned int Band
     )
 {
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+    uint32_t Reg;
+
+    Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * Band);
+    return (unsigned) BCHP_GET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID);
+#else
     uint32_t RegAddr = BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL + ( Band * PB_PARSER_REG_STEPSIZE );
     return (unsigned) BCHP_GET_FIELD_DATA( BREG_Read32( hXpt->hRegister, RegAddr ),
         XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID );
+#endif
 }
 
 void BXPT_Playback_P_SetBandId(
@@ -1891,6 +2066,14 @@ void BXPT_Playback_P_SetBandId(
 
     BXPT_Handle hXpt = (BXPT_Handle) hPb->vhXpt;
 
+#ifdef BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL
+    {
+        Reg = BREG_Read32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * hPb->ChannelNo);
+        BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_SEL, 1);
+        BCHP_SET_FIELD_DATA(Reg, XPT_MCPB_CH0_PARSER_BAND_ID_CTRL, PB_PARSER_BAND_ID, NewBandId);
+        BREG_Write32(hXpt->hRegister, BCHP_XPT_MCPB_CH0_PARSER_BAND_ID_CTRL + 4 * hPb->ChannelNo, Reg);
+    }
+#else
     Reg = BXPT_Playback_P_ReadReg( hPb, BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL );
     Reg &= ~(
         BCHP_MASK( XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_SEL ) |
@@ -1901,6 +2084,7 @@ void BXPT_Playback_P_SetBandId(
         BCHP_FIELD_DATA( XPT_MCPB_CH0_SP_PARSER_CTRL, PB_PARSER_BAND_ID, NewBandId )
     );
     BXPT_Playback_P_WriteReg( hPb, BCHP_XPT_MCPB_CH0_SP_PARSER_CTRL, Reg );
+#endif
 
     hXpt->BandMap.Playback[ hPb->ChannelNo ].VirtualParserBandNum = NewBandId;
 }

@@ -65,6 +65,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  --help or -h for help\n"
         "  -index #\n"
         "  -prompt\n"
+        "  -secure\n"
         "  -pip                     sets -rect and -zorder for picture-in-picture\n"
         "  -track_source            change display format to match HDMI input format\n"
         );
@@ -74,6 +75,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
 static struct {
     NEXUS_HdmiInputHandle hdmiInput;
     NEXUS_HdmiOutputHandle hdmiOutput;
+    bool secureVideo;
 } g_app;
 
 /* changing output params to match input params is not required */
@@ -323,6 +325,9 @@ int main(int argc, const char **argv)  {
             print_usage(&cmdline);
             return 0;
         }
+        else if (!strcmp(argv[curarg], "-secure")) {
+            g_app.secureVideo = true;
+        }
         else if (!strcmp(argv[curarg], "-prompt")) {
             prompt = true;
         }
@@ -401,6 +406,7 @@ int main(int argc, const char **argv)  {
 
     NEXUS_HdmiInput_GetDefaultSettings(&hdmiInputSettings);
     hdmiInputSettings.frontend.hpdDisconnected = false;
+    hdmiInputSettings.secureVideo = g_app.secureVideo;
     g_app.hdmiInput = NEXUS_HdmiInput_Open(index, &hdmiInputSettings);
     if (!g_app.hdmiInput) {
         BDBG_ERR(("HdmiInput %d not available", index));

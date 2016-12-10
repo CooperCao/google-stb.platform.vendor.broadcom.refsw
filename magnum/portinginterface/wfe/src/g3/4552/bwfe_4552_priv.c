@@ -957,10 +957,10 @@ BERR_Code BWFE_P_LoPowerUp(uint32_t loChan)
    BKNI_Sleep(50);
 
    BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_LOCK_STATUS, &pllstat);
-   if (pllstat & 0x1)
-      BKNI_Printf("lo%d PLL locked\n", loChan);
-   else
-      BKNI_Printf("lo%d PLL NOT locked\n", loChan);
+   if ((pllstat & 0x1) == 0)
+   {
+      BDBG_WRN(("lo%d PLL NOT locked\n", loChan));
+   }
 
    /* power on driver */
    BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_CKDRV, 0x00010000);

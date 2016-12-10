@@ -1159,7 +1159,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_STG                    (0) /* STG HW */
 #define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_216_SYSCLK)
 
-#elif (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==75635) || (BCHP_CHIP==75525)
+#elif (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==75635)
 
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (1) /* Has 656Out and run as master mode */
 #define BVDC_P_SUPPORT_TDAC_VER               (12)/* DAC HW version */
@@ -1174,7 +1174,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_GFD_VER                (6) /* GFD_0 HW version */
 #define BVDC_P_SUPPORT_GFD1_VER               (6) /* GFD_1 HW version */
 #define BVDC_P_SUPPORT_MFD                    (1) /* Number of MFD HW */
-#if (BCHP_CHIP==75635) || (BCHP_CHIP==75525)
+#if (BCHP_CHIP==75635)
 #define BVDC_P_SUPPORT_MFD_VER                (16)/* MFD HW version */
 #define BVDC_P_SUPPORT_MTG                    (1) /* MFD Trigger Generator */
 #else
@@ -1287,7 +1287,7 @@ extern "C" {
 #define BVDC_P_NUM_SHARED_656                 (1) /* Number VEC 656 HW */
 #define BVDC_P_NUM_SHARED_DVI                 (1) /* Number VEC Digital output HW */
 #define BVDC_P_NUM_SHARED_STG                 (0) /* Number of STG HW */
-#if (BCHP_CHIP==7563) || (BCHP_CHIP==75635) || (BCHP_CHIP==75525)
+#if (BCHP_CHIP==7563) || (BCHP_CHIP==75635)
 #define BVDC_P_NUM_SHARED_IT                  (1)
 #define BVDC_P_SUPPORT_RFM_OUTPUT             (1)
 #else
@@ -1788,7 +1788,8 @@ extern "C" {
 #define BVDC_P_SUPPORT_GFD1_VER               (6) /* GFD_1 HW version */
 #define BVDC_P_SUPPORT_MFD                    (2) /* Number of MFD HW */
 #define BVDC_P_SUPPORT_MTG                    (2) /* MFD Trigger Generator */
-#if (BCHP_CHIP==7364) && (BCHP_VER>=BCHP_VER_C0)
+#if ((BCHP_CHIP==7364) && (BCHP_VER>=BCHP_VER_C0) || \
+     (BCHP_CHIP==7250) && (BCHP_VER>=BCHP_VER_B0))
 #define BVDC_P_SUPPORT_HDDVI                  (0) /* Number of HDDVI HW */
 #define BVDC_P_SUPPORT_HDDVI_VER              (0) /* HDDVI HW version */
 #else
@@ -2077,6 +2078,8 @@ extern "C" {
 #define BVDC_P_SUPPORT_LOOP_BACK              (4) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_VEC_GRPD               (1)
 #define BVDC_P_SUPPORT_HDDVI                  (0)
+#define BVDC_P_SUPPORT_DSCL                   (1)
+#define BVDC_P_SUPPORT_DSCL_VER               (3)
 #else
 #define BVDC_P_SUPPORT_XSRC                   (2) /* Number of stand alone XSRC HW */
 #define BVDC_P_SUPPORT_MADR                   (2) /* Number of MAD-R HW */
@@ -2084,6 +2087,8 @@ extern "C" {
 #define BVDC_P_SUPPORT_LOOP_BACK              (6) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 #define BVDC_P_SUPPORT_HDDVI                  (1)
+#define BVDC_P_SUPPORT_DSCL                   (0)
+#define BVDC_P_SUPPORT_DSCL_VER               (0)
 #endif
 
 #define BVDC_P_SUPPORT_XSRC_VER               (2) /* XSRC HW version */
@@ -2101,8 +2106,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_MCVP_VER               (6) /* MCVP HW version */
 #define BVDC_P_SUPPORT_PEP_VER                (6)
 #define BVDC_P_SUPPORT_SCL_VER                (11)/* SCL HW version */
-#define BVDC_P_SUPPORT_DSCL                   (0)
-#define BVDC_P_SUPPORT_DSCL_VER               (0)
 #define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
 #define BVDC_P_SUPPORT_DRAIN_F                (2) /* Number of VNET_F_DRAIN_x_SRC */
 #define BVDC_P_SUPPORT_DRAIN_VER              (2) /* DRAIN HW version */
@@ -2410,8 +2413,7 @@ extern "C" {
 #if defined(BVDC_FOR_BOOTUPDATER) ||\
     (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || (BCHP_CHIP==7360)   || \
     (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==7362)   || \
-    (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || \
-        (BCHP_CHIP==75525)
+    (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625)
 #define BVDC_P_WIN_GET_REG_OFFSET(window_id) \
     ((BVDC_P_WindowId_eComp0_G0==(window_id)) ? (BCHP_CMP_0_G0_SURFACE_SIZE - BCHP_CMP_0_REVISION) \
     :(BVDC_P_WindowId_eComp1_G0==(window_id)) ? (BCHP_CMP_1_G0_SURFACE_SIZE - BCHP_CMP_1_REVISION) \

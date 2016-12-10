@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Description:
 *   Setup the TLB for the rest of MEMC0 and MEMC1.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 /***********************************************************************
  *                           Include Files
@@ -395,7 +387,7 @@ void setup_tlb(void)
     BKNI_Init();
     BREG_Open(&regHandle, (void *)(BCM_PHYS_TO_K1(BCHP_PHYSICAL_OFFSET)), BCHP_REGISTER_END, NULL);
 
-    rc = BCHP_GetMemoryInfo(regHandle, &memoryInfo);
+    rc = BCHP_GetMemoryInfo_PreInit(regHandle, &memoryInfo);
     if (rc) BDBG_ASSERT(0);
 
     BREG_Close(regHandle);

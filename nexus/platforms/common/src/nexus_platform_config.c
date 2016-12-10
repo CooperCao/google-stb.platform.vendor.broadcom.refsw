@@ -342,11 +342,13 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
                  (BCHP_CHIP == 7435) || (BCHP_CHIP == 7445) ||          \
                  (BCHP_CHIP == 7250 && defined(NEXUS_USE_7250_SV)) ||   \
                  (BCHP_CHIP == 7439) ||                                 \
-                 ((BCHP_CHIP == 7429 || BCHP_CHIP==74295) && (NEXUS_PLATFORM != 97241 || NEXUS_PLATFORM != 972415))) /* i.e. 7429[5] family execpt 7241[5] bond outs */
+                 ((BCHP_CHIP == 7429 || BCHP_CHIP==74295) && (NEXUS_PLATFORM != 97241 && NEXUS_PLATFORM != 972415))) /* i.e. 7429[5] family execpt 7241[5] bond outs */
             compositeCfg.dac = NEXUS_VideoDac_e3;
             #else
             compositeCfg.dac = NEXUS_VideoDac_e0;
             #endif
+
+
 
             errCode = NEXUS_CompositeOutput_SetSettings(pConfig->outputs.composite[0], &compositeCfg);
             if(errCode) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }

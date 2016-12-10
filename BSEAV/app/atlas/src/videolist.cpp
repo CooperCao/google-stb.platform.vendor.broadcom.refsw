@@ -276,6 +276,11 @@ bool CVideo::isPlaybackActive(void)
     }
 }
 
+bool CVideo::hasIndexName()
+{
+    return(false == _indexName.isEmpty());
+}
+
 bool CVideo::hasIndex()
 {
     struct stat stIndex;

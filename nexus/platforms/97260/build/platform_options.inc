@@ -44,7 +44,7 @@
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
-NEXUS_POWER_MANAGEMENT ?= n
+NEXUS_POWER_MANAGEMENT ?= y
 NEXUS_SECURITY_SUPPORT ?= y
 
 export NEXUS_FRONTEND_SUPPORT ?= y

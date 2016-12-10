@@ -54,33 +54,6 @@ BDBG_OBJECT_ID(BAPE_MaiInput);
 
 #if BAPE_CHIP_MAX_MAI_INPUTS > 0
 
-typedef struct BAPE_MaiInput
-{
-    BDBG_OBJECT(BAPE_MaiInput)
-    BAPE_Handle deviceHandle;
-    BAPE_MaiInputSettings settings;
-    unsigned index;
-    BAPE_InputPortObject inputPort;
-    uint32_t offset;
-    BAPE_MaiInputFormatDetectionSettings clientFormatDetectionSettings;
-    bool localFormatDetectionEnabled;
-    bool formatDetectionEnabled;
-    bool hwAutoMuteEnabled;
-    uint32_t outFormatEna;      /* last value written to OUT_FORMAT_ENA field. */
-    struct
-    {
-        BAPE_MclkSource mclkSource;
-        unsigned pllChannel;    /* only applies if mclkSource refers to a PLL */
-        unsigned mclkFreqToFsRatio;
-    } mclkInfo;
-    bool enable;
-    char name[12];   /* MAI IN %d */
-
-    BINT_CallbackHandle maiRxCallback;
-
-    BAPE_MaiInputFormatDetectionStatus  lastFormatDetectionStatus;
-} BAPE_MaiInput;
-
 
 #if BCHP_CHIP == 7425 || BCHP_CHIP == 7422 || BCHP_CHIP == 7435
 #define BAPE_MAI_INPUT_CAPTURE_ID(chPair) (5+(chPair))
@@ -667,9 +640,20 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     BAPE_OutputPort alternate[BAPE_NUM_OUTPUTS];
     BAPE_MclkSource mclkSource = BAPE_MclkSource_eNone;
     unsigned i,k, j=0;
+    #if BAPE_CHIP_MAX_NCOS > 1
+    bool usedNcos[BAPE_CHIP_MAX_NCOS];
+    BKNI_Memset(usedNcos, false, sizeof(bool)*BAPE_CHIP_MAX_NCOS);
+    #else
+    BAPE_Nco usedNcos[1] = {true};
+    #endif
 
     BKNI_Memset(alternate, 0, sizeof(BAPE_OutputPort)*BAPE_NUM_OUTPUTS);
 
+    if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkInfo.mclkSource) )
+    {
+        BAPE_P_DetachInputPortFromNco_isrsafe(&handle->inputPort, handle->mclkInfo.mclkSource - BAPE_MclkSource_eNco0);
+        handle->mclkInfo.mclkSource = BAPE_MclkSource_eNone;
+    }
     BDBG_MSG(("Looking for clock source to drive MAI input..."));
     for ( pConsumer = BLST_S_FIRST(&handle->inputPort.consumerList);
         pConsumer != NULL;
@@ -711,6 +695,13 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
                     BDBG_MSG(("Mai output is an %s clock match for mai input", (k==0)?"NCO":"PLL"));
                     mclkSource = pMixer->mclkSource;
                 }
+                else
+                {
+                    if (pMixer->mclkSource >= BAPE_MclkSource_eNco0 && pMixer->mclkSource < BAPE_MclkSource_eMax )
+                    {
+                        usedNcos[pMixer->mclkSource - BAPE_MclkSource_eNco0] = true;
+                    }
+                }
             }
         }
 
@@ -729,6 +720,13 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
                         BDBG_MSG(("%s output is an %s clock match for mai input", alternate[i]->pName, (k==0)?"NCO":"PLL"));
                         mclkSource = pMixer->mclkSource;
                     }
+                    else
+                    {
+                        if (pMixer->mclkSource >= BAPE_MclkSource_eNco0 && pMixer->mclkSource < BAPE_MclkSource_eMax )
+                        {
+                            usedNcos[pMixer->mclkSource - BAPE_MclkSource_eNco0] = true;
+                        }
+                    }
                 }
             }
         }
@@ -737,8 +735,23 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     if ( mclkSource == BAPE_MclkSource_eNone )
     {
         #if BAPE_CHIP_MAX_NCOS > 0
-        BDBG_WRN(("No clock source found downstream. Defaulting to NCO0 . This may indidate a problem."));
+        BDBG_WRN(("No clock source found downstream. Find availble NCO otherwise, default to NCO0 . This may indidate a problem."));
         mclkSource = BAPE_MclkSource_eNco0;
+        if (handle->inputPort.format.sampleRate != 0)
+        {
+            for (i = 0; i < BAPE_CHIP_MAX_NCOS; i++)
+            {
+                if (!usedNcos[i])
+                {
+                    pMixer = BLST_S_FIRST(&handle->deviceHandle->audioNcos[i].mixerList);
+                    if (pMixer == NULL)
+                    {
+                        mclkSource = BAPE_MclkSource_eNco0 + i;
+                        break;
+                    }
+                }
+            }
+        }
         #elif BAPE_CHIP_MAX_PLLS > 0
         BDBG_WRN(("No clock source found downstream. Defaulting to PLL0 . This may indidate a problem."));
         mclkSource = BAPE_MclkSource_ePll0;
@@ -751,6 +764,7 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     {
         BAPE_NcoConfiguration ncoConfig;
         unsigned mclkFreqToFsRatio = 1;
+        BAPE_P_AttachInputPortToNco_isrsafe(&handle->inputPort, mclkSource - BAPE_MclkSource_eNco0);
         BAPE_P_GetNcoConfiguration_isrsafe(handle->deviceHandle, mclkSource - BAPE_MclkSource_eNco0, &ncoConfig);
         mclkFreqToFsRatio = ncoConfig.frequency / (handle->inputPort.format.sampleRate == 0 ? 48000: handle->inputPort.format.sampleRate);
         BDBG_MSG(("Success. Setting mai input to use clock source %lu, ch %lu, mclkFreqToFsRatio %lu", (unsigned long)mclkSource, (unsigned long)0, (unsigned long)mclkFreqToFsRatio));
@@ -938,6 +952,12 @@ static void BAPE_MaiInput_P_Disable(BAPE_InputPort inputPort)
         {
             regAddr = BAPE_Reg_P_GetArrayAddress(                 AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, i);
             BAPE_Reg_P_UpdateField(handle->deviceHandle, regAddr, AUD_FMM_IOP_IN_HDMI_0_CAP_STREAM_CFG_i, CAP_GROUP_ID, i);
+        }
+
+        if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkInfo.mclkSource) )
+        {
+            BAPE_P_DetachInputPortFromNco_isrsafe(&handle->inputPort, handle->mclkInfo.mclkSource - BAPE_MclkSource_eNco0);
+            handle->mclkInfo.mclkSource = BAPE_MclkSource_eNone;
         }
     }
     #elif defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY  /* Shared pool of STREAM_CFG registers in IOP */
@@ -1529,6 +1549,14 @@ static void BAPE_MaiInput_P_DetectInputChange_isr (BAPE_MaiInputHandle    handle
                  * Nexus will need to stop and restart the decoder. */
                 BDBG_MSG(("Halting MAI"));
                 BAPE_MaiInput_P_Halt_isr(&handle->inputPort);
+            }
+
+            /* If just sample rate changed then I believe everything downstream should have the new sample rate*/
+            if ( (pOldFormatDetectionStatus->codec == pNewFormatDetectionStatus->codec) &&
+                 (pOldFormatDetectionStatus->sampleRate != pNewFormatDetectionStatus->sampleRate) )
+            {
+                /* We need to check to see if we need to configure for a new NCO */
+                BAPE_MaiInput_P_ConfigureClockSource_isr(handle);
             }
 
             /* Notify our client (probably Nexus) that there has been a format change.  */

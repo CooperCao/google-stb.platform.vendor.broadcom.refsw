@@ -75,6 +75,8 @@ BCHP_P_MEMC_DEFINE_CLIENT(UART_DMA_WR,32)                   /*  */
 BCHP_P_MEMC_DEFINE_CLIENT(USB_HI_0,33)                      /* Port 0 (STB owned) of dual port USB interface */
 BCHP_P_MEMC_DEFINE_CLIENT(USB_LO_0,34)                      /* Port 0 (STB owned) of dual port USB interface */
 
+BCHP_P_MEMC_DEFINE_CLIENT(USB_X_BDC_0,38)                   /* Port 0 (STB owned) of dual port USB interface */
+
 BCHP_P_MEMC_DEFINE_CLIENT(RAAGA,40) /* */
 BCHP_P_MEMC_DEFINE_CLIENT(RAAGA_1,41) /* */
 

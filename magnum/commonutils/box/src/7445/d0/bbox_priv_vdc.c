@@ -74,6 +74,7 @@
 #include "bbox_vdc_box16_config.h"
 #include "bbox_vdc_box17_config.h"
 #include "bbox_vdc_box18_config.h"
+#include "bbox_vdc_box19_config.h"
 #include "bbox_vdc_box1000_config.h"
 #include "bbox_vdc_box1001_config.h"
 
@@ -143,6 +144,9 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 17:
             BBOX_P_Vdc_SetBox17SourceCapabilities(pSourceCap);
             break;
+        case 19:
+            BBOX_P_Vdc_SetBox19SourceCapabilities(pSourceCap);
+            break;
         case 1000:
             BBOX_P_Vdc_SetBox1000SourceCapabilities(pSourceCap);
             break;
@@ -201,6 +205,9 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             break;
         case 17:
             BBOX_P_Vdc_SetBox17DisplayCapabilities(pDisplayCap);
+            break;
+        case 19:
+            BBOX_P_Vdc_SetBox19DisplayCapabilities(pDisplayCap);
             break;
         case 1000:
             BBOX_P_Vdc_SetBox1000DisplayCapabilities(pDisplayCap);
@@ -262,6 +269,9 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 17:
             BBOX_P_Vdc_SetBox17DeinterlacerCapabilities(pDeinterlacerCap);
             break;
+        case 19:
+            BBOX_P_Vdc_SetBox19DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
         case 1000:
             BBOX_P_Vdc_SetBox1000DeinterlacerCapabilities(pDeinterlacerCap);
             break;
@@ -320,6 +330,9 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 17:
             BBOX_P_Vdc_SetBox17XcodeCapabilities(pXcodeCap);
+            break;
+        case 19:
+            BBOX_P_Vdc_SetBox19XcodeCapabilities(pXcodeCap);
             break;
         case 1000:
             BBOX_P_Vdc_SetBox1000XcodeCapabilities(pXcodeCap);
@@ -388,6 +401,9 @@ BERR_Code BBOX_P_GetMemConfig
         case 17:
             BBOX_P_GetBox17MemConfig(pBoxMemConfig);
             break;
+        case 19:
+            BBOX_P_GetBox19MemConfig(pBoxMemConfig);
+            break;
         case 1000:
             BBOX_P_GetBox1000MemConfig(pBoxMemConfig);
             break;
@@ -451,6 +467,9 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 18:
             BBOX_P_GetBox18Rts(pBoxRts);
+            break;
+        case 19:
+            BBOX_P_GetBox19Rts(pBoxRts);
             break;
         case 1000:
             BBOX_P_GetBox1000Rts(pBoxRts);

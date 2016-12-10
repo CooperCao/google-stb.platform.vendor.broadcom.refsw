@@ -58,10 +58,3 @@ unsigned NEXUS_Platform_GetVideoEncoderDisplay( unsigned videoEncoderIndex )
 #endif
     return 0;
 }
-
-#ifndef NEXUS_MODE_client
-void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
-{
-    NEXUS_Platform_GetClientConfiguration_driver(pSettings);
-}
-#endif

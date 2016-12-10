@@ -332,6 +332,21 @@ typedef enum BHAB_FixedGainLnaState
 
 /***************************************************************************
 Summary:
+    Enumeration for Loop Through Gain.
+Description:
+    This field specifies whether the Loop Through gain is in high/low gain
+    mode.
+See Also:
+    BHAB_GetConfigSettings(), BHAB_SetConfigSettings()
+****************************************************************************/
+typedef enum BHAB_LoopthroughGain {
+    BHAB_LoopthroughGain_eLow,     /* lower gain mode on loopthrough output */
+    BHAB_LoopthroughGain_eHigh,    /* high gain mode on loopthrough output */
+    BHAB_LoopthroughGain_eMax
+} BHAB_LoopthroughGain;
+
+/***************************************************************************
+Summary:
      Structure to set HAB config settings.
 
 Description:
@@ -347,6 +362,7 @@ typedef struct BHAB_ConfigSettings
     bool                    enableLoopThrough;  /* loop through */
     BHAB_RfInputMode        rfInputMode;        /* RF input mode */
     BHAB_TunerApplication   tnrApplication;     /* TNR application */
+    BHAB_LoopthroughGain    loopthroughGain;    /* Loopthrough gain output. This is frontend chip-specific. */
 } BHAB_ConfigSettings;
 
 /***************************************************************************

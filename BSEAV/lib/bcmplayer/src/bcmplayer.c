@@ -851,6 +851,10 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
     BNAV_PktFifoEntry *curFifoEntry;
     BNAV_Entry *pEntry;
 
+    if (handle->currentIndex >= handle->lastIndex) {
+        return -1;
+    }
+
     /* add to the fifo */
     CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
     curFifoEntry->insertpackettype = eBpInsertNone;

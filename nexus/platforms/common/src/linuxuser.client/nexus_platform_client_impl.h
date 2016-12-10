@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+* Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_CLIENT_IMPL_H__
 #define NEXUS_PLATFORM_CLIENT_IMPL_H__
@@ -56,7 +46,7 @@ typedef struct NEXUS_P_Client *NEXUS_P_ClientHandle;
 void NEXUS_P_Client_StopCallbacks(NEXUS_P_ClientHandle client, void *interfaceHandle);
 void NEXUS_P_Client_StartCallbacks(NEXUS_P_ClientHandle client, void *interfaceHandle);
 
-NEXUS_P_ClientHandle NEXUS_P_Client_Init( const NEXUS_ClientAuthenticationSettings *pSettings, struct nexus_client_init_data *p_client_init_data);
+NEXUS_P_ClientHandle NEXUS_P_Client_Init( const NEXUS_ClientAuthenticationSettings *pSettings);
 void NEXUS_P_Client_Disconnect(NEXUS_P_ClientHandle client);
 void NEXUS_P_Client_Uninit( NEXUS_P_ClientHandle client );
 NEXUS_P_ClientModuleHandle NEXUS_P_Client_InitModule( NEXUS_P_ClientHandle client, unsigned module_id, unsigned data_size );

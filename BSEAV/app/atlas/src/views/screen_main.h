@@ -87,8 +87,10 @@ typedef enum eMenu
     eMenu_Decode,
     eMenu_Display,
     eMenu_Audio,
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     eMenu_Network,
+#endif
+#ifdef NETAPP_SUPPORT
     eMenu_Bluetooth,
 #endif
     eMenu_Playback,
@@ -193,8 +195,10 @@ protected:
     CWidgetButton *   _Decode;
     CWidgetButton *   _Playback;
     CWidgetButton *   _Audio;
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     CWidgetButton * _Network;
+#endif
+#ifdef NETAPP_SUPPORT
     CWidgetButton * _Bluetooth;
 #endif
     CWidgetButton *      _Streaming;
@@ -208,9 +212,11 @@ protected:
     CPanelPlayback *     _pPlaybackMenu;
     CPanelRecord *       _pRecordMenu;
     CPanelBuffers *      _pBuffersMenu;
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     CPanelNetworkWifi * _pNetworkMenu;
-    CPanelBluetooth *   _pBluetoothMenu;
+#endif
+#ifdef NETAPP_SUPPORT
+    CPanelBluetooth * _pBluetoothMenu;
 #endif
 #ifdef PLAYBACK_IP_SUPPORT
     CPanelStreaming * _pStreamingMenu;

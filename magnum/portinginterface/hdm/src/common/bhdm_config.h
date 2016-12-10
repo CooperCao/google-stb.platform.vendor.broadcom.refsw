@@ -42,6 +42,7 @@
 #include "bhdm.h"
 #include "bchp_common.h"
 #include "bchp_hdmi.h"
+#include "bchp_hdmi_tx_phy.h"
 
 /* HDMI Tx Configuration Options */
 
@@ -215,6 +216,12 @@ can be disabled to allow for successful compilation
 #else
 #define BHDM_CONFIG_MAX_TMDS_RATE BHDM_HDMI_1_4_MAX_RATE
 #endif
+
+/* newer phys can support RxSense when phy is powered down */
+#ifdef BCHP_HDMI_TX_PHY_POWERDOWN_CTL_BG_PWRDN_MASK
+#define BHDM_CONFIG_RXSENSE_STANDALONE_SUPPORT 1
+#endif
+
 
 
 

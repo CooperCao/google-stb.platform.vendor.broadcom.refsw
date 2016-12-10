@@ -293,7 +293,7 @@ const BVDC_P_Features s_VdcFeatures =
     {  true,  true,  true,  true,  false, false, false, false, false, false, true,  false, false, false, false, false, false, false, false, false, true,  true,  false, false, false, false, false, false },
 #elif (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || (BCHP_CHIP==7360) || \
       (BCHP_CHIP==7362) || (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || \
-      (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || (BCHP_CHIP==75525)
+      (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625)
     false,
     /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
     {  true,  true,  false, false, false, false, false },

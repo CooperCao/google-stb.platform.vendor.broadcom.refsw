@@ -306,6 +306,7 @@ void NEXUS_VideoDecoder_GetHeap_priv( NEXUS_VideoDecoderHandle handle, NEXUS_Hea
     NEXUS_VideoDecoder_GetHeap_priv_Common(handle, pHeap);
 }
 
+#if NEXUS_HAS_SYNC_CHANNEL
 void NEXUS_VideoDecoder_GetSyncSettings_priv(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoInputSyncSettings *pSyncSettings)
 {
     NEXUS_VideoDecoder_GetSyncSettings_priv_Common(videoDecoder, pSyncSettings);
@@ -320,6 +321,7 @@ NEXUS_Error NEXUS_VideoDecoder_GetSyncStatus_isr(NEXUS_VideoDecoderHandle videoD
 {
     return NEXUS_VideoDecoder_GetSyncStatus_Common_isr(videoDecoder, pSyncStatus);
 }
+#endif
 
 void NEXUS_VideoDecoder_UpdateDisplayInformation_priv( NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_VideoDecoder_DisplayInformation *displayInformation)
 {

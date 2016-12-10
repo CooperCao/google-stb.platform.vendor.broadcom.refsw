@@ -74,7 +74,7 @@ void BBOX_P_Vdc_SetBox15SourceCapabilities
 void BBOX_P_Vdc_SetBox15DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 1080p, 1080p, Invalid, Invalid, Invalid, Class2);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 1080p, 1080p, Invalid, Invalid, Invalid, Class1);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, SclBeforeCap);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video1, DISREGARD, 1,                  1,                  SclBeforeCap);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);

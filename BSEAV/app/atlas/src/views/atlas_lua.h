@@ -42,6 +42,7 @@
 #include "view.h"
 #include "bwidgets.h"
 #include "config.h"
+#include "action.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,121 +58,6 @@ extern "C" {
 #endif
 
 class CModel;
-
-/* Lua events are created in response to custom Atlas Lua commands.  They are stored temporarily until
- * the Atlas main loop has a chance to service them.  Data associated with the Lua event is allocated
- * when the command is received, and freed after the associated action is completed.  CLuaEvent base
- * class allows us to reference all tuner events using the base class, while the template derived class
- * ensures that different _data types are properly deleted when no longer needed.
- */
-class CLuaEvent
-{
-public:
-    CLuaEvent(
-            eNotification id,
-            eNotification waitId = eNotify_Invalid,
-            int           waitTimeout = 1000 /*B_WAIT_FOREVER*/
-            ) :
-        _id(id),
-        _waitTimeout(waitTimeout),
-        _bTimedOut(false),
-        _numReturnVals(1)
-    {
-        addWaitNotification(waitId);
-    }
-
-    virtual ~CLuaEvent() {}
-
-    virtual void * getDataPtr(void) { return(NULL); }
-
-    eNotification getId(void)                         { return(_id); }
-    int           getWaitTimeout(void)                { return(_waitTimeout); }
-    void          setTimedOut(bool bTimedOut)         { _bTimedOut = bTimedOut; }
-    bool          isTimedOut(void)                    { return(_bTimedOut); }
-    int           getNumReturnVals(void)              { return(_numReturnVals); }
-    void          setNumReturnVals(int numReturnVals) { _numReturnVals = numReturnVals; }
-    eNotification getWaitId(int index = 0)
-    {
-        eNotification * pNotification = _waitIdList[index];
-
-        return((NULL != pNotification) ? *pNotification : eNotify_Invalid);
-    }
-
-    void addWaitNotification(eNotification notification)
-    {
-        eNotification * pNotify = new eNotification;
-
-        BDBG_ASSERT(NULL != pNotify);
-
-        *pNotify = notification;
-        _waitIdList.add(pNotify);
-    }
-
-    eNotification getWaitNotification(int index = 0)
-    {
-        eNotification * pNotify = NULL;
-
-        if (_waitIdList.total() > index)
-        {
-            pNotify = _waitIdList[index];
-        }
-
-        return((pNotify != NULL) ? *pNotify : eNotify_Invalid);
-    }
-
-    void operator =(CLuaEvent &other)
-    {
-        eNotification otherNotification = eNotify_Invalid;
-
-        if (this == &other)
-        {
-            return;
-        }
-
-        _id            = other._id;
-        _waitTimeout   = other._waitTimeout;
-        _bTimedOut     = other._bTimedOut;
-        _numReturnVals = other._numReturnVals;
-
-        /* copy waitIdList but make sure it is empty first */
-        _waitIdList.clear();
-        for (int i = 0; eNotify_Invalid != (otherNotification = other.getWaitId(i)); i++)
-        {
-            eNotification * pNew = new eNotification(otherNotification);
-            BDBG_ASSERT(NULL != pNew);
-
-            _waitIdList.add(pNew);
-        }
-    } /* = */
-
-protected:
-    eNotification            _id;
-    MAutoList<eNotification> _waitIdList;
-    int                      _waitTimeout;
-    bool                     _bTimedOut;
-    int                      _numReturnVals;
-};
-
-template<class T>
-class CLuaDataEvent : public CLuaEvent
-{
-public:
-    CLuaDataEvent(
-            eNotification id,
-            T *           data,
-            eNotification waitId = eNotify_Invalid,
-            int           waitTimeout = 1000 /* B_WAIT_FOREVER */
-            ) :
-        CLuaEvent(id, waitId, waitTimeout),
-        _data(data) {}
-
-    virtual ~CLuaDataEvent(void) { if (NULL != _data) { delete _data; } }
-
-    void * getDataPtr(void) { return((void *)_data); }
-
-protected:
-    T * _data;
-};
 
 class CLua : public CView
 {
@@ -189,13 +75,13 @@ public:
     void             setStartState(bool started) { _shellStarted = started; }
     bool             getStartState(void)         { return(_shellStarted); }
     CWidgetEngine *  getWidgetEngine(void)       { return(_pWidgetEngine); }
-    void             addEvent(CLuaEvent * pEvent);
-    CLuaEvent *      getEvent(void);
-    CLuaEvent *      removeEvent(void);
-    eRet             trigger(CLuaEvent * pEvent);
+    void             addAction(CAction * pAction);
+    CAction *        getAction(void);
+    CAction *        removeAction(void);
+    eRet             trigger(CAction * pAction);
     bool             handleInput(char * pLine);
     void             processNotification(CNotification & notification);
-    CLuaEvent *      getBusyLuaEvent(void)     { return(&_busyLuaEvent); }
+    CAction *        getBusyAction(void)       { return(&_busyAction); }
     void             setModel(CModel * pModel) { _pModel = pModel;  }
     CModel *         getModel(void)            { return(_pModel); }
 
@@ -204,17 +90,17 @@ public:
     uint16_t _pollInterval;
 
 protected:
-    lua_State *       _pLua;
-    B_ThreadHandle    _threadShell;
-    bool              _shellStarted;
-    MList <CLuaEvent> _eventList;
-    B_MutexHandle     _eventMutex;
-    B_EventHandle     _busyEvent;
-    CWidgetEngine *   _pWidgetEngine;
-    CLuaEvent         _busyLuaEvent;
-    CConfig *         _pConfig;
-    CConfiguration *  _pCfg;
-    CModel *          _pModel;
+    lua_State *      _pLua;
+    B_ThreadHandle   _threadShell;
+    bool             _shellStarted;
+    MList <CAction>  _actionList;
+    B_MutexHandle    _actionMutex;
+    B_EventHandle    _busyEvent;
+    CWidgetEngine *  _pWidgetEngine;
+    CAction          _busyAction;
+    CConfig *        _pConfig;
+    CConfiguration * _pCfg;
+    CModel *         _pModel;
 };
 
 #endif /* ATLAS_LUA_H__ */

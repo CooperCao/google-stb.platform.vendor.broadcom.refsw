@@ -6,6 +6,9 @@ BUILD_DYNAMIC ?= 1
 
 PROFILING?=0
 
+#disable OpenVG
+NO_OPENVG?=1
+
 ifeq ($(VERBOSE),)
 Q := @
 endif
@@ -69,6 +72,7 @@ CFLAGS += \
 	-DBCG_VC4_FAST_ATOMICS \
 	-DBCG_MULTI_THREADED \
 	-D_XOPEN_SOURCE=600 \
+	-D_GNU_SOURCE \
 	-Wunused-parameter \
 	-Wsign-compare \
 	-Wclobbered \

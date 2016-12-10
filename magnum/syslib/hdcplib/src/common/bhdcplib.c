@@ -686,6 +686,7 @@ BERR_Code BHDCPlib_TransmitClear(BHDCPlib_Handle hHDCPlib)
 		goto done;
 
 	hHDCPlib->stHdcpStatus.eAuthenticationState = BHDCPlib_State_eUnauthenticated;
+	hHDCPlib->stHdcpStatus.eHdcpError = BHDCPlib_HdcpError_eSuccess;
 
 	BHDCPlib_P_ShowStateChange(hHDCPlib, currentState) ;
 

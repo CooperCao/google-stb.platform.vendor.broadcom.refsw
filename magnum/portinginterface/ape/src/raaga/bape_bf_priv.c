@@ -1848,6 +1848,7 @@ void BAPE_DfifoGroup_P_Stop(
     handle->started = false;
 }
 
+#if !B_REFSW_MINIMAL
 void BAPE_DfifoGroup_P_Run_isr(
     BAPE_DfifoGroupHandle handle
     )
@@ -1878,6 +1879,7 @@ void BAPE_DfifoGroup_P_Halt_isr(
     }
     BAPE_DfifoGroup_P_SetCaptureRun_isr(handle, 0);
 }
+#endif
 
 typedef struct {
     uint32_t rd, wr, base;

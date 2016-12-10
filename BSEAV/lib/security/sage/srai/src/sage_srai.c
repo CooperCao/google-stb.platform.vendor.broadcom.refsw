@@ -407,7 +407,7 @@ static void _srai_flush_cache(const void *addr, size_t size);
 static void * _srai_offset_to_addr(uint64_t offset);
 static uint64_t _srai_addr_to_offset(const void *addr);
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
-static bool _srai_is_sdl_valid(uint8_t *sdlBuff, uint32_t sdlBuffSize);
+static bool _srai_is_sdl_valid(BSAGElib_SDLHeader *pHeader);
 #endif
 /*
  * Functions implementation
@@ -1155,10 +1155,9 @@ static int _srai_init_settings(void)
                        NEXUS_HEAP_TYPE_EXPORT_REGION,
                        clientConfig.heap[_srai_settings.exportHeapIndex],
                        &_srai.exportAllocSettings, &heapStatus, &clientConfig)) {
-        BDBG_ERR(("%s: Cannot retrieve export secure heap from index %d.",
-                  __FUNCTION__, _srai_settings.exportHeapIndex));
-        BDBG_ERR(("%s: --> check your NEXUS platform settings", __FUNCTION__));
-        rc -= 0x3;
+        BDBG_WRN(("%s: export secure heap is not configured", __FUNCTION__));
+        /* Explicitly clear the exportAllocSettings */
+        BKNI_Memset(&_srai.exportAllocSettings, 0, sizeof(_srai.exportAllocSettings));
     }
     else {
         /* get secure heap boundaries for _SRAI_IsMemoryInSecureHeap() */
@@ -1685,40 +1684,40 @@ BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
 
 static bool
 _srai_is_sdl_valid(
-    uint8_t *sdlBuff,
-    uint32_t sdlBuffSize)
+    BSAGElib_SDLHeader *pHeader)
 {
     bool rc = false;
     uint32_t sdlTHLSigShort;
     NEXUS_SageStatus status;
-    BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)sdlBuff;
-    if (sdlBuffSize < sizeof(BSAGElib_SDLHeader)) {
-        BDBG_ERR(("%s: The binary size is not even as large as the SDL header structure", __FUNCTION__));
-        goto end;
-    }
 
     if (NEXUS_Sage_GetStatus(&status) != NEXUS_SUCCESS) {
         BDBG_ERR(("%s: cannot retrieve nexus status", __FUNCTION__));
         goto end;
     }
 
-#if 0
     BDBG_ASSERT(sizeof(pHeader->ucSsfVersion) == sizeof(status.framework.version));
-    rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
-    if (rc != true) {
-        BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
-                  __FUNCTION__,
-                  pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
-                  pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
-        BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
-                  __FUNCTION__));
-        BDBG_ERR(("%s: The SDL shall be recompiled using SAGE version %u.%u.%u.%u SDK",
-                  __FUNCTION__,
-                  status.framework.version[0], status.framework.version[1],
-                  status.framework.version[2], status.framework.version[3]));
-        goto end;
+
+    if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
+         pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
+        rc = (BKNI_Memcmp(pHeader->ucSsfVersion, status.framework.version, sizeof(status.framework.version)) == 0);
+        if (rc != true) {
+            BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
+                      __FUNCTION__,
+                      pHeader->ucSsfVersion[0], pHeader->ucSsfVersion[1],
+                      pHeader->ucSsfVersion[2], pHeader->ucSsfVersion[3]));
+            BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
+                      __FUNCTION__));
+            BDBG_ERR(("%s: The SDL shall be recompiled using SAGE version %u.%u.%u.%u SDK",
+                      __FUNCTION__,
+                      status.framework.version[0], status.framework.version[1],
+                      status.framework.version[2], status.framework.version[3]));
+            goto end;
+        }
     }
-#endif
+    else {
+        BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
+    }
+
     sdlTHLSigShort = *((uint32_t *)(pHeader->ucSsfThlShortSig));
 
     rc = (sdlTHLSigShort == status.framework.THLShortSig);
@@ -1734,6 +1733,39 @@ end:
     return rc;
 }
 
+#define CASE_PLATFORM_NAME_TO_STRING(name) case BSAGE_PLATFORM_ID_##name:  platform_name = #name; break
+
+static char *
+_srai_lookup_platform_name(uint32_t platformId)
+{
+
+  char *platform_name = NULL;
+  switch (platformId) {
+    /* NOTE: system and system_crit platforms are not SDL TAs */
+    CASE_PLATFORM_NAME_TO_STRING(COMMONDRM);
+    CASE_PLATFORM_NAME_TO_STRING(HDCP22);
+    CASE_PLATFORM_NAME_TO_STRING(MANUFACTURING);
+    CASE_PLATFORM_NAME_TO_STRING(UTILITY);
+    CASE_PLATFORM_NAME_TO_STRING(PLAYREADY_30);
+    CASE_PLATFORM_NAME_TO_STRING(ANTIROLLBACK);
+    CASE_PLATFORM_NAME_TO_STRING(SECURE_VIDEO);
+    CASE_PLATFORM_NAME_TO_STRING(SECURE_LOGGING);
+    CASE_PLATFORM_NAME_TO_STRING(ADOBE_DRM);
+    CASE_PLATFORM_NAME_TO_STRING(PLAYREADY_25);
+    CASE_PLATFORM_NAME_TO_STRING(NETFLIX_ANNEXB);
+    CASE_PLATFORM_NAME_TO_STRING(NETFLIX);
+    CASE_PLATFORM_NAME_TO_STRING(WIDEVINE);
+    CASE_PLATFORM_NAME_TO_STRING(PLAYBACK);
+    CASE_PLATFORM_NAME_TO_STRING(DTCP_IP);
+    CASE_PLATFORM_NAME_TO_STRING(MIRACAST);
+    CASE_PLATFORM_NAME_TO_STRING(MARLIN);
+    CASE_PLATFORM_NAME_TO_STRING(EDRM);
+    default:
+      break;
+  }
+  return platform_name;
+}
+
 BERR_Code SRAI_Platform_Install(uint32_t platformId,
                              uint8_t *binBuff,
                              uint32_t binSize)
@@ -1741,6 +1773,8 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
     BERR_Code rc;
     BSAGElib_State state;
     BSAGElib_InOutContainer *container;
+    BSAGElib_SDLHeader *pHeader = NULL;
+    char *platform_name = _srai_lookup_platform_name(platformId);
 
     BDBG_ENTER(SRAI_Platform_Install);
 
@@ -1749,6 +1783,33 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
     if (_srai_enter()) {
         rc = BERR_NOT_INITIALIZED;
         goto end;
+    }
+
+    if (binSize < sizeof(BSAGElib_SDLHeader)) {
+        BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
+                  __FUNCTION__, platformId));
+        goto end;
+    }
+
+    pHeader = (BSAGElib_SDLHeader *)binBuff;
+
+    if (platform_name == NULL) {
+        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+                  platformId,
+                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
+                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  ));
+    }
+    else {
+        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+                  platform_name,
+                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
+                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  ));
     }
 
     BDBG_MSG(("%s: System Platform %p ", __FUNCTION__, (void *)_srai.system_platform ));
@@ -1790,7 +1851,7 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
         }
     }
 
-    if (!_srai_is_sdl_valid(binBuff, binSize)) {
+    if (!_srai_is_sdl_valid(pHeader)) {
         BDBG_ERR(("%s: Cannot install incompatible SDL", __FUNCTION__));
         rc = BERR_INVALID_PARAMETER;
         goto end;

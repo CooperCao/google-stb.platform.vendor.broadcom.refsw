@@ -385,6 +385,8 @@ void Test_Read_OTP_ID(void)
         fprintf(stderr, " 3) OTP ID D\n");
         fprintf(stderr, " 4) OTP ID E\n");
         fprintf(stderr, " 5) OTP ID F\n");
+        fprintf(stderr, " 6) OTP ID G\n");
+        fprintf(stderr, " 7) OTP ID H\n");
         fprintf(stderr, " 9) Exit\n");
         scanf (" %u", &OTP_ID_Num);
         if (OTP_ID_Num == 9)

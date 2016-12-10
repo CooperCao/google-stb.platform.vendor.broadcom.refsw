@@ -180,7 +180,6 @@ static void ipc_thread(void *context)
         struct pollfd fds[B_MAX_CLIENTS];
         struct nxclient_ipc *clients[B_MAX_CLIENTS];
         unsigned i,nfds,events;
-        const unsigned timeout = 1000;
 
         i=0;
         for(client=BLST_D_FIRST(&server->clients);client;) {
@@ -218,7 +217,7 @@ static void ipc_thread(void *context)
         BKNI_ReleaseMutex(server->lock);
         BDBG_MSG_TRACE(("poll %s %u", dbg_str, nfds));
         do {
-            rc = poll(fds, nfds, timeout);
+            rc = poll(fds, nfds, nfds == 0 ? 25 : 1000);
         } while (rc < 0 && (errno == EAGAIN || errno == EINTR));
         BDBG_MSG_TRACE(("poll %s %u->%d", dbg_str, nfds, rc));
         BKNI_AcquireMutex(server->lock);
@@ -381,7 +380,10 @@ nxclient_ipc_t nxclient_p_create(bipc_t ipc, const NxClient_JoinSettings *pJoinS
         client->other_client = pClient;
         pClient->other_client = client;
     } else {
-        BDBG_ASSERT(id == nxclient_ipc_thread_regular);
+        if (id != nxclient_ipc_thread_regular) {
+            /* the first nxclient_p_create was undone, so this second one must fail */
+            return NULL;
+        }
         client->client = NxClient_P_CreateClient(client->server->server, pJoinSettings, &info->certificate, credentials.pid);
     }
     if (!client->client) {

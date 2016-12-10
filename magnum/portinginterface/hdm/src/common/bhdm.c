@@ -1692,8 +1692,14 @@ BERR_Code BHDM_EnableTmdsData(
 			BHDM_MONITOR_P_StopTimers_isr(hHDMI) ;
 		BKNI_LeaveCriticalSection() ;
 
-		/* turn the phy off only if there is no rx device attached */
-		if ((hHDMI->phyPowered) && (!hHDMI->RxDeviceAttached))
+		/* if the phy is currently powered ON... */
+		/*    turn OFF if there is no rx device attached */
+		/*    or turn OFF if the chip supports RxSense without Phy Power */
+		if ((hHDMI->phyPowered)
+#ifndef BHDM_CONFIG_RXSENSE_STANDALONE_SUPPORT
+		&& (!hHDMI->RxDeviceAttached)
+#endif
+		)
 		{
 			BDBG_MSG(("Power OFF HDMI Phy at %d", __LINE__)) ;
 			BHDM_P_PowerOffPhy(hHDMI) ;

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep 15 15:41:18 2016
- *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
+ * Date:           Generated on               Wed Oct 26 11:02:52 2016
+ *                 Full Compile MD5 Checksum  a4cf01343914cbe977ff5dbbfecedfc2
  *                     (minus title and desc)
- *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
+ *                 MD5 Checksum               79b3267dbc97ab78b1475c8950650765
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1139
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -2698,8 +2698,12 @@
 /***************************************************************************
  *EOP_ID_256 - EOP_ID
  ***************************************************************************/
-/* RDC :: EOP_ID_256 :: eop_id [255:00] */
-#define BCHP_RDC_EOP_ID_256_eop_id_MASK                            0x000000000000000000000000000000000000000000000000ffffffffffffffff
+/* RDC :: EOP_ID_256 :: reserved0 [31:08] */
+#define BCHP_RDC_EOP_ID_256_reserved0_MASK                         0xffffff00
+#define BCHP_RDC_EOP_ID_256_reserved0_SHIFT                        8
+
+/* RDC :: EOP_ID_256 :: eop_id [07:00] */
+#define BCHP_RDC_EOP_ID_256_eop_id_MASK                            0x000000ff
 #define BCHP_RDC_EOP_ID_256_eop_id_SHIFT                           0
 #define BCHP_RDC_EOP_ID_256_eop_id_vnet_f_scl_0                    0
 #define BCHP_RDC_EOP_ID_256_eop_id_vnet_f_scl_1                    1

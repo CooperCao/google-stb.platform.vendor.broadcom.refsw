@@ -60,8 +60,8 @@
 #include "power.h"
 #include "model.h"
 #include "audio_decode.h"
-#ifdef NETAPP_SUPPORT
 #include "network.h"
+#ifdef NETAPP_SUPPORT
 #include "bluetooth.h"
 #endif
 #include "playlist.h"
@@ -79,10 +79,10 @@ extern "C" {
 #define CALLBACK_LUA  "CallbackLua"
 
 /* push return parameter to lua stack and return number of return parameters */
-#define LUA_RETURN(ret)                                        \
-    do {                                                       \
-        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);       \
-        return (pThis->getBusyLuaEvent()->getNumReturnVals()); \
+#define LUA_RETURN(ret)                                      \
+    do {                                                     \
+        lua_pushnumber(pLua, (eRet_Ok == ret) ? 0 : -1);     \
+        return (pThis->getBusyAction()->getNumReturnVals()); \
     } while (0)
 
 BDBG_MODULE(atlas_lua);
@@ -119,28 +119,28 @@ static CLua * getCLua(lua_State * pLua)
 
 static int atlasLua_ChannelUp(lua_State * pLua)
 {
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_ChUp, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CAction(eNotify_ChUp, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* for audio only channels */
-    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+    pAction->addWaitNotification(eNotify_AudioSourceChanged);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -148,28 +148,28 @@ done:
 
 static int atlasLua_ChannelDown(lua_State * pLua)
 {
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_ChDown, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CAction(eNotify_ChDown, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* for audio only channels */
-    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+    pAction->addWaitNotification(eNotify_AudioSourceChanged);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -188,7 +188,7 @@ static int atlasLua_ChannelTune(lua_State * pLua)
     char *         pChannelNum  = NULL;
     CChannelData * pChannelData = NULL;
 
-    CLuaDataEvent <CChannelData> * pLuaEvent = NULL;
+    CDataAction <CChannelData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -215,24 +215,24 @@ static int atlasLua_ChannelTune(lua_State * pLua)
         pChannelData->_tunerIndex = luaL_checknumber(pLua, argNum++);
     }
 
-    /* create lua event and give it tune data */
-    pLuaEvent = new CLuaDataEvent <CChannelData>(eNotify_Tune, pChannelData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CChannelData>(eNotify_Tune, pChannelData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* for audio only channels */
-    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+    pAction->addWaitNotification(eNotify_AudioSourceChanged);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pChannelData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -247,7 +247,7 @@ static int atlasLua_ChannelUnTune(lua_State * pLua)
     CLua * pThis = getCLua(pLua);
     eRet   err   = eRet_Ok;
 
-    CLuaDataEvent <CChannelData> * pLuaEvent = NULL;
+    CDataAction <CChannelData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -259,21 +259,21 @@ static int atlasLua_ChannelUnTune(lua_State * pLua)
         LUA_ERROR(pLua, "unable to allocate channel data", error);
     }
 
-    /* create lua event and give it untune data */
-    pLuaEvent = new CLuaDataEvent <CChannelData>(eNotify_Tune, pChannelData, eNotify_CurrentChannelNull, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CChannelData>(eNotify_Tune, pChannelData, eNotify_CurrentChannelNull, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pChannelData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -303,7 +303,7 @@ static int atlasLua_ScanQam(lua_State * pLua)
     int                 bandwidth    = 0;
     CTunerQamScanData * pQamScanData = NULL;
 
-    CLuaDataEvent <CTunerQamScanData> * pLuaEvent = NULL;
+    CDataAction <CTunerQamScanData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -392,21 +392,21 @@ static int atlasLua_ScanQam(lua_State * pLua)
     /* test print out requested frequencies */
     pQamScanData->dump();
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerQamScanData>(eNotify_ScanStart, pQamScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CTunerQamScanData>(eNotify_ScanStart, pQamScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pQamScanData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -432,7 +432,7 @@ static int atlasLua_ScanVsb(lua_State * pLua)
     int                 bandwidth    = 0;
     CTunerVsbScanData * pVsbScanData = NULL;
 
-    CLuaDataEvent <CTunerVsbScanData> * pLuaEvent = NULL;
+    CDataAction <CTunerVsbScanData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -488,21 +488,21 @@ static int atlasLua_ScanVsb(lua_State * pLua)
     /* test print out requested frequencies */
     pVsbScanData->dump();
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerVsbScanData>(eNotify_ScanStart, pVsbScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CTunerVsbScanData>(eNotify_ScanStart, pVsbScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pVsbScanData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -527,7 +527,7 @@ static int atlasLua_ScanSat(lua_State * pLua)
     int                 bandwidth    = 0;
     CTunerSatScanData * pSatScanData = NULL;
 
-    CLuaDataEvent <CTunerSatScanData> * pLuaEvent = NULL;
+    CDataAction <CTunerSatScanData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -586,21 +586,21 @@ static int atlasLua_ScanSat(lua_State * pLua)
     /* test print out requested frequencies */
     pSatScanData->dump();
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerSatScanData>(eNotify_ScanStart, pSatScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CTunerSatScanData>(eNotify_ScanStart, pSatScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pSatScanData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -626,7 +626,7 @@ static int atlasLua_ScanOfdm(lua_State * pLua)
     int                  bandwidth     = 0;
     CTunerOfdmScanData * pOfdmScanData = NULL;
 
-    CLuaDataEvent <CTunerOfdmScanData> * pLuaEvent = NULL;
+    CDataAction <CTunerOfdmScanData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -682,21 +682,21 @@ static int atlasLua_ScanOfdm(lua_State * pLua)
     /* test print out requested frequencies */
     pOfdmScanData->dump();
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CTunerOfdmScanData>(eNotify_ScanStart, pOfdmScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CTunerOfdmScanData>(eNotify_ScanStart, pOfdmScanData, eNotify_ScanStopped, B_WAIT_FOREVER);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pOfdmScanData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -718,8 +718,8 @@ static int atlasLua_SetContentMode(lua_State * pLua)
     uint8_t  numArgTotal = lua_gettop(pLua) - 1;
     uint32_t contentMode = 0;
 
-    CLuaDataEvent <NEXUS_VideoWindowContentMode> * pLuaEvent    = NULL;
-    NEXUS_VideoWindowContentMode *                 pContentMode = NULL;
+    CDataAction <NEXUS_VideoWindowContentMode> * pAction      = NULL;
+    NEXUS_VideoWindowContentMode *               pContentMode = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -745,21 +745,21 @@ static int atlasLua_SetContentMode(lua_State * pLua)
 
     *pContentMode = (NEXUS_VideoWindowContentMode)contentMode;
 
-    /* create lua event and give it content mode data */
-    pLuaEvent = new CLuaDataEvent <NEXUS_VideoWindowContentMode>(eNotify_SetContentMode, pContentMode, eNotify_ContentModeChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data data */
+    pAction = new CDataAction <NEXUS_VideoWindowContentMode>(eNotify_SetContentMode, pContentMode, eNotify_ContentModeChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pContentMode);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -779,8 +779,8 @@ static int atlasLua_SetColorSpace(lua_State * pLua)
     uint8_t  numArgTotal = lua_gettop(pLua) - 1;
     uint32_t formatType  = 0;
 
-    CLuaDataEvent <NEXUS_ColorSpace> * pLuaEvent   = NULL;
-    NEXUS_ColorSpace *                 pColorSpace = NULL;
+    CDataAction <NEXUS_ColorSpace> * pAction     = NULL;
+    NEXUS_ColorSpace *               pColorSpace = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -806,21 +806,21 @@ static int atlasLua_SetColorSpace(lua_State * pLua)
 
     *pColorSpace = (NEXUS_ColorSpace)formatType;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <NEXUS_ColorSpace>(eNotify_SetColorSpace, pColorSpace, eNotify_ColorSpaceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <NEXUS_ColorSpace>(eNotify_SetColorSpace, pColorSpace, eNotify_ColorSpaceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pColorSpace);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -841,7 +841,7 @@ static int atlasLua_SetMpaaDecimation(lua_State * pLua)
     bool    mpaaDecimation  = false;
     bool *  pMpaaDecimation = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -859,21 +859,21 @@ static int atlasLua_SetMpaaDecimation(lua_State * pLua)
     /* add required arguments to mpaa decimation data */
     *pMpaaDecimation = mpaaDecimation;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SetMpaaDecimation, pMpaaDecimation, eNotify_MpaaDecimationChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SetMpaaDecimation, pMpaaDecimation, eNotify_MpaaDecimationChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pMpaaDecimation);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -894,7 +894,7 @@ static int atlasLua_SetDeinterlacer(lua_State * pLua)
     bool    deinterlacer  = false;
     bool *  pDeinterlacer = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -912,21 +912,21 @@ static int atlasLua_SetDeinterlacer(lua_State * pLua)
     /* add required arguments to deinterlacer data */
     *pDeinterlacer = deinterlacer;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SetDeinterlacer, pDeinterlacer, eNotify_DeinterlacerChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SetDeinterlacer, pDeinterlacer, eNotify_DeinterlacerChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDeinterlacer);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -947,7 +947,7 @@ static int atlasLua_SetBoxDetect(lua_State * pLua)
     bool    boxDetect   = false;
     bool *  pBoxDetect  = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -975,21 +975,21 @@ static int atlasLua_SetBoxDetect(lua_State * pLua)
     /* add required arguments to BoxDetect data */
     *pBoxDetect = boxDetect;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SetBoxDetect, pBoxDetect, eNotify_BoxDetectChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SetBoxDetect, pBoxDetect, eNotify_BoxDetectChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pBoxDetect);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1010,7 +1010,7 @@ static int atlasLua_SetAspectRatio(lua_State * pLua)
     uint32_t            formatType   = 0;
     NEXUS_AspectRatio * pAspectRatio = NULL;
 
-    CLuaDataEvent <NEXUS_AspectRatio> * pLuaEvent = NULL;
+    CDataAction <NEXUS_AspectRatio> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1036,21 +1036,21 @@ static int atlasLua_SetAspectRatio(lua_State * pLua)
 
     *pAspectRatio = (NEXUS_AspectRatio)formatType;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <NEXUS_AspectRatio>(eNotify_SetAspectRatio, pAspectRatio, eNotify_AspectRatioChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <NEXUS_AspectRatio>(eNotify_SetAspectRatio, pAspectRatio, eNotify_AspectRatioChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pAspectRatio);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1071,7 +1071,7 @@ static int atlasLua_SetVideoFormat(lua_State * pLua)
     uint32_t            nFormatType  = NEXUS_VideoFormat_eMax;
     NEXUS_VideoFormat * pVideoFormat = NULL;
 
-    CLuaDataEvent <NEXUS_VideoFormat> * pLuaEvent = NULL;
+    CDataAction <NEXUS_VideoFormat> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1118,21 +1118,21 @@ static int atlasLua_SetVideoFormat(lua_State * pLua)
 
     *pVideoFormat = (NEXUS_VideoFormat)nFormatType;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <NEXUS_VideoFormat>(eNotify_SetVideoFormat, pVideoFormat, eNotify_VideoFormatChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <NEXUS_VideoFormat>(eNotify_SetVideoFormat, pVideoFormat, eNotify_VideoFormatChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pVideoFormat);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1153,7 +1153,7 @@ static int atlasLua_SetAutoVideoFormat(lua_State * pLua)
     bool    autoFormat       = false;
     bool *  pAutoVideoFormat = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1171,21 +1171,21 @@ static int atlasLua_SetAutoVideoFormat(lua_State * pLua)
     /* add required arguments to auto format data */
     *pAutoVideoFormat = autoFormat;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SetAutoVideoFormat, pAutoVideoFormat, eNotify_AutoVideoFormatChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SetAutoVideoFormat, pAutoVideoFormat, eNotify_AutoVideoFormatChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pAutoVideoFormat);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1205,7 +1205,7 @@ static int atlasLua_ChannelListLoad(lua_State * pLua)
     uint8_t                   numArgTotal   = lua_gettop(pLua) - 1;
     CChannelMgrLoadSaveData * pLoadSaveData = NULL;
 
-    CLuaDataEvent <CChannelMgrLoadSaveData> * pLuaEvent = NULL;
+    CDataAction <CChannelMgrLoadSaveData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1241,21 +1241,21 @@ static int atlasLua_ChannelListLoad(lua_State * pLua)
         pLoadSaveData->_append = lua_toboolean(pLua, argNum++);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CChannelMgrLoadSaveData>(eNotify_ChannelListLoad, pLoadSaveData, eNotify_ChannelListChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CChannelMgrLoadSaveData>(eNotify_ChannelListLoad, pLoadSaveData, eNotify_ChannelListChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pLoadSaveData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1275,7 +1275,7 @@ static int atlasLua_ChannelListSave(lua_State * pLua)
     uint8_t                   numArgTotal   = lua_gettop(pLua) - 1;
     CChannelMgrLoadSaveData * pLoadSaveData = NULL;
 
-    CLuaDataEvent <CChannelMgrLoadSaveData> * pLuaEvent = NULL;
+    CDataAction <CChannelMgrLoadSaveData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1312,23 +1312,23 @@ static int atlasLua_ChannelListSave(lua_State * pLua)
     }
 
     /*
-     * create lua event and give it scan data
+     * create lua action and give it data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaDataEvent <CChannelMgrLoadSaveData>(eNotify_ChannelListSave, pLoadSaveData);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CDataAction <CChannelMgrLoadSaveData>(eNotify_ChannelListSave, pLoadSaveData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pLoadSaveData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1344,16 +1344,16 @@ static int atlasLua_ChannelListDump(lua_State * pLua)
     BDBG_ASSERT(pThis);
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    CLuaEvent * pLuaEvent = new CLuaEvent(eNotify_ChannelListDump);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    CAction * pAction = new CAction(eNotify_ChannelListDump);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1369,16 +1369,16 @@ static int atlasLua_PlaybackListDump(lua_State * pLua)
     BDBG_ASSERT(pThis);
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    CLuaEvent * pLuaEvent = new CLuaEvent(eNotify_PlaybackListDump);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    CAction * pAction = new CAction(eNotify_PlaybackListDump);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1398,8 +1398,8 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
     MString strTrickMode;
 
-    CLuaDataEvent <CPlaybackTrickData> * pLuaEvent          = NULL;
-    CPlaybackTrickData *                 pPlaybackTrickData = NULL;
+    CDataAction <CPlaybackTrickData> * pAction            = NULL;
+    CPlaybackTrickData *               pPlaybackTrickData = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1606,23 +1606,23 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
     }
 
     /*
-     * create lua event and give it playback info
+     * create lua action and give it data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaDataEvent <CPlaybackTrickData>(eNotify_PlaybackTrickMode, pPlaybackTrickData);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CDataAction <CPlaybackTrickData>(eNotify_PlaybackTrickMode, pPlaybackTrickData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pPlaybackTrickData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1641,8 +1641,8 @@ static int atlasLua_PlaybackStart(lua_State * pLua)
     uint8_t argNum      = 1;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CPlaybackData> * pLuaEvent     = NULL;
-    CPlaybackData *                 pPlaybackData = NULL;
+    CDataAction <CPlaybackData> * pAction       = NULL;
+    CPlaybackData *               pPlaybackData = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1689,26 +1689,26 @@ static int atlasLua_PlaybackStart(lua_State * pLua)
     }
 
     /*
-     * create lua event and give it playback info
+     * create lua action and give it data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaDataEvent <CPlaybackData>(eNotify_PlaybackStart, pPlaybackData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CDataAction <CPlaybackData>(eNotify_PlaybackStart, pPlaybackData, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* for audio only channels */
-    pLuaEvent->addWaitNotification(eNotify_AudioSourceChanged);
+    pAction->addWaitNotification(eNotify_AudioSourceChanged);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pPlaybackData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1725,7 +1725,7 @@ static int atlasLua_PlaybackStop(lua_State * pLua)
     uint8_t argNum      = 1;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CPlaybackData> * pLuaEvent = NULL;
+    CDataAction <CPlaybackData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1746,21 +1746,21 @@ static int atlasLua_PlaybackStop(lua_State * pLua)
     /* have the playback tune to the last channel */
     pPlaybackData->_bTuneLastChannel = true;
 
-    /* create lua event and give it playback info */
-    pLuaEvent = new CLuaDataEvent <CPlaybackData>(eNotify_PlaybackStop, pPlaybackData, eNotify_PlaybackStateChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CPlaybackData>(eNotify_PlaybackStop, pPlaybackData, eNotify_PlaybackStateChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pPlaybackData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1779,7 +1779,7 @@ static int atlasLua_RecordStart(lua_State * pLua)
     uint8_t       numArgTotal = lua_gettop(pLua) - 1;
     CRecordData * pRecordData = NULL;
 
-    CLuaDataEvent <CRecordData> * pLuaEvent = NULL;
+    CDataAction <CRecordData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1825,23 +1825,23 @@ static int atlasLua_RecordStart(lua_State * pLua)
     }
 
     /*
-     * create lua event and give it record info
+     * create lua action and give it data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaDataEvent <CRecordData>(eNotify_RecordStart, pRecordData, eNotify_RecordStarted, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CDataAction <CRecordData>(eNotify_RecordStart, pRecordData, eNotify_RecordStarted, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pRecordData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1859,7 +1859,7 @@ static int atlasLua_RecordStop(lua_State * pLua)
     uint8_t       numArgTotal = lua_gettop(pLua) - 1;
     CRecordData * pRecordData = NULL;
 
-    CLuaDataEvent <CRecordData> * pLuaEvent = NULL;
+    CDataAction <CRecordData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1884,23 +1884,23 @@ static int atlasLua_RecordStop(lua_State * pLua)
     }
 
     /*
-     * create lua event and give it playback info
+     * create lua action and give it data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaDataEvent <CRecordData>(eNotify_RecordStop, pRecordData);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CDataAction <CRecordData>(eNotify_RecordStop, pRecordData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pRecordData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1920,7 +1920,7 @@ static int atlasLua_EncodeStart(lua_State * pLua)
     uint8_t          argNum      = 1;
     uint8_t          numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CTranscodeData> * pLuaEvent = NULL;
+    CDataAction <CTranscodeData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -1946,16 +1946,16 @@ static int atlasLua_EncodeStart(lua_State * pLua)
         }
     }
 
-    pLuaEvent = new CLuaDataEvent <CTranscodeData>(eNotify_EncodeStart, pEncData);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CDataAction <CTranscodeData>(eNotify_EncodeStart, pEncData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -1972,22 +1972,22 @@ done:
 static int atlasLua_EncodeStop(lua_State * pLua)
 {
 #if NEXUS_HAS_VIDEO_ENCODER
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_EncodeStop);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CAction(eNotify_EncodeStop);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2001,22 +2001,22 @@ done:
 
 static int atlasLua_RefreshPlaybackList(lua_State * pLua)
 {
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_RefreshPlaybackList, eNotify_Invalid, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CAction(eNotify_RefreshPlaybackList, eNotify_Invalid, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2037,7 +2037,7 @@ static int atlasLua_SetAudioProgram(lua_State * pLua)
     uint32_t   pid         = 0;
     uint16_t * pPid        = NULL;
 
-    CLuaDataEvent <uint16_t> * pLuaEvent = NULL;
+    CDataAction <uint16_t> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2063,21 +2063,21 @@ static int atlasLua_SetAudioProgram(lua_State * pLua)
 
     *pPid = (uint16_t)pid;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <uint16_t>(eNotify_SetAudioProgram, pPid, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <uint16_t>(eNotify_SetAudioProgram, pPid, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pPid);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2099,7 +2099,7 @@ static int atlasLua_RemoteKeypress(lua_State * pLua)
     CRemoteEvent * pRemoteEvent = NULL;
     eKey           key          = eKey_Invalid;
 
-    CLuaDataEvent <CRemoteEvent> * pLuaEvent = NULL;
+    CDataAction <CRemoteEvent> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2122,21 +2122,21 @@ static int atlasLua_RemoteKeypress(lua_State * pLua)
 
     pRemoteEvent->setCode(key);
 
-    /* create lua event and give it keypress data - do not specify a response to wait on */
-    pLuaEvent = new CLuaDataEvent <CRemoteEvent>(eNotify_VirtualKeyDown, pRemoteEvent);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it keypress data - do not specify a response to wait on */
+    pAction = new CDataAction <CRemoteEvent>(eNotify_VirtualKeyDown, pRemoteEvent);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pRemoteEvent);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2157,7 +2157,7 @@ static int atlasLua_SetSpdifType(lua_State * pLua)
     uint32_t      spdifInput  = 0;
     eSpdifInput * pSpdifInput = NULL;
 
-    CLuaDataEvent <eSpdifInput> * pLuaEvent = NULL;
+    CDataAction <eSpdifInput> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2183,21 +2183,21 @@ static int atlasLua_SetSpdifType(lua_State * pLua)
 
     *pSpdifInput = (eSpdifInput)spdifInput;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <eSpdifInput>(eNotify_SetSpdifInput, pSpdifInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <eSpdifInput>(eNotify_SetSpdifInput, pSpdifInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pSpdifInput);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2218,7 +2218,7 @@ static int atlasLua_SetHdmiAudioType(lua_State * pLua)
     uint32_t          hdmiInput   = 0;
     eHdmiAudioInput * pHdmiInput  = NULL;
 
-    CLuaDataEvent <eHdmiAudioInput> * pLuaEvent = NULL;
+    CDataAction <eHdmiAudioInput> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2244,21 +2244,21 @@ static int atlasLua_SetHdmiAudioType(lua_State * pLua)
 
     *pHdmiInput = (eHdmiAudioInput)hdmiInput;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <eHdmiAudioInput>(eNotify_SetHdmiAudioInput, pHdmiInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <eHdmiAudioInput>(eNotify_SetHdmiAudioInput, pHdmiInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pHdmiInput);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2279,7 +2279,7 @@ static int atlasLua_SetDownmix(lua_State * pLua)
     uint32_t        downmix     = 0;
     eAudioDownmix * pDownmix    = NULL;
 
-    CLuaDataEvent <eAudioDownmix> * pLuaEvent = NULL;
+    CDataAction <eAudioDownmix> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2305,21 +2305,21 @@ static int atlasLua_SetDownmix(lua_State * pLua)
 
     *pDownmix = (eAudioDownmix)downmix;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <eAudioDownmix>(eNotify_SetAudioDownmix, pDownmix, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <eAudioDownmix>(eNotify_SetAudioDownmix, pDownmix, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDownmix);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2340,7 +2340,7 @@ static int atlasLua_SetDualMono(lua_State * pLua)
     uint32_t         dualMono    = 0;
     eAudioDualMono * pDualMono   = NULL;
 
-    CLuaDataEvent <eAudioDualMono> * pLuaEvent = NULL;
+    CDataAction <eAudioDualMono> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2366,21 +2366,21 @@ static int atlasLua_SetDualMono(lua_State * pLua)
 
     *pDualMono = (eAudioDualMono)dualMono;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <eAudioDualMono>(eNotify_SetAudioDualMono, pDualMono, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <eAudioDualMono>(eNotify_SetAudioDualMono, pDualMono, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDualMono);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2401,7 +2401,7 @@ static int atlasLua_SetDolbyDRC(lua_State * pLua)
     uint32_t    dolbyDRC    = 0;
     eDolbyDRC * pDolbyDRC   = NULL;
 
-    CLuaDataEvent <eDolbyDRC> * pLuaEvent = NULL;
+    CDataAction <eDolbyDRC> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2427,21 +2427,21 @@ static int atlasLua_SetDolbyDRC(lua_State * pLua)
 
     *pDolbyDRC = (eDolbyDRC)dolbyDRC;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <eDolbyDRC>(eNotify_SetDolbyDRC, pDolbyDRC, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <eDolbyDRC>(eNotify_SetDolbyDRC, pDolbyDRC, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDolbyDRC);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2462,7 +2462,7 @@ static int atlasLua_SetDolbyDialogNorm(lua_State * pLua)
     bool    dialogNorm  = false;
     bool *  pDialogNorm = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2480,21 +2480,21 @@ static int atlasLua_SetDolbyDialogNorm(lua_State * pLua)
     /* add required arguments to DialogNorm data */
     *pDialogNorm = dialogNorm;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SetDolbyDialogNorm, pDialogNorm, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SetDolbyDialogNorm, pDialogNorm, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDialogNorm);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2515,7 +2515,7 @@ static int atlasLua_SetVolume(lua_State * pLua)
     int     volume      = 0;
     int *   pVolume     = NULL;
 
-    CLuaDataEvent <int> * pLuaEvent = NULL;
+    CDataAction <int> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2538,21 +2538,21 @@ static int atlasLua_SetVolume(lua_State * pLua)
     /* add required arguments to Volume data */
     *pVolume = volume;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <int>(eNotify_SetVolume, pVolume, eNotify_VolumeChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <int>(eNotify_SetVolume, pVolume, eNotify_VolumeChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pVolume);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2573,7 +2573,7 @@ static int atlasLua_SetMute(lua_State * pLua)
     bool    mute        = false;
     bool *  pMute       = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2591,21 +2591,21 @@ static int atlasLua_SetMute(lua_State * pLua)
     /* add required arguments to Mute data */
     *pMute = mute;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SetMute, pMute, eNotify_MuteChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SetMute, pMute, eNotify_MuteChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pMute);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2626,7 +2626,7 @@ static int atlasLua_SetSpdifInput(lua_State * pLua)
     int     input       = 0;
     int *   pInput      = NULL;
 
-    CLuaDataEvent <int> * pLuaEvent = NULL;
+    CDataAction <int> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2649,21 +2649,21 @@ static int atlasLua_SetSpdifInput(lua_State * pLua)
     /* add required arguments to Volume data */
     *pInput = input;
 
-    /* create lua event and give it spdif input data */
-    pLuaEvent = new CLuaDataEvent <int>(eNotify_SetSpdifInput, pInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <int>(eNotify_SetSpdifInput, pInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pInput);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2684,7 +2684,7 @@ static int atlasLua_SetHdmiInput(lua_State * pLua)
     int     input       = 0;
     int *   pInput      = NULL;
 
-    CLuaDataEvent <int> * pLuaEvent = NULL;
+    CDataAction <int> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2707,21 +2707,21 @@ static int atlasLua_SetHdmiInput(lua_State * pLua)
     /* add required arguments to Volume data */
     *pInput = input;
 
-    /* create lua event and give it Hdmi input data */
-    pLuaEvent = new CLuaDataEvent <int>(eNotify_SetHdmiAudioInput, pInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it Hdmi input data */
+    pAction = new CDataAction <int>(eNotify_SetHdmiAudioInput, pInput, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pInput);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2742,7 +2742,7 @@ static int atlasLua_SetAudioProcessing(lua_State * pLua)
     int     processing  = 0;
     int *   pProcessing = NULL;
 
-    CLuaDataEvent <int> * pLuaEvent = NULL;
+    CDataAction <int> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2792,21 +2792,21 @@ static int atlasLua_SetAudioProcessing(lua_State * pLua)
     /* add required arguments to Volume data */
     *pProcessing = processing;
 
-    /* create lua event and give it Hdmi input data */
-    pLuaEvent = new CLuaDataEvent <int>(eNotify_SetAudioProcessing, pProcessing, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <int>(eNotify_SetAudioProcessing, pProcessing, eNotify_AudioSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pProcessing);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2827,7 +2827,7 @@ static int atlasLua_ShowPip(lua_State * pLua)
     bool    show        = false;
     bool *  pShow       = NULL;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2845,25 +2845,25 @@ static int atlasLua_ShowPip(lua_State * pLua)
     /* add required arguments to show pip data */
     *pShow = show;
 
-    /* create lua event and give it scan data */
+    /* create lua action and give it data */
     {
         eNotification notification = (true == *pShow) ? eNotify_VideoSourceChanged : eNotify_PipStateChanged;
 
-        pLuaEvent = new CLuaDataEvent <bool>(eNotify_ShowPip, pShow, notification, DEFAULT_LUA_EVENT_TIMEOUT);
-        CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+        pAction = new CDataAction <bool>(eNotify_ShowPip, pShow, notification, DEFAULT_LUA_EVENT_TIMEOUT);
+        CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
     }
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pShow);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2881,7 +2881,7 @@ static int atlasLua_SwapPip(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2892,20 +2892,20 @@ static int atlasLua_SwapPip(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_SwapPip, NULL, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_SwapPip, NULL, eNotify_VideoSourceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2923,7 +2923,7 @@ static int atlasLua_ClosedCaptionEnable(lua_State * pLua)
     bool *  pCcEnable   = NULL;
     bool    ccEnable    = false;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
     /* check number of lua arguments on stack */
@@ -2938,16 +2938,16 @@ static int atlasLua_ClosedCaptionEnable(lua_State * pLua)
     *pCcEnable = ccEnable;
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_ClosedCaptionEnable, pCcEnable);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CDataAction <bool>(eNotify_ClosedCaptionEnable, pCcEnable);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pCcEnable);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -2964,7 +2964,7 @@ static int atlasLua_ClosedCaptionMode(lua_State * pLua)
     B_Dcc_Type * pCcMode     = NULL;
     uint32_t     ccMode      = 0;
 
-    CLuaDataEvent <B_Dcc_Type> * pLuaEvent = NULL;
+    CDataAction <B_Dcc_Type> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -2985,17 +2985,17 @@ static int atlasLua_ClosedCaptionMode(lua_State * pLua)
     *pCcMode = (B_Dcc_Type)ccMode;
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    pLuaEvent = new CLuaDataEvent <B_Dcc_Type>(eNotify_ClosedCaptionMode, pCcMode);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CDataAction <B_Dcc_Type>(eNotify_ClosedCaptionMode, pCcMode);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pCcMode);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3019,7 +3019,7 @@ static int atlasLua_SetVbiClosedCaptions(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3046,21 +3046,21 @@ static int atlasLua_SetVbiClosedCaptions(lua_State * pLua)
 
     pDisplayVbiData->bClosedCaptions = lua_toboolean(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3082,7 +3082,7 @@ static int atlasLua_SetVbiTeletext(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3108,21 +3108,21 @@ static int atlasLua_SetVbiTeletext(lua_State * pLua)
     *pDisplayVbiData           = pDisplaySD->getVbiSettings();
     pDisplayVbiData->bTeletext = lua_toboolean(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3144,7 +3144,7 @@ static int atlasLua_SetVbiVps(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3170,21 +3170,21 @@ static int atlasLua_SetVbiVps(lua_State * pLua)
     *pDisplayVbiData      = pDisplaySD->getVbiSettings();
     pDisplayVbiData->bVps = lua_toboolean(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3206,7 +3206,7 @@ static int atlasLua_SetVbiWss(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3232,21 +3232,21 @@ static int atlasLua_SetVbiWss(lua_State * pLua)
     *pDisplayVbiData      = pDisplaySD->getVbiSettings();
     pDisplayVbiData->bWss = lua_toboolean(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3268,7 +3268,7 @@ static int atlasLua_SetVbiCgms(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3295,21 +3295,21 @@ static int atlasLua_SetVbiCgms(lua_State * pLua)
     *pDisplayVbiData       = pDisplaySD->getVbiSettings();
     pDisplayVbiData->bCgms = lua_toboolean(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3331,7 +3331,7 @@ static int atlasLua_SetVbiGemstar(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3357,21 +3357,21 @@ static int atlasLua_SetVbiGemstar(lua_State * pLua)
     *pDisplayVbiData          = pDisplaySD->getVbiSettings();
     pDisplayVbiData->bGemstar = lua_toboolean(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3393,7 +3393,7 @@ static int atlasLua_SetVbiAmol(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3422,21 +3422,21 @@ static int atlasLua_SetVbiAmol(lua_State * pLua)
     pDisplayVbiData->amolType = (NEXUS_AmolType)lua_tointeger(pLua, argNum++);
     pDisplayVbiData->bAmol    = (NEXUS_AmolType_eMax == pDisplayVbiData->amolType) ? false : true;
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3458,7 +3458,7 @@ static int atlasLua_SetVbiMacrovision(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3488,21 +3488,21 @@ static int atlasLua_SetVbiMacrovision(lua_State * pLua)
     pDisplayVbiData->macrovisionType = (NEXUS_DisplayMacrovisionType)lua_tointeger(pLua, argNum++);
     pDisplayVbiData->bMacrovision    = (NEXUS_DisplayMacrovisionType_eNone == pDisplayVbiData->macrovisionType) ? false : true;
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3524,7 +3524,7 @@ static int atlasLua_SetVbiDcs(lua_State * pLua)
     CDisplay *        pDisplaySD      = NULL;
     CDisplayVbiData * pDisplayVbiData = NULL;
 
-    CLuaDataEvent <CDisplayVbiData> * pLuaEvent = NULL;
+    CDataAction <CDisplayVbiData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3553,21 +3553,21 @@ static int atlasLua_SetVbiDcs(lua_State * pLua)
     pDisplayVbiData->dcsType = (NEXUS_DisplayDcsType)lua_tointeger(pLua, argNum++);
     pDisplayVbiData->bDcs    = (NEXUS_DisplayDcsType_eOff == pDisplayVbiData->dcsType) ? false : true;
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CDisplayVbiData>(eNotify_SetVbiSettings, pDisplayVbiData, eNotify_VbiSettingsChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pDisplayVbiData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3587,7 +3587,7 @@ static int atlasLua_SetPowerMode(lua_State * pLua)
     uint8_t      numArgTotal = lua_gettop(pLua) - 1;
     ePowerMode * pPowerMode  = NULL;
 
-    CLuaDataEvent <ePowerMode> * pLuaEvent = NULL;
+    CDataAction <ePowerMode> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3603,34 +3603,33 @@ static int atlasLua_SetPowerMode(lua_State * pLua)
     pPowerMode  = new ePowerMode;
     *pPowerMode = (ePowerMode)lua_tointeger(pLua, argNum++);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <ePowerMode>(eNotify_SetPowerMode, pPowerMode, eNotify_PowerModeChanged, 2000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <ePowerMode>(eNotify_SetPowerMode, pPowerMode, eNotify_PowerModeChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pPowerMode);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_SetPowerMode  */
 
-#ifdef  NETAPP_SUPPORT
 static int atlasLua_WifiScanStart(lua_State * pLua)
 {
     CLua *  pThis       = getCLua(pLua);
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3641,20 +3640,20 @@ static int atlasLua_WifiScanStart(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_NetworkWifiScanStart, NULL, eNotify_NetworkWifiScanResult, 20000);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_NetworkWifiScanStart, NULL, eNotify_NetworkWifiScanResult, 20000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3666,8 +3665,8 @@ static int atlasLua_WifiConnect(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CNetworkWifiConnectData> * pLuaEvent               = NULL;
-    CNetworkWifiConnectData *                 pNetworkWifiConnectData = NULL;
+    CDataAction <CNetworkWifiConnectData> * pAction                 = NULL;
+    CNetworkWifiConnectData *               pNetworkWifiConnectData = NULL;
     uint8_t argNum = 1;
 
     BDBG_ASSERT(pThis);
@@ -3684,21 +3683,21 @@ static int atlasLua_WifiConnect(lua_State * pLua)
     pNetworkWifiConnectData->_strSsid     = luaL_checkstring(pLua, argNum++);
     pNetworkWifiConnectData->_strPassword = luaL_checkstring(pLua, argNum++);
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData, eNotify_NetworkWifiConnected, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData, eNotify_NetworkWifiConnected, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pNetworkWifiConnectData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3710,7 +3709,7 @@ static int atlasLua_WifiDisconnect(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3721,32 +3720,33 @@ static int atlasLua_WifiDisconnect(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_NetworkWifiDisconnect, NULL, eNotify_NetworkWifiDisconnected, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_NetworkWifiDisconnect, NULL, eNotify_NetworkWifiDisconnected, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
 } /* atlasLua_WifiDisconnect */
 
+#ifdef  NETAPP_SUPPORT
 static int atlasLua_BluetoothDiscoveryStart(lua_State * pLua)
 {
     CLua *  pThis       = getCLua(pLua);
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3757,20 +3757,20 @@ static int atlasLua_BluetoothDiscoveryStart(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_BluetoothDiscoveryStart, NULL, eNotify_BluetoothDiscoveryResult, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_BluetoothDiscoveryStart, NULL, eNotify_BluetoothDiscoveryResult, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3783,8 +3783,8 @@ static int atlasLua_BluetoothConnect(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CBluetoothConnectionData> * pLuaEvent                 = NULL;
-    CBluetoothConnectionData *                 pBluetoothConnectiontData = NULL;
+    CDataAction <CBluetoothConnectionData> * pAction                   = NULL;
+    CBluetoothConnectionData *               pBluetoothConnectiontData = NULL;
     uint8_t argNum = 1;
 
     BDBG_ASSERT(pThis);
@@ -3802,21 +3802,21 @@ static int atlasLua_BluetoothConnect(lua_State * pLua)
     /*    pBluetoothConnectiontData->pDevInfoList= luaL_checkstring(pLua, argNum++); *//* Todo !! */
     pBluetoothConnectiontData->pDevInfoList = NULL;
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CBluetoothConnectionData>(eNotify_BluetoothConnect, pBluetoothConnectiontData, eNotify_BluetoothConnectionDone, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CBluetoothConnectionData>(eNotify_BluetoothConnect, pBluetoothConnectiontData, eNotify_BluetoothConnectionDone, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pBluetoothConnectiontData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3829,8 +3829,8 @@ static int atlasLua_BluetoothDisconnect(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CBluetoothConnectionData> * pLuaEvent                = NULL;
-    CBluetoothConnectionData *                 pBluetoothConnectionData = NULL;
+    CDataAction <CBluetoothConnectionData> * pAction                  = NULL;
+    CBluetoothConnectionData *               pBluetoothConnectionData = NULL;
     uint8_t argNum = 1;
 
     BDBG_ASSERT(pThis);
@@ -3846,21 +3846,21 @@ static int atlasLua_BluetoothDisconnect(lua_State * pLua)
     pBluetoothConnectionData        = new CBluetoothConnectionData();
     pBluetoothConnectionData->index = lua_tointeger(pLua, argNum++);
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CBluetoothConnectionData>(eNotify_BluetoothDisconnect, pBluetoothConnectionData, eNotify_BluetoothConnectionDone, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CBluetoothConnectionData>(eNotify_BluetoothDisconnect, pBluetoothConnectionData, eNotify_BluetoothConnectionDone, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pBluetoothConnectionData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3872,7 +3872,7 @@ static int atlasLua_BluetoothGetSavedBtListInfo(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3883,20 +3883,20 @@ static int atlasLua_BluetoothGetSavedBtListInfo(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_BluetoothGetSavedBtListInfo, NULL, eNotify_BluetoothListStatusDone, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_BluetoothGetSavedBtListInfo, NULL, eNotify_BluetoothListStatusDone, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3908,7 +3908,7 @@ static int atlasLua_BluetoothGetConnectedBtListInfo(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3919,20 +3919,20 @@ static int atlasLua_BluetoothGetConnectedBtListInfo(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_BluetoothGetConnBtListInfo, NULL, eNotify_BluetoothListStatusDone, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_BluetoothGetConnBtListInfo, NULL, eNotify_BluetoothListStatusDone, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3944,7 +3944,7 @@ static int atlasLua_BluetoothGetDiscoveryBtListInfo(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -3955,20 +3955,20 @@ static int atlasLua_BluetoothGetDiscoveryBtListInfo(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_BluetoothGetDiscBtListInfo, NULL, eNotify_BluetoothListStatusDone, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_BluetoothGetDiscBtListInfo, NULL, eNotify_BluetoothListStatusDone, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -3980,8 +3980,8 @@ static int atlasLua_BluetoothConnectBluetoothFromDiscList(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <CBluetoothConnectionData> * pLuaEvent                = NULL;
-    CBluetoothConnectionData *                 pBluetoothConnectionData = NULL;
+    CDataAction <CBluetoothConnectionData> * pAction                  = NULL;
+    CBluetoothConnectionData *               pBluetoothConnectionData = NULL;
     uint8_t argNum = 1;
 
     BDBG_ASSERT(pThis);
@@ -3997,21 +3997,21 @@ static int atlasLua_BluetoothConnectBluetoothFromDiscList(lua_State * pLua)
     pBluetoothConnectionData        = new CBluetoothConnectionData();
     pBluetoothConnectionData->index = lua_tointeger(pLua, argNum++);
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CBluetoothConnectionData>(eNotify_BluetoothConnectBluetoothFromDiscList, pBluetoothConnectionData, eNotify_BluetoothConnectionDone, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CBluetoothConnectionData>(eNotify_BluetoothConnectBluetoothFromDiscList, pBluetoothConnectionData, eNotify_BluetoothConnectionDone, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pBluetoothConnectionData);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4023,7 +4023,7 @@ static int atlasLua_BluetoothA2DPStart(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -4034,20 +4034,20 @@ static int atlasLua_BluetoothA2DPStart(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_BluetoothA2DPStart, NULL, eNotify_BluetoothA2DPStarted, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_BluetoothA2DPStart, NULL, eNotify_BluetoothA2DPStarted, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4059,7 +4059,7 @@ static int atlasLua_BluetoothA2DPStop(lua_State * pLua)
     eRet    err         = eRet_Ok;
     uint8_t numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -4070,20 +4070,20 @@ static int atlasLua_BluetoothA2DPStop(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: should be 0", error);
     }
 
-    /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_BluetoothA2DPStop, NULL, eNotify_BluetoothA2DPStopped, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <bool>(eNotify_BluetoothA2DPStop, NULL, eNotify_BluetoothA2DPStopped, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4105,7 +4105,7 @@ static int atlasLua_AddRf4ceRemote(lua_State * pLua)
     CLua *             pThis            = getCLua(pLua);
     CRf4ceRemoteData * pRf4ceRemoteData = NULL;
 
-    CLuaDataEvent <CRf4ceRemoteData> * pLuaEvent = NULL;
+    CDataAction <CRf4ceRemoteData> * pAction = NULL;
 
     /* check number of lua arguments on stack */
     if (numArgTotal != 1)
@@ -4124,18 +4124,18 @@ static int atlasLua_AddRf4ceRemote(lua_State * pLua)
     }
     pRf4ceRemoteData->_name = remoteName;
 
-    /* create lua event and give it tune data */
-    pLuaEvent = new CLuaDataEvent <CRf4ceRemoteData>(eNotify_AddRf4ceRemote, pRf4ceRemoteData);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* create lua action and give it data */
+    pAction = new CDataAction <CRf4ceRemoteData>(eNotify_AddRf4ceRemote, pRf4ceRemoteData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4149,7 +4149,7 @@ static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
     CLua *             pThis            = getCLua(pLua);
     CRf4ceRemoteData * pRf4ceRemoteData = NULL;
 
-    CLuaDataEvent <CRf4ceRemoteData> * pLuaEvent = NULL;
+    CDataAction <CRf4ceRemoteData> * pAction = NULL;
 
     /* check number of lua arguments on stack */
     if (numArgTotal != 1)
@@ -4169,17 +4169,17 @@ static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
     }
     pRf4ceRemoteData->_pairingRefNum = remote_num;
 
-    /* create lua event and give it tune data */
-    pLuaEvent = new CLuaDataEvent <CRf4ceRemoteData>(eNotify_RemoveRf4ceRemote, pRf4ceRemoteData);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CRf4ceRemoteData>(eNotify_RemoveRf4ceRemote, pRf4ceRemoteData);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4187,19 +4187,19 @@ done:
 
 static int atlasLua_DisplayRf4ceRemotes(lua_State * pLua)
 {
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
 
-    pLuaEvent = new CLuaEvent(eNotify_DisplayRf4ceRemotes);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CAction(eNotify_DisplayRf4ceRemotes);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4215,7 +4215,7 @@ static int atlasLua_PlaylistDiscovery(lua_State * pLua)
     CModel * pModel      = NULL;
     uint8_t  numArgTotal = lua_gettop(pLua) - 1;
 
-    CLuaDataEvent <int> * pLuaEvent = NULL;
+    CDataAction <int> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -4236,21 +4236,21 @@ static int atlasLua_PlaylistDiscovery(lua_State * pLua)
         LUA_ERROR(pLua, "wrong number of arguments: <index> of playlist to retrieve. use 0 to print all", error);
     }
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent<int>(eNotify_ShowDiscoveredPlaylists, pIndex, eNotify_DiscoveredPlaylistsShown, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction<int>(eNotify_ShowDiscoveredPlaylists, pIndex, eNotify_DiscoveredPlaylistsShown, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pIndex);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4266,7 +4266,7 @@ static int atlasLua_PlaylistShow(lua_State * pLua)
     int             nIndex        = 0;
     MString         strIp;
 
-    CLuaDataEvent <CPlaylistData> * pLuaEvent = NULL;
+    CDataAction <CPlaylistData> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
 
@@ -4289,20 +4289,20 @@ static int atlasLua_PlaylistShow(lua_State * pLua)
 
     BDBG_ASSERT(pThis);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CPlaylistData>(eNotify_ShowPlaylist, pPlaylistData, eNotify_PlaylistShown, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CPlaylistData>(eNotify_ShowPlaylist, pPlaylistData, eNotify_PlaylistShown, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4317,7 +4317,7 @@ static int atlasLua_ChannelStream(lua_State * pLua)
     CChannelBip * pChannelIp  = NULL;
     uint8_t       argNum      = 1;
 
-    CLuaDataEvent <CChannelBip> * pLuaEvent = NULL;
+    CDataAction <CChannelBip> * pAction = NULL;
     BDBG_ASSERT(pThis);
 
     /* check number of lua arguments on stack */
@@ -4334,19 +4334,19 @@ static int atlasLua_ChannelStream(lua_State * pLua)
     BDBG_MSG(("URL : %s", pChannelIp->getUrl().s()));
     BDBG_ASSERT(pThis);
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <CChannelBip>(eNotify_StreamChannel, pChannelIp, eNotify_CurrentChannel, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <CChannelBip>(eNotify_StreamChannel, pChannelIp, eNotify_CurrentChannel, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4365,7 +4365,7 @@ static int atlasLua_ipClientTranscodeEnable(lua_State * pLua)
     bool *  pTranscodeEnable = NULL;
     bool    transcodeEnable  = false;
 
-    CLuaDataEvent <bool> * pLuaEvent = NULL;
+    CDataAction <bool> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
     /* check number of lua arguments on stack */
@@ -4380,16 +4380,16 @@ static int atlasLua_ipClientTranscodeEnable(lua_State * pLua)
     *pTranscodeEnable = transcodeEnable;
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_ipClientTranscodeEnable, pTranscodeEnable);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
-    pThis->addEvent(pLuaEvent);
+    pAction = new CDataAction <bool>(eNotify_ipClientTranscodeEnable, pTranscodeEnable);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    pThis->addAction(pAction);
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pTranscodeEnable);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4406,7 +4406,7 @@ static int atlasLua_ipClientTranscodeProfile(lua_State * pLua)
     int     _xcodeProfile     = 0;
     int *   pTranscodeProfile = NULL;
 
-    CLuaDataEvent <int> * pLuaEvent = NULL;
+    CDataAction <int> * pAction = NULL;
 
     BDBG_ASSERT(pThis);
     /* check number of lua arguments on stack */
@@ -4423,17 +4423,17 @@ static int atlasLua_ipClientTranscodeProfile(lua_State * pLua)
     *pTranscodeProfile = _xcodeProfile;
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    pLuaEvent = new CLuaDataEvent <int>(eNotify_ipClientTranscodeProfile, pTranscodeProfile, eNotify_Invalid, DEFAULT_LUA_EVENT_TIMEOUT);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CDataAction <int>(eNotify_ipClientTranscodeProfile, pTranscodeProfile, eNotify_Invalid, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
     DEL(pTranscodeProfile);
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4534,24 +4534,24 @@ static int atlasLua_Debug(lua_State * pLua)
     int       argNum    = 1;
     MString * pStrDebug = NULL;
 
-    CLuaDataEvent <MString> * pLuaEvent = NULL;
+    CDataAction <MString> * pAction = NULL;
     BDBG_ASSERT(pThis);
 
     pStrDebug = new MString(luaL_checkstring(pLua, argNum));
 
-    /* create lua event and give it data */
-    pLuaEvent = new CLuaDataEvent <MString>(eNotify_Debug, pStrDebug);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    /* create lua action and give it data */
+    pAction = new CDataAction <MString>(eNotify_Debug, pStrDebug);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
-    /* save lua event to queue - this event will be serviced when we get the bwin io callback:
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
      * bwinLuaCallback() */
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4570,9 +4570,9 @@ static int atlasLua_Sleep(lua_State * pLua)
 
 static int atlasLua_Exit(lua_State * pLua)
 {
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
 
     BDBG_ASSERT(pThis);
 
@@ -4580,17 +4580,17 @@ static int atlasLua_Exit(lua_State * pLua)
      * save lua event and necessary data
      * note that we are not setting a wait notification so we will not wait for this command to complete
      */
-    pLuaEvent = new CLuaEvent(eNotify_Exit);
-    CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
+    pAction = new CAction(eNotify_Exit);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
     BDBG_ASSERT(NULL != pThis);
-    pThis->addEvent(pLuaEvent);
+    pThis->addAction(pAction);
 
     /* trigger bwin io event here */
-    err = pThis->trigger(pLuaEvent);
+    err = pThis->trigger(pAction);
 
     goto done;
 error:
-    DEL(pLuaEvent);
+    DEL(pAction);
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
@@ -4664,10 +4664,10 @@ static const struct luaL_Reg atlasLua[] = {
     { "rf4ceRemoteRemove",             atlasLua_RemoveRf4ceRemote                     }, /* remove RF4CE remote */
     { "rf4ceRemotesDisplay",           atlasLua_DisplayRf4ceRemotes                   }, /* display RF4CE remotes */
 #endif
-#ifdef NETAPP_SUPPORT
     { "wifiScanStart",                 atlasLua_WifiScanStart                         }, /* wifi network scan start */
     { "wifiConnect",                   atlasLua_WifiConnect                           }, /* wifi network connect */
     { "wifiDisconnect",                atlasLua_WifiDisconnect                        }, /* wifi network disconnect */
+#ifdef NETAPP_SUPPORT
     { "bluetoothDiscoveryStart",       atlasLua_BluetoothDiscoveryStart               }, /* bluetooth discovery start */
     { "bluetoothDisconnect",           atlasLua_BluetoothDisconnect                   }, /* bluetooth disconnect */
     { "bluetoothGetSavedListInfo",     atlasLua_BluetoothGetSavedBtListInfo           }, /* bluetooth GetSavedBtListInfo */
@@ -4809,18 +4809,18 @@ CLua::CLua() :
     _pLua(NULL),
     _threadShell(NULL),
     _shellStarted(false),
-    _eventMutex(NULL),
+    _actionMutex(NULL),
     _busyEvent(NULL),
     _pWidgetEngine(NULL),
-    _busyLuaEvent(eNotify_Invalid),
+    _busyAction(eNotify_Invalid),
     _pConfig(NULL),
     _pCfg(NULL),
     _pModel(NULL)
 {
     eRet err = eRet_Ok;
 
-    _eventMutex = B_Mutex_Create(NULL);
-    CHECK_PTR_ERROR_GOTO("unable to create mutex", _eventMutex, err, eRet_ExternalError, error);
+    _actionMutex = B_Mutex_Create(NULL);
+    CHECK_PTR_ERROR_GOTO("unable to create mutex", _actionMutex, err, eRet_ExternalError, error);
 
     _busyEvent = B_Event_Create(NULL);
     CHECK_PTR_ERROR_GOTO("unable to create event", _busyEvent, err, eRet_ExternalError, error);
@@ -4842,10 +4842,10 @@ CLua::~CLua()
         _busyEvent = NULL;
     }
 
-    if (NULL != _eventMutex)
+    if (NULL != _actionMutex)
     {
-        B_Mutex_Destroy(_eventMutex);
-        _eventMutex = NULL;
+        B_Mutex_Destroy(_actionMutex);
+        _actionMutex = NULL;
     }
 }
 
@@ -4918,38 +4918,38 @@ eRet CLua::uninitialize()
     return(ret);
 }
 
-void CLua::addEvent(CLuaEvent * pEvent)
+void CLua::addAction(CAction * pAction)
 {
-    CScopedMutex scopedMutex(_eventMutex);
+    CScopedMutex scopedMutex(_actionMutex);
 
-    _eventList.add(pEvent);
+    _actionList.add(pAction);
 }
 
-CLuaEvent * CLua::getEvent()
+CAction * CLua::getAction()
 {
-    CLuaEvent *  pLuaEvent = NULL;
-    CScopedMutex scopedMutex(_eventMutex);
+    CAction *    pAction = NULL;
+    CScopedMutex scopedMutex(_actionMutex);
 
-    if (0 < _eventList.total())
+    if (0 < _actionList.total())
     {
-        pLuaEvent = (CLuaEvent *)_eventList.first();
+        pAction = (CAction *)_actionList.first();
     }
 
-    return(pLuaEvent);
+    return(pAction);
 }
 
-CLuaEvent * CLua::removeEvent()
+CAction * CLua::removeAction()
 {
-    CLuaEvent *  pLuaEvent = NULL;
-    CScopedMutex scopedMutex(_eventMutex);
+    CAction *    pAction = NULL;
+    CScopedMutex scopedMutex(_actionMutex);
 
-    if (0 < _eventList.total())
+    if (0 < _actionList.total())
     {
-        pLuaEvent = (CLuaEvent *)_eventList.first();
-        _eventList.remove();
+        pAction = (CAction *)_actionList.first();
+        _actionList.remove();
     }
 
-    return(pLuaEvent);
+    return(pAction);
 }
 
 #ifdef LINENOISE_SUPPORT
@@ -5149,60 +5149,62 @@ void bwinLuaCallback(
         const char * strCallback
         )
 {
-    eRet        ret  = eRet_Ok;
-    CLua *      pLua = (CLua *)pObject;
-    CLuaEvent * pEvent;
+    eRet      ret  = eRet_Ok;
+    CLua *    pLua = (CLua *)pObject;
+    CAction * pAction;
 
     BDBG_ASSERT(NULL != pLua);
     BSTD_UNUSED(strCallback);
 
     /* handle all queued lua events */
-    while (NULL != (pEvent = pLua->removeEvent()))
+    while (NULL != (pAction = pLua->removeAction()))
     {
-        BDBG_MSG(("Notify Observers for Lua event code: %s", notificationToString(pEvent->getId()).s()));
-        ret = pLua->notifyObservers(pEvent->getId(), (void *)pEvent->getDataPtr());
+        BDBG_MSG(("Notify Observers for Lua event code: %s", notificationToString(pAction->getId()).s()));
+        ret = pLua->notifyObservers(pAction->getId(), (void *)pAction->getDataPtr());
         CHECK_ERROR_GOTO("error notifying observers", ret, error);
 
         /* delete lua event and any associated data */
-        delete pEvent;
+        delete pAction;
     }
 
 error:
     return;
 } /* bwinLuaCallback */
 
-eRet CLua::trigger(CLuaEvent * pLuaEvent)
+eRet CLua::trigger(CAction * pAction)
 {
     eRet            ret           = eRet_Ok;
     CWidgetEngine * pWidgetEngine = getWidgetEngine();
 
-    BDBG_ASSERT(NULL != pLuaEvent);
+    BDBG_ASSERT(NULL != pAction);
 
     /* save copy of lua event in case we have to wait for a response notification */
-    _busyLuaEvent = *pLuaEvent;
+    _busyAction = *pAction;
 
     B_Event_Reset(_busyEvent);
 
     if (NULL != pWidgetEngine)
     {
-        BDBG_MSG(("Trigger Lua event: %s", notificationToString(pLuaEvent->getId()).s()));
+        BDBG_MSG(("Trigger Lua event: %s", notificationToString(pAction->getId()).s()));
+
         pWidgetEngine->syncCallback(this, CALLBACK_LUA);
+        CHECK_ERROR("unable to sync with bwin main loop", ret);
     }
 
-    /*** do not access pLuaEvent after the syncCallback call.  since we are running
+    /*** do not access pAction after the syncCallback call.  since we are running
      *   in the Lua thread context, the bwinLuaCallback can trigger at anytime
-     *   after syncCallback() which will delete the pLuaEvent! use _busyLuaEvent instead. ***/
+     *   after syncCallback() which will delete the pAction! use _busyAction instead. ***/
 
     /* if command specified a valid wait notification, we will wait for it here */
-    if (eNotify_Invalid != _busyLuaEvent.getWaitNotification())
+    if (eNotify_Invalid != _busyAction.getWaitNotification())
     {
         B_Error berr = B_ERROR_SUCCESS;
 
         BDBG_MSG(("Lua waiting for response (%s)...%d secs",
-                  notificationToString(_busyLuaEvent.getWaitNotification()).s(),
-                  _busyLuaEvent.getWaitTimeout()));
+                  notificationToString(_busyAction.getWaitNotification()).s(),
+                  _busyAction.getWaitTimeout()));
 
-        berr = B_Event_Wait(_busyEvent, _busyLuaEvent.getWaitTimeout());
+        berr = B_Event_Wait(_busyEvent, _busyAction.getWaitTimeout());
         if (B_ERROR_SUCCESS != berr)
         {
             BDBG_ERR(("Lua wait timed out or returned error!"));
@@ -5210,7 +5212,7 @@ eRet CLua::trigger(CLuaEvent * pLuaEvent)
         }
         else
         {
-            BDBG_MSG(("Received Lua command (%s)", notificationToString(_busyLuaEvent.getWaitNotification()).s()));
+            BDBG_MSG(("Received Lua command (%s)", notificationToString(_busyAction.getWaitNotification()).s()));
         }
     }
 
@@ -5390,7 +5392,7 @@ void CLua::processNotification(CNotification & notification)
         }
 
         /* add 2 to count of return values */
-        _busyLuaEvent.setNumReturnVals(_busyLuaEvent.getNumReturnVals() + nRetVals);
+        _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
     }
     break;
 
@@ -5414,7 +5416,7 @@ void CLua::processNotification(CNotification & notification)
         }
 
         /* add 2 to count of return values */
-        _busyLuaEvent.setNumReturnVals(_busyLuaEvent.getNumReturnVals() + nRetVals);
+        _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
     }
     break;
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
@@ -5426,7 +5428,7 @@ void CLua::processNotification(CNotification & notification)
     /* check to see if the current notification is one that a pending lua command is waiting on */
     {
         int           i          = 0;
-        eNotification busyNotify = _busyLuaEvent.getWaitNotification(i);
+        eNotification busyNotify = _busyAction.getWaitNotification(i);
 
         while (eNotify_Invalid != busyNotify)
         {
@@ -5437,7 +5439,7 @@ void CLua::processNotification(CNotification & notification)
             }
 
             i++;
-            busyNotify = _busyLuaEvent.getWaitNotification(i);
+            busyNotify = _busyAction.getWaitNotification(i);
         }
     }
 } /* processNotification */

@@ -48,6 +48,7 @@
 #include "priv/nexus_core_img_id.h"
 #include "nexus_base.h"
 #include "nexus_sage_init.h"
+#include "nexus_sage_types.h"
 #include "nexus_sage.h"
 
 #include "nexus_sage_message_types.h"

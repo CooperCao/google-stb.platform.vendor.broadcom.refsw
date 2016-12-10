@@ -1009,8 +1009,11 @@ BERR_Code BHDM_PACKET_ACR_P_LookupTmdsClock_isrsafe(
 
 	if (*eTmdsClock == BHDM_P_TmdsClock_eMax)
 	{
-		BDBG_ERR(("Tx%d: Unknown HDMI Pixel Clock Rate: " BDBG_UINT64_FMT " bpp: %d; repetition: %d",
-			hHDMI->eCoreId, BDBG_UINT64_ARG(ulPixelClkRate64BitMask), lookupBitsPerPixel, ePixelRepetition)) ;
+		BDBG_ERR(("Tx%d: Unable to look up TMDS Clock rate with with HDMI Pixel Clock Rate: " BDBG_UINT64_FMT " Color space %d bpp: %d; repetition: %d",
+			hHDMI->eCoreId, BDBG_UINT64_ARG(ulPixelClkRate64BitMask),
+			eColorSpace, 	lookupBitsPerPixel, ePixelRepetition)) ;
+
+		/* Unable to look up based on current video settings; most likely due to intermediate state */
 		rc = BERR_TRACE(BERR_INVALID_PARAMETER) ;
 		goto done ;
 	}

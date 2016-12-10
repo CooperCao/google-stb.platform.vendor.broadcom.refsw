@@ -711,6 +711,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_Init_Generic(NEXUS_VideoDecoderHandle videoDeco
     NEXUS_CallbackDesc_Init(&videoDecoder->settings.decodeError);
     NEXUS_CallbackDesc_Init(&videoDecoder->settings.fnrtSettings.chunkDone);
     NEXUS_CallbackDesc_Init(&videoDecoder->settings.stateChanged.callback);
+    NEXUS_CallbackDesc_Init(&videoDecoder->playback.videoDecoderPlaybackSettings.firstPts);
+    NEXUS_CallbackDesc_Init(&videoDecoder->playback.videoDecoderPlaybackSettings.firstPtsPassed);
+    NEXUS_CallbackDesc_Init(&videoDecoder->private.settings.streamChanged);
 
     BKNI_Memset(&videoDecoder->extendedSettings.lowLatencySettings, 0, sizeof(NEXUS_VideoDecoderLowLatencySettings));
     videoDecoder->extendedSettings.lowLatencySettings.controlPeriod = 3000;

@@ -77,6 +77,7 @@
 #endif
 
 #define PRINTFLOG noprintf
+#define FILENAME_TAG "filename=\""
 static bmemperf_cpu_percent g_cpuData;
 
 const char *noprintf(
@@ -2080,3 +2081,298 @@ int get_cpu_frequencies_supported( int cpu, char *cpu_frequencies_supported, int
     }
     return ( 0 );
 }
+
+/**
+ *  Function: This function will output the BYTES tag followed by a human-readable
+ *            number of bytes in the file.
+ **/
+int output_file_size_in_human( const char *sFilename )
+{
+    struct stat statbuf;
+
+    /* if a capture file name is known */
+    if (strlen( sFilename ))
+    {
+        if (lstat( sFilename, &statbuf ) == -1)
+        {
+            printf( "Could not stat (%s)\n", sFilename );
+        }
+        else
+        {
+            printf( "~BYTES~" );
+            if (statbuf.st_size < 1024)
+            {
+                printf( "%lu bytes\n", (unsigned long int) statbuf.st_size );
+            }
+            else if (statbuf.st_size < 1024*1024)
+            {
+                float kilobytes = 1.0 * statbuf.st_size /1024.;
+                printf( "%.2f KB\n", kilobytes );
+            }
+            else if (statbuf.st_size < 1024*1024*1024)
+            {
+                float megabytes = 1.0 * statbuf.st_size /1024. / 1024.;
+                printf( "%.2f MB\n", megabytes );
+            }
+            else
+            {
+                float gigabytes = 1.0 * statbuf.st_size /1024. / 1024. / 1024.;
+                printf( "%.2f GB\n", gigabytes );
+            }
+            printf( "~\n" );
+        }
+    }
+
+    return ( 0 );
+}
+
+char *decodeFilename(
+    const char *filename
+    )
+{
+    char        *pos         = NULL;
+    char        *prev        = NULL;
+    char        *decodedName = NULL;
+    unsigned int pass        = 0;
+
+    if (filename == NULL)
+    {
+        return( NULL );
+    }
+
+    PRINTF( "%s: filename (%s)\n", __FUNCTION__, filename );
+    decodedName = malloc( strlen( filename ));
+    if (decodedName == NULL)
+    {
+        PRINTF( "%s: could not malloc %u bytes for decodedName\n", __FUNCTION__, strlen( filename ));
+        return( NULL );
+    }
+    PRINTF( "%s: malloc %u bytes for decodedName\n", __FUNCTION__, strlen( filename ));
+    memset( decodedName, 0, strlen( filename ));
+
+    pos = prev = (char *) filename;
+
+    while (( pos = strstr( pos, "%2F" )))
+    {
+        strncat( decodedName, prev, pos - prev );
+        strncat( decodedName, "/", 1 );
+        PRINTF( "%s: pass %u: newname (%s)\n", __FUNCTION__, pass, decodedName );
+        pos += 3;
+        prev = pos;
+        pass++;
+    }
+    strcat( decodedName, prev );
+    PRINTF( "%s: pass %u: newname (%s)\n", __FUNCTION__, pass, decodedName );
+
+    return( decodedName );
+} /* decodeFilename */
+
+int sendFileToBrowser(
+    const char *filename
+    )
+{
+    char        *contents = NULL;
+    FILE        *fpInput  = NULL;
+    struct stat  statbuf;
+    char        *pFileNameDecoded = NULL;
+    char        *pos              = NULL;
+    char         tempFilename[TEMP_FILE_FULL_PATH_LEN];
+
+    PRINTF( "~%s: filename (%p)\n~", __FUNCTION__, filename ); fflush( stdout ); fflush( stderr );
+    PRINTF( "~%s: filename (%s)\n~", __FUNCTION__, filename ); fflush( stdout ); fflush( stderr );
+    pFileNameDecoded = decodeFilename( filename );
+
+    PRINTF( "~%s: pFileNameDecoded (%s)\n~", __FUNCTION__, filename ); fflush( stdout ); fflush( stderr );
+    if (pFileNameDecoded == NULL)
+    {
+        return( -1 );
+    }
+
+    memset ( tempFilename, 0, sizeof(tempFilename) );
+    strncpy ( tempFilename, pFileNameDecoded, sizeof(tempFilename) -1 );
+    PRINTF( "~strncpy(%s)\n~", tempFilename ); fflush( stdout ); fflush( stderr );
+
+    if (lstat( tempFilename, &statbuf ) == -1)
+    {
+        printf( "%s: Could not stat (%s)\n", __FUNCTION__, tempFilename ); fflush( stdout ); fflush( stderr );
+        return( -1 );
+    }
+    /* remove the tempdir part from beginning of the file */
+    pos = strrchr( tempFilename, '/' );
+    PRINTF( "~pos 1 (%s)(%p)\n~", pos, pos ); fflush( stdout ); fflush( stderr );
+    PRINTF( "~tempFilename (%s)\n~", tempFilename ); fflush( stdout ); fflush( stderr );
+    PRINTF( "~statbuf.st_size %lld\n~", statbuf.st_size ); fflush( stdout ); fflush( stderr );
+    if (pos)
+    {
+        pos++; /* advance pointer past the slash character */
+        PRINTF( "~pos 2 (%s)(%p); len %d\n~", pos, pos, strlen( pos )); fflush( stdout ); fflush( stderr );
+    }
+    else
+    {
+        pos = (char *) tempFilename;
+        PRINTF( "~pos 3 (%s)(%p); len %d\n~", pos, pos, strlen( pos )); fflush( stdout ); fflush( stderr );
+    }
+
+    if (statbuf.st_size == 0)
+    {
+        printf( "Content-Disposition: form-data; filename=\"%s\" \n", pos ); fflush( stdout ); fflush( stderr );
+    }
+    else
+    {
+        contents = malloc( statbuf.st_size );
+        PRINTF( "%s: malloc(%llu); contents (%p)\n", __FUNCTION__, statbuf.st_size, contents ); fflush( stdout ); fflush( stderr );
+        if (contents == NULL) {return( -1 ); }
+
+        fpInput = fopen( tempFilename, "r" );
+        PRINTF( "%s: fread(%llu)\n", __FUNCTION__, statbuf.st_size ); fflush( stdout ); fflush( stderr );
+        fread( contents, 1, statbuf.st_size, fpInput );
+        fclose( fpInput );
+
+        printf( "Content-Type: application/octet-stream\n" ); fflush( stdout ); fflush( stderr );
+        /* Disposition line has to come AFTER the Content-Type line if length is non-zero */
+        printf( "Content-Disposition: attachment; filename=\"%s\" \n", pos ); fflush( stdout ); fflush( stderr );
+        printf( "Content-Length: %lu\n", (unsigned long int) statbuf.st_size ); fflush( stdout ); fflush( stderr );
+        printf( "\n" );
+
+        fwrite( contents, 1, statbuf.st_size, stdout );
+    }
+
+    Bsysperf_Free( pFileNameDecoded );
+    Bsysperf_Free( contents );
+
+    return( 0 );
+} /* sendFileToBrowser */
+
+int readFileFromBrowser(
+    const char       *contentType,
+    const char       *contentLength,
+    char             *sFilename,
+    unsigned long int lFilenameLen
+    )
+{
+    int   ContentLengthInt;
+    char *boundaryString = NULL;
+    char *cgi_query      = NULL;
+    FILE *fOut           = NULL;
+
+    /* How much data do we expect? */
+
+    PRINTF( "Content-type: text/html\n\n" );
+    PRINTF( "len (%s); type (%s)<br>\n", contentLength, contentType );
+    if (( contentLength == NULL ) ||
+        ( sscanf( contentLength, "%d", &ContentLengthInt ) != 1 ))
+    {
+        PRINTF( "could not sscanf CONTENT_LENGTH<br>\n" );
+        return( -1 );
+    }
+    /* Create space for it: */
+
+    cgi_query = malloc( ContentLengthInt + 1 );
+    PRINTF( "malloc'ed space for %d bytes<br>\n", ContentLengthInt + 1 );
+
+    if (cgi_query == NULL)
+    {
+        PRINTF( "could not malloc(%d) bytes<br>\n", ContentLengthInt + 1 );
+        return( -1 );
+    }
+    /* Read it in: */
+
+    boundaryString = strstr( contentType, "boundary=" );
+    if (boundaryString == NULL)
+    {
+        PRINTF( "could not find boundary string<br>\n" );
+        return( -1 );
+    }
+    boundaryString += strlen( "boundary=" );
+
+    {
+        int           byteCount        = 0;
+        int           fileBytes        = 0;
+        int           fgetBytes        = 0;
+        int           headerBytes      = 0;
+        unsigned char endOfHeaderFound = 0;    /* set to true when \r\n found on a line by itself */
+        unsigned char endOfFileFound   = 0;    /* set to true when file contents have been read */
+
+        while (byteCount < ContentLengthInt && endOfFileFound == 0)
+        {
+            if (endOfHeaderFound == 0)
+            {
+                fgets( &cgi_query[fileBytes], ContentLengthInt + 1, stdin );
+                fgetBytes  = strlen( &cgi_query[fileBytes] );
+                byteCount += fgetBytes;
+                PRINTF( "got %u bytes (%s)<br>\n", fgetBytes, &cgi_query[fileBytes] );
+
+                /* if next line has a boundary directive on it */
+                if (strstr( &cgi_query[fileBytes], boundaryString ))
+                {
+                    headerBytes += strlen( cgi_query ) + strlen( boundaryString ) + strlen( "--" ) + strlen( "--" ) + strlen( "\r\n" ) + strlen( "\r\n" );
+                    PRINTF( "found boundary (%s); len %d; headerBytes %d; remaining %d<br>\n", &cgi_query[fileBytes], strlen( cgi_query ), headerBytes, ContentLengthInt - headerBytes );
+                    cgi_query[fileBytes] = '\0';
+                }
+                else if (strncmp( &cgi_query[fileBytes], "Content-", 8 ) == 0)  /* if next line has a Content directive on it */
+                {
+                    headerBytes += strlen( cgi_query );
+                    PRINTF( "found directive (%s); len %d; headerBytes %d; remaining %d<br>\n", &cgi_query[fileBytes], strlen( cgi_query ), headerBytes, ContentLengthInt - headerBytes );
+                    if (strncmp( &cgi_query[fileBytes], "Content-Disposition:", 20 ) == 0)  /* if next line has a Content-Disposition directive on it */
+                    {
+                        char *filename = NULL;
+                        /* find filename tag */
+                        filename = strstr( &cgi_query[fileBytes], FILENAME_TAG );
+                        if (filename)
+                        {
+                            char *end_of_filename = NULL;
+                            filename       += strlen( FILENAME_TAG ); /* advance pointer past the tag name */
+                            end_of_filename = strchr( filename, '"' );
+                            if (end_of_filename)
+                            {
+                                unsigned int tempFilenameLen = end_of_filename - filename + strlen( GetTempDirectoryStr());
+                                /* if destination string has space for the filename string passed in from the browser */
+                                if (sFilename && ( tempFilenameLen < lFilenameLen ))
+                                {
+                                    memset( sFilename, 0, lFilenameLen );
+                                    strncpy( sFilename, GetTempDirectoryStr(), lFilenameLen );
+                                    strncat( sFilename, filename, end_of_filename - filename );
+                                    PRINTF( "%s: sFilename %p:(%s)<br>\n", __FUNCTION__, sFilename, sFilename );
+                                }
+                            }
+                        }
+                    }
+                    cgi_query[fileBytes] = '\0';
+                }
+                else if (( endOfHeaderFound == 0 ) && ( cgi_query[fileBytes] == '\r' ) && ( cgi_query[fileBytes + 1] == '\n' ))
+                {
+                    headerBytes += strlen( cgi_query );
+                    PRINTF( "found end of header (%s) (skipping these bytes); headerBytes %d; remaining %d<br>\n", &cgi_query[fileBytes], headerBytes,
+                        ContentLengthInt - headerBytes );
+                    endOfHeaderFound     = 1;
+                    cgi_query[fileBytes] = '\0';
+                }
+            }
+            else
+            {
+                fgetBytes  = fread( &cgi_query[fileBytes], 1, ContentLengthInt - headerBytes, stdin );
+                byteCount += fgetBytes;
+                PRINTF( "added %d bytes to file contents<br>\n", fgetBytes );
+                fileBytes       += fgetBytes;
+                endOfHeaderFound = 0;
+                endOfFileFound   = 1;
+            }
+
+            PRINTF( "byteCount %d; ContentLengthInt %d; fileBytes %d<br>\n", byteCount, ContentLengthInt, fileBytes );
+        }
+
+        PRINTF( "%s: fopen (%s)<br>\n", __FUNCTION__, sFilename );
+        fOut = fopen( sFilename, "w" );
+        if (fOut)
+        {
+            PRINTF( "%s: fwrite (%d) bytes<br>\n", __FUNCTION__, fileBytes );
+            fwrite( cgi_query, 1, fileBytes, fOut );
+            fclose( fOut );
+            PRINTF( "<h3>Output file is (%s)</h3>\n", sFilename );
+        }
+        /* free the malloc'ed space if it was malloc'ed successfully */
+        Bsysperf_Free( cgi_query );
+    }
+
+    return( 0 );
+} /* readFileFromBrowser */

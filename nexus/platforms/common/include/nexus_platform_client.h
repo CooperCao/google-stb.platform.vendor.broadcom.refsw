@@ -112,17 +112,12 @@ void NEXUS_Platform_Uninit( /* attr{thunk=false} */
 Summary:
 Get client configuration settings provided by the server
 **/
-void NEXUS_Platform_GetClientConfiguration( /* attr{local=true}  */
+void NEXUS_Platform_GetClientConfiguration(
     NEXUS_ClientConfiguration *pSettings /* [out] */
     );
 
-/**
-Summary:
-Get client configuration settings provided by the server
-**/
-void NEXUS_Platform_GetClientConfiguration_driver(
-    NEXUS_ClientConfiguration *pSettings /* [out] */
-    );
+/* Returns everything except NEXUS_MemoryStatus.addr, which can be locally obtained with NEXUS_OffsetToCacheAddr. See NEXUS_Heap_GetStatus. */
+NEXUS_Error NEXUS_Platform_GetHeapStatus_driver( NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus);
 
 #ifdef __cplusplus
 }

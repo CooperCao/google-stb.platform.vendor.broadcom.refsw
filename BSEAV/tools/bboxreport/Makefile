@@ -162,16 +162,13 @@ $(NEXUS_BIN_DIR)/bboxreport_box_info.c:
 ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
         ### memc_0_default_config.h files was extracted from 74xxb0_single_encode_RefSW_RTS.docx document which was found on 74xx Twiki page
 	@echo [Parsing for 40nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)];
-	@if [ -a ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  ] ; then \
-		awk -f ${AWKDIR}/bmemconfig_box_info_pre.awk ${AWKDIR}/Makefile > $(NEXUS_BIN_DIR)/bboxreport_box_info.c; \
-		awk -f ${AWKDIR}/bmemconfig_box_info_40nm.awk ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c || echo [Awk done]; \
-		awk -f ${AWKDIR}/bmemconfig_box_info_post.awk $(NEXUS_BIN_DIR)/bboxreport_box_info.c > $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp || echo [Awk done]; \
-		cat $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c; \
-		rm $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp; \
-	else \
-		printf "\nERROR ... file ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h does not exist\n\n"; \
-		exit 1; \
-	fi
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || awk -f ${AWKDIR}/bmemconfig_box_info_pre.awk ${AWKDIR}/Makefile > $(NEXUS_BIN_DIR)/bboxreport_box_info.c;
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || awk -f ${AWKDIR}/bmemconfig_box_info_40nm.awk ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c || echo [Awk done];
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || awk -f ${AWKDIR}/bmemconfig_box_info_post.awk $(NEXUS_BIN_DIR)/bboxreport_box_info.c > $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp || echo [Awk done];
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || cat $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c;
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || rm $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp;
+	@test   -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || printf "\nERROR ... file ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h does not exist\n\n";
+	@test   -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || exit 1;
 else
 	@echo [Parsing for 28nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)]
 	@awk -f ${AWKDIR}/bmemconfig_box_info_pre.awk ${AWKDIR}/Makefile > $(NEXUS_BIN_DIR)/bboxreport_box_info.c

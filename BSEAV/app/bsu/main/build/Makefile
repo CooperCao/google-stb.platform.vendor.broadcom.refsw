@@ -67,13 +67,6 @@ endif
 
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
-# REFERENCE VERSION
-# BOLT_DIR_NAME = ../../../reference/modified/bolt-v1.00
-# CFE_DIR_NAME = ../../../reference/modified/CFE_15_2
-
-# GIT VERSION
-# BOLT_DIR_NAME = ../../bolt
-
 # OFFICIAL RELEASE VERSION
 BOLT_DIR_NAME = bolt_v1.19
 CFE_DIR_NAME = CFE_16_3
@@ -82,8 +75,8 @@ NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
 ROCKFORD_DIR = $(shell cd "../../../../../rockford" && ${PWD})
 MAGNUM_DIR = $(shell cd "../../../../../magnum" && ${PWD})
-BOLT_DIR = $(shell cd "../../../../../$(BOLT_DIR_NAME)" && ${PWD})
-CFE_DIR = $(shell cd "../../../../../$(CFE_DIR_NAME)" && ${PWD})
+BOLT_DIR = $(shell cd "../../../../../../../$(BOLT_DIR_NAME)" && ${PWD})
+CFE_DIR = $(shell cd "../../../../../../../$(CFE_DIR_NAME)" && ${PWD})
 NEXUS_TOP = $(NEXUS_DIR)
 ifeq ($(NEXUS_PLATFORM),)
 # PLATFORM is deprecated
@@ -282,7 +275,7 @@ UCOS ?= lib
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
     CPU = arm
-    ifeq ($(filter $(NEXUS_PLATFORM),97271), $(NEXUS_PLATFORM))
+    ifeq ($(filter $(NEXUS_PLATFORM),97268 97271), $(NEXUS_PLATFORM))
         export ARM_ARCH=V8
     endif
 else

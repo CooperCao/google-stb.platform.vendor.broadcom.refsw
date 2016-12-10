@@ -231,6 +231,7 @@ BERR_Code BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(
 	BHDM_P_TmdsClock eTmdsClock ;
 
 	uint32_t PixelClock ;
+	uint32_t TmdsClockValue ;
 	uint16_t BitRate ;
 	uint8_t BitsPerColor ;
 	uint8_t divider ;
@@ -253,14 +254,14 @@ BERR_Code BHDM_TMDS_P_VideoFormatSettingsToTmdsRate(
 	}
 	BitRate = (BitsPerColor * 100) / 8 ;
 
-	PixelClock = 10 * (BHDM_P_TmdsClockToValue_isrsafe(eTmdsClock)) ;
+	TmdsClockValue = BHDM_P_TmdsClockToValue_isrsafe(eTmdsClock) ;
+
+	PixelClock = 10 * TmdsClockValue ;
 	PixelClock = PixelClock + BitRate / divider ;
 	*tmdsRate = PixelClock / 10000 ;
 
-	BDBG_MSG(("Video Format (%d) %s to TMDS Rate",
-		eVideoFmt, pVideoInfo->pchFormatStr)) ;
-	BDBG_MSG(("   eTmdsClock (%d) TMDS Clock %d",
-		eTmdsClock, BHDM_P_TmdsClockToValue_isrsafe(eTmdsClock))) ;
+	BDBG_MSG(("Video Format (%d) %s to TMDS Rate (eTmdsClock= %d)  %d",
+		eVideoFmt, pVideoInfo->pchFormatStr, eTmdsClock, TmdsClockValue)) ;
 
 	BDBG_MSG(("   BitRate: %d ; BitsPerColor: %d    Divider %d", BitRate, BitsPerColor, divider)) ;
 	BDBG_MSG(("   Pixel Frequency:  %d MHz (TMDS Character Rate %d Mcsc)",

@@ -396,6 +396,14 @@ uint32_t CChannelMgr::filterChannel(CChannel * pChannel)
         ret |= CHMGR_FILTER_FAIL_DUPLICATE;
     }
 
+    if ((NULL == pChannel->getPid(0, ePidType_Video)) &&
+        (NULL == pChannel->getPid(0, ePidType_Audio)) &&
+        (NULL != pChannel->getPid(0, ePidType_Ancillary)))
+    {
+        BDBG_WRN(("ignore channel with only ancillary pid"));
+        ret |= CHMGR_FILTER_FAIL_ANCILONLY;
+    }
+
     return(ret);
 } /* filterChannel */
 

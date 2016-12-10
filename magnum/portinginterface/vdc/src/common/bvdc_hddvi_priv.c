@@ -1533,7 +1533,7 @@ static void BVDC_P_HdDvi_BuildFormatRul_isr
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(HD_DVI_0_BVB_CONVERT, DATA_IS_C_Y,   0        ) |
 #if (BVDC_P_SUPPORT_HDDVI_VER >= BVDC_P_HDDVI_NEW_VER_10)
-        BCHP_FIELD_ENUM(HD_DVI_0_BVB_CONVERT, USE_UPSTREAM, DEFAULT   ) |
+        BCHP_FIELD_DATA(HD_DVI_0_BVB_CONVERT, USE_UPSTREAM,  1        ) |
 #endif
         BCHP_FIELD_DATA(HD_DVI_0_BVB_CONVERT, LAST_LINE_CNT, ulHeight );
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2006-2013 Broadcom Corporation
+ *  Copyright (C) 2006-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  * driver side of the Image Download interface
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "nexus_platform_module.h"
@@ -103,12 +95,13 @@ void
 nexus_img_interfaces_shutdown(void)
 {
     BIMG_Driver *iface;
+    struct NEXUS_ImgState *interfaces = &b_interfaces;
 
-    BDBG_OBJECT_ASSERT(&b_interfaces, NEXUS_ImgState);
+    BDBG_OBJECT_ASSERT(interfaces, NEXUS_ImgState);
     BKNI_AcquireMutex(b_interfaces.lock);
     while((iface=BLST_S_FIRST(&b_interfaces.active))!=NULL) {
         BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
-        BDBG_MSG(("removing %#x", (unsigned)iface));
+        BDBG_MSG(("removing %p", (void *)iface));
         BLST_S_REMOVE_HEAD(&b_interfaces.active, link);
         BDBG_OBJECT_DESTROY(iface, BIMG_Driver);
         BKNI_Free(iface);
@@ -149,7 +142,9 @@ static int b_loop_wait(BKNI_EventHandle event, unsigned seconds, unsigned linenu
 int nexus_img_wait_until_ready(void)
 {
     int rc;
-    BDBG_OBJECT_ASSERT(&b_interfaces, NEXUS_ImgState);
+    struct NEXUS_ImgState *interfaces = &b_interfaces;
+
+    BDBG_OBJECT_ASSERT(interfaces, NEXUS_ImgState);
     /* wait until proxy's IMG thread is pending in the ioctl.
     if it times out, then we fail because NEXUS_Platform_Init would likely fail on FW loading. */
     rc = b_loop_wait(b_interfaces.started, 60, __LINE__);
@@ -174,7 +169,7 @@ Nexus_IMG_Driver_Create(const char *id)
     BKNI_AcquireMutex(b_interfaces.lock);
     iface->name = id;
     BLST_S_INSERT_HEAD(&b_interfaces.active, iface, link);
-    BDBG_MSG(("adding %#x(%s)", (unsigned)iface, iface->name));
+    BDBG_MSG(("adding %p(%s)", (void *)iface, iface->name));
     iface->image = NULL;
     BDBG_OBJECT_SET(iface, BIMG_Driver);
     BKNI_ReleaseMutex(b_interfaces.lock);
@@ -187,11 +182,11 @@ Nexus_IMG_Driver_Destroy(void *interface)
 {
     BIMG_Driver *iface=interface;
     BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
-    BDBG_MSG(("-removing %#x(%s)", (unsigned)iface, iface->name));
+    BDBG_MSG(("-removing %p(%s)", (void *)iface, iface->name));
     BKNI_AcquireMutex(b_interfaces.lock);
     BLST_S_REMOVE(&b_interfaces.active, iface, BIMG_Driver, link);
     BKNI_ReleaseMutex(b_interfaces.lock);
-    BDBG_MSG(("+removing %#x(%s)", (unsigned)iface, iface->name));
+    BDBG_MSG(("+removing %p(%s)", (void *)iface, iface->name));
     BDBG_OBJECT_DESTROY(iface, BIMG_Driver);
     BKNI_Free(iface);
     return;
@@ -201,9 +196,10 @@ static BERR_Code
 b_send_req(BIMG_Driver *iface, BIMG_Ioctl_Req_Type type)
 {
     BERR_Code rc;
+    struct NEXUS_ImgState *interfaces = &b_interfaces;
 
     BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
-    BDBG_OBJECT_ASSERT(&b_interfaces, NEXUS_ImgState);
+    BDBG_OBJECT_ASSERT(interfaces, NEXUS_ImgState);
 
     /* check that something waits in the ioctl */
     if (!b_interfaces.ready) {
@@ -242,8 +238,9 @@ nexus_img_ioctl(unsigned int cmd, unsigned long arg)
 {
     int result;
     BERR_Code rc;
+    struct NEXUS_ImgState *interfaces = &b_interfaces;
     
-    BDBG_OBJECT_ASSERT(&b_interfaces, NEXUS_ImgState);
+    BDBG_OBJECT_ASSERT(interfaces, NEXUS_ImgState);
 
     result = copy_from_user_small(&b_interfaces.ioctl, (void *)arg, sizeof(b_interfaces.ioctl));
     /* coverity[dead_error_condition] - it's important to do this check in case it's not a dead condition in the future. */
@@ -321,7 +318,7 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
 
     BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
 
-    BDBG_MSG(("open> context %#p'%s' id %u", iface, iface->name, image_id));
+    BDBG_MSG(("open> context %p'%s' id %u", (void *)iface, iface->name, image_id));
     if (iface->image!=NULL) {
         /* open shall be matched with close */
         return BERR_TRACE(BERR_OS_ERROR);
@@ -354,7 +351,7 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
     iface->image = b_interfaces.ioctl.ack.data.open.image;
     b_interfaces.busy = true;
     BKNI_ReleaseMutex(b_interfaces.lock);
-    BDBG_MSG(("open< context %#p'%s' id %u image %p", iface, iface->name, image_id, iface->image));
+    BDBG_MSG(("open< context %p'%s' id %u image %p", (void *)iface, iface->name, image_id, iface->image));
     *image = iface;
 
     return BERR_SUCCESS;
@@ -372,7 +369,7 @@ Nexus_IMG_Driver_Next(void *image, unsigned chunk, const void **data, uint16_t l
     if (iface->image==NULL) {
         return BERR_TRACE(BERR_OS_ERROR);
     }
-    BDBG_MSG(("next> image %#p'%s' chunk %u length %u", iface, iface->name, chunk, (unsigned)length));
+    BDBG_MSG(("next> image %p'%s' chunk %u length %u", (void *)iface, iface->name, chunk, (unsigned)length));
     b_interfaces.ioctl.req.data.next.chunk = chunk;
     b_interfaces.ioctl.req.data.next.length = length;
     b_interfaces.ioctl.req.data.next.image = iface->image;
@@ -382,7 +379,7 @@ Nexus_IMG_Driver_Next(void *image, unsigned chunk, const void **data, uint16_t l
         return BERR_TRACE(rc);
     }
 
-    BDBG_MSG(("next< image %#p'%s' chunk %u length %u data %p", iface, iface->name, chunk, (unsigned)length, b_interfaces.ioctl.ack.data.next.data));
+    BDBG_MSG(("next< image %p'%s' chunk %u length %u data %p", (void *)iface, iface->name, chunk, (unsigned)length, b_interfaces.ioctl.ack.data.next.data));
     /* data was already copied in the ioctl handler */
     *data = b_interfaces.data;
     return BERR_SUCCESS;
@@ -395,7 +392,7 @@ Nexus_IMG_Driver_Close(void *image)
     BERR_Code rc;
     BDBG_OBJECT_ASSERT(iface, BIMG_Driver);
 
-    BDBG_MSG(("close> image %#p'%s'", iface, iface->name));
+    BDBG_MSG(("close> image %p'%s'", (void *)iface, iface->name));
     if (iface->image==NULL) {
         return;
     }
@@ -403,7 +400,7 @@ Nexus_IMG_Driver_Close(void *image)
     b_interfaces.busy = false;
     BKNI_ReleaseMutex(b_interfaces.lock);
     rc = b_send_req(iface, BIMG_Ioctl_Req_Type_Close);
-    BDBG_MSG(("close< image %#p'%s'", iface, iface->name));
+    BDBG_MSG(("close< image %p'%s'", (void *)iface, iface->name));
     iface->image = NULL;
     return;
 }

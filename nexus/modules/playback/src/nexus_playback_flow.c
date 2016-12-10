@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_playback_module.h"
@@ -221,11 +213,7 @@ static void NEXUS_Playback_P_EndOfDataFile(NEXUS_PlaybackHandle p, ssize_t size,
 
     p->state.state = eTransition; /* Can't be in the eWaitingPlayback or we risk a deadlock from the playpump callback. */
     BDBG_MSG(("NEXUS_Playback_P_EndOfDataFile -> wait_for_drain"));
-    if (p->params.playpumpSettings.transportType == NEXUS_TransportType_eTs && p->file->file.index) {
-        /* Data could end before index ends, ignore end of data,
-         * wait for end of index */
-        b_play_next_frame(p);
-    } else {
+    {
         b_play_start_drain(p);
 
         /* do a special ReadComplete which notifies media framework to flush its remaining data */

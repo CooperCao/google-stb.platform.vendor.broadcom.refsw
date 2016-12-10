@@ -53,7 +53,7 @@ NEXUS_OBJ_SUFFIX := o
 MAGNUM_LIB := $(NEXUS_OBJ_DIR)/libmagnum.a
 ifeq ($(B_REFSW_SHAREABLE),n)
 NEXUS_STATIC_LIB := $(NEXUS_OBJ_DIR)/libnexus_driver.a
-ifeq ($(NEXUS_MODE),proxy)
+ifeq ($(NEXUS_MODE),driver)
 NEXUS_DRIVER := $(NEXUS_OBJ_DIR)/nexus.ko
 endif
 else

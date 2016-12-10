@@ -3077,7 +3077,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 
     BDBG_MSG(("SetDisplaySettings ")) ;
-    BDBG_MSG(("  Color> Space: %d  Range: %d Override (%s) Depth: %d Colorimetry: %d Override (%s)",
+    BDBG_MSG(("  Color Space: %d  Range: %d Override (%s) Depth: %d Colorimetry: %d Override (%s)",
         pstDisplaySettings->colorSpace,
         pstDisplaySettings->colorRange, pstDisplaySettings->overrideColorRange ? "Yes" : "No",
         pstDisplaySettings->colorDepth,

@@ -1,41 +1,39 @@
 /***************************************************************************
-
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
-
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ***************************************************************************/
 #include <errno.h>
 #include <string.h>
@@ -64,9 +62,12 @@
 #include "nexus_base_os.h"
 
 #include "bsagelib_types.h"
+#include "bsagelib_drm_types.h"
 #include "sage_srai.h"
 
+#ifdef USE_UNIFIED_COMMON_DRM
 #include "drm_playback_tl.h"
+#endif
 #include "drm_types.h"
 
 #define DEFAULT_DRM_BIN_FILESIZE (64*1024)
@@ -74,79 +75,168 @@
 #define SRAI_PlatformId_eCommonDrm (0)
 #define MAX_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 
+#ifdef USE_UNIFIED_COMMON_DRM
 static int DrmCommon_TL_Counter = 0;
-static BKNI_MutexHandle drmCommonTLMutex = 0;
+#endif
 
-static uint8_t *drm_bin_file_buff = NULL;
-static drm_bin_header_t drm_bin_header;
+static BKNI_MutexHandle drmCommonTLMutex[Common_Platform_Max] = {0,0,0,0,0,0,0,0};
 
-static SRAI_PlatformHandle platformHandle = NULL;
-static BSAGElib_State platform_status;
+static uint8_t *drm_bin_file_buff[Common_Platform_Max] = {0,0,0,0,0,0,0,0};
+static drm_bin_header_t drm_bin_header[Common_Platform_Max] = {0,0,0,0,0,0,0,0};
 
-static uint32_t DRM_Common_P_CheckDrmBinFileSize(void);
+static SRAI_PlatformHandle platformHandle[Common_Platform_Max] = {0,0,0,0,0,0,0,0};
+static BSAGElib_State platform_status[Common_Platform_Max] = {0,0,0,0,0,0,0,0};
+
+static bool bUseExternalHeapTA[Common_Platform_Max] = {0,0,0,0,0,0,0,0};;
+
 static DrmRC DRM_Common_TL_URR_Toggle(void);
+
+static CommonDrmPlatformType_e DRM_Common_P_drmType_to_PlatformIndex(BSAGElib_BinFileDrmTypes_e drmType);
+static uint32_t DRM_Common_P_PlatformIndex_to_PlatformID (CommonDrmPlatformType_e platformIndex);
 
 BDBG_MODULE(drm_common_tl);
 
+static CommonDrmPlatformType_e DRM_Common_P_drmType_to_PlatformIndex(BSAGElib_BinFileDrmTypes_e drmType)
+{
+    CommonDrmPlatformType_e platformIndex = Common_Platform_Common;
+
+    switch(drmType)
+    {
+        case BSAGElib_BinFileDrmType_eEdrm:
+                platformIndex = Common_Platform_eDrm;
+            break;
+        case BSAGElib_BinFileDrmType_eWidevine:
+                platformIndex = Common_Platform_Widevine;
+            break;
+        case BSAGElib_BinFileDrmType_eDtcpIp:
+                platformIndex = Common_Platform_DtcpIp;
+            break;
+        case BSAGElib_BinFileDrmType_eAdobeAxcess:
+                platformIndex = Common_Platform_AdobeAxcess;
+            break;
+        case BSAGElib_BinFileDrmType_ePlayready:
+                platformIndex = Common_Platform_PlayReady_25;
+            break;
+        case BSAGElib_BinFileDrmType_eNetflix:
+                platformIndex = Common_Platform_Netflix;
+            break;
+        default:
+                platformIndex = Common_Platform_Common;
+            break;
+    }
+    BDBG_MSG(("%s: platformIndex = %d",__FUNCTION__,platformIndex));
+    return platformIndex;
+}
+
+static uint32_t DRM_Common_P_PlatformIndex_to_PlatformID (CommonDrmPlatformType_e platformIndex)
+{
+    uint32_t platformID = BSAGE_PLATFORM_ID_COMMONDRM;
+
+    switch (platformIndex)
+    {
+        case Common_Platform_eDrm:
+            platformID = BSAGE_PLATFORM_ID_EDRM;
+            break;
+        case Common_Platform_Widevine:
+            platformID = BSAGE_PLATFORM_ID_WIDEVINE;
+            break;
+        case Common_Platform_DtcpIp:
+            platformID = BSAGE_PLATFORM_ID_DTCP_IP;
+            break;
+        case Common_Platform_AdobeAxcess:
+            platformID = BSAGE_PLATFORM_ID_ADOBE_DRM;
+            break;
+        case Common_Platform_PlayReady_25:
+            platformID = BSAGE_PLATFORM_ID_PLAYREADY_25;
+            break;
+        case Common_Platform_Netflix:
+            platformID = BSAGE_PLATFORM_ID_NETFLIX;
+            break;
+        default:
+            platformID = BSAGE_PLATFORM_ID_COMMONDRM;
+            break;
+    }
+    BDBG_MSG(("%s: platformID = 0x%x",__FUNCTION__,platformID));
+    return platformID;
+}
+
 DrmRC
-DRM_Common_TL_Initialize( DrmCommonInit_t *pCommonTLSettings)
+DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
 {
     DrmRC rc = Drm_Success;
     BSAGElib_InOutContainer *container = NULL;
     BERR_Code sage_rc = BERR_SUCCESS;
+    CommonDrmPlatformType_e platformIndex = Common_Platform_Common;
+    uint32_t platformID = BSAGE_PLATFORM_ID_COMMONDRM;
 
-    BDBG_ENTER(DRM_Common_Initialize);
+    BDBG_ENTER(DRM_Common_TL_Initialize);
+    BDBG_ASSERT(pCommonTLSettings != NULL);
 
-    if(drmCommonTLMutex == 0)
+    platformIndex = DRM_Common_P_drmType_to_PlatformIndex(pCommonTLSettings->drmType);
+
+    if(drmCommonTLMutex[platformIndex] == 0)
     {
-        if(BKNI_CreateMutex(&drmCommonTLMutex) != BERR_SUCCESS)
+        if(BKNI_CreateMutex(&drmCommonTLMutex[platformIndex]) != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error calling creating mutex", __FUNCTION__));
+            BDBG_ERR(("%s - Error calling create mutex", __FUNCTION__));
             goto ErrorExit;
         }
+        BDBG_MSG(("%s: created mutex for platformIndex %d mutex %p handle %p",__FUNCTION__,platformIndex,drmCommonTLMutex[platformIndex],&drmCommonTLMutex[platformIndex]));
     }
-    BKNI_AcquireMutex(drmCommonTLMutex);
+    BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
+    if(pCommonTLSettings->drmCommonInit.heap == NULL)
+    {
+        bUseExternalHeapTA[platformIndex] = false;
+    }
+    else
+    {
+        bUseExternalHeapTA[platformIndex] = true;
+    }
+
+#ifdef USE_UNIFIED_COMMON_DRM
     /* Call to  DRM_Common_BasicInitialize needed? Possible for DMA operations */
-    rc = DRM_Common_BasicInitialize(pCommonTLSettings);
+    rc = DRM_Common_BasicInitialize(&pCommonTLSettings->drmCommonInit);
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error calling BasicInitialize", __FUNCTION__));
         goto ErrorExit;
     }
+#endif
+
+    platformID = DRM_Common_P_PlatformIndex_to_PlatformID(platformIndex);
 
 #if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
     if(pCommonTLSettings->ta_bin_file_path != NULL){
 
-        rc = DRM_Common_P_TA_Install(pCommonTLSettings->ta_bin_file_path);
+        rc = DRM_Common_P_TA_Install(platformID, pCommonTLSettings->ta_bin_file_path);
 
         if(rc != Drm_Success){
             BDBG_WRN(("%s Installing Loadable TA %s - Error (rc %x) ", __FUNCTION__, pCommonTLSettings->ta_bin_file_path, rc));
-            BDBG_LOG(("- Check SAGE release version to make sure Common DRM TA is pre-loaded."));
         }
         /* Set to Success as we support pre-loaded common drm TA */
         rc = Drm_Success;
     }else{
-
-        BDBG_LOG(("- Loadable TA name/path was not specified by the Client Application"));
-        BDBG_LOG(("- Check SAGE release version to make sure Common DRM TA is pre-loaded."));
         /* Set to Success as we support pre-loaded common drm TA */
         rc = Drm_Success;
     }
 #endif
 
-    if(platformHandle == NULL) {
-        sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_COMMONDRM, &platform_status, &platformHandle);
+
+    if (platformHandle[platformIndex] == NULL)
+    {
+        sage_rc = SRAI_Platform_Open(platformID, &platform_status[platformIndex], &platformHandle[platformIndex]);
         if (sage_rc != BERR_SUCCESS)
         {
-            BDBG_ERR(("%s - Error calling platform_open", __FUNCTION__));
+            BDBG_ERR(("%s - Error calling platform_open, pCommonTLSettings->ta_bin_file_path: %s",
+                __FUNCTION__, pCommonTLSettings->ta_bin_file_path));
             rc = Drm_Err;
             goto ErrorExit;
         }
 
-        if(platform_status == BSAGElib_State_eUninit)
+        if(platform_status[platformIndex] == BSAGElib_State_eUninit)
         {
-            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = %p)", __FUNCTION__, (void *)platformHandle));
+            BDBG_WRN(("%s - platform_status == BSAGElib_State_eUninit ************************* (platformHandle = %p)", __FUNCTION__, (void *)platformHandle[platformIndex]));
             container = SRAI_Container_Allocate();
             if(container == NULL)
             {
@@ -154,44 +244,56 @@ DRM_Common_TL_Initialize( DrmCommonInit_t *pCommonTLSettings)
                 rc = Drm_Err;
                 goto ErrorExit;
             }
-
-            sage_rc = SRAI_Platform_Init(platformHandle, container);
+            BDBG_MSG(("%s: allocated container for platformIndex %d at %p",__FUNCTION__,platformIndex,container));
+            sage_rc = SRAI_Platform_Init(platformHandle[platformIndex], container);
             if (sage_rc != BERR_SUCCESS)
             {
-                BDBG_ERR(("%s - Error calling platform init", __FUNCTION__));
+                BDBG_ERR(("%s: %d - Error calling platform init", __FUNCTION__,__LINE__));
                 rc = Drm_Err;
                 goto ErrorExit;
             }
-
-
             /* does any info need to be extracted from container ??? */
         }
-        else{
-            BDBG_WRN(("%s - Platform already initialized *************************", __FUNCTION__));
-        }
     }
-    else{
-        BDBG_WRN(("%s - Platform already opened *************************", __FUNCTION__));
+    else
+    {
+        BDBG_WRN(("%s: Platform ID 0x%x already initialized *************************", __FUNCTION__,platformID));
     }
 
+#ifdef USE_UNIFIED_COMMON_DRM
     DrmCommon_TL_Counter++;
+#endif
+
 ErrorExit:
 
     if (container != NULL) {
+        BDBG_MSG(("%s: freeing container %p for platformIndex %d",__FUNCTION__,container,platformIndex));
         SRAI_Container_Free(container);
     }
 
-    BDBG_LEAVE(DRM_Common_Initialize);
+    BDBG_LEAVE(DRM_Common_TL_Initialize);
 
-    BKNI_ReleaseMutex(drmCommonTLMutex);
+    BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
+    return rc;
+}
+DrmRC
+DRM_Common_TL_ModuleInitialize(
+                            uint32_t module_id,
+                            char * drm_bin_filename,
+                            BSAGElib_InOutContainer *container,
+                            SRAI_ModuleHandle *moduleHandle)
+{
+    DrmRC rc = Drm_Success;
+    rc = DRM_Common_TL_ModuleInitialize_TA(Common_Platform_Common,
+        module_id, drm_bin_filename, container, moduleHandle);
     return rc;
 }
 
-
 DrmRC
-DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
-                           char * drm_bin_filename,
-                           BSAGElib_InOutContainer *container,
+DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platIndex,
+                            uint32_t module_id,
+                            char * drm_bin_filename,
+                            BSAGElib_InOutContainer *container,
                             SRAI_ModuleHandle *moduleHandle)
 {
     DrmRC rc = Drm_Success;
@@ -201,11 +303,20 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
     uint32_t filesize_from_header = 0;
     uint32_t write_size = 0;
     BERR_Code sage_rc = BERR_SUCCESS;
+    NEXUS_Error nexerr = NEXUS_SUCCESS;
+    NEXUS_MemoryAllocationSettings memSettings;
+    CommonDrmPlatformType_e platformIndex;
 
-    BKNI_AcquireMutex(drmCommonTLMutex);
+    BDBG_ENTER(DRM_Common_TL_ModuleInitialize_TA);
 
-    BDBG_ENTER(DRM_Common_ModuleInitialize);
+    BDBG_ASSERT(container != NULL);
+    BDBG_ASSERT(moduleHandle != NULL);
 
+    BDBG_ASSERT(((platIndex < Common_Platform_Max) && ( platIndex >= Common_Platform_Common)));
+    platformIndex = platIndex;
+    BDBG_MSG(("%s platform %d module %d container %p moduleHandle %p ",__FUNCTION__,platformIndex,module_id,container,moduleHandle));
+
+    BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
     /* if module uses a bin file - read it and add it to the container */
     if(drm_bin_filename != NULL)
@@ -223,8 +334,23 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
             goto ErrorExit;
         }
 
-        DRM_Common_MemoryAllocate(&drm_bin_file_buff, filesize);
-        if(drm_bin_file_buff == NULL)
+        NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
+        if (bUseExternalHeapTA[platformIndex] == true)
+        {
+            nexerr = NEXUS_Memory_Allocate(filesize, &memSettings,(void **) &drm_bin_file_buff[platformIndex]);
+        }
+        else
+        {
+            nexerr = NEXUS_Memory_Allocate(filesize, NULL,(void **) &drm_bin_file_buff[platformIndex]);
+        }
+
+        if(nexerr != NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("%s - Error allocating buffer err %u  bUseExternalHeap (%u)", __FUNCTION__, nexerr, bUseExternalHeapTA[platformIndex]));
+        }
+        BDBG_MSG(("%s allocated file size %u drm_bin_file_buff[%d] %p", __FUNCTION__, filesize, platformIndex, drm_bin_file_buff[platformIndex]));
+
+        if(drm_bin_file_buff[platformIndex] == NULL)
         {
             BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
             (*moduleHandle) = NULL;
@@ -241,7 +367,7 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
             goto ErrorExit;
         }
 
-        read_size = fread(drm_bin_file_buff, 1, filesize, fptr);
+        read_size = fread(drm_bin_file_buff[platformIndex], 1, filesize, fptr);
         if(read_size != filesize)
         {
             BDBG_ERR(("%s - Error reading drm bin file size (%u != %u)", __FUNCTION__, read_size, filesize));
@@ -262,7 +388,36 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
         fptr = NULL;
 
         /* verify allocated drm_bin_file_buff size with size in header */
-        filesize_from_header = DRM_Common_P_CheckDrmBinFileSize();
+        BKNI_Memcpy((uint8_t*)&drm_bin_header[platformIndex], drm_bin_file_buff[platformIndex], sizeof(drm_bin_header_t));
+        filesize_from_header = GET_UINT32_FROM_BUF(drm_bin_header[platformIndex].bin_file_size);
+        BDBG_MSG(("%s file size from header %u - line = %u", __FUNCTION__, filesize_from_header, __LINE__));
+
+        if(filesize_from_header > DEFAULT_DRM_BIN_FILESIZE)
+        {
+            BDBG_MSG(("%s - bin file size too large - line = %u", __FUNCTION__, __LINE__));
+            NEXUS_Memory_Free(drm_bin_file_buff[platformIndex]);
+            drm_bin_file_buff[platformIndex] = NULL;
+            if (bUseExternalHeapTA[platformIndex] == true)
+            {
+                nexerr = NEXUS_Memory_Allocate(filesize_from_header, &memSettings,(void **) &drm_bin_file_buff[platformIndex]);
+            }
+            else
+            {
+                nexerr = NEXUS_Memory_Allocate(filesize_from_header, NULL,(void **) &drm_bin_file_buff[platformIndex]);
+            }
+            if (nexerr == NEXUS_SUCCESS) {
+                BDBG_MSG(("%s setting drm bin file buff to 0s",__FUNCTION__));
+                BKNI_Memset(drm_bin_file_buff[platformIndex], 0x00, filesize_from_header);
+            }
+            else
+            {
+                BDBG_MSG(("%s failed to allocate mem for invalid drm bin file size nexerr=%d",__FUNCTION__,nexerr));
+                (*moduleHandle) = NULL;
+                rc = Drm_SraiModuleError;
+                goto ErrorExit;
+            }
+        }
+
         if(filesize_from_header != filesize)
         {
             BDBG_ERR(("%s - Error validating file size in header (%u != %u)", __FUNCTION__, filesize_from_header, filesize));
@@ -270,8 +425,6 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
             rc = Drm_SraiModuleError;
             goto ErrorExit;
         }
-
-        BDBG_MSG(("%s - Error validating file size in header (%u ?=? %u)", __FUNCTION__, filesize_from_header, filesize));
 
         /* All index '0' shared blocks will be reserved for drm bin file data */
 
@@ -295,14 +448,14 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
             rc = Drm_SraiModuleError;
             goto ErrorExit;
         }
-        BKNI_Memcpy(container->blocks[0].data.ptr, drm_bin_file_buff, filesize_from_header);
+        BKNI_Memcpy(container->blocks[0].data.ptr, drm_bin_file_buff[platformIndex], filesize_from_header);
 
         BDBG_MSG(("%s - Copied '%u' bytes into SRAI container (address %p)", __FUNCTION__, filesize_from_header, container->blocks[0].data.ptr));
     }
 
     /* All modules will call SRAI_Module_Init */
-    BDBG_MSG(("%s - ************************* (platformHandle = %p)", __FUNCTION__, (void *)platformHandle));
-    sage_rc = SRAI_Module_Init(platformHandle, module_id, container, moduleHandle);
+    BDBG_MSG(("%s - ************************* (platformHandle = %p)", __FUNCTION__, (void *)platformHandle[platformIndex]));
+    sage_rc = SRAI_Module_Init(platformHandle[platformIndex], module_id, container, moduleHandle);
     if(sage_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Error calling SRAI_Module_Init", __FUNCTION__));
@@ -371,80 +524,62 @@ DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
 
 ErrorExit:
 
-    /* if shared block[0] is not null, free since there was an error processing (i.e. can't trust the data) */
+    /* if shared block[0] is not null, free since there was an error processing (i.e. can't trust the data) or the file was copied*/
     if(container->blocks[0].data.ptr != NULL){
+        BDBG_MSG(("%s: freeing container->blocks[0].data.ptr %p",__FUNCTION__, container->blocks[0].data.ptr));
         SRAI_Memory_Free(container->blocks[0].data.ptr);
         container->blocks[0].data.ptr = NULL;
     }
 
-    if(drm_bin_file_buff != NULL){
-        DRM_Common_MemoryFree(drm_bin_file_buff);
-        drm_bin_file_buff = NULL;
+    if(drm_bin_file_buff[platformIndex] != NULL){
+        BDBG_MSG(("%s: freeing drm_bin_file_buff[%d] %p",__FUNCTION__,platformIndex,drm_bin_file_buff[platformIndex]));
+        NEXUS_Memory_Free(drm_bin_file_buff[platformIndex]);
+        drm_bin_file_buff[platformIndex] = NULL;
     }
 
     if(fptr != NULL){
+        BDBG_MSG(("%s: Freeing fptr %p",__FUNCTION__,fptr));
         fclose(fptr);
         fptr = NULL;
     }
 
-    BDBG_LEAVE(DRM_Common_ModuleInitialize);
+    BDBG_LEAVE(DRM_Common_TL_ModuleInitialize_TA);
 
-    BKNI_ReleaseMutex(drmCommonTLMutex);
+    BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
     return rc;
 }
-
 
 DrmRC
 DRM_Common_TL_ModuleFinalize(SRAI_ModuleHandle moduleHandle)
 {
+    DrmRC rc = Drm_Success;
+    rc = DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Common, moduleHandle);
+    return rc;
+}
 
-    BKNI_AcquireMutex(drmCommonTLMutex);
+DrmRC
+DRM_Common_TL_ModuleFinalize_TA(CommonDrmPlatformType_e platIndex, SRAI_ModuleHandle moduleHandle)
+{
+    CommonDrmPlatformType_e platformIndex;
+    BDBG_ASSERT(((platIndex < Common_Platform_Max) && ( platIndex >= Common_Platform_Common)));
+    platformIndex = platIndex;
+    BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
-    BDBG_ENTER(DRM_Common_ModuleFinalize);
+    BDBG_ENTER(DRM_Common_TL_ModuleFinalize_TA);
 
     SRAI_Module_Uninit(moduleHandle);
 
-    BDBG_LEAVE(DRM_Common_ModuleFinalize);
+    BDBG_LEAVE(DRM_Common_TL_ModuleFinalize_TA);
 
-    BKNI_ReleaseMutex(drmCommonTLMutex);
+    BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
     return Drm_Success;
 }
 
 
-
-uint32_t
-DRM_Common_P_CheckDrmBinFileSize(void)
-{
-    DrmRC rc = Drm_Success;
-    uint32_t tmp_file_size = 0;
-
-    BDBG_ENTER(DRM_Common_P_CheckDrmBinFileSize);
-
-    BKNI_Memcpy((uint8_t*)&drm_bin_header, drm_bin_file_buff, sizeof(drm_bin_header_t));
-
-    tmp_file_size = GET_UINT32_FROM_BUF(drm_bin_header.bin_file_size);
-    BDBG_MSG(("%s - line = %u", __FUNCTION__, __LINE__));
-    if(tmp_file_size > DEFAULT_DRM_BIN_FILESIZE)
-    {
-        BDBG_MSG(("%s - line = %u", __FUNCTION__, __LINE__));
-        DRM_Common_MemoryFree(drm_bin_file_buff);
-        drm_bin_file_buff = NULL;
-        BDBG_MSG(("%s - line = %u", __FUNCTION__, __LINE__));
-        rc = DRM_Common_MemoryAllocate(&drm_bin_file_buff, tmp_file_size);
-        BDBG_MSG(("%s - line = %u", __FUNCTION__, __LINE__));
-        if (rc == Drm_Success) {
-            BKNI_Memset(drm_bin_file_buff, 0x00, tmp_file_size);
-        }
-    }
-
-    BDBG_MSG(("%s - Exiting function (%u)", __FUNCTION__, tmp_file_size));
-
-    return tmp_file_size;
-}
-
 static DrmRC DRM_Common_TL_URR_Toggle(void)
 {
     DrmRC drmRc = Drm_Success;
+#ifdef USE_UNIFIED_COMMON_DRM
     DrmPlaybackHandle_t playbackHandle = NULL;
 
     drmRc = DRM_Playback_Initialize(&playbackHandle);
@@ -462,34 +597,50 @@ static DrmRC DRM_Common_TL_URR_Toggle(void)
     if (drmRc != Drm_Success) {
          BDBG_ERR(("%s: DRM_Playback_Finalize returned error %d",__FUNCTION__, drmRc));
     }
+#endif
 
 toggle_error_exit:
     return drmRc;
 }
-
-
-DrmRC DRM_Common_TL_Finalize(void)
+DrmRC DRM_Common_TL_Finalize()
 {
     DrmRC rc = Drm_Success;
+    rc = DRM_Common_TL_Finalize_TA(Common_Platform_Common);
+    return rc;
+}
 
-    BDBG_ASSERT(drmCommonTLMutex != NULL);
-    BKNI_AcquireMutex(drmCommonTLMutex);
+DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
+{
+    DrmRC rc = Drm_Success;
+    uint32_t platformID = BSAGE_PLATFORM_ID_COMMONDRM;
+    CommonDrmPlatformType_e platformIndex;
 
+    BDBG_ASSERT(((platIndex < Common_Platform_Max) && ( platIndex >= Common_Platform_Common)));
+    platformIndex = platIndex;
+
+    BDBG_ASSERT(drmCommonTLMutex[platformIndex] != NULL);
+    BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
+
+#ifdef USE_UNIFIED_COMMON_DRM
     BDBG_MSG(("%s - Entered function (init = '%d')", __FUNCTION__, DrmCommon_TL_Counter));
+#endif
 
+    platformID = DRM_Common_P_PlatformIndex_to_PlatformID(platformIndex);
+
+#ifdef USE_UNIFIED_COMMON_DRM
     /* sanity check */
     if(DrmCommon_TL_Counter <= 0)
     {
         BDBG_WRN(("%s - DrmCommon_TL_Counter value is invalid ('%d').  Possible bad thread exit", __FUNCTION__, DrmCommon_TL_Counter));
     }
-
     /* if there's one DRM module left calling DRM_Common_Finalize, clean everything up
      * Otherwise skip the clean up and decrement the counter */
     if(DrmCommon_TL_Counter == 1)
+#endif
     {
         /* Call to URR Toggle. DRM_Common_TL_Finalize() will be called within its own context so we must
         * release the mutex.  The counter will increment again preventing an infinite loop. */
-        BKNI_ReleaseMutex(drmCommonTLMutex);
+        BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
 
   BDBG_MSG(("%s - Start URR toggle", __FUNCTION__));
         rc = DRM_Common_TL_URR_Toggle();
@@ -498,23 +649,26 @@ DrmRC DRM_Common_TL_Finalize(void)
         }
   BDBG_MSG(("%s - URR toggle completed", __FUNCTION__));
 
-        BKNI_AcquireMutex(drmCommonTLMutex);
+        BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
         BDBG_MSG(("%s - Cleaning up Common DRM TL only parameters ***************************", __FUNCTION__));
-        if (platformHandle) {
-            SRAI_Platform_Close(platformHandle);
-            platformHandle = NULL;
+        if (platformHandle[platformIndex]) {
+            SRAI_Platform_Close(platformHandle[platformIndex]);
+            platformHandle[platformIndex] = NULL;
         }
 
+#ifdef USE_UNIFIED_COMMON_DRM
         /* Finalize and decrement the counter after we finish the URR toggle */
         DRM_Common_Finalize();
         DrmCommon_TL_Counter--;
+#endif
 
         SRAI_Platform_UnInstall(BSAGE_PLATFORM_ID_COMMONDRM);
 
-        BKNI_ReleaseMutex(drmCommonTLMutex);
-        BKNI_DestroyMutex(drmCommonTLMutex);
-        drmCommonTLMutex = 0;
+        BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
+        BKNI_DestroyMutex(drmCommonTLMutex[platformIndex]);
+        drmCommonTLMutex[platformIndex] = 0;
     }
+#ifdef USE_UNIFIED_COMMON_DRM
     else
     {
         DRM_Common_Finalize();
@@ -522,14 +676,13 @@ DrmRC DRM_Common_TL_Finalize(void)
             DrmCommon_TL_Counter--;
         }
 
-        BKNI_ReleaseMutex(drmCommonTLMutex);
+        BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
     }
 
     BDBG_MSG(("%s - Exiting function (init = '%d')", __FUNCTION__, DrmCommon_TL_Counter));
-
+#endif
     return rc;
 }
-
 
 DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
 {
@@ -542,7 +695,7 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize)
     fptr = fopen(filename, "rb");
     if(fptr == NULL)
     {
-        BDBG_LOG(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
+        BDBG_ERR(("%s - Error opening file '%s'.  (%s)", __FUNCTION__, filename, strerror(errno)));
         rc = Drm_FileErr;
         goto ErrorExit;
     }
@@ -588,8 +741,11 @@ ErrorExit:
 
     return rc;
 }
-
+#ifdef USE_UNIFIED_COMMON_DRM
 DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct, bool bSkipCacheFlush, bool bExternalIV )
+#else
+DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platIndex, DrmCommonOperationStruct_t *pDrmCommonOpStruct, bool bSkipCacheFlush, bool bExternalIV )
+#endif
 {
     NEXUS_DmaJobBlockSettings jobBlkSettings[MAX_DMA_BLOCKS];
 
@@ -597,9 +753,16 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
     unsigned int i = 0;
     unsigned int j = 0;
     DrmRC drmRc = Drm_Success;
+    CommonDrmPlatformType_e platformIndex;
 
     /* The mutex is still protecting the DRM Common Handle (resp CommonCrypto handle) table */
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
+#ifdef USE_UNIFIED_COMMON_DRM
+    platformIndex = Common_Platform_Common;
+#else
+    BDBG_ASSERT(((platIndex < Common_Platform_Max) && ( platIndex > Common_Platform_Common)));
+    platformIndex = platIndex;
+#endif
 
     /* Sanity check */
     if ( (pDrmCommonOpStruct == NULL) || (pDrmCommonOpStruct->pDmaBlock == NULL) ||
@@ -611,8 +774,8 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
         goto ErrorExit;
     }
 
-    BDBG_ASSERT(drmCommonTLMutex != NULL);
-    BKNI_AcquireMutex(drmCommonTLMutex);
+    BDBG_ASSERT(drmCommonTLMutex[platformIndex] != NULL);
+    BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
     DRM_Common_Handle drmHnd;
     drmRc = DRM_Common_GetHandle(&drmHnd);;
@@ -688,11 +851,11 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
 
 ErrorExit:
     BDBG_MSG(("%s - Exiting function", __FUNCTION__));
-    BKNI_ReleaseMutex(drmCommonTLMutex);
+    BKNI_ReleaseMutex(drmCommonTLMutex[platformIndex]);
     return drmRc;
 }
 
-DrmRC DRM_Common_P_TA_Install(char * ta_bin_filename)
+DrmRC DRM_Common_P_TA_Install(uint32_t platformID, char * ta_bin_filename)
 {
     DrmRC rc = Drm_Success;
     FILE * fptr = NULL;
@@ -708,7 +871,7 @@ DrmRC DRM_Common_P_TA_Install(char * ta_bin_filename)
     rc = DRM_Common_P_GetFileSize(ta_bin_filename, &file_size);
     if(rc != Drm_Success)
     {
-        BDBG_LOG(("%s - Error determine file size of TA bin file", __FUNCTION__));
+        BDBG_ERR(("%s - Error determine file size of TA bin file", __FUNCTION__));
         goto ErrorExit;
     }
 
@@ -719,7 +882,7 @@ DrmRC DRM_Common_P_TA_Install(char * ta_bin_filename)
         rc = Drm_MemErr;
         goto ErrorExit;
     }
-
+    BDBG_MSG(("%s: allocated ta_bin_file_buff at %p size %u",__FUNCTION__,ta_bin_file_buff,file_size));
     fptr = fopen(ta_bin_filename, "rb");
     if(fptr == NULL)
     {
@@ -745,9 +908,9 @@ DrmRC DRM_Common_P_TA_Install(char * ta_bin_filename)
     }
     fptr = NULL;
 
-    BDBG_MSG(("%s - TA 0x%x Install file %s", __FUNCTION__,BSAGE_PLATFORM_ID_COMMONDRM,ta_bin_filename));
+    BDBG_MSG(("%s - TA 0x%x Install file %s size %u", __FUNCTION__,platformID,ta_bin_filename,file_size));
 
-    sage_rc = SRAI_Platform_Install(BSAGE_PLATFORM_ID_COMMONDRM, ta_bin_file_buff, file_size);
+    sage_rc = SRAI_Platform_Install(platformID, ta_bin_file_buff, file_size);
     if(sage_rc != BERR_SUCCESS)
     {
         BDBG_ERR(("%s - Error calling SRAI_Platform_Install Error 0x%x", __FUNCTION__, sage_rc ));
@@ -767,7 +930,7 @@ ErrorExit:
         fptr = NULL;
     }
 
-    BDBG_LEAVE(DRM_Common_TL_P_Install);
+    BDBG_LEAVE(DRM_Common_P_TA_Install);
 
     return rc;
 }

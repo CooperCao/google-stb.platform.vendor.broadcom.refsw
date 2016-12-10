@@ -1278,7 +1278,7 @@ static void BVDC_P_Window_BuildCscRul_isr
         BSTD_UNUSED(eWinInCmp);
     #endif
     #ifdef BCHP_CMP_0_V0_R1_MC_COEFF_C00
-        ulStartReg += (pCscCfg->ucSlotIdx * (BCHP_CMP_0_V0_R1_MC_COEFF_C00 - BCHP_CMP_0_V0_R0_MC_COEFF_C00) * sizeof(int32_t));
+        ulStartReg += (pCscCfg->ucSlotIdx * (BCHP_CMP_0_V0_R1_MC_COEFF_C00 - BCHP_CMP_0_V0_R0_MC_COEFF_C00));
     #endif
         pCscCoeffs = &pCscCfg->stCscMC;
         BDBG_MODULE_MSG(BVDC_CMP_CSC,("cmp[%d]win[%d]CscSlot[%d] CMP_CSC_MC:", hCompositor->eId, eWinInCmp, pCscCfg->ucSlotIdx));

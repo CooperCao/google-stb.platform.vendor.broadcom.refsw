@@ -258,6 +258,7 @@ BERR_Code BAPE_Connector_P_SetFormat(
     const BAPE_FMT_Descriptor *pNewFormat
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Get number of downstream connections for a connector
@@ -265,6 +266,7 @@ Get number of downstream connections for a connector
 unsigned BAPE_Connector_P_GetNumConnections(
     BAPE_Connector connector
     );
+#endif
 
 /***************************************************************************
 Summary:

@@ -1,0 +1,35 @@
+# Auto-generated the Wayland Nexus protocol files
+
+WAYLAND_SCANNER ?= wayland-scanner
+WAYLAND_AUTOGEN_DIR ?= autogen
+
+WAYLAND_PROTOCOL_NAME := wayland_nexus
+WAYLAND_PROTOCOL = $(WAYLAND_PROTOCOL_NAME).xml
+WAYLAND_CLIENT_HEADER = $(WAYLAND_AUTOGEN_DIR)/$(WAYLAND_PROTOCOL_NAME)_client.h
+WAYLAND_SERVER_HEADER = $(WAYLAND_AUTOGEN_DIR)/$(WAYLAND_PROTOCOL_NAME)_server.h
+WAYLAND_CODE = $(WAYLAND_AUTOGEN_DIR)/$(WAYLAND_PROTOCOL_NAME).c
+WAYLAND_AUTOGEN = \
+	$(WAYLAND_CLIENT_HEADER) \
+	$(WAYLAND_SERVER_HEADER) \
+	$(WAYLAND_CODE)
+
+$(WAYLAND_AUTOGEN): | $(WAYLAND_AUTOGEN_DIR)
+
+$(WAYLAND_AUTOGEN_DIR):
+	$(Q)mkdir $@
+
+$(WAYLAND_CLIENT_HEADER): $(WAYLAND_PROTOCOL)
+	$(Q)echo Auto-generating $@
+	$(Q)$(WAYLAND_SCANNER) client-header $< $@
+
+$(WAYLAND_SERVER_HEADER): $(WAYLAND_PROTOCOL)
+	$(Q)echo Auto-generating $@
+	$(Q)$(WAYLAND_SCANNER) server-header $< $@
+
+$(WAYLAND_CODE): $(WAYLAND_PROTOCOL) $(WAYLAND_CLIENT_HEADER) $(WAYLAND_SERVER_HEADER)
+	$(Q)echo Auto-generating $@
+	$(Q)$(WAYLAND_SCANNER) code $< $@
+
+.PHONY: clean-wayland-autogen
+clean-wayland-autogen:
+	$(Q)rm -f $(WAYLAND_AUTOGEN)

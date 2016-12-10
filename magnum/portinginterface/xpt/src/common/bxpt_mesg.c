@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1260,8 +1260,13 @@ BERR_Code BXPT_UpdateReadOffset_isr(
         ReadPtr = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_DMA_RP_TABLE_i, READ_POINTER );
 
         /* Compute the size of the buffer, in bytes. */
+#ifdef BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE
+        Reg = BREG_Read32( hXpt->hRegister, GetRegArrayAddr_isrsafe( hXpt, MesgBuffNum, BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE ) );
+        SizeField = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_BUF_CTRL3_TABLE_i, BP_BUFFER_SIZE );
+#else
         Reg = BREG_Read32( hXpt->hRegister, GetRegArrayAddr_isrsafe( hXpt, MesgBuffNum, BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE ) );
         SizeField = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE );
+#endif
         for( i = 0; i < SizeField; i++ )
             BufferSizeInBytes *= 2;
 
@@ -1585,20 +1590,44 @@ BERR_Code ConfigMessageBufferRegs(
     Offset /= BXPT_P_MESSAGE_BUFFER_BLOCK_SIZE;
 
     /** Set the buffer address and size. **/
-    RegAddr = BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE + ( MesgBufferNum * BP_TABLE_STEP );
-    Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+#ifdef BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE
+        RegAddr = BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE + ( MesgBufferNum * BP_TABLE_STEP );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+        Reg &= ~(
+            BCHP_MASK( XPT_MSG_BUF_CTRL3_TABLE_i, BP_BUFFER_SIZE )
+            );
 
-    Reg &= ~(
-        BCHP_MASK( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE ) |
-        BCHP_MASK( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR )
-        );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_MSG_BUF_CTRL3_TABLE_i, BP_BUFFER_SIZE, ( uint32_t ) BufferSize )
+            );
+        BREG_Write32( hXpt->hRegister, RegAddr, Reg );
 
-    Reg |= (
-        BCHP_FIELD_DATA( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE, ( uint32_t ) BufferSize ) |
-        BCHP_FIELD_DATA( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR, Offset )
-        );
+        RegAddr = BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE + ( MesgBufferNum * BP_TABLE_STEP );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+        Reg &= ~(
+            BCHP_MASK( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR )
+            );
 
-    BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR, Offset )
+            );
+        BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+#else
+        RegAddr = BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE + ( MesgBufferNum * BP_TABLE_STEP );
+        Reg = BREG_Read32( hXpt->hRegister, RegAddr );
+
+        Reg &= ~(
+            BCHP_MASK( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE ) |
+            BCHP_MASK( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR )
+            );
+
+        Reg |= (
+            BCHP_FIELD_DATA( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE, ( uint32_t ) BufferSize ) |
+            BCHP_FIELD_DATA( XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_BASE_ADDR, Offset )
+            );
+
+        BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+#endif
 
     /* Restore the old output mode */
     RegAddr = BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_ARRAY_BASE + ( MesgBufferNum * PID_CTRL1_TABLE_STEP );
@@ -2024,8 +2053,13 @@ void GetBufferPointers_isr(
     }
 
     /* Compute the size of the buffer, in bytes. */
-    Reg = BREG_Read32( hXpt->hRegister, GetRegArrayAddr_isrsafe( hXpt, PidChannelNum, BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE) );
-    SizeField = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE );
+#ifdef BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE
+        Reg = BREG_Read32( hXpt->hRegister, GetRegArrayAddr_isrsafe( hXpt, PidChannelNum, BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE ) );
+        SizeField = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_BUF_CTRL3_TABLE_i, BP_BUFFER_SIZE );
+#else
+        Reg = BREG_Read32( hXpt->hRegister, GetRegArrayAddr_isrsafe( hXpt, PidChannelNum, BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE ) );
+        SizeField = BCHP_GET_FIELD_DATA( Reg, XPT_MSG_DMA_BP_TABLE_i, BP_BUFFER_SIZE );
+#endif
     for( i = 0; i < SizeField; i++ )
         BufferSize *= 2;
     *BufferSizeInBytes = BufferSize;

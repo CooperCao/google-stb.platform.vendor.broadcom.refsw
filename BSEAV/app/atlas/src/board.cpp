@@ -43,6 +43,7 @@
 #include "audio_decode.h"
 #include "still_decode.h"
 #include "power.h"
+#include "wifi.h"
 #ifdef NETAPP_SUPPORT
 #include "network.h"
 #include "bluetooth.h"
@@ -342,6 +343,10 @@ CBoardResources::CBoardResources()
 #endif
     _powerList.clear();
     _mapResourceList[eBoardResource_power] = (MAutoList <CResource> *)&_powerList;
+#ifdef WPA_SUPPLICANT_SUPPORT
+    _wifiList.clear();
+    _mapResourceList[eBoardResource_wifi] = (MAutoList <CResource> *)&_wifiList;
+#endif
 #ifdef NETAPP_SUPPORT
     _networkList.clear();
     _mapResourceList[eBoardResource_network] = (MAutoList <CResource> *)&_networkList;
@@ -357,6 +362,9 @@ CBoardResources::~CBoardResources()
 
 void CBoardResources::clear()
 {
+#ifdef WPA_SUPPLICANT_SUPPORT
+    _wifiList.clear();
+#endif
 #ifdef NETAPP_SUPPORT
     _networkList.clear();
     /* Bluetooth device most likley cleared from decontrcution of Audio Captuer which has a audio capture cleint list of bluetooth object */
@@ -907,6 +915,19 @@ eRet CBoardResources::add(
             _powerList.add(pPower);
         }
         break;
+#ifdef WPA_SUPPLICANT_SUPPORT
+        case eBoardResource_wifi:
+        {
+            CWifi * pWifi = NULL;
+            BDBG_ERR(("TTTTTTTTTTTTTTTTTTTTTTTTTTT cwifi pCfg:%p", pCfg));
+            pWifi = new CWifi(name, (id && (id != i)) ? id : i, pCfg);
+            BDBG_ASSERT(pWifi);
+            /* this is a singleton Wifi object so allow it to be checked out multiple times */
+            pWifi->setCheckedOutMax(-1);
+            _wifiList.add(pWifi);
+        }
+        break;
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef NETAPP_SUPPORT
         case eBoardResource_network:
         {
@@ -1529,6 +1550,10 @@ void CBoardResources::dump(bool bForce)
 #endif
     BDBG_MSG(("Power:                       %d", _powerList.total()));
     dumpList((MList <CResource> *)&_powerList);
+#ifdef WPA_SUPPLICANT_SUPPORT
+    BDBG_MSG(("Wifi:                        %d", _wifiList.total()));
+    dumpList((MList <CResource> *)&_wifiList);
+#endif
 #ifdef NETAPP_SUPPORT
     BDBG_MSG(("Network:                     %d", _networkList.total()));
     dumpList((MList <CResource> *)&_networkList);

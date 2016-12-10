@@ -1799,8 +1799,8 @@ void BVC5_P_HardwarePrepareForJob(
 
          BVC5_P_ClearL3Cache(hVC5, uiCoreIndex);
          BVC5_P_ClearL2Cache(hVC5, uiCoreIndex);
-         BVC5_P_ClearSlicesCache(hVC5, uiCoreIndex);
          BVC5_P_FlushTextureCache(hVC5, uiCoreIndex);
+         BVC5_P_ClearSlicesCache(hVC5, uiCoreIndex);
 
          BVC5_P_AddFlushEvent(hVC5, hVC5->sEventMonitor.uiSchedTrackNextId++, BVC5_EventEnd,
                               true, true, true, BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));

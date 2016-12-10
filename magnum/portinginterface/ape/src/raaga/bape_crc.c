@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio CRC Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
 ***************************************************************************/
 
 #include "bstd.h"
@@ -725,44 +745,44 @@ BERR_Code BAPE_Crc_GetBuffer(
     BAPE_BufferDescriptor * pBuffers /* [out] */
     )
 {
-	BAPE_SimpleBufferDescriptor descriptors[BAPE_CHIP_MAX_CRCS];
-	unsigned size = 0xffffffff;
-	unsigned bufferSize = 0xffffffff;
-	unsigned wrapBufferSize = 0xffffffff;
-	unsigned i;
+    BAPE_SimpleBufferDescriptor descriptors[BAPE_CHIP_MAX_CRCS];
+    unsigned size = 0xffffffff;
+    unsigned bufferSize = 0xffffffff;
+    unsigned wrapBufferSize = 0xffffffff;
+    unsigned i;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Crc);
     BDBG_ASSERT(pBuffers);
 
-	BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
-	BKNI_Memset(descriptors, 0, sizeof(BAPE_SimpleBufferDescriptor[BAPE_CHIP_MAX_CRCS]));
+    BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
+    BKNI_Memset(descriptors, 0, sizeof(BAPE_SimpleBufferDescriptor[BAPE_CHIP_MAX_CRCS]));
 
     /*BKNI_EnterCriticalSection();*/
-	for ( i = 0; i < handle->settings.numChannelPairs; i++ )
-	{
-		size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &(descriptors[i])));
-		bufferSize = BAPE_MIN(bufferSize, descriptors[i].bufferSize);
+    for ( i = 0; i < handle->settings.numChannelPairs; i++ )
+    {
+        size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &(descriptors[i])));
+        bufferSize = BAPE_MIN(bufferSize, descriptors[i].bufferSize);
         wrapBufferSize = BAPE_MIN(bufferSize, descriptors[i].wrapBufferSize);
-		pBuffers->buffers[i].pBuffer = descriptors[i].pBuffer;
-		pBuffers->buffers[i].pWrapBuffer = descriptors[i].pWrapBuffer;
-		BDBG_MSG(("read %d bytes, bufferSize %d, wrapBufferSize %d", size, bufferSize, wrapBufferSize));
-	}
+        pBuffers->buffers[i].pBuffer = descriptors[i].pBuffer;
+        pBuffers->buffers[i].pWrapBuffer = descriptors[i].pWrapBuffer;
+        BDBG_MSG(("read %d bytes, bufferSize %d, wrapBufferSize %d", size, bufferSize, wrapBufferSize));
+    }
 
-	if ( size == 0 )
-	{
+    if ( size == 0 )
+    {
         BDBG_MSG(("buffers are empty"));
-		BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
-		return BERR_SUCCESS;
-	}
+        BKNI_Memset(pBuffers, 0, sizeof(BAPE_BufferDescriptor));
+        return BERR_SUCCESS;
+    }
 
-	/* translate buffers to APE descriptor */
-	pBuffers->interleaved = true;
-	pBuffers->bufferSize = bufferSize;
-	pBuffers->wrapBufferSize = wrapBufferSize;
-	pBuffers->numBuffers = handle->settings.numChannelPairs;
+    /* translate buffers to APE descriptor */
+    pBuffers->interleaved = true;
+    pBuffers->bufferSize = bufferSize;
+    pBuffers->wrapBufferSize = wrapBufferSize;
+    pBuffers->numBuffers = handle->settings.numChannelPairs;
     /*BKNI_LeaveCriticalSection();*/
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 /***************************************************************************
@@ -774,9 +794,9 @@ BERR_Code BAPE_Crc_ConsumeData(
     unsigned numBytes
     )
 {
-	BAPE_SimpleBufferDescriptor descriptor;
-	unsigned size = numBytes;
-	unsigned i;
+    BAPE_SimpleBufferDescriptor descriptor;
+    unsigned size = numBytes;
+    unsigned i;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Crc);
 
@@ -786,31 +806,32 @@ BERR_Code BAPE_Crc_ConsumeData(
     }
 
     /*BKNI_EnterCriticalSection();*/
-	for ( i = 0; i < handle->settings.numChannelPairs; i++ )
-	{
-		size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &descriptor));
-	}
+    for ( i = 0; i < handle->settings.numChannelPairs; i++ )
+    {
+        size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &descriptor));
+    }
 
-	if ( size != numBytes )
-	{
-		BDBG_WRN(("can only consume %d of the requested %d bytes", size, numBytes));
-	}
+    if ( size != numBytes )
+    {
+        BDBG_WRN(("can only consume %d of the requested %d bytes", size, numBytes));
+    }
 
-	for ( i = 0; i < handle->settings.numChannelPairs; i++ )
-	{
-		unsigned retSize;
-		retSize = BAPE_Buffer_Advance_isr(handle->resources[i].buffer, size);
+    for ( i = 0; i < handle->settings.numChannelPairs; i++ )
+    {
+        unsigned retSize;
+        retSize = BAPE_Buffer_Advance_isr(handle->resources[i].buffer, size);
 
-		if (retSize != size)
-		{
-			BDBG_WRN(("buffers are out of sync, could only advance %d of %d bytes in buffer[%d]", retSize, size, i));
-		}
-	}
+        if (retSize != size)
+        {
+            BDBG_WRN(("buffers are out of sync, could only advance %d of %d bytes in buffer[%d]", retSize, size, i));
+        }
+    }
     /*BKNI_LeaveCriticalSection();*/
 
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 CRC Get Interrupt Handlers
@@ -844,6 +865,8 @@ BERR_Code BAPE_Crc_SetInterruptHandlers(
     return BERR_SUCCESS;
 }
 
+#endif
+
 static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
 {
     unsigned i, j;
@@ -857,8 +880,8 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
             BAPE_CrcHandle handle = deviceHandle->crcs[i];
 
             BDBG_MSG(("%s - Processing APE CRC idx %d, numChannelPairs %d", __FUNCTION__, i, handle->settings.numChannelPairs));
-	        for ( j = 0; j < handle->settings.numChannelPairs; j++ )
-	        {
+            for ( j = 0; j < handle->settings.numChannelPairs; j++ )
+            {
                 uint32_t regAddr;
                 BAPE_CrcEntry entry;
                 bool enabled;
@@ -877,7 +900,7 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
                         entry.seqNumber != 0 )
                     {
                         BDBG_MSG(("\tCRC %d, writing seqNumber %d, value %d", handle->index, entry.seqNumber, entry.value));
-		                written = BAPE_Buffer_Write_isr(handle->resources[j].buffer, &entry, sizeof(BAPE_CrcEntry));
+                        written = BAPE_Buffer_Write_isr(handle->resources[j].buffer, &entry, sizeof(BAPE_CrcEntry));
                         wroteData = true;
 
                         if ( written < sizeof(BAPE_CrcEntry) )
@@ -893,9 +916,9 @@ static void BAPE_Crc_P_DataReady_isr(BAPE_Handle deviceHandle)
                 }
                 else
                 {
-        			BDBG_WRN(("%s - WARNING - hw crc %d disabled, used by ape crc %d, index %d", __FUNCTION__, handle->resources[j].hwIndex, i, j));
+                    BDBG_WRN(("%s - WARNING - hw crc %d disabled, used by ape crc %d, index %d", __FUNCTION__, handle->resources[j].hwIndex, i, j));
                 }
-	        }
+            }
 
             if ( wroteData && handle->interrupts.dataReady.pCallback_isr )
             {
@@ -1089,6 +1112,8 @@ BERR_Code BAPE_Crc_ConsumeData(
     return BERR_NOT_SUPPORTED;
 }
 
+
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 CRC Get Interrupt Handlers
@@ -1116,5 +1141,6 @@ BERR_Code BAPE_Crc_SetInterruptHandlers(
 
     return BERR_NOT_SUPPORTED;
 }
+#endif
 
 #endif /* BAPE_CHIP_MAX_CRCS */

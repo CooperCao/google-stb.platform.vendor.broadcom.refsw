@@ -47,6 +47,7 @@ $Data::Dumper::Indent   = 1;
 $Data::Dumper::Terse    = 1;
 
 my @profiles = ('Standard');
+my $num_profiles = scalar @profiles;
 
 my @nexus_functions = (
         "AIO",
@@ -278,6 +279,9 @@ sub parse_rdb_file {
             $clk_tree->{$resource}{_div} = $1;
         } elsif (/^\/\/PMPState:\s*STB:(.*?)(\d+):(.*?)(\d+):(\d+)/) {
             $clk_tree->{$resource}{_pmap}{$2}{_pstate}{$4} = $5;
+            if (($2+1) > $num_profiles) {
+                $num_profiles = $2+1;
+            }
         } elsif (/^\/\/PMPowerProfile:\s*STB\s*:\s*(.*?)\s*:\s*PMap(\d+)/) {
             $profiles[$2] = $1;
         }
@@ -848,30 +852,34 @@ sub generate_bchp_impl_string {
     }
 
     if ($div) {
+        my $var;
+        my (@lines1, @lines2, @lines3);
+        push @lines, "    if(set) {\n";
+        push @lines1, "        BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
+        push @lines1, "    } else {\n";
         foreach my $divisor (keys %{$hw_desc->{$hw_node}{$reg}{_field}}) {
             foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{$divisor}}) {
                 if($field eq "_pmap") {next;}
                 if ($divisor eq "POSTDIV") {
-                    push @lines, "    if(set) {\n";
-                    push @lines, "        BCHP_SET_FIELD_DATA(reg, $register, $field, *postdiv);\n";
-                    push @lines, "        BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
-                    push @lines, "    } else {\n";
-                    push @lines, "        *postdiv = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
-                    push @lines, "    }\n";
+                    $var = "*postdiv";
                 } else {
-                    push @lines, "    if(!set) {\n";
                     if ($divisor eq "MULT") {
-                        push @lines, "        *mult = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
+                        $var = "*mult";
                     } elsif ($divisor eq "PREDIV") {
-                        push @lines, "        *prediv = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
+                        $var = "*prediv";
                     } else {
                         print "Unknown Div field\n";
                         next;
                     }
-                    push @lines, "    }\n";
                 }
+                push @lines2, "        BCHP_SET_FIELD_DATA(reg, $register, $field, ".$var.");\n";
+                push @lines3, "        ".$var." = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
             }
         }
+        push @lines, @lines2;
+        push @lines, @lines1;
+        push @lines, @lines3;
+        push @lines, "    }\n";
     } elsif ($mux) {
         foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{_mux}}) {
             if($field eq "_pmap") {next;}
@@ -1096,7 +1104,7 @@ sub generate_bchp_resources_priv_h_file {
     print $fh "#define BCHP_PWR_P_NUM_MUXES      ", scalar(@MX_all), "\n";
     print $fh "#define BCHP_PWR_P_NUM_DIVS       ", scalar(@DV_all), "\n";
     print $fh "#define BCHP_PWR_P_NUM_ALLNODES   ", scalar(keys %$nonleafs)+scalar(keys %$leafs)+scalar(keys %$nonleafshw)+scalar(@MX_all)+scalar(@DV_all), "\n";
-    print $fh "#define BCHP_PWR_NUM_P_STATES     ", scalar(@profiles)+1, "\n";
+    print $fh "#define BCHP_PWR_NUM_P_MAPS     ", $num_profiles, "\n";
     print $fh "\n";
 
     print $fh "#endif\n";
@@ -1311,7 +1319,7 @@ sub generate_dv_table
     my (@lines1, @lines2, @lines);
     my ($mult, $prediv, $postdiv);
     my %div_table;
-    my $num_profiles = scalar @profiles;
+    #my $num_profiles = scalar @profiles;
     push @lines, "\n";
     push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_DIVS] = {\n";
 
@@ -1406,6 +1414,72 @@ sub generate_dv_table
     push @lines, @lines2;
 
     #print Dumper (%div_table);
+
+    return @lines;
+}
+
+sub generate_mx_table
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $prefix3 = shift;
+    my $nodes = shift;
+    my $hw_desc = shift;
+    my (@lines1, @lines2, @lines);
+    my %mux_table;
+    #my $num_profiles = scalar @profiles;
+    push @lines, "\n";
+    push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_MUXES] = {\n";
+
+    foreach (sort @$nodes) {
+        foreach my $reg (sort keys %{$hw_desc->{$_}}) {
+                foreach my $elem (keys %{$hw_desc->{$_}{$reg}{_field}{_mux}}) {
+                    if($elem eq "_pmap") {next;}
+                    if(exists $hw_desc->{$_}{$reg}{_field}{_mux}{_pmap}) {
+                        my $entries = scalar keys %{$hw_desc->{$_}{$reg}{_field}{_mux}{_pmap}};
+                        if($num_profiles < $entries) {
+                            print "Mismatch between PMPowerProfile tag ($entries) and number of profiles ($num_profiles) found for $reg:$elem\n";
+                        }
+                        foreach my $profile (0..$num_profiles-1) {
+                            if(exists $hw_desc->{$_}{$reg}{_field}{_mux}{_pmap}{$profile}) {
+                                push(@{$mux_table{$_}}, $hw_desc->{$_}{$reg}{_field}{_mux}{_pmap}{$profile}{_pstate}{0});
+                            } else {
+                                print "No Pstate found for PMPowerProfile $profile ($reg:$elem). Using default $hw_desc->{$_}{$reg}{_field}{_mux}{$elem}\n";
+                                push(@{$mux_table{$_}}, $hw_desc->{$_}{$reg}{_field}{_mux}{$elem});
+                            }
+                        }
+                    } else {
+                        print "no PMAP found for $reg:$elem\n";
+                        foreach my $profile (0..$num_profiles-1) {
+                            push(@{$mux_table{$_}}, $hw_desc->{$_}{$reg}{_field}{_mux}{$elem});
+                        }
+                    }
+                }
+        }
+        if(exists $mux_table{$_}) {
+            my $len= scalar(@{$mux_table{$_}});
+            if($num_profiles>$len+1) {
+                printf "Missing entries for $\n";
+                next;
+            }
+            push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {";
+            foreach my $profile (0..$num_profiles-1) {
+                push @lines1, "{$mux_table{$_}[$profile]},";
+            }
+            push @lines1, "};\n";
+            push @lines2, "    {${prefix1}_${_}, ${prefix2}_${_}},\n";
+        } else {
+            printf " No Mux table found for $_\n";
+            next;
+        }
+    }
+    push @lines2, "};\n";
+
+    push @lines, @lines1;
+    push @lines, "\n";
+    push @lines, @lines2;
+
+    #print Dumper (%mux_table);
 
     return @lines;
 }
@@ -1506,6 +1580,9 @@ sub generate_bchp_resources_c_file {
     @lines = generate_dvcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@DV_all);
     print $fh @lines;
 
+    @lines = generate_mx_table("BCHP_PWR", "BCHP_PWR_P_MuxTable", "BCHP_PWR_P_MuxMap", \@MX_all, $hw_desc);
+    print $fh @lines;
+
     @lines = generate_dv_table("BCHP_PWR", "BCHP_PWR_P_DivTable", "BCHP_PWR_P_FreqMap", \@DV_all, $hw_desc);
     print $fh @lines;
 
@@ -1548,7 +1625,7 @@ sub generate_bchp_files {
                 if(exists $nodes->{$child_node}) {
                     $nonleafsmx{$child_node}++;
                 } else {
-                    print "Error : Leaf mux node found $child_node\n";
+                    print "Leaf mux node found $child_node\n";
                     $leafsmx{$child_node}++;
                 }
             }
@@ -1574,7 +1651,7 @@ sub main {
         if(/^[a-zA-Z]\d$/) {
             $ver = $_;
         }
-        if(/\/projects\//) {
+        if(/\/project_it\//) {
             $dir = $_;
         }
         if(/perf/) {

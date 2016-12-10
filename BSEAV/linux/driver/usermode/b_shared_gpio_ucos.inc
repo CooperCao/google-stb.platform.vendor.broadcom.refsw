@@ -155,16 +155,12 @@ static void b_shared_gpio_p_close_pin(struct b_shared_gpio_pin * pin)
     unsigned long flags;
 
     B_SHARED_GPIO_SPIN_LOCK(flags);
-    if (g_brcm_gpio_verbose) PINFO("gpio %#x:%u free linux irq %u\n", pin->bank->base_address, pin->shift, pin->irq.linux_irq);
-    if (pin->irq.linux_irq)
-    {
-        free_irq(pin->irq.linux_irq, (void*)pin);
-        pin->irq.linux_irq = 0;
-    }
+    if (g_brcm_gpio_verbose) PINFO("gpio %#x:%u free linux irq %u\n", pin->bank->base_address, pin->shift, b_os_irq_get_id(&pin->irq.base));
     B_SHARED_GPIO_MASK_INT(pin->bank, pin);
     B_SHARED_GPIO_CLEAR_INT(pin->bank, pin);
     pin->bank = NULL;
     B_SHARED_GPIO_SPIN_UNLOCK(flags);
+    b_os_irq_uninit_tagged(&pin->irq.base, "shgio close pin", __LINE__);
 #else
     printf("b_shared_gpio_p_close_pin stubbed\n");
 #endif
@@ -310,6 +306,7 @@ void b_shared_gpio_init_banks(const b_shared_gpio_init_banks_settings * settings
 
     for (i = 0; i < sizeof(settings->bank_base_addresses)/sizeof(settings->bank_base_addresses[0]); i++)
     {
+        memset(g_shared_gpio_state.banks + i, 0, sizeof(g_shared_gpio_state.banks[i]));
         g_shared_gpio_state.banks[i].base_address = settings->bank_base_addresses[i];
         g_shared_gpio_state.banks[i].aon = settings->bank_is_aon[i];
     }
@@ -372,6 +369,7 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
     struct b_shared_gpio_pin * pin;
     int linux_irq = 0;
     unsigned long flags;
+    uint32_t bank_address;
 
     if (g_brcm_gpio_verbose) PINFO("gpio open pin %#x:%u:%s\n", pin_desc->bank_base_address, pin_desc->shift, b_shared_gpio_get_irq_type_name(irq_type));
 
@@ -385,49 +383,71 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
     pin = b_shared_gpio_get_pin(bank, pin_desc->shift, 0);
     if (!pin) { result = -EINVAL; BERR_TRACE(-result); goto end; }
 
-    pin->irq.type = irq_type;
-
-    if (pin->irq.type == b_shared_gpio_irq_type_disabled)
-    {
-        pin->bank = bank;
-        pin->shift = pin_desc->shift;
-        pin->irq.linux_irq = 0;
-        pin->irq.linux_enabled = 0;
-        B_SHARED_GPIO_MASK_INT(bank, pin);
-        B_SHARED_GPIO_CLEAR_INT(bank, pin);
-        goto end;
-    }
-
-    linux_irq = brcmstb_gpio_irq(pin_desc->bank_base_address, pin_desc->shift);
-    if (linux_irq <= 0)
-    {
-        PERR("Error finding gpio %#x:%u linux L1\n", pin_desc->bank_base_address, pin_desc->shift);
-        result = -EINVAL; BERR_TRACE(result); goto end;
-    }
-
-    B_SHARED_GPIO_SPIN_LOCK(flags);
+    memset(pin, 0, sizeof(*pin));
     pin->bank = bank;
     pin->shift = pin_desc->shift;
-    pin->irq.linux_irq = linux_irq;
-    pin->irq.linux_enabled = 1;
-    B_SHARED_GPIO_UNMASK_INT(bank, pin);
+    pin->irq.type = irq_type;
+
+    linux_irq = 0;
+    B_SHARED_GPIO_SPIN_LOCK(flags);
+    B_SHARED_GPIO_MASK_INT(bank, pin);
     B_SHARED_GPIO_CLEAR_INT(bank, pin);
-    result = request_irq(linux_irq, b_shared_gpio_linux_l1_isr, b_shared_gpio_irq_type_to_linux(pin->irq.type), "nexus_gpio", (void*)pin);
-    if (!result)
-    {
-        if (g_brcm_gpio_verbose) PINFO("gpio %x:%u linux irq %u (%s)\n", bank->base_address, pin->shift, linux_irq, b_shared_gpio_get_irq_type_name(irq_type));
-    }
-    else
-    {
-        PERR("request_irq failed with %d, irq:'%s' linux:%u gpio: %#x:%u\n", result, "nexus_gpio", linux_irq , bank->base_address, pin->shift);
-        pin->bank = NULL;
-        pin->irq.linux_irq = 0;
-        pin->irq.linux_enabled = 0;
-        pin->irq.type = b_shared_gpio_irq_type_disabled;
-        B_SHARED_GPIO_MASK_INT(bank, pin);
-        result = -EINVAL; BERR_TRACE(result);
-    }
     B_SHARED_GPIO_SPIN_UNLOCK(flags);
+
+    if (pin->irq.type != b_shared_gpio_irq_type_disabled)
+    {
+        bank_address = pin_desc->bank_base_address;
+
+#if defined(CONFIG_ARM) && (BRCMSTB_H_VERSION == 8)
+        /* This is a workaround for an issue inside of the 4.1-1.3 kernel release which fails                                                                                                                 * to handle address mappings for chips with BCHP_PHYSICAL_OFFSET of 0xD0000000. */
+#if defined(BCHP_PHYSICAL_OFFSET) && defined (BCHP_CHIP) /* Kernel mode Nexus */
+#if ((BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271))
+        bank_address &= ~0x20000000;
+#endif /* BCHP_CHIP */
+#else /* bcmdriver */
+        if (g_breg.bchp_physical_offset == 0xD0000000)
+        {
+            bank_address &= ~0x20000000;
+        }
+#endif /* BCHP_PHYSICAL_OFFSET */
+#endif /* CONFIG_ARM */
+
+        linux_irq = brcmstb_gpio_irq(bank_address, pin_desc->shift);
+        if (linux_irq > 0)
+        {
+            /* this code is used for platforms that support shared gpio */
+            /* coverity[dead_error_begin: FALSE] */
+            B_SHARED_GPIO_SPIN_LOCK(flags);
+            B_SHARED_GPIO_UNMASK_INT(bank, pin);
+            B_SHARED_GPIO_SPIN_UNLOCK(flags);
+        }
+        else
+        {
+            PERR("Error finding gpio %#x:%u linux L1\n", pin_desc->bank_base_address, pin_desc->shift);
+            result = -EINVAL; BERR_TRACE(result);
+        }
+    }
+    /* init struct even if irq is invalid */
+    b_os_irq_init(&pin->irq.base, linux_irq, b_shared_gpio_irq_type_to_linux(irq_type), "nexus gpio", b_shared_gpio_isr, pin);
+    /* but only request if valid */
+    if (linux_irq > 0)
+    {
+        result = b_os_irq_acquire_tagged(&pin->irq.base, "shgio open pin", __LINE__);
+        if (!result)
+        {
+            if (g_brcm_gpio_verbose) PINFO("gpio %x:%u linux irq %u (%s)\n", bank->base_address, pin->shift, linux_irq, b_shared_gpio_get_irq_type_name(irq_type));
+        }
+        else
+        {
+            PERR("request_irq failed with %d, irq:'%s' linux:%u gpio: %#x:%u\n", result, "nexus_gpio", linux_irq , bank->base_address, pin->shift);
+            B_SHARED_GPIO_SPIN_LOCK(flags);
+            pin->bank = NULL;
+            pin->irq.type = b_shared_gpio_irq_type_disabled;
+            B_SHARED_GPIO_MASK_INT(bank, pin);
+            B_SHARED_GPIO_SPIN_UNLOCK(flags);
+            result = -EINVAL; BERR_TRACE(result);
+        }
+    }
 
 end:
     return result;
@@ -495,7 +515,7 @@ end:
     return result;
 }
 
-int b_shared_gpio_set_int_mask(const b_shared_gpio_pin_desc * pin_desc, int disable)
+int b_shared_gpio_set_int_mask(const b_shared_gpio_pin_desc * pin_desc, bool disabled)
 {
 #ifdef FIXME
     int result = 0;
@@ -508,31 +528,23 @@ int b_shared_gpio_set_int_mask(const b_shared_gpio_pin_desc * pin_desc, int disa
     bank = b_shared_gpio_get_bank(pin_desc);
     if (!bank) { result = -EINVAL; BERR_TRACE(result); goto end; }
 
-    pin = b_shared_gpio_get_pin(bank, pin_desc->shift, 1);
+    pin = b_shared_gpio_get_pin(bank, pin_desc->shift, true);
     if (!pin) { result = -EINVAL; BERR_TRACE(-result); goto end; }
 
     B_SHARED_GPIO_SPIN_LOCK(flags);
-    if (disable && !pin->irq.disabled)
+    if (disabled && !pin->irq.disabled)
     {
         if (g_brcm_gpio_verbose) PINFO("gpio int mask %#x:%u\n", bank->base_address, pin->shift);
         B_SHARED_GPIO_MASK_INT(bank, pin);
-        if (pin->irq.linux_enabled)
-        {
-            disable_irq_nosync(pin->irq.linux_irq);
-            pin->irq.linux_enabled = 0;
-        }
+        b_os_irq_set_enable_spinlocked_tagged(&pin->irq.base, !disabled, "shgio set mask", __LINE__);
     }
-    else if (!disable && pin->irq.disabled)
+    else if (!disabled && pin->irq.disabled)
     {
         if (g_brcm_gpio_verbose) PINFO("gpio int unmask %#x:%u\n", bank->base_address, pin->shift);
         B_SHARED_GPIO_UNMASK_INT(bank, pin);
-        if (!pin->irq.linux_enabled)
-        {
-            enable_irq(pin->irq.linux_irq);
-            pin->irq.linux_enabled = 1;
-        }
+        b_os_irq_set_enable_spinlocked_tagged(&pin->irq.base, !disabled, "shgio set mask", __LINE__);
     }
-    pin->irq.disabled = disable;
+    pin->irq.disabled = disabled;
     B_SHARED_GPIO_SPIN_UNLOCK(flags);
 
 end:
@@ -543,7 +555,7 @@ end:
 #endif
 }
 
-int b_shared_gpio_set_standby(const b_shared_gpio_pin_desc * pin_desc, int enable)
+int b_shared_gpio_set_standby(const b_shared_gpio_pin_desc * pin_desc, bool enabled)
 {
 #ifdef FIXME
     int result = 0;
@@ -556,36 +568,17 @@ int b_shared_gpio_set_standby(const b_shared_gpio_pin_desc * pin_desc, int enabl
     bank = b_shared_gpio_get_bank(pin_desc);
     if (!bank) { result = -EINVAL; BERR_TRACE(result); goto end; }
 
-    pin = b_shared_gpio_get_pin(bank, pin_desc->shift, 1);
+    pin = b_shared_gpio_get_pin(bank, pin_desc->shift, true);
     if (!pin) { result = -EINVAL; BERR_TRACE(-result); goto end; }
 
+    PINFO("gpio set_standby %#x:%u: linux_enabled = %d; en = %d; wake_src = %d\n",
+        bank->base_address, pin->shift,
+        b_os_irq_is_enabled(&pin->irq.base),
+        enabled,
+        b_os_irq_is_wakeable(&pin->irq.base));
+
     B_SHARED_GPIO_SPIN_LOCK(flags);
-    if (pin->irq.linux_enabled)
-    {
-        if (enable && !pin->irq.wake_src)
-        {
-            if (g_brcm_gpio_verbose) PINFO("gpio suspend %#x:%u\n", bank->base_address, pin->shift);
-            result = enable_irq_wake(pin->irq.linux_irq);
-            if (!result)
-            {
-                pin->irq.wake_src = 1;
-            }
-            else
-            {
-                PWARN("Failed to mark gpio %#x:%u as wakeup source, will not wake from this gpio\n", bank->base_address, pin->shift);
-                PWARN("If this message occurs for a non-AON gpio for S2 you need to upgrade BOLT\n");
-            }
-        }
-        else if (!enable && pin->irq.wake_src)
-        {
-            if (g_brcm_gpio_verbose) PINFO("gpio resume %#x:%u\n", bank->base_address, pin->shift);
-            result = disable_irq_wake(pin->irq.linux_irq);
-            if (!result)
-            {
-                pin->irq.wake_src = 0;
-            }
-        }
-    }
+    b_os_irq_set_wake_capability_spinlocked_tagged(&pin->irq.base, enabled, "shgio set standby", __LINE__);
     B_SHARED_GPIO_SPIN_UNLOCK(flags);
 
 end:

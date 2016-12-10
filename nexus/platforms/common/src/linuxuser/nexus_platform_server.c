@@ -238,7 +238,6 @@ struct NEXUS_Server
     struct {
         NEXUS_ClientSettings clientSettings;
         NEXUS_ClientAuthenticationSettings auth;
-        struct nexus_client_init_data init_data;
     } thread_state;
 };
 
@@ -897,6 +896,7 @@ static void nexus_server_thread(void *context)
                     close(fd);
                 }
                 else {
+                    uint8_t done;
                     /* credentials.pid is the process ID for this client */
 
                     if (i == 0) {
@@ -944,19 +944,6 @@ static void nexus_server_thread(void *context)
                             continue;
                         }
 
-                        BKNI_Memset(&server->thread_state.init_data, 0, sizeof(server->thread_state.init_data));
-                        server->thread_state.init_data.config = client->settings.configuration;
-                        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-                            if (server->thread_state.init_data.config.heap[i]) {
-                                NEXUS_MemoryStatus status;
-                                server->thread_state.init_data.heap[i].heap = server->thread_state.init_data.config.heap[i];
-                                NEXUS_Heap_GetStatus_priv(server->thread_state.init_data.heap[i].heap, &status);
-                                server->thread_state.init_data.heap[i].offset  = status.offset;
-                                server->thread_state.init_data.heap[i].size = status.size;
-                                server->thread_state.init_data.heap[i].memoryType = status.memoryType;
-                            }
-                        }
-
                         /* this client is ready. must set state before writing socket ack. */
                         client->pid = credentials.pid;
                         client->fd = fd;
@@ -964,10 +951,10 @@ static void nexus_server_thread(void *context)
 
                         nexus_platform_p_set_mmap_access(client, true);
                         BDBG_MSG(("client %p (pid %d) ready", (void *)client, credentials.pid));
-
-                        rc = b_nexus_write(fd, &server->thread_state.init_data, sizeof(server->thread_state.init_data));
-                        if (rc != sizeof(server->thread_state.init_data)) {
-                            BDBG_WRN(("unable to confirm client: %d", rc));
+                        done = 1;
+                        rc = b_nexus_write(fd, &done, sizeof(done));
+                        if (rc != sizeof(done)) {
+                            BDBG_WRN(("unable to acknowledge client: %d", rc));
                             /* if socket ack fails, we have to unwind */
                             client->pid = 0;
                             client->fd = -1;
@@ -1776,20 +1763,31 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
     BSTD_UNUSED(pSettings);
 }
 
-void NEXUS_Platform_GetClientConfiguration_driver( NEXUS_ClientConfiguration *pSettings )
+void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
 {
-    NEXUS_PlatformConfiguration *config;
+    const struct b_objdb_client *client_id = b_objdb_get_client();
+    const struct NEXUS_Server *server = g_server;
+    NEXUS_ClientHandle client;
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
-    /* kernel mode server works like client, so we mimic that in user mode */
-    config = BKNI_Malloc(sizeof(*config));
-    if (!config) {
-        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    /* find matching client */
+    for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
+        if(client_id == &client->client_state.client) {
+            *pSettings = client->settings.configuration;
+            return;
+        }
     }
-    else {
+
+    {
+        /* if fails, return default configuration */
+        NEXUS_PlatformConfiguration *config = BKNI_Malloc(sizeof(*config));
+        if (!config) { BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); return; }
+
         NEXUS_Platform_GetConfiguration(config);
+        BDBG_CASSERT(sizeof(pSettings->heap)==sizeof(config->heap));
         BKNI_Memcpy(pSettings->heap, config->heap, sizeof(pSettings->heap));
         BKNI_Free(config);
     }
+    return;
 }

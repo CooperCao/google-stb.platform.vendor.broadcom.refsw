@@ -515,16 +515,8 @@ eRet CPanelBluetooth::initialize(
         _pHeadingProperties->setTextColor(0xFF80C42F);
         _pHeadingProperties->setBevel(0);
         _pHeadingProperties->setZOrder(2);
-        if (true == GET_BOOL(_pCfg, NETWORK_WIFI_LIST_CHANNEL_IGNORE))
-        {
-            _pHeadingProperties->setText("  NAME                                                 Signal",
-                    bwidget_justify_horiz_left, bwidget_justify_vert_bottom);
-        }
-        else
-        {
-            _pHeadingProperties->setText("  NAME                             Ch    Modes         Signal",
-                    bwidget_justify_horiz_left, bwidget_justify_vert_bottom);
-        }
+        _pHeadingProperties->setText("  NAME                             Ch    Modes         Signal",
+                bwidget_justify_horiz_left, bwidget_justify_vert_bottom);
 
         /* create max number of buttons - we will create/add them once, then
          * activate/deactivate them from the CWidgetMenu as needed. */

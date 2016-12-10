@@ -100,7 +100,7 @@ foreach $moduleUpper (@ARGV) {
         print OUTFILE "# $moduleUpper does not have syncthunks\n\n";
     }
 
-
+    print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
     print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_api.h: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
     print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_client.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
     print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_driver.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";

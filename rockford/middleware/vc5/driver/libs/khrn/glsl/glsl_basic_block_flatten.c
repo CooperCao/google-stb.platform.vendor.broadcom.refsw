@@ -163,7 +163,7 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
    }
 
    /* Place guard dataflow at the end of the blocks age range */
-   glsl_dataflow_set_age(age_offset);
+   glsl_dataflow_set_age(age_offset + *src_last_age);
 
    for (MapNode *node = src_block->scalar_values->head; node; node = node->next) {
       const Symbol *symbol = node->k;
@@ -201,7 +201,7 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
    }
 }
 
-// copy dataflow from src_basic_block++ to dst_basic_block
+// copy dataflow from src_basic_block to dst_basic_block
 static void copy_basic_block(BasicBlock *dst_block, const BasicBlock *src_block,
                              const Map *guard_symbols, Map *age_offsets, bool generate_new_ids)
 {

@@ -670,6 +670,101 @@ static int outputDashTickLines( const char *svg_text_id )
 }
 
 /**
+ *  Function: This function will look backwards from the end of the specified buffer
+ *            trying to find a newline character.
+ **/
+static char *Bsysperf_FindLastNewline ( char * buffer )
+{
+    int count = 0;
+    char *pos = NULL;
+
+    if ( buffer == NULL ) return pos;
+
+    if ( strlen(buffer) > 0 )
+    {
+        pos = buffer + strlen(buffer) - 1; /* point to last character in buffer */
+        if ( *pos == '\n' ) /* if last character is newline */
+        {
+            *pos = '\0'; /* discard the last character */
+        }
+    }
+
+    /*printf( "buffer %p;  pos %p;  offset %d; count %d;  char 0x%02x \n", buffer, pos, pos - buffer, count, *pos );*/
+    while ( pos && pos != buffer && *pos != '\n' && count < 1 )
+    {
+        pos--;
+        //printf( "buffer %p;  pos %p;  offset %d; count %d;  char 0x%02x \n", buffer, pos, pos - buffer, count, *pos );
+    }
+
+    if ( pos && *pos == '\n' ) pos++;
+
+    return pos;
+}
+
+/**
+ *  Function: This function will open the iperf client's temporary log file and search
+ *            for the last line in the file. Once the last line has been found, this
+ *            function will parse the last line looking for the bit rate that iperf
+ *            client yielded during the previous second of processing. The file contents
+ *            will look something like this:
+ *            [  3]  0.0- 1.0 sec   767 MBytes  6436 Mbits/sec
+ *            [  3]  1.0- 2.0 sec   835 MBytes  7006 Mbits/sec
+ *            [  3]  2.0- 3.0 sec   839 MBytes  7037 Mbits/sec
+ *            [  3]  3.0- 4.0 sec   838 MBytes  7030 Mbits/sec
+ *            [  3]  4.0- 5.0 sec   833 MBytes  6991 Mbits/sec
+ *            [  3]  5.0- 6.0 sec   834 MBytes  6996 Mbits/sec <--- find this line and look for 6996
+ **/
+static int Bsysperf_ReadIperfClientRate( const char *myUuid )
+{
+    int fd = 0;
+    int numbytes = 0;
+    int megabits = 0;
+    char filename[64];
+    char buffer[1000000];
+
+    memset(filename, 0, sizeof(filename) );
+    memset(buffer, 0, sizeof(buffer) );
+
+    sprintf( filename, "/tmp/iperf_client_%s.log", myUuid );
+    fd = open( filename, O_RDONLY );
+    if ( fd <= 0 )
+    {
+        printf("~DEBUG~%s: could not open file (%s) ~", __FUNCTION__, filename );
+        return ( -1 );
+    }
+
+    numbytes = read(fd, buffer, sizeof(buffer) - 1);
+    /*printf("~got numbytes %d ~", numbytes );*/
+
+    if ( numbytes > 0 )
+    {
+        char * pos = NULL;
+
+        pos = Bsysperf_FindLastNewline( buffer );
+
+        if ( pos )
+        {
+            /*printf( "~last line is (%s) ~", pos );*/
+            if ( pos && strlen(pos) > 0 )
+            {
+                char * posMBytes = strstr( pos, "MBytes");
+                if ( posMBytes )
+                {
+                    posMBytes += 6; /* advance pointer to space after the string */
+                    sscanf( posMBytes, "%d", &megabits );
+                    /*printf( "~%d MBits/sec ~", megabits );*/
+                }
+            }
+        }
+        else
+        {
+            /*printf( "~%s: could not find newline ~", __FUNCTION__ );*/
+        }
+    }
+
+    return ( megabits );
+}
+/**
  *  Function: This function is the main entry point for the BSYSPERF client app.
  **/
 int main(
@@ -734,6 +829,7 @@ int main(
     struct utsname uname_info;
     int    DvfsControl     = 0;
     int    GovernorSetting = 0;
+    char   wifiDriverVersion[32];
 
     if (argc > 1) {printf( "%s: no arguments are expected\n", argv[0] ); }
 
@@ -744,6 +840,7 @@ int main(
     memset( strUuid, 0, sizeof(strUuid) );
     memset( iperfCmdLine, 0, sizeof(iperfCmdLine) );
     memset( &uname_info, 0, sizeof(uname_info));
+    memset( &wifiDriverVersion, 0, sizeof(wifiDriverVersion));
 
     queryString   = getenv( "QUERY_STRING" );
 
@@ -784,6 +881,7 @@ int main(
         scanForInt( queryString, "ContextSwitch=", &ContextSwitches );
         scanForInt( queryString, "DvfsControl=", &DvfsControl );
         scanForInt( queryString, "GovernorSetting=", &GovernorSetting );
+        scanForStr( queryString, "uuid=", sizeof( strUuid ), strUuid );
     }
     else
     {
@@ -794,14 +892,14 @@ int main(
 
     printf( CONTENT_TYPE_HTML );
 
-    printf( "QUERY_STRING len %u; (%s)", (unsigned int) strlen( queryString ), queryString );
+    /*printf( "~DEBUG~QUERY_STRING len %u; (%s)~", (unsigned int) strlen( queryString ), queryString );*/
 
     /* if the checkbox for Memory is checked, determine if kernel has been compiled with perf tools */
     /*if (memory || profiling)*/
     {
         get_perf_version( perfVersion, sizeof( perfVersion ));
 
-        printf( "~perfVersion:%s~", perfVersion );
+        /*printf( "~perfVersion:%s~", perfVersion );*/
         if (strstr( perfVersion, "perf version " ) == NULL)
         {
             gPerfError = true;
@@ -1077,6 +1175,8 @@ int main(
             const char * fullpath = executable_fullpath( "iperf" );
             if ( strlen( fullpath ) )
             {
+                decodeURL( iperfCmdLine );
+                /*printf( "~DEBUG~111 iperfCmdLine; cmdLine (%s)~", iperfCmdLine ); */
                 if (strncmp(iperfCmdLine, "STOP", 4) == 0 )
                 {
                     request.cmdSecondary       = BMEMPERF_CMD_IPERF_STOP;
@@ -1085,11 +1185,10 @@ int main(
                 {
                     request.cmdSecondary       = BMEMPERF_CMD_IPERF_START;
                     strncpy ( (char*) &request.request.strCmdLine, iperfCmdLine, sizeof(request.request.strCmdLine) - 1 );
-                    decodeURL( request.request.strCmdLine );
-                    printf( "~DEBUG~iperfCmdLine; cmdLine (%s)~", iperfCmdLine );
+                    /*printf( "~DEBUG~iperfCmdLine; cmdLine (%s)~", iperfCmdLine );*/
                 }
                 request.cmdSecondaryOption = (strstr( iperfCmdLine, "-c")) ? 0 : 1;
-                printf( "~DEBUG~iperfCmdLine; cmdLine (%s) ... fullpath (%s) ... secondary (%d) ~", iperfCmdLine, fullpath, (int) request.cmdSecondaryOption );
+                /*printf( "~DEBUG~iperfCmdLine; cmdLine (%s) ... fullpath (%s) ... secondary (%d) ~", iperfCmdLine, fullpath, (int) request.cmdSecondaryOption );*/
             }
             else
             {
@@ -1316,11 +1415,11 @@ int main(
 
             printf( "~iperfInit~" );
             printf( "<span style=\"display:inline-block; font-size:18pt; margin-bottom:10px; margin-top:5px; \" >&nbsp;iperf</span><div style=\"border:1px solid black;\" >" );
-            printf( "<table cols=\"3\" style=\"border-collapse:collapse;borders:1px solid black;\" border=\"0\" cellpadding=\"3\" width=900 >" );
+            printf( "<table cols=\"3\" style=\"border-collapse:collapse;borders:1px solid black;\" border=\"0\" cellpadding=\"3\" width=1000 >" );
             printf( "   <tr>" );
             printf( "       <td width=\"110\" align=\"left\" nowrap ><b>Server:&nbsp;</b>iperf&nbsp;-s&nbsp;</td>" );
             printf( "       <td width=\"40\" align=\"left\" >" );
-            printf( "           <input type=\"text\" id=iperf_options_s placeholder=\"Extra Options\" style=\"border:1px solid black;width:200px;\" onfocus=\"FocusEntryBox(event);\" "
+            printf( "           <input type=\"text\" id=iperf_options_s placeholder=\"Extra Options\" style=\"border:1px solid black;width:170px;\" onfocus=\"FocusEntryBox(event);\" "
                     "onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" value=\"-w4096K -N\" title=\"Extra Options\" >" );
             printf( "       </td>" );
             printf( "       <td>" );
@@ -1346,25 +1445,25 @@ int main(
             printf( "               <td><input type=\"text\" id=iperf_addr placeholder=\"Server IP\" style=\"border:1px solid black;\" size=\"10\" value=\"%s\" "
                     "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Server Address\" > </td>",  wlan0Address );
             printf( "               <td style=\"border:none;\" width=\"25\" nowrap align=right >-t&nbsp;</td>" );
-            printf( "               <td style=\"border:none;\" ><input type=\"text\" id=iperf_duration placeholder=\"Duration\" style=\"border:1px solid black;\" size=\"3\" value=\"100\" "
+            printf( "               <td style=\"border:none;\" ><input type=\"text\" id=iperf_duration placeholder=\"Duration\" style=\"border:1px solid black;\" size=\"4\" value=\"100\" "
                     "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Duration\" ></td>" );
             printf( "           </tr>" );
             printf( "       </table></td>" );
-            printf( "       <td >" );
+            printf( "       <td align=left >" );
             printf( "           <table style=\"border-collapse:collapse;\" border=\"0\" cellpadding=\"0\" >" );
             printf( "               <tr>" );
             printf( "                   <td style=\"border:none;\" width=\"20\" nowrap align>-p&nbsp;</td>" );
-            printf( "                   <td><input type=\"text\" id=iperf_port_c placeholder=\"# Streams\" style=\"border:1px solid black;\" size=\"3\" value=\"5001\" "
+            printf( "                   <td><input type=\"text\" id=iperf_port_c placeholder=\"# Streams\" style=\"border:1px solid black;\" size=\"4\" value=\"5001\" "
                     "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"# Streams\" ></td>" );
             printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
             printf( "                   <td><input type=\"text\" id=iperf_options_c placeholder=\"Extra Options\" style=\"border:1px solid black;\" size=\"20\" value=\"-w4096K -N\" "
                     "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Extra Options\" ></td>" );
             printf( "                   <td style=\"border:none;\" width=\"30\" nowrap>&nbsp;</td>" );
-            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:40px;\" ><input type=\"button\" id=iperf_start_stop_c value=\"START\" onclick=\"MyClick(event);\" ></td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:20px;\" ><input type=\"button\" id=iperf_start_stop_c value=\"START\" onclick=\"MyClick(event);\" ></td>" );
             printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:10px;\" >&nbsp;</td>" );
             printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:20px;font-size:12pt;\" id=iperf_count_c ></td>" );
             printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:10px;\" >&nbsp;</td>" );
-            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:400px;font-size:12pt;\" id=iperf_status_c ></td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:450px;font-size:12pt;\" id=iperf_status_c ></td>" );
             printf( "               </tr>" );
             printf( "           </table>" );
             printf( "       </td>" );
@@ -1395,14 +1494,35 @@ int main(
                         if ( iperfPidClient && line && strlen(line) )
                         {
                             unsigned long int pid = 0;
+                            long int lIperfClientRate = 0;
                             sscanf( &line[-10], "%lu", &pid ); /* backup 10 characters to get access to the pid */
                             printf( "~iperfPidClient~%lu~", pid );
+
+                            lIperfClientRate = Bsysperf_ReadIperfClientRate( strUuid );
+                            if ( lIperfClientRate > 0 )
+                            {
+                                printf( "~iperfClientRate~%ld~", lIperfClientRate );
+                            }
                         }
                     }
                     else
                     {
                         printf( "~iperfPidClient~0~iperfRunningClient~NONE~" );
                     }
+
+                    /* if we told bsysperf_server to stop iperf client, remove the client's temporary log file */
+                    if (strncmp(iperfCmdLine, "STOP", 4) == 0 )
+                    {
+                        char filename[64];
+                        sprintf( filename, "/tmp/iperf_client_%s.log", strUuid );
+
+                        /* give bsysperf_server time to kill the client process */
+                        usleep( 1000 * 100 );                              /* 100 milliseconds */
+
+                        remove( filename ); /* delete the log file when stopping the client */
+                        /*printf( "~DEBUG~remove(%s)~", filename );*/
+                    }
+
                 }
 
                 if ( iperfRunningServer )
@@ -1533,12 +1653,13 @@ int main(
         }
 
 
+        Bsysperf_WifiGetDriverVersion ( WIFI_INTERFACE_NAME, &wifiDriverVersion[0], sizeof(wifiDriverVersion) );
         printf( "~WIFISTATS~" );
         printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 ><tr>" );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-left: solid thin black;\" >Chip Number:<span class=bluetext>%d (0x%x)</span></td> ",
                 tRevInfo.ulChipNum, tRevInfo.ulChipNum );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >Driver Version:<span class=bluetext>%d.%d.%d.%d </span></td> ",
-                (uint8_t)( tRevInfo.ulDriverRev>>24 ), (uint8_t)( tRevInfo.ulDriverRev>>16 ), (uint8_t)( tRevInfo.ulDriverRev>>8 ), (uint8_t)tRevInfo.ulDriverRev );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >Driver Version:<span class=bluetext>%s </span></td> ",
+                wifiDriverVersion );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >PCI vendor id:<span class=bluetext>0x%x </span></td> ", tRevInfo.ulVendorId );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-right: solid thin black;\" >Device id of chip:<span class=bluetext>0x%x </span></td> ",
                 tRevInfo.ulDeviceId );

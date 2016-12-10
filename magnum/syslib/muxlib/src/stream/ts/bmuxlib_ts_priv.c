@@ -1932,7 +1932,7 @@ BMUXlib_TS_P_ProcessSystemData(
       {
          void *pEntry = NULL;
          /* calculate Next PCR's expected ESCR value for future reference */
-         uint64_t uiNextESCR = hMuxTS->status.stPCRInfo.uiESCR + hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz;
+         uint64_t uiNextESCR = BMUXLIB_TS_P_MOD300_ADD32(hMuxTS->status.stPCRInfo.uiESCR, hMuxTS->status.stPCRInfo.uiIntervalIn27Mhz);
 
          if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
          {
@@ -1965,7 +1965,7 @@ BMUXlib_TS_P_ProcessSystemData(
          }
 
          /* Handle MOD300 wrap */
-         hMuxTS->status.stPCRInfo.uiNextESCR = BMUXLIB_TS_P_MOD300_WRAP(uiNextESCR);
+         hMuxTS->status.stPCRInfo.uiNextESCR = uiNextESCR;
 
          if ( 0 != hMuxTS->status.stStartSettings.stPCRData.uiInterval )
          {
@@ -3100,70 +3100,73 @@ BMUXlib_TS_P_ProcessNewBuffers(
 
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EOS( &stDescriptor ) )
             {
-               /* Insert LAST BPP */
-               BMUXlib_P_BPPInfo stBPPInfo;
+               if ( BMUXlib_TS_P_SourceType_eVideo == BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )] ) /* SW7366-574: Only send LAST BPP for video channel */
+               {
+                  /* Insert LAST BPP */
+                  BMUXlib_P_BPPInfo stBPPInfo;
 
-               BKNI_Memset( &stBPPInfo, 0, sizeof( BMUXlib_P_BPPInfo ) );
+                  BKNI_Memset( &stBPPInfo, 0, sizeof( BMUXlib_P_BPPInfo ) );
 
-               stBPPInfo.uiTransportChannelIndex = pInputMetadata->uiTransportChannelIndex;
-               stBPPInfo.bTransportChannelIndexValid = true;
+                  stBPPInfo.uiTransportChannelIndex = pInputMetadata->uiTransportChannelIndex;
+                  stBPPInfo.bTransportChannelIndexValid = true;
 
-               stBPPInfo.eSourceType = BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )];
-               stBPPInfo.bSourceTypeValid = true;
+                  stBPPInfo.eSourceType = BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )];
+                  stBPPInfo.bSourceTypeValid = true;
 
-               stBPPInfo.uiSkippedDescriptors = 1;
-               stBPPInfo.bSkippedDescriptorsValid = true;
+                  stBPPInfo.uiSkippedDescriptors = 1;
+                  stBPPInfo.bSkippedDescriptorsValid = true;
 
-               stBPPInfo.uiInputIndex = pInputMetadata->uiInputIndex;
-               stBPPInfo.bInputIndexValid = true;
+                  stBPPInfo.uiInputIndex = pInputMetadata->uiInputIndex;
+                  stBPPInfo.bInputIndexValid = true;
 
-               stBPPInfo.bESCRValid = BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
-               stBPPInfo.uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor );
+                  stBPPInfo.bESCRValid = BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
+                  stBPPInfo.uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor );
 
-               stBPPInfo.bPacket2PacketDeltaValid = true;
-               stBPPInfo.uiPacket2PacketDelta = 0;
+                  stBPPInfo.bPacket2PacketDeltaValid = true;
+                  stBPPInfo.uiPacket2PacketDelta = 0;
 
-               BERR_TRACE( BMUXlib_List_Remove(
-                        hMuxTS->hBPPFreeList,
-                        &stBPPInfo.pBuffer
-                        ) );
+                  BERR_TRACE( BMUXlib_List_Remove(
+                           hMuxTS->hBPPFreeList,
+                           &stBPPInfo.pBuffer
+                           ) );
 
-               BKNI_Memcpy(
-                        stBPPInfo.pBuffer,
-                        &s_stDefaultBPPData,
-                        sizeof ( BMUXlib_TS_P_BPPData )
-                        );
-
-               BMUXlib_TS_P_BPPData_SetCommand(
-                  stBPPInfo.pBuffer,
-                  0x82); /* "LAST" BTP/BPP op-code*/
-
-               BMUXlib_TS_P_BPPData_SetStreamID(
+                  BKNI_Memcpy(
                            stBPPInfo.pBuffer,
-                           pInputMetadata->uiPESStreamID
+                           &s_stDefaultBPPData,
+                           sizeof ( BMUXlib_TS_P_BPPData )
                            );
 
-               stBPPInfo.uiLength = sizeof ( BMUXlib_TS_P_BPPData );
+                  BMUXlib_TS_P_BPPData_SetCommand(
+                     stBPPInfo.pBuffer,
+                     0x82); /* "LAST" BTP/BPP op-code*/
 
-               if ( BERR_SUCCESS != BMUXlib_TS_P_InsertBPP(
-                        hMuxTS,
-                        &stBPPInfo
-                        )
-                  )
-               {
-                  BDBG_ERR(("Transport descriptors not available.  Will be processed next time."));
-                  BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
+                  BMUXlib_TS_P_BPPData_SetStreamID(
+                              stBPPInfo.pBuffer,
+                              pInputMetadata->uiPESStreamID
+                              );
 
-                  if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
+                  stBPPInfo.uiLength = sizeof ( BMUXlib_TS_P_BPPData );
+
+                  if ( BERR_SUCCESS != BMUXlib_TS_P_InsertBPP(
+                           hMuxTS,
+                           &stBPPInfo
+                           )
+                     )
                   {
-                     /* SW7425-659: Since MUX_TIMESTAMP_UPDATE BTP/BPP requires descriptors to be processed in ESCR sequential
-                      * order, if an input is stalled, we don't want to process any inputs.
-                      */
+                     BDBG_ERR(("Transport descriptors not available.  Will be processed next time."));
+                     BMUXlib_InputGroup_ActivateInput(hMuxTS->status.hInputGroup, hSelectedInput, false);
 
-                     break;
+                     if ( true == hMuxTS->status.stStartSettings.bSupportTTS )
+                     {
+                        /* SW7425-659: Since MUX_TIMESTAMP_UPDATE BTP/BPP requires descriptors to be processed in ESCR sequential
+                         * order, if an input is stalled, we don't want to process any inputs.
+                         */
+
+                        break;
+                     }
+
+                     continue;
                   }
-
-                  continue;
                }
 
                BDBG_MODULE_MSG( BMUXLIB_TS_EOS, ("%s[%d] EOS Seen",
@@ -3240,7 +3243,7 @@ void BMUXlib_TS_P_SeedPCR(BMUXlib_TS_Handle hMuxTS)
 
          /* determine the distance (offset) between the PTS and the Target ESCR (modulo-32-bits) */
          uiOffset = (uint32_t)(uiTargetPTSin27Mhz & 0xFFFFFFFF) - uiTargetESCR;
-         hMuxTS->status.stPCRInfo.uiESCR = BMUXLIB_TS_P_MOD300_WRAP(uiTargetPTSin27Mhz - uiOffset);
+         hMuxTS->status.stPCRInfo.uiESCR = BMUXLIB_TS_P_MOD300_SUB32(uiTargetPTSin27Mhz, uiOffset);
 
          BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Using initial ESCR/PTS (%08x/%03x%08x) --> %03x%08x",
             uiTargetESCR,

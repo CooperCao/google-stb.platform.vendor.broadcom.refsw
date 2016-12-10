@@ -36,14 +36,14 @@
  * ANY LIMITED REMEDY.
  *
  * Module Description:
- *	 This module controls and returns the User Data coming in the stream
+ *   This module controls and returns the User Data coming in the stream
  * and captured by the decoder.
  *
  ***************************************************************************/
-#include "bstd.h"				 /* standard types */
-#include "bavc.h"				 /* for userdata */
-#include "bdbg.h"				 /* Dbglib */
-#include "bkni.h"				 /* malloc */
+#include "bstd.h"                /* standard types */
+#include "bavc.h"                /* for userdata */
+#include "bdbg.h"                /* Dbglib */
+#include "bkni.h"                /* malloc */
 #include "bxvd.h"
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"
@@ -364,10 +364,10 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
                                            hXvdCh->pUserData->sUserdataSettings);
       if (rc != BERR_SUCCESS)
       {
-	 BXVD_DBG_ERR(hXvdCh, ("Could not enqueue user data packet"));
-	 hXvdCh->pUserData->errForwardError = rc;
-	 goto doCallback;
-	 /*return rc;*/
+     BXVD_DBG_ERR(hXvdCh, ("Could not enqueue user data packet"));
+     hXvdCh->pUserData->errForwardError = rc;
+     goto doCallback;
+     /*return rc;*/
       }
 
       /* Get the next user data packet, if any */
@@ -408,8 +408,8 @@ BERR_Code BXVD_Userdata_GetDefaultSettings(BXVD_Userdata_Settings *pDefSettings)
  * Open an instance of the userdata module.
  ***************************************************************************/
 BERR_Code BXVD_Userdata_Open(BXVD_ChannelHandle            hXvdCh,
-			     BXVD_Userdata_Handle         *phUserData,
-			     const BXVD_Userdata_Settings *pDefSettings)
+                 BXVD_Userdata_Handle         *phUserData,
+                 const BXVD_Userdata_Settings *pDefSettings)
 {
    BERR_Code               eStatus = BERR_SUCCESS;
    BXVD_P_UserDataContext *pUserdata = NULL;
@@ -512,10 +512,10 @@ BERR_Code BXVD_Userdata_Close(BXVD_Userdata_Handle hUserData)
 }
 
 /***************************************************************************
-	* Read user data. Non-isr version
+    * Read user data. Non-isr version
 ****************************************************************************/
 BERR_Code BXVD_Userdata_Read(BXVD_Userdata_Handle   hUserData,
-			     BAVC_USERDATA_info    *pUserDataInfo)
+                 BAVC_USERDATA_info    *pUserDataInfo)
 {
    BERR_Code status;
 
@@ -534,18 +534,18 @@ BERR_Code BXVD_Userdata_Read(BXVD_Userdata_Handle   hUserData,
 
 
 /***************************************************************************
-	* Read user data. ISR version
+    * Read user data. ISR version
 ****************************************************************************/
 BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
-				 BAVC_USERDATA_info *pUserDataInfo)
+                 BAVC_USERDATA_info *pUserDataInfo)
 {
    int protocol;
    uint32_t uiDecodePictureId;
    unsigned long ulFlags, ulPulldown, ulPTS;
    BERR_Code       eStatus = BERR_SUCCESS;
    unsigned offset;
-   uint8_t	  *pDataBfr;
-   unsigned 	  entries;
+   uint8_t    *pDataBfr;
+   unsigned       entries;
    uint8_t *userDataPtr;
 #ifdef BXVD_FLATTEN_USERDATA
    bool            bMoreUserdata;
@@ -632,6 +632,14 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
    pUserDataInfo->pUserDataBuffer = hUserData->pBfr;
    pDataBfr = (uint8_t *)hUserData->pBfr;
 
+   /* SWSTB-3092: check if pDataBfr is NULL */
+   if ( NULL == pDataBfr )
+   {
+      BDBG_WRN(("%s: pDataBfr is NULL", __FUNCTION__ ));
+      eStatus = BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
+      goto consume;
+   }
+
    /* Set up parsing loop initial conditions */
    offset = 0;
 #ifdef BXVD_FLATTEN_USERDATA
@@ -640,12 +648,19 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
    while( bMoreUserdata )
    {
 #endif
-      /* Pass on the PTS and PTS valid	 flag */
+      /* Pass on the PTS and PTS valid   flag */
       pUserDataInfo->ui32PTS = ulPTS;
       pUserDataInfo->bPTSValid = (ulFlags&BXVD_P_PPB_FLAG_PTS_PRESENT)?true : false;
 
       /* Pass on the decode picture id */
       pUserDataInfo->ulDecodePictureId = uiDecodePictureId;
+
+      if ( NULL == userDataPtr )
+      {
+         BDBG_WRN(("%s: userDataPtr is NULL", __FUNCTION__ ));
+         eStatus = BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
+         goto consume;
+      }
 
       /* Get Userdata info */
       pHdr = (UD_HDR *)userDataPtr;
@@ -726,7 +741,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       /* Create simulated data headers based on protocol */
       if (BXVD_IS_AVC(protocol))
       {
-         /* 	simulate NAL and SEI header */
+         /*     simulate NAL and SEI header */
          pDataBfr[offset++] = 0x00;
          pDataBfr[offset++] = 0x00;
          pDataBfr[offset++] = 0x00;
@@ -784,12 +799,6 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       entries = (pHdr->size+3)>>2;
 
       /* Copy segment of user data after verifying source and destination pointers */
-      if (pDataBfr == NULL || userDataPtr == NULL)
-      {
-	 BDBG_WRN(("Attempt to dereference a NULL user data buffer"));
-	 eStatus = BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
-	 goto consume;
-      }
       BKNI_Memcpy(&pDataBfr[offset],
                   userDataPtr + sizeof(UD_HDR),
                   entries*4);
@@ -808,10 +817,10 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
             ((uint32_t *)(pDataBfr+offset))[i] = data;
          }
       }
-#elif 	BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
+#elif   BSTD_CPU_ENDIAN == BSTD_ENDIAN_BIG
 /* do nothing */
 #else
-#error	 "Not supported"
+#error   "Not supported"
 #endif
 
       /* Adjust packet size */
@@ -842,7 +851,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
                                           &ulPTS,
                                           &uiDecodePictureId,
                                           hUserData->sUserdataSettings)
-	  == BXVD_ERR_QUEUE_EMPTY)
+      == BXVD_ERR_QUEUE_EMPTY)
       {
          bMoreUserdata = false;
       }
@@ -871,17 +880,17 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       BKNI_Printf("pHdr->type = 0x%x (%d)\n", pHdr->type, pHdr->type);
       if (ulPTS == 0)
       {
-	 BXVD_GetPTS_isr(hUserData->hXvdCh, &ptsInfo);
-	 BKNI_Printf("Interpolated running PTS = 0x%x (%u) - ",
-		     ptsInfo.ui32RunningPTS,
-		     ptsInfo.ui32RunningPTS);
-	 BKNI_Printf("Interpolated effective PTS = 0x%x (%u)\n",
-		     ptsInfo.ui32EffectivePTS,
-		     ptsInfo.ui32EffectivePTS);
+     BXVD_GetPTS_isr(hUserData->hXvdCh, &ptsInfo);
+     BKNI_Printf("Interpolated running PTS = 0x%x (%u) - ",
+             ptsInfo.ui32RunningPTS,
+             ptsInfo.ui32RunningPTS);
+     BKNI_Printf("Interpolated effective PTS = 0x%x (%u)\n",
+             ptsInfo.ui32EffectivePTS,
+             ptsInfo.ui32EffectivePTS);
 
       }
       else
-	 BKNI_Printf("PTS = 0x%x (%d)\n", (unsigned)ulPTS, (unsigned)ulPTS);
+     BKNI_Printf("PTS = 0x%x (%d)\n", (unsigned)ulPTS, (unsigned)ulPTS);
       BKNI_Printf("pUserDataInfo->eUserDataType = 0x%x (%d)\n",
                   pUserDataInfo->eUserDataType,
                   pUserDataInfo->eUserDataType);

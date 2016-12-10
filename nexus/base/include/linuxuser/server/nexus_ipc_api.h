@@ -93,19 +93,6 @@ enum nexus_main_socket_message_type
 /* queue size in server and client. not required to be the same, but efficient. */
 #define NEXUS_CALLBACK_QUEUE_SIZE 32
 
-/* data passed from server to client on initialization */
-struct nexus_client_init_data
-{
-    NEXUS_ClientConfiguration config;
-    struct {
-        /* client cannot call NEXUS_Heap_GetStatus to populate initial heap information */
-        NEXUS_HeapHandle heap; /* must match config.heaps[] */
-        unsigned offset;
-        unsigned size;
-        NEXUS_MemoryType memoryType;
-    } heap[NEXUS_MAX_HEAPS];
-};
-
 /* nexus_socket.c */
 typedef enum nexus_socket_type
 {

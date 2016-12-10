@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,22 +35,13 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 
 #ifndef NEXUS_SAGE_INIT_H__
 #define NEXUS_SAGE_INIT_H__
 
 #include "nexus_types.h"
+#include "nexus_sage_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -66,11 +57,10 @@ See Also:
 NEXUS_SageModule_GetDefaultSettings
 NEXUS_SageModule_Init
 ***************************************************************************/
-typedef struct NEXUS_SageModuleSettings
+typedef struct NEXUS_SageModuleInternalSettings
 {
     NEXUS_ModuleHandle security; /* Used for security. */
-    unsigned clientHeapIndex; /* heap that client requests will be using */
-} NEXUS_SageModuleSettings;
+} NEXUS_SageModuleInternalSettings;
 
 
 /***************************************************************************
@@ -90,13 +80,30 @@ void NEXUS_SageModule_GetDefaultSettings(
 
 /***************************************************************************
 Summary:
+Get default settings for the Security module initialization (Internal).
+
+Description:
+This is required in order to make application code resilient to the addition
+of new structure members in the future.
+
+See Also:
+NEXUS_SageModule_Init
+***************************************************************************/
+void NEXUS_SageModule_GetDefaultInternalSettings
+(
+ NEXUS_SageModuleInternalSettings *pInternalSettings
+ );
+
+/***************************************************************************
+Summary:
 Initialize the Sage module.
 
 Description:
 This function is called by NEXUS_Platform_Init, not by applications.
 ***************************************************************************/
 NEXUS_ModuleHandle NEXUS_SageModule_Init(
-    const NEXUS_SageModuleSettings *pSettings
+    const NEXUS_SageModuleSettings *pSettings,
+    const NEXUS_SageModuleInternalSettings *pInternalSettings
     );
 
 /***************************************************************************

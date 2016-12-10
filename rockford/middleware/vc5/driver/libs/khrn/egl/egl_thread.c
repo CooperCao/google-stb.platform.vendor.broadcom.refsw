@@ -257,7 +257,6 @@ EGLAPI EGLSurface EGLAPIENTRY eglGetCurrentSurface(EGLint readdraw)
    }
 
    thread = egl_thread_get();
-   thread->error = EGL_SUCCESS;
    api = thread->current_api;
    assert(api >= 0 && api < API_COUNT);
 

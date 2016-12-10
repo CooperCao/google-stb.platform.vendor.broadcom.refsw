@@ -487,7 +487,33 @@ typedef enum NEXUS_AudioLoudnessDeviceMode
 
 /***************************************************************************
 Summary:
-Audio Volume Settings
+Audio Fade Settings
+***************************************************************************/
+typedef struct NEXUS_AudioFadeSettings
+{
+    unsigned level;             /* Percentage representing the volume level.
+                                   0 is muted, 100 is full volume. Default is 100. */
+    unsigned duration;          /* duration in milliseconds it will take to change
+                                   to a new level. Valid values are 3 - 1000 */
+    unsigned type;              /* specifies the type of fade -
+                                   0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
+} NEXUS_AudioFadeSettings;
+
+/***************************************************************************
+Summary:
+Audio Fade Status
+***************************************************************************/
+typedef struct NEXUS_AudioFadeStatus
+{
+    bool active;
+    unsigned remaining;         /* MilliSeconds remaining in the current active fade */
+    unsigned level;             /* Percentage representing the current volume level.
+                                   0 is muted, 100 is full volume. Default is 100. */
+} NEXUS_AudioFadeStatus;
+
+/***************************************************************************
+Summary:
+Mixer Input Settings
 **************************************************************************/
 typedef struct NEXUS_AudioMixerInputSettings
 {
@@ -503,7 +529,31 @@ typedef struct NEXUS_AudioMixerInputSettings
                                                                                compressed inputs. */
 
     bool muted;     /* Mute if true */
+
+    /* In addition to static volume settings (above), some mixers also support fading of
+       input levels. Currently this feature is only supported for MS12 configurations,
+       when using Dsp Mixing (mixUsingDsp=true). These settings will be ignored in
+       all other mixer configurations */
+    NEXUS_AudioFadeSettings fade;
 } NEXUS_AudioMixerInputSettings;
+
+/***************************************************************************
+Summary:
+Mixer Input Status
+**************************************************************************/
+typedef struct NEXUS_AudioMixerInputStatus
+{
+    NEXUS_AudioFadeStatus fade;
+} NEXUS_AudioMixerInputStatus;
+
+/***************************************************************************
+Summary:
+Mixer Input Status
+**************************************************************************/
+typedef struct NEXUS_AudioMixerStatus
+{
+    NEXUS_AudioFadeStatus mainDecodeFade;
+} NEXUS_AudioMixerStatus;
 
 #ifdef __cplusplus
 }

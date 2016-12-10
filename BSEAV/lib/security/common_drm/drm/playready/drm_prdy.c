@@ -34,9 +34,10 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- ******************************************************************************/
 
+ ******************************************************************************/
 #include "drm_prdy.h"
+#include "bdbg.h"
 #include <string.h>
 #include <stdio.h>
 #include "bstd.h"
@@ -1666,6 +1667,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
 
     /* initialize the DRM_APP_CONTEXT */
     pPrdyCxt->pDrmAppCtx = Oem_MemAlloc(SIZEOF(DRM_APP_CONTEXT));
+    BDBG_MSG(("%s: allocated DrmAppCtx %p size %u",__FUNCTION__,pPrdyCxt->pDrmAppCtx,(SIZEOF(DRM_APP_CONTEXT))));
     ChkMem(pPrdyCxt->pDrmAppCtx);
     ZEROMEM( ( uint8_t * )pPrdyCxt->pDrmAppCtx, SIZEOF( DRM_APP_CONTEXT));
 
@@ -1674,6 +1676,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.binFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated binFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.binFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->binFileName, pPrdyCxt->oemSettings.binFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.binFileName);
@@ -1685,6 +1688,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated keyFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyFileName, pPrdyCxt->oemSettings.keyFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyFileName);
@@ -1696,6 +1700,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.keyHistoryFileName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated keyHistoryFileName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.keyHistoryFileName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->keyHistoryFileName, pPrdyCxt->oemSettings.keyHistoryFileName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.keyHistoryFileName);
@@ -1707,6 +1712,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     {
         DRM_DWORD  cchStr = 0;
         pPrdyCxt->oemSettings.defaultRWDirName = Oem_MemAlloc(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH);
+        BDBG_MSG(("%s: allocated defaultRWDirName %p size %u",__FUNCTION__,pPrdyCxt->oemSettings.defaultRWDirName,(SIZEOF(DRM_WCHAR) * DRM_MAX_PATH)));
         if( !convertCStringToWString(pInitSetting->defaultRWDirName, pPrdyCxt->oemSettings.defaultRWDirName, &cchStr))
         {
             SAFE_OEM_FREE(pPrdyCxt->oemSettings.defaultRWDirName);
@@ -1719,6 +1725,7 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     if (platformConfig.heap[NXCLIENT_FULL_HEAP])
     {
         NEXUS_HeapHandle heap = platformConfig.heap[NXCLIENT_FULL_HEAP];
+        BDBG_MSG(("%s: heap = %p",__FUNCTION__,heap));
         NEXUS_MemoryStatus heapStatus;
         NEXUS_Heap_GetStatus(heap, &heapStatus);
         if (heapStatus.memoryType & NEXUS_MemoryType_eFull)
@@ -1728,6 +1735,14 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     }
 
     pPrdyCxt->oemSettings.heap = heapSettings.heap;
+#ifdef PLAYREADY_HOST_IMPL
+#ifdef USE_UNIFIED_COMMON_DRM
+    pPrdyCxt->oemSettings.drmType = 0;
+#else
+    pPrdyCxt->oemSettings.drmType = BSAGElib_BinFileDrmType_ePlayready;
+#endif
+    BDBG_MSG(("%s:drmType 0x%x", __FUNCTION__,pPrdyCxt->oemSettings.drmType));
+#endif
     pPrdyCxt->pOEMContext = Drm_Platform_Initialize(&pPrdyCxt->oemSettings);
     ChkMem(pPrdyCxt->pOEMContext);
 
@@ -1735,6 +1750,9 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
     pPrdyCxt->cbOpaqueBuffer = MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE;
     ChkMem( pPrdyCxt->pbOpaqueBuffer = ( uint8_t * )Oem_MemAlloc(MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
     ChkMem( pPrdyCxt->pbRevocationBuffer = ( uint8_t * )Oem_MemAlloc( REVOCATION_BUFFER_SIZE));
+
+    BDBG_MSG(("%s: allocated OpaqueBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbOpaqueBuffer, MINIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE));
+    BDBG_MSG(("%s: allocated RevocationBuffer %p size %u", __FUNCTION__, pPrdyCxt->pbRevocationBuffer, REVOCATION_BUFFER_SIZE));
 
     /* Drm_Initialize */
     sDstrHDSPath.pwszString = sRgwchHDSPath;
@@ -1763,14 +1781,14 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
             goto ErrorExit;
         }
     }
-
+   BDBG_MSG(("%s calling Drm_Initialize DrmAppCtx %p pOEMContext %p ",__FUNCTION__,pPrdyCxt->pDrmAppCtx, pPrdyCxt->pOEMContext));
    /* TODO: perform synchronous activation if Drm_Initialize fails */
    ChkDR( Drm_Initialize( pPrdyCxt->pDrmAppCtx,
                           pPrdyCxt->pOEMContext,
                           pPrdyCxt->pbOpaqueBuffer,
                           pPrdyCxt->cbOpaqueBuffer,
                           &sDstrHDSPath) );
-
+   BDBG_MSG(("%s calling Drm_Revocation_SetBuffer pPrdyCxt->pDrmAppCtx %p",__FUNCTION__,pPrdyCxt->pDrmAppCtx));
    ChkDR( Drm_Revocation_SetBuffer( pPrdyCxt->pDrmAppCtx,
                                     pPrdyCxt->pbRevocationBuffer,
                                     REVOCATION_BUFFER_SIZE ) );
@@ -2823,7 +2841,7 @@ ErrorExit:
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix(
         DRM_Prdy_Handle_t          pPrdyContext,
-        uint8_t					   *pSessionID,
+        uint8_t                    *pSessionID,
         DRM_Prdy_DecryptContext_t  *pDecryptContext)
 {
     DRM_RESULT              dr = DRM_SUCCESS;
@@ -3334,7 +3352,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse_SecStop(
         DRM_Prdy_Handle_t            pPrdyContext,
         const char                  *pData,
         uint32_t                     dataLen,
-		uint8_t						*pSessionID,
+        uint8_t                     *pSessionID,
         DRM_Prdy_License_Response_t *pResponse  /* [out]  can be null */
 )
 {
@@ -3355,7 +3373,7 @@ DRM_Prdy_Error_e DRM_Prdy_LicenseAcq_ProcessResponse_SecStop(
                 NULL,
                 ( uint8_t * )pData,
                 dataLen,
-				( DRM_BYTE *)pSessionID,
+                ( DRM_BYTE *)pSessionID,
                 &oResponse ) );
 
     if(pResponse != NULL)
@@ -5175,8 +5193,7 @@ void DRM_Prdy_SetSystemTime(
 #else
     Oem_Clock_SetSystemTime( pPrdyContext->pOEMContext, &systemTime);
 #endif
-
-    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    BDBG_MSG(("%s: Exiting", __FUNCTION__));
 }
 
 /***********************************************************************************
@@ -5227,7 +5244,7 @@ DRM_Prdy_Error_e DRM_Prdy_TurnSecureStop(
     BDBG_ASSERT(pPrdyContext != NULL);
 
     dr = Drm_TurnSecureStop(pPrdyContext->pDrmAppCtx, inOnOff);
-
+    BDBG_MSG(("exiting %s dr=0x%lx",__FUNCTION__,dr));
     return convertDrmResult(dr);
 }
 
@@ -5310,64 +5327,64 @@ DRM_Prdy_Error_e DRM_Prdy_ResetSecureStops(
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_DeleteSecureStore(void)
 {
-	DRM_RESULT 			dr;
+    DRM_RESULT          dr;
 
-	dr = Drm_DeleteSecureStore(&sDstrHDSPath);
+    dr = Drm_DeleteSecureStore(&sDstrHDSPath);
 
-	return convertDrmResult(dr);
+    return convertDrmResult(dr);
 }
 
 /***********************************************************************************
  * Function: DRM_Prdy_GetSecureStoreHash()
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_GetSecureStoreHash(
-	uint8_t				*pSecureStoreHash )
+    uint8_t             *pSecureStoreHash )
 {
-	DRM_RESULT 			dr;
+    DRM_RESULT          dr;
 
-	dr = Drm_GetSecureStoreHash(&sDstrHDSPath, pSecureStoreHash);
+    dr = Drm_GetSecureStoreHash(&sDstrHDSPath, pSecureStoreHash);
 
-	return convertDrmResult(dr);
+    return convertDrmResult(dr);
 }
 
 /***********************************************************************************
  * Function: DRM_Prdy_DeleteKeyStore()
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_DeleteKeyStore(
-	DRM_Prdy_Handle_t 	pPrdyContext )
+    DRM_Prdy_Handle_t   pPrdyContext )
 {
-	DRM_RESULT 			dr;
+    DRM_RESULT          dr;
 
-	if (pPrdyContext != NULL)
-		dr = Drm_DeleteKeyStore(pPrdyContext->pDrmAppCtx);
-	else
-		dr = Drm_DeleteKeyStore(NULL);
+    if (pPrdyContext != NULL)
+        dr = Drm_DeleteKeyStore(pPrdyContext->pDrmAppCtx);
+    else
+        dr = Drm_DeleteKeyStore(NULL);
 
-	return convertDrmResult(dr);
+    return convertDrmResult(dr);
 }
 
 /***********************************************************************************
  * Function: DRM_Prdy_GetKeyStoreHash()
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_GetKeyStoreHash(
-		DRM_Prdy_Handle_t 	pPrdyContext,
-		uint8_t				*pSecureStoreHash )
+        DRM_Prdy_Handle_t   pPrdyContext,
+        uint8_t             *pSecureStoreHash )
 {
-	DRM_RESULT 			dr;
+    DRM_RESULT          dr;
 
-	if (pPrdyContext != NULL)
-		dr = Drm_GetKeyStoreHash(pPrdyContext->pDrmAppCtx, pSecureStoreHash);
-	else
-		dr = Drm_GetKeyStoreHash(NULL, pSecureStoreHash);
+    if (pPrdyContext != NULL)
+        dr = Drm_GetKeyStoreHash(pPrdyContext->pDrmAppCtx, pSecureStoreHash);
+    else
+        dr = Drm_GetKeyStoreHash(NULL, pSecureStoreHash);
 
-	return convertDrmResult(dr);
+    return convertDrmResult(dr);
 }
 
 /***********************************************************************************
  * Function: DRM_Prdy_Clock_GetSystemTime()
  ***********************************************************************************/
 DRM_Prdy_Error_e DRM_Prdy_Clock_GetSystemTime(
-		DRM_Prdy_Handle_t 	pPrdyContext,
+        DRM_Prdy_Handle_t   pPrdyContext,
         uint8_t            *pSystemTime)
 {
     DRM_RESULT dr = DRM_SUCCESS;

@@ -876,14 +876,14 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if (!strcmp(argv[curarg], "-dropFrame") && curarg+1 < argc) {
             ++curarg;
             if (!strcmp(argv[curarg],"enable")) {
-                settings->display_init.hd.dropFrame = NEXUS_TristateEnable_eEnable;
+                settings->display.dropFrame = NEXUS_TristateEnable_eEnable;
             }
             else if (!strcmp(argv[curarg],"disable")) {
-                settings->display_init.hd.dropFrame = NEXUS_TristateEnable_eDisable;
+                settings->display.dropFrame = NEXUS_TristateEnable_eDisable;
             }
             else {
                 /* eNotSet is "track" */
-                settings->display_init.hd.dropFrame = NEXUS_TristateEnable_eNotSet;
+                settings->display.dropFrame = NEXUS_TristateEnable_eNotSet;
             }
         }
         else if (!strcmp(argv[curarg], "-colorSpace") && argc>curarg+1) {

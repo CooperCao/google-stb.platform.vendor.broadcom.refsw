@@ -63,7 +63,7 @@ static void      BAPE_DspMixer_P_InputMute(struct BAPE_PathNode *pNode, struct B
 static void      BAPE_DspMixer_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BAPE_PathConnector *pConnector);
 
 /* Local Routines */
-static BERR_Code BAPE_DspMixer_P_SetSettings(BAPE_MixerHandle hMixer, const BAPE_MixerSettings *pSettings);
+static BERR_Code BAPE_DspMixer_P_SetSettings(BAPE_MixerHandle handle, const BAPE_MixerSettings *pSettings);
 static BERR_Code BAPE_DspMixer_P_RemoveAllInputs(BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackMixer (BAPE_MixerHandle handle);
 static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle);
@@ -708,7 +708,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     BDBG_ASSERT(false == handle->taskStarted);
 
     /* Apply latest and greatest settings */
-    BAPE_DspMixer_P_SetSettings(handle, &handle->settings);
+    BAPE_DspMixer_P_SetSettings(handle, NULL);
 
     /* Scan inputs and determine if we need a FS and PLL linkage for loopback */
     for ( pInputConnection = BLST_S_FIRST(&handle->pathNode.upstreamList);
@@ -1537,7 +1537,14 @@ static void BAPE_DspMixer_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNod
     }
 
     /* Update SRCs accordingly. */
-    BAPE_DspMixer_P_SetInputSRC_isr(handle, pConnection->pSource, sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isr(handle));
+    if (pConnection->pSource->pParent->type == BAPE_PathNodeType_ePlayback)
+    {
+        BAPE_DspMixer_P_SetInputSRC_isr(handle, pConnection->pSource, sampleRate, 48000);
+    }
+    else
+    {
+        BAPE_DspMixer_P_SetInputSRC_isr(handle, pConnection->pSource, sampleRate, BAPE_Mixer_P_GetOutputSampleRate_isr(handle));
+    }
 }
 
 static BERR_Code BAPE_DspMixer_P_InputFormatChange(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection, const BAPE_FMT_Descriptor *pNewFormat)
@@ -1893,7 +1900,14 @@ static void BAPE_DspMixer_P_SetSampleRate_isr(BAPE_MixerHandle mixer, unsigned s
         {
             if ( mixer->inputs[i] )
             {
-                BAPE_DspMixer_P_SetInputSRC_isr(mixer, mixer->inputs[i], mixer->inputs[i]->format.sampleRate, sampleRate);
+                if (mixer->inputs[i]->pParent->type == BAPE_PathNodeType_ePlayback)
+                {
+                    BAPE_DspMixer_P_SetInputSRC_isr(mixer, mixer->inputs[i], mixer->inputs[i]->format.sampleRate, 48000);
+                }
+                else
+                {
+                    BAPE_DspMixer_P_SetInputSRC_isr(mixer, mixer->inputs[i], mixer->inputs[i]->format.sampleRate, sampleRate);
+                }
             }
         }
 
@@ -1972,7 +1986,6 @@ static BERR_Code BAPE_DspMixer_P_GetInputVolume(
 
     return BERR_SUCCESS;
 }
-
 
 /*************************************************************************/
 static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsigned index)
@@ -2088,6 +2101,9 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
     /* Apply settings to FW Mixer */
     if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
+        BDSP_AudioTaskDatasyncSettings datasyncSettings;
+        BAPE_DecoderMixingMode mixingMode = BAPE_DecoderMixingMode_eMax;
+
         /*BDSP_Stage_SetAlgorithm(mixer->hMixerStage, BDSP_Algorithm_eMixerDapv2);*/
         errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
         if ( errCode )
@@ -2095,9 +2111,95 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
             return BERR_TRACE(errCode);
         }
 
+        /* set volumes */
         for ( i = 0; i < BAPE_Channel_eMax; i++ )
         {
             userConfig.userConfigDapv2.i32MixerVolumeControlGains[taskInputIndex][i] = scaleValue[i];
+        }
+
+        /* check input types and modes */
+        for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
+        {
+            BAPE_DecoderHandle decoder;
+            if ( handle->inputs[i] && handle->inputs[i]->pParent->type == BAPE_PathNodeType_eDecoder )
+            {
+                decoder = (BAPE_DecoderHandle)handle->inputs[i]->pParent->pHandle;
+                if ( decoder->state == BAPE_DecoderState_eStarted ||
+                     decoder->state == BAPE_DecoderState_eStarting ||
+                     decoder->state == BAPE_DecoderState_ePaused ||
+                     decoder->state == BAPE_DecoderState_eFrozen ||
+                     i == index )
+                {
+                    if ( mixingMode == BAPE_DecoderMixingMode_eMax &&
+                         (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription ||
+                          decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone) )
+                    {
+                        mixingMode = decoder->startSettings.mixingMode;
+                    }
+
+                    if ( (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eDescription && mixingMode == BAPE_DecoderMixingMode_eStandalone) ||
+                         (decoder->startSettings.mixingMode == BAPE_DecoderMixingMode_eStandalone && mixingMode == BAPE_DecoderMixingMode_eDescription) )
+                    {
+                        BDBG_WRN(("WARNING: Mismatch between Decoders. One has mixingMode %d and another has mixingMode %d. Using %d to configure BDSP.", mixingMode, decoder->startSettings.mixingMode, mixingMode));
+                    }
+                }
+            }
+        }
+
+        errCode = BDSP_AudioStage_GetDatasyncSettings(handle->hMixerStage, &datasyncSettings);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        datasyncSettings.uAlgoSpecConfigStruct.sMixerDapv2Config.ui32DualMainModeEnable = false;
+        switch ( mixingMode )
+        {
+        case BAPE_DecoderMixingMode_eDescription:
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixingMode, 0);
+            break;
+        case BAPE_DecoderMixingMode_eStandalone:
+            datasyncSettings.uAlgoSpecConfigStruct.sMixerDapv2Config.ui32DualMainModeEnable = true;
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixingMode, 2);
+            break;
+        default:
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixingMode, 1);
+            break;
+        }
+
+        errCode = BDSP_AudioStage_SetDatasyncSettings(handle->hMixerStage, &datasyncSettings);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        /* update fade configuration for this input */
+        /* in cert mode, allow volumes to pass through as dB, without alteration, in production, convert to Q1.31 format */
+        if ( (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_MODE) )
+        {
+            if ( (unsigned)userConfig.userConfigDapv2.sFadeControl[taskInputIndex].i32attenuation != handle->inputVolume[index].fade.level )
+            {
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32attenuation, (int32_t)handle->inputVolume[index].fade.level);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32type, (int32_t)handle->inputVolume[index].fade.type);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32duration, (int32_t)handle->inputVolume[index].fade.duration);
+            }
+        }
+        else
+        {
+            /* scale percentage to Q1.31 format for production usage case.
+               BDSP will convert to dB from there, for the range -96 dB to 0 dB */
+            unsigned levelQ131 = (unsigned) (((int64_t)handle->inputVolume[index].fade.level)<<31) / 100;
+
+            if ( levelQ131 > 0x7FFFFFFF )
+            {
+                levelQ131 = 0x7FFFFFFF;
+            }
+            if ( levelQ131 != (unsigned)userConfig.userConfigDapv2.sFadeControl[taskInputIndex].i32attenuation )
+            {
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32attenuation, (int32_t)levelQ131);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32type, (int32_t)handle->inputVolume[index].fade.type);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[taskInputIndex].i32duration, (int32_t)handle->inputVolume[index].fade.duration);
+            }
         }
 
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
@@ -2197,27 +2299,29 @@ static BERR_Code BAPE_DspMixer_P_SetInputVolume(
 }
 
 static BERR_Code BAPE_DspMixer_P_SetSettings(
-    BAPE_MixerHandle hMixer,
+    BAPE_MixerHandle handle,
     const BAPE_MixerSettings *pSettings
     )
 {
     BERR_Code errCode;
     BAPE_UnifiedFWMixerUserConfig userConfig;
 
-    BDBG_OBJECT_ASSERT(hMixer, BAPE_Mixer);
-    BDBG_ASSERT(NULL != pSettings);
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
 
-    hMixer->settings = *pSettings;
+    if ( pSettings != NULL )
+    {
+        handle->settings = *pSettings;
+    }
 
     /* Apply settings to FW Mixer */
-    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(hMixer) == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         unsigned i;
-        if (!hMixer->taskStarted)
+        if (!handle->taskStarted)
         {
-            BDSP_Stage_SetAlgorithm(hMixer->hMixerStage, BDSP_Algorithm_eMixerDapv2);
+            BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
         }
-        errCode = BDSP_Stage_GetSettings(hMixer->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
+        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2229,74 +2333,101 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         /* We will only end up in MS12 mode if compiled in MS12 mode AND we find DDRE downstream.
            So we will always set ms12 to 1 here. */
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Ms12Flag, 1);
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, pSettings->enablePostProcessing ? 1 : 0);
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, pSettings->multiStreamBalance);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32EnableDapv2, handle->settings.enablePostProcessing ? 1 : 0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32MixerUserBalance, handle->settings.multiStreamBalance);
         /* Hardcode to the most minimal processing mode */
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32Mode, 3);
 
         /* --------------------------------------------------------- */
         /* Certification Params */
         /* --------------------------------------------------------- */
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Certification_flag, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_MODE) ? 1 : 0);
-        if ( (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_MODE) )
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32Certification_flag, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_MODE) ? 1 : 0);
+        if ( (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_MODE) )
         {
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiProcessDisable, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI) ? 1 : 0);
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableSurrCompressorSteering, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_SURROUNDCOMP) ? 0 : 1);
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableDialogueEnhancerSteering, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_DIALOGENHANCER) ? 0 : 1);
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableVolumeLevelerSteering, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_VOLUMELIMITER) ? 0 : 1);
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableIEQSteering, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_INTELLIGENTEQ) ? 0 : 1);
-            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableSurroundDecoder, (pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_ENABLE_SURROUND_DECODER) ? 1 : 0);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiProcessDisable, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI) ? 1 : 0);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableSurrCompressorSteering, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_SURROUNDCOMP) ? 0 : 1);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableDialogueEnhancerSteering, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_DIALOGENHANCER) ? 0 : 1);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableVolumeLevelerSteering, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_VOLUMELIMITER) ? 0 : 1);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32MiEnableIEQSteering, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_DISABLE_MI_INTELLIGENTEQ) ? 0 : 1);
+            BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableSurroundDecoder, (handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_ENABLE_SURROUND_DECODER) ? 1 : 0);
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32IEamount,
-                                    BAPE_DSP_P_VALIDATE_VARIABLE_UPPER((pSettings->certificationMode & BAPE_DOLBY_DAP_CERT_EQAMOUNT) >> BAPE_DOLBY_DAP_CERT_EQAMOUNT_SHIFT, 16));
+                                    BAPE_DSP_P_VALIDATE_VARIABLE_UPPER((handle->settings.certificationMode & BAPE_DOLBY_DAP_CERT_EQAMOUNT) >> BAPE_DOLBY_DAP_CERT_EQAMOUNT_SHIFT, 16));
+            if ( (unsigned)userConfig.userConfigDapv2.sFadeControl[4].i32attenuation != handle->settings.fade.mainDecodeFade.level )
+            {
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32attenuation, (int32_t)handle->settings.fade.mainDecodeFade.level);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32type, (int32_t)handle->settings.fade.mainDecodeFade.type);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32duration, (int32_t)handle->settings.fade.mainDecodeFade.duration);
+            }
+        }
+        else
+        {
+            /* scale percentage to Q1.31 format for production usage case.
+               BDSP will convert to dB from there, for the range -96 dB to 0 dB */
+            unsigned levelQ131 = (unsigned) (((int64_t)handle->settings.fade.mainDecodeFade.level)<<31) / 100;
+
+            if ( levelQ131 > 0x7FFFFFFF )
+            {
+                levelQ131 = 0x7FFFFFFF;
+            }
+            if ( levelQ131 != (unsigned)userConfig.userConfigDapv2.sFadeControl[4].i32attenuation )
+            {
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32attenuation, (int32_t)levelQ131);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32type, (int32_t)handle->settings.fade.mainDecodeFade.type);
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sFadeControl[4].i32duration, (int32_t)handle->settings.fade.mainDecodeFade.duration);
+            }
         }
 
         /* --------------------------------------------------------- */
         /* Configure Volume Leveler */
         /* --------------------------------------------------------- */
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableVolLeveler, pSettings->volumeLimiter.enableVolumeLimiting ? 1 : 0);
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32leveler_ignore_il, pSettings->volumeLimiter.enableIntelligentLoudness ? 0 : 1);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableVolLeveler, handle->settings.volumeLimiter.enableVolumeLimiting ? 1 : 0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32leveler_ignore_il, handle->settings.volumeLimiter.enableIntelligentLoudness ? 0 : 1);
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32VolLevelInputValue,
-                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(pSettings->volumeLimiter.volumeLimiterAmount, 10));
+                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(handle->settings.volumeLimiter.volumeLimiterAmount, 10));
 
         /* --------------------------------------------------------- */
         /* Configure Dialog Enhancer */
         /* --------------------------------------------------------- */
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableDialogEnhancer, pSettings->dialogEnhancer.enableDialogEnhancer);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableDialogEnhancer, handle->settings.dialogEnhancer.enableDialogEnhancer);
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32DialogEnhancerLevel,
-                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(pSettings->dialogEnhancer.dialogEnhancerLevel, 16));
+                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(handle->settings.dialogEnhancer.dialogEnhancerLevel, 16));
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32DialogEnhancerDuckLevel,
-                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(pSettings->dialogEnhancer.contentSuppressionLevel, 16));
+                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(handle->settings.dialogEnhancer.contentSuppressionLevel, 16));
 
         /* --------------------------------------------------------- */
         /* Configure Intelligent EQ */
         /* --------------------------------------------------------- */
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableIntelligentEqualizer, pSettings->intelligentEqualizer.enabled ? 1 : 0);
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32EnableIntelligentEqualizer, handle->settings.intelligentEqualizer.enabled ? 1 : 0);
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32IEQFrequency_count,
-                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(pSettings->intelligentEqualizer.numBands, 20));
+                                BAPE_DSP_P_VALIDATE_VARIABLE_UPPER(handle->settings.intelligentEqualizer.numBands, 20));
         for ( i = 0; i < userConfig.userConfigDapv2.sDapv2UserConfig.ui32IEQFrequency_count; i++ )
         {
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.ui32IEQFrequency[i],
-                                    BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(pSettings->intelligentEqualizer.band[i].frequency, 20, 20000));
+                                    BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->settings.intelligentEqualizer.band[i].frequency, 20, 20000));
             BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, sDapv2UserConfig.i32IEQInputGain[i],
-                                    BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(pSettings->intelligentEqualizer.band[i].gain, -480, 480));
+                                    BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->settings.intelligentEqualizer.band[i].gain, -480, 480));
         }
 
-        errCode = BDSP_Stage_SetSettings(hMixer->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
+        /* --------------------------------------------------------- */
+        /* Fade */
+        /* --------------------------------------------------------- */
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfigDapv2, i32RampMode, handle->settings.fade.continuousFading ? 1 : 0);
+        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfigDapv2, sizeof(userConfig.userConfigDapv2));
     }
     else
     {
         unsigned i, j;
         int32_t enableCustomMixing;
 
-        if (!hMixer->taskStarted)
+        if (!handle->taskStarted)
         {
-            errCode = BDSP_Stage_SetAlgorithm(hMixer->hMixerStage, BDSP_Algorithm_eMixer);
+            errCode = BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixer);
             if ( errCode )
             {
                 return BERR_TRACE(errCode);
             }
         }
-        errCode = BDSP_Stage_GetSettings(hMixer->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
+        errCode = BDSP_Stage_GetSettings(handle->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
         if ( errCode )
         {
             return BERR_TRACE(errCode);
@@ -2308,9 +2439,9 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         {
             for ( j = 0; j < 6; j++ )
             {
-                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomMixingCoefficients[i][j], hMixer->settings.loopbackVolumeMatrix[i][j] << 7);
-                if ( (i != j && hMixer->settings.loopbackVolumeMatrix[i][j] != 0) ||
-                     (i == j && hMixer->settings.loopbackVolumeMatrix[i][j] != BAPE_VOLUME_NORMAL) )
+                BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomMixingCoefficients[i][j], handle->settings.loopbackVolumeMatrix[i][j] << 7);
+                if ( (i != j && handle->settings.loopbackVolumeMatrix[i][j] != 0) ||
+                     (i == j && handle->settings.loopbackVolumeMatrix[i][j] != BAPE_VOLUME_NORMAL) )
                 {
                     enableCustomMixing = true;
                 }
@@ -2331,8 +2462,8 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
         }
         #endif
         BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32CustomEffectsAudioMixingEnable, enableCustomMixing);
-        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32UserMixBalance, pSettings->multiStreamBalance);
-        errCode = BDSP_Stage_SetSettings(hMixer->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
+        BAPE_DSP_P_SET_VARIABLE(userConfig.userConfig, i32UserMixBalance, handle->settings.multiStreamBalance);
+        errCode = BDSP_Stage_SetSettings(handle->hMixerStage, &userConfig.userConfig, sizeof(userConfig.userConfig));
     }
 
     if ( errCode )
@@ -2343,18 +2474,107 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
     return BERR_SUCCESS;
 }
 
+
+/*************************************************************************/
+static BERR_Code BAPE_DspMixer_P_GetInputStatus(
+    BAPE_MixerHandle handle,
+    BAPE_Connector input,
+    BAPE_MixerInputStatus *pStatus      /* [out] */
+    )
+{
+    BERR_Code errCode;
+    unsigned i;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_OBJECT_ASSERT(input, BAPE_PathConnector);
+    BDBG_ASSERT(NULL != pStatus);
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+    i = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, input);
+    if ( i == BAPE_MIXER_INPUT_INDEX_INVALID )
+    {
+        BDBG_ERR(("Input %p is not connected to mixer %p", (void *)input, (void *)handle));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    {
+        BDSP_Raaga_MixerDapv2PPStatus dspStatus;
+        if (!handle->taskStarted)
+        {
+            BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
+        }
+        errCode = BDSP_Stage_GetStatus(handle->hMixerStage, &dspStatus, sizeof(dspStatus));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        if ( dspStatus.FadeCtrl_Info[i].ui32StatusValid )
+        {
+            pStatus->fade.active = (dspStatus.FadeCtrl_Info[i].ui32FadeActiveStatus == 1);
+            pStatus->fade.remaining = dspStatus.FadeCtrl_Info[i].ui32RemainingDuration;
+            pStatus->fade.level = dspStatus.FadeCtrl_Info[i].ui32CurrentVolumeLevel;
+            return BERR_SUCCESS;
+        }
+        return BERR_NOT_AVAILABLE;
+    }
+
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/*************************************************************************/
+static BERR_Code BAPE_DspMixer_P_GetStatus(
+    BAPE_MixerHandle handle,
+    BAPE_MixerStatus *pStatus      /* [out] */
+    )
+{
+    BERR_Code errCode;
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != pStatus);
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+
+    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    {
+        BDSP_Raaga_MixerDapv2PPStatus dspStatus;
+        if (!handle->taskStarted)
+        {
+            BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
+        }
+        errCode = BDSP_Stage_GetStatus(handle->hMixerStage, &dspStatus, sizeof(dspStatus));
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        if ( dspStatus.FadeCtrl_Info[4].ui32StatusValid )
+        {
+            pStatus->mainDecodeFade.active = (dspStatus.FadeCtrl_Info[4].ui32FadeActiveStatus == 1);
+            pStatus->mainDecodeFade.remaining = dspStatus.FadeCtrl_Info[4].ui32RemainingDuration;
+            pStatus->mainDecodeFade.level = dspStatus.FadeCtrl_Info[4].ui32CurrentVolumeLevel;
+            return BERR_SUCCESS;
+        }
+        return BERR_NOT_AVAILABLE;
+    }
+
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
 static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2)
 {
-    BAPE_MixerHandle hMixer = pParam1;
+    BAPE_MixerHandle handle = pParam1;
 
-    BDBG_OBJECT_ASSERT(hMixer, BAPE_Mixer);
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
     BSTD_UNUSED(param2);
 
     BDBG_MSG(("Encoder output overflow interrupt"));
 
-    if ( hMixer->hMuxOutput )
+    if ( handle->hMuxOutput )
     {
-        BAPE_MuxOutput_P_Overflow_isr(hMixer->hMuxOutput);
+        BAPE_MuxOutput_P_Overflow_isr(handle->hMuxOutput);
     }
 }
 
@@ -2378,5 +2598,7 @@ static const BAPE_MixerInterface g_dspMixerInterface = {
     BAPE_DspMixer_P_SetInputVolume,
     NOT_SUPPORTED(BAPE_DspMixer_P_ApplyOutputVolume),
     BAPE_DspMixer_P_SetSettings,
-    NOT_SUPPORTED(BAPE_DspMixer_P_ApplyStereoMode)
+    NOT_SUPPORTED(BAPE_DspMixer_P_ApplyStereoMode),
+    BAPE_DspMixer_P_GetInputStatus,
+    BAPE_DspMixer_P_GetStatus
 };

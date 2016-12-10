@@ -65,7 +65,8 @@ BDBG_MODULE(nexus_sage_module);
 #define _REGION_MAP_MAX_NUM 8
 
 static struct {
-    NEXUS_SageModuleSettings settings;    /* Nexus sage module settings, given in NEXUS_SageModule_Init */
+    NEXUS_SageModuleSettings settings; /* Nexus sage module settings, given in NEXUS_SageModule_Init */
+    NEXUS_SageModuleInternalSettings internalSettings; /* Nexus sage module Internal settings, given in NEXUS_SageModule_Init */
 
     /* Memory blocks */
     NEXUS_MemoryBlockHandle sageSecureHeap; /* whole SAGE heap to reserve memory for SAGE side */
@@ -128,12 +129,12 @@ static void NEXUS_Sage_P_FlushCache_isrsafe(const void *address, size_t numBytes
 /* .lock_security : BSAGElib_Sync_LockCallback prototype */
 static void NEXUS_Sage_P_Module_Lock_Security(void)
 {
-    NEXUS_Module_Lock(g_sage_module.settings.security);
+    NEXUS_Module_Lock(g_sage_module.internalSettings.security);
 }
 /* .unlock_security : BSAGElib_Sync_UnlockCallback prototype */
 static void NEXUS_Sage_P_Module_Unlock_Security(void)
 {
-    NEXUS_Module_Unlock(g_sage_module.settings.security);
+    NEXUS_Module_Unlock(g_sage_module.internalSettings.security);
 }
 /* .lock_sage : BSAGElib_Sync_LockCallback prototype */
 static void NEXUS_Sage_P_Module_Lock_Sage(void)
@@ -405,6 +406,11 @@ void NEXUS_SageModule_GetDefaultSettings(NEXUS_SageModuleSettings *pSettings)
     pSettings->clientHeapIndex = NEXUS_MAX_HEAPS;
 }
 
+void NEXUS_SageModule_GetDefaultInternalSettings(NEXUS_SageModuleInternalSettings *pInternalSettings)
+{
+    BKNI_Memset(pInternalSettings, 0, sizeof(*pInternalSettings));
+}
+
 /* Init the timer Module */
 static NEXUS_Error NEXUS_SageModule_P_InitializeTimer(void)
 {
@@ -632,7 +638,8 @@ err:
 
 
 /* Initialize Sage Module. This is called during platform initialication. */
-NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettings)
+NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettings,
+                                         const NEXUS_SageModuleInternalSettings *pInternalSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_ModuleSettings moduleSettings;
@@ -642,6 +649,7 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
 
     BDBG_ASSERT(!g_NEXUS_sageModule.moduleHandle);
     BDBG_ASSERT(pSettings);
+    BDBG_ASSERT(pInternalSettings);
 
     BKNI_Memset(&g_NEXUS_sageModule, 0, sizeof(g_NEXUS_sageModule));
     g_NEXUS_sageModule.reset = 1;
@@ -668,7 +676,8 @@ NEXUS_ModuleHandle NEXUS_SageModule_Init(const NEXUS_SageModuleSettings *pSettin
     rc = NEXUS_Sage_P_VarInit();
     if(rc != NEXUS_SUCCESS) {  goto err; }
 
-    g_sage_module.settings = *(NEXUS_SageModuleSettings *)pSettings;
+    g_sage_module.settings = *pSettings;
+    g_sage_module.internalSettings = *pInternalSettings;
 
     rc = NEXUS_Sage_P_ConfigureAlloc();
     if(rc != NEXUS_SUCCESS) {  goto err; }

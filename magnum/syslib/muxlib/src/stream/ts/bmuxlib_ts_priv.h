@@ -75,6 +75,8 @@ extern "C" {
 #endif
 
 #define BMUXLIB_TS_P_MOD300_WRAP(x)    (((((x) >> 32) % 0x258) << 32) | ((x) & 0xFFFFFFFF))
+#define BMUXLIB_TS_P_MOD300_ADD32(_ui64Timestamp, _ui32Offset) BMUXLIB_TS_P_MOD300_WRAP((_ui64Timestamp) + (_ui32Offset));
+#define BMUXLIB_TS_P_MOD300_SUB32(_ui64Timestamp, _ui32Offset) ( (_ui64Timestamp) >= (_ui32Offset) ) ? ((_ui64Timestamp) - (_ui32Offset)) : (((uint64_t)0x257 << 32 ) | (((_ui64Timestamp) - (_ui32Offset)) & 0xFFFFFFFF ));
 #define BMUXLIB_TS_P_GET_PCR_BASE(x)   ((((((x) / 300) >> 32) & 0x1 ) << 32 ) | (((x) / 300) & 0xFFFFFFFF))
 #define BMUXLIB_TS_P_GET_PCR_EXT(x)    (((x) % 300) & 0x1FF)
 

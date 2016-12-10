@@ -315,7 +315,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #endif
 
                 NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
-                BDBG_WRN(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
                 for (i=0; i < capabilities.numTuners ; i++)
                 {
                     NEXUS_FrontendChannelSettings channelSettings;
@@ -333,7 +332,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                         BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
                         continue;
                     }
-                    BDBG_WRN(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+                    BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
                 }
 
                 if (probeResults.chip.familyId == 0x3461) {

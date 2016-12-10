@@ -241,6 +241,7 @@ void NEXUS_SimpleVideoDecoderModule_LoadDefaultSettings( NEXUS_VideoDecoderHandl
     }
     NEXUS_VideoDecoder_GetSettings(videoDecoder, &g_default->settings);
     NEXUS_VideoDecoder_GetExtendedSettings(videoDecoder, &g_default->extendedSettings);
+    NEXUS_VideoDecoder_GetPlaybackSettings(videoDecoder, &g_default->playbackSettings);
 
     /* default to an orthogonal feature set */
     g_default->settings.supportedCodecs[NEXUS_VideoCodec_eH264_Svc] = false;
@@ -452,7 +453,6 @@ void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle h
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->connected = (handle->serverSettings.videoDecoder && handle->serverSettings.enabled) ||
                          handle->hdmiInput.handle || handle->hdDviInput.handle;
-    pStatus->stc.active = handle->started;
     pStatus->stc.index = handle->serverSettings.stcIndex;
     pStatus->primer = handle->primer.started && !handle->started;
     pStatus->hdDviInput = handle->hdmiInput.handle || handle->hdDviInput.handle;

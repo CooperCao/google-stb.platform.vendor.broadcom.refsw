@@ -102,5 +102,6 @@ int         Bsysperf_WifiReadAmpduData( AMPDU_DATA_T *pAmpduData );
 int         Bsysperf_WifiOutputAntennasHtml( ANTENNAS_T *antennas );
 int         Bsysperf_WifiPrintAntennas( ANTENNAS_T *antennas );
 int         Bsysperf_WifiGetRssiAnt( const char *ifname, BSYSPERF_PHY_RSSI_ANT_T *pRssiAnt );
+int         Bsysperf_WifiGetDriverVersion( const char *ifname, char *strDriverVersion, int iDriverVersionLen );
 
 #endif /* __BSYSPERF_WIFI_H__ */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,7 +49,11 @@
 #include "bchp_xpt_mcpb_ch0.h"
 #include "bchp_xpt_mcpb_ch1.h"
 
-#define PB_PARSER_STEP      ( BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL )
+#ifdef BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR
+    #define PB_PARSER_STEP      ( BCHP_XPT_MCPB_CH1_DMA_DESC_ADDR - BCHP_XPT_MCPB_CH0_DMA_DESC_ADDR )
+#else
+    #define PB_PARSER_STEP      ( BCHP_XPT_MCPB_CH1_DMA_DESC_CONTROL - BCHP_XPT_MCPB_CH0_DMA_DESC_CONTROL )
+#endif
 #define IB_PARSER_STEP      ( BCHP_XPT_FE_MINI_PID_PARSER1_CTRL1 - BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1 )
 
 #if( BDBG_DEBUG_BUILD == 1 )

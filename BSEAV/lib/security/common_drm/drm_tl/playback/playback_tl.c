@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,8 +96,11 @@ DrmRC DRM_Playback_Initialize(DrmPlaybackHandle_t  *playbackHandle)
         rc = Drm_Err;
         goto ErrorExit;
     }
-
+#ifdef USE_UNIFIED_COMMON_DRM
     rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_ePlayback, NULL, container, &(pContext->playbackSageHandle));
+#else
+    rc = DRM_Common_TL_ModuleInitialize_TA(Common_Platform_Playback, Playback_ModuleId_eDRM, NULL, container, &(pContext->playbackSageHandle));
+#endif
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
@@ -123,7 +126,11 @@ DrmRC DRM_Playback_Finalize(DrmPlaybackHandle_t pHandle)
     DrmRC rc = Drm_Success;
 
     if(pCtx != NULL) {
+#ifdef USE_UNIFIED_COMMON_DRM
         rc = DRM_Common_TL_ModuleFinalize(pCtx->playbackSageHandle);
+#else
+        rc = DRM_Common_TL_ModuleFinalize_TA(Common_Platform_Playback, pCtx->playbackSageHandle);
+#endif
         NEXUS_Memory_Free(pCtx);
     }
 

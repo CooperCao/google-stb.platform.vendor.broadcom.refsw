@@ -78,7 +78,7 @@ void BDSP_Raaga_GetDefaultSettings(
 
     pSettings->debugSettings[BDSP_Raaga_DebugType_eUart].bufferSize = 0x1000; /* 4 KB by default */
     pSettings->debugSettings[BDSP_Raaga_DebugType_eDramMsg  ].bufferSize = 0x40000; /* 256 KB by default */
-    pSettings->debugSettings[BDSP_Raaga_DebugType_eCoreDump].bufferSize = 0x80000; /* 512 KB by default */
+    pSettings->debugSettings[BDSP_Raaga_DebugType_eCoreDump].bufferSize = 0x90000; /* 512 KB by default, increasing by 64KB for 7271 due to increased code and data memory */
     pSettings->debugSettings[BDSP_Raaga_DebugType_eTargetPrintf].bufferSize = 0x40000; /* 256 KB by default */
 
     /*initialized to "0" to make sure that the initialization is done properly. Testing cant be done unless a new algoType is explicitly initialized */

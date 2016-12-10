@@ -412,6 +412,7 @@ static NEXUS_Error NEXUS_HwStillDecoder_P_Start_Avd( NEXUS_StillDecoderHandle sw
     raveSettings.pidChannel = pSettings->pidChannel;
     raveSettings.bandHold = pidChannelStatus.playback;
     raveSettings.continuityCountEnabled = !pidChannelStatus.playback;
+    raveSettings.includeRepeatedItbStartCodes = stillDecoder->device->cap.bIncludeRepeatedItbStartCodes;
     rc = NEXUS_Rave_ConfigureVideo_priv(stillDecoder->rave, pSettings->codec, &raveSettings);
     NEXUS_Rave_Enable_priv(stillDecoder->rave);
     UNLOCK_TRANSPORT();

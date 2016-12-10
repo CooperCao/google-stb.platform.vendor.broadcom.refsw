@@ -235,8 +235,8 @@ static const BBOX_MemConfig stBoxMemConfig =
        (BCHP_CHIP==7563)  || (BCHP_CHIP==7543)  || (BCHP_CHIP==7362)  || \
        (BCHP_CHIP==7364)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==7250)  || \
        (BCHP_CHIP==75635) || (BCHP_CHIP==7586)  || (BCHP_CHIP==73625) || \
-       (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==75525) || \
-       (BCHP_CHIP==73465) || (BCHP_CHIP==7268))
+       (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==73465) || \
+       (BCHP_CHIP==7268))
 static const BBOX_MemConfig stBoxMemConfig =
 {
    {

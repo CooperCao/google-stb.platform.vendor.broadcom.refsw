@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -461,6 +461,7 @@ void BAPE_I2sOutput_GetOutputPort(
     BAPE_OutputPort *pConnector        /* [out] */
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Multichannel I2S Output Handle
@@ -546,6 +547,8 @@ void BAPE_I2sMultiOutput_GetStereoOutputPort(
     BAPE_ChannelPair channelPair,
     BAPE_OutputPort *pConnector        /* [out] */
     );
+
+#endif
 
 /***************************************************************************
 Summary:

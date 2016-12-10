@@ -115,6 +115,7 @@ typedef struct NEXUS_HdmiInputSettings
     NEXUS_HeapHandle heap;
 
     bool adcCalibration;
+    bool secureVideo; /* route through secure BVN */
 } NEXUS_HdmiInputSettings;
 
 

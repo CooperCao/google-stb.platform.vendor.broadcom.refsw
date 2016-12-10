@@ -525,7 +525,20 @@ in memory (after being memory mapped, of course).
 ****************************************************************************/
 typedef struct BXPT_PvrDescriptor
 {
-#if BXPT_HAS_MULTICHANNEL_PLAYBACK
+#if BXPT_HAS_MCPB_VER_3
+   uint32_t    BufferStartAddrHi;  /* upper 32-bits of (Pointer to) the buffer associated with this descriptor. */
+   uint32_t    BufferStartAddr;    /* lower 32-bit of (Pointer to) the buffer associated with this descriptor. */
+   uint32_t    BufferLength;       /* Length (in bytes) of the buffer. */
+   uint32_t    Flags;              /* Channel-specific flags. */
+   uint32_t    Reserved0;
+   uint32_t    Reserved1;
+   uint32_t    Reserved2;
+   uint32_t    Reserved3;
+   uint32_t    Reserved4;
+   uint32_t    Reserved5;
+   uint32_t    NextDescAddrHi;     /* Upper 32-bits of (Pointer to) the next descriptor in the chain. */
+   uint32_t    NextDescAddr;       /* Lower 32-bit of (Pointer to) the next descriptor in the chain. */
+#elif BXPT_HAS_MULTICHANNEL_PLAYBACK
     uint32_t    BufferStartAddrHi;  /* upper 32-bits of (Pointer to) the buffer associated with this descriptor. */
     uint32_t    BufferStartAddr;    /* lower 32-bit of (Pointer to) the buffer associated with this descriptor. */
     uint32_t    NextDescAddr;       /* (Pointer to) the next descriptor in the chain. */

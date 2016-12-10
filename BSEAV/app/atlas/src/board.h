@@ -72,6 +72,9 @@
 extern "C" {
 #endif
 
+#ifdef WPA_SUPPLICANT_SUPPORT
+class CWifi;
+#endif
 #ifdef NETAPP_SUPPORT
 class CNetwork;
 class CBluetooth;
@@ -233,6 +236,9 @@ protected:
     MAutoList <CUhfRemote> _remoteListUhf; /* list of input uhf remotes */
 #endif
     MAutoList <CPower> _powerList; /* list of power */
+#ifdef WPA_SUPPLICANT_SUPPORT
+    MAutoList <CWifi> _wifiList; /* list of wifi opjects */
+#endif
 #ifdef NETAPP_SUPPORT
     MAutoList <CNetwork>   _networkList;   /* list of network */
     MAutoList <CBluetooth> _bluetoothList; /* list of bluetooth devices */

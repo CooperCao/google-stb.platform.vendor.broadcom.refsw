@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2161,6 +2161,56 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
    pstXdmPicture->stBufferInfo.eChromaBufferType = ( uiFlagsExt0 & BXVD_P_PPB_EXT0_FLAG_CHROMA_10_BIT_PICTURE ) ?
                                                       BXDM_Picture_BufferType_e10Bit : BXDM_Picture_BufferType_e8Bit;
+
+
+   {
+      /* SWSTB-457: set the depth of the data within the picture buffers.
+       *
+       * SW7445-1954: pPPB->luma_chroma_bit_width.
+       * Only valid when using luma/chroma buffers > 8 bits.
+       * [15:8] chroma bit width, [7:0]: luma bit width. */
+
+      if ( BXDM_Picture_BufferType_e8Bit == pstXdmPicture->stBufferInfo.eLumaBufferType )
+      {
+          pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;
+      }
+      else
+      {
+         uint32_t uiBitDepth = pPPB->luma_chroma_bit_width & 0xFF ;
+
+         switch( uiBitDepth )
+         {
+            case 10: pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e10Bit;   break;
+            case 9:  pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e9Bit;    break;
+            case 8:  pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;    break;
+            default:
+               pstXdmPicture->stBufferInfo.eLumaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;
+               BXVD_DBG_WRN(hXvdCh, ("%s:: invalid luma bit depth of %d", __FUNCTION__, uiBitDepth ));
+               break;
+         }
+      }
+
+      if ( BXDM_Picture_BufferType_e8Bit == pstXdmPicture->stBufferInfo.eChromaBufferType )
+      {
+          pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;
+      }
+      else
+      {
+         uint32_t uiBitDepth = ( pPPB->luma_chroma_bit_width >> 8 ) & 0xFF ;
+
+         switch( uiBitDepth )
+         {
+            case 10: pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e10Bit;   break;
+            case 9:  pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e9Bit;    break;
+            case 8:  pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;    break;
+            default:
+               pstXdmPicture->stBufferInfo.eChromaBitDepth = BXDM_Picture_VideoBitDepth_e8Bit;
+               BXVD_DBG_WRN(hXvdCh, ("%s:: invalid chroma bit depth of %d", __FUNCTION__, uiBitDepth ));
+               break;
+         }
+      }
+   }
+
 #endif
 
    /**********************/
@@ -3810,6 +3860,10 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
       /* Get the PPB address */
       pstPicCntxt->stPPB.pPPBPhysical = ( pstDeliveryQueue->display_elements[ pstContextQueue->uiWriteOffset ]);
 
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+      pstPicCntxt->stPPB.pPPBPhysical = pstPicCntxt->stPPB.pPPBPhysical +  hXvdCh->stDecodeFWBaseAddrs.uiFWContextBase;
+#endif
+
       pstPicCntxt->stPPB.pPPB = (BXVD_P_PPB *)BXVD_P_OFFSET_TO_VA(hXvdCh, (uint32_t)pstPicCntxt->stPPB.pPPBPhysical);
 
       BMMA_FlushCache(hXvdCh->hFWGenMemBlock, (void *)pstPicCntxt->stPPB.pPPB, sizeof(BXVD_P_PPB));
@@ -4465,6 +4519,9 @@ static void BXVD_Decoder_S_ReleaseQ_AddPPB_isr(
    {
       /* Add the the element  to the release queue.  */
 
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+      pPPBPhysical -=  hXvdCh->stDecodeFWBaseAddrs.uiFWContextBase;
+#endif
       pReleaseQue->display_elements[ uiReleaseWriteOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE ] = pPPBPhysical;
 
 #if BXVD_P_FW_HIM_API
@@ -4641,6 +4698,10 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
 
       /* Get the address of the PPB */
       stDisplayElement.pPPBPhysical = pstDeliveryQueue->display_elements[ pDQTCntxt->uiEndOfGopOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE];
+
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+      stDisplayElement.pPPBPhysical = stDisplayElement.pPPBPhysical + hXvdCh->stDecodeFWBaseAddrs.uiFWContextBase;
+#endif
 
       stDisplayElement.pPPB = (BXVD_P_PPB *)BXVD_P_OFFSET_TO_VA(hXvdCh, (uint32_t)stDisplayElement.pPPBPhysical);
 

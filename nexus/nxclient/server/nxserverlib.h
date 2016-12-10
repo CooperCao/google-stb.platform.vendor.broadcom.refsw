@@ -176,7 +176,6 @@ struct nxserver_settings
     struct {
         struct {
             bool initialFormat; /* use user-specified display format at init, but follow HDMI EDID preferred format for any hotplug after that. */
-            NEXUS_TristateEnable dropFrame;
         } hd;
         struct {
             NEXUS_Rect graphicsPosition;

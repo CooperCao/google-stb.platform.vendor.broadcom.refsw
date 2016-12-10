@@ -1218,3 +1218,8 @@ static void NEXUS_HdmiInput_P_ReleaseHotPlug(void *context)
     hdmiInput->releaseHotPlugTimer = NULL;
     NEXUS_HdmiInput_SetHotPlug(hdmiInput, false) ;
 }
+
+bool NEXUS_HdmiInput_GetSecure_isrsafe(NEXUS_HdmiInputHandle hdmiInput)
+{
+    return hdmiInput->settings.secureVideo;
+}

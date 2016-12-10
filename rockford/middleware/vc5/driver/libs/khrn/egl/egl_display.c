@@ -338,6 +338,13 @@ EGL_SYNC_T* egl_unmap_sync(EGLImageKHR sync_id)
 
 static EGLDisplay egl_get_display(EGLNativeDisplayType display_id)
 {
+   /*
+    * In comparison to other functions, eglGetDisplay can be called
+    * without egl been initialised therefore don't call egl_initialized
+    * and set the thread error state here: always successful.
+    */
+   egl_thread_set_error(EGL_SUCCESS);
+
    if (display_id == EGL_DEFAULT_DISPLAY)
       return egl_platform_get_default_display();
 

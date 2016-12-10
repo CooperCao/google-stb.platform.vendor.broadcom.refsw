@@ -136,6 +136,15 @@ void BHDM_AudioVideoRateChangeCB_isr(
 			ulPixelClockRate  = pVdcRateInfo->ulPixelClockRate ;
 			ulVertRefreshRate = pVdcRateInfo->ulVertRefreshRate ;
 
+		/* update the video settings only if VDC callback info has been updated */
+		if ((hHDMI->ulPixelClkRate64BitMask == ulPixelClkRate64BitMask)
+		&& (hHDMI->ulPixelClockRate == ulPixelClockRate)
+		&& (hHDMI->ulVertRefreshRate == ulVertRefreshRate))
+		{
+			BDBG_MSG(("No change in video settings...")) ;
+			goto done ;
+		}
+
 		/* modify the video settings if there is a change in the refresh or pixel clock rate.
 		 * Ignore "frequency shift" (e.g. differences for 59.94 vs 60.00hz clock rates) */
 		videoRateChange =
@@ -165,7 +174,6 @@ void BHDM_AudioVideoRateChangeCB_isr(
 			BDBG_MSG(("Color Space : %d; Color Depth %d", eColorSpace, eBitsPerPixel)) ;
 			BDBG_MSG(("Pixel Repetition %d", ePixelRepetition)) ;
 			BDBG_MSG(("------------------------------------------------------------")) ;
-
 		}
 	}
 	else  /* Audio Callback Only */
@@ -213,8 +221,8 @@ void BHDM_AudioVideoRateChangeCB_isr(
 		eTmdsClock = hHDMI->eTmdsClock ;
 #endif
 	}
-        BSTD_UNUSED(eColorSpace);
-        BSTD_UNUSED(eBitsPerPixel);
+	BSTD_UNUSED(eColorSpace);
+	BSTD_UNUSED(eBitsPerPixel);
 
 
 	/* during initialization Pixel Clock can be unknown;  if so ACR packet cannot be set */

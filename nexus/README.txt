@@ -11,8 +11,18 @@ There are three ways to learn how to use Nexus:
 2. Study and run nexus/examples on a Broadcom reference board
 
     Build:
-        export NEXUS_PLATFORM=97xxx
-        cd nexus/examples; make
+        # pick a platform and chip revision
+        export NEXUS_PLATFORM=97271
+        export BCHP_VER=A0
+
+        # build nexus driver and library
+        cd nexus/build; make
+
+        # build examples
+        cd ../examples; make
+
+        # default location of binaries
+        ls ../../obj.$NEXUS_PLATFORM/nexus/bin
 
     Run:
         nexus graphics

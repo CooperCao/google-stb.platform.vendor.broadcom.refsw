@@ -242,16 +242,88 @@ static int compareWidgetListItems(
     return(strcmp(item1->getButton()->getText().s(), item2->getButton()->getText().s()));
 }
 
-eRet CWidgetListView::sort()
+eRet CWidgetListView::sort(CWidgetButton * pButtonFocus)
 {
-    eRet    ret        = eRet_Ok;
-    int32_t indexFirst = getFirstVisibleIndex();
+    eRet    ret               = eRet_Ok;
+    int32_t indexFirstVisible = getFirstVisibleIndex();
+    int32_t offsetFocusOrig   = 0;
+
+    MListItr <CWidgetListItem> itr(&_widgetList);
+    CWidgetListItem *          pItemFocus = NULL;
+
+    if (NULL != pButtonFocus)
+    {
+        /* search for given focused button */
+        for (pItemFocus = itr.first(); pItemFocus; pItemFocus = itr.next())
+        {
+            if (pItemFocus->getButton() == pButtonFocus)
+            {
+                break;
+            }
+
+            if (true == pItemFocus->getButton()->isVisible())
+            {
+                /* count offset from first visible item so we can reproduce this
+                 * after sorting the list
+                 */
+                offsetFocusOrig++;
+            }
+        }
+    }
 
     _widgetList.sort(compareWidgetListItems);
-    layout(indexFirst);
+    /* list order changed so update first visible index */
+    indexFirstVisible = getFirstVisibleIndex();
+
+    /* because our list order has changed, we will need to find the index of the
+     * first visible list item such that our given pButonFocus is on screen in the
+     * same position as before the sort.
+     *
+     * search for originally given button and then back up using our saved
+     * offsetFocusOrig value to find the corresponding first item index.
+     */
+    if (NULL != pButtonFocus)
+    {
+        for (pItemFocus = itr.first(); pItemFocus; pItemFocus = itr.next())
+        {
+            if (pItemFocus->getButton() == pButtonFocus)
+            {
+                /* found button with focus */
+                break;
+            }
+        }
+
+        if (NULL != pItemFocus)
+        {
+            CWidgetListItem * pItemFirstVisible = pItemFocus;
+
+            /* back up offsetFocusOrig times in list to get to the corresponding
+             * first visible item in our newly sorted list.
+             */
+            for (pItemFocus = itr.prev(); (NULL != pItemFocus) && (offsetFocusOrig > 0); pItemFocus = itr.prev())
+            {
+                pItemFirstVisible = pItemFocus;
+                offsetFocusOrig--;
+            }
+
+            /* keep focused item on screen */
+            if (NULL != pItemFirstVisible)
+            {
+                indexFirstVisible = getItemListIndex(pItemFirstVisible->getButton()->getWidget());
+            }
+        }
+    }
+    else
+    {
+        /* no given focus in list so default to list head */
+        indexFirstVisible = 0;
+    }
+
+    /* layout list view starting with calculated index of first visible list item */
+    layout(indexFirstVisible);
 
     return(ret);
-}
+} /* sort */
 
 void CWidgetListView::clear()
 {
@@ -298,7 +370,9 @@ eRet CWidgetListView::layout(
     MRect             listRect  = getGeometry();
     MRect             itemRect;
     blabel_settings   listViewSettings;
-    int               margin = 0;
+    int               margin                = 0;
+    bool              bItemsSmallerThanList = false;
+    int               numActiveListItems    = 0;
 
     MListItr <CWidgetListItem> itr(&_widgetList);
 
@@ -356,14 +430,16 @@ eRet CWidgetListView::layout(
             {
                 rectGeom     = pListItem->getButton()->getGeometry();
                 totalHeight += rectGeom.height() + getSeparatorSize();
+                numActiveListItems++;
             }
         }
 
         if (listRect.height() > totalHeight)
         {
             /* all items will fit in list view so force topDown layout */
-            topDown = true;
-            index   = 0;
+            topDown               = true;
+            index                 = 0;
+            bItemsSmallerThanList = true;
         }
     }
 
@@ -375,6 +451,52 @@ eRet CWidgetListView::layout(
 
     if (true == topDown)
     {
+        /* sanity chck!
+         * if given index item is near the bottom of the list, adjust index to keep a
+         * max number of items visible.  so if the last item index is given, we will
+         * adjust the start index such that the item is drawn at the bottom of the
+         * list control.
+         */
+        if ((false == bItemsSmallerThanList) && (0 < numActiveListItems))
+        {
+            uint16_t maxListItems    = 0;
+            MRect    rectGeomItem    = itr.at(getFirstVisibleIndex())->getButton()->getGeometry();
+            uint16_t itemHeight      = rectGeomItem.height() + getSeparatorSize();
+            uint16_t maxVisibleItems = listRect.height() / itemHeight;
+            uint16_t toEndOfList     = 0;
+
+            for (pListItem = itr.at(index); pListItem; pListItem = itr.next())
+            {
+                if (true == pListItem->isActive())
+                {
+                    toEndOfList++;
+                }
+            }
+
+            if (toEndOfList < maxVisibleItems)
+            {
+                CWidgetListItem * pListItemAtIndex = itr.at(index);
+                uint16_t          toEndOfList      = 0;
+                uint16_t          fromEndOfList    = 0;
+
+                /* given index is on the last visible page of items so adjust
+                 * index to the first item on the last visible page */
+                for (pListItem = itr.last(); pListItem != pListItemAtIndex; pListItem = itr.prev())
+                {
+                    if (true == pListItem->isActive())
+                    {
+                        fromEndOfList++;
+                        if (toEndOfList == fromEndOfList)
+                        {
+                            break;
+                        }
+                    }
+                }
+
+                index -= (maxVisibleItems - fromEndOfList - 1);
+            }
+        }
+
         /* layout view top down */
         for (pListItem = itr.at(index); pListItem; pListItem = itr.next())
         {

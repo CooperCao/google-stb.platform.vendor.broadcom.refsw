@@ -71,6 +71,8 @@ typedef enum NEXUS_AudioDecoderMixingMode
                                                    coefficients in the mixer as opposed to stream-based
                                                    coefficients. Application audio should be used for cases where
                                                    a non dolby decode is to be mixed with a Dolby MS usage cases */
+    NEXUS_AudioDecoderMixingMode_eStandalone,   /* In this mixing mode, decodes will remain independent.
+                                                   Currently only supported for Dolby MS12 configurations. */
     NEXUS_AudioDecoderMixingMode_eMax
 } NEXUS_AudioDecoderMixingMode;
 

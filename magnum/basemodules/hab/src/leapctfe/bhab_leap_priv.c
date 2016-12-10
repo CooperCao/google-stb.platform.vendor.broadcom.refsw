@@ -321,12 +321,12 @@ BERR_Code BHAB_Leap_InitAp(
     BERR_Code retCode = BERR_SUCCESS;
     BHAB_Leap_P_Handle *pLeap;
 #if BHAB_STANDALONE_FRONTEND
-    uint32_t firmwareSize, instaddr, i = 0;
+    uint32_t firmwareSize, instaddr, i = 0, sb;
     const uint8_t *pImage;
     uint8_t retries = 0, count = 0, buf = 0, writebuf[3];
     unsigned char *databuf = NULL;
 #else
-    uint32_t firmwareSize, instaddr;
+    uint32_t firmwareSize, instaddr, sb;
     const uint8_t *pImage;
     uint8_t retries = 0, count = 0;
 #endif
@@ -430,7 +430,13 @@ BERR_Code BHAB_Leap_InitAp(
             }
         }
     }
-
+#ifdef BHAB_LEAP_UART_ENABLE
+    sb = BHAB_HAB_UART_ENABLE;
+    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &sb));
+#else
+    sb = 0;
+    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &sb));
+#endif
 done:
     if (retCode != BERR_SUCCESS)
         BHAB_Leap_P_EnableHostInterrupt(handle, true);
@@ -1569,13 +1575,6 @@ BERR_Code BHAB_Leap_P_RunAp(BHAB_Handle handle)
 
     BHAB_Leap_P_EnableHostInterrupt(handle, true);
 
-#ifdef BHAB_LEAP_UART_ENABLE
-    buf = BHAB_HAB_UART_ENABLE;
-    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
-#else
-    buf = 0;
-    BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_GP38, &buf));
-#endif
 #if BHAB_STANDALONE_FRONTEND
     /* unmask HOST L1 and L2 interrupt bits */
     buf = BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR_PERIPH_DEMOD_XPT_WAKEUP_INTR_MASK | BCHP_LEAP_HOST_L1_INTR_W0_MASK_CLEAR_LEAP_INTR_MASK;
@@ -1614,6 +1613,7 @@ BERR_Code BHAB_Leap_P_RunAp(BHAB_Handle handle)
     buf |= BCHP_LEAP_CTRL_CTRL_START_ARC_MASK;
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_CTRL_CTRL, &buf));
 #endif
+
 done:
     return retCode;
 }
@@ -1942,9 +1942,9 @@ BERR_Code BHAB_Leap_P_DecodeInterrupt(BHAB_Handle handle)
                 }
 
                 if ((mbox_data >> 24) == BHAB_EventId_eIfDacAcquireComplete) {
-                    if (pLeap->InterruptCallbackInfo[BHAB_DevId_eTNR0 + coreId].func) {
+                    if (pLeap->InterruptCallbackInfo[BHAB_DevId_eADS0 + pLeap->ifdacChannelNumber].func) {
                         BDBG_MSG(("IFDAC Acquire Complete"));
-                        callback = &pLeap->InterruptCallbackInfo[BHAB_DevId_eTNR0 + coreId];
+                        callback = &pLeap->InterruptCallbackInfo[BHAB_DevId_eADS0 + pLeap->ifdacChannelNumber];
                         callback->parm2 = (int) BHAB_Interrupt_eIfDacAcquireComplete;
                         BKNI_EnterCriticalSection();
                         callback->func(callback->pParm1, callback->parm2);
@@ -1955,9 +1955,9 @@ BERR_Code BHAB_Leap_P_DecodeInterrupt(BHAB_Handle handle)
                 }
 
                 if ((mbox_data >> 24) == BHAB_EventId_eIfDacStatusReady) {
-                    if (pLeap->InterruptCallbackInfo[BHAB_DevId_eTNR0 + coreId].func) {
+                    if (pLeap->InterruptCallbackInfo[BHAB_DevId_eADS0 + pLeap->ifdacChannelNumber].func) {
                         BDBG_MSG(("IFDAC Status Ready"));
-                        callback = &pLeap->InterruptCallbackInfo[BHAB_DevId_eTNR0 + coreId];
+                        callback = &pLeap->InterruptCallbackInfo[BHAB_DevId_eADS0 + pLeap->ifdacChannelNumber];
                         callback->parm2 = (int) BHAB_Interrupt_eIfDacStatusReady;
                         BKNI_EnterCriticalSection();
                         callback->func(callback->pParm1, callback->parm2);
@@ -2253,7 +2253,7 @@ BERR_Code BHAB_Leap_GetConfigSettings(
 #if 0
     uint8_t daisy[5] = HAB_MSG_HDR(BHAB_READ_DAISY, 0, BTNR_CORE_TYPE, BHAB_CORE_ID);
 #endif
-    uint8_t loopthrough[5] = HAB_MSG_HDR(BHAB_LOOP_THROUGH_READ, 0, BTNR_CORE_TYPE, BHAB_CORE_ID);
+    uint8_t loopthrough[9] = HAB_MSG_HDR(BHAB_LOOP_THROUGH_READ, 0, BTNR_CORE_TYPE, BHAB_CORE_ID);
 #if BHAB_SOC_FRONTEND
     uint8_t rfInputMode[9] = HAB_MSG_HDR(BHAB_RF_INPUT_MODE_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
     uint8_t tnrApplication[17] = HAB_MSG_HDR(BHAB_TNR_APPLICATION_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
@@ -2269,8 +2269,9 @@ BERR_Code BHAB_Leap_GetConfigSettings(
     settings->daisyChain = pLeap->inBuf[4] & 0x3;
 #endif
 
-    BHAB_CHK_RETCODE(BHAB_Leap_SendHabCommand(handle, loopthrough, 5, pLeap->inBuf, 0, false, true, 5));
-    settings->enableLoopThrough = pLeap->inBuf[4] & 0x4;
+    BHAB_CHK_RETCODE(BHAB_Leap_SendHabCommand(handle, loopthrough, 5, pLeap->inBuf, 9, false, true, 9));
+    settings->enableLoopThrough = pLeap->inBuf[4] & 0x1;
+    settings->loopthroughGain = (pLeap->inBuf[4] & 0xE) >> 1;
 #if BHAB_SOC_FRONTEND
     BHAB_CHK_RETCODE(BHAB_SendHabCommand(handle, tnrApplication, 5, pLeap->inBuf, 17, false, true, 17));
     settings->tnrApplication = ((pLeap->inBuf[4] & 0xC) >> 6) - 1;
@@ -2330,7 +2331,7 @@ BERR_Code BHAB_Leap_SetConfigSettings(
 #if BHAB_SOC_FRONTEND
         loopthrough[4] = 0x4;
 #else
-        loopthrough[4] = 0x1;
+        loopthrough[4] = 0x1 | (settings->loopthroughGain << 1);
 #endif
         BHAB_CHK_RETCODE(BHAB_Leap_SendHabCommand(handle, loopthrough, 9, pLeap->inBuf, 0, false, true, 9));
     }
@@ -2512,10 +2513,12 @@ BERR_Code BHAB_Leap_GetTunerChannels(
                 handle->channelCapabilities[i].demodCoreType.ads = true;
                 }
             else {
+                if(numIfdacChannels) {
+                    handle->channelCapabilities[numAdsChannels].demodCoreType.ifdac = true;
+                    pLeap->ifdacChannelNumber=numAdsChannels;
+                }
                 if(numAobChannels)
-                    handle->channelCapabilities[numAdsChannels].demodCoreType.aob = true;
-                if(numIfdacChannels)
-                    handle->channelCapabilities[numAdsChannels + numAobChannels].demodCoreType.ifdac = true;
+                    handle->channelCapabilities[numAdsChannels + numIfdacChannels].demodCoreType.aob = true;
             }
         }
 #endif
@@ -2591,10 +2594,12 @@ BERR_Code BHAB_Leap_GetCapabilities(
             if(i < numAdsChannels)
                 handle->channelCapabilities[i].demodCoreType.ads = true;
             else {
+                if(numIfdacChannels) {
+                    handle->channelCapabilities[numAdsChannels].demodCoreType.ifdac = true;
+                    pLeap->ifdacChannelNumber=numAdsChannels;
+                }
                 if(numAobChannels)
-                    handle->channelCapabilities[numAdsChannels].demodCoreType.aob = true;
-                if(numIfdacChannels)
-                    handle->channelCapabilities[numAdsChannels+numAobChannels].demodCoreType.ifdac = true;
+                    handle->channelCapabilities[numAdsChannels + numIfdacChannels].demodCoreType.aob = true;
             }
         }
 #endif

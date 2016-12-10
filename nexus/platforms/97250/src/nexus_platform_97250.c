@@ -108,36 +108,6 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     board = "72501 SFFSAT";
 #endif
 
-    switch (g_pPreInitState->boxMode) {
-    case 1:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD, Video:10-bit HD main + HD PIP, Transcode:None ***", g_pPreInitState->boxMode));
-        break;
-    case 2:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD+SD, Video:HD/no PIP, Transcode:None ***", g_pPreInitState->boxMode));
-        break;
-    case 3:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD, Video:HD/no PIP, Transcode:None ***", g_pPreInitState->boxMode));
-        break;
-    case 4:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD, Video:Dual HD/no PIP, Transcode:SD/576p(Max) ***", g_pPreInitState->boxMode));
-        break;
-    case 5:
-        BDBG_WRN(("*** 97250 BoxMode %d:Headless, Video:10-bit HD/no PIP, Transcode:720p(Max) ***", g_pPreInitState->boxMode));
-        break;
-    case 6:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD+SD, Video:10-bit HD/no PIP, Transcode:None ***", g_pPreInitState->boxMode));
-        break;
-    case 7:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD, Video:HD + 480p PIP, Transcode:None ***", g_pPreInitState->boxMode));
-        break;
-    case 8:
-        BDBG_WRN(("*** 97250 BoxMode %d:Display:UHD+SD, Video:Multi-PIP (2x), Transcode:None ***", g_pPreInitState->boxMode));
-        break;
-    default:
-        BDBG_WRN(("*** 97250 No BoxMode specified!"));
-        break;
-    }
-
     if (board)
     {
         BDBG_WRN(("*** Initializing %s Board ... ***", board));
@@ -146,7 +116,8 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     {
         BDBG_WRN(("*** Initializing a 7250 Board, but no subtype detected ... ***"));
     }
-    return 0;
+
+    return NEXUS_SUCCESS;
 }
 
 void NEXUS_Platform_P_UninitBoard(void)

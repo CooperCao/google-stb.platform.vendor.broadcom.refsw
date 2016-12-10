@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2012 Broadcom Corporation
+*  Copyright (C) 2008-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_BASE_OS_TYPES_H__
 #define NEXUS_BASE_OS_TYPES_H__
@@ -59,6 +49,9 @@ This is not wall-time, so it is only useful to calculate duration.
 typedef unsigned long NEXUS_Time;
 
 #define B_TIME_ZERO {0}
+#if NEXUS_CPU_ARM
+int brcm_cpu_dcache_flush(const void *pvAddr, size_t ulNumBytes);;
+#endif
 
 #endif /* NEXUS_BASE_OS_TYPES_H__ */
 

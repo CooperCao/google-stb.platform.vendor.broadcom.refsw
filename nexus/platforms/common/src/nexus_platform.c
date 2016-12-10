@@ -213,6 +213,7 @@
 #endif
 #if NEXUS_HAS_SAGE
 #include "nexus_sage_init.h"
+#include "nexus_sage_types.h"
 #include "priv/nexus_sage_priv.h"
 #endif
 #if NEXUS_HAS_SCM
@@ -833,11 +834,11 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_SAGE
     BDBG_MSG((">SAGE"));
     {
-        NEXUS_SageModuleSettings sageSettings;
-        NEXUS_SageModule_GetDefaultSettings(&sageSettings);
+        NEXUS_SageModuleInternalSettings sageInternalSettings;
+        NEXUS_SageModule_GetDefaultInternalSettings(&sageInternalSettings);
 
-        sageSettings.security = g_NEXUS_platformHandles.security;
-        g_NEXUS_platformHandles.sage = NEXUS_SageModule_Init(&sageSettings);
+        sageInternalSettings.security = g_NEXUS_platformHandles.security;
+        g_NEXUS_platformHandles.sage = NEXUS_SageModule_Init(&pSettings->sageModuleSettings, &sageInternalSettings);
         if (!g_NEXUS_platformHandles.sage) {
             BDBG_ERR(("Unable to init sage"));
             errCode = BERR_TRACE(NEXUS_NOT_SUPPORTED);

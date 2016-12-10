@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -82,7 +78,39 @@ static uint32_t BXPT_PacketSub_P_ReadReg_isrsafe(
     uint32_t Reg0Addr
     );
 
+void BXPT_PacketSub_P_WriteAddr(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr,
+    BMMA_DeviceOffset RegVal
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
+
+    BREG_Write32( hPSub->hRegister, RegAddr, RegVal );
+}
+
+BMMA_DeviceOffset BXPT_PacketSub_P_ReadAddr_isrsafe(
+    BXPT_PacketSub_Handle hPSub,    /* [in] Handle for the channel. */
+    uint32_t Reg0Addr
+    )
+{
+    /*
+    ** The address is the offset of the register from the beginning of the
+    ** block, plus the base address of the block ( which changes from
+    ** channel to channel ).
+    */
+    uint32_t RegAddr = Reg0Addr - BCHP_XPT_PSUB_PSUB0_CTRL0 + hPSub->BaseAddr;
+
+    return BREG_ReadAddr( hPSub->hRegister, RegAddr );
+}
+
 #define BXPT_PacketSub_P_ReadReg BXPT_PacketSub_P_ReadReg_isrsafe
+#define BXPT_PacketSub_P_ReadAddr BXPT_PacketSub_P_ReadAddr_isrsafe
 
 #if (!B_REFSW_MINIMAL)
 BERR_Code BXPT_PacketSub_GetTotalChannels(
@@ -479,7 +507,7 @@ BERR_Code BXPT_PacketSub_CreateDesc(
     BXPT_PacketSub_Descriptor * const NextDesc  /* [in] Next descriptor, or NULL */
     )
 {
-    uint32_t ThisDescPhysicalAddr;
+    BMMA_DeviceOffset ThisDescPhysicalAddr;
     BXPT_PacketSub_Descriptor *CachedDescPtr;
 
     BERR_Code ExitCode = BERR_SUCCESS;
@@ -514,8 +542,11 @@ BERR_Code BXPT_PacketSub_CreateDesc(
     CachedDescPtr = Desc;
 
     /* Load the descriptor's buffer address, length, and flags. */
-    CachedDescPtr->BufferStartAddr = BufferOffset;
+    CachedDescPtr->BufferStartAddr = BufferOffset & 0xFFFFFFFF;
     CachedDescPtr->BufferLength = BufferLength;
+#ifdef BXPT_PSUB_40BIT_SUPPORT
+    CachedDescPtr->BufferStartAddrHi = BufferOffset >> 32;
+#endif
 
     /* Clear everything, then set the ones we want below. */
     CachedDescPtr->Flags = 0;
@@ -527,7 +558,7 @@ BERR_Code BXPT_PacketSub_CreateDesc(
     if( NextDesc != 0 )
     {
         /* There is a another descriptor in the chain after this one. */
-        uint32_t NextDescPhysAddr;
+        BMMA_DeviceOffset NextDescPhysAddr;
 
         NextDescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)NextDesc - (uint8_t*)hPSub->mma.ptr); /* NextDesc -> offset */
         if( NextDescPhysAddr % 16 )
@@ -538,7 +569,10 @@ BERR_Code BXPT_PacketSub_CreateDesc(
 
         /* Next descriptor address must be 16-byte aligned. */
         NextDescPhysAddr &= ~( 0xF );
-        CachedDescPtr->NextDescAddr = NextDescPhysAddr;
+        CachedDescPtr->NextDescAddr = NextDescPhysAddr & 0xFFFFFFFF;
+#ifdef BXPT_PSUB_40BIT_SUPPORT
+        CachedDescPtr->NextDescAddrHi = NextDescPhysAddr >> 32;
+#endif
     }
     else
     {
@@ -558,6 +592,7 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
 {
     uint32_t Reg;
     uint32_t RunBit;
+    uint64_t DescPhysAddr;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -571,8 +606,6 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
     /* Do we already have a list going? */
     if( hPSub->LastDescriptor_Cached )
     {
-        uint32_t DescPhysAddr;
-
         /*
         ** Yes, there is list already. Append this descriptor to the last descriptor,
         ** then set the wake bit.
@@ -584,9 +617,12 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
 
         /* Set the last descriptor in the chain to point to the descriptor we're adding. */
         DescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPSub->mma.ptr); /* convert FirstDesc -> offset */
-        LastDescriptor_Cached->NextDescAddr = ( uint32_t ) DescPhysAddr;
+        LastDescriptor_Cached->NextDescAddr = DescPhysAddr & 0xFFFFFFFF;
+#ifdef BXPT_PSUB_40BIT_SUPPORT
+        LastDescriptor_Cached->NextDescAddrHi = DescPhysAddr >> 32;
+#endif
         BMMA_FlushCache(hPSub->mma.block, LastDescriptor_Cached, sizeof(BXPT_PacketSub_Descriptor));
-        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc 0x%08lX -> Offset 0x%08lX", __FUNCTION__, (unsigned long) FirstDesc, (unsigned long) DescPhysAddr ));
+        BDBG_MSG(( "%s (LastDescriptor_Cached): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
         /* Wake mode should resume from last descriptor on the list. */
         Reg &= ~ ( BCHP_MASK( XPT_PSUB_PSUB0_STAT0, WAKE_MODE ) );
@@ -605,15 +641,16 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
     }
     else
     {
+        BMMA_DeviceOffset Addr;
+
         /*
         ** If this is the first descriptor (the channel has not been started)
         ** then load the address into the first descriptor register
         */
-        uint32_t DescPhysAddr;
 
         /* This is our first descriptor, so we must load the first descriptor register */
         DescPhysAddr = hPSub->mma.offset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPSub->mma.ptr); /* convert FirstDesc -> offset */
-        BDBG_MSG(( "%s (New chain): Desc 0x%08lX -> Offset 0x%08lX", __FUNCTION__, (unsigned long) FirstDesc, (unsigned long) DescPhysAddr ));
+        BDBG_MSG(( "%s (New chain): Desc %p -> Offset " BDBG_UINT64_FMT "", __FUNCTION__, (void *) FirstDesc, BDBG_UINT64_ARG(DescPhysAddr) ));
 
         /*
         ** The descriptor address field in the hardware register is wants the address
@@ -623,11 +660,11 @@ BERR_Code BXPT_PacketSub_AddDescriptors(
         ** bitfield starts at bit 4. Confusing, but thats what the hardware and the
         ** RDB macros require to make this work.
         */
-        Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
-        Reg &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
+        Addr = BXPT_PacketSub_P_ReadAddr( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2 );
+        Addr &= ~( BCHP_MASK( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR ) );
         DescPhysAddr >>= 4;
-        Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR, DescPhysAddr );
-        BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Reg );
+        Addr |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL2, FIRST_DESC_ADDR, DescPhysAddr );
+        BXPT_PacketSub_P_WriteAddr( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL2, Addr );
 
         /*
         ** If this channel has been started, we need to kick off the hardware
@@ -677,14 +714,14 @@ BERR_Code BXPT_PacketSub_GetCurrentDescriptorAddress_isrsafe(
     BXPT_PacketSub_Descriptor **LastDesc        /* [in] Address of the current descriptor. */
     )
 {
-    uint32_t Reg, CurrentDescAddr;
+    BMMA_DeviceOffset Reg, CurrentDescAddr;
     void *UserDescAddr;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hPSub );
 
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
+    Reg = BXPT_PacketSub_P_ReadAddr( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
     CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
     CurrentDescAddr <<= 4;  /* Convert to byte-address. */
     UserDescAddr = (uint8_t*)hPSub->mma.ptr + (CurrentDescAddr - hPSub->mma.offset); /* convert CurrentDescAddr -> cached ptr */
@@ -701,7 +738,8 @@ BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
     uint32_t *BufferSize                /* [out] Size of the buffer (in bytes). */
     )
 {
-    uint32_t Reg, ChanBusy, CurrentDescAddr, CandidateDescPhysAddr;
+    BMMA_DeviceOffset Reg, CurrentDescAddr, CandidateDescPhysAddr;
+    uint32_t ChanBusy;
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
@@ -712,7 +750,7 @@ BERR_Code BXPT_PacketSub_CheckHeadDescriptor(
     ** playback hardware is the first on our hardware list
     ** (which means this descriptor is still being used)
     */
-    Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
+    Reg = BXPT_PacketSub_P_ReadAddr( hPSub, BCHP_XPT_PSUB_PSUB0_STAT1 );
 
     CurrentDescAddr = BCHP_GET_FIELD_DATA( Reg, XPT_PSUB_PSUB0_STAT1, CURR_DESC_ADDR );
     CurrentDescAddr <<= 4;  /* Convert to byte-address. */

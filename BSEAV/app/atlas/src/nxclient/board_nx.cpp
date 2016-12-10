@@ -206,6 +206,18 @@ eRet CBoardResourcesNx::add(
         }
         break;
 #endif /* if NEXUS_HAS_UHF_INPUT */
+#ifdef WPA_SUPPLICANT_SUPPORT
+        case eBoardResource_wifi:
+        {
+            CWifi * pWifi = NULL;
+            pWifi = new CWifi(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
+            BDBG_ASSERT(pWifi);
+            /* this is a singleton Wifi object so allow it to be checked out multiple times */
+            pNetwork->setCheckedOutMax(-1);
+            _wifiList.add(pWifi);
+        }
+        break;
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef NETAPP_SUPPORT
         case eBoardResource_bluetoothRemote:
         {

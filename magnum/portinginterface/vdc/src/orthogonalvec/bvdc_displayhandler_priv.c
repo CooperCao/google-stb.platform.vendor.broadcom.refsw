@@ -2945,7 +2945,7 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_RM_FORMAT + pstChan->ulDvpRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(HDMI_RM_FORMAT, SHIFT, pRmInfo->ulShift) |
-        BCHP_FIELD_DATA(HDMI_RM_FORMAT, STABLE_COUNT, 10000);
+        BCHP_FIELD_DATA(HDMI_RM_FORMAT, STABLE_COUNT, 64);
 #else /* (BVDC_P_SUPPORT_DVI_28NM) */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_RM_FORMAT + pstChan->ulDvpRegOffset);
@@ -3075,7 +3075,7 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HDMI_RM_FORMAT + pstChan->ulDvpRegOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(HDMI_RM_FORMAT, SHIFT, pRmInfo->ulShift) |
-        BCHP_FIELD_DATA(HDMI_RM_FORMAT, STABLE_COUNT, 10000);
+        BCHP_FIELD_DATA(HDMI_RM_FORMAT, STABLE_COUNT, 64);
 
     if(bProgramFull)
     {

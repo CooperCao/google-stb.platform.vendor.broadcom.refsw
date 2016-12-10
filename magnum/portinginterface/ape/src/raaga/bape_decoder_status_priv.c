@@ -242,7 +242,7 @@ static BERR_Code BAPE_Decoder_P_GetAc4Status(
         BKNI_Memset(pStatus->codecStatus.ac4.currentPresentationId, 0, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
         for ( i = 0; i < BAPE_AC4_PRESENTATION_ID_LENGTH; i++ )
         {
-            pStatus->codecStatus.ac4.currentPresentationId[i] = (handle->streamInfo.ac4.i32ProgramIdentifier[i/sizeof(uint32_t)] >> (8*(4-((i+1)%4)))) & 0xff;
+            pStatus->codecStatus.ac4.currentPresentationId[i] = (handle->streamInfo.ac4.i32ProgramIdentifier[i/sizeof(uint32_t)] >> 8*(3-(i%4))) & 0xff;
         }
         pStatus->codecStatus.ac4.currentPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex;
         pStatus->codecStatus.ac4.dialogEnhanceMax = handle->streamInfo.ac4.ui32DecodedPresentationMaxDialogGain;

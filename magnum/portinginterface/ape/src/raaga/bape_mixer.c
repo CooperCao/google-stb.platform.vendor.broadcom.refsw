@@ -65,6 +65,8 @@ void BAPE_Mixer_GetDefaultSettings(
         pSettings->loopbackVolumeMatrix[i][i] = BAPE_VOLUME_NORMAL;
         pSettings->outputVolume.volume[i] = BAPE_VOLUME_NORMAL;
     }
+    pSettings->fade.mainDecodeFade.level = 100;
+
     #if BAPE_CHIP_MAX_NCOS > 0
     pSettings->outputNco = BAPE_Nco_e0;
     #else
@@ -106,6 +108,7 @@ void BAPE_Mixer_P_GetDefaultInputVolume(BAPE_MixerInputVolume *pVolume)
     {
         pVolume->coefficients[i][i] = BAPE_VOLUME_NORMAL;
     }
+    pVolume->fade.level = 100;
 }
 
 /*************************************************************************/
@@ -147,6 +150,7 @@ BERR_Code BAPE_SetOutputVolume(
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 /*************************************************************************/
 void BAPE_GetOutputDelayStatus(
     BAPE_OutputPort output,
@@ -159,6 +163,7 @@ void BAPE_GetOutputDelayStatus(
     pStatus->pathDelay = BAPE_CHIP_MAX_PATH_DELAY;
     pStatus->additionalDelay = (output->mixer)?output->mixer->settings.outputDelay:0;
 }
+#endif
 
 /*************************************************************************/
 /* Dispatchers for type-specific mixer functions                         */
@@ -433,6 +438,39 @@ BERR_Code BAPE_Mixer_SetInputVolume(
 
     if(handle->interface->setInputVolume) {
         return handle->interface->setInputVolume(handle, input, pVolume);
+    } else {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
+/*************************************************************************/
+BERR_Code BAPE_Mixer_GetInputStatus(
+    BAPE_MixerHandle handle,
+    BAPE_Connector input,
+    BAPE_MixerInputStatus *pStatus      /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != handle->interface);
+
+    if(handle->interface->getInputStatus) {
+        return handle->interface->getInputStatus(handle, input, pStatus);
+    } else {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
+/*************************************************************************/
+BERR_Code BAPE_Mixer_GetStatus(
+    BAPE_MixerHandle handle,
+    BAPE_MixerStatus *pStatus      /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != handle->interface);
+
+    if(handle->interface->getStatus) {
+        return handle->interface->getStatus(handle, pStatus);
     } else {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }

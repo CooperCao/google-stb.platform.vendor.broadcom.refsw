@@ -2630,7 +2630,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       }
    }
 #endif
-#if  !BXVD_P_CORE_40BIT_ADDRESSIBLE
+#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
 #define BXVD_XPT_WR_PTR_OFFSET 4
 #else
 #define BXVD_XPT_WR_PTR_OFFSET 8

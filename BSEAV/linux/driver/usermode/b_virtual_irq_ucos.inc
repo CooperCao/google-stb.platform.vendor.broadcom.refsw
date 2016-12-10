@@ -200,18 +200,18 @@ NULL
 #endif
 };
 
-int b_virtual_irq_l1_is_virtual(const char * name)
+bool b_virtual_irq_l1_is_virtual(const char * name)
 {
     unsigned i;
     const char *virtualIrq;
-    int virtual = 0; /* bool */
+    bool virtual = false;
 
     if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return 0; }
 
     for (i = 0; i < sizeof(g_virtual_irqs)/sizeof(g_virtual_irqs[0]); i++) {
         virtualIrq = g_virtual_irqs[i];
         if (virtualIrq && !strcmp(virtualIrq, name)) {
-            virtual = 1;
+            virtual = true;
             break;
         }
     }
@@ -350,7 +350,7 @@ end:
     return result;
 }
 
-int b_virtual_irq_set_mask(b_virtual_irq_line line, int disable)
+int b_virtual_irq_set_mask(b_virtual_irq_line line, bool disabled)
 {
 #ifdef FIXME
     int result = 0;

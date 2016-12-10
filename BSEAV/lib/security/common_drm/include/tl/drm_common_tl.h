@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef __DRM_COMMON_H__
 #define __DRM_COMMON_H__
@@ -48,7 +47,7 @@
 #include "bsagelib_types.h"
 #include "sage_srai.h"
 
-#include "drm_types.h"
+#include "drm_types_tl.h"
 #include "common_crypto.h"
 #include "drm_common.h"
 #include "drm_common_module_ids.h"
@@ -104,7 +103,7 @@ do {                                                                            
      ((uint8_t *)(pBuf))[3])
 
 /* Number of DMA blocks supported */
-#define DRM_COMMON_TL_MAX_DMA_BLOCKS 32
+#define DRM_COMMON_TL_MAX_DMA_BLOCKS 128
 
 /* Chipset type */
 typedef enum
@@ -116,30 +115,145 @@ typedef enum
 } ChipType_e;
 
 
+typedef enum
+{
+    Common_Platform_Common = 0,
+    Common_Platform_AdobeAxcess = 1,
+    Common_Platform_DtcpIp = 2,
+    Common_Platform_eDrm = 3,
+    Common_Platform_Netflix = 4,
+    Common_Platform_PlayReady_25 = 5,
+    Common_Platform_Widevine = 6,
+    Common_Platform_Playback = 7,
+    Common_Platform_Max = 8
+} CommonDrmPlatformType_e;
+
 /******************************************************************************
 ** FUNCTION
-**   DRM_Common_Initialize
+**   DRM_Common_TL_Initialize
 **
 ** DESCRIPTION:
-**    Initializes the common DRM interface module
+**    Initializes the DRM platform specified in pCommonTLSettings->drmType
 **
 ** PARAMETERS:
-**    N/A
+**    DrmCommonInit_TL_t *pCommonTLSettings
 **
 ** RETURNS:
 **   Drm_Success when the operation is successful or an error.
 **
 ******************************************************************************/
-DrmRC DRM_Common_TL_Initialize(DrmCommonInit_t *pCommonTLSettings);
+DrmRC DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings);
 
-DrmRC DRM_Common_TL_Finalize(void);
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_Finalize
+**
+** DESCRIPTION:
+**    Finalize the common_drm platform
+**
+** PARAMETERS:
+**    CommonDrmPlatformType_e platformIndex
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
+DrmRC DRM_Common_TL_Finalize();
 
-DrmRC DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_e module_id,
-                                 char * drm_bin_filename,
-                                 BSAGElib_InOutContainer *container,
-                                 SRAI_ModuleHandle *moduleHandle);
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_ModuleInitialize
+**
+** DESCRIPTION:
+**    Initializes the DRM module of common_drm platform
+**
+** PARAMETERS:
+**    uint32_t module_id
+**    char * drm_bin_filename
+**    BSAGElib_InOutContainer *container
+**    SRAI_ModuleHandle *moduleHandle
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
+DrmRC DRM_Common_TL_ModuleInitialize(  uint32_t module_id,
+                                                char * drm_bin_filename,
+                                                BSAGElib_InOutContainer *container,
+                                                SRAI_ModuleHandle *moduleHandle);
 
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_ModuleFinalize
+**
+** DESCRIPTION:
+**    Finalizes the DRM module of common_drm platform
+**
+** PARAMETERS:
+**    SRAI_ModuleHandle *moduleHandle
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
 DrmRC DRM_Common_TL_ModuleFinalize(SRAI_ModuleHandle moduleHandle);
+
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_Finalize_TA
+**
+** DESCRIPTION:
+**    Finalize the specified DRM platform
+**
+** PARAMETERS:
+**    CommonDrmPlatformType_e platformIndex
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
+DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platformIndex);
+
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_ModuleInitialize_TA
+**
+** DESCRIPTION:
+**    Initializes the DRM module of specified platform
+**
+** PARAMETERS:
+**    CommonDrmPlatformType_e platformIndex
+**    uint32_t module_id
+**    char * drm_bin_filename
+**    BSAGElib_InOutContainer *container
+**    SRAI_ModuleHandle *moduleHandle
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
+DrmRC DRM_Common_TL_ModuleInitialize_TA(CommonDrmPlatformType_e platformIndex,
+                                                uint32_t module_id,
+                                                char * drm_bin_filename,
+                                                BSAGElib_InOutContainer *container,
+                                                SRAI_ModuleHandle *moduleHandle);
+
+/******************************************************************************
+** FUNCTION
+**   DRM_Common_TL_ModuleFinalize_TA
+**
+** DESCRIPTION:
+**    Finalizes the DRM module of specified platform
+**
+** PARAMETERS:
+**    CommonDrmPlatformType_e platformIndex
+**    SRAI_ModuleHandle *moduleHandle
+**
+** RETURNS:
+**   Drm_Success when the operation is successful or an error.
+**
+******************************************************************************/
+DrmRC DRM_Common_TL_ModuleFinalize_TA(CommonDrmPlatformType_e platformIndex, SRAI_ModuleHandle moduleHandle);
 
 /******************************************************************************
  * * FUNCTION
@@ -181,10 +295,10 @@ void DRM_Common_TL_FreeKeySlot(NEXUS_KeySlotHandle keySlotHandle);
 DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize);
 
 
+#ifdef USE_UNIFIED_COMMON_DRM
 /******************************************************************************
  * * FUNCTION
  **   DRM_Common_TL_M2mOperation
-
  **
  ** DESCRIPTION:
  **    Performs the DMA M2M operation given the settings of the
@@ -201,20 +315,47 @@ DrmRC DRM_Common_P_GetFileSize(char * filename, uint32_t *filesize);
  **   Drm_Success when the operation is successful, Drm_NexusErr error otherwise.
  **
  ******************************************************************************/
-DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
-    bool bSkipCacheFlush,
-    bool bExternalIV );
-
+DrmRC DRM_Common_TL_M2mOperation(
+    DrmCommonOperationStruct_t *pDrmCommonOpStruct,
+    bool bSkipCacheFlush, bool bExternalIV );
+#else
+/******************************************************************************
+ * * FUNCTION
+ **   DRM_Common_TL_M2mOperation_TA
+ **
+ ** DESCRIPTION:
+ **    Performs the DMA M2M operation given the settings of the
+ **    'DrmCommonOperationStruct_t' structure passed the function.
+ **    This function controls the flush operation by another given parameter.
+ **
+ ** PARAMETERS:
+ **    CommonDrmPlatformType_e platformIndex
+ **    DrmCommonOperationStruct_t *pDrmCommonOpStruct - structure containing key
+ **     source and cryptographic operation to perform
+ **    bool bSkipCacheFlush - whether to skip NEXUS_FlushCache
+ **    bool bExternalIV - whether first dma block contains BTP external IV data
+ **
+ ** RETURNS:
+ **   Drm_Success when the operation is successful, Drm_NexusErr error otherwise.
+ **
+ ******************************************************************************/
+DrmRC DRM_Common_TL_M2mOperation_TA(CommonDrmPlatformType_e platformIndex,
+    DrmCommonOperationStruct_t *pDrmCommonOpStruct,
+    bool bSkipCacheFlush, bool bExternalIV );
+#endif
 
 /******************************************************************************
  * * FUNCTION
  **   DRM_Common_P_TA_Install
  **
  ** DESCRIPTION:
- **    Install TA
+ **    Install specified TA platform
+ ** PARAMETERS:
+ **    uint32_t platformID - BSAGE_PLATFORM_ID_xx ID allocated by Broadcom
+ **    char * taBinFileName - name of TA bin file to install
  **
  ******************************************************************************/
-DrmRC DRM_Common_P_TA_Install(char * taBinFileName);
+DrmRC DRM_Common_P_TA_Install(uint32_t platformID, char * taBinFileName);
 
 /******************************************************************************
  * * FUNCTION

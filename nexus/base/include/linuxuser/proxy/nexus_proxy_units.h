@@ -39,7 +39,7 @@
 
 #include <alloca.h>
 #if 0
-#define BDBG_MSG_TRACE(x)   BDBG_LOG(x)
+#define BDBG_MSG_TRACE(x)   BDBG_MSG(x)
 #else
 #define BDBG_MSG_TRACE(x)
 #endif
@@ -53,16 +53,17 @@
 #define B_IPC_CLIENT_TRACE(x) BDBG_MSG_TRACE(x);
 #define B_IPC_CLIENT_BEGIN(module, MODULE, result, api, function, args) result function args { result __result=(result)0;B_IPC_CLIENT_PROLOGUE(module,MODULE,function,api);
 #define B_IPC_CLIENT_BEGIN_VOID(module, MODULE, api, function, args) void function args { B_IPC_CLIENT_PROLOGUE(module,MODULE,function,api);
-#define B_IPC_CLIENT_BEGIN_DESTRUCTOR(module, MODULE, api, function, args, handle) void function args { B_IPC_CLIENT_PROLOGUE(module,MODULE,function,api);NEXUS_StopCallbacks((void *)handle);
+#define B_IPC_CLIENT_BEGIN_DESTRUCTOR(module, MODULE, api, function, args, handle, has_callbacks) void function args { bool __has_callbacks = has_callbacks; if(__has_callbacks) {NEXUS_StopCallbacks((void *)handle);} { B_IPC_CLIENT_PROLOGUE(module,MODULE,function,api);
 #define B_IPC_CLIENT_SET_RESULT(type, api) __result = B_IPC_FIELD(api, out, ret.__retval);
 #define B_IPC_CLIENT_END_VOID(api)  done: NEXUS_PROXY_LEAVE(api);return;}
-#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  done: NEXUS_StartCallbacks((void *)handle);NEXUS_PROXY_LEAVE(api);return;}
+#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  done: if(__has_callbacks) {NEXUS_StartCallbacks((void *)handle);} NEXUS_PROXY_LEAVE(api);} return;}
 #define B_IPC_CLIENT_END_HANDLE(type, api) return __result; done: return (type)NULL;}
 #define B_IPC_CLIENT_END(api)  return __result;done: return __rc;}
 #define B_IPC_CLIENT_SEND(api, arg)  B_IPC_FIELD(api, in, args.arg) = arg;
 #define B_IPC_CLIENT_SEND_IN_PTR(api, arg) B_IPC_FIELD(api, in, pointer.arg) = arg;
 #define B_IPC_CLIENT_SEND_OUT_PTR(api, arg) B_IPC_FIELD(api, in, pointer.arg) = arg;
 #define B_IPC_CLIENT_SEND_VARARG(api, arg, type, nelem) B_IPC_FIELD(api, in, pointer.arg) = arg;
+#define B_IPC_CLIENT_SEND_VARARG_NELEM_CONVERT(api, arg, type, convert, nelem) B_IPC_CLIENT_SEND_VARARG(api, arg, type, nelem)
 #define B_IPC_CLIENT_SEND_VARARG_ADDR(api, arg, type, field, field_addr, nelem) if(arg!=NULL) { B_IPC_FIELD(api, in, pointer.field_addr) = alloca(sizeof(NEXUS_Addr) * nelem); \
     if(B_IPC_FIELD(api, in, pointer.field_addr)==NULL) { __rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto done;} \
     __rc = NEXUS_P_ProxyCall_InVarArg_AddrField(B_IPC_FIELD(api, in, pointer.field_addr), arg, sizeof(*arg), (uint8_t *)&(arg->field) - (uint8_t *)arg, nelem); if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto done;}\

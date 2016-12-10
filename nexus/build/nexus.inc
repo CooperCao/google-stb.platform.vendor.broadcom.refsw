@@ -78,7 +78,7 @@ ifeq ($(BPROFILE_SUPPORT),y)
 NEXUS_CFLAGS_BPROFILE = -DB_HAS_BPROFILE=1 -finstrument-functions
 endif
 ifeq ($(NEXUS_ABICOMPAT_MODE),y)
-NEXUS_CFLAGS_BPROFILE = -DNEXUS_ABICOMPAT_MODE=1
+NEXUS_CFLAGS += -DNEXUS_ABICOMPAT_MODE=1
 endif
 
 # Create NEXUS CFLAGS from base include path and defines

@@ -41,7 +41,7 @@
 #include "nexus_interrupt_map.h"
 #include "nexus_generic_driver_impl.h"
 #if NEXUS_HAS_GPIO
-#include "nexus_platform_shared_gpio.h"
+#include "nexus_gpio_init.h"
 #endif
 #include "int1.h"
 #if UCOS_VERSION==1
@@ -300,10 +300,10 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
     pMemory->osRegion[0].base = 0x09000000;
     pMemory->osRegion[0].length = 0x07000000; /* 112MB */
 
-    pMemory->memc[0].region[0].base = 0x08000000;
-    pMemory->memc[0].region[0].length = pMemory->memc[0].region[0].length - pMemory->memc[0].region[0].base;
+    pMemory->memoryLayout.memc[0].region[0].addr = 0x08000000;
+    pMemory->memoryLayout.memc[0].region[0].size = pMemory->memoryLayout.memc[0].region[0].size - pMemory->memoryLayout.memc[0].region[0].addr;
 
-    if (((pMemory->memc[0].length>>20) == 512) && ((pMemory->memc[1].length>>20) == 0)) {
+    if (((pMemory->memoryLayout.memc[0].size>>20) == 512) && ((pMemory->memoryLayout.memc[1].size>>20) == 0)) {
         /* Standard 256M@512M with MEMC0=512MB, i.e., 97241dcsfbtsff*/
         pMemory->osRegion[1].base = DRAM_0_PHYS_ADDR_START;
         pMemory->osRegion[1].length = 0x10000000; /* 256MB */
@@ -484,21 +484,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
         }
     }
 
-
-done:
     return;
-}
-
-static void NEXUS_Platform_P_SetL1Status(unsigned l1)
-{
-    struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
-    unsigned i;
-    for(i=0;i<NEXUS_NUM_L1_REGISTERS;i++,l1-=32) {
-        if(l1<32) {
-            state->pending[i].IntrStatus |= 1<<l1;
-            break;
-        }
-    }
 }
 
 void NEXUS_Platform_P_LinuxIsr(void *dev_id, int linux_irq)
@@ -681,20 +667,6 @@ void NEXUS_Platform_P_MonitorOS(void)
         state->table[irq].print = false;
     }
     BKNI_LeaveCriticalSection();
-}
-
-static void NEXUS_Platform_P_SetmaskL1(unsigned l1, unsigned disable)
-{
-    struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
-    unsigned reg = l1/32;
-    if (disable)
-    {
-        state->processing[reg].IntrMaskStatus |= 1 << (l1%32);
-    }
-    else
-    {
-        state->processing[reg].IntrMaskStatus &= ~(1 << (l1%32));
-    }
 }
 
 NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
@@ -927,6 +899,9 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
     CPU_SR_ALLOC();
 #endif
 
+    BSTD_UNUSED(preInitState);
+    BSTD_UNUSED(systemRegister);
+
 #if UCOS_VERSION==1
     OS_ENTER_CRITICAL();
 #elif UCOS_VERSION==3
@@ -1099,92 +1074,27 @@ NEXUS_Error NEXUS_Platform_P_RemoveDynamicRegion(NEXUS_Addr addr, unsigned size)
     return NEXUS_SUCCESS;
 }
 
-#if NEXUS_HAS_GPIO
-#include "b_shared_gpio.h"
-
-static void NEXUS_Platform_P_FireGpioL2(int aon)
+bool NEXUS_Platform_P_SharedGpioSupported(void)
 {
-#ifdef FIXME
-    if (NEXUS_Platform_P_VirtualIrqSupported())
-    {
-        b_virtual_irq_software_l2_isr(aon ? b_virtual_irq_line_gio_aon : b_virtual_irq_line_gio);
-    }
-    else
-    {
-        /* TODO */
-    }
-#else
-    printf("NEXUS_Platform_P_FireGpioL2 stubbed\n");
-#endif
+    return false;
 }
 
-static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_module_init_settings * gio_settings)
+NEXUS_Error NEXUS_Platform_P_UpdateIntSettings(BINT_Settings *pIntSettings)
 {
-#ifdef FIXME
-    if (NEXUS_Platform_P_VirtualIrqSupported())
-    {
-        gio_settings->gio_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio);
-        gio_settings->gio_aon_linux_irq = b_virtual_irq_get_linux_irq(b_virtual_irq_line_gio_aon);
-    }
-    else
-    {
-        gio_settings->gio_linux_irq = 0;
-        gio_settings->gio_aon_linux_irq = 0;
-    }
-#else
-    printf("NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings stubbed\n");
-#endif
+    BSTD_UNUSED(pIntSettings);
+    return NEXUS_SUCCESS;
 }
 
-#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (NEXUS_Platform_P_SharedGpioSupported())
-#else
-#define NEXUS_PLATFORM_P_SHARED_GPIO_SUPPORTED() (false)
-#endif
-#define EINVAL          22
-#define ENOSYS          38
-#define IRQ_HANDLED 0
-#define IRQF_TRIGGER_NONE 0
-#define IRQF_TRIGGER_HIGH 0
-#include "nexus_platform_virtual_irq.inc"
-#ifdef FIXME
-#define B_VIRTUAL_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
-#define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
-#else
-#define B_VIRTUAL_IRQ_SPIN_LOCK(flags)
-#define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags)
-#endif
-#define B_VIRTUAL_IRQ_GET_L1_WORD_COUNT() (NEXUS_NUM_L1_REGISTERS)
-#define B_VIRTUAL_IRQ_MASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 1)
-#define B_VIRTUAL_IRQ_UNMASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 0)
-#define B_VIRTUAL_IRQ_SET_L1_STATUS(L1) NEXUS_Platform_P_SetL1Status(L1)
-#define B_VIRTUAL_IRQ_INC_L1(L1)
-#ifdef FIXME
-#define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() tasklet_hi_schedule(&NEXUS_Platform_P_IsrTasklet)
-#else
-#define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS()
-#endif
-#include "b_virtual_irq_ucos.inc"
-
-#if NEXUS_HAS_GPIO
-#include "nexus_platform_shared_gpio.inc"
-#define B_SHARED_GPIO_FIRE_GPIO_L2(AON) NEXUS_Platform_P_FireGpioL2(AON)
-#ifdef FIXME
-#define B_SHARED_GPIO_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
-#define B_SHARED_GPIO_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
-#else
-#define B_SHARED_GPIO_SPIN_LOCK(flags)
-#define B_SHARED_GPIO_SPIN_UNLOCK(flags)
-#endif
-
-#include "b_shared_gpio_ucos.inc"
-#endif
+void NEXUS_Platform_P_GetGpioModuleOsSharedBankSettings(NEXUS_GpioModuleOsSharedBankSettings * pSettings)
+{
+    BSTD_UNUSED(pSettings);
+}
 
 #if NEXUS_USE_CMA
 /* macros found in magnum/basemodules/chp */
 #include "../../src/common/bchp_memc_offsets_priv.h"
 NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
 {
-    NEXUS_Error rc;
     unsigned i;
     BCHP_MemoryInfo memoryInfo;
 

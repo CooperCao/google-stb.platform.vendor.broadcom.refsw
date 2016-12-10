@@ -124,6 +124,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->centerMixLevel = (BAPE_Ac3CenterMixLevel)encodeStageSettings.ui32CenterMixLevel;
     pSettings->surroundMixLevel = (BAPE_Ac3SurroundMixLevel)encodeStageSettings.ui32SurroundMixLevel;
     pSettings->dolbySurround = (BAPE_Ac3DolbySurround)encodeStageSettings.ui32DolbySurroundMode;
+    pSettings->fixedEncoderFormat = (rendererStageSettings.ui32ChannelLockModeEnable == 1) ? true : false;
     pSettings->dialogLevel = encodeStageSettings.ui32DialNorm;
     if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
          BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA )
@@ -862,6 +863,8 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAc3DecoderSettings(
     ddreSettings->drcMode = pSettings->drcMode;
     ddreSettings->drcModeDownmix = pSettings->drcModeDownmix;
     ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
+    ddreSettings->fixedEncoderFormat = handle->settings.fixedEncoderFormat;
+    ddreSettings->profile = handle->settings.profile;
     switch ( pSettings->stereoMode )
     {
     default:
@@ -891,6 +894,8 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAacDecoderSettings(
     ddreSettings->drcMode = pSettings->drcMode;
     ddreSettings->drcModeDownmix = pSettings->drcMode;
     ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
+    ddreSettings->fixedEncoderFormat = handle->settings.fixedEncoderFormat;
+    ddreSettings->profile = handle->settings.profile;
     switch ( pSettings->downmixMode )
     {
     default:
@@ -923,6 +928,8 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(
     ddreSettings->drcMode = pSettings->drcMode;
     ddreSettings->drcModeDownmix = pSettings->drcModeDownmix;
     ddreSettings->dualMonoMode = handle->masterDecoder->settings.dualMonoMode;
+    ddreSettings->fixedEncoderFormat = handle->settings.fixedEncoderFormat;
+    ddreSettings->profile = handle->settings.profile;
     switch ( pSettings->stereoMode )
     {
     default:
@@ -1047,6 +1054,8 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sStereoDownmixedPort.ui32DrcCut, ddreSettings->drcScaleHiDownmix);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sStereoDownmixedPort.ui32DrcBoost, ddreSettings->drcScaleLowDownmix);
 
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32ChannelLockModeEnable, ddreSettings->fixedEncoderFormat? 1 : 0);
+
     /* if Config A MS12, but the encoder only has legacy compressed consumer, limit PCMR output to 6 chs */
     if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
          BAPE_P_GetDolbyMS12Config() == BAPE_DolbyMs12Config_eA &&
@@ -1069,78 +1078,37 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
     bool forceDrcModes = false;
     BAPE_ChannelMode channelMode;
     bool lfe;
-    unsigned stereoOutputPort = 0;
+    unsigned stereoOutputPort;
+    unsigned multichOutputPort;
 
     BSTD_UNUSED(encodeStageSettings);
 
-    /* Determine output mode */
-    lfe = true;
-    channelMode = BAPE_DSP_P_GetChannelMode(BAVC_AudioCompressionStd_eAc3, BAPE_ChannelMode_e3_2, BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle), BAPE_MultichannelFormat_e5_1);
-    if ( !BAPE_DSP_P_IsLfePermitted(channelMode) )
+    if ( BAPE_DolbyDigitalReencode_P_HasStereoOutput(handle) && BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle) )
     {
-        lfe = false;
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumOutPorts, 2);
+        multichOutputPort = 0;
+        stereoOutputPort = 1;
     }
-
-    switch ( ddreSettings->drcMode )
+    else if ( BAPE_DolbyDigitalReencode_P_HasStereoOutput(handle) )
     {
-    default:
-    case BAPE_DolbyDigitalReencodeDrcMode_eLine:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32CompMode, 0);
-        break;
-    case BAPE_DolbyDigitalReencodeDrcMode_eRf:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32CompMode, 1);
-        break;
+        /* only Stereo output port */
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumOutPorts, 1);
+        stereoOutputPort = 0;
+        multichOutputPort = 1; /* This will be populate values but not be used */
     }
-    switch ( ddreSettings->drcModeDownmix )
+    else if ( BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle) )
     {
-    default:
-    case BAPE_DolbyDigitalReencodeDrcMode_eLine:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32CompMode, 0);
-        break;
-    case BAPE_DolbyDigitalReencodeDrcMode_eRf:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32CompMode, 1);
-        break;
+        /* only Multich output port */
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumOutPorts, 2);
+        multichOutputPort = 0;
+        stereoOutputPort = 1; /* This will be populate values but not be used */
     }
-    switch ( ddreSettings->dualMonoMode )
+    else
     {
-    default:
-    case BAPE_DualMonoMode_eStereo:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32DualMode, 0);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32DualMode, 0);
-        break;
-    case BAPE_DualMonoMode_eLeft:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32DualMode, 1);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32DualMode, 1);
-        break;
-    case BAPE_DualMonoMode_eRight:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32DualMode, 2);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32DualMode, 2);
-        break;
-    case BAPE_DualMonoMode_eMix:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32DualMode, 3);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32DualMode, 3);
-        break;
+        BDBG_ERR(("%s, No Valid Output Port found!", __FUNCTION__));
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
     }
-    switch ( ddreSettings->stereoMode )
-    {
-    default:
-    case BAPE_DolbyDigitalReencodeStereoMode_eLtRt:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32StereoMode, 0);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32StereoMode, 0);
-        break;
-    case BAPE_DolbyDigitalReencodeStereoMode_eLoRo:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32StereoMode, 1);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32StereoMode, 1);
-        break;
-    case BAPE_DolbyDigitalReencodeStereoMode_eArib:
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32StereoMode, 2);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32StereoMode, 2);
-        break;
-    }
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32DrcCutFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleHi, 100));
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32DrcBoostFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleLow, 100));
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32DrcCutFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleHi, 100));
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32DrcBoostFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleLow, 100));
 
     /* Handle loudness equivalence. */
     if ( handle->node.deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
@@ -1148,68 +1116,121 @@ static void BAPE_DolbyDigitalReencode_P_TranslateDdreToBdspSettings(
         forceDrcModes = true;
     }
 
+
+    /* Setup correct number of outputs and derive parameters from master decoder if required */
+    /* Outputcfg[0] is used for multichannel if enabled otherwise is used for stereo */
+    lfe = true;
+    channelMode = BAPE_DSP_P_GetChannelMode(BAVC_AudioCompressionStd_eAc3, BAPE_ChannelMode_e3_2, BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle), BAPE_MultichannelFormat_e5_1);
+    if ( !BAPE_DSP_P_IsLfePermitted(channelMode) )
+    {
+        lfe = false;
+    }
+
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(channelMode));
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32OutLfe, lfe?1:0);
+    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, rendererStageSettings->sUserOutputCfg[0].ui32OutputChannelMatrix);
+
+    if ( BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle) )
+    {
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e2_0));    /* Stereo */
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32OutLfe, 0);
+    }
+
+    /* To simplify setting UserOutputCfg settings for stereo and multichannel we will always have a valid index for
+       multichannel and stereo outputs.  The index will be dependent on what outputs are connected but if only one
+       output type is connected the values set for index 1 would not be utilized. */
+    if ( forceDrcModes )
+    {
+        /* Force to RF mode based on LE setting */
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32CompMode, 0);   /* Line (-31dB) */
+
+        /* input level to DDRE is expected to always be -31 */
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32DialNorm, 31);
+
+        switch (handle->node.deviceHandle->settings.loudnessMode)
+        {
+        case BAPE_LoudnessEquivalenceMode_eAtscA85:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 3); /* -24dB */
+            break;
+        case BAPE_LoudnessEquivalenceMode_eEbuR128:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 2); /* -23dB */
+            break;
+        default:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 1); /* RF mode */
+            break;
+        }
+    }
+    else
+    {
+        switch ( ddreSettings->drcMode )
+        {
+        default:
+        case BAPE_DolbyDigitalReencodeDrcMode_eLine:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32CompMode, 0);
+            break;
+        case BAPE_DolbyDigitalReencodeDrcMode_eRf:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32CompMode, 1);
+            break;
+        }
+        switch ( ddreSettings->drcModeDownmix )
+        {
+        default:
+        case BAPE_DolbyDigitalReencodeDrcMode_eLine:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 0);
+            break;
+        case BAPE_DolbyDigitalReencodeDrcMode_eRf:
+            BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 1);
+            break;
+        }
+    }
+
+    switch ( ddreSettings->dualMonoMode )
+    {
+    default:
+    case BAPE_DualMonoMode_eStereo:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32DualMode, 0);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32DualMode, 0);
+        break;
+    case BAPE_DualMonoMode_eLeft:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32DualMode, 1);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32DualMode, 1);
+        break;
+    case BAPE_DualMonoMode_eRight:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32DualMode, 2);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32DualMode, 2);
+        break;
+    case BAPE_DualMonoMode_eMix:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32DualMode, 3);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32DualMode, 3);
+        break;
+    }
+    switch ( ddreSettings->stereoMode )
+    {
+    default:
+    case BAPE_DolbyDigitalReencodeStereoMode_eLtRt:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32StereoMode, 0);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32StereoMode, 0);
+        break;
+    case BAPE_DolbyDigitalReencodeStereoMode_eLoRo:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32StereoMode, 1);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32StereoMode, 1);
+        break;
+    case BAPE_DolbyDigitalReencodeStereoMode_eArib:
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32StereoMode, 2);
+        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32StereoMode, 2);
+        break;
+    }
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32DrcCutFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleHi, 100));
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[multichOutputPort].ui32DrcBoostFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleLow, 100));
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32DrcCutFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleHiDownmix, 100));
+    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32DrcBoostFac, BAPE_P_FloatToQ131(ddreSettings->drcScaleLowDownmix, 100));
+
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32ExternalPcmEnabled, ddreSettings->externalPcmMode?1:0);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32CompProfile, handle->settings.profile);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32CmixLev, handle->settings.centerMixLevel);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32SurmixLev, handle->settings.surroundMixLevel);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32DsurMod, handle->settings.dolbySurround);
     BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32DialNorm, handle->settings.dialogLevel);
-
-    /* Setup correct number of outputs and derive parameters from master decoder if required */
-    if ( BAPE_DolbyDigitalReencode_P_HasStereoOutput(handle) > 0 &&
-         BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle) )
-    {
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumOutPorts, 2);
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(BAPE_ChannelMode_e2_0));    /* Stereo */
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[1].ui32OutLfe, 0);
-        stereoOutputPort = 1;
-    }
-    else
-    {
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32NumOutPorts, 1);
-        if (!BAPE_DolbyDigitalReencode_P_HasMultichannelOutput(handle))
-        {
-            switch ( ddreSettings->drcModeDownmix )
-            {
-            default:
-            case BAPE_DolbyDigitalReencodeDrcMode_eLine:
-                BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32CompMode, 0);
-                break;
-            case BAPE_DolbyDigitalReencodeDrcMode_eRf:
-                BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32CompMode, 1);
-                break;
-            }
-        }
-    }
-
-    if ( forceDrcModes )
-    {
-        /* Force to RF mode based on LE setting */
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32CompMode, 0);   /* Line (-31dB) */
-
-        /* input level to DDRE is expected to always be -31 */
-        BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), ui32DialNorm, 31);
-
-        if (BAPE_DolbyDigitalReencode_P_HasStereoOutput(handle))
-        {
-            switch (handle->node.deviceHandle->settings.loudnessMode)
-            {
-            case BAPE_LoudnessEquivalenceMode_eAtscA85:
-                BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 3); /* -24dB */
-                break;
-            case BAPE_LoudnessEquivalenceMode_eEbuR128:
-                BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 2); /* -23dB */
-                break;
-            default:
-                BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[stereoOutputPort].ui32CompMode, 1); /* RF mode */
-                break;
-            }
-        }
-    }
-
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32OutMode, BAPE_DSP_P_ChannelModeToDsp(channelMode));
-    BAPE_DSP_P_SET_VARIABLE((*rendererStageSettings), sUserOutputCfg[0].ui32OutLfe, lfe?1:0);
-    BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, rendererStageSettings->sUserOutputCfg[0].ui32OutputChannelMatrix);
 }
 #endif
 

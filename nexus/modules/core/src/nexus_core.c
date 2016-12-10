@@ -304,6 +304,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     BCHP_GetDefaultOpenSettings(&openSettings);
     openSettings.reg = g_NexusCore.publicHandles.reg;
     openSettings.memoryLayout = pSettings->memoryLayout;
+    openSettings.pMapId = preInitState->pMapId;
     if (str) {
         openSettings.productId = NEXUS_hextoi(str);
     }

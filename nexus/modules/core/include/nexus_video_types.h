@@ -426,6 +426,7 @@ typedef enum NEXUS_ColorRange {
 /* for backward compatibility */
 typedef unsigned NEXUS_HdmiColorDepth;
 /* HDMI color depth of 0 means "auto". Nexus will select the highest quality supported color depth. */
+#define NEXUS_HdmiColorDepth_eAuto  0
 #define NEXUS_HdmiColorDepth_e8bit  8
 #define NEXUS_HdmiColorDepth_e10bit 10
 #define NEXUS_HdmiColorDepth_e12bit 12

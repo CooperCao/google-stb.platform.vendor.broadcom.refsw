@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2013 Broadcom Corporation
+ *  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ************************************************************/
 
@@ -78,7 +68,9 @@
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
     #include <asm/brcmstb/brcmapi.h> /* bmem_region_info */
 #else
+#undef BCHP_PHYSICAL_OFFSET
     #include <asm/brcmstb/common/brcmstb.h>
+#undef BCHP_PHYSICAL_OFFSET
 
     /* These are included in the 2.6.12-4.0 kernel and later. */
     #if HAVE_RSRVD
@@ -90,7 +82,6 @@
 #include "priv/nexus_generic_driver.h"
 
 #if NEXUS_CPU_ARM
-#define round_down(x, y) ((x) - ((x) % (y)))
 #include "bcmdriver_arm.c"
 #endif
 
@@ -99,7 +90,7 @@ static int      nexus_driver_close(struct inode *inode, struct file * file);
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
 static int      nexus_driver_ioctl(struct inode *inode, struct file * file, unsigned int cmd, unsigned long arg);
 #else
-static int      nexus_driver_ioctl(struct file * file, unsigned int cmd, unsigned long arg);
+static long nexus_driver_ioctl(struct file * file, unsigned int cmd, unsigned long arg);
 #endif
 static int      nexus_driver_mmap(struct file *file, struct vm_area_struct *vma);
 
@@ -252,7 +243,7 @@ static int
 nexus_driver_ioctl(struct inode *inode, struct file * file,
                       unsigned int cmd, unsigned long arg)
 #else
-static int
+static long
 nexus_driver_ioctl(struct file * file,
                      unsigned int cmd, unsigned long arg)
 #endif
@@ -277,10 +268,11 @@ int
 nexus_init_module(void)
 {
     int rc;
-    unsigned i;
     struct nexus_generic_driver_init_settings settings;
+    unsigned i;
 
     memset(&settings, 0, sizeof(settings));
+    BSTD_UNUSED(i);
 
 #if NEXUS_USE_CMA
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
@@ -310,11 +302,6 @@ nexus_init_module(void)
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
     {
-        struct brcm_cache_info{
-            int max_writeback;
-            int max_writethrough;
-            int prefetch_enabled;
-        };
         struct brcm_cache_info info;
         brcm_get_cache_info(&info);
         settings.max_dcache_line_size = info.max_writeback;

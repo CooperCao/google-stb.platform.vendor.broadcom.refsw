@@ -101,6 +101,9 @@ void NEXUS_AudioMixer_GetDefaultSettings(
     BKNI_Memcpy(pSettings->loopbackVolumeMatrix, mixerSettings.loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
     BKNI_Memcpy(pSettings->outputVolume, mixerSettings.outputVolume.volume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax);
     pSettings->outputMuted = mixerSettings.outputVolume.muted;
+    pSettings->mainDecodeFade.level = mixerSettings.fade.mainDecodeFade.level;
+    pSettings->mainDecodeFade.type = mixerSettings.fade.mainDecodeFade.type;
+    pSettings->mainDecodeFade.duration = mixerSettings.fade.mainDecodeFade.duration;
 }
 
 /***************************************************************************
@@ -184,6 +187,10 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
         BKNI_Memcpy(mixerSettings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
         BKNI_Memcpy(mixerSettings.outputVolume.volume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax);
         mixerSettings.outputVolume.muted = pSettings->outputMuted;
+        mixerSettings.fade.continuousFading = pSettings->dolby.fade.continuousFading;
+        mixerSettings.fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
+        mixerSettings.fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
+        mixerSettings.fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
 
         rc = BAPE_Mixer_Create(NEXUS_AUDIO_DEVICE_HANDLE, &mixerSettings, &pMixer->dspMixer);
         if ( rc )
@@ -388,7 +395,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 {
     NEXUS_AudioMixerDolbySettings oldDolbySettings;
     NEXUS_AudioInputHandle oldMaster, newMaster;
-    bool loopbackVolMatrixChanged, outputVolumeChanged;
+    bool loopbackVolMatrixChanged, outputVolumeChanged, mainDecodeFadeChanged;
     unsigned oldSampleRate;
     int oldMultiStreamBalance;
     NEXUS_Error errCode;
@@ -426,6 +433,8 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 
     loopbackVolMatrixChanged = handle->settings.mixUsingDsp && (0 != BKNI_Memcmp(handle->settings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax));
     outputVolumeChanged = handle->settings.intermediate && (0 != BKNI_Memcmp(handle->settings.outputVolume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax) || handle->settings.outputMuted != pSettings->outputMuted);
+    mainDecodeFadeChanged = handle->settings.mixUsingDsp && BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
+        (handle->settings.mainDecodeFade.level != pSettings->mainDecodeFade.level || handle->settings.dolby.fade.continuousFading != pSettings->dolby.fade.continuousFading);
 
     handle->settings = *pSettings;
 
@@ -473,7 +482,7 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
         if ( (BKNI_Memcmp(&oldDolbySettings, &pSettings->dolby, sizeof(oldDolbySettings)) != 0) ||
              oldSampleRate != pSettings->outputSampleRate ||
              oldMultiStreamBalance != pSettings->multiStreamBalance ||
-             loopbackVolMatrixChanged )
+             loopbackVolMatrixChanged || mainDecodeFadeChanged )
         {
             BAPE_MixerSettings mixerSettings;
             BAPE_Mixer_GetSettings(handle->dspMixer, &mixerSettings);
@@ -489,6 +498,10 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
             mixerSettings.intelligentEqualizer.enabled = pSettings->dolby.intelligentEqualizer.enabled;
             mixerSettings.intelligentEqualizer.numBands = pSettings->dolby.intelligentEqualizer.numBands;
             BKNI_Memcpy(mixerSettings.intelligentEqualizer.band, pSettings->dolby.intelligentEqualizer.band, sizeof(mixerSettings.intelligentEqualizer.band));
+            mixerSettings.fade.continuousFading = pSettings->dolby.fade.continuousFading;
+            mixerSettings.fade.mainDecodeFade.level = pSettings->mainDecodeFade.level;
+            mixerSettings.fade.mainDecodeFade.type = pSettings->mainDecodeFade.type;
+            mixerSettings.fade.mainDecodeFade.duration = pSettings->mainDecodeFade.duration;
             mixerSettings.mixerSampleRate = pSettings->outputSampleRate;
             BKNI_Memcpy(mixerSettings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax);
             errCode = BAPE_Mixer_SetSettings(handle->dspMixer, &mixerSettings);
@@ -652,6 +665,7 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         BAPE_MixerAddInputSettings addInputSettings;
         BAPE_MixerInputVolume inputVolume;
         BAPE_MixerHandle mixer;
+        BAPE_MixerInputVolume piVolume;
         bool master;
         int i;
 
@@ -675,11 +689,17 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         }
         BKNI_Memset(pInputNode, 0, sizeof(NEXUS_AudioMixerInputNode));
         pInputNode->input = input;
+
+        /* populate Input Volume defaults from APE */
+        BAPE_Mixer_GetInputVolume(mixer, (BAPE_Connector)input->port, &piVolume);
         for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
         {
-            pInputNode->inputSettings.volumeMatrix[i][i] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
+            pInputNode->inputSettings.volumeMatrix[i][i] = (int32_t)((int64_t)NEXUS_AUDIO_VOLUME_LINEAR_NORMAL * (int64_t)piVolume.coefficients[i][i]/BAPE_VOLUME_NORMAL);
         }
-        pInputNode->inputSettings.muted = false;
+        pInputNode->inputSettings.muted = piVolume.muted;
+        pInputNode->inputSettings.fade.level = piVolume.fade.level;
+        pInputNode->inputSettings.fade.duration = piVolume.fade.duration;
+        pInputNode->inputSettings.fade.type = piVolume.fade.type;
         BLST_Q_INSERT_TAIL(&handle->inputList, pInputNode, inputNode);
 
         NEXUS_AudioInput_P_GetVolume(input, &inputVolume);
@@ -827,6 +847,11 @@ NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
     NEXUS_AudioMixerInputSettings *pSettings
     )
 {
+    if ( pSettings == NULL )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
         NEXUS_AudioMixerInputNode *pInputNode;
@@ -843,17 +868,16 @@ NEXUS_Error NEXUS_AudioMixer_GetInputSettings(
         else
         {
             BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)",__FUNCTION__, (void *)input, (void *)handle));
-            return BERR_INVALID_PARAMETER;
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
     else
     {
-        BDBG_ERR(("%s: Mixer is neither DSP or Intermediate type",__FUNCTION__));
-        return BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers",__FUNCTION__));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     return BERR_SUCCESS;
 }
-
 
 /***************************************************************************
 Summary:
@@ -865,6 +889,11 @@ NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
     const NEXUS_AudioMixerInputSettings *pSettings
     )
 {
+    if ( pSettings == NULL )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
     {
         NEXUS_AudioMixerInputNode *pInputNode;
@@ -880,6 +909,9 @@ NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
         {
             pInputNode->inputSettings = *pSettings;
             NEXUS_AudioInput_P_GetVolume(input, &inputVolume);
+            inputVolume.fade.level = pSettings->fade.level;
+            inputVolume.fade.duration = pSettings->fade.duration;
+            inputVolume.fade.type = pSettings->fade.type;
             rc = NEXUS_AudioMixer_P_ApplyMixerVolume(handle, input, &inputVolume, pInputNode);
             if ( rc )
             {
@@ -889,14 +921,114 @@ NEXUS_Error NEXUS_AudioMixer_SetInputSettings(
         else
         {
             BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
-            return BERR_INVALID_PARAMETER;
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
     else
     {
-        BDBG_ERR(("%s: Mixer is neither DSP or Intermediate type",__FUNCTION__));
-        return BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", __FUNCTION__));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Get Status of Mixer Input
+***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_GetInputStatus(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioInputHandle input,
+    NEXUS_AudioMixerInputStatus *pStatus
+    )
+{
+    if ( pStatus == NULL )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
+    {
+        NEXUS_AudioMixerInputNode *pInputNode;
+
+        pInputNode = BLST_Q_FIRST(&handle->inputList);
+        while ( NULL != pInputNode && pInputNode->input != input)
+        {
+            pInputNode = BLST_Q_NEXT(pInputNode, inputNode);
+        }
+        if (pInputNode != NULL)
+        {
+            BERR_Code errCode;
+            BAPE_MixerInputStatus piStatus;
+            BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+            errCode = BAPE_Mixer_GetInputStatus(mixer, (BAPE_Connector)input->port, &piStatus);
+            if ( errCode == BERR_NOT_AVAILABLE )
+            {
+                return BERR_NOT_AVAILABLE;
+            }
+            else if ( errCode != BERR_SUCCESS )
+            {
+                return BERR_TRACE(errCode);
+            }
+
+            pStatus->fade.active = piStatus.fade.active;
+            pStatus->fade.level = piStatus.fade.level;
+            pStatus->fade.remaining = piStatus.fade.remaining;
+        }
+        else
+        {
+            BDBG_ERR(("%s: Could not locate input(%p) in mixer(%p)", __FUNCTION__, (void *)input, (void *)handle));
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+    }
+    else
+    {
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", __FUNCTION__));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    return BERR_SUCCESS;
+}
+
+/***************************************************************************
+Summary:
+Get Status of Mixer
+***************************************************************************/
+NEXUS_Error NEXUS_AudioMixer_GetStatus(
+    NEXUS_AudioMixerHandle handle,
+    NEXUS_AudioMixerStatus *pStatus
+    )
+{
+    if ( pStatus == NULL )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if ( handle->settings.mixUsingDsp || handle->settings.intermediate )
+    {
+        BERR_Code errCode;
+        BAPE_MixerStatus piStatus;
+        BAPE_MixerHandle mixer = handle->settings.mixUsingDsp?handle->dspMixer:handle->imMixer;
+        errCode = BAPE_Mixer_GetStatus(mixer, &piStatus);
+        if ( errCode == BERR_NOT_AVAILABLE )
+        {
+            return BERR_NOT_AVAILABLE;
+        }
+        else if ( errCode != BERR_SUCCESS )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        pStatus->mainDecodeFade.active = piStatus.mainDecodeFade.active;
+        pStatus->mainDecodeFade.level = piStatus.mainDecodeFade.level;
+        pStatus->mainDecodeFade.remaining = piStatus.mainDecodeFade.remaining;
+    }
+    else
+    {
+        BDBG_ERR(("%s: Only supported for DSP or Intermediate Mixers", __FUNCTION__));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
     return BERR_SUCCESS;
 }
 
@@ -956,7 +1088,9 @@ static NEXUS_Error NEXUS_AudioMixer_P_ApplyMixerVolume(
     }
 
     combinedVolume.muted = pInputVolume->muted | pInputNode->inputSettings.muted;
-
+    combinedVolume.fade.level = pInputNode->inputSettings.fade.level;
+    combinedVolume.fade.duration = pInputNode->inputSettings.fade.duration;
+    combinedVolume.fade.type = pInputNode->inputSettings.fade.type;
     errCode = BAPE_Mixer_SetInputVolume(mixer, (BAPE_Connector)input->port, &combinedVolume);
     if ( errCode )
     {

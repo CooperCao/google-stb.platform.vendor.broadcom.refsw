@@ -66,7 +66,9 @@ ifeq ($(ANDROID_BUILD),y)
 BWL_CFLAGS += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DB_ANDROID_BUILD
 endif
 
-BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/EAGLE_10_10_84/linux-external-media/sys/src/include
+WLAN_SRC_DIR = STB7271_BRANCH_15_10
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-media/sys/src/include
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-stbsoc/src/include
 BWL_CFLAGS += -DBDBG_DEBUG_BUILD=1
 BWL_CFLAGS += -DNEXUS_SERVER_SUPPORT=1
 BWL_CFLAGS += -D_GNU_SOURCE=1
@@ -143,10 +145,14 @@ BWL_CFLAGS += -I$(NEXUS_TOP)/../magnum/commonutils/img
 BWL_CFLAGS += -I$(NEXUS_TOP)/../magnum/commonutils/tee
 BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/lib/bfile
 
-BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/EAGLE_10_10_84/linux-external-media/sys/src/include
-BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/EAGLE_10_10_84/linux-external-media/sys/components/shared
-BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/EAGLE_10_10_84/linux-external-media/sys/src/shared/bcmwifi/include
-BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/EAGLE_10_10_84/linux-external-media/sys/src/wl/exe
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-media/sys/src/include
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-media/sys/components/shared
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-media/sys/src/shared/bcmwifi/include
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-media/sys/src/wl/exe
+
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-stbsoc/components/shared
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-stbsoc/src/shared/bcmwifi/include
+BWL_CFLAGS += -I$(NEXUS_TOP)/../BSEAV/connectivity/wlan/$(WLAN_SRC_DIR)/linux-external-stbsoc/src/wl/exe
 
 BWL_CFLAGS += -DNEXUS_PLATFORM_VERSION_MAJOR=16
 BWL_CFLAGS += -DNEXUS_PLATFORM_VERSION_MINOR=3

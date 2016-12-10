@@ -133,6 +133,7 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     void *buf, size_t length
 	);
 
+bool NEXUS_HdmiInput_GetSecure_isrsafe(NEXUS_HdmiInputHandle hdmiInput);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_HdmiInput);
 

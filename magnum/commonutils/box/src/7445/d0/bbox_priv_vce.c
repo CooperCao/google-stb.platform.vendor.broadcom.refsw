@@ -154,6 +154,12 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
          BBOX_VCE_CHANNEL_INFO_1080p60( 1, 0x1, 1 ),
       },
    },
+   /* Box Mode: 19 (No Transcode) */
+   { 19,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
+      },
+   },
    /* Box Mode: 1000 (1080p30x4) */
    { 1000,
       { /* Instance Array */

@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -116,7 +116,6 @@ BAPE_DSP_SOURCES := \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mixer_input_capture.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_mux_output.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_rf_encoder.c \
-                $(MAGNUM)/portinginterface/ape/src/raaga/bape_tru_surround.c \
                 $(MAGNUM)/portinginterface/ape/src/raaga/bape_tru_volume.c
 
 endif

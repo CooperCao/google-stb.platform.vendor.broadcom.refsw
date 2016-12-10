@@ -163,6 +163,6 @@ void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
 #define BCHP_PWR_P_NUM_MUXES      11
 #define BCHP_PWR_P_NUM_DIVS       11
 #define BCHP_PWR_P_NUM_ALLNODES   150
-#define BCHP_PWR_NUM_P_STATES     9
+#define BCHP_PWR_NUM_P_MAPS     8
 
 #endif

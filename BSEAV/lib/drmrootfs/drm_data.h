@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -133,6 +133,73 @@ char * bdrm_get_ta_dev_bin_file_path(void);
 
 /******************************************************************************
 ** FUNCTION:
+**   bdrm_get_ta_edrm_bin_file_path
+**   bdrm_get_ta_edrm_dev_bin_file_path
+**
+** DESCRIPTION:
+**   This function is used to retrieve the string representing the filepath
+**   of the EDRM TA bin file in rootfs
+**
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_edrm_bin_file_path(void);
+char * bdrm_get_ta_edrm_dev_bin_file_path(void);
+
+/******************************************************************************
+** FUNCTION:
+**   bdrm_get_ta_nflx_bin_file_path
+**   bdrm_get_ta_nflx_dev_bin_file_path
+**
+** DESCRIPTION:
+**   This function is used to retrieve the string representing the file path
+**   of the Netflix DRM TA bin file in rootfs
+**
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_nflx_bin_file_path(void);
+char * bdrm_get_ta_nflx_dev_bin_file_path(void);
+
+/******************************************************************************
+** FUNCTION:
+**	 bdrm_get_ta_pr25_bin_file_path
+**	 bdrm_get_ta_pr25_dev_bin_file_path
+**
+** DESCRIPTION:
+**	 This function is used to retrieve the string representing the file path
+**	 of the PlayReady 2.5 DRM TA bin file in rootfs
+**
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_pr25_bin_file_path(void);
+char * bdrm_get_ta_pr25_dev_bin_file_path(void);
+
+/******************************************************************************
+ * ** FUNCTION:
+**   bdrm_get_ta_dtcp_bin_file_path
+**   bdrm_get_ta_dtcp_dev_bin_file_path
+**
+** DESCRIPTION:
+**   This function is used to retrieve the string representing the filepath
+**   of the DTCP-IP DRM TA bin file in rootfs
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_dtcp_bin_file_path(void);
+char * bdrm_get_ta_dtcp_dev_bin_file_path(void);
+
+/******************************************************************************
+** FUNCTION:
 **   bdrm_get_ta_pr3x_bin_file_path
 **   bdrm_get_ta_pr3x_dev_bin_file_path
 **
@@ -147,6 +214,40 @@ char * bdrm_get_ta_dev_bin_file_path(void);
 ******************************************************************************/
 char * bdrm_get_ta_pr3x_bin_file_path(void);
 char * bdrm_get_ta_pr3x_dev_bin_file_path(void);
+
+/******************************************************************************
+** FUNCTION:
+**   bdrm_get_ta_wv_bin_file_path
+**   bdrm_get_ta_wv_dev_bin_file_path
+**
+** DESCRIPTION:
+**   This function is used to retrieve the string representing the filepath
+**   of the widevine DRM TA bin file in rootfs
+**
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_wv_bin_file_path(void);
+char * bdrm_get_ta_wv_dev_bin_file_path(void);
+
+/******************************************************************************
+** FUNCTION:
+**   bdrm_get_ta_adobe_bin_file_path
+**   bdrm_get_ta_adobe_dev_bin_file_path
+**
+** DESCRIPTION:
+**   This function is used to retrieve the string representing the filepath
+**   of the ADOBE DRM TA bin file in rootfs
+**
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_adobe_bin_file_path(void);
+char * bdrm_get_ta_adobe_dev_bin_file_path(void);
 
 _DRM_SHORT_WCHAR_ * bdrm_get_revocation_fname(void);
 uint32_t  bdrm_get_revocation_fname_lgth(void);

@@ -102,7 +102,7 @@ void CNetwork::wifiRssiCallback()
 {
     NETAPP_WIFI_AP_INFO info;
 
-    if (eConnectStatus_Connected != getConnectStatus())
+    if (eConnectStatus_Connected != getConnectedStatus())
     {
         return;
     }
@@ -151,7 +151,7 @@ void CNetwork::wifiScanDoneCallback()
 
 void CNetwork::wifiConnectDoneCallback()
 {
-    if (eConnectStatus_Connected == getConnectStatus())
+    if (eConnectStatus_Connected == getConnectedStatus())
     {
         NETAPP_WIFI_AP_INFO info;
 
@@ -355,13 +355,13 @@ eRet CNetwork::connectWifi(
     BDBG_ASSERT(NULL != _pNetApp);
     BDBG_ASSERT(false == strSSID.isNull());
 
-    if (eConnectStatus_Connecting == getConnectStatus())
+    if (eConnectStatus_Connecting == getConnectedStatus())
     {
         BDBG_WRN(("attempting to connect while existing connection attempt has not yet completed"));
         return(eRet_Busy);
     }
 
-    if (eConnectStatus_Disconnected != getConnectStatus())
+    if (eConnectStatus_Disconnected != getConnectedStatus())
     {
         ret = disconnectWifi();
         CHECK_ERROR_GOTO("failure disconnecting wifi from current network", ret, error);
@@ -396,13 +396,13 @@ eRet CNetwork::disconnectWifi()
 
     BDBG_ASSERT(NULL != _pNetApp);
 
-    if (eConnectStatus_Disconnecting == getConnectStatus())
+    if (eConnectStatus_Disconnecting == getConnectedStatus())
     {
         BDBG_WRN(("attempting to disconnect while existing disconnect attempt has not yet completed"));
         return(eRet_Busy);
     }
 
-    if (eConnectStatus_Connected != getConnectStatus())
+    if (eConnectStatus_Connected != getConnectedStatus())
     {
         BDBG_WRN(("cannot disconnect - not currently connected"));
         goto done;

@@ -41,7 +41,7 @@
 
 # Nexus examples
 B_THIS_DIR:=BSEAV/tools/bmemconfig
-PHONY := all api boa clean_api clean clean_apps install nexus_headers clean_boa
+PHONY:= all api boa clean_api clean clean_apps install nexus_headers clean_boa
 .PHONY: ${PHONY}
 .NOTPARALLEL: api boa
 
@@ -74,7 +74,7 @@ include $(NEXUS_TOP)/examples/Makefile_prologue.inc
 
 vpath %.c ${NEXUS_TOP}/../BSEAV/tools/bmemconfig
 
-all: $(NEXUS_BIN_DIR)/libnexus.so $(OBJDIR)/bmemconfig_box_info.c ${NEXUS_BIN_DIR}/bmemconfig.cgi ${NEXUS_BIN_DIR}/memusage_tester
+all install: $(NEXUS_BIN_DIR)/libnexus.so $(OBJDIR)/bmemconfig_box_info.c ${NEXUS_BIN_DIR}/bmemconfig.cgi ${NEXUS_BIN_DIR}/memusage_tester
 
 LDFLAGS += $(NEXUS_LDFLAGS) $(NEXUS_LD_LIBRARIES)
 EXTRA_OBJS += ${NEXUS_TOP}/../${B_THIS_DIR}/${NEXUS_PLATFORM}/boxmodes.c
@@ -133,8 +133,15 @@ CFLAGS += -D_LINUX_TYPES_H
 
 ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
 ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
-BCHP_VER_LOWER=d0
 BCHP_VER=D0
+BCHP_VER_LOWER=$(shell echo $(BCHP_VER) | tr A-Z a-z)
+endif
+endif
+
+ifeq ($(filter $(BCHP_CHIP),7364), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_VER),C0), $(BCHP_VER))
+BCHP_VER=B0
+BCHP_VER_LOWER=$(shell echo $(BCHP_VER) | tr A-Z a-z)
 endif
 endif
 
@@ -165,16 +172,13 @@ $(OBJDIR)/bmemconfig_box_info.c:
 ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
         ### memc_0_default_config.h files was extracted from 74xxb0_single_encode_RefSW_RTS.docx document which was found on 74xx Twiki page
 	@echo [Parsing for 40nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)];
-	@if [ -a ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  ] ; then \
-		awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_pre.awk ${NEXUS_TOP}/../${B_THIS_DIR}/Makefile > $(OBJDIR)/bmemconfig_box_info.c; \
-		awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_40nm.awk ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h >> $(OBJDIR)/bmemconfig_box_info.c || echo [Awk done]; \
-		awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_post.awk $(OBJDIR)/bmemconfig_box_info.c > $(OBJDIR)/bmemconfig_box_info.tmp || echo [Awk done]; \
-		cat $(OBJDIR)/bmemconfig_box_info.tmp >> $(OBJDIR)/bmemconfig_box_info.c; \
-		rm $(OBJDIR)/bmemconfig_box_info.tmp; \
-	else \
-		printf "\nERROR ... file ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h does not exist\n\n"; \
-		exit 1; \
-	fi
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_pre.awk ${NEXUS_TOP}/../${B_THIS_DIR}/Makefile > $(OBJDIR)/bmemconfig_box_info.c;
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_40nm.awk ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h >> $(OBJDIR)/bmemconfig_box_info.c || echo [Awk done];
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_post.awk $(OBJDIR)/bmemconfig_box_info.c > $(OBJDIR)/bmemconfig_box_info.tmp || echo [Awk done];
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || cat $(OBJDIR)/bmemconfig_box_info.tmp >> $(OBJDIR)/bmemconfig_box_info.c;
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || rm $(OBJDIR)/bmemconfig_box_info.tmp;
+	@test   -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || printf "\nERROR ... file ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h does not exist\n\n";
+	@test   -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h || exit 1;
 else
 	@echo [Parsing for 28nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)]
 	@awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_pre.awk ${NEXUS_TOP}/../${B_THIS_DIR}/Makefile > $(OBJDIR)/bmemconfig_box_info.c

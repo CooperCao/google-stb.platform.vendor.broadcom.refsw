@@ -154,7 +154,8 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(GRID_POINT_MAX,                          int,    "30",               "Maximum number of Grid Points in constellation"),
     ATLAS_DECLARE(UI_TUNER_UPDATE_TIMEOUT,                 int,    "500",              "Update period for tuner statistics panel in millisecs"),
     ATLAS_DECLARE(UI_NETWORK_WIFI_UPDATE_TIMEOUT,          int,    "5000",             "Update period for wifi network panel in millisecs"),
-    ATLAS_DECLARE(UI_BLUETOOTH_UPDATE_TIMEOUT,             int,    "5000",             "Update period for wifi network panel in millisecs"),
+    ATLAS_DECLARE(UI_NETWORK_WIFI_SCAN_TIMEOUT,            int,    "10000",            "Update period for wifi network panel scan in millisecs"),
+    ATLAS_DECLARE(UI_BLUETOOTH_UPDATE_TIMEOUT,             int,    "5000",             "Update period for bluetooth network panel in millisecs"),
     ATLAS_DECLARE(UI_QAM_SCAN_START_FREQ,                  int,    "57000000",         "QAM scan start frequency in Hz"),
     ATLAS_DECLARE(UI_QAM_SCAN_END_FREQ,                    int,    "789000000",        "QAM scan end frequency in Hz"),
     ATLAS_DECLARE(TUNER_LOCK_CHECK_TIMEOUT,                int,    "2000",             "Length of time between check for tuner lock in millisecs"),
@@ -253,7 +254,6 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(TTS_MIN_BUF_DEPTH,                       int,    "125000",           "Minimum buffer depth before tts throttle buffer depth violation"),
     ATLAS_DECLARE(TTS_MAX_BUF_DEPTH,                       int,    "1250000",          "Maximum buffer depth before tts throttle buffer depth violation"),
     ATLAS_DECLARE(TTS_MAX_CLOCK_MISMATCH,                  int,    "100",              "Specify the maximum clock mismatch between server/encoder and STB"),
-    ATLAS_DECLARE(NETWORK_WIFI_LIST_CHANNEL_IGNORE,        bool,   "true",             "If false, distinguish wifi networks based on ssid AND channel."),
     ATLAS_DECLARE(NETWORK_DB_PATH,                         bool,   "/data/netapp",     "Location of the NetApp database (caches previous WiFi network) - do not use NFS mounted directory"),
     ATLAS_DECLARE(ATLAS_SERVER_ENABLED,                    bool,   "true",             "If true,then it enables atlas server."),
     ATLAS_DECLARE(HTTP_SERVER_LISTENING_PORT,              string, "8089",             "Port on which Http Server Listens for HTTP Requests from clients."),
@@ -271,7 +271,8 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(AUTO_DISCOVERY_CLIENT_ENABLED,           bool,   "true",             "Turn on off atlas auto discovery client"),
     ATLAS_DECLARE(AUTO_DISCOVERY_SERVER_ENABLED,           bool,   "true",             "Turn on off atlas auto discovery client"),
     ATLAS_DECLARE(GENERATE_INDEXES,                        bool,   "true",             "Turn on off atlas threaded auto index generation for existing playback files"),
-    ATLAS_DECLARE(UDP_URL_LIST,                            string, "udpUrl.xml",       "Name of the list of UDP/RTP URLS to stream out")
+    ATLAS_DECLARE(UDP_URL_LIST,                            string, "udpUrl.xml",       "Name of the list of UDP/RTP URLS to stream out"),
+    ATLAS_DECLARE(WPA_SUPPLICANT_IFACE_PATH,               string, "/var/run/wpa_supplicant", "Path to the WPA Supplicant directory containing the interface to use")
 };
 
 #ifndef ATLAS_DECLARE_CONFIGSETTING_VALUES

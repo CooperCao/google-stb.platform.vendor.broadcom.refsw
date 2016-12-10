@@ -166,23 +166,16 @@ NEXUS_HeapHandle NEXUS_Platform_P_GetFramebufferHeap(unsigned displayIndex)
     switch (displayIndex) {
     case 0: /* HD Display */
     case 1: /* SD1 Display */
-		BDBG_MSG(("Got MEMC0 main heap."));
-		heapHandle = g_pCoreHandles->heap[NEXUS_MEMC0_GRAPHICS_HEAP].nexus;
-		break;
-
     case NEXUS_OFFSCREEN_SURFACE:
-		BDBG_MSG(("Got MEMC0 main heap for offscreen surface."));
-		heapHandle = g_pCoreHandles->heap[NEXUS_MEMC0_GRAPHICS_HEAP].nexus;
-		break;
-
+        heapHandle = g_pCoreHandles->heap[NEXUS_MEMC0_GRAPHICS_HEAP].nexus;
+        break;
     case 2: /* SD2 Display aka 3rd Display*/
     case 3: /* SD3 Display aka 4th Display on MEMC1 */
     case NEXUS_SECONDARY_OFFSCREEN_SURFACE:
         heapHandle = g_pCoreHandles->heap[NEXUS_MEMC1_GRAPHICS_HEAP].nexus;
-		BDBG_MSG(("Got MEMC1 graphics heap."));
         break;
     default:
-        BDBG_ERR(("Invalid display index %d",displayIndex));
+        break;
     }
     return heapHandle;
 }

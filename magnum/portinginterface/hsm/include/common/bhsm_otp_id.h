@@ -61,6 +61,8 @@ typedef enum BHSM_OtpIdRead_e
 	BHSM_OtpIdRead_eOTPIdD = 3,
 	BHSM_OtpIdRead_eOTPIdE = 4,
 	BHSM_OtpIdRead_eOTPIdF = 5,
+	BHSM_OtpIdRead_eOTPIdG = 6,
+	BHSM_OtpIdRead_eOTPIdH = 7,
 	BHSM_OtpIdRead_eMax
 
 }	BHSM_OtpIdRead_e;

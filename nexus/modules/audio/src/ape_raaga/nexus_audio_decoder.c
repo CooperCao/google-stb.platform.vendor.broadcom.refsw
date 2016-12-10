@@ -888,6 +888,9 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
     case NEXUS_AudioDecoderMixingMode_eApplicationAudio:
         pStartSettings->mixingMode = BAPE_DecoderMixingMode_eApplicationAudio;
         break;
+    case NEXUS_AudioDecoderMixingMode_eStandalone:
+        pStartSettings->mixingMode = BAPE_DecoderMixingMode_eStandalone;
+        break;
     }
     switch ( pProgram->maxOutputRate )
     {

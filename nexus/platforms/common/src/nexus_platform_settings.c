@@ -39,7 +39,6 @@
 #include "nexus_types.h"
 #include "nexus_base.h"
 #include "priv/nexus_core.h"
-#include "nexus_platform.h"
 #if NEXUS_HAS_FILE
 #include "nexus_file_init.h"
 #endif
@@ -819,9 +818,11 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSett
     NEXUS_PlatformConfigCapabilities *pCap, unsigned size )
 {
     const NEXUS_Core_PreInitState *preInitState;
-    NEXUS_MemoryRtsSettings rtsSettings;
+    struct {
+        NEXUS_MemoryRtsSettings rtsSettings;
+        NEXUS_MemoryConfigurationSettings defaultMemConfig;
+    } *state;
     unsigned internal_size = sizeof(NEXUS_PlatformSettings)+sizeof(NEXUS_MemoryConfigurationSettings)+sizeof(NEXUS_PlatformConfigCapabilities);
-    NEXUS_MemoryConfigurationSettings defaultMemConfig;
     unsigned memcIndex, heapIndex;
 
     preInitState = NEXUS_Platform_P_PreInit();
@@ -831,14 +832,16 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSett
         BKNI_Memset(pCap, 0, size);
         return -1;
     }
+    state = BKNI_Malloc(sizeof(*state));
+    if(state==NULL) {return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);}
 
     BSTD_UNUSED(pSettings);
     if (!pMemConfig) {
-        NEXUS_GetDefaultMemoryConfigurationSettings(&defaultMemConfig);
-        pMemConfig = &defaultMemConfig;
+        NEXUS_GetDefaultMemoryConfigurationSettings(&state->defaultMemConfig);
+        pMemConfig = &state->defaultMemConfig;
     }
 
-    NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &rtsSettings);
+    NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &state->rtsSettings);
 
     BKNI_Memset(pCap, 0, sizeof(*pCap));
 
@@ -856,11 +859,12 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSett
 #endif
     default: heapIndex = NEXUS_MAX_HEAPS; break;
     }
-    if (heapIndex < NEXUS_MAX_HEAPS && nexus_p_has_secure_decoder_on_memc(preInitState, &rtsSettings, pMemConfig, memcIndex)) {
+    if (heapIndex < NEXUS_MAX_HEAPS && nexus_p_has_secure_decoder_on_memc(preInitState, &state->rtsSettings, pMemConfig, memcIndex)) {
         pCap->secureGraphics[0].valid = true;
         pCap->secureGraphics[0].heapIndex = heapIndex;
         pCap->secureGraphics[0].memcIndex = memcIndex;
     }
+    BKNI_Free(state);
 
     NEXUS_Platform_P_PreUninit();
     return NEXUS_SUCCESS;

@@ -1260,23 +1260,19 @@ static void reset_egl_images_in_textures(GLXX_SERVER_STATE_T *state)
 {
    if (IS_GL_11(state))
    {
-      int i;
-      for (i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
+      for (int i = 0; i < GL11_CONFIG_MAX_TEXTURE_UNITS; i++)
          reset_egl_image(get_texture_11(state, i));
    }
    else
    {
-      int i;
-      for (i = 0; i < state->batch.num_samplers; i++)
+      for (int i = 0; i < state->batch.num_samplers; i++)
       {
          vcos_assert(state->batch.sampler_info != NULL);
-         GL20_UNIFORM_INFO_T *ui = &state->batch.uniform_info[state->batch.sampler_info[i].uniform];
-         int index = state->batch.uniform_data[ui->offset + state->batch.sampler_info[i].index];
 
-         if (index >= 0 && index < GLXX_CONFIG_MAX_TEXTURE_UNITS)
+         if (i < GLXX_CONFIG_MAX_TEXTURE_UNITS)
          {
             bool in_vshader = false;
-            reset_egl_image(get_texture_20(state, index, &in_vshader));
+            reset_egl_image(get_texture_20(state, i, &in_vshader));
          }
       }
    }
@@ -2193,7 +2189,10 @@ static MEM_HANDLE_T image_for_texturing(GLXX_SERVER_STATE_T *state,
    {
       /* if the image is an underlying platform client buffer, then it may have resized since it
          originally was mapped */
-      if ((egl_image->platform_client_buffer) && (egl_image->buffer))
+      if ((egl_image->platform_client_buffer) &&
+          (egl_image->buffer) &&
+          (egl_image->mh_image != MEM_HANDLE_INVALID) &&
+          (egl_image->mh_tf_image != MEM_HANDLE_INVALID))
       {
          MEM_HANDLE_T new_image = khrn_platform_image_wrap(egl_image->buffer);
 

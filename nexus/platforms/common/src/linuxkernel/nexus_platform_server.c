@@ -36,8 +36,6 @@
  *  ANY LIMITED REMEDY.
  *
  ************************************************************/
-#include "nexus_base.h"
-#include "nexus_platform.h"
 #include "nexus_platform_priv.h"
 #include "nexus_platform_server.h"
 #include "nexus_generic_driver_impl.h"
@@ -160,7 +158,7 @@ struct b_objdb_client *nexus_p_platform_objdb_client(NEXUS_ClientHandle client)
     return &client->driver_client->client;
 }
 
-void NEXUS_Platform_GetClientConfiguration_driver( NEXUS_ClientConfiguration *pSettings )
+void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
 {
     nexus_driver_get_client_configuration(b_objdb_get_client(), pSettings);
 }

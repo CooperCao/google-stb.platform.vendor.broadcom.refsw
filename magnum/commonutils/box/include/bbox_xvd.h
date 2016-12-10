@@ -219,6 +219,15 @@ typedef enum BBOX_XVD_DecodeResolution
       BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
 }
 
+#define BBOX_XVD_DECODER_INFO_480p30_V1( _memIndex, _secondaryMemcIndex, _bitDepth, _mfdIndex0, _nexusIndex0) \
+{ \
+   BBOX_XVD_DECODER_INFO_V1( \
+      _memIndex, _secondaryMemcIndex, 1,                                   \
+      _bitDepth, BBOX_XVD_DecodeResolution_eHD, 30, _mfdIndex0, _nexusIndex0, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, \
+      BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED, BBOX_XVD_UNUSED) \
+}
+
 #define BBOX_XVD_DECODER_INFO_4Kp60_1080p30_V1( _memIndex, _secondaryMemcIndex, \
                                                 _bitDepth0, _mfdIndex0, _nexusIndex0, \
                                                 _bitDepth1, _mfdIndex1, _nexusIndex1) \

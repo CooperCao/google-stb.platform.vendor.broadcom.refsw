@@ -273,6 +273,7 @@ typedef struct NxClient_DisplaySettings
     NEXUS_Pixel backgroundColor; /* surface compositor background color. fills graphics plane where no client surface is visible. */
     NxClient_GraphicsSettings graphicsSettings;
     bool secure;
+    NEXUS_TristateEnable dropFrame;
 
     struct {
         NxClient_SlaveDisplayMode mode;
@@ -343,6 +344,9 @@ typedef struct NxClient_DisplayStatus
     struct {
         NEXUS_HdmiOutputStatus status;
         NEXUS_HdmiOutputHdcpStatus hdcp;
+        NEXUS_HdmiOutputHdcpError lastHdcpError; /* NxClient does an automatic retry. If authentication fails,
+            hdcp.hdcpError may return 0, but lastHdcpError will record the last error. lastHdcpError will
+            be 0 if HDCP is authenticated or disabled. */
     } hdmi;
 } NxClient_DisplayStatus;
 

@@ -2202,7 +2202,8 @@ static void clamp_bcols(uint32_t bcol_out[4], const uint32_t bcol_in[4], GFX_LFM
    switch(type) {
       case GFX_LFMT_TYPE_UFLOAT:
       case GFX_LFMT_TYPE_FLOAT:
-         for (int i=0; i<4; i++) bcol_out[i] = bcol_in[i]; break;
+         for (int i=0; i<4; i++) bcol_out[i] = bcol_in[i];
+         break;
       case GFX_LFMT_TYPE_UINT:
       case GFX_LFMT_TYPE_INT:
       {

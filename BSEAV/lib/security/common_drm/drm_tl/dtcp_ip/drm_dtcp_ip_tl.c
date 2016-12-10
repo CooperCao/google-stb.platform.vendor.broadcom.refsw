@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
-
  **************************************************************************/
 
 #include "bstd.h"
@@ -80,7 +78,7 @@ DRM_DtcpIpTl_Initialize(
     DRM_DtcpIpTlHandle *hDtcpIpTl)
 {
     DrmRC rc = Drm_Success;
-    DrmCommonInit_t drmCmnInit = {NULL};
+    DrmCommonInit_TL_t drmCmnInit;
     DRM_DrmDtcpIpTl_P_Context_t        *handle=NULL;
     BSAGElib_InOutContainer *container = NULL;
     ChipType_e chip_type;
@@ -106,13 +104,34 @@ DRM_DtcpIpTl_Initialize(
         BDBG_ERR(("%s -  Error Allocating drm Memory for context", __FUNCTION__));
         goto ErrorExit;
     }
+    drmCmnInit.drmCommonInit.heap = NULL;
     chip_type = DRM_Common_GetChipType();
+#if USE_UNIFIED_COMMON_DRM
     if(chip_type == ChipType_eZS)
+    {
         drmCmnInit.ta_bin_file_path = bdrm_get_ta_dev_bin_file_path();
+    }
     else
+    {
         drmCmnInit.ta_bin_file_path = bdrm_get_ta_bin_file_path();
+    }
+#else
+    if(chip_type == ChipType_eZS)
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_dtcp_dev_bin_file_path();
+    }
+    else
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_dtcp_bin_file_path();
+    }
+#endif
 
     BDBG_MSG(("%s TA bin file %s ",__FUNCTION__, drmCmnInit.ta_bin_file_path));
+#ifdef USE_UNIFIED_COMMON_DRM
+    drmCmnInit.drmType = 0;
+#else
+    drmCmnInit.drmType = BSAGElib_BinFileDrmType_eDtcpIp;
+#endif
 
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if (rc != Drm_Success)
@@ -133,7 +152,11 @@ DRM_DtcpIpTl_Initialize(
 
     /* Initialize SAGE Dtcp-IP module */
     handle->moduleHandle = NULL;
+#ifdef USE_UNIFIED_COMMON_DRM
     rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eDtcpIp, (char *)key_file, container, &(handle->moduleHandle));
+#else
+    rc = DRM_Common_TL_ModuleInitialize_TA(Common_Platform_DtcpIp, DtcpIp_ModuleId_eDRM, (char *)key_file, container, &(handle->moduleHandle));
+#endif
     if (rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
@@ -169,9 +192,17 @@ void DRM_DtcpIpTl_Finalize(DRM_DtcpIpTlHandle hDtcpIpTl)
 
     if (ctx != NULL)
     {
+#ifdef USE_UNIFIED_COMMON_DRM
         DRM_Common_TL_ModuleFinalize(ctx->moduleHandle);
+#else
+        DRM_Common_TL_ModuleFinalize_TA(Common_Platform_DtcpIp, ctx->moduleHandle);
+#endif
         DRM_Common_MemoryFree((uint8_t *)ctx);
+#ifdef USE_UNIFIED_COMMON_DRM
         DRM_Common_TL_Finalize();
+#else
+        DRM_Common_TL_Finalize_TA(Common_Platform_DtcpIp);
+#endif
     }
 }
 

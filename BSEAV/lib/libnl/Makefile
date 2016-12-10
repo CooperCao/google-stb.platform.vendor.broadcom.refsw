@@ -159,7 +159,7 @@ ifneq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)
 	@echo "[Install.. (libnl)]"
 	@${MAKE} -C ${B_LIBNL_SOURCE_PATH} install ${MAKE_SUFFIX} ${B_LIBNL_COMPILE_REDIR}
 ifdef B_LIBNL_INSTALL_DIR
-	@cp -fp $(B_LIBNL_LIB_INSTALL_DIR)/libnl-3.so* $(B_LIBNL_INSTALL_DIR)
+	@cp -fp $(B_LIBNL_LIB_INSTALL_DIR)/libnl-3.so* $(B_LIBNL_LIB_INSTALL_DIR)/libnl-genl-3.so* $(B_LIBNL_INSTALL_DIR)
 endif
 
 endif   #  ifeq ($(B_REFSW_LIBNL_IS_EXTERNAL),y)

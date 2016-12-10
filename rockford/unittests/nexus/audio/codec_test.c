@@ -139,8 +139,6 @@ int main(void) {
     IpsStart(ips, &ipsStartSettings);
 #endif
 
-    /* temporary bypass */
-    loops = 1;
     while (--loops) {
         bool useCompressedDecoder;
         NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);

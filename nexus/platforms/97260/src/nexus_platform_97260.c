@@ -105,7 +105,6 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
     NEXUS_PlatformStatus platformStatus;
-    uint32_t reg;
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
@@ -150,68 +149,6 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
                 return BERR_TRACE(NEXUS_NOT_SUPPORTED);
             }
         }
-    }
-
-    /* BVB clocks not correct need these values for UHD display... */
-    reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_STB_CLKGEN_BVB_MUX_SELECT);
-
-    reg &= ~(
-        BCHP_MASK(CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, CLKGEN_BVB_2X_FREQ_VEC_DVP_MHT) |
-        BCHP_MASK(CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, CLKGEN_BVB_2X_FREQ_BVN) |
-        BCHP_MASK(CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, CLKGEN_BVB_1X_FREQ)
-        );
-    reg |= (BCHP_FIELD_DATA(CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, CLKGEN_BVB_2X_FREQ_VEC_DVP_MHT, 3) |
-            BCHP_FIELD_DATA(CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, CLKGEN_BVB_2X_FREQ_BVN, 3) |
-            BCHP_FIELD_DATA(CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, CLKGEN_BVB_1X_FREQ, 1));
-
-    BREG_Write32(g_pCoreHandles->reg, BCHP_CLKGEN_STB_CLKGEN_BVB_MUX_SELECT, reg);
-
-    if (platformStatus.chipId == 0x72604) {
-        /* SCB 388.8MHz */
-        reg= BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2);
-
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2, 10);
-
-        BREG_Write32(g_pCoreHandles->reg, BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2, reg);
-
-        /*AVX PLL 3492 MHz */
-        reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_AVX_PLL_DIV,NDIV_INT));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_AVX_PLL_DIV,NDIV_INT,194);
-        BREG_Write32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_DIV,reg);
-
-        /* SID */
-        reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0);
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0,MDIV_CH0));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0,MDIV_CH0,10);
-        BREG_Write32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0,reg);
-
-        /* HVD CPU */
-        reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1);
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1,MDIV_CH1));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1,MDIV_CH1,5);
-        BREG_Write32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1,reg);
-
-        /* HVD Core */
-        reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2);
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2,MDIV_CH2));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2,MDIV_CH2,5);
-        BREG_Write32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2,reg);
-
-        /* M2MC */
-        reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3);
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3,MDIV_CH3));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3,MDIV_CH3,6);
-        BREG_Write32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3,reg);
-
-        /* VC5 */
-        reg = BREG_Read32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4);
-        reg &= ~(BCHP_MASK(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4,MDIV_CH4));
-        reg |= BCHP_FIELD_DATA(CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4,MDIV_CH4,6);
-        BREG_Write32(g_pCoreHandles->reg,BCHP_CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4,reg);
-
-        BDBG_WRN(("Successfully updated clocks for 72604 configuration"));
     }
 
     return NEXUS_SUCCESS;

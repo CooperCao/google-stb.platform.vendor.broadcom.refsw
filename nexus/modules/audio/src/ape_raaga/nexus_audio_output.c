@@ -1342,7 +1342,7 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
                 outputs->spdif[i],
                 &config->spdif[i],
-                &suggestions[i],    
+                &suggestions[0],
                 &capabilities,
                 &allocatedPll,
                 &allocatedNco,
@@ -1359,7 +1359,7 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
                 outputs->i2s[i],
                 &config->i2s[i],
-                &suggestions[i],    
+                &suggestions[0],
                 &capabilities,
                 &allocatedPll,
                 &allocatedNco,
@@ -1375,7 +1375,7 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
                 outputs->i2sMulti[i],
                 &config->i2sMulti[i],
-                &suggestions[i],    
+                &suggestions[0],
                 &capabilities,
                 &allocatedPll,
                 &allocatedNco,
@@ -1391,7 +1391,7 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
                 outputs->hdmi[i],
                 &config->hdmi[i],
-                &suggestions[i],
+                &suggestions[0],
                 &capabilities,
                 &allocatedPll,
                 &allocatedNco,
@@ -1408,7 +1408,7 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
                 outputs->audioDummy[i],
                 &config->audioDummy[i],
-                &suggestions[i],
+                &suggestions[0],
                 &capabilities,
                 &allocatedPll,
                 &allocatedNco,

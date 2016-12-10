@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,8 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
+#
 ############################################################
-
 ifeq ($(URSR_TOP),)
 #$(warning URSR_TOP is not defined! setting to ../../../../)
 URSR_TOP := $(abspath ../../../../)
@@ -86,6 +86,7 @@ ifeq ($(SAGE_SUPPORT),y)
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/include
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/platforms/include
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/srai/include
+    SAGE_CFLAGS += -DPLAYREADY_HOST_IMPL
 endif
 
 
@@ -98,7 +99,16 @@ CFLAGS += -std=c99
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 CFLAGS += $(COMMON_DRM_CFLAGS)
 
+# set default value first, needs to change to ?n? after 3.2
+USE_UNIFIED_COMMON_DRM ?= y
 
+ifeq ($(SAGE_VERSION), 2x)
+    USE_UNIFIED_COMMON_DRM = y
+endif
+
+ifeq ($(USE_UNIFIED_COMMON_DRM), y)
+    CFLAGS += -DUSE_UNIFIED_COMMON_DRM
+endif
 
 ifeq ($(ANDROID_BUILD),y)
 ifeq ($(filter ${B_REFSW_ARCH}, mipsel-linux-android mips-linux-android mipsel-linux-uclibc), ${B_REFSW_ARCH})

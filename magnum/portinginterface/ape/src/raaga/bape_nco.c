@@ -267,6 +267,95 @@ void BAPE_P_DetachMixerFromNco(BAPE_MixerHandle mixer, BAPE_Nco nco)
     BLST_S_REMOVE(&mixer->deviceHandle->audioNcos[ncoIndex].mixerList, mixer, BAPE_Mixer, ncoNode);
 }
 
+void BAPE_P_AttachInputPortToNco(BAPE_InputPort input, BAPE_Nco nco)
+{
+    BKNI_EnterCriticalSection();
+    BAPE_P_AttachInputPortToNco_isrsafe(input, nco);
+    BKNI_LeaveCriticalSection();
+}
+
+void BAPE_P_AttachInputPortToNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco)
+{
+    unsigned ncoIndex = nco - BAPE_Nco_e0;
+    BAPE_Handle deviceHandle;
+    BAPE_I2sInputHandle i2sHandle;
+    BAPE_MaiInputHandle maiHandle;
+    BAPE_SpdifInputHandle spdifHandle;
+
+    BDBG_OBJECT_ASSERT(input, BAPE_InputPort);
+    if ( ncoIndex >= BAPE_CHIP_MAX_NCOS )
+    {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        BDBG_ASSERT(ncoIndex < BAPE_CHIP_MAX_NCOS);
+        return;
+    }
+
+    BDBG_MSG(("Attaching InputPort(%s) %p to NCO:%u", input->pName,(void *)input, ncoIndex ));
+    switch (input->type)
+    {
+    case BAPE_InputPortType_eI2s:
+        i2sHandle = input->pHandle;
+        deviceHandle = i2sHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eMai:
+        maiHandle = input->pHandle;
+        deviceHandle = maiHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eSpdif:
+        spdifHandle = input->pHandle;
+        deviceHandle = spdifHandle->deviceHandle;
+        break;
+    default:
+        BDBG_ERR(("Invalid InputPort Type (%d)", input->type));
+        return;
+    }
+
+    BLST_S_INSERT_HEAD(&deviceHandle->audioNcos[ncoIndex].inputList, input, ncoNode);
+
+    /* Update MCLK source for attached outputs */
+    BAPE_P_UpdateNco_isr(deviceHandle, nco);
+}
+
+
+void BAPE_P_DetachInputPortFromNco_isrsafe(BAPE_InputPort input, BAPE_Nco nco)
+{
+    unsigned ncoIndex = nco - BAPE_Nco_e0;
+    BAPE_Handle deviceHandle;
+    BAPE_I2sInputHandle i2sHandle;
+    BAPE_MaiInputHandle maiHandle;
+    BAPE_SpdifInputHandle spdifHandle;
+
+    BDBG_OBJECT_ASSERT(input, BAPE_InputPort);
+    if ( ncoIndex >= BAPE_CHIP_MAX_NCOS )
+    {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        BDBG_ASSERT(ncoIndex < BAPE_CHIP_MAX_NCOS);
+        return;
+    }
+    BDBG_MSG(("Detaching InputPort(%s) %p from NCO:%u", input->pName, (void *)input, ncoIndex ));
+    switch (input->type)
+    {
+    case BAPE_InputPortType_eI2s:
+        i2sHandle = input->pHandle;
+        deviceHandle = i2sHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eMai:
+        maiHandle = input->pHandle;
+        deviceHandle = maiHandle->deviceHandle;
+        break;
+    case BAPE_InputPortType_eSpdif:
+        spdifHandle = input->pHandle;
+        deviceHandle = spdifHandle->deviceHandle;
+        break;
+    default:
+        BDBG_ERR(("Invalid InputPort Type (%d)", input->type));
+        return;
+    }
+
+    BLST_S_REMOVE(&deviceHandle->audioNcos[ncoIndex].inputList, input, BAPE_InputPortObject, ncoNode);
+}
+
+
 static BERR_Code BAPE_P_SetNcoFreq_isr( BAPE_Handle handle, BAPE_Nco nco, unsigned baseRate, unsigned *pOversample, BAVC_Timebase outputTimebase )
 {
     unsigned ncoIndex = nco - BAPE_Nco_e0;
@@ -368,6 +457,8 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
     bool          gotTimebase = false;
     BAPE_Mixer *pMixer;
     BAPE_Mixer *pLastMixer = NULL;
+    BAPE_InputPortObject *pInputPort;
+    BAPE_InputPortObject *pLastInputPort = NULL;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
@@ -401,6 +492,12 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
         }
 
         mixerRate = BAPE_Mixer_P_GetOutputSampleRate_isr(pMixer);
+
+
+        if (pMixer->pathNode.subtype == BAPE_MixerType_eDsp)
+        {
+            mixerRate = 48000;
+        }
 
         if ( pMixer->running )
         {
@@ -458,6 +555,60 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
     if ( baseRate == 0 )
     {
         baseRate = idleRate;
+    }
+
+    /* Walk through each InputPort and make sure we have no conflicts */
+    for ( pInputPort = BLST_S_FIRST(&handle->audioNcos[ncoIndex].inputList);
+          pInputPort != NULL;
+          pInputPort = BLST_S_NEXT(pInputPort, ncoNode) )
+    {
+        unsigned mixerRate;
+
+        if (pInputPort->format.sampleRate == 0)
+        {
+            continue;
+        }
+
+        if ( !gotTimebase )
+        {
+            outputTimebase = BAVC_Timebase_e0;
+            gotTimebase = true;
+        }
+
+        mixerRate = pInputPort->format.sampleRate;
+
+
+        if ( baseRate == 0 )
+        {
+            baseRate = mixerRate;
+        }
+        else if ( baseRate != mixerRate )
+        {
+            BDBG_WRN(("Sample rate conflict on NCO %d with InputPort %p", nco, (void *)pInputPort));
+            BDBG_WRN(("  InputPort(%s)(%p) Requests %u Hz", pInputPort->pName, (void *)pInputPort, mixerRate));
+            if (pLastMixer)
+            {
+                BDBG_WRN(("  InputPort(%s)(%p) Requests %u Hz",pInputPort->pName, (void *)pInputPort, baseRate));
+            }
+            else
+            {
+                for ( pMixer = BLST_S_FIRST(&handle->audioNcos[ncoIndex].mixerList);
+                      pMixer != NULL;
+                      pMixer = BLST_S_NEXT(pMixer, ncoNode) )
+                {
+                    BAPE_OutputPort outputPort;
+                    BDBG_WRN(("  Mixer %p: requests %u Hz", (void *)pMixer, mixerRate));
+                    for ( outputPort = BLST_S_FIRST(&pMixer->outputList);
+                          outputPort != NULL;
+                          outputPort = BLST_S_NEXT(outputPort, node) )
+                    {
+                        BDBG_WRN(("    --> %s Output", outputPort->pName));
+                    }
+                }
+            }
+        }
+
+        pLastInputPort = pInputPort;
     }
 
     if ( baseRate != 0 )

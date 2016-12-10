@@ -412,6 +412,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_WaitForSage(BHDCPlib_Handle hHDCPlib)
 	stSageResponseData.rpcRemoteHandle = data.remote;
 	stSageResponseData.async_id = data.async_id;
 	stSageResponseData.error = data.rc;
+
 	rc = BHDCPlib_Hdcp2x_ReceiveSageResponse(hHDCPlib, &stSageResponseData);
 	if (rc != BERR_SUCCESS)
 	{
@@ -523,6 +524,7 @@ static void BHDCPlib_P_Hdcp2x_AutoI2cTimerExpiration_isr (BHDCPlib_Handle hHDCPl
 
 	/* Set event informing HDCP authentication result */
 	hHDCPlib->hdcp2xLinkAuthenticated = false;
+	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
 	BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
 
 
@@ -552,6 +554,7 @@ static void BHDCPlib_P_Hdcp2x_AuthenticationTimerExpiration_isr(BHDCPlib_Handle 
 
 		/* Set event informing HDCP authentication result */
 		hHDCPlib->hdcp2xLinkAuthenticated = false;
+		hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
 		BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
 	}
 
@@ -1413,6 +1416,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 		BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
 		BTMR_StartTimer(hHDCPlib->hAuthenticationTimer, BHDCPLIB_HDCP2X_AUTHENTICATION_PROCESS_TIMEOUT * 1000);
 	}
+
 done:
 
 	BDBG_LEAVE(BHDCPlib_P_Hdcp2x_StartAuthentication);
@@ -2039,6 +2043,8 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 
 	BDBG_ENTER(BHDCPlib_Hdcp2x_ReceiveSageResponse);
 
+	BDBG_MSG(("%s: async_id=0x%x, error %d", __FUNCTION__, sageResponseData->async_id, sageResponseData->error));
+
 	/* Sanity check on async_id */
 	if (hHDCPlib->uiLastAsyncId != sageResponseData->async_id)
 	{
@@ -2047,6 +2053,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		rc = BERR_SUCCESS;
 		goto done;
 	}
+
 	/* no response pending */
 	hHDCPlib->uiLastAsyncId = 0;
 
@@ -2065,6 +2072,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eAuthenticating:
 		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 
+			/* Print useful error messages if applicable */
 			if (hHDCPlib->sageContainer->basicOut[0] != HDCP22_ERR_SUCCESS)
 			{
 				BDBG_ERR(("**********************************************"));
@@ -2073,166 +2081,175 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 				BDBG_ERR(("Code (0x%08x): \t%s", hHDCPlib->sageContainer->basicOut[0],
 								BHDCPlib_Hdcp2x_P_ResponseErrorToStr(hHDCPlib->sageContainer->basicOut[0])));
 				BDBG_ERR(("**********************************************"));
+
+				/* Print useful binfile related error messages if applicable */
+				if (hHDCPlib->sageContainer->basicOut[2] != 0)
+				{
+					/* Check return code for BinFile error	*/
+					BDBG_ERR(("**********************************************"));
+					BDBG_ERR(("SAGE error occurred when starting HDCP 2.x authentication process - current state [%s]",
+							BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+					BDBG_ERR(("Code (0x%08x): \t%s", hHDCPlib->sageContainer->basicOut[2],
+								BSAGElib_Tools_ReturnCodeToString(hHDCPlib->sageContainer->basicOut[2])));
+					BDBG_ERR(("**********************************************"));
+
+					/* Stop authentication timer */
+					if (hHDCPlib->hAuthenticationTimer) {
+						BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+					}
+
+					/* Update link status */
+					hHDCPlib->currentHdcp2xState = BHDCPlib_Hdcp2xState_eUnauthenticated;
+					hHDCPlib->hdcp2xLinkAuthenticated = false;
+					hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eReceiverAuthenticationError;
+
+					/* Set event informing HDCP authentication result */
+					BKNI_SetEvent_isr(hHDCPlib->hdcp2xIndicationEvent);
+
+					/* Clean up sage container before exiting */
+					BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
+
+					goto done;
+				}
 			}
+
 			break;
 	}
+
 
 	/* Response with error */
 	if ((sageResponseData->error != BERR_SUCCESS)
 	&& (sageResponseData->error != BSAGE_ERR_ALREADY_INITIALIZED))
 	{
-		if (hHDCPlib->uiStartAuthenticationId == sageResponseData->async_id)
+		/* Previous initialization request failed. Retry one more time */
+		switch (hHDCPlib->currentHdcp2xState)
 		{
-			/* Check return code for BinFile error	*/
-			BDBG_ERR(("**********************************************"));
-			BDBG_ERR(("SAGE error occurred when starting HDCP 2.x authentication process - current state [%s]",
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-			if (hHDCPlib->sageContainer->basicOut[2] != 0) {
-				BDBG_ERR(("Code (0x%08x): \t%s", hHDCPlib->sageContainer->basicOut[2],
-							BSAGElib_Tools_ReturnCodeToString(hHDCPlib->sageContainer->basicOut[2])));
+		case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
+			/* already try platform_open again */
+			if (hHDCPlib->uiInitRetryCounter) {
+				BDBG_ERR(("%s: Error opening HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", __FUNCTION__,
+						sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
+				break;
 			}
-			BDBG_ERR(("**********************************************"));
 
-			hHDCPlib->hdcp2xLinkAuthenticated = false;
-			/* Set event informing HDCP authentication result */
-			BKNI_SetEvent(hHDCPlib->hdcp2xIndicationEvent);
+			BDBG_WRN(("%s: Received error opening HDCP2.x SAGE platform - error[0x%x] '%s' - current state [%s]. Try again now >> ", __FUNCTION__,
+							sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+							BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			hHDCPlib->uiInitRetryCounter++;
 
-			/* Clean up sage container before exiting */
+			/* reconfigure SageContainer for next SAGE communications */
 			BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
-			goto done;
+
+			/* attempt to open hdcp2.x sage platform again */
+			rc = BSAGElib_Rai_Platform_Open(hHDCPlib->stDependencies.hSagelibClientHandle, BSAGE_PLATFORM_ID_HDCP22,
+							hHDCPlib->sageContainer, &hHDCPlib->hSagelibRpcPlatformHandle, /*out */
+							(void *)hHDCPlib, &hHDCPlib->uiLastAsyncId /*out */);
+			BDBG_MSG(("%s: Another attempt to open HDCP2x SAGE platform: sagePlatformHandle [0x%p], assignedAsyncId [0x%x] - current state [%s]",
+				__FUNCTION__, (void *)(hHDCPlib->hSagelibRpcPlatformHandle), hHDCPlib->uiLastAsyncId,
+				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+
+			if (rc != BERR_SUCCESS)
+			{
+				BDBG_ERR(("%s: Error opening SAGE HDCP22 Platform - hdcplib(0x%p), error [%x] '%s' - current state [%s]", __FUNCTION__,
+					(void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				rc = BERR_TRACE(rc);
+				goto done;
+			}
+
+			waitForSageResponse = true;
+			break;
+
+
+		case BHDCPlib_Hdcp2xState_eSagePlatformInit:
+			/* already try platform_init again */
+			if (hHDCPlib->uiInitRetryCounter) {
+				BDBG_ERR(("%s: Error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", __FUNCTION__,
+						sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
+				break;
+			}
+
+			BDBG_WRN(("%s: Received error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]. Try again now >> ",
+				__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			hHDCPlib->uiInitRetryCounter++;
+
+			/* reconfigure SageContainer for next SAGE communications */
+			BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
+
+			/* attempt to initialize hdcp2.x sage platform again */
+			rc = BSAGElib_Rai_Platform_Init(hHDCPlib->hSagelibRpcPlatformHandle, NULL, &hHDCPlib->uiLastAsyncId);
+			BDBG_MSG(("%s: Another attempt to nitialize Hdcp2x SAGE platform: assignedAsyncId [0x%x] - current state [%s]",
+				__FUNCTION__, hHDCPlib->uiLastAsyncId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			if (rc != BERR_SUCCESS)
+			{
+				BDBG_ERR(("%s: Error initializing SAGE HDCP22 platform - hdcplib(0x%p) error [0x%x] '%s' - current state [%s]",
+					__FUNCTION__, (void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc),
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				rc = BERR_TRACE(rc);
+				goto done;
+			}
+
+			waitForSageResponse = true;
+			break;
+
+		/* Sage confirms module is initialized, system now ready */
+		case BHDCPlib_Hdcp2xState_eSageModuleInit:
+			/* already try module_init again */
+			if (hHDCPlib->uiInitRetryCounter) {
+				BDBG_ERR(("%s: Error initializing HDCP2.x SAGE module - error [0x%x] '%s' - current state [%s]",
+					__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
+				break;
+			}
+
+			BDBG_WRN(("%s: Received error initializing HDCP2.x SAGE module - error [0x%x] '%s' - current state [%s]. Try again now >> ",
+				__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			hHDCPlib->uiInitRetryCounter++;
+
+			rc = BHDCPlib_P_Hdcp2x_ModuleInit(hHDCPlib);
+			if (rc != BERR_SUCCESS) {
+				rc = BERR_TRACE(rc);
+				goto done;
+			}
+
+			waitForSageResponse = true;
+			break;
+
+		case BHDCPlib_Hdcp2xState_eUnauthenticating:
+		case BHDCPlib_Hdcp2xState_eUnauthenticated:
+		case BHDCPlib_Hdcp2xState_eAuthenticated:
+		case BHDCPlib_Hdcp2xState_eAuthenticating:
+		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
+		case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
+			BDBG_ERR(("%s: Previous request to SAGE did not finished successfully - error [%x] '%s' - current state [%s]", __FUNCTION__,
+				sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
+				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			rc = BERR_TRACE(BERR_OS_ERROR);
+			goto done;	/* no additional actions needed */
+			break;
+
+		default:
+			BDBG_ERR(("%s: Invalid Hdcp2.x state - %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
+			rc = BERR_TRACE(BERR_INVALID_PARAMETER);
+			goto done;	/* no additional actions needed */
+			break;
 		}
-		else
+
+		/* wait for sage response before proceeding */
+		if (waitForSageResponse)
 		{
-			/* Previous initialization request failed. Retry one more time */
-			switch (hHDCPlib->currentHdcp2xState)
-			{
-			case BHDCPlib_Hdcp2xState_eSagePlatformOpen:
-				/* already try platform_open again */
-				if (hHDCPlib->uiInitRetryCounter) {
-					BDBG_ERR(("%s: Error opening HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", __FUNCTION__,
-							sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-							BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-					eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
-					break;
-				}
-
-				BDBG_WRN(("%s: Received error opening HDCP2.x SAGE platform - error[0x%x] '%s' - current state [%s]. Try again now >> ", __FUNCTION__,
-								sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-								BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-				hHDCPlib->uiInitRetryCounter++;
-
-				/* reconfigure SageContainer for next SAGE communications */
-				BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
-
-				/* attempt to open hdcp2.x sage platform again */
-				rc = BSAGElib_Rai_Platform_Open(hHDCPlib->stDependencies.hSagelibClientHandle, BSAGE_PLATFORM_ID_HDCP22,
-								hHDCPlib->sageContainer, &hHDCPlib->hSagelibRpcPlatformHandle, /*out */
-								(void *)hHDCPlib, &hHDCPlib->uiLastAsyncId /*out */);
-				BDBG_MSG(("%s: Another attempt to open HDCP2x SAGE platform: sagePlatformHandle [0x%p], assignedAsyncId [0x%x] - current state [%s]",
-					__FUNCTION__, (void *)(hHDCPlib->hSagelibRpcPlatformHandle), hHDCPlib->uiLastAsyncId,
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-
-				if (rc != BERR_SUCCESS)
-				{
-					BDBG_ERR(("%s: Error opening SAGE HDCP22 Platform - hdcplib(0x%p), error [%x] '%s' - current state [%s]", __FUNCTION__,
-						(void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-					rc = BERR_TRACE(rc);
-					goto done;
-				}
-
-				waitForSageResponse = true;
-				break;
-
-
-			case BHDCPlib_Hdcp2xState_eSagePlatformInit:
-				/* already try platform_init again */
-				if (hHDCPlib->uiInitRetryCounter) {
-					BDBG_ERR(("%s: Error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]", __FUNCTION__,
-							sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-							BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-					eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
-					break;
-				}
-
-				BDBG_WRN(("%s: Received error initializing HDCP2.x SAGE platform - error [0x%x] '%s' - current state [%s]. Try again now >> ",
-					__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-				hHDCPlib->uiInitRetryCounter++;
-
-				/* reconfigure SageContainer for next SAGE communications */
-				BHDCPlib_P_Hdcp2x_CleanSageContainer(hHDCPlib);
-
-				/* attempt to initialize hdcp2.x sage platform again */
-				rc = BSAGElib_Rai_Platform_Init(hHDCPlib->hSagelibRpcPlatformHandle, NULL, &hHDCPlib->uiLastAsyncId);
-				BDBG_MSG(("%s: Another attempt to nitialize Hdcp2x SAGE platform: assignedAsyncId [0x%x] - current state [%s]",
-					__FUNCTION__, hHDCPlib->uiLastAsyncId, BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-				if (rc != BERR_SUCCESS)
-				{
-					BDBG_ERR(("%s: Error initializing SAGE HDCP22 platform - hdcplib(0x%p) error [0x%x] '%s' - current state [%s]",
-						__FUNCTION__, (void *)hHDCPlib, rc, BSAGElib_Tools_ReturnCodeToString(rc),
-						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-					rc = BERR_TRACE(rc);
-					goto done;
-				}
-
-				waitForSageResponse = true;
-				break;
-
-			/* Sage confirms module is initialized, system now ready */
-			case BHDCPlib_Hdcp2xState_eSageModuleInit:
-				/* already try module_init again */
-				if (hHDCPlib->uiInitRetryCounter) {
-					BDBG_ERR(("%s: Error initializing HDCP2.x SAGE module - error [0x%x] '%s' - current state [%s]",
-						__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-					eHdcp2xRequest = BHDCPlib_P_Hdcp2xRequest_eSage_FailInitialization;
-					break;
-				}
-
-				BDBG_WRN(("%s: Received error initializing HDCP2.x SAGE module - error [0x%x] '%s' - current state [%s]. Try again now >> ",
-					__FUNCTION__, sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-				hHDCPlib->uiInitRetryCounter++;
-
-				rc = BHDCPlib_P_Hdcp2x_ModuleInit(hHDCPlib);
-				if (rc != BERR_SUCCESS) {
-					rc = BERR_TRACE(rc);
-					goto done;
-				}
-
-				waitForSageResponse = true;
-				break;
-
-			case BHDCPlib_Hdcp2xState_eUnauthenticating:
-			case BHDCPlib_Hdcp2xState_eUnauthenticated:
-			case BHDCPlib_Hdcp2xState_eAuthenticated:
-			case BHDCPlib_Hdcp2xState_eAuthenticating:
-			case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
-			case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
-				BDBG_ERR(("%s: Previous request to SAGE did not finished successfully - error [%x] '%s' - current state [%s]", __FUNCTION__,
-					sageResponseData->error, BSAGElib_Tools_ReturnCodeToString(sageResponseData->error),
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-				rc = BERR_TRACE(BERR_OS_ERROR);
-				goto done;	/* no additional actions needed */
-				break;
-
-			default:
-				BDBG_ERR(("%s: Invalid Hdcp2.x state - %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
-				rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-				goto done;	/* no additional actions needed */
-				break;
+			rc = BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
+			if (rc != BERR_SUCCESS) {
+				rc = BERR_TRACE(rc);
 			}
 
-			/* wait for sage response before proceeding */
-			if (waitForSageResponse)
-			{
-				rc = BHDCPlib_P_Hdcp2x_WaitForSage(hHDCPlib);
-				if (rc != BERR_SUCCESS) {
-					rc = BERR_TRACE(rc);
-				}
-
-				goto done;	/* No further actions */
-			}
+			goto done;	/* No further actions */
 		}
 	}
 	else {		/* No error executing previous SAGE command */

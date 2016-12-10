@@ -130,6 +130,7 @@ BERR_Code BAPE_DummysinkGroup_P_ResumeFromStandby(
     BAPE_Handle bapeHandle
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Restore the AudioReturnChannels' state when resuming from standby
@@ -137,6 +138,7 @@ Restore the AudioReturnChannels' state when resuming from standby
 BERR_Code BAPE_AudioReturnChannel_P_ResumeFromStandby(
     BAPE_Handle bapeHandle
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -154,6 +156,7 @@ BERR_Code BAPE_DummyOutput_P_ResumeFromStandby(
     BAPE_Handle bapeHandle
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Restore the I2sMulti outputs' state when resuming from standby
@@ -161,7 +164,7 @@ Restore the I2sMulti outputs' state when resuming from standby
 BERR_Code BAPE_I2sMultiOutput_P_ResumeFromStandby(
     BAPE_Handle bapeHandle
     );
-
+#endif
 /***************************************************************************
 Summary:
 Restore the I2S outputs' state when resuming from standby
@@ -642,6 +645,7 @@ void BAPE_DfifoGroup_P_Stop(
     BAPE_DfifoGroupHandle handle
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Start DFIFO group data flow
@@ -664,7 +668,7 @@ This call allows data flow to be stopped from an interrupt if required.
 void BAPE_DfifoGroup_P_Halt_isr(
     BAPE_DfifoGroupHandle handle
     );
-
+#endif
 /***************************************************************************
 Summary:
 Get DFIFO Buffers
@@ -947,6 +951,7 @@ void BAPE_SrcGroup_P_Stop(
     BAPE_SrcGroupHandle handle
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Set Coefficient Index (used for Equalizer mode only)
@@ -955,7 +960,7 @@ void BAPE_SrcGroup_P_SetCoefficientIndex_isr(
     BAPE_SrcGroupHandle handle,
     unsigned index
     );
-
+#endif
 /***************************************************************************
 Summary:
 Get FCI Connection IDs for this group
@@ -1157,6 +1162,7 @@ BERR_Code BAPE_MixerGroup_P_SetOutputSettings(
     const BAPE_MixerGroupOutputSettings *pSettings
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Mixer Group Output Status
@@ -1175,6 +1181,7 @@ void BAPE_MixerGroup_P_GetOutputStatus(
     unsigned outputIndex,
     BAPE_MixerGroupOutputStatus *pStatus    /* [out] */
     );
+#endif
 
 /***************************************************************************
 Summary:
@@ -1223,6 +1230,7 @@ unsigned BAPE_Mixer_P_MixerFormatToNumChannels(
     BAPE_MixerFormat format
     );
 
+
 /***************************************************************************
 Summary:
 IOP Stream Settings
@@ -1252,6 +1260,7 @@ BERR_Code BAPE_Iop_P_SetStreamSettings(
     unsigned streamId,
     const BAPE_IopStreamSettings *pSettings
     );
+
 
 /***************************************************************************
 Summary:

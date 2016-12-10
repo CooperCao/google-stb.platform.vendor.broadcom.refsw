@@ -1356,6 +1356,7 @@ BERR_Code BAPE_MuxOutput_GetBufferStatus(
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 void BAPE_MuxOutput_GetConnector(
     BAPE_MuxOutputHandle hMuxOutput,
     BAPE_Connector *pConnector
@@ -1365,6 +1366,7 @@ void BAPE_MuxOutput_GetConnector(
     BDBG_ASSERT(NULL != pConnector);
     *pConnector = &hMuxOutput->node.connectors[0];
 }
+#endif
 
 BERR_Code BAPE_MuxOutput_AddInput(
     BAPE_MuxOutputHandle hMuxOutput,

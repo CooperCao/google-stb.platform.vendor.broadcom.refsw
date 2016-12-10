@@ -85,8 +85,10 @@ CScreenMain::CScreenMain(
     _Decode(NULL),
     _Playback(NULL),
     _Audio(NULL),
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     _Network(NULL),
+#endif
+#ifdef NETAPP_SUPPORT
     _Bluetooth(NULL),
 #endif
     _Streaming(NULL),
@@ -100,8 +102,10 @@ CScreenMain::CScreenMain(
     _pPlaybackMenu(NULL),
     _pRecordMenu(NULL),
     _pBuffersMenu(NULL),
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     _pNetworkMenu(NULL),
+#endif
+#ifdef NETAPP_SUPPORT
     _pBluetoothMenu(NULL),
 #endif
 #ifdef PLAYBACK_IP_SUPPORT
@@ -504,14 +508,14 @@ eRet CScreenMain::initialize(CModel * pModel)
 
 #endif /* NEXUS_HAS_FRONTEND */
 
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
         _Network = new CWidgetButton("CScreenMain::_Network", getEngine(), this, MRect(0, 0, 0, 22), font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Network, ret, eRet_OutOfMemory, error);
 #ifndef HIDE_NETAPP_WIFI_MENU
         _Network->setText("Network...", bwidget_justify_horiz_left);
         _pMainMenu->addButton(_Network, "Network");
 #endif
-
+#ifdef NETAPP_SUPPORT
         _Bluetooth = new CWidgetButton("CScreenMain::_Bluetooth", getEngine(), this, MRect(0, 0, 0, 22), font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Bluetooth, ret, eRet_OutOfMemory, error);
 #ifndef HIDE_NETAPP_BLUETOOTH_MENU
@@ -519,6 +523,7 @@ eRet CScreenMain::initialize(CModel * pModel)
         _pMainMenu->addButton(_Bluetooth, "Bluetooth");
 #endif
 #endif /* ifdef NETAPP_SUPPORT */
+#endif /* if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT) */
 
 #ifdef MPOD_SUPPORT
         _CableCard = new CWidgetButton("CScreenMain::_CableCard", getEngine(), this, MRect(0, 0, 0, 22), font12);
@@ -625,13 +630,15 @@ eRet CScreenMain::initialize(CModel * pModel)
     _pBuffersMenu->show(false);
     _panelList.add(_pBuffersMenu);
 
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     _pNetworkMenu = new CPanelNetworkWifi(getWidgetEngine(), this, this, MRect(0, 0, 10, 10), font14);
     CHECK_PTR_ERROR_GOTO("unable to initialize Network menu", _pNetworkMenu, ret, eRet_OutOfMemory, error);
     _pNetworkMenu->initialize(pModel, _pConfig);
     _pNetworkMenu->show(false);
     _panelList.add(_pNetworkMenu);
+#endif /* if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT) */
 
+#ifdef NETAPP_SUPPORT
     _pBluetoothMenu = new CPanelBluetooth(getWidgetEngine(), this, this, MRect(0, 0, 10, 10), font14);
     CHECK_PTR_ERROR_GOTO("unable to initialize Bluetooth menu", _pBluetoothMenu, ret, eRet_OutOfMemory, error);
     _pBluetoothMenu->initialize(pModel, _pConfig);
@@ -699,8 +706,10 @@ void CScreenMain::uninitialize()
     DEL(_pPowerMenu);
     DEL(_MsgBox);
     DEL(_pBuffersMenu);
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     DEL(_pNetworkMenu);
+#endif
+#ifdef NETAPP_SUPPORT
     DEL(_pBluetoothMenu);
 #endif
     DEL(_pVbiMenu);
@@ -733,8 +742,10 @@ void CScreenMain::uninitialize()
     DEL(_CableCard);
 #endif /* if MPOD_SUPPORT */
     DEL(_Streaming);
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     DEL(_Network);
+#endif
+#ifdef NETAPP_SUPPORT
     DEL(_Bluetooth);
 #endif
     DEL(_Audio);
@@ -1927,11 +1938,13 @@ void CScreenMain::showMenu(eMenu menu)
         showMenu(NULL);
         _pAudioMenu->show(true);
         break;
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     case eMenu_Network:
         showMenu(NULL);
         _pNetworkMenu->show(true);
         break;
+#endif /* if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT) */
+#ifdef NETAPP_SUPPORT
     case eMenu_Bluetooth:
         showMenu(NULL);
         _pBluetoothMenu->show(true);
@@ -2011,12 +2024,14 @@ void CScreenMain::onClick(bwidget_t widget)
         showMenu(eMenu_Audio);
     }
     else
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     if (_Network == pWidget)
     {
         showMenu(eMenu_Network);
     }
     else
+#endif /* if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT) */
+#ifdef NETAPP_SUPPORT
     if (_Bluetooth == pWidget)
     {
         showMenu(eMenu_Bluetooth);
@@ -2159,8 +2174,10 @@ bool CScreenMain::isVisible()
            _pDisplayMenu->isVisible() ||
            _pDecodeMenu->isVisible() ||
            _pAudioMenu->isVisible() ||
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
            _pNetworkMenu->isVisible() ||
+#endif
+#ifdef NETAPP_SUPPORT
            _pBluetoothMenu->isVisible() ||
 #endif
 #ifdef PLAYBACK_IP_SUPPORT
@@ -2203,8 +2220,10 @@ void CScreenMain::showMenu(CWidgetMenu * pMenu)
     _pDisplayMenu->show(false);
     _pDecodeMenu->show(false);
     _pAudioMenu->show(false);
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     _pNetworkMenu->show(false);
+#endif
+#ifdef NETAPP_SUPPORT
     _pBluetoothMenu->show(false);
 #endif
 #ifdef PLAYBACK_IP_SUPPORT

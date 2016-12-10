@@ -57,13 +57,12 @@ static const bool abStg[BVDC_MAX_DISPLAYS] =
 #if (BCHP_CHIP==7231)  || \
     (BCHP_CHIP==7344)  || (BCHP_CHIP==7346)  || \
     (BCHP_CHIP==7358)  || (BCHP_CHIP==7360)  || (BCHP_CHIP==7362)  || \
-    (BCHP_CHIP==7422)  || (BCHP_CHIP==7429)  || \
-    (BCHP_CHIP==7543)  || \
+    (BCHP_CHIP==7422)  || (BCHP_CHIP==7429)  || (BCHP_CHIP==7543)  || \
     (BCHP_CHIP==7552)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7584)  || \
     (BCHP_CHIP==7228)  || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || \
     (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==11360) || \
-    (BCHP_CHIP==7271)  || (BCHP_CHIP==73465) || (BCHP_CHIP==75525) || \
-    (BCHP_CHIP==7268)  || (BCHP_CHIP==7260)
+    (BCHP_CHIP==7271)  || (BCHP_CHIP==73465) || (BCHP_CHIP==7268)  || \
+    (BCHP_CHIP==7260)
     /* stg not supported */
     /*  Disp0    Disp1    Disp2    Disp3    disp4   disp5   disp6 */
             0,       0,       0,       0,       0,      0,       0
@@ -225,8 +224,7 @@ static const uint32_t aaulMemcIndex[BVDC_MAX_DISPLAYS][BVDC_MAX_VIDEO_WINDOWS] =
        (BCHP_CHIP==7364)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==7250)  || \
        (BCHP_CHIP==75635) || (BCHP_CHIP==7586)  || (BCHP_CHIP==73625) || \
        (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==7271)  || \
-       (BCHP_CHIP==73465) || (BCHP_CHIP==75525) || (BCHP_CHIP==7268)  || \
-       (BCHP_CHIP==7260))
+       (BCHP_CHIP==73465) || (BCHP_CHIP==7268)  || (BCHP_CHIP==7260))
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },

@@ -115,7 +115,6 @@ static struct NEXUS_Platform_P_State
         NEXUS_MemoryMapType memoryMapType;
     } mmaps[NEXUS_MAX_HEAPS];
     bool init;
-    struct nexus_client_init_data init_data;
 } NEXUS_Platform_P_State;
 
 #define NEXUS_MODULE_SELF NEXUS_Platform_P_State.module
@@ -154,7 +153,7 @@ void NEXUS_Platform_P_UnmapMemory( void *addr, size_t length, NEXUS_MemoryMapTyp
 }
 
 
-static NEXUS_Error nexus_p_add_heap(unsigned i, NEXUS_HeapHandle heap, unsigned base, unsigned length, NEXUS_MemoryType memoryType, bool dynamic, void *user_address)
+static NEXUS_Error nexus_p_add_heap(unsigned i, NEXUS_HeapHandle heap, NEXUS_Addr base, unsigned length, NEXUS_MemoryType memoryType, bool dynamic, void *user_address)
 {
     void *addr;
     void *uncached_addr = NULL;
@@ -230,6 +229,8 @@ NEXUS_Platform_P_InitOS(void)
     NEXUS_Error rc;
     int mem_fd;
     unsigned i;
+    unsigned valid_heaps;
+    NEXUS_ClientConfiguration config;
 
     NEXUS_Platform_P_State.mem_fd = -1;
     NEXUS_Platform_P_State.uncached_mem_fd = -1;
@@ -263,29 +264,37 @@ NEXUS_Platform_P_InitOS(void)
     if ( mem_fd < 0 ) { rc = BERR_TRACE(BERR_OS_ERROR); goto err_mem_open; }
     NEXUS_Platform_P_State.fake_mem_fd = mem_fd;
 
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        NEXUS_HeapHandle heap = NEXUS_Platform_P_State.init_data.config.heap[i];
+    BKNI_Memset(&config, 0, sizeof(config));
+    NEXUS_Platform_GetClientConfiguration(&config);
+
+    for (valid_heaps=0,i=0;i<NEXUS_MAX_HEAPS;i++) {
+        NEXUS_HeapHandle heap = config.heap[i];
         if (heap) {
-            BDBG_ASSERT(NEXUS_Platform_P_State.init_data.config.heap[i] == NEXUS_Platform_P_State.init_data.heap[i].heap);
+            NEXUS_MemoryStatus status;
+            unsigned memoryType;
+            rc = NEXUS_Platform_GetHeapStatus_driver(heap, &status);
+            if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_heap;}
+
+            memoryType = status.memoryType;
 #if NEXUS_WEBCPU_core1_server
             if (i == 0) {
-                NEXUS_Platform_P_State.init_data.heap[i].memoryType = NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
+                memoryType = NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
             }
 #endif
-            rc = nexus_p_add_heap(i,
-                NEXUS_Platform_P_State.init_data.heap[i].heap,
-                NEXUS_Platform_P_State.init_data.heap[i].offset,
-                NEXUS_Platform_P_State.init_data.heap[i].size,
-                NEXUS_Platform_P_State.init_data.heap[i].memoryType,
-                false,
-                NULL);
+            rc = nexus_p_add_heap(i, heap, status.offset, status.size, memoryType, false, NULL);
             if (rc) {rc = BERR_TRACE(rc); goto err_mmap;}
+            valid_heaps++;
         }
+    }
+    if(valid_heaps==0) {
+        /* likely NEXUS_Platform_GetClientConfiguration call have failed and client was disconnected */
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_config;
     }
 
     return NEXUS_SUCCESS;
-
+err_config:
 err_mmap:
+err_heap:
     NEXUS_Platform_P_UninitOS();
 err_mem_open:
     return rc;
@@ -357,7 +366,7 @@ static NEXUS_Error NEXUS_Platform_P_StartIpcClient(const NEXUS_ClientAuthenticat
 {
     unsigned i;
 
-    g_client = NEXUS_P_Client_Init(pSettings, &NEXUS_Platform_P_State.init_data);
+    g_client = NEXUS_P_Client_Init(pSettings);
     if (!g_client) {
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
@@ -500,11 +509,6 @@ err_base:
     NEXUS_Platform_P_Magnum_Uninit();
 err_magnum:
     return NEXUS_NOT_SUPPORTED;
-}
-
-void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
-{
-    *pSettings = NEXUS_Platform_P_State.init_data.config;
 }
 
 void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)

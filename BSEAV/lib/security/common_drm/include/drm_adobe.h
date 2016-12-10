@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 
 #ifndef DRM_ADOBE_H__
@@ -45,7 +44,11 @@
 #include "bkni.h"
 
 
+#if ADOBE_SAGE
+#include "drm_types_tl.h"
+#else
 #include "drm_types.h"
+#endif
 #include "drm_common.h"
 #include "drm_common_priv.h"
 #include "nexus_keyladder.h"
@@ -80,10 +83,12 @@ extern "C" {
 typedef struct DrmAdobeParamSettings_t
 {
     BDBG_OBJECT(drm_adobe)
-    DrmCommonInit_t drmCommonInit;
     char * drm_bin_file_path;
 #if ADOBE_SAGE
+    DrmCommonInit_TL_t drmCommonInit;
     DrmAdobe_DeviceCapabilities capabilities;
+#else
+    DrmCommonInit_t drmCommonInit;
 #endif
 }DrmAdobeParamSettings_t;
 

@@ -207,6 +207,26 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
           bits_value, sampler_scalar_value, coords, dref_scalar, lod_scalar, gadget_offset,
           0, component_type_index);
 
+   assert(!is_image || !scalar_result);      /* No image load functions return scalars */
+
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   if (is_image) {
+      Dataflow *ok = NULL;
+      ImageInfoParam size_param[3] = { IMAGE_INFO_LX_WIDTH, IMAGE_INFO_LX_HEIGHT, IMAGE_INFO_LX_DEPTH };
+      for (unsigned i=0; i<non_idx_coords; i++) {
+         Dataflow *size = glsl_dataflow_construct_image_info_param(sampler_scalar_value, size_param[i]);
+         Dataflow *c_ok = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN,
+                                glsl_dataflow_construct_reinterp(coord_scalar_values[i], DF_UINT), size);
+
+         if (ok == NULL) ok = c_ok;
+         else ok = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, ok, c_ok);
+      }
+
+      Dataflow *zero = glsl_dataflow_construct_const_value(component_type_index, 0);
+      for (int i=0; i<4; i++)
+         scalar_values[i] = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, ok, scalar_values[i], zero);
+   }
+#endif
 #if !V3D_HAS_TMU_WRAP_I
    if (is_image && array)
    {
@@ -229,7 +249,6 @@ static void calculate_dataflow_texture_lookup(BasicBlock *ctx, Dataflow **scalar
          glsl_dataflow_construct_reinterp(gadget_c[3], DF_UINT), num_elems);
 
       Dataflow *zero = glsl_dataflow_construct_const_value(component_type_index, 0);
-      assert(!scalar_result); /* There are no image functions that return scalars */
       for (int i=0; i<4; i++)
          scalar_values[i] = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, idx_ok,
             scalar_values[i], zero);

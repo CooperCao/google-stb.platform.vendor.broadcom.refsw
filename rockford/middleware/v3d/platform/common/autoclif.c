@@ -18,6 +18,7 @@ Debug interface for internal use only
 #define LOG_TAG "V3D"
 #include <cutils/log.h>
 #include <cutils/properties.h>
+#include <libgen.h>
 #endif
 
 #include <stdio.h>

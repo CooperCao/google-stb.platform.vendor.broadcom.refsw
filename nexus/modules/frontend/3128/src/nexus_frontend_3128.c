@@ -796,9 +796,11 @@ static void NEXUS_Frontend_P_UnInit3128(NEXUS_3128 *pDevice)
     unsigned int i;
 
 #if NEXUS_HAS_MXT
-    if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
-        BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
-        pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+    if (pDevice->pGenericDeviceHandle) {
+        if (pDevice->pGenericDeviceHandle->mtsifConfig.mxt) {
+            BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
+            pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
+        }
     }
 #endif
     if ( pDevice->updateGainAppCallback ) NEXUS_IsrCallback_Destroy(pDevice->updateGainAppCallback);
@@ -1299,7 +1301,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
         if (NULL == pFrontendDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
 
         pDevice = BKNI_Malloc(sizeof(NEXUS_3128));
-        if (NULL == pDevice) {rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
+        if (NULL == pDevice) {BKNI_Free(pFrontendDevice); rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto done;}
 
         BKNI_Memset(pDevice, 0, sizeof(NEXUS_3128));
         BDBG_OBJECT_SET(pDevice, NEXUS_3128);
@@ -1312,6 +1314,8 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
 #if NEXUS_FRONTEND_312x_OOB
         pDevice->deviceSettings.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eMax; /* Setting default. */
 #endif
+        BLST_S_INSERT_HEAD(&g_3128DevList, pDevice, node);
+
         rc = NEXUS_Frontend_P_3128_setCrystalDaisySettings(pSettings);
         if(rc){rc = BERR_TRACE(rc); goto done;}
 
@@ -1328,8 +1332,6 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3128(unsigned index, const N
 
         pDevice->cppmDoneCallback = NEXUS_IsrCallback_Create(pDevice, NULL);
         if ( NULL == pDevice->cppmDoneCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto done;}
-
-        BLST_S_INSERT_HEAD(&g_3128DevList, pDevice, node);
     }
     else
     {
@@ -1632,64 +1634,72 @@ done:
 
 static void NEXUS_FrontendDevice_P_3128_Close(void *handle)
 {
-    NEXUS_3128 *pDevice;
-    unsigned i=0;
+    NEXUS_3128 *pDevice = (NEXUS_3128 *)handle;
+
     BDBG_ASSERT(NULL != handle);
-    pDevice = (NEXUS_3128 *)handle;
-    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3128);
 
-    pDevice->pGenericDeviceHandle->abortThread = true;
-    while(pDevice->deviceOpenThread && pDevice->pGenericDeviceHandle->openPending){
-        BKNI_Delay(500000); /* Wait for a half second everytime. */
-    }
+    if (handle) {
+        unsigned i=0;
 
-    if(pDevice->deviceOpenThread){
-        NEXUS_Thread_Destroy(pDevice->deviceOpenThread);
-        pDevice->deviceOpenThread = NULL;
-    }
-    if(pDevice->cppmDoneCallback) {
-        NEXUS_IsrCallback_Destroy(pDevice->cppmDoneCallback);
-        pDevice->cppmDoneCallback = NULL;
-    }
-    if(pDevice->cppmAppCallback) {
-        NEXUS_IsrCallback_Destroy(pDevice->cppmAppCallback);
-        pDevice->cppmAppCallback = NULL;
-    }
+        BDBG_OBJECT_ASSERT(pDevice, NEXUS_3128);
 
-    if(pDevice->spectrumEventCallback){
-        NEXUS_UnregisterEvent(pDevice->spectrumEventCallback);
-        pDevice->spectrumEventCallback = NULL;
-    }
-
-    if (pDevice->spectrumEvent) {
-        BKNI_DestroyEvent(pDevice->spectrumEvent);
-        pDevice->spectrumEvent = NULL;
-    }
-
-    if(pDevice->numfrontends){
-        for(i = 0; i< NEXUS_MAX_3128_FRONTENDS; i++){
-            if(pDevice->frontendHandle[i]) {
-                NEXUS_Frontend_P_3128_Close(pDevice->frontendHandle[i]);
-                pDevice->frontendHandle[i] = NULL;
+        if (pDevice->pGenericDeviceHandle) {
+            pDevice->pGenericDeviceHandle->abortThread = true;
+            while(pDevice->deviceOpenThread && pDevice->pGenericDeviceHandle->openPending){
+                BKNI_Delay(500000); /* Wait for a half second everytime. */
             }
         }
+
+        if(pDevice->deviceOpenThread){
+            NEXUS_Thread_Destroy(pDevice->deviceOpenThread);
+            pDevice->deviceOpenThread = NULL;
+        }
+        if(pDevice->cppmDoneCallback) {
+            NEXUS_IsrCallback_Destroy(pDevice->cppmDoneCallback);
+            pDevice->cppmDoneCallback = NULL;
+        }
+        if(pDevice->cppmAppCallback) {
+            NEXUS_IsrCallback_Destroy(pDevice->cppmAppCallback);
+            pDevice->cppmAppCallback = NULL;
+        }
+
+        if(pDevice->spectrumEventCallback){
+            NEXUS_UnregisterEvent(pDevice->spectrumEventCallback);
+            pDevice->spectrumEventCallback = NULL;
+        }
+
+        if (pDevice->spectrumEvent) {
+            BKNI_DestroyEvent(pDevice->spectrumEvent);
+            pDevice->spectrumEvent = NULL;
+        }
+
+        if(pDevice->numfrontends){
+            for(i = 0; i< NEXUS_MAX_3128_FRONTENDS; i++){
+                if(pDevice->frontendHandle[i]) {
+                    NEXUS_Frontend_P_3128_Close(pDevice->frontendHandle[i]);
+                    pDevice->frontendHandle[i] = NULL;
+                }
+            }
+        }
+
+        NEXUS_Frontend_P_UnInit3128(pDevice);
+        NEXUS_Frontend_P_UnInit_3128_Hab(pDevice);
+        BLST_S_REMOVE(&g_3128DevList, pDevice, NEXUS_3128, node);
+
+        if (pDevice->pGenericDeviceHandle) {
+            NEXUS_FrontendDevice_Unlink(pDevice->pGenericDeviceHandle, NULL);
+            BKNI_Free(pDevice->pGenericDeviceHandle);
+            pDevice->pGenericDeviceHandle = NULL;
+        }
+
+        if(pDevice->capabilities.channelCapabilities)
+            BKNI_Free(pDevice->capabilities.channelCapabilities);
+        pDevice->capabilities.channelCapabilities = NULL;
+
+        BDBG_OBJECT_DESTROY(pDevice, NEXUS_3128);
+        BKNI_Free(pDevice);
+        pDevice = NULL;
     }
-
-    NEXUS_Frontend_P_UnInit3128(pDevice);
-    NEXUS_Frontend_P_UnInit_3128_Hab(pDevice);
-    BLST_S_REMOVE(&g_3128DevList, pDevice, NEXUS_3128, node);
-
-    NEXUS_FrontendDevice_Unlink(pDevice->pGenericDeviceHandle, NULL);
-    BKNI_Free(pDevice->pGenericDeviceHandle);
-    pDevice->pGenericDeviceHandle = NULL;
-
-    if(pDevice->capabilities.channelCapabilities)
-        BKNI_Free(pDevice->capabilities.channelCapabilities);
-    pDevice->capabilities.channelCapabilities = NULL;
-
-    BDBG_OBJECT_DESTROY(pDevice, NEXUS_3128);
-    BKNI_Free(pDevice);
-    pDevice = NULL;
 
     return;
 }
@@ -2062,6 +2072,9 @@ static NEXUS_Error NEXUS_Frontend_P_3128_TuneQam(void *handle, const NEXUS_Front
         case NEXUS_FrontendQamMode_e256:
             ibParam.modType = BADS_ModulationType_eAnnexAQam256;
             break;
+        case NEXUS_FrontendQamMode_e1024:
+            ibParam.modType = BADS_ModulationType_eAnnexAQam1024;
+            break;
         default:
             rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
         }
@@ -2081,6 +2094,9 @@ static NEXUS_Error NEXUS_Frontend_P_3128_TuneQam(void *handle, const NEXUS_Front
             break;
         case NEXUS_FrontendQamMode_e256:
             ibParam.modType = BADS_ModulationType_eAnnexBQam256;
+            break;
+        case NEXUS_FrontendQamMode_e1024:
+            ibParam.modType = BADS_ModulationType_eAnnexBQam1024;
             break;
         default:
             rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;

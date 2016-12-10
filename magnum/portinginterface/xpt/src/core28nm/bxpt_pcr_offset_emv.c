@@ -1430,7 +1430,7 @@ void BXPT_P_PcrOffset_ModuleInit(
     BREG_Write32( hXpt->hRegister, BCHP_XPT_PCROFFSET_STC_BROADCAST_SEL2, Reg );
 #endif
 
-#if BXPT_NUM_STCS > 15
+#if BXPT_NUM_STCS > 16
     #error "PCR Offset init needs updating"
 #endif
 

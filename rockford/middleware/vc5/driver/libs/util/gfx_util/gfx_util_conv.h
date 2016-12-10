@@ -8,11 +8,6 @@ All rights reserved.
 
 #include <stdint.h>
 #include "vcos_types.h"
-#ifndef __arm__
-/* Assume x86 if not ARM... */
-#include <xmmintrin.h>
-#include <emmintrin.h>
-#endif
 
 VCOS_EXTERN_C_BEGIN
 
@@ -79,86 +74,15 @@ extern void gfx_rgb9e5_to_floats(float f[3], uint32_t rgb9e5);
 /** float -> [u]int */
 
 /* Round towards negative infinity. Saturating. NaNs to 0. */
-static inline uint32_t gfx_float_to_uint32_rtni(float f)
-{
-#ifdef __arm__
-   uint32_t u;
-   float tmp;
-   __asm__("vcvt.u32.f32 %1, %2; vmov %0, %1" : "=r"(u), "=w"(tmp) : "w"(f));
-   return u;
-#else
-   __m128d sd = _mm_set_sd(f);
-   sd = _mm_max_sd(sd, _mm_setzero_pd()); /* NaNs and negatives to 0 */
-   sd = _mm_min_sd(sd, _mm_set_sd((double)UINT32_MAX));
-#if defined(__x86_64__) /* GCC */ || defined(_M_X64) /* MSVC */
-   return (uint32_t)_mm_cvttsd_si64(sd); /* Round towards zero */
-#else
-   __m128d mask = _mm_cmpge_sd(sd, _mm_set_sd((double)(1ll << 31)));
-   sd = _mm_sub_sd(sd, _mm_and_pd(_mm_set_sd((double)(1ll << 32)), mask));
-   return (uint32_t)_mm_cvttsd_si32(sd); /* Round towards zero */
-#endif
-#endif
-}
+extern uint32_t gfx_float_to_uint32_rtni(float f);
 
 /* Round towards positive infinity. Saturating. NaNs to 0. */
-static inline uint32_t gfx_float_to_uint32_rtpi(float f)
-{
-   return gfx_float_to_uint32_rtni(ceilf(f));
-}
+extern uint32_t gfx_float_to_uint32_rtpi(float f);
 
 /* Round to nearest, half to even. Saturating. NaNs to 0. */
-static inline uint32_t gfx_double_to_uint32(double d)
-{
-#ifdef __arm__
-   uint32_t u;
-   float tmp;
-   __asm__("vcvtr.u32.f64 %1, %P2; vmov %0, %1" : "=r"(u), "=w"(tmp) : "w"(d));
-   return u;
-#else
-   __m128d sd = _mm_set_sd(d);
-   sd = _mm_max_sd(sd, _mm_setzero_pd()); /* NaNs and negatives to 0 */
-   sd = _mm_min_sd(sd, _mm_set_sd((double)UINT32_MAX));
-#if defined(__x86_64__) /* GCC */ || defined(_M_X64) /* MSVC */
-   return (uint32_t)_mm_cvtsd_si64(sd); /* Round to nearest, half to even */
-#else
-   __m128d mask = _mm_cmpge_sd(sd, _mm_set_sd((double)(1ll << 31)));
-   sd = _mm_sub_sd(sd, _mm_and_pd(_mm_set_sd((double)(1ll << 32)), mask));
-   return (uint32_t)_mm_cvtsd_si32(sd); /* Round to nearest, half to even */
-#endif
-#endif
-}
-
-/* Round to nearest, half to even. Saturating. NaNs to 0. */
-static inline uint32_t gfx_float_to_uint32(float f)
-{
-#ifdef __arm__
-   uint32_t u;
-   float tmp;
-   __asm__("vcvtr.u32.f32 %1, %2; vmov %0, %1" : "=r"(u), "=w"(tmp) : "w"(f));
-   return u;
-#else
-   return gfx_double_to_uint32(f);
-#endif
-}
-
-/* Round to nearest, half to even. Saturating. NaNs to 0. */
-static inline int32_t gfx_float_to_int32(float f)
-{
-#ifdef __arm__
-   int32_t i;
-   float tmp;
-   __asm__("vcvtr.s32.f32 %1, %2; vmov %0, %1" : "=r"(i), "=w"(tmp) : "w"(f));
-   return i;
-#else
-   __m128d sd = _mm_set_sd(f);
-   sd = _mm_and_pd(sd, _mm_cmpord_sd(sd, sd)); /* NaNs to 0 */
-   sd = _mm_max_sd(sd, _mm_set_sd((double)INT32_MIN));
-   sd = _mm_min_sd(sd, _mm_set_sd((double)INT32_MAX));
-   return _mm_cvtsd_si32(sd); /* Round to nearest, half to even */
-#endif
-}
-
-/* Round to nearest, half to even. Saturating. NaNs to 0. */
+extern uint32_t gfx_double_to_uint32(double d);
+extern uint32_t gfx_float_to_uint32(float f);
+extern int32_t gfx_float_to_int32(float f);
 extern int64_t gfx_float_to_int64(float f);
 
 /** [u]int -> float */

@@ -71,7 +71,7 @@ typedef struct NEXUS_MessageSettings
 {
     /* The following settings can only be set at NEXUS_Message_Open */
     unsigned bufferSize; /* Size in bytes. Only certain buffer sizes may be supported by HW. This size will be rounded
-                            down to the nearest supported value. If you want to control the allocation and use of memory,
+                            down to the nearest supported value. If you want to set the buffer at Start time,
                             set this to zero; then set NEXUS_MessageStartSettings.buffer. */
     unsigned maxContiguousMessageSize; /* The maximum size PSI message that is guaranteed to be returned as a whole
                             message from NEXUS_Message_GetBuffer. For high bitrate message capture, set this to zero.
@@ -313,8 +313,7 @@ typedef struct NEXUS_MessageStartSettings
                             You must allocate this buffer with NEXUS_Memory_Allocate. Must be 1K aligned.
                             If NULL, Nexus will use the buffer allocated with NEXUS_MessageSettings.bufferSize.
                             See NEXUS_Message_Open for usage modes. */
-    unsigned bufferSize; /* Size in bytes. Only certain buffer sizes may be supported by HW. The actual size used will be rounded
-                            down to the nearest supported value. */
+    unsigned bufferSize; /* Size in bytes of optional NEXUS_MessageStartSettings.buffer. See NEXUS_MessageSettings.bufferSize for size restrictions. */
 
     NEXUS_DssMessageType dssMessageType;
     bool useRPipe;

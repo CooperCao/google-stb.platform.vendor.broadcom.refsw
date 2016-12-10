@@ -521,9 +521,12 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, HSIZE, ulHSize) |
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, VSIZE, ulVSize);
     *pList->pulCurrent++ = ulDemoSetting;/* DEMO_SETTING */
-    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
-        BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset,
-        BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
+    if(!bMemSaving)
+    {
+        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
+    }
 
     /* control registers */
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_ME_CTRL, ulRegOffset, 0x3);  /* SEL_7X5 */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1479,8 +1479,10 @@ static BERR_Code BAPE_P_ResumeFmmHw(BAPE_Handle handle)
     errCode = BAPE_DummysinkGroup_P_ResumeFromStandby(handle);
     if ( errCode ) return BERR_TRACE(errCode);
 
+#if !B_REFSW_MINIMAL
     errCode = BAPE_AudioReturnChannel_P_ResumeFromStandby(handle);
     if ( errCode ) return BERR_TRACE(errCode);
+#endif
 
     errCode = BAPE_Dac_P_ResumeFromStandby(handle);
     if ( errCode ) return BERR_TRACE(errCode);
@@ -1488,8 +1490,10 @@ static BERR_Code BAPE_P_ResumeFmmHw(BAPE_Handle handle)
     errCode = BAPE_DummyOutput_P_ResumeFromStandby(handle);
     if ( errCode ) return BERR_TRACE(errCode);
 
+#if !B_REFSW_MINIMAL
     errCode = BAPE_I2sMultiOutput_P_ResumeFromStandby(handle);
     if ( errCode ) return BERR_TRACE(errCode);
+#endif
 
     errCode = BAPE_I2sOutput_P_ResumeFromStandby(handle);
     if ( errCode ) return BERR_TRACE(errCode);
@@ -1789,9 +1793,6 @@ void BAPE_GetCapabilities(
                     break;
                 case BDSP_Algorithm_eDsola:
                     pCaps->dsp.decodeRateControl = true;
-                    break;
-                case BDSP_Algorithm_eSrsTruSurroundHd:
-                    pCaps->dsp.truSurroundHd = true;
                     break;
                 case BDSP_Algorithm_eSrsTruVolume:
                     pCaps->dsp.truVolume = true;

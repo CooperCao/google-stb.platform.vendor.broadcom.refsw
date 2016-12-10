@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,8 +57,26 @@ char * bdrm_get_drm_bin_file_path(void) {return drm_bin_file_rootfs_path;}
 char * bdrm_get_ta_bin_file_path(void) {return ta_bin_file_rootfs_path;}
 char * bdrm_get_ta_dev_bin_file_path(void) {return ta_dev_bin_file_rootfs_path;}
 
+char * bdrm_get_ta_edrm_bin_file_path(void) {return ta_edrm_bin_file_rootfs_path;}
+char * bdrm_get_ta_edrm_dev_bin_file_path(void) {return ta_edrm_dev_bin_file_rootfs_path;}
+
+char * bdrm_get_ta_nflx_bin_file_path(void) {return ta_nflx_bin_file_rootfs_path;}
+char * bdrm_get_ta_nflx_dev_bin_file_path(void) {return ta_nflx_dev_bin_file_rootfs_path;}
+
+char * bdrm_get_ta_pr25_bin_file_path(void) {return ta_pr25_bin_file_rootfs_path;}
+char * bdrm_get_ta_pr25_dev_bin_file_path(void) {return ta_pr25_dev_bin_file_rootfs_path;}
+
+char * bdrm_get_ta_dtcp_bin_file_path(void) {return ta_dtcp_bin_file_rootfs_path;}
+char * bdrm_get_ta_dtcp_dev_bin_file_path(void) {return ta_dtcp_dev_bin_file_rootfs_path;}
+
 char * bdrm_get_ta_pr3x_bin_file_path(void) {return ta_pr3x_bin_file_rootfs_path;}
 char * bdrm_get_ta_pr3x_dev_bin_file_path(void) {return ta_pr3x_dev_bin_file_rootfs_path;}
+
+char * bdrm_get_ta_wv_bin_file_path(void) {return ta_wv_bin_file_rootfs_path;}
+char * bdrm_get_ta_wv_dev_bin_file_path(void) {return ta_wv_dev_bin_file_rootfs_path;}
+
+char * bdrm_get_ta_adobe_bin_file_path(void) {return ta_adobe_bin_file_rootfs_path;}
+char * bdrm_get_ta_adobe_dev_bin_file_path(void) {return ta_adobe_dev_bin_file_rootfs_path;}
 
 /************************** PLAYREADY DEFINITIONS BELOW **********************************/
 

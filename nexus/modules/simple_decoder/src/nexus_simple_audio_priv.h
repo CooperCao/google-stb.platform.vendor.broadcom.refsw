@@ -128,6 +128,7 @@ struct NEXUS_SimpleAudioDecoder
     } hdmiInput;
     struct {
         bool suspended;
+        bool connected;
     } mixers;
 };
 

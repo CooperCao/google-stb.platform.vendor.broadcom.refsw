@@ -107,27 +107,27 @@ void *MemPool::alloc(const size_t size) {
     if (curr == nullptr)
         return nullptr;
 
-    // Don't split the chunk if the resulting chunk becomes too small.
-    size_t sizeAfterSplit = curr->size - allocSize - sizeof(MemChunk);
-    if (sizeAfterSplit < allocUnit)
-        sizeAfterSplit = 0;
+    // Don't split the chunk if the remain size becomes too small.
+    size_t remainSize = curr->size - allocSize;
+    if (remainSize < sizeof(MemChunk) + allocUnit)
+        remainSize = 0;
 
-    if (sizeAfterSplit != 0) {
+    if (remainSize != 0) {
         MemChunk *split = (MemChunk *)((uint8_t *)curr + sizeof(MemChunk) + allocSize);
-        split->size = sizeAfterSplit;
+        split->size = remainSize - sizeof(MemChunk);
         split->next = curr->next;
         *prev = split;
+        //printf("%s: split chunk %p rv %p sz %d\n", __FUNCTION__, split, (uint8_t *)split + sizeof(MemChunk), split->size);
 
         curr->size = allocSize;
         curr->next = nullptr;
-        //printf("%s: sizeAfterSplit %d chunk %p rv %p\n", __FUNCTION__, sizeAfterSplit, curr, (uint8_t *)curr + sizeof(MemChunk));
         return (void *)((uint8_t *)curr + sizeof(MemChunk));
     }
 
     *prev = curr->next;
     curr->next = nullptr;
 
-    //printf("%s: chunk %p rv %p\n", __FUNCTION__, curr, (uint8_t *)curr + sizeof(MemChunk));
+    //printf("%s: alloc chunk %p rv %p sz %d\n", __FUNCTION__, curr, (uint8_t *)curr + sizeof(MemChunk), curr->size);
     return (void *)((uint8_t *)curr + sizeof(MemChunk));
 }
 

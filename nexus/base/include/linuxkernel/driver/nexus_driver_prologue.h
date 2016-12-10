@@ -70,7 +70,7 @@ struct nexus_driver_client_state {
     enum {
         nexus_driver_clients_list,
         nexus_driver_allowed_clients_list,
-        nexus_driver_cleanup_clients_list,
+        nexus_driver_cleanup_clients_list
     } list;
     BLST_S_ENTRY(nexus_driver_client_state) link;
     NEXUS_Certificate certificate; /* set by the server, verified by join */

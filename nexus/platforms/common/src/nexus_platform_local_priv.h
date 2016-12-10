@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_LOCAL_PRIV_H__
 #define NEXUS_PLATFORM_LOCAL_PRIV_H__
@@ -54,6 +53,8 @@ NEXUS_Error NEXUS_Platform_P_DropPrivilege(const NEXUS_PlatformSettings *pSettin
 unsigned NEXUS_Platform_P_ReadBoxMode(void);
 /* read board id from proc */
 unsigned NEXUS_Platform_P_ReadBoardId(void);
+/* read pmap id from device tree or env variable */
+unsigned NEXUS_Platform_P_ReadPMapId(void);
 
 NEXUS_Error NEXUS_Platform_P_InitWakeupDriver(void);
 void NEXUS_Platform_P_UninitWakeupDriver(void);

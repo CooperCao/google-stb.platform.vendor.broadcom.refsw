@@ -793,7 +793,7 @@ BERR_Code BCHP_GetMemoryInfo_PreInit(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
 
     for (i=0;i < (sizeof(pInfo->memc)/sizeof(pInfo->memc[0])) && pInfo->memc[i].width;i++) {
         BDBG_ASSERT(pInfo->memc[i].width >= pInfo->memc[i].deviceWidth);
-        pInfo->memc[i].size = pInfo->memc[i].deviceTech / 8 * (pInfo->memc[i].width/pInfo->memc[i].deviceWidth) * 1024 * 1024;
+        pInfo->memc[i].size = (uint64_t)pInfo->memc[i].deviceTech / 8 * (pInfo->memc[i].width/pInfo->memc[i].deviceWidth) * 1024 * 1024;
         BDBG_MSG(("MEMC%d: %d MB, %d bits", i, (unsigned)(pInfo->memc[i].size / 1024 / 1024), pInfo->memc[i].width));
         BDBG_MSG(("mapVer: %d, blindShuffle: %d", pInfo->memc[i].mapVer, pInfo->memc[i].blindShuffle));
     }

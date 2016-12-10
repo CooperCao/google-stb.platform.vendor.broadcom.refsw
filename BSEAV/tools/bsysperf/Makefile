@@ -50,7 +50,16 @@ endif
 
 THEAPPS = \
 	${NEXUS_BIN_DIR}/bsysperf.cgi \
-	${NEXUS_BIN_DIR}/bsysperf_server
+	${NEXUS_BIN_DIR}/bsysperf_server \
+	${NEXUS_BIN_DIR}/bsysperf.html \
+	${NEXUS_BIN_DIR}/bsysperf.js \
+	${NEXUS_BIN_DIR}/bsysperf.css \
+	${NEXUS_BIN_DIR}/bsysperf.png \
+	${NEXUS_BIN_DIR}/bsysperf_flame.js \
+	${NEXUS_BIN_DIR}/chart1.js \
+	${NEXUS_BIN_DIR}/chart2.js \
+	${NEXUS_BIN_DIR}/boundingbox.js \
+	${NEXUS_BIN_DIR}/svgvml3d.js \
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
@@ -126,6 +135,44 @@ clean_apps:
 	@-$(RM) ${NEXUS_BIN_DIR}/boundingbox.js
 	@-$(RM) ${NEXUS_BIN_DIR}/svgvml3d.js
 
+${NEXUS_BIN_DIR}/bsysperf.html: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.html
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.html     ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/bsysperf.js: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.js
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.js     ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/bsysperf.css: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.css
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.css     ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/bsysperf.png: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.png
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.png     ${NEXUS_BIN_DIR}
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/player/bmemperf_play.jpg     ${NEXUS_BIN_DIR}
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/player/bmemperf_pause.jpg    ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/bsysperf_flame.js: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_flame.js
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_flame.js     ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/chart1.js: ${NEXUS_TOP}/../${B_THIS_DIR}/chart1.js
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/chart1.js ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/chart2.js: ${NEXUS_TOP}/../${B_THIS_DIR}/chart2.js
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/chart2.js ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/boundingbox.js: ${NEXUS_TOP}/../${B_THIS_DIR}/boundingbox.js
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/boundingbox.js ${NEXUS_BIN_DIR}
+
+${NEXUS_BIN_DIR}/svgvml3d.js: ${NEXUS_TOP}/../${B_THIS_DIR}/svgvml3d.js
+	@echo [Copying ... $(notdir $@)]
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/svgvml3d.js ${NEXUS_BIN_DIR}
+
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 CFLAGS += -I${NEXUS_TOP}/../BSEAV/tools/bmemperf/include
@@ -150,24 +197,14 @@ $(BWL_OBJ_DIR)/libbwl.a: $(BWL_SRC_FILES)
 	$(MAKE) -C $(BWL_SRC_DIR)
 
 # Implicit rule for building local apps
-${NEXUS_BIN_DIR}/bsysperf.cgi: $(BINDIR)/../bin/boa_server $(BWL_OBJ_DIR)/libbwl.a $(MAIN_OBJS) $(EXTRA_OBJS) ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.js
+${NEXUS_BIN_DIR}/bsysperf.cgi: $(BINDIR)/../bin/boa_server $(BWL_OBJ_DIR)/libbwl.a $(MAIN_OBJS) $(EXTRA_OBJS)
 	@echo [Building ... $@]
 	$(Q_)$(CC) -o $@ $(MAIN_OBJS) $(EXTRA_OBJS) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.html     ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.js       ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_flame.js ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.png      ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.css      ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/chart*.js         ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/boundingbox.js    ${NEXUS_BIN_DIR}
-	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/svgvml3d.js       ${NEXUS_BIN_DIR}
 	$(Q_)rm -f ${NEXUS_BIN_DIR}/bsysperf.d
 
 ${NEXUS_BIN_DIR}/bsysperf_server: $(SERVER_OBJS)
 	@echo [Building ... $@]
-###	$(Q_)$(CC) -c $(SERVER_OBJS) $(CFLAGS) ${CDEP_FLAG}
 	$(Q_)$(CC) -c $(SERVER_OBJS) $(CFLAGS)
-###	$(Q_)$(CC) -o ${NEXUS_BIN_DIR}/$@ $(SERVER_OBJS) $(EXTRA_OBJS) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
 	$(Q_)$(CC) -o $@ $(SERVER_OBJS) $(EXTRA_OBJS) $(CFLAGS) $(LDFLAGS)
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.sh   ${NEXUS_BIN_DIR}
 	$(Q_)rm -f ${NEXUS_BIN_DIR}/bsysperf_server.d

@@ -109,7 +109,7 @@ static const uint32_t aulMemc0_20160823084347_TEMP_1000_UHDp60[] = {
            0x3ffff0ff,  /*  35: UNASSIGNED off */
            0x3ffff0ff,  /*  36: UNASSIGNED off */
            0x3ffff0ff,  /*  37: UNASSIGNED off */
-           0x3ffff0ff,  /*  38: UNASSIGNED off */
+           0xbffff0ff,  /*  38: USB_X_BDC_0 RR */
            0x3ffff0ff,  /*  39: UNASSIGNED off */
            0x003a1004,  /*  40: RAAGA 2400ns */
            0x0978e015,  /*  41: RAAGA_1 100000ns */

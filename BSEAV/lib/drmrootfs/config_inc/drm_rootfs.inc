@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,11 +51,11 @@ extern "C" {
 ** DESCRIPTION:
 **   This configuration variable applies to users/customers with NAND flash support.
 **   It should be ignored otherwise.
-**   'drm_key_region_tmp_dir' points to a directory at run time that the Common 
+**   'drm_key_region_tmp_dir' points to a directory at run time that the Common
 **   DRM library will use to process the DRM bin file from flash.
 **
 ** NOTES:
-**   This file must only be included in drm_data.h. 
+**   This file must only be included in drm_data.h.
 **
 **  Refer to drm_data.h for more details.
 **
@@ -71,7 +71,7 @@ char drm_key_region_tmp_dir[] ="/tmp/";
 **   exists in rootfs.
 **
 ** NOTES:
-**   This file must only be included in drm_data.h. 
+**   This file must only be included in drm_data.h.
 **
 **  Refer to drm_data.h for more details.
 **
@@ -99,9 +99,33 @@ char drm_bin_file_rootfs_path[] ="./drm.bin";
 #ifdef ANDROID
 char ta_bin_file_rootfs_path[] ="/system/bin/sage_ta_common_drm.bin";
 char ta_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_common_drm_dev.bin";
+char ta_edrm_bin_file_rootfs_path[] ="/system/bin/sage_ta_edrm.bin";
+char ta_edrm_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_edrm_dev.bin";
+char ta_nflx_bin_file_rootfs_path[] ="/system/bin/sage_ta_netflix.bin";
+char ta_nflx_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_netflix_dev.bin";
+char ta_pr25_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_25.bin";
+char ta_pr25_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_25_dev.bin";
+char ta_wv_bin_file_rootfs_path[] ="/system/bin/sage_ta_widevine.bin";
+char ta_wv_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_widevine_dev.bin";
+char ta_dtcp_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcp.bin";
+char ta_dtcp_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcp_dev.bin";
+char ta_adobe_bin_file_rootfs_path[] ="/system/bin/sage_ta_adobe.bin";
+char ta_adobe_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_adobe_dev.bin";
 #else
 char ta_bin_file_rootfs_path[] ="./sage_ta_common_drm.bin";
 char ta_dev_bin_file_rootfs_path[] ="./sage_ta_common_drm_dev.bin";
+char ta_edrm_bin_file_rootfs_path[] ="./sage_ta_edrm.bin";
+char ta_edrm_dev_bin_file_rootfs_path[] ="./sage_ta_edrm_dev.bin";
+char ta_nflx_bin_file_rootfs_path[] ="./sage_ta_netflix.bin";
+char ta_nflx_dev_bin_file_rootfs_path[] ="./sage_ta_netflix_dev.bin";
+char ta_pr25_bin_file_rootfs_path[] ="./sage_ta_playready_25.bin";
+char ta_pr25_dev_bin_file_rootfs_path[] ="./sage_ta_playready_25_dev.bin";
+char ta_wv_bin_file_rootfs_path[] ="./sage_ta_widevine.bin";
+char ta_wv_dev_bin_file_rootfs_path[] ="./sage_ta_widevine_dev.bin";
+char ta_dtcp_bin_file_rootfs_path[] ="./sage_ta_dtcp.bin";
+char ta_dtcp_dev_bin_file_rootfs_path[] ="./sage_ta_dtcp_dev.bin";
+char ta_adobe_bin_file_rootfs_path[] ="./sage_ta_adobe.bin";
+char ta_adobe_dev_bin_file_rootfs_path[] ="./sage_ta_adobe_dev.bin";
 #endif
 
 /******************************************************************************
@@ -113,7 +137,7 @@ char ta_dev_bin_file_rootfs_path[] ="./sage_ta_common_drm_dev.bin";
 **   the PMC bin file will be located
 **
 ** NOTES:
-**   This file must only be included in drm_data.h. 
+**   This file must only be included in drm_data.h.
 **
 **  Refer to drm_data.h for more details.
 **
@@ -128,7 +152,7 @@ char pmc_bin_file_dir[] ="/mnt/";
 **   This configuration variable holds the file name (only) of the PMC bin file
 **
 ** NOTES:
-**   This file must only be included in drm_data.h. 
+**   This file must only be included in drm_data.h.
 **
 **  Refer to drm_data.h for more details.
 **

@@ -123,12 +123,15 @@ case $1 in
     ;;
 6)
     # suspend and resume decode
-    play $PLAYFILE2 -vrect 720,480:20,20,200,200 -audio_primers &
+    # audio_primers are using when starting pip
+    play $PLAYFILE2 -rect 50,270,960,540 -audio_primers &
     while [ 1 ]; do
         sleep 5
-        echo interrupting decode
-        play $PLAYFILE -timeout 5 -vrect 720,480:250,20,400,400
-        echo resuming decode
+        echo starting second main
+        play $PLAYFILE -timeout 5 -rect 960,0,960,540
+        sleep 5
+        echo starting pip
+        play $PLAYFILE -timeout 5 -pip -rect 960,0,960,540
     done
     ;;
 7)

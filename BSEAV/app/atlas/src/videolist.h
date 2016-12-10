@@ -133,6 +133,7 @@ public:
     virtual ~CVideo();
 
     void   closeVideo(void);
+    bool   hasIndexName();
     bool   hasIndex();
     eRet   writeXML(MXmlElement * xmlElem);
     eRet   generateInfoName(const char * strName);

@@ -514,6 +514,8 @@ typedef enum BADS_Callback
     BADS_Callback_eAsyncStatusReady,    /* Callback to notify application there is no signal */
     BADS_Callback_eTuner,               /* Callback to tuner regarding a new setting */
     BADS_Callback_eSpectrumDataReady,   /* Callback to notify application that spectrum analyzer data is ready */
+    BADS_Callback_eIfDacAcquireComplete,    /* Callback to notify application that spectrum analyzer data is ready */
+    BADS_Callback_eIfDacStatusReady,    /* Callback to notify application that spectrum analyzer data is ready */
     BADS_Callback_eLast                 /* More may be required */
 } BADS_Callback;
 
@@ -808,6 +810,43 @@ typedef struct BADS_SpectrumSettings
     uint8_t binAverage; /*  Total number of samples to be averaged per bin. It's value ranges from 0 to 255*/
     uint32_t numSamples; /* Total number of 32-bit frequency values to return */
 } BADS_SpectrumSettings;
+
+/***************************************************************************
+Summary:
+    Structure for IF DAC settings.
+
+Description:
+    Structure for IF DAC settings.
+
+See Also:
+    BADS_GetSettings(), BADS_SetSettings()
+
+****************************************************************************/
+typedef struct BADS_IfDacSettings
+{
+    unsigned frequency; /* frequency in Hz */
+    unsigned bandwidth; /* bandwidth in units of Hz, supported bandwidth settings are 6 MHz (Annex B) and 8 MHz (Annex A) */
+    unsigned outputFrequency; /* IF DAC output Frequency in Hz. Currently supported output frequencies: 4 MHz, 5 MHz, 36 MHz and 44 MHz */
+    unsigned dacAttenuation; /* DAC Attenuation in units of 1/256th of dB, range: 0 to 5120 (20 dB) */
+} BADS_IfDacSettings;
+
+/***************************************************************************
+Summary:
+    This structure represents the TNR Status.
+
+Description:
+    This structure is returned when BADS_GetStatus() is called.  This
+    structure contains the complete status of a TNR channel.
+
+See Also:
+    BADS_GetStatus()
+
+****************************************************************************/
+typedef struct BADS_IfDacStatus
+{
+    int rssi; /* rssi in units of 1/100th of a dBm */
+    BADS_IfDacSettings ifDacSettings; /* IF DAC Settings */
+} BADS_IfDacStatus;
 
 /***************************************************************************
 Summary:
@@ -1700,6 +1739,79 @@ Returns:
 BERR_Code BADS_GetSpectrumAnalyzerData(
     BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumData  *pSpectrumData /* [out] spectrum Data*/
+    );
+
+/***************************************************************************
+Summary:
+    This function tunes IF DAC to the requested frequency.
+
+Description:
+    This function is responsible for tuning the IF DAC to the requested
+    frequency.
+
+Returns:
+    TODO:
+
+See Also:
+
+****************************************************************************/
+BERR_Code BADS_TuneIfDac(
+    BADS_ChannelHandle hChn,                   /* [in] Device handle */
+    BADS_IfDacSettings *pSettings       /* [in] IF DAC Settings */
+    );
+
+/***************************************************************************
+Summary:
+    This function resets the status of the IF DAC.
+
+Description:
+    This function is responsible for resetting If DAC status.
+
+Returns:
+    TODO:
+
+See Also:
+
+****************************************************************************/
+BERR_Code BADS_ResetIfDacStatus(
+    BADS_ChannelHandle hChn        /* [in] Device handle */
+    );
+
+/***************************************************************************
+Summary:
+    This function requests the status asynchronously of the IF DAC channel.
+
+Description:
+    This function is responsible for requesting the status to be calculated
+    asynchronously for an IF DAC channel.
+
+Returns:
+    TODO:
+
+See Also:
+
+****************************************************************************/
+BERR_Code BADS_RequestIfDacStatus(
+    BADS_ChannelHandle hChn        /* [in] Device handle */
+    );
+
+/***************************************************************************
+Summary:
+    This function gets the status asynchronously of the IF DAC channel.
+
+Description:
+    This function is responsible for asynchronously getting the complete status
+    of the IF DAC.
+
+Returns:
+    TODO:
+
+See Also:
+
+****************************************************************************/
+BERR_Code BADS_GetIfDacStatus(
+    BADS_ChannelHandle hChn,               /* [in] Device handle */
+    BADS_IfDacStatus *pStatus       /* [out] Returns status */
     );
 
 #ifdef __cplusplus

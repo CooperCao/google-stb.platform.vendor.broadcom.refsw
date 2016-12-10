@@ -878,10 +878,10 @@ void BCHP_GetInfo(
 typedef struct BCHP_MemoryLayout
 {
     struct {
-        unsigned size; /* total size of DRAM part */
+        uint64_t size; /* total size of DRAM part */
         struct {
             BSTD_DeviceOffset addr; /* base physical address of contiguous addressing region */
-            unsigned size; /* size of contiguous addressing */
+            uint64_t size; /* size of contiguous addressing */
         } region[BCHP_MAX_MEMC_REGIONS]; /* supports multiple discontiguous addressing region */
     } memc[3];
 } BCHP_MemoryLayout;
@@ -892,6 +892,7 @@ typedef struct BCHP_OpenSettings
     BREG_Handle reg;
     unsigned productId; /* hex value. if non-zero, this will override BCHP_Info.productId. default is zero. */
     BCHP_MemoryLayout memoryLayout;
+    unsigned pMapId;
 } BCHP_OpenSettings;
 
 void BCHP_GetDefaultOpenSettings(

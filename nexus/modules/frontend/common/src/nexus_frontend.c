@@ -917,6 +917,7 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigMtsifConfig(NEXUS_FrontendHandle front
                         pConfig->demodPbSettings[demodPb].enabled = false;
                         pConfig->demodPbSettings[demodPb].connector = NULL;
                         BDBG_MSG(("MTSIF override:   IB%u -> PB%u -> PB%u (TX%u, %p:%p)", pConfig->demodPbSettings[demodPb].inputBandNum, demodPb, hostPb, demodMtsifTx, (void *)frontend, (void *)mxt));
+                        goto set_mapping; /* must use same demodPB */
                     }
                 }
             }

@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Sample Rate Converter (SRC) Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -108,7 +128,7 @@ BERR_Code BAPE_P_InitSrcHw(
 
         BDBG_OBJECT_ASSERT(handle, BAPE_Device);
 
-    	/* Total SRAM Memory: 1280-48(HW Internal use) */
+        /* Total SRAM Memory: 1280-48(HW Internal use) */
         /* Each SRC is allocated 102 bytes of Scratch memory which is required for IIR. */
         /* TODO: Add dynamic allocation support when Upx or Downx SRC types are required */
         regAddr = BCHP_AUD_FMM_SRC_CTRL0_SRC_CFGi_ARRAY_BASE;
@@ -276,7 +296,7 @@ static void BAPE_Src_P_SetSampleRate_isr(BAPE_Handle handle, uint32_t srcId, uns
         regAddr += BCHP_AUD_FMM_SRC_CTRL0_LI_DEN_SCALE0-BCHP_AUD_FMM_SRC_CTRL0_LI_DEN0;
         regVal = BREG_Read32_isr(handle->regHandle, regAddr);
         regVal &= ~BCHP_MASK(AUD_FMM_SRC_CTRL0_LI_DEN_SCALE0, DEN_SCALE);
-       	regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_LI_DEN_SCALE0, DEN_SCALE, denScale);
+        regVal |= BCHP_FIELD_DATA(AUD_FMM_SRC_CTRL0_LI_DEN_SCALE0, DEN_SCALE, denScale);
         BREG_Write32_isr(handle->regHandle, regAddr, regVal);
 
         regAddr = BCHP_AUD_FMM_SRC_CTRL0_SRC_CFG0 + (((uint32_t) srcId)*(BCHP_AUD_FMM_SRC_CTRL0_SRC_CFG1-BCHP_AUD_FMM_SRC_CTRL0_SRC_CFG0));
@@ -867,6 +887,7 @@ void BAPE_SrcGroup_P_Stop(
     handle->started = false;
 }
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Set Coefficient Index (used for Equalizer mode only)
@@ -881,6 +902,7 @@ void BAPE_SrcGroup_P_SetCoefficientIndex_isr(
     /* These chips don't support IIR filtering */
     (void)BERR_TRACE(BERR_NOT_SUPPORTED);
 }
+#endif
 
 void BAPE_SrcGroup_P_GetOutputFciIds(
                                     BAPE_SrcGroupHandle handle,
@@ -1149,4 +1171,3 @@ void BAPE_SrcGroup_P_UpdateCoefficients_isr(
     }
 }
 #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
-

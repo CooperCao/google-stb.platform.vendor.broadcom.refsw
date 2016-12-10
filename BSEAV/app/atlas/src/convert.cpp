@@ -1681,6 +1681,9 @@ ENUM_TO_MSTRING_START()
 #endif
     ENUM_TO_MSTRING_ENTRY(eBoardResource_uhfRemote,         "UHF Remote")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_power,             "Power")
+#ifdef WPA_SUPPLICANT_SUPPORT
+    ENUM_TO_MSTRING_ENTRY(eBoardResource_wifi,              "Wifi")
+#endif
 #ifdef NETAPP_SUPPORT
     ENUM_TO_MSTRING_ENTRY(eBoardResource_network,           "Network")
     ENUM_TO_MSTRING_ENTRY(eBoardResource_bluetooth,         "Bluetooth")

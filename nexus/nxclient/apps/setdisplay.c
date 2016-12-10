@@ -114,6 +114,7 @@ static void print_usage(void)
         "  -alpha X                  GFD alpha\n"
         "  -secure {on|off}\n"
         "  -sdgraphic {on|off}\n"
+        "  -dropFrame {enable|disable|track} \tHD display is drop frame, non-drop frame or tracks source (default)\n"
         );
     print_list_option("macrovision",g_macrovisionStrs);
     print_list_option("eotf",g_videoEotfStrs);
@@ -547,6 +548,20 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-sdgraphic") && argc>curarg+1) {
             change = true;
             displaySettings.slaveDisplay[0].mode = parse_boolean(argv[++curarg])?NxClient_SlaveDisplayMode_eGraphics:NxClient_SlaveDisplayMode_eReplicated;
+        }
+        else if (!strcmp(argv[curarg], "-dropFrame") && curarg+1 < argc) {
+            ++curarg;
+            change = true;
+            if (!strcmp(argv[curarg],"enable")) {
+                displaySettings.dropFrame = NEXUS_TristateEnable_eEnable;
+            }
+            else if (!strcmp(argv[curarg],"disable")) {
+                displaySettings.dropFrame = NEXUS_TristateEnable_eDisable;
+            }
+            else {
+                /* eNotSet is "track" */
+                displaySettings.dropFrame = NEXUS_TristateEnable_eNotSet;
+            }
         }
         else {
             print_usage();

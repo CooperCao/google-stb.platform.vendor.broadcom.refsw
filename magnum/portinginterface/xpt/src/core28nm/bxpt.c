@@ -262,7 +262,9 @@ static void BXPT_P_PMUMemPwr_Control(BREG_Handle hReg, bool powerOn, const BXPT_
     BREG_Write32(hReg, BCHP_XPT_PMU_PCROFFSET_SP_PD_MEM_PWR_DN_CTRL, val);
     BREG_Write32(hReg, BCHP_XPT_PMU_PSUB_SP_PD_MEM_PWR_DN_CTRL, val);
     BREG_Write32(hReg, BCHP_XPT_PMU_RSBUFF_SP_PD_MEM_PWR_DN_CTRL, val);
+#ifdef BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL
     BREG_Write32(hReg, BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL, val);
+#endif
     if (pStandbySettings && pStandbySettings->UseWakeupPacket) {
         BREG_Write32(hReg, BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL, 0);
     }

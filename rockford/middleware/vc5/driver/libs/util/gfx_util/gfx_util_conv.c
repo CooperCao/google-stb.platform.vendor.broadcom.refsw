@@ -5,6 +5,8 @@ All rights reserved.
 
 #include "gfx_util_conv.h"
 
+#include <math.h>
+
 /** float <-> float16 */
 
 uint32_t gfx_floatbits_to_float16(uint32_t in)
@@ -231,14 +233,54 @@ void gfx_rgb9e5_to_floats(float f[3], uint32_t rgb9e5)
 
 /** float -> [u]int */
 
+uint32_t gfx_float_to_uint32_rtni(float f)
+{
+   if (!(f > 0.0f)) /* <=0 or NaN? */
+      return 0;
+   if (f >= gfx_float_from_bits(0x4f800000))
+      return UINT32_MAX;
+   return (uint32_t)f;
+}
+
+uint32_t gfx_float_to_uint32_rtpi(float f)
+{
+   return gfx_float_to_uint32_rtni(ceilf(f));
+}
+
+uint32_t gfx_double_to_uint32(double d)
+{
+   if (!(d > 0.0)) /* <=0 or NaN? */
+      return 0;
+   if (d >= (double)UINT32_MAX)
+      return UINT32_MAX;
+   return (uint32_t)nearbyint(d);
+}
+
+uint32_t gfx_float_to_uint32(float f)
+{
+   return gfx_float_to_uint32_rtni(nearbyintf(f));
+}
+
+int32_t gfx_float_to_int32(float f)
+{
+   if (isnan(f))
+      return 0;
+   if (f <= gfx_float_from_bits(0xcf000000))
+      return INT32_MIN;
+   if (f >= gfx_float_from_bits(0x4f000000))
+      return INT32_MAX;
+   return (int32_t)nearbyintf(f);
+}
+
 int64_t gfx_float_to_int64(float f)
 {
-   float abs = fabsf(f);
-   if (!(abs >= gfx_float_from_bits(0x4f000000))) /* abs < 2^32 or NaN? */
-      return gfx_float_to_int32(f);
-   if (abs < gfx_float_from_bits(0x5f000000)) /* abs < 2^64? */
-      return (int64_t)f;
-   return (f < 0.0f) ? INT64_MIN : INT64_MAX;
+   if (isnan(f))
+      return 0;
+   if (f <= gfx_float_from_bits(0xdf000000))
+      return INT64_MIN;
+   if (f >= gfx_float_from_bits(0x5f000000))
+      return INT64_MAX;
+   return (int64_t)nearbyintf(f);
 }
 
 /** [u]int -> float */

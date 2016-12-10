@@ -86,7 +86,6 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_Init(const NEXUS_GpioModuleOsShar
 
     g_NEXUS_Platform_P_SharedGpioState.initSettings = *pSettings;
 
-err:
     return rc;
 }
 
@@ -126,7 +125,6 @@ static NEXUS_Error NEXUS_Platform_P_SharedGpio_GetInterruptStatus_isr(NEXUS_Gpio
     b_shared_gpio_get_int_status(&status);
     NEXUS_Platform_P_SharedGpio_DriverInterruptStatusToNexus_isr(&status, pStatus);
 
-err:
     return rc;
 }
 

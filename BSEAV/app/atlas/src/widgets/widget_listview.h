@@ -103,7 +103,7 @@ public:
     int             getNumButtons(void) { return(_widgetList.total()); }
     void            setActive(CWidgetButton * pWidgetItem, bool bActive);
     bool            isActive(CWidgetButton * pWidgetItem);
-    eRet            sort(void);
+    eRet            sort(CWidgetButton * pButtonFocus = NULL);
     void            clear(void);
     int32_t         getFirstVisibleIndex(void);
     eRet            layout(int index = -1, bool topDown = true);

@@ -245,9 +245,6 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		/* BDSP_AF_P_AlgoId_ePcmWavFrameSync */
 		0x03000004,
 
-		/* BDSP_AF_P_AlgoId_eAmrFrameSync */
-		0x03000004,
-
 		/* BDSP_AF_P_AlgoId_eDraFrameSync */
 		0x03000004,
 
@@ -257,34 +254,13 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		/* BDSP_AF_P_AlgoId_eMs10DdpFrameSync */
 		0x03000004,
 
-		/* BDSP_AF_P_AlgoId_eAdpcmFrameSync */
-		0x03000004,
-
-		/* BDSP_AF_P_AlgoId_eG711G726FrameSync */
-		0x03000004,
-
-		/* BDSP_AF_P_AlgoId_eG729FrameSync */
-		0x03000004,
-
 		/* BDSP_AF_P_AlgoId_eVorbisFrameSync */
-		0x03000004,
-
-		/* BDSP_AF_P_AlgoId_eG723_1FrameSync */
 		0x03000004,
 
 		/* BDSP_AF_P_AlgoId_eFlacFrameSync */
 		0x03000004,
 
 		/* BDSP_AF_P_AlgoId_eMacFrameSync */
-		0x03000004,
-
-		/* BDSP_AF_P_AlgoId_eAmrWbFrameSync */
-		0x03000004,
-
-		/* BDSP_AF_P_AlgoId_eiLBCFrameSync */
-		0x03000004,
-
-		/* BDSP_AF_P_AlgoId_eiSACFrameSync */
 		0x03000004,
 
 		/* BDSP_AF_P_AlgoId_eUdcFrameSync */

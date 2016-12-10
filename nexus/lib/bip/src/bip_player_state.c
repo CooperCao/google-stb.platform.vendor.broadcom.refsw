@@ -581,7 +581,7 @@ static unsigned int getRealAudioTrackId(
     )
 {
     unsigned int realTrackId;
-    if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
+    if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls && hPlayer->usePlaypump2ForAudio )
     {
         realTrackId = pMediaInfoTrack->info.audio.containerSpecificInfo.hls.hlsAudioPid;
     }

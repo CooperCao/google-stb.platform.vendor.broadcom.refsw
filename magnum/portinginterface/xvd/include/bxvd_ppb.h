@@ -64,7 +64,7 @@ typedef struct
 typedef struct
 {
 
-#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
   uint32_t       hidden[75];
 #else
   uint32_t       hidden[73];

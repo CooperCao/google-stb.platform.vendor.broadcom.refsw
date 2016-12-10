@@ -4020,30 +4020,64 @@ afterPlaylistSelection:
         hlsSession->currentPlaylistFile->playlistHasChanged = false;
     }
     else {
-        /* Using same playlist, so we can use sequnce # to pick the right segment. */
-        if (playback_ip->speedNumerator >= 1)
+        /* Using same playlist, so we can use the next/prev media segment. */
+        /* Plus, we need to consider if we need to skip some segments if we are falling behind the current playback rate. */
         {
             bool droppingSegment = false;
-            /* Playing in forward direction (speed doesn't matter) within the same playlist, just pick the next media segment. */
-            mediaFileSegmentInfo = BLST_Q_NEXT(playlistFileInfo->currentMediaFileSegment, next);
-#if 0
-            /* TODO: this needs little tune in terms of how often to drop the segments. Will look into it later! */
-            if (hlsSession->dropEveryNthSegment) {
-                if (((++hlsSession->segmentCount % hlsSession->dropEveryNthSegment) == 0) && mediaFileSegmentInfo) {
-                    /* skip one segment after dropEveryNthSegment count, this way we can decode pictures at the correct rate at higher rewind speeds. */
-                    BDBG_MSG(("%s: Dropping every %d segment: segmentCount %u", __FUNCTION__, hlsSession->dropEveryNthSegment, hlsSession->segmentCount));
-                    mediaFileSegmentInfo = BLST_Q_NEXT(mediaFileSegmentInfo, next);
+            if (playback_ip->speedNumerator >= 1) {
+                /* Playing in forward direction (speed doesn't matter) within the same playlist, just pick the next media segment. */
+                mediaFileSegmentInfo = BLST_Q_NEXT(playlistFileInfo->currentMediaFileSegment, next);
+            }
+            else {
+                /* Playing in reverse direction within the same playlist, just pick the previous media segment. */
+                mediaFileSegmentInfo = BLST_Q_PREV(playlistFileInfo->currentMediaFileSegment, next);
+            }
+            /* Now determine if we need to skip some segments if we are in trickmodes. */
+            if (mediaFileSegmentInfo && playback_ip->speedNumerator != 1)
+            {
+                B_Time endTime;
+                hlsSession->totalRealElapsedTimeInSec += hlsSession->lastSegmentDuration/1000;
+                B_Time_Get(&endTime);
+
+                if (B_Time_Diff(&endTime, &hlsSession->currentSampleTime) >= 1000) {     /* 1 sec. */
+                    /* 1 sec interval has elapsed. */
+                    /* Check if we have downloaded (maps to decoded/displayed) segments at the desired trickmode rate. */
+                    /* if yes, we dont need to need to skip any segments & we can continue downloading the next segment. */
+                    /* Otherwise, we are falling behind than the desired rate. So we need to skip some segments. */
+                    BDBG_WRN(("%s: totalRealElapsedTimeInSec=%u totalIdealElapsedTimeInSec=%u",
+                                __FUNCTION__, hlsSession->totalRealElapsedTimeInSec, hlsSession->totalIdealElapsedTimeInSec));
+                    if (hlsSession->totalRealElapsedTimeInSec < hlsSession->totalIdealElapsedTimeInSec)
+                    {
+                        /* We are behind either because of download speed lesser than the needed speed for a given speed, */
+                        /* or because of decoder is maxing out on its decode b/w as it can only decode certain # of frames/sec for a given stream. */
+
+                        /* Determine how many segments to skip. */
+                        unsigned i=0;
+                        unsigned durationToCatchupInSec = hlsSession->totalIdealElapsedTimeInSec - hlsSession->totalRealElapsedTimeInSec;
+                        unsigned segmentsToSkip = (durationToCatchupInSec / (hlsSession->currentPlaylistFile->maxMediaSegmentDuration/1000));
+
+                        /* Now skip these many segments if any! */
+                        for (i=0; i<segmentsToSkip && mediaFileSegmentInfo; i++)
+                        {
+                            if (playback_ip->speedNumerator > 1) {
+                                mediaFileSegmentInfo = BLST_Q_NEXT(mediaFileSegmentInfo, next);
+                            }
+                            else {
+                                mediaFileSegmentInfo = BLST_Q_PREV(mediaFileSegmentInfo, next);
+                            }
+                        }
+
+                        /* And update the totalRealElapsedTime based on the skipped segments. */
+                        hlsSession->totalRealElapsedTimeInSec += (segmentsToSkip*(hlsSession->currentPlaylistFile->maxMediaSegmentDuration/1000));
+#ifdef BDBG_DEBUG_BUILD
+                        if (playback_ip->ipVerboseLog) {
+                            BDBG_WRN(("%s: durationToCatchupInSec=%u segmentsToSkip=%u totalRealElapsedTimeInSec=%u", __FUNCTION__, durationToCatchupInSec, segmentsToSkip, hlsSession->totalRealElapsedTimeInSec));
+                        }
+#endif
+                    }
+                    hlsSession->currentSampleTime = endTime;
+                    hlsSession->totalIdealElapsedTimeInSec += abs(playback_ip->speedNumerator);
                 }
-            }
-#else
-            if (playback_ip->speedNumerator >= 10 && mediaFileSegmentInfo) {
-                /* skip one additional segment after 10x as decoder can't keep up otherwise. */
-                mediaFileSegmentInfo = BLST_Q_NEXT(mediaFileSegmentInfo, next);
-                droppingSegment = true;
-            }
-            if (playback_ip->speedNumerator >= 20 && mediaFileSegmentInfo) {
-                /* skip one more additional segment after 20x as decoder can't keep up otherwise. */
-                mediaFileSegmentInfo = BLST_Q_NEXT(mediaFileSegmentInfo, next);
                 droppingSegment = true;
             }
             if (mediaFileSegmentInfo == NULL && playback_ip->speedNumerator > 1 && droppingSegment) {
@@ -4057,24 +4091,10 @@ afterPlaylistSelection:
                 }
 #endif
             }
-#endif
-        }
-        else
-        {
-            /* Playing in reverse direction within the same playlist, just pick the previous media segment. */
-            mediaFileSegmentInfo = BLST_Q_PREV(playlistFileInfo->currentMediaFileSegment, next);
-            if (hlsSession->dropEveryNthSegment) {
-                if (((++hlsSession->segmentCount % hlsSession->dropEveryNthSegment) == 0) && mediaFileSegmentInfo) {
-                    /* skip one segment after dropEveryNthSegment count, this way we can decode pictures at the correct rate at higher rewind speeds. */
-                    BDBG_MSG(("%s: dropEveryNthSegment %d segment: segmentCount %u", __FUNCTION__, hlsSession->dropEveryNthSegment, hlsSession->segmentCount));
-                    mediaFileSegmentInfo = BLST_Q_PREV(mediaFileSegmentInfo, next);
-                    if (mediaFileSegmentInfo == NULL) {
-                        /* reached the begining, so lets play the first segment instead of dropping it. */
-                        mediaFileSegmentInfo = BLST_Q_FIRST(&playlistFileInfo->mediaFileSegmentInfoQueueHead);
-                        hlsSession->downloadedAllSegmentsInCurrentPlaylist = true;
-                    }
-
-                }
+            else if (mediaFileSegmentInfo == NULL && playback_ip->speedNumerator < 1) {
+                /* reached the begining, so lets play the first segment instead of dropping it. */
+                mediaFileSegmentInfo = BLST_Q_FIRST(&playlistFileInfo->mediaFileSegmentInfoQueueHead);
+                hlsSession->downloadedAllSegmentsInCurrentPlaylist = true;
             }
         }
         if (mediaFileSegmentInfo) {
@@ -4134,14 +4154,14 @@ static B_PlaybackIpError updateAudioDecoderTrickModeState(
     int speedNumerator, speedDenominator;
     NEXUS_AudioDecoderTrickState audioDecoderTrickSettings;
 
-    if ( !audioDecoder )
-        return B_ERROR_SUCCESS;
-
     speedNumerator = playback_ip->speedNumerator;
     speedDenominator = playback_ip->speedDenominator;
     rate = (float) speedNumerator / speedDenominator;
 
-    NEXUS_AudioDecoder_GetTrickState(audioDecoder, &audioDecoderTrickSettings);
+    if (audioDecoder)
+        NEXUS_AudioDecoder_GetTrickState(audioDecoder, &audioDecoderTrickSettings);
+    else if (playback_ip->nexusHandles.simpleAudioDecoder)
+        NEXUS_SimpleAudioDecoder_GetTrickState(playback_ip->nexusHandles.simpleAudioDecoder, &audioDecoderTrickSettings);
     if ( rate == 1.0 )
     {
         audioDecoderTrickSettings.muted = false;
@@ -4159,15 +4179,37 @@ static B_PlaybackIpError updateAudioDecoderTrickModeState(
     {
         audioDecoderTrickSettings.muted = true;
         audioDecoderTrickSettings.forceStopped = true;
+        audioDecoderTrickSettings.tsmEnabled = false;
     }
 
     audioDecoderTrickSettings.rate = NEXUS_NORMAL_DECODE_RATE * rate;
-    if (NEXUS_AudioDecoder_SetTrickState(audioDecoder, &audioDecoderTrickSettings) != NEXUS_SUCCESS)
-    {
-        BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
-        return  B_ERROR_UNKNOWN;
+    if (audioDecoder) {
+        if (NEXUS_AudioDecoder_SetTrickState(audioDecoder, &audioDecoderTrickSettings) != NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+            return  B_ERROR_UNKNOWN;
+        }
     }
-
+    else
+    {
+        int i;
+        if (playback_ip->nexusHandles.simpleAudioDecoderCount) {
+            for (i=0; i<playback_ip->nexusHandles.simpleAudioDecoderCount; i++) {
+                if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoders[i], &audioDecoderTrickSettings) != NEXUS_SUCCESS) {
+                    BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                    return  B_ERROR_UNKNOWN;
+                }
+                BDBG_WRN(("%s: NEXUS_AudioDecoder_SetTrickState() handle=%p i=%d\n", __FUNCTION__, (void *)playback_ip->nexusHandles.simpleAudioDecoders[i], i));
+            }
+        }
+        else {
+            if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoder, &audioDecoderTrickSettings) != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                return  B_ERROR_UNKNOWN;
+            }
+            BDBG_WRN(("%s: NEXUS_AudioDecoder_SetTrickState() handle=%p", __FUNCTION__, (void *)playback_ip->nexusHandles.simpleAudioDecoders));
+        }
+    }
 #ifdef BDBG_DEBUG_BUILD
     if (playback_ip->ipVerboseLog)
         BDBG_WRN(("%s: audioDecoderTrickSettings: forceStopped %s, rate %d, muted %s, stcTrickEnabled %s, tsmEnabled %s", __FUNCTION__,
@@ -4279,9 +4321,8 @@ updateVideoDecoderTrickModeState(
         }
     }
 
-    if (speedNumerator < -4)
     {
-        /* for rewind cases, we increase the discard threshold as we will be not feeding all segments at higher rewind speeds. */
+        /* Increase the discard threshold so that video frames (which may have timeline jumps) are within the TSM threshold & thus are NOT discarded. */
         NEXUS_VideoDecoderSettings videoDecoderSettings;
         if (playback_ip->nexusHandles.videoDecoder) {
             NEXUS_VideoDecoder_GetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings);
@@ -4289,7 +4330,7 @@ updateVideoDecoderTrickModeState(
         else {
             NEXUS_SimpleVideoDecoder_GetSettings(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderSettings);
         }
-        videoDecoderSettings.discardThreshold = (45000 * abs(speedNumerator) * 6); /* TODO: need to this based on # of segments to be skipped? */
+        videoDecoderSettings.discardThreshold = (45000 * abs(speedNumerator) * 40); /* some really high number. */
         if (playback_ip->nexusHandles.videoDecoder) {
             if (NEXUS_VideoDecoder_SetSettings(playback_ip->nexusHandles.videoDecoder, &videoDecoderSettings) != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s: Failed to set the discard threshold to %d", __FUNCTION__, videoDecoderSettings.discardThreshold));
@@ -4944,35 +4985,15 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
         hlsSession->playlistBandwidthToUseInTrickmode = playlistFileInfo->bandwidth;
     }
     if (hlsSession->useIFrameTrickmodes) {
-        hlsSession->currentPlaylistFile = playlistFileInfo;
         if (B_PlaybackIp_HlsConnectDownloadAndParsePlaylistFile(playback_ip, hlsSession, playlistFileInfo) < 0) {
             BDBG_ERR(("%s: Failed to download & parse playlist file entry w/ uri %s", __FUNCTION__, playlistFileInfo->uri));
         }
     }
 
-    /* We may want to drop every a segment every so often, experimenting w/ it. */
-    /* TODO: should we expose this to apps? */
-    if (playback_ip->speedNumerator <= -20) {
-        hlsSession->dropEveryNthSegment = 8;
-    }
-    else if (playback_ip->speedNumerator <= -10) {
-        hlsSession->dropEveryNthSegment = 5;
-    }
-    else if (playback_ip->speedNumerator <= -4) {
-        hlsSession->dropEveryNthSegment = 8;
-    }
-    else if (playback_ip->speedNumerator <= -2) {
-        hlsSession->dropEveryNthSegment = 8;
-    }
-    else if (playback_ip->speedNumerator >= 20) {
-        hlsSession->dropEveryNthSegment = 7;
-    }
-    else if (playback_ip->speedNumerator >= 10) {
-        hlsSession->dropEveryNthSegment = 9;
-    }
-    else {
-        hlsSession->dropEveryNthSegment = 0;
-    }
+    /* Reset the state used to determine if we are able to keep up the ideal elapsed time for a given play speed. */
+    B_Time_Get(&hlsSession->currentSampleTime);
+    hlsSession->totalIdealElapsedTimeInSec = abs(playback_ip->speedNumerator);
+    hlsSession->totalRealElapsedTimeInSec = 0;
     hlsSession->segmentCount = 0;
 
     /* Now seek to the last played position from where we should start downloading the segments. */
@@ -4981,6 +5002,9 @@ B_PlaybackIpError B_PlaybackIp_TrickModeHls(
     {
         BDBG_ERR(("%s: ERROR: Failed to Seek to the resume from %0.3f position during TrickMode -> Play transition", __FUNCTION__, currentPosition/1000.));
         goto error;
+    }
+    if (hlsSession->useIFrameTrickmodes) {
+        hlsSession->currentPlaylistFile = playlistFileInfo;
     }
     playback_ip->playback_state = B_PlaybackIpState_eTrickMode;
 

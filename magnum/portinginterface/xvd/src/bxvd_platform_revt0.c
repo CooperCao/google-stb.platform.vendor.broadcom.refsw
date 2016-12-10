@@ -1473,13 +1473,13 @@ BERR_Code BXVD_P_ChipEnable_RevT0(BXVD_Handle hXvd)
     * Write to VectorTB, CpuDbg registers and AuxRegs
     * in THIS ORDER to start Outer Loop ARC
     */
-   BDBG_MSG(("OL Ibase: %0x", hXvd->uiOuterLoopInstructionBase));
+   BDBG_MSG(("OL Ibase: %0lx", hXvd->uiOuterLoopInstructionBase));
    BDBG_MSG(("OL EOC: %0x", hXvd->uiOuterLoopEOC));
 
-   BDBG_MSG(("IL Ibase: %0x",hXvd->uiInnerLoopInstructionBase));
+   BDBG_MSG(("IL Ibase: %0lx",hXvd->uiInnerLoopInstructionBase));
    BDBG_MSG(("IL EOC: %0x", hXvd->uiInnerLoopEOC));
 
-#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
    /* Program the relocation base address for outer-loop */
    BXVD_Reg_Write64(hXvd,
                     hXvd->stPlatformInfo.stReg.uiDecode_OuterInstructionBase,
@@ -1545,7 +1545,7 @@ BERR_Code BXVD_P_ChipEnable_RevT0(BXVD_Handle hXvd)
    if (hXvd->bHEVDDualPipe)
    {
 
-#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
       /* Program the relocation base address for inner-loop */
       BXVD_Reg_Write64(hXvd,
                        hXvd->stPlatformInfo.stReg.uiDecode_Inner2InstructionBase,

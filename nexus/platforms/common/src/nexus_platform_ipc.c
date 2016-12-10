@@ -94,16 +94,15 @@ void NEXUS_P_ServerCall_OutVarArg_Init(NEXUS_P_ServerOutVarArg_State *state, str
     return;
 }
 
-void *NEXUS_P_ServerCall_OutVarArg_Allocate(NEXUS_P_ServerOutVarArg_State *state, unsigned data_size)
+NEXUS_Error NEXUS_P_ServerCall_OutVarArg_Allocate(NEXUS_P_ServerOutVarArg_State *state, unsigned total_data_size)
 {
-    unsigned aligned_data_size = B_IPC_DATA_ALIGN(data_size);
+    unsigned aligned_data_size = B_IPC_DATA_ALIGN(total_data_size);
     unsigned new_size = state->header + state->varargs_begin + state->varargs_offset + aligned_data_size;
-    void *data;
     if(new_size > state->size) {
         void *new_out = nexus_client_driver_alloc(state->client, new_size );
+        BDBG_MSG(("OutVarArg_Allocate: %u(%p) -> %u(%p)", state->size, state->data, new_size, new_out));
         if(new_out==NULL) {
-            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-            return NULL;
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         }
         BKNI_Memcpy(new_out, state->data, state->varargs_begin + state->varargs_offset + state->header);
         if(state->data != state->original_data) {
@@ -112,7 +111,24 @@ void *NEXUS_P_ServerCall_OutVarArg_Allocate(NEXUS_P_ServerOutVarArg_State *state
         state->data = new_out;
         state->size = new_size;
     }
+    return NEXUS_SUCCESS;
+}
+
+void *NEXUS_P_ServerCall_OutVarArg_Place(NEXUS_P_ServerOutVarArg_State *state, unsigned data_size)
+{
+    unsigned aligned_data_size = B_IPC_DATA_ALIGN(data_size);
+    unsigned new_size = state->header + state->varargs_begin + state->varargs_offset + aligned_data_size;
+    void *data;
+    if(new_size > state->size) {
+        (void)BERR_TRACE(NEXUS_UNKNOWN);
+        return NULL;
+    }
     data = (uint8_t *)state->data + state->varargs_begin + state->varargs_offset + state->header;
     state->varargs_offset += aligned_data_size;
     return data;
+}
+
+NEXUS_Error NEXUS_Platform_GetHeapStatus_driver(NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus)
+{
+    return NEXUS_Heap_GetStatus_driver_priv(heap, pStatus);
 }

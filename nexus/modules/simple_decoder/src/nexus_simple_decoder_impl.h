@@ -67,7 +67,6 @@ typedef struct NEXUS_SimpleStcChannelDecoderStatus
     struct
     {
         int index; /* server preferred stc index */
-        bool active; /* decoder is currently using stc -> can't reopen it or change its index */
     } stc;
     NEXUS_SimpleStcChannelEncoderStatus encoder;
     bool hdDviInput;
@@ -80,6 +79,8 @@ void NEXUS_SimpleEncoder_GetStcStatus_priv(NEXUS_SimpleEncoderHandle encoder, NE
 
 void NEXUS_SimpleStcChannel_SetVideo_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_SimpleVideoDecoderHandle video);
 void NEXUS_SimpleStcChannel_SetAudio_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_SimpleAudioDecoderHandle audio);
+bool NEXUS_SimpleStcChannel_P_ActiveVideo(NEXUS_SimpleStcChannelHandle handle);
+void NEXUS_SimpleAudioDecoder_AdjustAudioPrimerToVideo_priv(NEXUS_SimpleAudioDecoderHandle handle, bool videoActive);
 
 #if NEXUS_HAS_ASTM
 NEXUS_Error NEXUS_SimpleStcChannel_SetAstmVideo_priv(NEXUS_SimpleStcChannelHandle handle, NEXUS_VideoDecoderHandle videoDecoder);

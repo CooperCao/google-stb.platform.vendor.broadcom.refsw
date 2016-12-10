@@ -133,6 +133,7 @@ BSAGELib_Rai_P_WaitForResponse(BSAGElib_ClientHandle hSAGElibClient, uint32_t as
     BSAGElib_ResponseData data;
 
     while(rc == BERR_NOT_AVAILABLE){
+        BKNI_Sleep(1);
         rc = BSAGElib_Client_GetResponse(hSAGElibClient, &data);
     }
     if(async_id != data.async_id){
@@ -476,13 +477,13 @@ BSAGElib_Rai_Platform_EnableCallbacks(
     BDBG_ENTER(BSAGElib_Rai_Platform_EnableCallbacks);
 
     BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
-
+#ifndef SAGE_KO
     if (platform->callbacks.container != NULL) {
         rc = BERR_INVALID_PARAMETER;
         BDBG_ERR(("%s: already enabled", __FUNCTION__));
         goto end;
     }
-
+#endif
     hSAGElibClient = platform->hSAGElibClient;
     hSAGElib = hSAGElibClient->hSAGElib;
 
@@ -519,11 +520,14 @@ BSAGElib_Rai_Platform_EnableCallbacks(
         BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
         goto end;
     }
-
+#ifndef SAGE_KO
     platform->callbacks.message = message;
+#endif
     message = NULL;
 
+#ifndef SAGE_KO
     platform->callbacks.container = container;
+#endif
     container = NULL;
 
 end:
@@ -651,7 +655,10 @@ BSAGElib_Rai_Platform_Close(
     BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
 
     BDBG_MSG(("%s Platform id %x Module id %x",__FUNCTION__,platform->platformId,platform->moduleId));
+
+#ifndef SAGE_KO
     if (platform->valid) {
+#endif
         command.containerVAddr = NULL;
         command.containerOffset = 0;
         command.moduleCommandId = 0;
@@ -661,11 +668,12 @@ BSAGElib_Rai_Platform_Close(
             BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
             /* keep going */
         }
+#ifndef SAGE_KO
     }
     else {
         BDBG_WRN(("%s: platform is not valid anymore, skip command send", __FUNCTION__));
     }
-
+#endif
     platform->hSAGElibClient->platformNum--;
     BSAGElib_P_Rai_Adjust_ContainerCache(platform->hSAGElibClient);
 
@@ -741,7 +749,9 @@ BSAGElib_Rai_Module_Uninit(
 
     BDBG_OBJECT_ASSERT(module, BSAGElib_P_RpcRemote);
 
+#ifndef SAGE_KO
     if (module->valid) {
+#endif
         command.containerOffset = 0;
         command.moduleCommandId = 0;
         command.containerVAddr = NULL;
@@ -751,11 +761,12 @@ BSAGElib_Rai_Module_Uninit(
             BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
             /* keep going */
         }
+#ifndef SAGE_KO
     }
     else {
         BDBG_WRN(("%s: module is not valid anymore, skip command send", __FUNCTION__));
     }
-
+#endif
     module->hSAGElibClient->moduleNum--;
     BSAGElib_P_Rai_Adjust_ContainerCache(module->hSAGElibClient);
 

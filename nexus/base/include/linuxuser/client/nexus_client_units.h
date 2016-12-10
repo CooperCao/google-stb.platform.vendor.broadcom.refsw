@@ -38,7 +38,7 @@
 ***************************************************************************/
 
 #if 0
-#define BDBG_MSG_TRACE(x)   BDBG_LOG(x)
+#define BDBG_MSG_TRACE(x)   BDBG_MSG(x)
 #else
 #define BDBG_MSG_TRACE(x)
 #endif
@@ -69,16 +69,17 @@
 #define B_IPC_CLIENT_TRACE(x) BDBG_MSG_TRACE(x);
 #define B_IPC_CLIENT_BEGIN(module, MODULE, result, api, function, args) result function args { result __result=(result)0;B_IPC_CLIENT_PROLOGUE(module,function,api);
 #define B_IPC_CLIENT_BEGIN_VOID(module, MODULE, api, function, args) void function args { B_IPC_CLIENT_PROLOGUE(module,function,api);
-#define B_IPC_CLIENT_BEGIN_DESTRUCTOR(module, MODUELE, api, function, args, handle) void function args { B_IPC_CLIENT_PROLOGUE(module,function,api);NEXUS_StopCallbacks((void *)handle);
+#define B_IPC_CLIENT_BEGIN_DESTRUCTOR(module, MODUELE, api, function, args, handle, has_callbacks) void function args { bool __has_callbacks = has_callbacks; if(__has_callbacks) {NEXUS_StopCallbacks((void *)handle);} {B_IPC_CLIENT_PROLOGUE(module,function,api);
 #define B_IPC_CLIENT_SET_RESULT(type, api) __result = B_IPC_FIELD(api, out, ret.__retval);
 #define B_IPC_CLIENT_END_VOID(api)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: NEXUS_CLIENT_LEAVE(api);return;}
-#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: NEXUS_StartCallbacks((void *)handle);NEXUS_CLIENT_LEAVE(api);return;}
+#define B_IPC_CLIENT_END_DESTRUCTOR(api, handle)  err_call: NEXUS_P_ClientCall_End(&__state);err_begin: if(__has_callbacks) {NEXUS_StartCallbacks((void *)handle);} NEXUS_CLIENT_LEAVE(api);} return;}
 #define B_IPC_CLIENT_END_HANDLE(type, api) done_end: NEXUS_P_ClientCall_End(&__state); done: NEXUS_CLIENT_LEAVE(api);return __result; err_call: __result=0; goto done_end;;err_begin: __result=0;goto done;}
 #define B_IPC_CLIENT_END(api)  done_end: NEXUS_P_ClientCall_End(&__state);done: return __result;err_call: __result=__rc; goto done_end;err_begin: __result=__rc;goto done;}
 #define B_IPC_CLIENT_SEND(api, arg)  B_IPC_FIELD(api, in, args.arg) = arg;
 #define B_IPC_CLIENT_SEND_IN_PTR(api, arg) BKNI_Memset(&B_IPC_FIELD(api, in, pointer.arg),0,sizeof(B_IPC_FIELD(api, in, pointer.arg)));B_IPC_FIELD(api, in, pointer.is_null.arg) = (arg == NULL);if(arg!=NULL) {B_IPC_FIELD(api, in, pointer.arg) = *arg;}
 #define B_IPC_CLIENT_SEND_OUT_PTR(api, arg) B_IPC_FIELD(api, in, pointer.out_is_null.arg) = (arg == NULL);
 #define B_IPC_CLIENT_SEND_VARARG(api, arg, type, nelem) __rc = NEXUS_P_ClientCall_InVarArg(&__state, sizeof(type)* nelem, arg, &(B_IPC_FIELD(api, in, vararg.arg)), &(B_IPC_FIELD(api, in, pointer.is_null.arg)) ); if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_call;}
+#define B_IPC_CLIENT_SEND_VARARG_NELEM_CONVERT(api, arg, type, convert, nelem) __rc = NEXUS_P_ClientCall_InVarArg(&__state, convert(nelem), arg, &(B_IPC_FIELD(api, in, vararg.arg)), &(B_IPC_FIELD(api, in, pointer.is_null.arg)) ); if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_call;}
 #define B_IPC_CLIENT_SEND_VARARG_ADDR(api, arg, type, field, field_addr, nelem) __rc = NEXUS_P_ClientCall_InVarArg_AddrField(&__state, sizeof(*arg), (uint8_t *)&(arg->field) - (uint8_t *)arg, nelem, B_IPC_FIELD(api, in, vararg.arg), &(B_IPC_FIELD(api, in, vararg.field_addr)));if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_call;}
 #define B_IPC_CLIENT_CALL(module, MODULE, api) B_IPC_DATA()->header.function_id = NEXUS_P_API_ID(module,api); B_IPC_DATA()->header.version = NEXUS_##module##_MODULE_VERSION; \
                                 __rc = NEXUS_P_ClientCall_Call(&__state);if(__rc!=NEXUS_SUCCESS) {__rc=BERR_TRACE(__rc);goto err_call;}

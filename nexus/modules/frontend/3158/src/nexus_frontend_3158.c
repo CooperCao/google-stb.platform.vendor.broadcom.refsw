@@ -116,7 +116,6 @@ typedef struct NEXUS_3158Device
     NEXUS_IsrCallbackHandle asyncStatusAppCallback[NEXUS_MAX_3158_FRONTENDS];
     NEXUS_TaskCallbackHandle spectrumDataAppCallback[NEXUS_MAX_3158_FRONTENDS];
     bool                    isInternalAsyncStatusCall[NEXUS_MAX_3158_FRONTENDS];
-    uint8_t numTunerPoweredOn;
     bool isTunerPoweredOn[NEXUS_MAX_3158_FRONTENDS];
     bool isPoweredOn[NEXUS_MAX_3158_FRONTENDS];
     uint32_t *spectrumDataPointer;
@@ -128,6 +127,7 @@ typedef struct NEXUS_3158Device
     NEXUS_PreviousStatus previousStatus[NEXUS_MAX_3158_FRONTENDS];
     NEXUS_FrontendDevice *pGenericDeviceHandle;
     NEXUS_TunerHandle  ifDacHandle;
+    NEXUS_FrontendHandle  ifDacFeHandle;
     unsigned ifDacChannelNumber;
     NEXUS_IsrCallbackHandle ifDacAppCallback;
     NEXUS_IsrCallbackHandle ifDacAsyncStatusAppCallback;
@@ -142,8 +142,8 @@ typedef struct NEXUS_3158Device
     bool settingsInitialized;
     NEXUS_IsrCallbackHandle cppmAppCallback;
     NEXUS_IsrCallbackHandle cppmDoneCallback;
-#if NEXUS_FRONTEND_315x_OOB
     unsigned oobChannelNumber;
+#if NEXUS_FRONTEND_315x_OOB
     BAOB_Handle aob;
     NEXUS_FrontendOutOfBandSettings last_aob;
 #endif
@@ -473,6 +473,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3158_SetSettings(void *handle, const N
         if (rc) { rc = BERR_TRACE(rc); goto done; }
 
         habConfigSettings.enableLoopThrough = pSettings->enableRfLoopThrough;
+        habConfigSettings.loopthroughGain = pSettings->loopthroughGain == NEXUS_FrontendLoopthroughGain_eHigh ? BHAB_LoopthroughGain_eHigh : BHAB_LoopthroughGain_eLow;
 
         rc = BHAB_SetConfigSettings(pDevice->hab, &habConfigSettings);
         if (rc) { rc = BERR_TRACE(rc); goto done; }
@@ -627,6 +628,224 @@ static void NEXUS_Frontend_P_3158_ResetQamStatus(void *handle)
     }
 }
 
+/* IFDAC support functions */
+static void NEXUS_Tuner_P_3158_Callback(void *pParam)
+{
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != pParam);
+    pDevice = (NEXUS_3158Device *)pParam;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    BDBG_MSG(("NEXUS_Tuner_P_3158_Callback: pDevice->ifDacAppCallback: %p", (void *)pDevice->ifDacAppCallback));
+    if(pDevice->ifDacAppCallback)
+    {
+        NEXUS_IsrCallback_Fire_isr(pDevice->ifDacAppCallback);
+    }
+}
+
+static void NEXUS_Frontend_P_3158_TunerAsyncStatusCallback_isr(void *pParam)
+{
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != pParam);
+    pDevice = (NEXUS_3158Device *)pParam;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    BDBG_MSG(("NEXUS_Frontend_P_3158_TunerAsyncStatusCallback_isr: pDevice->ifDacAsyncStatusAppCallback: %p", (void *)pDevice->ifDacAsyncStatusAppCallback));
+    if(!pDevice->isInternalAsyncStatusCall[pDevice->ifDacChannelNumber]){
+        pDevice->ifdacTuneComplete = true;
+        if (pDevice->ifDacAsyncStatusAppCallback)
+        {
+            NEXUS_IsrCallback_Fire_isr(pDevice->ifDacAsyncStatusAppCallback);
+        }
+    }
+}
+
+void NEXUS_Tuner_P_3158_GetDefaultTuneSettings(NEXUS_TunerMode mode, NEXUS_TunerTuneSettings *pSettings)
+{
+    BSTD_UNUSED(mode);
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+}
+
+NEXUS_Error NEXUS_Tuner_P_3158_GetSettings(void *handle, NEXUS_TunerSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pSettings->bandwidth = pDevice->ifDacTunerSettings.bandwidth;
+    pSettings->ifFrequency = pDevice->ifDacTunerSettings.ifFrequency;
+    pSettings->dacAttenuation = pDevice->ifDacTunerSettings.dacAttenuation;
+
+    return rc;
+}
+
+NEXUS_Error NEXUS_Tuner_P_3158_SetSettings(void *handle, const NEXUS_TunerSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pDevice->ifDacTunerSettings.bandwidth = pSettings->bandwidth;
+    pDevice->ifDacTunerSettings.ifFrequency = pSettings->ifFrequency;
+    pDevice->ifDacTunerSettings.dacAttenuation = pSettings->dacAttenuation;
+
+    return rc;
+}
+
+NEXUS_Error NEXUS_Tuner_P_3158_Tune(void *handle, const NEXUS_TunerTuneSettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3158Device *pDevice;
+    NEXUS_3158Channel *pChannel;
+    BADS_IfDacSettings ifdacSettings;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pChannel = (NEXUS_3158Channel *)pDevice->ifDacFeHandle->pDeviceHandle;
+    BDBG_ASSERT(pChannel->chn_num == pDevice->ifDacChannelNumber);
+
+    NEXUS_IsrCallback_Set(pDevice->ifDacAppCallback, &(pSettings->tuneCompleteCallback));
+    NEXUS_IsrCallback_Set(pDevice->ifDacAsyncStatusAppCallback, &(pSettings->asyncStatusReadyCallback));
+
+    pDevice->ifdacTuneComplete = false;
+
+    ifdacSettings.frequency = pSettings->frequency;
+    ifdacSettings.bandwidth = pDevice->ifDacTunerSettings.bandwidth;
+    ifdacSettings.dacAttenuation = pDevice->ifDacTunerSettings.dacAttenuation;
+    ifdacSettings.outputFrequency = pDevice->ifDacTunerSettings.ifFrequency;
+
+    rc = BADS_DisablePowerSaver(pDevice->ads_chn[pDevice->ifDacChannelNumber]);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+    pDevice->isPoweredOn[pChannel->chn_num] = true;
+
+    rc = BADS_TuneIfDac(pDevice->ads_chn[pChannel->chn_num], &ifdacSettings);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+done:
+    return rc;
+}
+
+NEXUS_Error NEXUS_Tuner_P_3158_RequestAsyncStatus(void *handle)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3158Device *pDevice;
+    NEXUS_3158Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pChannel = (NEXUS_3158Channel *)pDevice->ifDacFeHandle->pDeviceHandle;
+    BDBG_ASSERT(pChannel->chn_num == pDevice->ifDacChannelNumber);
+
+    rc = BADS_RequestIfDacStatus(pDevice->ads_chn[pChannel->chn_num]);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+done:
+    return rc;
+}
+
+NEXUS_Error NEXUS_Tuner_P_3158_GetAsyncStatus(void *handle, NEXUS_TunerStatus *pStatus)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BADS_IfDacStatus status;
+    NEXUS_3158Device *pDevice;
+    NEXUS_3158Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pChannel = (NEXUS_3158Channel *)pDevice->ifDacFeHandle->pDeviceHandle;
+    BDBG_ASSERT(pChannel->chn_num == pDevice->ifDacChannelNumber);
+
+    rc = BADS_GetIfDacStatus(pDevice->ads_chn[pChannel->chn_num], &status);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    pStatus->rssi = status.rssi/100;
+    pStatus->tuneComplete = pDevice->ifdacTuneComplete;
+
+done:
+    return rc;
+}
+
+static void NEXUS_Tuner_P_3158_UninstallCallbacks(void *handle)
+{
+    NEXUS_3158Device *pDevice;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    if(pDevice->ifDacAppCallback)NEXUS_IsrCallback_Set(pDevice->ifDacAppCallback, NULL);
+
+    return;
+}
+
+static NEXUS_Error NEXUS_Tuner_P_3158_Standby(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3158Device *pDevice;
+    NEXUS_3158Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pChannel = (NEXUS_3158Channel *)pDevice->ifDacFeHandle->pDeviceHandle;
+    BDBG_ASSERT(pChannel->chn_num == pDevice->ifDacChannelNumber);
+
+
+    BSTD_UNUSED(pSettings);
+
+    if(enabled && pDevice->isTunerPoweredOn[pChannel->chn_num]){
+        rc = BADS_EnablePowerSaver(pDevice->ads_chn[pChannel->chn_num]);
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+
+        pDevice->isTunerPoweredOn[pChannel->chn_num] = false;
+    }
+
+done:
+    return rc;
+}
+
+
+static void NEXUS_Frontend_P_3158_UnTuneIfdac(void *handle)
+{
+    /* Empty to avoid spurious message from nexus_frontend.c */
+    return;
+}
+
+static void NEXUS_Tuner_P_3158_UnTune(void *handle)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_3158Device *pDevice;
+    NEXUS_3158Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pDevice = (NEXUS_3158Device *)handle;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    pChannel = (NEXUS_3158Channel *)pDevice->ifDacFeHandle->pDeviceHandle;
+    BDBG_ASSERT(pChannel->chn_num == pDevice->ifDacChannelNumber);
+
+    if(pDevice->isTunerPoweredOn[pChannel->chn_num]){
+        rc = BADS_EnablePowerSaver(pDevice->ads_chn[pChannel->chn_num]);
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+
+        pDevice->isTunerPoweredOn[pChannel->chn_num] = false;
+    }
+done:
+    return;
+}
+
+static void NEXUS_Tuner_P_3158_Close(void *handle)
+{
+    return;
+}
+
+/* OOB support functions */
 #if NEXUS_FRONTEND_315x_OOB
 static NEXUS_Error NEXUS_Frontend_P_3158_TuneOob(void *handle, const NEXUS_FrontendOutOfBandSettings *pSettings)
 {
@@ -1144,7 +1363,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetQamAsyncStatus(void *handle, NEXUS_F
 
     if(totalBlock > unCorrectedBlock){
         unCorrectedBlock = (uint64_t)unCorrectedBlock * 11224 / 1000;
-        if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA)
+        if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA || pStatus->settings.annex == NEXUS_FrontendQamAnnex_eC)
             pStatus->postRsBer = ((uint64_t)unCorrectedBlock * 2097152 * 1024 )/((uint64_t)totalBlock*8*187);
         else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB)
             pStatus->postRsBer = ((uint64_t)unCorrectedBlock * 2097152 * 1024)/((uint64_t)totalBlock*7*122);
@@ -1154,7 +1373,7 @@ static NEXUS_Error NEXUS_Frontend_P_3158_GetQamAsyncStatus(void *handle, NEXUS_F
     if(pStatus->viterbiUncorrectedBits > prevStatus->viterbiUncorrectedBits)
         uncorrectedBits = pStatus->viterbiUncorrectedBits - prevStatus->viterbiUncorrectedBits;
 
-    if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA){
+    if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eA || pStatus->settings.annex == NEXUS_FrontendQamAnnex_eC){
         pStatus->viterbiTotalBits = (uint32_t)(((uint64_t)pStatus->fecCorrected + (uint64_t)pStatus->fecUncorrected + (uint64_t)pStatus->fecClean) * 204 * 8);
     }
     else if(pStatus->settings.annex == NEXUS_FrontendQamAnnex_eB){
@@ -1279,6 +1498,49 @@ done:
 #endif
 }
 
+static NEXUS_Error NEXUS_Frontend_P_3158_GetQamScanStatus(void *handle, NEXUS_FrontendQamScanStatus *pScanStatus)
+{
+    NEXUS_Error  rc;
+    struct BADS_ScanStatus st;
+    NEXUS_3158Device *pDevice;
+    NEXUS_3158Channel *pChannel;
+    BDBG_ASSERT(NULL != handle);
+    pChannel = (NEXUS_3158Channel *)handle;
+    pDevice = (NEXUS_3158Device *)pChannel->pDevice;
+    BDBG_OBJECT_ASSERT(pDevice, NEXUS_3158Device);
+
+    BKNI_Memset(pScanStatus, 0, sizeof(*pScanStatus));
+
+    if (pChannel->chn_num >= NEXUS_3158_MAX_DOWNSTREAM_CHANNELS)
+    {
+        BDBG_ERR((" Unsupported channel."));
+        rc = BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+    }
+
+    rc = BADS_GetScanStatus(pDevice->ads_chn[pChannel->chn_num],  &st);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    pScanStatus->spectrumInverted = st.isSpectrumInverted;
+    pScanStatus->symbolRate = st.symbolRate;
+    pScanStatus->frequencyOffset = st.carrierFreqOffset;
+    pScanStatus->interleaver = st.interleaver;
+    pScanStatus->acquisitionStatus = st.acquisitionStatus;
+    if(st.modType < BADS_ModulationType_eAnnexBQam16) {
+        pScanStatus->annex = NEXUS_FrontendQamAnnex_eA;
+        pScanStatus->mode = st.modType;
+    }
+    else if(st.modType < BADS_ModulationType_eAnnexCQam16) {
+        pScanStatus->annex = NEXUS_FrontendQamAnnex_eB;
+        pScanStatus->mode = st.modType - BADS_ModulationType_eAnnexBQam16;
+    }
+    else
+        BDBG_ERR(("Unsupported Annex."));
+    return BERR_SUCCESS;
+done:
+    return rc;
+
+}
+
 static NEXUS_Error NEXUS_Frontend_P_3158_TuneQam(void *handle, const NEXUS_FrontendQamSettings *pSettings)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -1308,6 +1570,8 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneQam(void *handle, const NEXUS_Front
             ibParam.modType = BADS_ModulationType_eAnnexBQam64; break;
         case NEXUS_FrontendQamMode_e256:
             ibParam.modType = BADS_ModulationType_eAnnexBQam256; break;
+        case NEXUS_FrontendQamMode_e1024:
+            ibParam.modType = BADS_ModulationType_eAnnexBQam1024; break;
         default:
             rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
             break;
@@ -1315,10 +1579,18 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneQam(void *handle, const NEXUS_Front
     } else if (pSettings->annex == NEXUS_FrontendQamAnnex_eA || pSettings->annex == NEXUS_FrontendQamAnnex_eC){
         BDBG_MSG(("Annex%s", (pSettings->annex==NEXUS_FrontendQamAnnex_eA) ? "A" : "C"));
         switch (pSettings->mode) {
+        case NEXUS_FrontendQamMode_e16:
+            ibParam.modType = BADS_ModulationType_eAnnexAQam16; break;
+        case NEXUS_FrontendQamMode_e32:
+            ibParam.modType = BADS_ModulationType_eAnnexAQam32; break;
         case NEXUS_FrontendQamMode_e64:
             ibParam.modType = BADS_ModulationType_eAnnexAQam64; break;
+        case NEXUS_FrontendQamMode_e128:
+            ibParam.modType = BADS_ModulationType_eAnnexAQam128; break;
         case NEXUS_FrontendQamMode_e256:
             ibParam.modType = BADS_ModulationType_eAnnexAQam256; break;
+        case NEXUS_FrontendQamMode_e1024:
+            ibParam.modType = BADS_ModulationType_eAnnexAQam1024; break;
         default:
             rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
             break;
@@ -1606,16 +1878,32 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PreInitAp(NEXUS_FrontendDeviceHandle pFr
         if(pDevice->capabilities.channelCapabilities[i].demodCoreType.aob) pDevice->aobPresent = true;
         if(pDevice->capabilities.channelCapabilities[i].demodCoreType.ifdac) pDevice->ifDacPresent = true;
 
-        if(pDevice->capabilities.channelCapabilities[i].demodCoreType.ifdac) { BDBG_MSG(("channel %d is ifdac", i)); }
-        if(pDevice->capabilities.channelCapabilities[i].demodCoreType.aob) { BDBG_MSG(("channel %d is oob", i)); }
+        if(pDevice->capabilities.channelCapabilities[i].demodCoreType.ifdac) { pDevice->ifDacChannelNumber = i; BDBG_MSG(("channel %d is ifdac", i)); }
+        if(pDevice->capabilities.channelCapabilities[i].demodCoreType.aob) { pDevice->oobChannelNumber = i; BDBG_MSG(("channel %d is oob", i)); }
     }
 
-    /* TODO: When IFDAC support is added, remove this temporary workaround. */
     if (pDevice->ifDacPresent) {
-        BDBG_MSG((">>>Removing IFDAC from possible channels<<<"));
-        pDevice->capabilities.totalTunerChannels--;
-        pDevice->ifDacPresent = false;
-        pDevice->numChannels--;
+        pDevice->ifDacHandle = NEXUS_Tuner_P_Create(pDevice);
+        if(NULL == pDevice->ifDacHandle){rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY); goto err;}
+        pDevice->ifDacHandle->pGenericDeviceHandle = pFrontendDevice;
+
+        pDevice->ifDacAppCallback = NEXUS_IsrCallback_Create(pDevice->ifDacHandle, NULL);
+        if ( NULL == pDevice->ifDacAppCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
+
+        pDevice->ifDacAsyncStatusAppCallback = NEXUS_IsrCallback_Create(pDevice->ifDacHandle, NULL);
+        if ( NULL == pDevice->ifDacAsyncStatusAppCallback ) { rc = BERR_TRACE(NEXUS_NOT_INITIALIZED); goto err;}
+
+        /* bind functions*/
+        pDevice->ifDacHandle->close = NEXUS_Tuner_P_3158_Close;
+        pDevice->ifDacHandle->requestAsyncStatus = NEXUS_Tuner_P_3158_RequestAsyncStatus;
+        pDevice->ifDacHandle->getAsyncStatus = NEXUS_Tuner_P_3158_GetAsyncStatus;
+        pDevice->ifDacHandle->getDefaultTuneSettings = NEXUS_Tuner_P_3158_GetDefaultTuneSettings;
+        pDevice->ifDacHandle->tune = NEXUS_Tuner_P_3158_Tune;
+        pDevice->ifDacHandle->untune = NEXUS_Tuner_P_3158_UnTune;
+        pDevice->ifDacHandle->standby = NEXUS_Tuner_P_3158_Standby;
+        pDevice->ifDacHandle->getSettings = NEXUS_Tuner_P_3158_GetSettings;
+        pDevice->ifDacHandle->setSettings = NEXUS_Tuner_P_3158_SetSettings;
+        pDevice->ifDacHandle->uninstallCallbacks = NEXUS_Tuner_P_3158_UninstallCallbacks;
     }
 
     BDBG_MSG(("Filling out API tree"));
@@ -1782,6 +2070,13 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_PostInitAp(NEXUS_FrontendDeviceHandle de
 #endif
         errCode = BADS_InstallCallback(pDevice->ads_chn[i], BADS_Callback_eSpectrumDataReady, (BADS_CallbackFunc)NEXUS_Frontend_P_3158_spectrumDataReadyCallback, (void*)pDevice->spectrumEvent);
         if (errCode) { errCode = BERR_TRACE(rc); goto done; }
+        if (pDevice->ifDacPresent && i==pDevice->ifDacChannelNumber) {
+            rc = BADS_InstallCallback(pDevice->ads_chn[pDevice->ifDacChannelNumber], BADS_Callback_eIfDacAcquireComplete, (BADS_CallbackFunc)NEXUS_Tuner_P_3158_Callback, (void *)pDevice);
+            if(rc){rc = BERR_TRACE(rc); goto done;}
+
+            rc = BADS_InstallCallback(pDevice->ads_chn[pDevice->ifDacChannelNumber], BADS_Callback_eIfDacStatusReady, (BADS_CallbackFunc)NEXUS_Frontend_P_3158_TunerAsyncStatusCallback_isr, (void *)pDevice);
+            if(rc){rc = BERR_TRACE(rc); goto done;}
+        }
     }
 
 #if NEXUS_FRONTEND_315x_OOB
@@ -1899,6 +2194,16 @@ static void NEXUS_Frontend_P_Uninit3158(NEXUS_3158Device *pDevice, bool uninitHa
     if (pDevice->spectrumEvent) {
         BKNI_DestroyEvent(pDevice->spectrumEvent);
         pDevice->spectrumEvent = NULL;
+    }
+    if (pDevice->ifDacHandle) {
+        if(pDevice->ifDacAppCallback){
+            NEXUS_IsrCallback_Destroy(pDevice->ifDacAppCallback);
+            pDevice->ifDacAppCallback = NULL;
+        }
+        if(pDevice->ifDacAsyncStatusAppCallback){
+            NEXUS_IsrCallback_Destroy(pDevice->ifDacAsyncStatusAppCallback);
+            pDevice->ifDacAsyncStatusAppCallback = NULL;
+        }
     }
     if (pDevice->ads) {
         BADS_Close(pDevice->ads);
@@ -2143,6 +2448,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
     BERR_Code rc;
     unsigned channelNumber;
     NEXUS_FrontendChannelType type = NEXUS_FrontendChannelType_eCable;
+    bool ifdac = false;
 
     NEXUS_FrontendHandle frontendHandle = NULL;
 
@@ -2168,9 +2474,12 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
      * where cable, oob, ifdac, terrestrial, and/or satellite channels are separately 0-indexed.
      */
     channelNumber = pSettings->channelNumber;
-    if (channelNumber == p3158Device->numChannels-1 && p3158Device->aobPresent) {
+    if (channelNumber == p3158Device->oobChannelNumber && p3158Device->aobPresent) {
         BDBG_MSG(("opening OOB"));
         type = NEXUS_FrontendChannelType_eCableOutOfBand;
+    } else if (channelNumber == p3158Device->ifDacChannelNumber && p3158Device->ifDacPresent) {
+        BDBG_MSG(("opening IFDAC"));
+        ifdac = true;
     }
 
     /* If already opened, return the previously opened handle */
@@ -2189,20 +2498,28 @@ NEXUS_FrontendHandle NEXUS_Frontend_P_Open3158(const NEXUS_FrontendChannelSettin
 
     /* Set capabilities and channel type parameters */
     if (type == NEXUS_FrontendChannelType_eCable) {
-        frontendHandle->capabilities.qam = true;
-        frontendHandle->capabilities.outOfBand = false;
-        frontendHandle->capabilities.upstream = false;
-        BKNI_Memset(frontendHandle->capabilities.qamModes, true, sizeof(frontendHandle->capabilities.qamModes));
-        /* bind functions*/
-        frontendHandle->tuneQam = NEXUS_Frontend_P_3158_TuneQam;
-        frontendHandle->untune = NEXUS_Frontend_P_3158_UnTuneQam;
-        frontendHandle->getQamStatus = NEXUS_Frontend_P_3158_GetQamStatus;
-        frontendHandle->requestQamAsyncStatus = NEXUS_Frontend_P_3158_RequestQamAsyncStatus;
-        frontendHandle->getQamAsyncStatus = NEXUS_Frontend_P_3158_GetQamAsyncStatus;
-        frontendHandle->resetStatus = NEXUS_Frontend_P_3158_ResetQamStatus;
-#if 0
-        frontendHandle->getQamScanStatus = NEXUS_Frontend_P_3158_GetQamScanStatus;
-#endif
+        if (!ifdac) {
+            frontendHandle->capabilities.qam = true;
+            frontendHandle->capabilities.outOfBand = false;
+            frontendHandle->capabilities.upstream = false;
+            BKNI_Memset(frontendHandle->capabilities.qamModes, true, sizeof(frontendHandle->capabilities.qamModes));
+            /* bind functions*/
+            frontendHandle->tuneQam = NEXUS_Frontend_P_3158_TuneQam;
+            frontendHandle->untune = NEXUS_Frontend_P_3158_UnTuneQam;
+            frontendHandle->getQamStatus = NEXUS_Frontend_P_3158_GetQamStatus;
+            frontendHandle->requestQamAsyncStatus = NEXUS_Frontend_P_3158_RequestQamAsyncStatus;
+            frontendHandle->getQamAsyncStatus = NEXUS_Frontend_P_3158_GetQamAsyncStatus;
+            frontendHandle->resetStatus = NEXUS_Frontend_P_3158_ResetQamStatus;
+            frontendHandle->getQamScanStatus = NEXUS_Frontend_P_3158_GetQamScanStatus;
+        } else {
+            p3158Device->ifDacFeHandle = frontendHandle;
+            frontendHandle->capabilities.qam = false;
+            frontendHandle->capabilities.outOfBand = false;
+            frontendHandle->capabilities.upstream = false;
+            BKNI_Memset(frontendHandle->capabilities.qamModes, false, sizeof(frontendHandle->capabilities.qamModes));
+            frontendHandle->capabilities.ifdac = true;
+            frontendHandle->untune = NEXUS_Frontend_P_3158_UnTuneIfdac;
+        }
     }
     else if(type == NEXUS_FrontendChannelType_eCableOutOfBand) {
         frontendHandle->capabilities.qam = false;

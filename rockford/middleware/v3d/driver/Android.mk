@@ -260,7 +260,8 @@ LOCAL_SRC_FILES := \
 	platform/common/memory_nexus.c \
 	platform/common/hardware_nexus.c \
 	platform/common/packet_rgba.c \
-	platform/common/packet_yv12.c
+	platform/common/packet_yv12.c \
+	platform/common/autoclif.c
 
 
 GENERATED_SRC_FILES := \

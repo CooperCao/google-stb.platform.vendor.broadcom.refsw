@@ -71,7 +71,7 @@ do {                                        \
 
 
 #if BADS_CHIP==3158
-#define MX_ADS_CHANNELS             (16)
+#define MX_ADS_CHANNELS             (17)
 #else
 #define MX_ADS_CHANNELS             (8)
 #endif
@@ -91,7 +91,14 @@ do {                                        \
 #define MAX_3147_ADS_CHANNELS       (4)
 #define MAX_3145_ADS_CHANNELS       (3)
 #define MAX_3184_ADS_CHANNELS       (8)
-
+#define BADS_SET_IFDAC_PARAMETERS   0X32
+#define BADS_RESET_IFDAC_STATUS  	0X33
+#define BADS_REQ_IFDAC_STATUS  	    0X34
+#define BADS_GET_IFDAC_STATUS  	    0X35
+#define BADS_GET_TUNER_STATUS  	    0X96
+#define BADS_IFDAC_CORE_TYPE  	    0XA
+#define BADS_TNR_CORE_TYPE  	    0XE
+#define BADS_IFDAC_CHANNEL_NUMBER   16
 /*******************************************************************************
 *
 *   Private Module Handles
@@ -111,6 +118,7 @@ typedef struct BADS_P_Leap_Handle
     BADS_ChannelHandle hAdsChn[MX_ADS_CHANNELS];
     bool isDaisyChain;
     uint32_t chipId;
+    unsigned int ifdacChannelNo;
 } BADS_P_Leap_Handle;
 
 typedef struct BADS_P_Leap_ChannelHandle            *BADS_Leap_ChannelHandle;
@@ -129,6 +137,7 @@ typedef struct BADS_P_Leap_ChannelHandle
     BHAB_InterruptType event;
     BADS_InbandParam previousAcquireParams;
     bool bPowerdown;
+    BADS_IfDacSettings  ifDacSettings; /* IF DAC Settings */
 } BADS_P_Leap_ChannelHandle;
 
 
@@ -830,6 +839,24 @@ See Also: BADS_RequestSpectrumAnalyzerData
 BERR_Code BADS_Leap_GetSpectrumAnalyzerData(
     BADS_ChannelHandle hChn,     /* [in] Device channel handle */
     BADS_SpectrumData  *pSpectrumData /* [out] spectrum Data*/
+    );
+
+BERR_Code BADS_Leap_TuneIfDac(
+    BADS_ChannelHandle hChn,            /* [in] Device handle */
+    BADS_IfDacSettings *pSettings       /* [in] IF DAC Settings */
+    );
+
+BERR_Code BADS_Leap_ResetIfDacStatus(
+    BADS_ChannelHandle hChn        /* [in] Device handle */
+    );
+
+BERR_Code BADS_Leap_RequestIfDacStatus(
+    BADS_ChannelHandle hChn        /* [in] Device handle */
+    );
+
+BERR_Code BADS_Leap_GetIfDacStatus(
+    BADS_ChannelHandle hChn,        /* [in] Device handle */
+    BADS_IfDacStatus *pStatus       /* [out] Returns status */
     );
 
 #ifdef __cplusplus

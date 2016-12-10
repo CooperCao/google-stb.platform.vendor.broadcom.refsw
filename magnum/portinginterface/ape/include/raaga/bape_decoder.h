@@ -129,6 +129,8 @@ typedef enum BAPE_DecoderMixingMode
     BAPE_DecoderMixingMode_eApplicationAudio, /* In this mixing mode, channels will be mixed using static
                                              coefficients in the mixer as opposed to stream-based
                                              coefficients. */
+    BAPE_DecoderMixingMode_eStandalone,   /* In this mixing mode, decodes will remain independent.
+                                             Currently only supported for Dolby MS12 configurations. */
     BAPE_DecoderMixingMode_eMax
 } BAPE_DecoderMixingMode;
 

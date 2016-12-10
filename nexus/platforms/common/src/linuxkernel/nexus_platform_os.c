@@ -44,15 +44,19 @@
 #include "nexus_interrupt_map.h"
 #include "nexus_generic_driver_impl.h"
 #include "nexus_platform_virtual_irq.h"
+#include "b_virtual_irq.h"
 #if NEXUS_HAS_GPIO
 #include "nexus_platform_shared_gpio.h"
+#include "b_shared_gpio.h"
 #endif
 #include <linux/version.h>
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
 #include <linux/kconfig.h>
 #include <linux/dma-mapping.h>
 #include <linux/uaccess.h>
+#undef BCHP_PHYSICAL_OFFSET
 #include <linux/brcmstb/brcmstb.h> /* for SWLINUX-3535 */
+#undef BCHP_PHYSICAL_OFFSET
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37)
 #include <generated/autoconf.h>
 #else
@@ -95,7 +99,7 @@
     #define UMH_WAIT_PROC 1
 #endif
 
-#ifndef BRCMSTB_H_VERSION >= 4
+#ifndef BRCMSTB_H_VERSION
 #define BRCMSTB_H_VERSION   0
 #endif
 
@@ -278,12 +282,15 @@ void NEXUS_Platform_P_UninitOSMem()
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
 #define NEXUS_PLATFORM_LINUX_PAGE_SIZE 4096
+#if BRCMSTB_H_VERSION < 4
+#include <linux/brcmstb/cma_driver.h>
+#endif
 
 void* NEXUS_Platform_P_CmaVmap(NEXUS_Addr phyAddress, unsigned long length, bool cache)
 {
     void *addr = NULL;
 #if BRCMSTB_H_VERSION >= 4
-    BDBG_MSG(("cma:mapping %d bytes @ physical address " BDBG_UINT64_FMT ", cache %d",
+    BDBG_MSG(("cma:mapping %lu bytes @ physical address " BDBG_UINT64_FMT ", cache %d",
               length, BDBG_UINT64_ARG(phyAddress), cache));
 
     if(!cache) {
@@ -291,7 +298,7 @@ void* NEXUS_Platform_P_CmaVmap(NEXUS_Addr phyAddress, unsigned long length, bool
         return NULL;
     }
     if(length % NEXUS_PLATFORM_LINUX_PAGE_SIZE){
-        BDBG_ERR(("%d not page aligned", length));
+        BDBG_ERR(("%lu not page aligned", length));
         BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
@@ -316,11 +323,11 @@ void* NEXUS_Platform_P_CmaVmap(NEXUS_Addr phyAddress, unsigned long length, bool
     addr = cma_dev_kva_map(page, num_pages, PAGE_KERNEL);
 #endif /* BRCMSTB_H_VERSION < 4 */
     if (!addr){
-        BDBG_ERR(("cma:vmap addr " BDBG_UINT64_FMT ", length %d bytes failed", BDBG_UINT64_ARG(phyAddress), length));
+        BDBG_ERR(("cma:vmap addr " BDBG_UINT64_FMT ", length %lu bytes failed", BDBG_UINT64_ARG(phyAddress), length));
         BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
-    BDBG_MSG(("cma:mapped. %#x", (unsigned)addr));
+    BDBG_MSG(("cma:mapped. %p", addr));
     return addr;
 }
 
@@ -350,7 +357,7 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
     /* TODO: use #if NEXUS_USE_CMA; provide non-cma mmap */
     addr = NEXUS_Platform_P_CmaVmap(offset, length, type==NEXUS_MemoryMapType_eCached);
     if (!addr) {
-        BDBG_ERR(("vmap(" BDBG_UINT64_FMT ", %#x, %s) failed", BDBG_UINT64_ARG(offset), length, cached?"cached":"uncached"));
+        BDBG_ERR(("vmap(" BDBG_UINT64_FMT ", %#x, %s) failed", BDBG_UINT64_ARG(offset), (unsigned)length, cached?"cached":"uncached"));
     }
 #elif LINUX_2631_3_2_OR_GREATER  
 
@@ -396,9 +403,9 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
     if (offset < 0x12000000) {
         /* fixed map */
         if (cached) {
-            addr = (void *)(offset | 0x80000000); /* KSEG0 */
+            addr = (void *)(unsigned long)(offset | 0x80000000); /* KSEG0 */
         } else {
-            addr = (void *)(offset | 0xA0000000); /* KSEG1 */
+            addr = (void *)(unsigned long)(offset | 0xA0000000); /* KSEG1 */
         }
     }
     /* else, fall into ioremap() case */
@@ -414,20 +421,21 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
         }
     }
 #endif
-    BDBG_MSG(("mmap  offset:" BDBG_UINT64_FMT " size:%u -> %p", BDBG_UINT64_ARG(offset), length, addr));
+    BDBG_MSG(("mmap  offset:" BDBG_UINT64_FMT " size:%u -> %p", BDBG_UINT64_ARG(offset), (unsigned)length, addr));
     return addr;
 }
 
 void
 NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_MemoryMapType memoryMapType)
 {
-    unsigned addr = (unsigned)pMem;
+    unsigned long addr = (unsigned long)pMem;
 
     BSTD_UNUSED(memoryMapType);
     BSTD_UNUSED(length);
     BDBG_MSG(("unmap: addr:%p size:%u", pMem, (unsigned)length));
 
 #if NEXUS_USE_CMA
+    BSTD_UNUSED(addr);
     NEXUS_Platform_P_CmaVumap(pMem);
 #elif LINUX_2631_3_2_OR_GREATER 
      iounmap(pMem);
@@ -463,10 +471,10 @@ NEXUS_Platform_P_MapRegisterMemory(unsigned long offset, unsigned long length)
     void *addr = NULL;
     addr =  ioremap_nocache(offset, length);
     if (!addr) {
-        BDBG_ERR(("map registers ioremap(%#x, %#x) failed", offset, length));
+        BDBG_ERR(("map registers ioremap(%#lx, %#lx) failed", offset, length));
     }
     else {
-        BDBG_MSG(("map registers ioremap(%#x, %#x) addr %#x ", offset, length, addr));
+        BDBG_MSG(("map registers ioremap(%#lx, %#lx) addr %p ", offset, length, addr));
     }
     return addr;
 #else
@@ -789,7 +797,7 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
-    unsigned flags;
+    unsigned long flags;
 
     if (irqNum>=NUM_IRQS || !state->started) {
         return BERR_TRACE(-1);
@@ -866,10 +874,10 @@ void NEXUS_Platform_P_DisableInterrupt_isr( unsigned irqNum)
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     struct b_bare_interrupt_entry *entry;
     unsigned reg = irqNum/32;
-    unsigned flags;
+    unsigned long flags;
 
     if (irqNum>=NUM_IRQS) {
-        return BERR_TRACE(-1);
+        return ;
     }
     entry = &state->table[irqNum];
     if (!entry->handler) {
@@ -1222,6 +1230,11 @@ void NEXUS_Platform_P_AddBoardStatus(NEXUS_PlatformStatus *pStatus)
         pStatus->boardId.minor = (id >> 24) & 0xF;
     }
 }
+unsigned NEXUS_Platform_P_ReadPMapId(void)
+{
+    const char *env = NEXUS_GetEnv("B_REFSW_PMAP_ID");
+    return env?NEXUS_atoi(env):0;
+}
 
 NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus)
 {
@@ -1265,8 +1278,6 @@ void NEXUS_Platform_P_UninitializeThermalMonitor(void)
 {
     return;
 }
-
-#include "b_virtual_irq.h"
 
 #if NEXUS_HAS_GPIO
 #include "b_shared_gpio.h"

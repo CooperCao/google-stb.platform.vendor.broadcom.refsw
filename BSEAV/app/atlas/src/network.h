@@ -101,7 +101,7 @@ public:
     void            setScanStatus(eRet scanStatus)                 { _scanStatus = scanStatus; }
     eRet            getScanStatus(void)                            { return(_scanStatus); }
     void            setConnectStatus(eConnectStatus connectStatus) { _connectStatus = connectStatus; }
-    eConnectStatus  getConnectStatus(void)                         { return(_connectStatus); }
+    eConnectStatus  getConnectedStatus(void)                       { return(_connectStatus); }
     CWidgetEngine * getWidgetEngine(void)                          { return(_pWidgetEngine); }
     bool            isScanStarted(void)                            { return(_bScanStarted); }
     void            setScanStarted(bool bScanStarted)              { _bScanStarted = bScanStarted; }

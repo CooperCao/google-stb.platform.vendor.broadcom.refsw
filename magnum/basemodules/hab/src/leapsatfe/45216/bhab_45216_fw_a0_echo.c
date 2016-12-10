@@ -24930,4 +24930,4 @@ const unsigned char bcm45216_ap_image[] = {
 
 const unsigned bcm45216_ap_image_segments[] = {7, 1, 0};
 
-const void *BHAB_45216_IMG_Context[2] = {(const void*)bcm45216_ap_image_segments, (const void*)bcm45216_ap_image};
+const void* const BHAB_45216_IMG_Context[2] = {(const void*)bcm45216_ap_image_segments, (const void*)bcm45216_ap_image};

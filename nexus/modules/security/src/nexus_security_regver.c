@@ -1482,6 +1482,12 @@ static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
     {
         pRegionData->verificationRequired = true;
     }
+    #if NEXUS_REGION_VERIFICATION_OVERRIDE_OTP
+    else {
+        BDBG_WRN(("Overriding RV OTP Region[0x%02X][%s]", regionId, pRegionData->description ));
+        pRegionData->verificationRequired = true;
+    }
+    #endif
 
     cropDescriptionFromStr( pRegionData->description, sizeof(pRegionData->description), pRegionStr );
 

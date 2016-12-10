@@ -42,7 +42,6 @@
 #define NEXUS_PLATFORM_PRIV_H__
 
 #include "nexus_platform_module.h"
-#include "nexus_platform.h"
 #include "nexus_platform_features.h"
 #include "nexus_platform_local_priv.h"
 #include "nexus_memory.h"
@@ -610,6 +609,8 @@ void NEXUS_Platform_P_DestroyTeeInstance(BTEE_InstanceHandle teeHandle);
 #if NEXUS_CPU_ARM
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 #endif
+
+void NEXUS_Platform_GetDefaultClientConfiguration(NEXUS_ClientConfiguration *pConfig);
 
 #endif /* #ifndef NEXUS_PLATFORM_PRIV_H__ */
 

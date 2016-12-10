@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,7 +65,6 @@ typedef void *BDSP_Handle;
 #include "bape_dolby_digital_reencode.h"
 #include "bape_dolby_volume.h"
 #include "bape_processor.h"
-#include "bape_tru_surround.h"
 #include "bape_tru_volume.h"
 #if BAPE_DSP_SUPPORT
 #include "bape_custom_processing.h"
@@ -445,7 +444,6 @@ typedef struct BAPE_Capabilities
         } rfEncoder;
 
         bool studioSound;               /* True if SRS StudioSound processing is supported */
-        bool truSurroundHd;             /* True if SRS TruSurround HD processing is supported */
         bool truVolume;                 /* True if SRS TruVolume processing is supported */
         bool processing[BAPE_PostProcessorType_eMax];  /* True if specificed type is supported by BAPE_Processor */
         char versionInfo[25];           /* Raaga Release Version */

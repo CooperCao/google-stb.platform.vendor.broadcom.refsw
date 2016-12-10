@@ -166,7 +166,7 @@ typedef struct bmemperf_request
         bmemperf_cmd_overall_stats_data    overall_stats_data;
         bmemperf_cmd_get_client_stats_data client_stats_data;
         bmemperf_cmd_set_client_rts        client_rts_setting;
-        char                               strCmdLine[128];
+        char                               strCmdLine[256];
     } request;
 } bmemperf_request;
 
@@ -280,16 +280,6 @@ char *getClientName( int client_index );
 
 pid_t daemonize( const char * logFileName );
 
-char *decodeFilename( const char *filename );
-int   sendFileToBrowser(
-    const char *filename
-    );
-int readFileFromBrowser(
-    const char       *contentType,
-    const char       *contentLength,
-    char             *sFilename,
-    unsigned long int lFilenameLen
-    );
 int sort_on_id(
     const void *a,
     const void *b

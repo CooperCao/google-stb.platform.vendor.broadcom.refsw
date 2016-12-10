@@ -47,12 +47,13 @@ class CWidgetButton;
 class CWidgetLabel;
 class CWidgetGrid;
 class CPanelKeyboard;
+class CNetworkWifi;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#ifdef NETAPP_SUPPORT
+#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
 #define PERCENT_TO_UINT16(percent)  ((percent) * 65535 / 100)
 
 typedef enum eWifiMode
@@ -81,7 +82,9 @@ public:
     eRet            initialize(CConfiguration * pCfg);
     CWidgetButton * getContainer(void) { return(_pContainer); }
     void            setConnected(bool bConnected);
-    bool            isConnected(void) { return(_bConnected); }
+    bool            isConnected(void)            { return(_bConnected); }
+    void            setBssid(const char * pText) { _strBssid = pText; }
+    MString         getBssid(void)               { return(_strBssid); }
     void            setSsid(const char * pText);
     MString         getSsid(void)       { return(_pSsid->getText()); }
     CWidgetButton * getSsidButton(void) { return(_pSsid); }
@@ -93,17 +96,24 @@ public:
     void            setSecurity(bool bSecurity);
     bool            isSecure(void) { return(_pSecurity->isVisible()); }
     void            dump(bool bForce = false);
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+    void update(CNetworkWifi * pInfo);
+
+    /* comparison operator overload */
+    bool operator ==(CNetworkWifi & rhs);
+#elif NETAPP_SUPPORT
     void update(NETAPP_WIFI_AP_INFO * pInfo);
-#endif
+
     /* comparison operator overload */
     bool operator ==(const NETAPP_WIFI_AP_INFO & rhs);
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 
 protected:
     CConfiguration *           _pCfg;
     CWidgetListViewContainer * _pContainer;
     CWidgetLabel *             _pContainerBkgnd;
     CWidgetLabel *             _pConnection;
+    MString                    _strBssid;
     CWidgetButton *            _pSsid;
     CWidgetLabel *             _pChannel;
     CWidgetLabel *             _pModeA;
@@ -118,7 +128,7 @@ protected:
     bool _bConnected;
 };
 
-/* CPanelNetworkWifiStatus is the tag/value button used to display each tuner property
+/* CPanelNetworkWifiStatus is the tag/value button used to display each network property
  * in the list widget. */
 class CPanelNetworkWifiStatus
 {
@@ -198,8 +208,10 @@ public:
     void                    onClick(bwidget_t widget);
     void                    show(bool bShow);
     void                    scan(bool bStart = true);
+    void                    scanResults(void);
     void                    clear(void);
     void                    clearConnectionStatus(void);
+    CPanelNetworkWifiProp * findProp(const char * strBssid);
     CPanelNetworkWifiProp * findProp(const char * strSsid, const int nChannel);
     void                    setMenuTitleStatus(const char * pStr = NULL);
     void                    processNotification(CNotification & notification);
@@ -207,33 +219,50 @@ public:
     eRet                    disconnect(CPanelNetworkWifiProp * pNetworkProp);
     CPanelNetworkWifiProp * findEmptyProp(void);
     void                    updateConnectStatus(void);
-    void                    updateConnectStatus(CNetwork * pNetwork);
-    eRet                    updateSignalStrength(CNetwork * pNetwork);
-    void                    updateNetworkList(CNetwork * pNetwork);
-    void                    updateConnectedIcon(CNetwork * pNetwork);
-    void                    expand(bool bExpand = true);
-    void                    startUpdateTimers(bool bStart = true);
-    void                    activateProp(CPanelNetworkWifiProp * pProp, bool bActivate = true);
-    bool                    isPropActive(CPanelNetworkWifiProp * pProp);
-    void                    activateStatus(CPanelNetworkWifiStatus * pStatus, bool bActivate = true);
-    bool                    isStatusActive(CPanelNetworkWifiStatus * pStatus);
-    void                    layout(void);
-    void                    dump(bool bForce = false);
+#ifdef WPA_SUPPLICANT_SUPPORT
+    void updateConnectStatus(CWifi * pNetwork);
+    eRet updateSignalStrength(CNetworkWifi * pNetwork);
+#elif NETAPP_SUPPORT
+    void updateConnectStatus(CNetwork * pNetwork);
+    eRet updateSignalStrength(CNetwork * pNetwork);
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
+#ifdef WPA_SUPPLICANT_SUPPORT
+    void updateNetworkList(CWifi * pWifi);
+    void updateConnectedIcon(CWifi * pNetwork);
+#elif NETAPP_SUPPORT
+    void updateNetworkList(CNetwork * pNetwork);
+    void updateConnectedIcon(CNetwork * pNetwork);
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
+    void expand(bool bExpand = true);
+    void startUpdateTimers(bool bStart = true);
+    void startScanTimers(bool bStart = true);
+    void activateProp(CPanelNetworkWifiProp * pProp, bool bActivate = true);
+    bool isPropActive(CPanelNetworkWifiProp * pProp);
+    void activateStatus(CPanelNetworkWifiStatus * pStatus, bool bActivate = true);
+    bool isStatusActive(CPanelNetworkWifiStatus * pStatus);
+    void layout(void);
+    void dump(bool bForce = false);
 
 protected:
-    CWidgetMenu *                       _pNetworkWifiMenu;
-    CWidgetMenu *                       _pPropertiesMenu;
-    CWidgetMenu *                       _pStatusMenu;
-    bool                                _bExpandPanel;
-    CWidgetButton *                     _pExpand;
-    CWidgetLabel *                      _pHeadingProperties;
-    CWidgetLabel *                      _pGridTitle;
-    CWidgetGrid *                       _pGrid;
-    CTimer                              _timerUpdate;
-    CWidgetModalMsgBox *                _MsgBoxStatus;
-    CWidgetModalMsgBox *                _MsgBoxError;
-    CNetwork *                          _pNetwork;
-    CWidgetButton *                     _pBack;
+    CWidgetMenu *        _pNetworkWifiMenu;
+    CWidgetMenu *        _pPropertiesMenu;
+    CWidgetMenu *        _pStatusMenu;
+    bool                 _bExpandPanel;
+    CWidgetButton *      _pExpand;
+    CWidgetLabel *       _pHeadingProperties;
+    CWidgetLabel *       _pGridTitle;
+    CWidgetGrid *        _pGrid;
+    CTimer               _timerCloseMsgBox;
+    CTimer               _timerUpdate;
+    CTimer               _timerScan;
+    CWidgetModalMsgBox * _MsgBoxStatus;
+    CWidgetModalMsgBox * _MsgBoxError;
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CWifi * _pNetwork;
+#elif NETAPP_SUPPORT
+    CNetwork * _pNetwork;
+#endif
+    CWidgetButton * _pBack;
     MAutoList <CPanelNetworkWifiProp>   _propList;
     MAutoList <CPanelNetworkWifiStatus> _statusList;
 };

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,6 +76,7 @@ BDBG_MODULE(ms12_dual);
 /* Change this to true to enable SPDIF re-encoding to AC3 */
 static bool g_compressed = false;
 char * fname = NULL;
+char * fname2 = NULL;
 
 #if NEXUS_HAS_HDMI_OUTPUT
 /*****************/
@@ -107,12 +108,13 @@ int main(int argc, char **argv)
     NEXUS_ParserBandSettings parserBandSettings;
     #if NEXUS_HAS_PLAYBACK
     NEXUS_FilePlayHandle file = NULL;
-    NEXUS_PlaypumpHandle playpump;
-    NEXUS_PlaybackHandle playback;
+    NEXUS_FilePlayHandle file2 = NULL;
+    NEXUS_PlaypumpHandle playpump = NULL, playpump2 = NULL;
+    NEXUS_PlaybackHandle playback = NULL, playback2 = NULL;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     #endif
-    NEXUS_StcChannelHandle stcChannel;
+    NEXUS_StcChannelHandle stcChannel = NULL, stcChannel2 = NULL;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PidChannelHandle videoPidChannel=NULL;
     NEXUS_PidChannelHandle mainPidChannel=NULL;
@@ -149,6 +151,8 @@ int main(int argc, char **argv)
     bool standalone = false;
     bool directMixer = false;
     bool havePcmConsumer = false;
+    bool started[2] = {false, false};
+    bool dualMain = false;
     int msBalance = 0;
     int i;
 #if NEXUS_NUM_HDMI_OUTPUTS
@@ -185,6 +189,18 @@ int main(int argc, char **argv)
             #if NEXUS_HAS_PLAYBACK
             fname = argv[i];
             #endif
+        }
+        else if ( !strcmp(argv[i], "-file2") && (i+1) < argc )
+        {
+            i++;
+            #if NEXUS_HAS_PLAYBACK
+            fname2 = argv[i];
+            #endif
+        }
+        else if ( !strcmp(argv[i], "-dual_main") )
+        {
+            printf("Dual Main Requested\n");
+            dualMain = true;
         }
         else if ( !strcmp(argv[i], "-audio_type") && (i+1) < argc )
         {
@@ -341,15 +357,22 @@ int main(int argc, char **argv)
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
+    #if NEXUS_HAS_PLAYBACK
     if (fname != NULL)
     {
-        #if NEXUS_HAS_PLAYBACK
         playpump = NEXUS_Playpump_Open(0, NULL);
         assert(playpump);
         playback = NEXUS_Playback_Create();
         assert(playback);
-        #endif
+        if ( fname2 != NULL )
+        {
+            playpump2 = NEXUS_Playpump_Open(1, NULL);
+            assert(playpump2);
+            playback2 = NEXUS_Playback_Create();
+            assert(playback2);
+        }
     }
+    #endif
 
     printf("\nMS12 Decoder settings:\n");
     printf("-------------------------\n");
@@ -613,13 +636,24 @@ int main(int argc, char **argv)
         stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
         stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
     }
+    #if NEXUS_HAS_PLAYBACK
     else /* playback */
     {
-        #if NEXUS_HAS_PLAYBACK
-        file = NEXUS_FilePlay_OpenPosix(fname, NULL);
-        if (!file) {
-            fprintf(stderr, "can't open file:%s\n", fname);
-            return -1;
+        if ( fname )
+        {
+            file = NEXUS_FilePlay_OpenPosix(fname, NULL);
+            if (!file) {
+                fprintf(stderr, "can't open file:%s\n", fname);
+                return -1;
+            }
+            if ( fname2 )
+            {
+                file2 = NEXUS_FilePlay_OpenPosix(fname2, NULL);
+                if (!file2) {
+                    fprintf(stderr, "can't open file2:%s\n", fname2);
+                    return -1;
+                }
+            }
         }
 
         /* Open the StcChannel to do lipsync with the PCR */
@@ -628,6 +662,10 @@ int main(int argc, char **argv)
         stcSettings.mode = NEXUS_StcChannelMode_eAuto;
         stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
         stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
+        if ( file2 )
+        {
+            stcChannel2 = NEXUS_StcChannel_Open(1, &stcSettings);
+        }
 
         /* Configure Playback */
         NEXUS_Playback_GetSettings(playback, &playbackSettings);
@@ -636,6 +674,14 @@ int main(int argc, char **argv)
         playbackSettings.playpumpSettings.transportType = NEXUS_TransportType_eTs;
         playbackSettings.stcChannel = stcChannel;
         NEXUS_Playback_SetSettings(playback, &playbackSettings);
+        if ( file2 )
+        {
+            NEXUS_Playback_GetSettings(playback2, &playbackSettings);
+            playbackSettings.playpump = playpump2;
+            playbackSettings.playpumpSettings.transportType = NEXUS_TransportType_eTs;
+            playbackSettings.stcChannel = stcChannel2;
+            NEXUS_Playback_SetSettings(playback2, &playbackSettings);
+        }
 
         /* Open the audio and video pid channels */
         NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
@@ -652,10 +698,17 @@ int main(int argc, char **argv)
         mainPidChannel = NEXUS_Playback_OpenPidChannel(playback, audioPid, &playbackPidSettings);
         if ( secondaryPid > 0 )
         {
-            secondaryPidChannel = NEXUS_Playback_OpenPidChannel(playback, secondaryPid, &playbackPidSettings);
+            if ( file2 )
+            {
+                secondaryPidChannel = NEXUS_Playback_OpenPidChannel(playback2, secondaryPid, &playbackPidSettings);
+            }
+            else
+            {
+                secondaryPidChannel = NEXUS_Playback_OpenPidChannel(playback, secondaryPid, &playbackPidSettings);
+            }
         }
-        #endif
     }
+    #endif
 
     /* Set up decoder Start structures now. We need to know the audio codec to properly set up the audio outputs. */
     NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
@@ -666,12 +719,30 @@ int main(int argc, char **argv)
     mainProgram.codec = codec;
     mainProgram.pidChannel = mainPidChannel;
     mainProgram.stcChannel = stcChannel;
+    if ( dualMain )
+    {
+        mainProgram.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+    }
     NEXUS_AudioDecoder_GetDefaultStartSettings(&secondaryProgram);
     secondaryProgram.codec = secondaryCodec;
     secondaryProgram.pidChannel = secondaryPidChannel;
-    secondaryProgram.stcChannel = stcChannel;
-    secondaryProgram.secondaryDecoder = true;   /* Indicate this is a secondary channel for STC Channel/PCRlib functions */
-
+    if ( file2 )
+    {
+        secondaryProgram.stcChannel = stcChannel2;
+    }
+    else
+    {
+        secondaryProgram.stcChannel = stcChannel;
+    }
+    if ( dualMain )
+    {
+        secondaryProgram.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone;
+        secondaryProgram.secondaryDecoder = false; /* stc channel should be independent from other decode */
+    }
+    else
+    {
+        secondaryProgram.secondaryDecoder = true;   /* Indicate this is a secondary channel for STC Channel/PCRlib functions */
+    }
     /* Set up Codec Settings */
     NEXUS_AudioDecoder_GetCodecSettings(mainDecoder, codec, &primaryCodecSettings);
     if ( !secondaryPidChannel && codec == NEXUS_AudioCodec_eAc3Plus )
@@ -681,68 +752,235 @@ int main(int argc, char **argv)
     NEXUS_AudioDecoder_SetCodecSettings(mainDecoder, &primaryCodecSettings);
 
     /* Start Decoders */
-    NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
-
     if (startDecoders)
     {
+        NEXUS_VideoDecoder_Start(videoDecoder, &videoProgram);
+
         BDBG_WRN(("Starting Main"));
         NEXUS_AudioDecoder_Start(mainDecoder, &mainProgram);
+        started[0] = true;
 
         if ( secondaryPidChannel )
         {
             BDBG_WRN(("Starting Secondary"));
             NEXUS_AudioDecoder_Start(secondaryDecoder, &secondaryProgram);
+            started[1] = true;
         }
 
-        if (fname != NULL)
+        #if NEXUS_HAS_PLAYBACK
+        if (playback)
         {
-            #if NEXUS_HAS_PLAYBACK
             /* Start playback */
             NEXUS_Playback_Start(playback, file, NULL);
-            #endif
         }
-    }
-
-    printf("Press ENTER to stop decode\n");
-    getchar();
-
-    /* Stop */
-    if (file)
-    {
-        #if NEXUS_HAS_PLAYBACK
-        NEXUS_Playback_Stop(playback);
+        if (playback2)
+        {
+            /* Start playback */
+            NEXUS_Playback_Start(playback2, file2, NULL);
+        }
         #endif
     }
 
-    NEXUS_VideoDecoder_Stop(videoDecoder);
+    do
+    {
+        char c;
+        printf("\nChoose an option:\n");
+        printf("  q - quit\n");
+        printf("  f - fade one of the main decoders\n");
+        printf("  s - toggle stop/start state of a decoder \n");
+        printf(":");
+        scanf("%c", &c);
+        if ( c == 'q' )
+        {
+            break;
+        }
+
+        switch ( c )
+        {
+        case 'f':
+            if ( dualMain )
+            {
+                NEXUS_AudioInputHandle input = NULL;
+                int tmp;
+                unsigned decIdx = 0xFF;
+                unsigned newLevel = 0xFF;
+                unsigned duration = 0xFF;
+                while ( decIdx == 0xFF )
+                {
+                    printf("Enter Decoder index [0,1]:");
+                    scanf("%d", &tmp);
+                    if ( tmp >= 0 && tmp <= 1 )
+                    {
+                        decIdx = tmp;
+                    }
+                }
+
+                while ( newLevel == 0xFF )
+                {
+                    printf("Enter new level for decoder %d [0-100] (percentage):", decIdx);
+                    scanf("%d", &tmp);
+                    if ( tmp >= 0 && tmp <= 100 )
+                    {
+                        newLevel = tmp;
+                    }
+                }
+                while ( duration == 0xFF )
+                {
+                    printf("Enter duration for fade [0-60000] (milliseconds):");
+                    scanf("%d", &tmp);
+                    if ( tmp >= 0 && tmp <= 60000 )
+                    {
+                        duration = tmp;
+                    }
+                }
+
+                if ( decIdx == 1 )
+                {
+                    input = NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel);
+                }
+                else
+                {
+                    input = NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel);
+                }
+
+                if ( input )
+                {
+                    NEXUS_Error rc;
+                    NEXUS_AudioMixerInputSettings settings;
+                    NEXUS_AudioMixerInputStatus status;
+
+                    printf("Fade main decoder %d level\n", decIdx);
+
+                    rc = NEXUS_AudioMixer_GetInputStatus(mixer, input, &status);
+                    if ( rc )
+                    {
+                        printf("Fade Status unavailable\n");
+                    }
+                    else
+                    {
+                        printf("Fade Status: active %d, level %d, remaining (ms) %d\n", status.fade.active, status.fade.level, status.fade.remaining);
+                    }
+
+                    rc = NEXUS_AudioMixer_GetInputSettings(mixer, input, &settings);
+                    if ( rc )
+                    {
+                        printf("NEXUS_AudioMixer_GetInputSettings() failed %u", rc);
+                        continue;
+                    }
+
+                    settings.fade.level = newLevel;
+                    settings.fade.duration = duration;
+                    rc = NEXUS_AudioMixer_SetInputSettings(mixer, input, &settings);
+                    if ( rc )
+                    {
+                        printf("NEXUS_AudioMixer_GetInputSettings() failed %u", rc);
+                        continue;
+                    }
+                }
+            }
+            else
+            {
+                printf("please enable -dual_main to use fade\n");
+            }
+            break;
+        case 's':
+            {
+                int tmp;
+                unsigned decIdx = 0xFF;
+                while ( decIdx == 0xFF )
+                {
+                    printf("Enter Decoder index [0,1] (currently: main started %d, sec started %d):", started[0], started[1]);
+                    scanf("%d", &tmp);
+                    if ( tmp >= 0 && tmp <= 1 )
+                    {
+                        decIdx = tmp;
+                    }
+                }
+
+                if ( decIdx == 1 )
+                {
+                    if ( secondaryPidChannel )
+                    {
+                        if ( started[1] )
+                        {
+                            printf("Stopping Secondary Decoder\n");
+                            NEXUS_AudioDecoder_Stop(secondaryDecoder);
+                        }
+                        else
+                        {
+                            printf("Starting Secondary Decoder\n");
+                            NEXUS_AudioDecoder_Start(secondaryDecoder, &secondaryProgram);
+                        }
+                        started[1] = !started[1];
+                    }
+                }
+                else
+                {
+                    if ( started[0] )
+                    {
+                        printf("Stopping Main Decoder\n");
+                        NEXUS_AudioDecoder_Stop(mainDecoder);
+                    }
+                    else
+                    {
+                        printf("Starting Main Decoder\n");
+                        NEXUS_AudioDecoder_Start(mainDecoder, &mainProgram);
+                    }
+                    started[0] = !started[0];
+                }
+            }
+
+            break;
+        default:
+            printf("Unsupported character %c\n", c);
+            break;
+        }
+        while ( getchar() != '\n' ) {}
+    } while ( 1 );
+
+    /* Stop */
+    #if NEXUS_HAS_PLAYBACK
+    if (playback2)
+    {
+        NEXUS_Playback_Stop(playback2);
+    }
+    if (playback)
+    {
+        NEXUS_Playback_Stop(playback);
+    }
+    #endif
 
     if (startDecoders)
     {
-        if (fname != NULL)
-        {
-            #if NEXUS_HAS_PLAYBACK
-            NEXUS_Playback_Stop(playback);
-            #endif
-        }
-
         if ( secondaryPidChannel )
         {
             NEXUS_AudioDecoder_Stop(secondaryDecoder);
         }
         NEXUS_AudioDecoder_Stop(mainDecoder);
+
+        NEXUS_VideoDecoder_Stop(videoDecoder);
     }
 
     /* Teardown */
+    #if NEXUS_HAS_PLAYBACK
+    if (file2)
+    {
+        NEXUS_Playback_CloseAllPidChannels(playback2);
+        NEXUS_FilePlay_Close(file2);
+        NEXUS_Playback_Destroy(playback2);
+        NEXUS_Playpump_Close(playpump2);
+    }
     if (file)
     {
-        #if NEXUS_HAS_PLAYBACK
         NEXUS_Playback_CloseAllPidChannels(playback);
         NEXUS_FilePlay_Close(file);
         NEXUS_Playback_Destroy(playback);
         NEXUS_Playpump_Close(playpump);
-        #endif
     }
-    else
+    #endif
+
+    /* live input case */
+    if ( file == NULL )
     {
         NEXUS_PidChannel_Close(videoPidChannel);
         NEXUS_PidChannel_Close(mainPidChannel);
@@ -774,6 +1012,10 @@ int main(int argc, char **argv)
     NEXUS_Display_Close(display);
     NEXUS_VideoDecoder_Close(videoDecoder);
     NEXUS_StcChannel_Close(stcChannel);
+    if ( stcChannel2 )
+    {
+        NEXUS_StcChannel_Close(stcChannel2);
+    }
     NEXUS_Platform_Uninit();
 
     return 0;

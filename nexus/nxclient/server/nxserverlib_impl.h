@@ -326,17 +326,18 @@ struct b_session {
         NxClient_HdcpVersion currSelect;
         enum nxserver_hdcp_state {
             nxserver_hdcp_not_pending,                   /* no hdcp authentication in progress */
-            nxserver_hdcp_begin,                         /* start hdcp auth disable */
-            nxserver_hdcp_pending_status_start,          /* wait for hdcp auth start success, to read authentication status */
-            nxserver_hdcp_pending_start_retry,           /* wait for hdcp auth disable success, retrying */
-            nxserver_hdcp_pending_start_wait,            /* relying on HdmiOutput keep alive timer to restart authentication */
-            nxserver_hdcp_pending_start,                 /* wait for hdcp auth disable success */
+            nxserver_hdcp_begin,                         /* need to start hdcp authentication */
+            nxserver_hdcp_pending_status_start,          /* started with NxClient_HdcpVersion_eFollow, will test for downstream 1.x */
+            nxserver_hdcp_pending_start_retry,           /* authenticating w/ restart. lastHdcpError likely set. may mute. */
+            nxserver_hdcp_pending_start,                 /* authenticating w/o restart. */
             nxserver_hdcp_success,                       /* hdcp authentication completed */
             nxserver_hdcp_max
         } version_state;
         NEXUS_HdmiOutputHdcpVersion downstream_version;
         bool mute;
-        unsigned wait_cnt;
+        NEXUS_HdmiOutputHdcpError lastHdcpError;
+        NEXUS_HdmiOutputHdcpState prev_state;
+        unsigned prev_state_cnt;
     } hdcp;
     struct {
         struct {

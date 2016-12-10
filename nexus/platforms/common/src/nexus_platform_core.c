@@ -35,11 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-#include "nexus_types.h"
-#include "nexus_base.h"
-#include "priv/nexus_core.h"
-#include "nexus_platform.h"
 #include "nexus_platform_priv.h"
+#include "priv/nexus_core.h"
 #ifdef NEXUS_FPGA_SUPPORT
 #include "nexus_platform_fpga.h"
 #endif
@@ -859,6 +856,7 @@ const NEXUS_Core_PreInitState *NEXUS_Platform_P_PreInit(void)
     if (rc) {rc = BERR_TRACE(rc); goto err_box;}
     BBOX_GetConfig(preInitState->hBox, &preInitState->boxConfig);
 
+    preInitState->pMapId = NEXUS_Platform_P_ReadPMapId();
     g_NEXUS_preinit.refcnt++;
     return &g_NEXUS_preinit.state;
 

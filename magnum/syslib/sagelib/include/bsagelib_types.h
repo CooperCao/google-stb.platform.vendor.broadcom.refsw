@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -341,6 +341,28 @@ enum {
     DynamicLoadModule_CommandId_eMax
 };
 
+/* List of ModuleId for each loaderable TA */
+enum adobe_module {
+    Adobe_ModuleId_eDRM = 0x01
+};
+enum dtcpip_module {
+    DtcpIp_ModuleId_eDRM = 0x01
+};
+enum edrm_module {
+    Edrm_ModuleId_eDRM = 0x01
+};
+enum netflix_module {
+    Netflix_ModuleId_eDRM = 0x01
+};
+enum playback_module {
+    Playback_ModuleId_eDRM = 0x01
+};
+enum playready_module {
+    Playready_ModuleId_eDRM = 0x01
+};
+enum widevine_module {
+    Widevine_ModuleId_eDRM = 0x01
+};
 
 /* Used by TA Terminate Callbacks inside magnum */
 #define BSAGELIB_TERMINATE_REASON_EXCEPTION 0x1

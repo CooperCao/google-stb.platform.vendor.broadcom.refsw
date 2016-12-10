@@ -1646,26 +1646,37 @@ void BXDM_PPOUT_P_CalculateStaticVdcData_isr(
    pMFDPicture->ulBotRightBarValue  = pPictureContext->pstUnifiedPicture->stBarData.uiBotRightBarValue;
 
    /* SW7445-744: add support for 10 bit picture buffers. */
-   if ( BXDM_Picture_BufferType_e8Bit == pPictureContext->pstUnifiedPicture->stBufferInfo.eLumaBufferType
-        && BXDM_Picture_BufferType_e8Bit == pPictureContext->pstUnifiedPicture->stBufferInfo.eChromaBufferType )
+   /* SWSTB-457: specify the depth for both the lumna and chroma buffers. */
+   switch ( pPictureContext->pstUnifiedPicture->stBufferInfo.eLumaBitDepth )
    {
-      pMFDPicture->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+      case BXDM_Picture_VideoBitDepth_e10Bit:
+         pMFDPicture->eBitDepth = BAVC_VideoBitDepth_e10Bit;
+         break;
+
+      case BXDM_Picture_VideoBitDepth_e9Bit:
+         pMFDPicture->eBitDepth = BAVC_VideoBitDepth_e9Bit;
+         break;
+
+      case BXDM_Picture_VideoBitDepth_e8Bit:
+      default:
+         pMFDPicture->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
    }
-   else if ( BXDM_Picture_BufferType_e10Bit == pPictureContext->pstUnifiedPicture->stBufferInfo.eLumaBufferType
-             && BXDM_Picture_BufferType_e10Bit == pPictureContext->pstUnifiedPicture->stBufferInfo.eChromaBufferType )
+
+   switch ( pPictureContext->pstUnifiedPicture->stBufferInfo.eChromaBitDepth )
    {
-      pMFDPicture->eBitDepth = BAVC_VideoBitDepth_e10Bit;
-   }
-   else
-   {
-      pMFDPicture->eBitDepth = hXdmPP->stDMState.stChannel.stDefaultPicParams.eBitDepth;
-      BXVD_DBG_ERR(hXdmPP, ("%x:[%02x.%03x] %s:: luma depth:%d chroma depth:%d should match",
-                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                               pPictureContext->stPicParms.uiPPBIndex & 0xFFF,
-                               __FUNCTION__,
-                               pPictureContext->pstUnifiedPicture->stBufferInfo.eLumaBufferType,
-                               pPictureContext->pstUnifiedPicture->stBufferInfo.eChromaBufferType ));
+      case BXDM_Picture_VideoBitDepth_e10Bit:
+         pMFDPicture->eChromaBitDepth = BAVC_VideoBitDepth_e10Bit;
+         break;
+
+      case BXDM_Picture_VideoBitDepth_e9Bit:
+         pMFDPicture->eChromaBitDepth = BAVC_VideoBitDepth_e9Bit;
+         break;
+
+      case BXDM_Picture_VideoBitDepth_e8Bit:
+      default:
+         pMFDPicture->eChromaBitDepth = BAVC_VideoBitDepth_e8Bit;
+         break;
    }
 
    /* Only update the parameters BEFORE the first PPB has passed TSM */
@@ -2369,6 +2380,7 @@ void BXDM_PPOUT_P_OpenChannel(
 
    /* SW7445-744: add support for 10 bit picture buffers. */
    pDefaultParams->eBitDepth = BAVC_VideoBitDepth_e8Bit;
+   pDefaultParams->eChromaBitDepth = BAVC_VideoBitDepth_e8Bit;
 
    return;
 

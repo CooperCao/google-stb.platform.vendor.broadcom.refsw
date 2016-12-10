@@ -447,9 +447,16 @@ sub process_arguments {
             if ($param->{INPARAM}) {
                 my $type = $param->{BASETYPE};
                 $type = 'uint8_t' if $type eq 'void';
-                push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
-                push @{$code->{SERVER}{RECV_VARARG}}, "B_IPC_SERVER_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
-                push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                if(exists $param->{ATTR}{nelem_convert}) {
+                    my $convert = $param->{ATTR}{nelem_convert};
+                    push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG_NELEM_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
+                    push @{$code->{SERVER}{RECV_VARARG}}, "B_IPC_SERVER_RECV_VARARG_NELEM_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
+                    push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG_NELEM_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
+                } else {
+                    push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                    push @{$code->{SERVER}{RECV_VARARG}}, "B_IPC_SERVER_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                    push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                }
             }
             if($param->{BASETYPE} eq 'NEXUS_CallbackDesc') {
                 push @{$code->{SERVER}{CALLBACK_PRE}}, 'B_IPC_NOT_SUPPORTED("NEXUS_CallbackDesc as varags")';
@@ -460,6 +467,9 @@ sub process_arguments {
                         push @{$code->{SERVER}{CALLBACK_PRE}}, 'B_IPC_NOT_SUPPORTED("NEXUS_CallbackDesc in varags")';
                     }
                     if(exists $_->{ATTR}{memory} && $_->{ATTR}{memory} eq 'cached') {
+                        if(exists $param->{ATTR}{nelem_convert}) {
+                            push @{$code->{SERVER}{RECV_VARARG}}, 'B_IPC_NOT_SUPPORTED("nelem_convert in complex varags")';
+                        }
                         my $name = flat_name ($param->{NAME} , $_->{NAME});
                         if ($param->{INPARAM}) {
                             push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
@@ -468,7 +478,8 @@ sub process_arguments {
                         } else {
                             push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
                             push @{$code->{CLIENT}{RECV_VARARG}}, "B_IPC_CLIENT_RECV_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
-                            push @{$code->{SERVER}{PREPARE}}, "B_IPC_SERVER_PREPARE_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
+                            push @{$code->{SERVER}{OUT_VARARGS}{PLACE}}, "B_IPC_PLACE_PLACE_OUT_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
+                            push @{$code->{SERVER}{OUT_VARARGS}{SIZE}}, "B_IPC_SERVER_SIZE_OUT_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
                             push @{$code->{SERVER}{PROCESS}}, "B_IPC_SERVER_PROCESS_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
                             push @{$code->{DRIVER}{SEND_VARARG}}, "B_IPC_SERVER_SEND_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
                         }
@@ -479,9 +490,13 @@ sub process_arguments {
                 my $type = $param->{BASETYPE};
                 $type = 'uint8_t' if $type eq 'void';
                 my $nelem = exists $param->{ATTR}{nelem_out} ? "* $param->{ATTR}{nelem_out}" : $param->{ATTR}{nelem};
+                if(exists $param->{ATTR}{nelem_convert}) {
+                    push @{$code->{SERVER}{OUT_VARARGS}{SIZE}}, 'B_IPC_NOT_SUPPORTED("nelem_convert in out varags")';
+                }
                 push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{CLIENT}{RECV_VARARG}}, "B_IPC_CLIENT_RECV_VARARG($api, $param->{NAME}, $type, $nelem)";
-                push @{$code->{SERVER}{PREPARE}}, "B_IPC_SERVER_PREPATE_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                push @{$code->{SERVER}{OUT_VARARGS}{PLACE}}, "B_IPC_SERVER_PLACE_OUT_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                push @{$code->{SERVER}{OUT_VARARGS}{SIZE}}, "B_IPC_SERVER_SIZE_OUT_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
                 push @{$code->{DRIVER}{DECLARE}}, "B_IPC_DRIVER_DATA($param->{TYPE}, $param->{NAME})";
                 push @{$code->{DRIVER}{ASSIGN}}, "B_IPC_DRIVER_ASSIGN_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{RECV}}, "B_IPC_DRIVER_SET_OUT_PTR($api, $param->{NAME})";
@@ -513,7 +528,7 @@ sub process_arguments {
             } else {
                 push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{CLIENT}{RECV}}, "B_IPC_CLIENT_RECV_OUT_PTR($api, $param->{NAME})";
-                push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_SET_OUT_PTR($api, $param->{NAME})";
+                push @{$code->{SERVER}{SET_OUT_PTR}}, "B_IPC_SERVER_SET_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{DECLARE}}, "B_IPC_DRIVER_DATA($param->{TYPE}, $param->{NAME})";
                 push @{$code->{DRIVER}{ASSIGN}}, "B_IPC_DRIVER_ASSIGN_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{RECV}}, "B_IPC_DRIVER_SET_OUT_PTR($api, $param->{NAME})";
@@ -522,6 +537,7 @@ sub process_arguments {
             if(exists $structs->{$param->{BASETYPE}}) {
                 my $field_no = 0;
                 foreach (@{$structs->{$param->{BASETYPE}}}) {
+                    next if index($_->{NAME},'[') != -1 ;  # For now skip arrays, callacks in array are not handled
                     $field_no++;
                     if( $_->{TYPE} eq 'NEXUS_CallbackDesc') {
                         my $id = sprintf("0x%04x", ((bapi_util::struct_id $structs, $param->{BASETYPE})*256 + $field_no));
@@ -734,7 +750,7 @@ union nexus_driver_module_args {
 }
 
 sub generate_client {
-    my ($fout, $module, $functions, $class_handles, $structs, $destructors) = @_;
+    my ($fout, $module, $functions, $class_handles, $structs, $destructors, $classes) = @_;
     print $fout $autogenerated;
     print $fout "B_IPC_CLIENT_MODULE_BEGIN($module, \U$module\E)\n";
     for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
@@ -755,7 +771,9 @@ sub generate_client {
 
         my $code = process_arguments($functions, $func, $class_handles, $structs);
         if($is_destructor) {
-            print $fout "B_IPC_CLIENT_BEGIN_DESTRUCTOR($module, \U$module\E, $api, $funcname, ($args), $func->{PARAMS}[0]{NAME})\n";
+            my $has_callbacks =  bapi_classes::get_stopcallbacks_handle($func, $classes);
+            $has_callbacks = defined $has_callbacks ? 'true' : 'false';
+            print $fout "B_IPC_CLIENT_BEGIN_DESTRUCTOR($module, \U$module\E, $api, $funcname, ($args), $func->{PARAMS}[0]{NAME}, $has_callbacks)\n";
         } elsif($func->{RETTYPE} eq 'void') {
             print $fout "B_IPC_CLIENT_BEGIN_VOID($module, \U$module\E, $api, $funcname, ($args))\n";
         } else {
@@ -811,7 +829,7 @@ sub generate_meta
     my $in_arg_type = "b_${module}_module_ipc_in";
     my $out_arg_type = "b_${module}_module_ipc_out";
 
-    for $func (@$funcs) {
+    for $func (sort @$funcs) {
         next if(exists $func->{ATTR}{'local'});
         my $in_args_count = 0;
         my $out_args_count = 0;
@@ -878,7 +896,7 @@ sub generate_meta
                     my $handletype = $_;
                     my $struct_field;
                     for $struct_field (@{$structs->{$param->{BASETYPE}}}) {
-                        next if $struct_field->{NAME} =~ /\[/; # For now skip arrays, we don't verify data inside arrays
+                        next if index($struct_field->{NAME}, '[') != -1; # For now skip arrays, we don't verify data inside arrays
                         if ($struct_field->{TYPE} eq $handletype ) {
                             my $class_name = bapi_classes::get_class_name($handletype);
                             my @object;
@@ -1012,7 +1030,7 @@ BDBG_FILE_MODULE(nexus_trace_${module});
         my $api = "_${funcname}";
         my $bypass_call = 0;
         print_function_prototype($fout, $func);
-        print $fout "B_IPC_SERVER_BEGIN($module, _${funcname})\n";
+        print $fout "B_IPC_SERVER_BEGIN($module, $api)\n";
         for my $param (@{$func->{PARAMS}} ) {
             print $fout "    B_IPC_SERVER_PARAM($param->{TYPE}, $param->{NAME})\n";
         }
@@ -1025,6 +1043,14 @@ BDBG_FILE_MODULE(nexus_trace_${module});
         print $fout "    B_IPC_SERVER_VERIFY($module, _${funcname})\n";
         bapi_util::print_code($fout, $code->{SERVER}{RECV}, $tab);
         bapi_util::print_code($fout, $code->{SERVER}{RECV_VARARG}, $tab);
+        if(exists $code->{SERVER}{OUT_VARARGS}) {
+            bapi_util::print_code($fout, ["B_IPC_SERVER_BEGIN_OUT_VARARG($api)"],$tab);
+            bapi_util::print_code($fout, $code->{SERVER}{OUT_VARARGS}{SIZE}, "$tab$tab");
+            bapi_util::print_code($fout, ["B_IPC_SERVER_ALLOCATE_OUT_VARARG($api)"],"$tab$tab");
+            bapi_util::print_code($fout, $code->{SERVER}{OUT_VARARGS}{PLACE}, "$tab$tab");
+            bapi_util::print_code($fout, ["B_IPC_SERVER_END_OUT_VARARG($api)"],$tab);
+        }
+        bapi_util::print_code($fout, $code->{SERVER}{SET_OUT_PTR}, $tab);
         bapi_util::print_code($fout, $code->{SERVER}{PREPARE}, $tab);
         bapi_util::print_code($fout, $code->{SERVER}{CALLBACK_PRE}, $tab);
 
@@ -1138,7 +1164,7 @@ sub generate {
     my $fout;
     my $file;
     my $destructors = bapi_classes::get_destructors $functions;
-    my $classes = bapi_classes::get_classes $functions, $destructors;
+    my $classes = bapi_classes::get_classes $functions, $destructors, $structs;
 
     $file = "$destdir/nexus_${module}_abiverify_api.h",
     open ($fout, '>', $file) or die "Can't open '$file'";
@@ -1147,7 +1173,7 @@ sub generate {
 
     $file = "$destdir/nexus_${module}_abiverify_client.h",
     open ($fout, '>', $file) or die "Can't open '$file'";
-    generate_client($fout, $module, $functions, $class_handles, $structs, $destructors);
+    generate_client($fout, $module, $functions, $class_handles, $structs, $destructors, $classes);
     close ($fout);
 
     $file = "$destdir/nexus_${module}_abiverify_client.c",

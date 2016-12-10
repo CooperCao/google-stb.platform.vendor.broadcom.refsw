@@ -40,6 +40,7 @@
 #define BAPE_MIXER_H_
 
 #include "bavc.h"
+#include "bape.h"
 
 /***************************************************************************
 Summary:
@@ -243,6 +244,11 @@ typedef struct BAPE_MixerSettings
             int gain;                   /* Gain in 0.0625 dB steps, achieving +/- 30dB of gain. Valid values [-480 - 480] */
         } band [20];
     } intelligentEqualizer;
+    struct {
+        bool continuousFading;          /* When true, fade operation will proceed even in the absence of active input data.
+                                           Default is false. */
+        BAPE_FadeSettings mainDecodeFade; /* Fade control for main decode output mixer stage (Main+Associate or Dual Main) */
+    } fade;
     /* End Dolby MS12 DAP features */
 } BAPE_MixerSettings;
 
@@ -349,6 +355,7 @@ typedef struct BAPE_MixerAddInputSettings
     BAPE_MixerInputCaptureHandle capture;   /* A mixer input capture handle may be provided to
                                                capture DSP data input to a mixer for debug purposes.
                                                If NULL, data will not be captured. */
+
 } BAPE_MixerAddInputSettings;
 
 /***************************************************************************
@@ -438,6 +445,43 @@ BERR_Code BAPE_Mixer_RemoveAllOutputs(
 
 /***************************************************************************
 Summary:
+Mixer Input Status
+***************************************************************************/
+typedef struct BAPE_MixerInputStatus
+{
+    BAPE_FadeStatus fade; /* Available for MS12 DSP mixers only */
+} BAPE_MixerInputStatus;
+
+/***************************************************************************
+Summary:
+Mixer Status
+***************************************************************************/
+typedef struct BAPE_MixerStatus
+{
+    BAPE_FadeStatus mainDecodeFade; /* Available for MS12 DSP mixers only */
+} BAPE_MixerStatus;
+
+/***************************************************************************
+Summary:
+Get Input Status
+***************************************************************************/
+BERR_Code BAPE_Mixer_GetInputStatus(
+    BAPE_MixerHandle mixer,
+    BAPE_Connector input,
+    BAPE_MixerInputStatus *pStatus      /* [out] */
+    );
+
+/***************************************************************************
+Summary:
+Get Status
+***************************************************************************/
+BERR_Code BAPE_Mixer_GetStatus(
+    BAPE_MixerHandle mixer,
+    BAPE_MixerStatus *pStatus      /* [out] */
+    );
+
+/***************************************************************************
+Summary:
 Input Volume Settings
 ***************************************************************************/
 typedef struct BAPE_MixerInputVolume
@@ -455,6 +499,8 @@ typedef struct BAPE_MixerInputVolume
     uint32_t coefficientRamp;     /* The 23 LSB of this field is the fractional part and the bit[26:23] MSB is the integer part.
                                      e.g. 0x800000 = 1, 0x400000 = 0.5 */
     bool muted;                   /* Mute input data if true */
+
+    BAPE_FadeSettings fade; /* Available for MS12 DSP mixers only */
 } BAPE_MixerInputVolume;
 
 /***************************************************************************
@@ -503,6 +549,7 @@ BERR_Code BAPE_SetOutputVolume(
     const BAPE_OutputVolume *pVolume
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Output Delay Status
@@ -521,6 +568,7 @@ void BAPE_GetOutputDelayStatus(
     BAPE_OutputPort output,
     BAPE_OutputDelayStatus *pStatus     /* [out] */
     );
+#endif
 
 /***************************************************************************
 Summary:

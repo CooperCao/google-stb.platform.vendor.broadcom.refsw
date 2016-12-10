@@ -48,8 +48,6 @@
 #include "priv/bsagelib_rpc_shared.h"
 #include "priv/bsagelib_shared_types.h"
 
-#define SAGE_HOST_BUF_SIZE 32
-
 BDBG_MODULE(BSAGElib);
 
 BDBG_OBJECT_ID(BSAGElib_P_RpcRemote);

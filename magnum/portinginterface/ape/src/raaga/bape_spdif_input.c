@@ -52,27 +52,6 @@ BDBG_OBJECT_ID(BAPE_SpdifInput);
 
 #if BAPE_CHIP_MAX_SPDIF_INPUTS > 0
 
-typedef struct BAPE_SpdifInput
-{
-    BDBG_OBJECT(BAPE_SpdifInput)
-    BAPE_Handle deviceHandle;
-    BAPE_SpdifInputSettings settings;
-    unsigned index;                 
-    BAPE_InputPortObject inputPort;
-    uint32_t offset;  
-    BAPE_SpdifInputFormatDetectionSettings clientFormatDetectionSettings;
-    bool                            localFormatDetectionEnabled;
-    bool                            formatDetectionEnabled;
-    uint32_t outFormatEna;      /* last value written to OUT_FORMAT_ENA field. */
-    bool enable;
-    char name[12];   /* SPDIF IN %d */
-
-    BINT_CallbackHandle spdifRxCallback;
-
-    BAPE_SpdifInputFormatDetectionStatus  lastFormatDetectionStatus;
-} BAPE_SpdifInput;
-
-
 #if BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435
 #define BAPE_SPDIF_INPUT_CAPTURE_ID() (9)
 #elif BCHP_CHIP == 35230 || BCHP_CHIP == 35125 || BCHP_CHIP == 35233 || BCHP_CHIP == 35126
@@ -269,6 +248,16 @@ void BAPE_SpdifInput_Close(
     if ( handle->spdifRxCallback ) {
         BINT_DestroyCallback(handle->spdifRxCallback);
     }
+
+    #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_IOPIN
+    #if defined BCHP_AUD_MISC_PWRDOWN_HDMI_TX0_ARC_SPDIF_RX_MASK
+    BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_MISC_PWRDOWN,
+                              AUD_MISC_PWRDOWN, HDMI_TX0_ARC_SPDIF_RX, Powerdown);
+    #elif defined BCHP_AUD_MISC_PWRDOWN_SPDIF_RX0_MASK
+    BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_MISC_PWRDOWN,
+                              AUD_MISC_PWRDOWN, SPDIF_RX0, Powerdown);
+    #endif
+    #endif
 
     handle->deviceHandle->spdifInputs[handle->index] = NULL;
     BDBG_OBJECT_DESTROY(handle, BAPE_SpdifInput);
@@ -677,6 +666,15 @@ static BERR_Code BAPE_SpdifInput_P_OpenHw(BAPE_SpdifInputHandle handle)
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_MASK_SET,     BCHP_MASK( AUD_FMM_IOP_MISC_ESR_MASK_SET,     IOP_INTERRUPT_IN_SPDIF_0));
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_STATUS_CLEAR, BCHP_MASK( AUD_FMM_IOP_MISC_ESR_STATUS_CLEAR, IOP_INTERRUPT_IN_SPDIF_0));
         BAPE_Reg_P_Write(hApe, BCHP_AUD_FMM_IOP_MISC_ESR_MASK_CLEAR,   BCHP_MASK( AUD_FMM_IOP_MISC_ESR_MASK_CLEAR,   IOP_INTERRUPT_IN_SPDIF_0));
+
+        /* Power Up */
+        #if defined BCHP_AUD_MISC_PWRDOWN_HDMI_TX0_ARC_SPDIF_RX_MASK
+        BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_MISC_PWRDOWN,
+                                  AUD_MISC_PWRDOWN, HDMI_TX0_ARC_SPDIF_RX, Normal);
+        #elif defined BCHP_AUD_MISC_PWRDOWN_SPDIF_RX0_MASK
+        BAPE_Reg_P_UpdateEnum_isr(handle->deviceHandle, BCHP_AUD_MISC_PWRDOWN,
+                                  AUD_MISC_PWRDOWN, SPDIF_RX0, Normal);
+        #endif
 
     #endif /* if defined BAPE_CHIP_SPDIF_INPUT_TYPE_IS_IOPIN */
     #if defined BAPE_CHIP_SPDIF_INPUT_TYPE_IS_LEGACY

@@ -462,6 +462,7 @@ BERR_Code BSPI_OpenChannel(
             BSPI_P_ACQUIRE_UPG_MUTEX( hChnDev );
             BSPI_P_SetClk (hChnDev, pChnDefSettings->baud, pChnDefSettings->clkConfig);
             BSPI_P_RELEASE_UPG_MUTEX( hChnDev );
+            BREG_Write32( hDev->hRegister, (hChnDev->coreOffset + SPI_REG(MSPI_STATUS)), 0);
 
             /*
              * Enable interrupt for this channel

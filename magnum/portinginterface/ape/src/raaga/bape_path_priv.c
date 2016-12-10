@@ -1073,6 +1073,7 @@ BERR_Code BAPE_Connector_P_SetFormat(
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Get number of downstream connections for a connector
@@ -1095,6 +1096,7 @@ unsigned BAPE_Connector_P_GetNumConnections(
 
     return numConnections;
 }
+#endif
 
 /***************************************************************************
 Summary:

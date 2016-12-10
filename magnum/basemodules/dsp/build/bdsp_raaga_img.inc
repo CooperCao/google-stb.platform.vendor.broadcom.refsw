@@ -83,7 +83,8 @@ BDSP_IMG_SOURCES += \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_stask_video_decode.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_stask_video_encode.c \
 	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_apt_generic.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_version.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_version.c \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_pcmwav.c
 
 #################################################################
 #		ADD AUDIO ALGORITHM SUPPORT			#
@@ -645,8 +646,7 @@ endif
 #
 ifneq ($(BDSP_ADPCM_SUPPORT),n)
 BDSP_ADPCM_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_adpcm.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_adpcm.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_adpcm.c
 
 ifneq ($(wildcard $(BDSP_ADPCM_SOURCES)),)
 BDSP_ADPCM_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
@@ -664,8 +664,7 @@ endif
 #
 ifneq ($(BDSP_G711G726_SUPPORT),n)
 BDSP_G711G726_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_g711_g726.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_g711_g726.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_g711_g726.c
 
 ifneq ($(wildcard $(BDSP_G711G726_SOURCES)),)
 BDSP_G711G726_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
@@ -683,8 +682,7 @@ endif
 #
 ifneq ($(BDSP_G729_SUPPORT),n)
 BDSP_G729_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_g729.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_g729.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_g729.c
 
 ifneq ($(wildcard $(BDSP_G729_SOURCES)),)
 BDSP_G729_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
@@ -701,8 +699,7 @@ endif
 #
 ifneq ($(BDSP_G723_1_SUPPORT),n)
 BDSP_G723_1_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_g723_1.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_g723_1.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_g723_1.c
 
 ifneq ($(wildcard $(BDSP_G723_1_SOURCES)),)
 BDSP_G723_1_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
@@ -897,8 +894,7 @@ endif
 #
 ifneq ($(BDSP_AMR_SUPPORT),n)
 BDSP_AMR_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_amr.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_amr.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_amr.c
 
 ifneq ($(wildcard $(BDSP_AMR_SOURCES)),)
 BDSP_AMR_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -915,8 +911,7 @@ endif
 #
 ifneq ($(BDSP_AMRWB_SUPPORT),n)
 BDSP_AMRWB_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_amrwb.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_amrwb.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_amrwb.c
 
 ifneq ($(wildcard $(BDSP_AMRWB_SOURCES)),)
 BDSP_AMRWB_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -933,8 +928,7 @@ endif
 #
 ifneq ($(BDSP_ILBC_SUPPORT),n)
 BDSP_ILBC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ilbc.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_ilbc.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ilbc.c
 
 ifneq ($(wildcard $(BDSP_ILBC_SOURCES)),)
 BDSP_ILBC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)
@@ -951,8 +945,7 @@ endif
 #
 ifneq ($(BDSP_ISAC_SUPPORT),n)
 BDSP_ISAC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_isac.c \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_isac.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_isac.c
 
 ifneq ($(wildcard $(BDSP_ISAC_SOURCES)),)
 BDSP_ISAC_SUPPORT ?= $(BDSP_3RDPARTY_ALGO_SUPPORT)

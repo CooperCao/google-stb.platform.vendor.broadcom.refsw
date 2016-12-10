@@ -681,7 +681,7 @@ static const BGIO_P_PinMux s_aPinMux[] =
     BGIO_P_PIN_MUX_UNUSE(eAsgpio07),
 #elif (BCHP_CHIP==7584) || (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || \
       (BCHP_CHIP==7360) || (BCHP_CHIP==7362) || (BCHP_CHIP==7228) || \
-      (BCHP_CHIP==73625) || (BCHP_CHIP==75845) || (BCHP_CHIP==75525)
+      (BCHP_CHIP==73625) || (BCHP_CHIP==75845)
     BGIO_P_PIN_MUX_ENTRY(eGpio000, SUN_TOP_CTRL_PIN_MUX_CTRL_0, gpio_00, GPIO_00),
     BGIO_P_PIN_MUX_ENTRY(eGpio001, SUN_TOP_CTRL_PIN_MUX_CTRL_0, gpio_01, GPIO_01),
     BGIO_P_PIN_MUX_ENTRY(eGpio002, SUN_TOP_CTRL_PIN_MUX_CTRL_0, gpio_02, GPIO_02),
@@ -4093,7 +4093,7 @@ static const BGIO_P_PinSet s_GioPinSet =
 #elif (BCHP_CHIP==7584)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7552)  || \
       (BCHP_CHIP==7360)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7543)  || \
       (BCHP_CHIP==7362)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==75635) || \
-      (BCHP_CHIP==73625) || (BCHP_CHIP==75845) || (BCHP_CHIP==75525)
+      (BCHP_CHIP==73625) || (BCHP_CHIP==75845)
     BGIO_P_PIN_MUX_SET(eGpio000, eGpio031, eGpio032, eGpio063, eGpio064, eGpio095, eGpio096, eGpio124, eInvalid, eInvalid, eInvalid, eInvalid, 4,  0)
 #elif (BCHP_CHIP==7445)
     BGIO_P_PIN_MUX_SET(eGpio000, eGpio031, eGpio032, eGpio063, eGpio064, eGpio087, eGpio088, eGpio111, eInvalid, eInvalid, eInvalid, eInvalid, 2,  8)

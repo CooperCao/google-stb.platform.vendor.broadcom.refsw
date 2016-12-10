@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -194,6 +194,16 @@ typedef enum BXDM_Picture_BufferType
    BXDM_Picture_BufferType_eMax
 } BXDM_Picture_BufferType;
 
+/* SWSTB-457: the depth of the data within the picture buffer. */
+typedef enum BXDM_Picture_VideoBitDepth
+{
+   BXDM_Picture_VideoBitDepth_e8Bit=8,
+   BXDM_Picture_VideoBitDepth_e9Bit=9,
+   BXDM_Picture_VideoBitDepth_e10Bit=10,
+
+   BXDM_Picture_VideoBitDepth_eMax
+} BXDM_Picture_VideoBitDepth;
+
 /*typedef enum BXDM_Picture_Buffer*/
 
 typedef struct BXDM_Picture_BufferInfo
@@ -203,6 +213,9 @@ typedef struct BXDM_Picture_BufferInfo
 
    BXDM_Picture_BufferType eLumaBufferType;              /* SW7445-744: add support for 10 bit picture buffers. */
    BXDM_Picture_BufferType eChromaBufferType;
+
+   BXDM_Picture_VideoBitDepth eLumaBitDepth;             /* SWSTB-457: the depth of the data within the buffer. */
+   BXDM_Picture_VideoBitDepth eChromaBitDepth;
 
    BMMA_Block_Handle   hLuminanceFrameBufferBlock;        /* See BAVC_MFD_Picture.hLuminanceFrameBufferBlock in bavc.h */
    uint32_t            ulLuminanceFrameBufferBlockOffset; /* See BAVC_MFD_Picture.ulLuminanceFrameBufferBlockOffset in bavc.h */

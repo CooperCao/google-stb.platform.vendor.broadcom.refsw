@@ -49,8 +49,6 @@
 
 #define BHSM_KEYLADDER_HDCP_ROOT_KEY_SOURCE_MASK (0x80)
 
-#define BHSM_BSP_FW_VERSION_VKL_FREE_OWNER_SHIP (4)  /* BFW 4.0.0 or newer. */
-#define BCMD_cmdType_INVALIDATE_VKL   (BCMD_cmdType_eSESSION_INVALIDATE_KEY)
 
 BDBG_MODULE(BHSM);
 
@@ -226,8 +224,6 @@ void BHSM_FreeVKL(  BHSM_Handle   hHsm,
 BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
                               BHSM_InvalidateVkl_t * pConfig )
 {
-#if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-
     BERR_Code           rc = BERR_SUCCESS;
     BHSM_BspMsg_h       hMsg = NULL;
     BHSM_BspMsgHeader_t header;
@@ -239,13 +235,7 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
 
     if( pConfig == NULL )
     {
-        return BERR_TRACE(BHSM_STATUS_FAILED);
-    }
-
-    if (BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2) &&
-        hHsm->firmwareVersion.bseck.major >= BHSM_BSP_FW_VERSION_VKL_FREE_OWNER_SHIP )
-    {
-        return BERR_TRACE (BERR_NOT_SUPPORTED);
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
     if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
@@ -255,29 +245,30 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     }
 
     BHSM_BspMsg_GetDefaultHeader( &header );
-    BHSM_BspMsg_Header( hMsg, BCMD_cmdType_INVALIDATE_VKL, &header );
+
+    #define HSM_INVALIDATE_VKL (BCMD_cmdType_eSESSION_INVALIDATE_KEY)
+    BHSM_BspMsg_Header( hMsg, HSM_INVALIDATE_VKL, &header );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eVKLID, BHSM_RemapVklId(pConfig->virtualKeyLadderID ));
     BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyFlag, BCMD_InvalidateKey_Flag_eSrcKeyOnly );
 
-    if ( pConfig->bInvalidateVkl )
+  #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    if( pConfig->bInvalidateVkl )
     {
-        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eFreeVKLOwnerShip, 1);
-        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1);
+         /* clear all key layers and ownership */
+        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eFreeVKLOwnerShip, 1 );
+        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1 );
+    }
+    else if( pConfig->bInvalidateAllKeyLayers )
+    {
+        /* clear all key layers */
+        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1 );
     }
     else
+  #endif
     {
-        if (pConfig->bInvalidateAllKeyLayers)
-        {
-            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eFreeVKLOwnerShip, 0); /* Keep ownership. */
-            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 1);
-        }
-        else
-        {
-            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eFreeVKLOwnerShip, 0); /* Keep owership. */
-            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eAllKeyLayer, 0);      /* Not invalidate all layers. */
-            BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyLayer, pConfig->keyLayer );
-        }
+        /* clear single key layer */
+        BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyLayer, pConfig->keyLayer );
     }
 
     rc = BHSM_BspMsg_SubmitCommand( hMsg );
@@ -304,11 +295,6 @@ BHSM_P_DONE_LABEL:
 
     BDBG_LEAVE(BHSM_InvalidateVKL);
     return rc;
-#else
-	BSTD_UNUSED( hHsm ) ;
-	BSTD_UNUSED( pConfig );
-	return BERR_TRACE( BHSM_NOT_SUPPORTED_ERR );
-#endif /* if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2) */
 }
 
 BERR_Code BHSM_GenerateRouteKey(

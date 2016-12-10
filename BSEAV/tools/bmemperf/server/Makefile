@@ -136,16 +136,13 @@ $(BINDIR)/bmemperf_info.c :
 ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
     ### memc_0_default_config.h files was extracted from 74xxb0_single_encode_RefSW_RTS.docx document which was found on 74xx Twiki page
 	@echo [Parsing for 40nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)];
-	@if [ -a ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  ] ; then \
-		awk -f ../include/bmemperf_info_pre.awk Makefile > $(BINDIR)/bmemperf_info.c; \
-		awk -f ../include/bmemperf_info_40nm.awk ../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  >> $(BINDIR)/bmemperf_info.c || echo [Awk done]; \
-		awk -f ../include/bmemperf_info_post.awk $(BINDIR)/bmemperf_info.c > $(BINDIR)/bmemperf_info.tmp || echo [Awk done]; \
-		cat $(BINDIR)/bmemperf_info.tmp >> $(BINDIR)/bmemperf_info.c; \
-		rm $(BINDIR)/bmemperf_info.tmp; \
-	else \
-		printf "\nERROR ... file ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h does not exist\n\n"; \
-		exit 1; \
-	fi
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || awk -f ../include/bmemperf_info_pre.awk Makefile > $(BINDIR)/bmemperf_info.c;
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || awk -f ../include/bmemperf_info_40nm.awk ../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  >> $(BINDIR)/bmemperf_info.c || echo [Awk done];
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || awk -f ../include/bmemperf_info_post.awk $(BINDIR)/bmemperf_info.c > $(BINDIR)/bmemperf_info.tmp || echo [Awk done];
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || cat $(BINDIR)/bmemperf_info.tmp >> $(BINDIR)/bmemperf_info.c;
+	@test ! -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || rm $(BINDIR)/bmemperf_info.tmp;
+	@test   -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || printf "\nERROR ... file ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h does not exist\n\n";
+	@test   -f ${NEXUS_TOP}/../${B_THIS_DIR}/../$(BCHP_CHIP)/$(BCHP_VER_LOWER)/memc_0_default_config.h  || exit 1;
 else
 	@echo [Parsing for 28nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)]
 	@awk -f ../include/bmemperf_info_pre.awk Makefile > $(BINDIR)/bmemperf_info.c
@@ -159,7 +156,7 @@ bmemperf_server: bmemperf_server.c ../common/bmemperf_utils.c ../common/bmemperf
 	@echo [Compiling ... $@]
 	@$(CC) $(APP_CFLAGS) -o $(BINDIR)/bmemperf_server bmemperf_server.c ../common/bmemperf_api.c ../common/bmemperf.c ../common/bmemperf_utils.c ../common/bmemperf_lib.c $(BINDIR)/bmemperf_info.c
 ### if the server built successfully, delete temporary info file; otherwise leave it to help with debugging
-	@if [ -a $(BINDIR)/bmemperf_server ] ; then $(RM) $(BINDIR)/bmemperf_info.c; fi
+	@test ! -f $(BINDIR)/bmemperf_server || rm -f $(BINDIR)/bmemperf_info.c
 ifeq ($(ANDROID_BUILD),y)
 	@cp device_node.cfg ${BINDIR}
 endif

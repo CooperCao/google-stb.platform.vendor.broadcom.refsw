@@ -284,51 +284,57 @@ static void build_switch_statement(builder_context_t *ctx, const NStmt *stmt)
 
 static void build_iterator_statement(builder_context_t *ctx, const NStmt *stmt)
 {
+   bool has_pre_cond  = (stmt->u.iterator.pre_cond_stmts  || stmt->u.iterator.pre_cond_expr);
    bool has_post_cond = (stmt->u.iterator.post_cond_stmts || stmt->u.iterator.post_cond_expr);
-   Dataflow *scalar_value;
-   BasicBlock *pre_cond_block = glsl_basic_block_construct();
-   BasicBlock *body_block = glsl_basic_block_construct();
-   BasicBlock *post_cond_block = glsl_basic_block_construct();
-   BasicBlock *iter_block = glsl_basic_block_construct();
-   BasicBlock *end_block = glsl_basic_block_construct();
-   glsl_basic_block_list_add(&ctx->break_targets, end_block);
-   glsl_basic_block_list_add(&ctx->continue_targets, post_cond_block);
+   BasicBlock *pre_cond_block  = has_pre_cond  ? glsl_basic_block_construct() : NULL;
+   BasicBlock *post_cond_block = has_post_cond ? glsl_basic_block_construct() : NULL;
+   BasicBlock *body_block      = glsl_basic_block_construct();
+   BasicBlock *iter_block      = glsl_basic_block_construct();
+   BasicBlock *end_block       = glsl_basic_block_construct();
 
-   basic_block_end(ctx, NULL, NULL, pre_cond_block);
+   BasicBlock *loop_head = has_pre_cond  ? pre_cond_block  : body_block;
+   BasicBlock *loop_next = has_post_cond ? post_cond_block : iter_block;
+
+   glsl_basic_block_list_add(&ctx->break_targets,    end_block);
+   glsl_basic_block_list_add(&ctx->continue_targets, loop_next);
+
+   basic_block_end(ctx, NULL, NULL, loop_head);
 
    // Loop pre-condition
-   basic_block_start(ctx, pre_cond_block);
-   build_statement_list(ctx, stmt->u.iterator.pre_cond_stmts);
-   if (stmt->u.iterator.pre_cond_expr) {
-      glsl_expr_calculate_dataflow(ctx->current_basic_block, &scalar_value, stmt->u.iterator.pre_cond_expr);
-   } else {
-      scalar_value = glsl_dataflow_construct_const_bool(true);
+   if (has_pre_cond) {
+      basic_block_start(ctx, pre_cond_block);
+      build_statement_list(ctx, stmt->u.iterator.pre_cond_stmts);
+      Dataflow *cond_scalar;
+      if (stmt->u.iterator.pre_cond_expr) {
+         glsl_expr_calculate_dataflow(ctx->current_basic_block, &cond_scalar, stmt->u.iterator.pre_cond_expr);
+      } else {
+         cond_scalar = glsl_dataflow_construct_const_bool(true);
+      }
+      basic_block_end(ctx, cond_scalar, body_block, end_block);
    }
-   basic_block_end(ctx, scalar_value, body_block, end_block);
 
    // Loop body
    basic_block_start(ctx, body_block);
    build_statement_list(ctx, stmt->u.iterator.body);
-   basic_block_end(ctx, NULL, NULL, has_post_cond ? post_cond_block : iter_block);
+   basic_block_end(ctx, NULL, NULL, loop_next);
 
    // Loop post-condition
-   basic_block_start(ctx, post_cond_block);
    if (has_post_cond) {
+      basic_block_start(ctx, post_cond_block);
       build_statement_list(ctx, stmt->u.iterator.post_cond_stmts);
+      Dataflow *cond_scalar;
       if (stmt->u.iterator.post_cond_expr) {
-         glsl_expr_calculate_dataflow(ctx->current_basic_block, &scalar_value, stmt->u.iterator.post_cond_expr);
+         glsl_expr_calculate_dataflow(ctx->current_basic_block, &cond_scalar, stmt->u.iterator.post_cond_expr);
       } else {
-         scalar_value = glsl_dataflow_construct_const_bool(true);
+         cond_scalar = glsl_dataflow_construct_const_bool(true);
       }
-      basic_block_end(ctx, scalar_value, iter_block, end_block);
-   } else {
-      basic_block_end(ctx, glsl_dataflow_construct_const_bool(true), iter_block, end_block);
+      basic_block_end(ctx, cond_scalar, iter_block, end_block);
    }
 
    // Loop increment
    basic_block_start(ctx, iter_block);
    build_statement_list(ctx, stmt->u.iterator.increment);
-   basic_block_end(ctx, NULL, NULL, pre_cond_block);
+   basic_block_end(ctx, NULL, NULL, loop_head);
 
    glsl_basic_block_list_pop(&ctx->break_targets);
    glsl_basic_block_list_pop(&ctx->continue_targets);

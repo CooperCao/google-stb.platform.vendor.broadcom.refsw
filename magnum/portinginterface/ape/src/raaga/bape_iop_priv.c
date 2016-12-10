@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -385,6 +385,7 @@ void BAPE_P_UninitIopSw(BAPE_Handle handle)
         BKNI_Memset(handle->dummysinkGroups, 0, sizeof(handle->dummysinkGroups));
     }
 }
+
 
 void BAPE_Iop_P_GetStreamSettings(
     BAPE_Handle handle,

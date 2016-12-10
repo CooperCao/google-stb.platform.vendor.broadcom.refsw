@@ -573,7 +573,7 @@ NEXUS_SatDevice *NEXUS_Frontend_P_Sat_Create_Device(const NEXUS_FrontendSatDevic
 
     BDBG_ASSERT(NULL != pSettings);
 
-    pSatDevice = BKNI_Malloc(sizeof(NEXUS_SatChannel));
+    pSatDevice = BKNI_Malloc(sizeof(*pSatDevice));
     if ( NULL == pSatDevice )
     {
         errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);

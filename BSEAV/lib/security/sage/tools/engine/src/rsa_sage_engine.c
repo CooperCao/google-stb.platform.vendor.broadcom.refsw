@@ -53,6 +53,7 @@
 #include "blst_list.h"
 #include "rsa_sage_engine.h"
 #include "utility_ids.h"
+#include "bsagelib_types.h"
 #include "bsagelib_crypto_types.h"
 #include "rsa_tl.h"
 

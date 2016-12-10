@@ -944,14 +944,11 @@ static Dataflow *simplify_ternary_op (DataflowFlavour flavour, Dataflow *cond, D
       }
    }
 
-   if (cond->flavour == DATAFLOW_LOGICAL_NOT) {
+   if (cond->flavour == DATAFLOW_LOGICAL_NOT)
       return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
                                                 cond->d.unary_op.operand,
                                                 false_value,
                                                 true_value);
-   }
-
-   /* TODO: consider replacing this with proper tracking of guarding predicates in back end */
 
    if (true_value->flavour == DATAFLOW_CONDITIONAL && true_value->d.cond_op.cond == cond)
       return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
@@ -963,6 +960,40 @@ static Dataflow *simplify_ternary_op (DataflowFlavour flavour, Dataflow *cond, D
                                                 cond,
                                                 true_value,
                                                 false_value->d.cond_op.false_value);
+
+   if (false_value->flavour == DATAFLOW_CONDITIONAL && false_value->d.cond_op.true_value->flavour == DATAFLOW_CONDITIONAL && false_value->d.cond_op.true_value->d.cond_op.cond == cond)
+   {
+      return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                cond,
+                                                true_value,
+                                                glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                                                   false_value->d.cond_op.cond,
+                                                                                   false_value->d.cond_op.true_value->d.cond_op.false_value,
+                                                                                   false_value->d.cond_op.false_value));
+   }
+
+   if (false_value->flavour == DATAFLOW_CONDITIONAL && false_value->d.cond_op.false_value->flavour == DATAFLOW_CONDITIONAL && false_value->d.cond_op.false_value->d.cond_op.cond == cond)
+   {
+      return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                cond,
+                                                true_value,
+                                                glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                                                   false_value->d.cond_op.cond,
+                                                                                   false_value->d.cond_op.true_value,
+                                                                                   false_value->d.cond_op.false_value->d.cond_op.false_value));
+   }
+   if (false_value->flavour == DATAFLOW_CONDITIONAL && false_value->d.cond_op.true_value->flavour == DATAFLOW_ADD && false_value->d.cond_op.true_value->d.binary_op.left->flavour == DATAFLOW_CONDITIONAL && false_value->d.cond_op.true_value->d.binary_op.left->d.cond_op.cond == cond)
+   {
+      Dataflow *add_val = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, false_value->d.cond_op.true_value->d.binary_op.left->d.cond_op.false_value, false_value->d.cond_op.true_value->d.binary_op.right);
+      return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                cond,
+                                                true_value,
+                                                glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL,
+                                                                                   false_value->d.cond_op.cond,
+                                                                                   add_val,
+                                                                                   false_value->d.cond_op.false_value));
+   }
+
 
    return NULL;
 }

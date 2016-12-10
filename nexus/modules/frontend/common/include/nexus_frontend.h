@@ -1082,11 +1082,18 @@ typedef struct NEXUS_FrontendDeviceTerrestrialSettings
     bool dummy;
 } NEXUS_FrontendDeviceTerrestrialSettings;
 
+typedef enum NEXUS_FrontendLoopthroughGain {
+    NEXUS_FrontendLoopthroughGain_eLow,     /* lower gain mode on loopthrough output */
+    NEXUS_FrontendLoopthroughGain_eHigh,    /* high gain mode on loopthrough output */
+    NEXUS_FrontendLoopthroughGain_eMax
+} NEXUS_FrontendLoopthroughGain;
+
 typedef struct NEXUS_FrontendDeviceSettings
 {
     NEXUS_TunerRfInput rfInput;              /* Determines how Rf is input to the tuner. */
     NEXUS_RfDaisyChain rfDaisyChain;         /* Determines if the Rf daisychain is on/off/uses internal LNA/ does not use internal LNA. */
     bool enableRfLoopThrough;                /* True = Enables RF loop through. */
+    NEXUS_FrontendLoopthroughGain loopthroughGain; /* Loopthrough gain output. This is frontend chip-specific. */
     NEXUS_FrontendDeviceCableSettings cable;
 
 } NEXUS_FrontendDeviceSettings;

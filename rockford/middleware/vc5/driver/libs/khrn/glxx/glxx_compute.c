@@ -914,6 +914,11 @@ static bool dispatch_compute_volume(
    v3d_cl_nop(&cl);
    khrn_fmem_end_cle_exact(&rs->fmem, cl);
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   /* If using flow control, then driver needs to work around GFXH-1181. */
+   rs->fmem.br_info.render_workaround_gfxh_1181 |= link_data->render_uses_control_flow;
+#endif
+
    ok = true;
 end:
    khrn_render_state_allow_flush((KHRN_RENDER_STATE_T*)rs);

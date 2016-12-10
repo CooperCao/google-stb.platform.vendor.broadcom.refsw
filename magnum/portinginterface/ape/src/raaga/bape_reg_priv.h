@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: APE Register Routines
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef BAPE_REG_PRIV_H_
 #define BAPE_REG_PRIV_H_
@@ -41,24 +61,36 @@
 
 /* Update registers based on address, mask, value */
 #define BAPE_Reg_P_Update(hApe, regAddr, regMask, regVal) (BREG_Write32((hApe)->regHandle, (regAddr), (BREG_Read32((hApe)->regHandle, (regAddr)) & ~(regMask)) | (regVal)))
+#if !B_REFSW_MINIMAL
 #define BAPE_Reg_P_UpdateAtomic(hApe, regAddr, regMask, regVal) (BREG_AtomicUpdate32((hApe)->regHandle, regAddr, regMask, regVal))
+#endif
 
 #define BAPE_Reg_P_Update_isr(hApe, regAddr, regMask, regVal) (BREG_Write32_isr((hApe)->regHandle, (regAddr), (BREG_Read32_isr((hApe)->regHandle, (regAddr)) & ~(regMask)) | (regVal)))
+#if !B_REFSW_MINIMAL
 #define BAPE_Reg_P_UpdateAtomic_isr(hApe, regAddr, regMask, regVal) (BREG_AtomicUpdate32_isr((hApe)->regHandle, regAddr, regMask, regVal))
+#endif
 
 /* Update single field of a register */
 #define BAPE_Reg_P_UpdateField(hApe, regAddr, regName, fieldName, fieldData) (BAPE_Reg_P_Update(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_DATA(regName, fieldName, fieldData)))
+#if !B_REFSW_MINIMAL
 #define BAPE_Reg_P_UpdateFieldAtomic(hApe, regAddr, regName, fieldName, fieldData) (BAPE_Reg_P_UpdateAtomic(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_DATA(regName, fieldName, fieldData)))
+#endif
 
 #define BAPE_Reg_P_UpdateField_isr(hApe, regAddr, regName, fieldName, fieldData) (BAPE_Reg_P_Update_isr(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_DATA(regName, fieldName, fieldData)))
+#if !B_REFSW_MINIMAL
 #define BAPE_Reg_P_UpdateFieldAtomic_isr(hApe, regAddr, regName, fieldName, fieldData) (BAPE_Reg_P_UpdateAtomic_isr(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_DATA(regName, fieldName, fieldData)))
+#endif
 
 /* Update single enum field of a register */
 #define BAPE_Reg_P_UpdateEnum(hApe, regAddr, regName, fieldName, fieldEnumVal) (BAPE_Reg_P_Update(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_ENUM(regName, fieldName, fieldEnumVal)))
+#if !B_REFSW_MINIMAL
 #define BAPE_Reg_P_UpdateEnumAtomic(hApe, regAddr, regName, fieldName, fieldEnumVal) (BAPE_Reg_P_UpdateAtomic(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_ENUM(regName, fieldName, fieldEnumVal)))
+#endif
 
 #define BAPE_Reg_P_UpdateEnum_isr(hApe, regAddr, regName, fieldName, fieldEnumVal) (BAPE_Reg_P_Update_isr(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_ENUM(regName, fieldName, fieldEnumVal)))
+#if !B_REFSW_MINIMAL
 #define BAPE_Reg_P_UpdateEnumAtomic_isr(hApe, regAddr, regName, fieldName, fieldEnumVal) (BAPE_Reg_P_UpdateAtomic_isr(hApe, regAddr, BCHP_MASK(regName, fieldName), BCHP_FIELD_ENUM(regName, fieldName, fieldEnumVal)))
+#endif
 
 /* Create some wrapper macros for the BCHP_ field macros.
    This is needed to allow for macro-expansion of arguments.
@@ -104,9 +136,13 @@ void BAPE_Reg_P_AddMaskValueToFieldList_isrsafe(BAPE_Reg_P_FieldList *pFieldList
 
 /* Apply field list to a register */
 void BAPE_Reg_P_ApplyFieldList(BAPE_Reg_P_FieldList *pFieldList, uint32_t address);
+#if !B_REFSW_MINIMAL
 void BAPE_Reg_P_ApplyFieldListAtomic(BAPE_Reg_P_FieldList *pFieldList, uint32_t address);
+#endif
 
 void BAPE_Reg_P_ApplyFieldList_isr(BAPE_Reg_P_FieldList *pFieldList, uint32_t address);
+#if !B_REFSW_MINIMAL
 void BAPE_Reg_P_ApplyFieldListAtomic_isr(BAPE_Reg_P_FieldList *pFieldList, uint32_t address);
+#endif
 
 #endif /* !defined BAPE_REG_PRIV_H_ */

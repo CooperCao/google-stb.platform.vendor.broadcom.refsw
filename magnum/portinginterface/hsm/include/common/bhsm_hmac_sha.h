@@ -81,6 +81,12 @@ typedef enum
 
 }BHSM_HMACSHA_KeyInclusion_e;
 
+typedef enum
+{
+    BHSM_HMACSHA_DataSource_eCmdBuff = 0,
+    BHSM_HMACSHA_DataSource_eDRAM    = 1
+}BHSM_HMACSHA_DataSource_e;
+
 
 typedef struct BHSM_UserHmacShaIO
 {
@@ -113,6 +119,7 @@ typedef struct BHSM_UserHmacShaIO
     uint8_t                      aucOutputDigest[BHSM_HMACSHA_DIGEST_LEN];  /* Out: SHA or HMAC digest, big endian */
 
     /* DEPRECATED Not used. */
+    BHSM_HMACSHA_DataSource_e    dataSource;   /* DEPRECATED */
     bool                         systemMemory; /* DEPRECATED */
     bool                         byteSwap;     /* DEPRECATED */
     uint32_t                     unStatus;     /* DEPRECATED */

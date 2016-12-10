@@ -396,35 +396,27 @@ extern const void * BDSP_IMG_mp3_encode_inter_frame[];
 #endif
 
 #ifdef BDSP_AMR_SUPPORT
-extern const void * BDSP_IMG_amr_ids[];
 extern const void * BDSP_IMG_amr_decode[];
 extern const void * BDSP_IMG_amr_decode_tables[];
 extern const void * BDSP_IMG_amr_decode_inter_frame[];
-extern const void * BDSP_IMG_amr_ids_inter_frame[];
 #endif
 
 #ifdef BDSP_AMRWB_SUPPORT
-extern const void * BDSP_IMG_amrwb_ids[];
 extern const void * BDSP_IMG_amrwb_decode[];
 extern const void * BDSP_IMG_amrwb_decode_tables[];
 extern const void * BDSP_IMG_amrwb_decode_inter_frame[];
-extern const void * BDSP_IMG_amrwb_ids_inter_frame[];
 #endif
 
 #ifdef BDSP_ILBC_SUPPORT
-extern const void * BDSP_IMG_ilbc_ids[];
 extern const void * BDSP_IMG_ilbc_decode[];
 extern const void * BDSP_IMG_ilbc_decode_tables[];
 extern const void * BDSP_IMG_ilbc_decode_inter_frame[];
-extern const void * BDSP_IMG_ilbc_ids_inter_frame[];
 #endif
 
 #ifdef BDSP_ISAC_SUPPORT
-extern const void * BDSP_IMG_isac_ids[];
 extern const void * BDSP_IMG_isac_decode[];
 extern const void * BDSP_IMG_isac_decode_tables[];
 extern const void * BDSP_IMG_isac_decode_inter_frame[];
-extern const void * BDSP_IMG_isac_ids_inter_frame[];
 #endif
 
 #ifdef BDSP_UDC_SUPPORT
@@ -542,11 +534,9 @@ extern const void * BDSP_IMG_custom_acf_inter_frame [];
 #endif
 
 #ifdef  BDSP_ADPCM_SUPPORT
-extern const void * BDSP_IMG_adpcm_ids[];
 extern const void * BDSP_IMG_adpcm_decode [];
 extern const void * BDSP_IMG_adpcm_decode_tables [];
 extern const void * BDSP_IMG_adpcm_decode_inter_frame [];
-extern const void * BDSP_IMG_adpcm_ids_inter_frame[];
 #endif
 
 #ifdef BDSP_GENCDBITB_SUPPORT
@@ -600,26 +590,20 @@ extern const void *BDSP_IMG_vp6_decode_inter_frame[];
 #endif
 
 #ifdef BDSP_G711G726_SUPPORT
-extern const void *BDSP_IMG_g711_g726_ids[];
 extern const void *BDSP_IMG_g711_g726_decode[];
 extern const void *BDSP_IMG_g711_g726_decode_tables[];
-extern const void *BDSP_IMG_g711_g726_ids_inter_frame[];
 extern const void *BDSP_IMG_g711_g726_decode_inter_frame[];
 #endif
 
 #ifdef BDSP_G729_SUPPORT
-extern const void *BDSP_IMG_g729_ids[];
 extern const void *BDSP_IMG_g729_decode[];
 extern const void *BDSP_IMG_g729_decode_tables[];
-extern const void *BDSP_IMG_g729_ids_inter_frame[];
 extern const void *BDSP_IMG_g729_decode_inter_frame[];
 #endif
 
 #ifdef BDSP_G723_1_SUPPORT
-extern const void *BDSP_IMG_g723_1_ids[];
 extern const void *BDSP_IMG_g723_1_decode[];
 extern const void *BDSP_IMG_g723_1_decode_tables[];
-extern const void *BDSP_IMG_g723_1_ids_inter_frame[];
 extern const void *BDSP_IMG_g723_1_decode_inter_frame[];
 #endif
 
@@ -1018,10 +1002,7 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_ePcmWavFrameSync):           return BDSP_IMG_pcmwav_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_ePcmWavFrameSync):         return BDSP_IMG_pcmwav_ids_inter_frame;
     #endif
-    #ifdef BDSP_AMR_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eAmrFrameSync):              return BDSP_IMG_amr_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eAmrFrameSync):            return BDSP_IMG_amr_ids_inter_frame;
-    #endif
+
     #ifdef  BDSP_DRA_PASSTHRU_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eDraFrameSync):              return BDSP_IMG_dra_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eDraFrameSync):            return BDSP_IMG_dra_ids_inter_frame;
@@ -1034,26 +1015,12 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eMs10DdpFrameSync):          return BDSP_IMG_ddp_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eMs10DdpFrameSync):        return BDSP_IMG_ddp_ids_inter_frame;
     #endif
-    #ifdef BDSP_ADPCM_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eAdpcmFrameSync):            return BDSP_IMG_adpcm_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eAdpcmFrameSync):          return BDSP_IMG_adpcm_ids_inter_frame;
-    #endif
-    #ifdef BDSP_G711G726_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eG711G726FrameSync):         return BDSP_IMG_g711_g726_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eG711G726FrameSync):       return BDSP_IMG_g711_g726_ids_inter_frame;
-    #endif
-    #ifdef BDSP_G729_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eG729FrameSync):             return BDSP_IMG_g729_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eG729FrameSync):           return BDSP_IMG_g729_ids_inter_frame;
-    #endif
+
     #ifdef BDSP_VORBIS_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eVorbisFrameSync):           return BDSP_IMG_vorbis_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eVorbisFrameSync):         return BDSP_IMG_vorbis_ids_inter_frame;
     #endif
-    #ifdef BDSP_G723_1_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eG723_1FrameSync):           return BDSP_IMG_g723_1_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eG723_1FrameSync):         return BDSP_IMG_g723_1_ids_inter_frame;
-    #endif
+
     #ifdef BDSP_FLAC_SUPPORT
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eFlacFrameSync):             return BDSP_IMG_flac_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eFlacFrameSync):           return BDSP_IMG_flac_ids_inter_frame;
@@ -1062,18 +1029,7 @@ static void *BDSP_IMG_P_GetArray(unsigned imgId)
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eMacFrameSync):              return BDSP_IMG_mac_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eMacFrameSync):            return BDSP_IMG_mac_ids_inter_frame;
     #endif
-    #ifdef BDSP_AMRWB_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eAmrWbFrameSync):            return BDSP_IMG_amrwb_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eAmrWbFrameSync):          return BDSP_IMG_amrwb_ids_inter_frame;
-    #endif
-    #ifdef BDSP_ILBC_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eiLBCFrameSync):             return BDSP_IMG_ilbc_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eiLBCFrameSync):           return BDSP_IMG_ilbc_ids_inter_frame;
-    #endif
-    #ifdef BDSP_ISAC_SUPPORT
-    case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eiSACFrameSync):             return BDSP_IMG_isac_ids;
-    case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eiSACFrameSync):           return BDSP_IMG_isac_ids_inter_frame;
-    #endif
+
     #if defined (BDSP_UDC_SUPPORT) || defined (BDSP_UDC_PASSTHRU_SUPPORT)
     case BDSP_IMG_ID_CODE(BDSP_AF_P_AlgoId_eUdcFrameSync):             return BDSP_IMG_udc_ids;
     case BDSP_IMG_ID_IFRAME(BDSP_AF_P_AlgoId_eUdcFrameSync):           return BDSP_IMG_udc_ids_inter_frame;

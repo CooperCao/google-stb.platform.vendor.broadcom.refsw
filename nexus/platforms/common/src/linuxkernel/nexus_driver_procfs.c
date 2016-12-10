@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2009-2013 Broadcom Corporation
+ *  Copyright (C) 2009-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -110,7 +110,7 @@ static const char * const lvl_str[BDBG_P_eLastEntry] = {
 
 #define NEXUS_P_PROC_DATA_MAX   32
 
-static nexus_driver_proc_data g_proc_data[NEXUS_P_PROC_DATA_MAX] = {{NULL, NULL, NULL, NULL, NULL, NULL, 0}};
+static nexus_driver_proc_data g_proc_data[NEXUS_P_PROC_DATA_MAX] = {{NULL, NULL, NULL, NULL, NULL}};
 
 
 void brcm_bdbg_callback(void *ctx, const char *module, BDBG_Instance instance, const char *inst_name)
@@ -175,7 +175,7 @@ static int brcm_proc_debug_read(char *buf, char **start, off_t off,
     return len;
 }
 #else
-static int brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
+static ssize_t brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
 {
     int len;
     static struct {
@@ -213,7 +213,7 @@ static int brcm_proc_debug_read(struct file *fp,char *buf,size_t bufsize, loff_t
 static int brcm_proc_debug_write(struct file * file, const char *buffer, unsigned long count,
     void *data)
 #else
-static int brcm_proc_debug_write(struct file *file, const char __user *buffer, size_t count,
+static ssize_t brcm_proc_debug_write(struct file *file, const char __user *buffer, size_t count,
     loff_t *data)
 #endif
 {
@@ -271,7 +271,7 @@ end:
 static int brcm_proc_config_read(char *buf, char **start, off_t off,
                           int bufsize, int *eof, void *unused)
 #else
-static int brcm_proc_config_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
+static ssize_t brcm_proc_config_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
 #endif
 {
     /* currently no way to read the full list */
@@ -283,17 +283,16 @@ static int brcm_proc_config_read(struct file *fp,char *buf,size_t bufsize, loff_
 static int brcm_proc_config_write(struct file * file, const char *buffer, unsigned long count,
     void *data)
 #else
-static int brcm_proc_config_write(struct file *file, const char __user *buffer, size_t count,
+static ssize_t brcm_proc_config_write(struct file *file, const char __user *buffer, size_t count,
     loff_t *data)
 #endif
 {
-#define WHITESPACE " \t\n="
+    static const char whitespace[] = " \t\n=";
     char *value;
-#define MAX 64
-    char name[MAX+1];
+    char name[64+1];
 
-    if(count > MAX)
-        count = MAX;
+    if(count > sizeof(name)-1)
+        count = sizeof(name)-1;
 
     if (copy_from_user(name, buffer, count))
     {
@@ -305,7 +304,7 @@ static int brcm_proc_config_write(struct file *file, const char __user *buffer, 
     if (count && name[count-1] == '\n')
         name[count - 1] = 0;
 
-    value = strpbrk(name, WHITESPACE);
+    value = strpbrk(name, whitespace);
     /* NULL is OK to clear the value */
     if (value) {
         *value++ = 0;
@@ -323,6 +322,18 @@ end:
     return count;
 }
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
+static struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent, const char *name, read_proc_t * read, write_proc_t *write, void *context)
+{
+    struct proc_dir_entry *entry;
+    entry = create_proc_entry(name, S_IFREG|S_IRUGO, parent);
+    if (!entry) return NULL;
+    entry->read_proc = read;
+    entry->write_proc = write;
+    entry->data = context;
+    return entry;
+}
+#else /* #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0) */
 #if BDBG_DEBUG_BUILD
 static const struct file_operations read_fops_debug = {
 read:   brcm_proc_debug_read,
@@ -334,20 +345,12 @@ read:   brcm_proc_config_read,
 write:  brcm_proc_config_write
 };
 
-struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent, const char *name, const struct file_operations *fops, void *context)
+static struct proc_dir_entry *nexus_p_create_proc(struct proc_dir_entry *parent, const char *name, const struct file_operations *fops, void *context)
 {
-    struct proc_dir_entry *entry;
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-    entry = create_proc_entry(name, S_IFREG|S_IRUGO, parent);
-    if (!entry) return NULL;
-    entry->read_proc = fops->read;
-    entry->write_proc = fops->write;
-    entry->data = context;
-    return entry;
-#else
     return proc_create_data(name, S_IFREG|S_IRUGO, parent, fops, context);
-#endif
 }
+
+#endif /* #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0) */
 
 int nexus_driver_proc_init(void)
 {
@@ -363,11 +366,23 @@ int nexus_driver_proc_init(void)
     if (!brcm_dir_entry) goto error;
 
 #if BDBG_DEBUG_BUILD
-    brcm_debug_entry = nexus_p_create_proc(brcm_dir_entry, "debug", &read_fops_debug, NULL);
+    brcm_debug_entry = nexus_p_create_proc(brcm_dir_entry, "debug",
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
+                        brcm_proc_debug_read, brcm_proc_debug_write,
+#else
+                        &read_fops_debug,
+#endif
+                        NULL);
     if (!brcm_debug_entry) goto error;
 #endif
 
-    brcm_config_entry = nexus_p_create_proc(brcm_dir_entry, "config", &read_fops_config, NULL);
+    brcm_config_entry = nexus_p_create_proc(brcm_dir_entry, "config",
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
+                        brcm_proc_config_read, brcm_proc_config_write,
+#else
+                        &read_fops_config,
+#endif
+                        NULL);
     if (!brcm_config_entry) goto error;
 
     return 0;
@@ -485,7 +500,7 @@ brcm_proc_dbgprint_capture(
 static int brcm_proc_dbgprint_read(char *buf, char **start, off_t off,
                           int bufsize, int *eof, void *data)
 #else
-static int brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
+static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize, loff_t *offp )
 #endif
 {
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
@@ -552,11 +567,13 @@ static int brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize, lof
     #endif
     return NEXUS_P_ProcFsState.first.wptr;
 }
-
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
+#else
 static const struct file_operations read_fops_dbgprint = {
 read:   brcm_proc_dbgprint_read
 };
 #endif
+#endif /* #if BDBG_DEBUG_BUILD */
 
 int nexus_driver_proc_register_status(const char *filename, NEXUS_ModuleHandle handle, const char *dbg_module_name, void (*callback)(void *context), void *context)
 {
@@ -578,7 +595,13 @@ int nexus_driver_proc_register_status(const char *filename, NEXUS_ModuleHandle h
         i = NEXUS_P_PROC_DATA_MAX-1;
     }
 
-    p = nexus_p_create_proc(brcm_dir_entry, filename, &read_fops_dbgprint, &g_proc_data[i]);
+    p = nexus_p_create_proc(brcm_dir_entry, filename,
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
+            brcm_proc_dbgprint_read, NULL,
+#else
+            &read_fops_dbgprint,
+#endif
+            &g_proc_data[i]);
     if (!p) { g_proc_data[i].filename = NULL; return -1; }
 #endif
     return 0;

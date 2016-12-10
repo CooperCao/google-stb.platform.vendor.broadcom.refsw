@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2015 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,9 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #include "bstd.h"
 #include "bdbg.h"
@@ -46,6 +45,7 @@
 #include "drm_common_tl.h"
 #include "drm_common_command_ids.h"
 #include "drm_edrm_tl.h"
+#include "drm_data.h"
 
 #include "bsagelib_types.h"
 #include "sage_srai.h"
@@ -79,9 +79,10 @@ DRM_EdrmTl_Initialize(
     DRM_EdrmTlHandle *hEdrmTl)
 {
     DrmRC rc = Drm_Success;
-    DrmCommonInit_t drmCmnInit = {NULL};
+    DrmCommonInit_TL_t drmCmnInit;
     DRM_DrmEdrmTl_P_Context_t        *handle=NULL;
     BSAGElib_InOutContainer *container = NULL;
+    ChipType_e chip_type;
 
     BDBG_ENTER(DRM_EdrmTl_Initialize);
     if ( !hEdrmTl || !key_file )
@@ -98,6 +99,33 @@ DRM_EdrmTl_Initialize(
         BDBG_ERR(("%s -  Error Allocating drm Memory for context", __FUNCTION__));
         goto ErrorExit;
     }
+    drmCmnInit.drmCommonInit.heap = NULL;
+#ifdef USE_UNIFIED_COMMON_DRM
+    drmCmnInit.drmType = 0;
+#else
+    drmCmnInit.drmType = BSAGElib_BinFileDrmType_eEdrm;
+#endif
+    chip_type = DRM_Common_GetChipType();
+#if USE_UNIFIED_COMMON_DRM
+    if(chip_type == ChipType_eZS)
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_dev_bin_file_path();
+    }
+    else
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_bin_file_path();
+    }
+#else
+    if(chip_type == ChipType_eZS)
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_edrm_dev_bin_file_path();
+    }
+    else
+    {
+        drmCmnInit.ta_bin_file_path = bdrm_get_ta_edrm_bin_file_path();
+    }
+#endif
+    BDBG_MSG(("%s TA bin file %s ",__FUNCTION__, drmCmnInit.ta_bin_file_path));
 
     rc = DRM_Common_TL_Initialize(&drmCmnInit);
     if (rc != Drm_Success)
@@ -116,7 +144,11 @@ DRM_EdrmTl_Initialize(
 
     /* Initialize SAGE Edrm module */
     handle->moduleHandle = NULL;
-    rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eEdrm, (char *)key_file, container, &(handle->moduleHandle));
+#if USE_UNIFIED_COMMON_DRM
+    rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eEdrm,(char *)key_file, container, &(handle->moduleHandle));
+#else
+    rc = DRM_Common_TL_ModuleInitialize_TA(Common_Platform_eDrm, Edrm_ModuleId_eDRM, (char *)key_file, container, &(handle->moduleHandle));
+#endif
     if (rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, container->basicOut[0]));
@@ -152,9 +184,18 @@ void DRM_EdrmTl_Finalize(DRM_EdrmTlHandle hEdrmTl)
 
     if (ctx != NULL)
     {
+
+#ifdef USE_UNIFIED_COMMON_DRM
         DRM_Common_TL_ModuleFinalize(ctx->moduleHandle);
+#else
+        DRM_Common_TL_ModuleFinalize_TA(Common_Platform_eDrm,ctx->moduleHandle);
+#endif
         DRM_Common_MemoryFree((uint8_t *)ctx);
+#ifdef USE_UNIFIED_COMMON_DRM
         DRM_Common_TL_Finalize();
+#else
+        DRM_Common_TL_Finalize_TA(Common_Platform_eDrm);
+#endif
     }
 }
 

@@ -945,6 +945,7 @@ BERR_Code BAPE_MixerGroup_P_SetOutputSettings(
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 void BAPE_MixerGroup_P_GetOutputStatus(
     BAPE_MixerGroupHandle handle,
     unsigned outputIndex,
@@ -999,6 +1000,7 @@ void BAPE_MixerGroup_P_GetOutputStatus(
 #endif
     }
 }
+#endif
 
 BERR_Code BAPE_MixerGroup_P_StartOutput(
     BAPE_MixerGroupHandle handle,

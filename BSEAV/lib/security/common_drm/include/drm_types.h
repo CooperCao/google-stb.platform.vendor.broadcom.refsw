@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef DRM_TYPES_H_
 #define DRM_TYPES_H_
@@ -59,7 +58,7 @@ typedef enum DrmRC{
     Drm_CryptoConfigErr,
     Drm_CryptoLoadSwKeyErr,
     Drm_CryptoDmaErr,
-	Drm_CryptoSecureRsaErr,
+    Drm_CryptoSecureRsaErr,
     Drm_RegionHashErr,
     Drm_KeyRegionErr,
     Drm_InvalidStateErr,
@@ -97,24 +96,24 @@ typedef enum DrmFileOperation{
 }DrmFileOperation;
 
 typedef enum DrmTerminationMode{
-	DrmTerminationMode_eCounter = 0,
-	DrmTerminationMode_eCbc,
-	DrmTerminationMode_eResidual,
-	DrmTerminationMode_eMax
+    DrmTerminationMode_eCounter = 0,
+    DrmTerminationMode_eCbc,
+    DrmTerminationMode_eResidual,
+    DrmTerminationMode_eMax
 }DrmTerminationMode;
 
 typedef enum DrmM2mPacketType{
-	DrmM2mPacketType_eStart = 0,
-	DrmM2mPacketType_eMiddle,
-	DrmM2mPacketType_eEnd,
-	DrmM2mPacketType_eMax
+    DrmM2mPacketType_eStart = 0,
+    DrmM2mPacketType_eMiddle,
+    DrmM2mPacketType_eEnd,
+    DrmM2mPacketType_eMax
 }DrmM2mPacketType;
 
 typedef enum DrmKeyProvisioningType
 {
-	DrmKeyProvisioningType_eUtv = 0,
-	DrmKeyProvisioningType_eBrcm = 1,
-	DrmKeyProvisioningType_eMax
+    DrmKeyProvisioningType_eUtv = 0,
+    DrmKeyProvisioningType_eBrcm = 1,
+    DrmKeyProvisioningType_eMax
 }DrmKeyProvisioningType;
 
 
@@ -236,8 +235,7 @@ typedef struct DmaBlockInfo_t
 typedef struct DrmCommonInit_t
 {
     NEXUS_HeapHandle heap;
-    char * ta_bin_file_path;
-}DrmCommonInit_t;
+} DrmCommonInit_t;
 
 #ifdef __cplusplus
 }

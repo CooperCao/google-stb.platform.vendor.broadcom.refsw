@@ -331,9 +331,9 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_1, 0x3F4832A0);
    }
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, 0x00070100);
+   BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_AFEC_RST, (BCHP_AFEC_0_RST_METGEN_S2XDP_RST_MASK | BCHP_AFEC_0_RST_METGEN_DP_RST_MASK), 0x00070100);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_INTR_CTRL2_CPU_CLEAR, 0xFFFFFFFF);
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, 0);
+   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_RST, BCHP_AFEC_0_RST_METGEN_S2XDP_RST_MASK | BCHP_AFEC_0_RST_METGEN_DP_RST_MASK);
 
    retCode = BSAT_g1_P_StartTracking_isr(h);
 
@@ -1728,7 +1728,16 @@ BERR_Code BSAT_g1_P_AfecConfig_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_CNTR_CTRL, 0x00000006); /* clear counters */
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_RST, 0x100); /* reset data path */
 
+#if 0
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0, 0x05000B01);
+#else
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0);
+   BCHP_SET_FIELD_DATA(val, AFEC_0_LDPC_CONFIG_0, LDPC_ENA, 1);
+   BCHP_SET_FIELD_DATA(val, AFEC_0_LDPC_CONFIG_0, SYND_STOP, 1);
+   BCHP_SET_FIELD_DATA(val, AFEC_0_LDPC_CONFIG_0, FAIL_CFG, 0xB);
+   BCHP_SET_FIELD_DATA(val, AFEC_0_LDPC_CONFIG_0, PASS_CFG, 1);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0, val);
+#endif
 
    done:
    return retCode;
@@ -1930,7 +1939,50 @@ BERR_Code BSAT_g1_P_AfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
 {
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BSAT_Mode mode = hChn->acqSettings.mode;
+   uint32_t metgen_sel, metgen_s2xdp_rst, metgen_dp_rst, ldpc_config_0, rst;
+
+   ldpc_config_0 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0);
+   rst = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_RST);
+
+   if ((mode >= BSAT_Mode_eDvbs2_Qpsk_1_4) && (mode <= BSAT_Mode_eDvbs2_8psk_9_10))
+   {
+      /* DVB-S2 QPSK and 8PSK */
+      metgen_sel = 1;
+      metgen_s2xdp_rst = 1;
+      metgen_dp_rst = 0;
+   }
+   else if ((mode >= BSAT_Mode_eDvbs2x_Qpsk_13_45) && (mode <= BSAT_Mode_eDvbs2x_8psk_13_18))
+   {
+      /* DVB-S2X QPSK, 8APSK, and 8PSK */
+      metgen_sel = 0;
+      metgen_s2xdp_rst = 0;
+      metgen_dp_rst = 1;
+   }
+   else if (BSAT_MODE_IS_DVBS2_EXTENDED(mode))
+   {
+      /* DVB-S2 16/32 APSK */
+      metgen_sel = 1;
+      metgen_s2xdp_rst = 1;
+      metgen_dp_rst = 0;
+   }
+   else
+   {
+      /* DVB-S2X 16/32 APSK and VCM */
+      metgen_sel = 0;
+      metgen_s2xdp_rst = 0;
+      metgen_dp_rst = 1;
+   }
+
+   BCHP_SET_FIELD_DATA(ldpc_config_0, AFEC_0_LDPC_CONFIG_0, METGEN_SEL, metgen_sel);
+   BCHP_SET_FIELD_DATA(rst, AFEC_0_RST, METGEN_S2XDP_RST, metgen_s2xdp_rst);
+   BCHP_SET_FIELD_DATA(rst, AFEC_0_RST, METGEN_DP_RST, metgen_dp_rst);
+
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0, ldpc_config_0);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, rst);
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_RST, 0x3);
+
    return BERR_SUCCESS;
 }
 

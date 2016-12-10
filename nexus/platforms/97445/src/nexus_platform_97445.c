@@ -104,6 +104,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     case 5:
     case 6:
     case 10:
+    case 19: /* This is 7445 box mode using the same memc mapping as of 7252Dx box modes */
     case 1001:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size =  192*1024*1024; /*decoder FW+general,xpt playback,audio other general purpose */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 124*1024 *1024; /* CABACs(28)for 3 decoders + RAVE CDB(6+15) */
@@ -134,6 +135,12 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     case 18:
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 200*1024*1024; /*gfd 0/4/5/6 on memc 0 */
             pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
+            break;
+    case 19:
+            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 164*1024*1024; /* Main/3rd display Graphics */
+            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
+            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 384*1024*1024; /* Secondary Graphics */
+            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;
             break;
     case 15:
             pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].size = 512*1024*1024; /*gfd 0 on memc 2 */
@@ -218,6 +225,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
         break;
     case 18:
             BDBG_WRN(("*** 97445 BoxMode 18:Display:HD Output, Video:HD Main/no PIP,Transcode:Triple (One up to 1080p60 (Max) and Dual up to 1080p30(Max))***"));
+        break;
+    case 19:
+            BDBG_WRN(("*** 97445 BoxMode 19:Display:UHD Output/SD Output/480p60 Output, Video:UHD Main/No PIP, No Transcode***"));
         break;
     case 1000:
             BDBG_WRN(("*** 97445 TEMP BoxMode 1000:Display:UHD/SD, Video:UHD Main/no PIP,Transcode:Quad up to 1080p30(Max)***"));

@@ -249,6 +249,9 @@ eRet CConfigNx::initResources()
     _pResources->add(eBoardResource_outputHdmi, nOutputsHdmi, "hdmiOutput", &_cfg);
 
     _pResources->add(eBoardResource_power, 1, "power", &_cfg);
+#ifdef WPA_SUPPLICANT_SUPPORT
+    _pResources->add(eBoardResource_wifi, 1, "wifi", &_cfg);
+#endif
 #ifdef NETAPP_SUPPORT
     _pResources->add(eBoardResource_network, 1, "network", &_cfg);
     _pResources->add(eBoardResource_bluetooth, 1, "bluetooth", &_cfg);

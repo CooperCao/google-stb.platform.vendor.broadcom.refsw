@@ -806,6 +806,46 @@ void CAtlas::audioDecodeUninitialize(
     *pAudioDecode = NULL;
 }
 
+#ifdef WPA_SUPPLICANT_SUPPORT
+eRet CAtlas::wifiInitialize(void)
+{
+    eRet    ret   = eRet_Ok;
+    CWifi * pWifi = NULL;
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
+    pWifi = (CWifi *)_pBoardResources->checkoutResource(this, eBoardResource_wifi);
+    if (NULL != pWifi)
+    {
+        ret = pWifi->open(_pWidgetEngine);
+        CHECK_ERROR_GOTO("unable to open wifi object", ret, error);
+        ret = pWifi->start();
+        CHECK_ERROR_GOTO("unable to start wifi object", ret, error);
+        _pBoardResources->checkinResource(pWifi);
+    }
+error:
+    ATLAS_MEMLEAK_TRACE("END");
+    return(ret);
+} /* wifiInitialize */
+
+void CAtlas::wifiUninitialize(void)
+{
+    CWifi * pWifi = NULL;
+
+    pWifi = (CWifi *)_pBoardResources->checkoutResource(this, eBoardResource_wifi);
+    if (NULL != pWifi)
+    {
+        pWifi->stop();
+        pWifi->close();
+        _pBoardResources->checkinResource(pWifi);
+        pWifi = NULL;
+    }
+
+    return;
+}
+
+#endif /* WPA_SUPPLICANT_SUPPORT */
+
 #ifdef NETAPP_SUPPORT
 eRet CAtlas::networkInitialize(void)
 {
@@ -1860,10 +1900,12 @@ void CAtlas::notificationsInitialize()
 #endif
 
     CPower * pPower = (CPower *)_pBoardResources->checkoutResource(this, eBoardResource_power);
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CWifi * pWifi = (CWifi *)_pBoardResources->checkoutResource(this, eBoardResource_wifi);
+#elif NETAPP_SUPPORT
     CBluetooth * pBluetooth = (CBluetooth *)_pBoardResources->checkoutResource(this, eBoardResource_bluetooth);
     CNetwork *   pNetwork   = (CNetwork *)_pBoardResources->checkoutResource(this, eBoardResource_network);
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef MPOD_SUPPORT
     CCablecard * pCableCard = _model.getCableCard();
 #endif
@@ -1872,11 +1914,13 @@ void CAtlas::notificationsInitialize()
     /* register objects _pControl observes */
     if (NULL != _pControl)
     {
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+        if (NULL != pWifi) { pWifi->registerObserver(_pControl); }
+#elif NETAPP_SUPPORT
         if (NULL != pNetwork) { pNetwork->registerObserver(_pControl); }
         if (NULL != pBluetoothRemote) { pBluetoothRemote->registerObserver(_pControl); }
         if (NULL != pBluetooth) { pBluetooth->registerObserver(_pControl); }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef PLAYBACK_IP_SUPPORT
         if (NULL != pPlaylistDb) { pPlaylistDb->registerObserver(_pControl); }
 #endif
@@ -1921,7 +1965,9 @@ void CAtlas::notificationsInitialize()
     {
         if (NULL != _pLua) { _pLua->registerObserver(_pMainScreen, eNotify_Debug); }
         if (NULL != pPower) { pPower->registerObserver(_pMainScreen); }
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+        if (NULL != pWifi) { pWifi->registerObserver(_pMainScreen); }
+#elif NETAPP_SUPPORT
         if (NULL != pNetwork) { pNetwork->registerObserver(_pMainScreen); }
         if (NULL != pBluetooth) { pBluetooth->registerObserver(_pMainScreen); }
 #endif /* ifdef NETAPP_SUPPORT */
@@ -2004,10 +2050,12 @@ void CAtlas::notificationsInitialize()
     if (NULL != _pLua)
     {
         if (NULL != pPower) { pPower->registerObserver(_pLua); }
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+        if (NULL != pWifi) { pWifi->registerObserver(_pLua); }
+#elif NETAPP_SUPPORT
         if (NULL != pNetwork) { pNetwork->registerObserver(_pLua); }
         if (NULL != pBluetooth) { pBluetooth->registerObserver(_pLua); }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef PLAYBACK_IP_SUPPORT
         if (NULL != pServerMgr) { pServerMgr->registerObserver(_pLua); }
         if (NULL != pPlaylistDb) { pPlaylistDb->registerObserver(_pLua); }
@@ -2053,10 +2101,12 @@ void CAtlas::notificationsInitialize()
 
     /* check appropriate resources back in */
     if (NULL != pPower) { _pBoardResources->checkinResource(pPower); }
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+    if (NULL != pWifi) { _pBoardResources->checkinResource(pWifi); }
+#elif NETAPP_SUPPORT
     if (NULL != pNetwork) { _pBoardResources->checkinResource(pNetwork); }
     if (NULL != pBluetooth) { _pBoardResources->checkinResource(pBluetooth); }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 
     ATLAS_MEMLEAK_TRACE("END");
 } /* notificationsInitialize */
@@ -2086,11 +2136,13 @@ void CAtlas::notificationsUninitialize()
     COutput *   pOutputHdmi = _model.getAudioOutput(eBoardResource_outputHdmi);
 
     CPower * pPower = (CPower *)_pBoardResources->checkoutResource(this, eBoardResource_power);
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CWifi * pWifi = (CWifi *)_pBoardResources->checkoutResource(this, eBoardResource_wifi);
+#elif NETAPP_SUPPORT
     CBluetooth *       pBluetooth       = (CBluetooth *)_pBoardResources->checkoutResource(this, eBoardResource_bluetooth);
     CBluetoothRemote * pBluetoothRemote = (CBluetoothRemote *)_pBoardResources->checkoutResource(this, eBoardResource_bluetoothRemote);
     CNetwork *         pNetwork         = (CNetwork *)_pBoardResources->checkoutResource(this, eBoardResource_network);
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef MPOD_SUPPORT
     CCablecard * pCableCard = _model.getCableCard();
 #endif
@@ -2098,11 +2150,13 @@ void CAtlas::notificationsUninitialize()
     /* unregister objects _pControl observes */
     if (NULL != _pControl)
     {
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+        if (NULL != pWifi) { pWifi->unregisterObserver(_pControl); }
+#elif NETAPP_SUPPORT
         if (NULL != pNetwork) { pNetwork->unregisterObserver(_pControl); }
         if (NULL != pBluetoothRemote) { pBluetoothRemote->unregisterObserver(_pControl); }
         if (NULL != pBluetooth) { pBluetooth->unregisterObserver(_pControl); }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef PLAYBACK_IP_SUPPORT
         if (NULL != pPlaylistDb) { pPlaylistDb->unregisterObserver(_pControl); }
 #endif
@@ -2146,7 +2200,9 @@ void CAtlas::notificationsUninitialize()
     if (NULL != _pMainScreen)
     {
         if (NULL != pPower) { pPower->unregisterObserver(_pMainScreen); }
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+        if (NULL != pWifi) { pWifi->unregisterObserver(_pMainScreen); }
+#elif NETAPP_SUPPORT
         if (NULL != pNetwork) { pNetwork->unregisterObserver(_pMainScreen); }
         if (NULL != pBluetooth) { pBluetooth->unregisterObserver(_pMainScreen); }
 #endif /* ifdef NETAPP_SUPPORT */
@@ -2225,10 +2281,12 @@ void CAtlas::notificationsUninitialize()
     if (NULL != _pLua)
     {
         if (NULL != pPower) { pPower->unregisterObserver(_pLua); }
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+        if (NULL != pWifi) { pWifi->unregisterObserver(_pLua); }
+#elif NETAPP_SUPPORT
         if (NULL != pNetwork) { pNetwork->unregisterObserver(_pLua); }
         if (NULL != pBluetooth) { pBluetooth->unregisterObserver(_pLua); }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef PLAYBACK_IP_SUPPORT
         if (NULL != pServerMgr) { pServerMgr->unregisterObserver(_pLua); }
         if (NULL != pPlaylistDb) { pPlaylistDb->unregisterObserver(_pLua); }
@@ -2274,10 +2332,12 @@ void CAtlas::notificationsUninitialize()
 
     /* check appropriate resources back in */
     if (NULL != pPower) { _pBoardResources->checkinResource(pPower); }
-#ifdef NETAPP_SUPPORT
+#ifdef WPA_SUPPLICANT_SUPPORT
+    if (NULL != pWifi) { _pBoardResources->checkinResource(pWifi); }
+#elif NETAPP_SUPPORT
     if (NULL != pNetwork) { _pBoardResources->checkinResource(pNetwork); }
     if (NULL != pBluetooth) { _pBoardResources->checkinResource(pBluetooth); }
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 } /* notificationsUninitialize */
 
 eRet CAtlas::initialize(CConfig * pConfig)
@@ -2507,6 +2567,11 @@ doneDecodePip:
     CHECK_PTR_ERROR_GOTO("unable to allocate playback list", pPlaybackList, ret, eRet_OutOfMemory, error);
     _model.setPlaybackList(pPlaybackList);
 
+#ifdef WPA_SUPPLICANT_SUPPORT
+    ret = wifiInitialize();
+    CHECK_WARN("unable to initialize wifi networking support - disabled", ret);
+#endif
+
 #ifdef NETAPP_SUPPORT
     ret = networkInitialize();
     CHECK_WARN("unable to initialize wifi networking support - disabled", ret);
@@ -2631,6 +2696,11 @@ void CAtlas::uninitialize()
 #ifdef PLAYBACK_IP_SUPPORT
     ipServerUninitialize();
 #endif
+
+#ifdef WPA_SUPPLICANT_SUPPORT
+    wifiUninitialize();
+#endif
+
 #ifdef NETAPP_SUPPORT
     audioCaptureUninitialize();
     bluetoothUninitialize();

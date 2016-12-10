@@ -338,8 +338,8 @@ NEXUS_FlushCache_isrsafe(const void *pvAddr, size_t ulNumBytes)
         case NEXUS_AddrType_eFake:
           /* Nexus interface should be used with NEXUS_MemoryType_eFull to avoid this.
             Or, if eFull memory is limited, we could add a boolean to skip driver flush and require application flush. */
-#if NEXUS_CPU_ARM64
-          /* on AARCH64 there is no correct flush_all (correct such as it would flush all cache hierarchy on all CPU */
+#if !NEXUS_CACHEFLUSHALL
+          /* on B53 there is no correct flush_all (correct such as it would flush all cache hierarchy on all CPU */
             BDBG_ERR(("Can't flush fake address %p at %s:%u", pvAddr, BSTD_FILE, __LINE__));
             BKNI_Delay(100 * 1000); /* This delay is intentional, other option is BKNI_Fail */
             break;

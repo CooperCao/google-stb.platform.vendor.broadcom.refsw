@@ -35,7 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-#include "nexus_platform.h"
 #include "nexus_platform_priv.h"
 #include "bkni.h"
 #include "bcm_driver.h"

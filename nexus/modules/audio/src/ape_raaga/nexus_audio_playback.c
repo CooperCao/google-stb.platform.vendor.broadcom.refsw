@@ -139,8 +139,7 @@ NEXUS_AudioPlaybackHandle NEXUS_AudioPlayback_Open(     /* attr{destructor=NEXUS
         return NULL;
     }
     NEXUS_OBJECT_INIT(NEXUS_AudioPlayback, pChannel);
-    pChannel->settings.leftVolume = pChannel->settings.rightVolume = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
-    pChannel->settings.contentReferenceLevel = 20;
+    NEXUS_AudioPlayback_GetDefaultSettings(&pChannel->settings);
 
     if ( NULL == pSettings )
     {
@@ -698,6 +697,18 @@ bool NEXUS_AudioPlayback_P_IsRunning(NEXUS_AudioPlaybackHandle handle)
 {
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioPlayback);
     return handle->started;
+}
+
+
+
+void NEXUS_AudioPlayback_GetDefaultSettings(
+    NEXUS_AudioPlaybackSettings *pSettings  /* [out] Current settings */
+    )
+{
+    BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(NEXUS_AudioPlaybackSettings));
+    pSettings->leftVolume = pSettings->rightVolume = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
+    pSettings->contentReferenceLevel = 20;
 }
 
 /***************************************************************************

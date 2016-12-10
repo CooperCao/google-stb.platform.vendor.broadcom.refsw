@@ -70,6 +70,7 @@
 #include "bbox_vdc_box8_config.h"
 #include "bbox_vdc_box9_config.h"
 #include "bbox_vdc_box10_config.h"
+#include "bbox_vdc_box11_config.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -123,6 +124,10 @@ void BBOX_P_Vdc_SetSourceCapabilities
             BBOX_P_Vdc_SetBox2SourceCapabilities(pSourceCap);
             BBOX_P_Vdc_SetBox6SourceCapabilities(pSourceCap);
             BBOX_P_Vdc_SetBox10SourceCapabilities(pSourceCap);
+            break;
+        case 11:
+            BBOX_P_Vdc_SetBox11SourceCapabilities(pSourceCap);
+            break;
     }
 }
 
@@ -163,6 +168,10 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             BBOX_P_Vdc_SetBox2DisplayCapabilities(pDisplayCap);
             BBOX_P_Vdc_SetBox6DisplayCapabilities(pDisplayCap);
             BBOX_P_Vdc_SetBox10DisplayCapabilities(pDisplayCap);
+            break;
+        case 11:
+            BBOX_P_Vdc_SetBox11DisplayCapabilities(pDisplayCap);
+            break;
     }
 }
 
@@ -197,6 +206,9 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 8:
             BBOX_P_Vdc_SetBox8DeinterlacerCapabilities(pDeinterlacerCap);
             break;
+        case 11:
+            BBOX_P_Vdc_SetBox11DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
     }
 }
 
@@ -229,6 +241,9 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 8:
             BBOX_P_Vdc_SetBox8XcodeCapabilities(pXcodeCap);
+            break;
+        case 11:
+            BBOX_P_Vdc_SetBox11XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -270,6 +285,9 @@ BERR_Code BBOX_P_GetMemConfig
         case 10:
             BBOX_P_GetBox10MemConfig(pBoxMemConfig);
             break;
+        case 11:
+            BBOX_P_GetBox11MemConfig(pBoxMemConfig);
+            break;
     }
     return BERR_SUCCESS;
 }
@@ -309,6 +327,9 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 10:
             BBOX_P_GetBox10Rts(pBoxRts);
+            break;
+        case 11:
+            BBOX_P_GetBox11Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

@@ -61,9 +61,7 @@ void brcm_get_cache_info(struct brcm_cache_info*info)
 int __brcm_cpu_dcache_flush(const void *addr, size_t size);
 static int brcm_cpu_dcache_flush_only(const void *addr, size_t size)
 {
-#if BCHP_CHIP == 7271 || BCHP_CHIP == 7268 || BCHP_CHIP == 7260
-    /* temporary removal of flushall for 32-bit B53 */
-#else
+#ifdef NEXUS_CACHEFLUSHALL
     /* if range is > 3MB,dumping entire cache is faster
       than line by line flush with inline assembly */
     if( size >= 3*1024*1024) {

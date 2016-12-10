@@ -311,10 +311,12 @@ static int32_t PhyDataRate_20MHz[MCS_INDEX_COUNT][2] =
     { 52,58},    { 104,116},  { 156,173},  { 208,231},  { 312,347},  { 416,462},    { 468,520},    { 520,578},
 };
 
+#ifndef _wlu_h_
 struct escan_bss {
     struct escan_bss *next;
     wl_bss_info_t bss[1];
 };
+#endif /* _wlu_h_ */
 
 /* dword align allocation */
 static union
@@ -8557,7 +8559,7 @@ int BWL_ClearAmpdu(
     int   ret      = 0;
     void *wl       = hBwl->wl;
 
-    ret = wlu_var_setbuf(wl, "ampdu_clear_dump", NULL, 0);
+    ret = wlu_iovar_setbuf(wl, "dump_clear", "ampdu", strlen("ampdu"), buf, WLC_IOCTL_MAXLEN);
 	if (ret >= BCME_OK) {
 		ret = BCME_OK;
 	}
@@ -8588,4 +8590,38 @@ const unsigned char * BWL_GetPhyRssiAnt(
 	}
 
     return ( (unsigned char*) dump_buf );
+}
+char * BWL_GetDriverVersion(
+    BWL_Handle      hBwl   /* [in] BWL Handle */
+    )
+{
+    int   ret      = 0;
+    void *wl       = hBwl->wl;
+	char *dump_buf = NULL;
+	char *p        = NULL;
+
+	dump_buf = malloc(WLC_IOCTL_SMLEN);
+	if (dump_buf == NULL)
+    {
+		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", WLC_IOCTL_SMLEN);
+		return NULL;
+	}
+	memset(dump_buf, 0, WLC_IOCTL_SMLEN);
+
+	/* query for 'ver' to get version info */
+	ret = wlu_iovar_get(wl, "ver", dump_buf, WLC_IOCTL_SMLEN);
+
+	if (ret) {
+		fprintf(stderr, "Error %d on query of driver dump\n", (int)ret);
+		free(dump_buf);
+		return NULL;
+	}
+
+	/* keep only the first line from the dump buf output */
+	p = strchr(dump_buf, '\n');
+	if (p)
+    {
+		*p = '\0';
+    }
+    return ( dump_buf );
 }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
-
- **************************************************************************/
+ ***************************************************************************/
 #include <string.h>
 #include "bstd.h"
 #include "bdbg.h"
@@ -136,16 +134,42 @@ BDBG_MODULE(drm_adobe_tl);
 **
 ******************************************************************************/
 void DRM_Adobe_GetDefaultParamSettings(
-        DrmAdobeParamSettings_t *pAdobeParamSettings)
+    DrmAdobeParamSettings_t *pAdobeParamSettings)
 {
+    ChipType_e chip_type;
     BDBG_ENTER(DRM_Adobe_GetDefaultParamSettings);
 
     BKNI_Memset((uint8_t*)pAdobeParamSettings, 0x00, sizeof(DrmAdobeParamSettings_t));
-    pAdobeParamSettings->drmCommonInit.heap = NULL;
+    pAdobeParamSettings->drmCommonInit.drmCommonInit.heap = NULL;
+#ifdef USE_UNIFIED_COMMON_DRM
+    pAdobeParamSettings->drmCommonInit.drmType = 0;
+#else
+    pAdobeParamSettings->drmCommonInit.drmType = BSAGElib_BinFileDrmType_eAdobeAxcess;
+#endif
+    chip_type = DRM_Common_GetChipType();
+#if USE_UNIFIED_COMMON_DRM
+    if(chip_type == ChipType_eZS)
+    {
+        pAdobeParamSettings->drmCommonInit.ta_bin_file_path = bdrm_get_ta_dev_bin_file_path();
+    }
+    else
+    {
+        pAdobeParamSettings->drmCommonInit.ta_bin_file_path = bdrm_get_ta_bin_file_path();
+    }
+#else
+    if(chip_type == ChipType_eZS)
+    {
+        pAdobeParamSettings->drmCommonInit.ta_bin_file_path = bdrm_get_ta_adobe_dev_bin_file_path();
+    }
+    else
+    {
+        pAdobeParamSettings->drmCommonInit.ta_bin_file_path = bdrm_get_ta_adobe_bin_file_path();
+    }
+#endif
 
     pAdobeParamSettings->drm_bin_file_path = bdrm_get_drm_bin_file_path();
 
-    BDBG_MSG(("%s - Exiting function (%s)", __FUNCTION__, pAdobeParamSettings->drm_bin_file_path));
+    BDBG_MSG(("%s DRM %s TA %s", __FUNCTION__, pAdobeParamSettings->drm_bin_file_path, pAdobeParamSettings->drmCommonInit.ta_bin_file_path));
     return;
 }
 
@@ -169,9 +193,11 @@ void DRM_Adobe_SetParamSettings(
 {
     BDBG_ENTER(DRM_Adobe_SetParamSettings);
 
-    gAdobeParamSettings.drmCommonInit.heap = pAdobeParamSettings->drmCommonInit.heap;
+    gAdobeParamSettings.drmCommonInit.drmType = pAdobeParamSettings->drmCommonInit.drmType;
+    gAdobeParamSettings.drmCommonInit.drmCommonInit.heap = pAdobeParamSettings->drmCommonInit.drmCommonInit.heap;
     paramStructureSetExternally = true;
     gAdobeParamSettings.drm_bin_file_path = pAdobeParamSettings->drm_bin_file_path;
+    gAdobeParamSettings.drmCommonInit.ta_bin_file_path = pAdobeParamSettings->drmCommonInit.ta_bin_file_path;
 
     BDBG_MSG(("%s - Exiting function (%s)", __FUNCTION__, gAdobeParamSettings.drm_bin_file_path));
     return;
@@ -229,7 +255,11 @@ DrmRC DRM_Adobe_UnInit(void)
     gHostKeySequenceNumber     = 0;
 
     /* After sending UnInit command to SAGE, close the module handle (i.e. send DRM_Adobe_UnInit to SAGE) */
+#ifdef USE_UNIFIED_COMMON_DRM
     DRM_Common_TL_ModuleFinalize(moduleHandle);
+#else
+    DRM_Common_TL_ModuleFinalize_TA(Common_Platform_AdobeAxcess, moduleHandle);
+#endif
 
     BDBG_LEAVE(DRM_Adobe_UnInit);
     return Drm_Success;
@@ -276,7 +306,11 @@ DrmRC DRM_Adobe_Initialize(DrmAdobeParamSettings_t *pAdobeParamSettings)
     pContainer->basicIn[1] = (uint32_t)(pAdobeParamSettings->capabilities&0x00000000FFFFFFFF);
 
     /* Initialize SAGE Adobe module */
+#ifdef USE_UNIFIED_COMMON_DRM
     rc = DRM_Common_TL_ModuleInitialize(DrmCommon_ModuleId_eAdobe, pAdobeParamSettings->drm_bin_file_path, pContainer, &moduleHandle);
+#else
+    rc = DRM_Common_TL_ModuleInitialize_TA(Common_Platform_AdobeAxcess, Adobe_ModuleId_eDRM, pAdobeParamSettings->drm_bin_file_path, pContainer, &moduleHandle);
+#endif
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error initializing module (0x%08x)", __FUNCTION__, pContainer->basicOut[0]));

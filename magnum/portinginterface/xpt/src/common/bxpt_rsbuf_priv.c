@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,6 +44,15 @@
 #include "bxpt_rsbuf_priv.h"
 #include "bchp_xpt_rsbuff.h"
 
+#if BXPT_HAS_MPOD_RSBUF
+#ifdef BCHP_XPT_RSBUFF_BASE_POINTER_CARD_IBP0
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0 BCHP_XPT_RSBUFF_BASE_POINTER_CARD_IBP0
+#define BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_ENABLE BCHP_XPT_RSBUFF_CARD_IBP_BUFFER_ENABLE
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP0 BCHP_XPT_RSBUFF_BO_CARD_IBP0
+#define BCHP_XPT_RSBUFF_MPOD_IBP_OVERFLOW_STATUS BCHP_XPT_RSBUFF_CARD_IBP_OVERFLOW_STATUS
+#endif
+#endif
+
 #define INPUT_BAND_BUF_SIZE         (200* 1024)
 #ifdef BXPT_P_TSIO_USE_LARGER_BUFFERS
     #define PLAYBACK_BUF_SIZE           (58 * 25 * 256)
@@ -63,25 +72,38 @@
 BDBG_MODULE( xpt_rsbuf_priv );
 #endif
 
+#define REG_STEP (BCHP_XPT_RSBUFF_END_POINTER_IBP0 - BCHP_XPT_RSBUFF_BASE_POINTER_IBP0)
+
 static void SetupBufferRegs(
     BXPT_Handle hXpt,
     unsigned BaseRegAddr,       /* [in] Which client buffer we are dealing with */
     unsigned WhichInstance,
     size_t Size,
-    uint32_t Offset          /* [in] Size in bytes. Must be a multiple of 256. */
+    BMMA_DeviceOffset Offset          /* [in] Size in bytes. Must be a multiple of 256. */
     )
 {
+    uint64_t addrValue;
+
     /* Change the WRITE, VALID, and READ init values per SW7445-102 */
     uint32_t InitVal = Offset ? -1 : 0xFF;
 
     BaseRegAddr = BaseRegAddr + WhichInstance * BUFFER_PTR_REG_STEPSIZE;
 
-    BREG_Write32( hXpt->hRegister, BaseRegAddr, Offset );                   /* Set BASE */
-    BREG_Write32( hXpt->hRegister, BaseRegAddr + 4, Offset + Size - 1 );    /* Set END */
-    BREG_Write32( hXpt->hRegister, BaseRegAddr + 8, Offset + InitVal );           /* Set WRITE */
-    BREG_Write32( hXpt->hRegister, BaseRegAddr + 12, Offset + InitVal );          /* Set VALID */
-    BREG_Write32( hXpt->hRegister, BaseRegAddr + 16, Offset + InitVal );          /* Set READ */
-    BREG_Write32( hXpt->hRegister, BaseRegAddr + 20, 0 );                   /* Set WATERMARK */
+    addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_BASE_POINTER_IBP0, BASE, Offset);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr, addrValue );                   /* Set BASE */
+    addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_END_POINTER_IBP0, END, Offset + Size - 1);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + REG_STEP, addrValue );              /* Set END */
+    addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_WRITE_POINTER_IBP0, WRITE, Offset + InitVal);
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 2 * REG_STEP, addrValue );           /* Set WRITE */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 3 * REG_STEP, addrValue );           /* Set VALID */
+#ifdef BCHP_XPT_RSBUFF_WRAP_POINTER_IBP0
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 4 * REG_STEP, addrValue );           /* Set WRAP */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 5 * REG_STEP, addrValue );           /* Set READ */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 6 * REG_STEP, 0 );            /* Set WATERMARK */
+#else
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 4 * REG_STEP, addrValue );           /* Set READ */
+    BREG_WriteAddr( hXpt->hRegister, BaseRegAddr + 5 * REG_STEP, 0 );           /* Set WATERMARK */
+#endif
 }
 
 static int GetBufferIndex(unsigned BaseRegAddr, unsigned WhichInstance)
@@ -113,7 +135,7 @@ static BERR_Code AllocateBuffer(
     )
 {
     BMMA_Block_Handle block;
-    uint32_t Offset;
+    BMMA_DeviceOffset Offset;
     int index;
 
     /* If there is a secure heap defined, use it. */

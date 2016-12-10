@@ -515,29 +515,6 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/aob/baob.inc
 endif
 endif
 
-ifeq ($(filter $(BCHP_CHIP), 75525), $(BCHP_CHIP))
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/75525/src/nexus_frontend_75525.c
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/75525/src/nexus_frontend_75525_cable.c
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/75525/src/nexus_frontend_75525_terrestrial.c
-NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/75525/include/
-NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_75525
-ifeq ($(NEXUS_FRONTEND_LEAP_UART_ENABLE), y)
-BHAB_LEAP_UART_ENABLE :=y
-NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_LEAP_UART_ENABLE
-endif
-# The line below is not necessary for bsat.inc but is needed below in this file
-BHAB_75525_SUPPORT:=y
-ifeq ($(BCHP_75525_VER),)
-BCHP_75525_VER := $(BCHP_VER)
-endif
-BTNR_75525_SUPPORT := y
-BODS_75525_SUPPORT := y
-BHAB_75525_SUPPORT := y
-NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
-NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ods/bods.inc
-NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
-endif
-
 #
 # QAM
 #
@@ -710,6 +687,27 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3462/src/nexus_frontend_3462.c
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3462
+endif
+
+ifdef NEXUS_FRONTEND_3466
+NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG
+BTNR_3466_SUPPORT := y
+BODS_3466_SUPPORT := y
+BHAB_3466_SUPPORT := y
+ifeq ($(NEXUS_FRONTEND_LEAP_UART_ENABLE), y)
+BHAB_LEAP_UART_ENABLE :=y
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_LEAP_UART_ENABLE
+endif
+NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/3466/include/
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ods/bods.inc
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3466/src/nexus_frontend_3466.c
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3466/src/nexus_frontend_3466_cable.c
+NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3466/src/nexus_frontend_3466_terrestrial.c
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3466
+NEXUS_FRONTEND_DEFINES += NEXUS_HAS_MXT=1
+NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/mxt/bmxt.inc
 endif
 
 ifdef NEXUS_FRONTEND_3461

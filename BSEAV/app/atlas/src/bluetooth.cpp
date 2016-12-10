@@ -283,8 +283,9 @@ void CBluetooth::btDiscoveryDoneCallback()
 
         /* retrieve results */
         NETAPP_RETCODE retNetApp = NETAPP_SUCCESS;
+        eRet           unused    = eRet_Ok;
         retNetApp = NetAppBluetoothGetDiscoveryResults(_pNetApp, &_pBtDevInfoDiscList, &_discListCount);
-        CHECK_NETAPP_ERR_GOTO("unable to get DiscoveryResults", retNetApp, error);
+        CHECK_NETAPP_ERROR_GOTO("unable to get DiscoveryResults", unused, retNetApp, error);
 
         BDBG_MSG(("%s() Received NETAPP_CB_BT_DISCOVERY_RESULTS, result=%d count=%d\n", __FUNCTION__, retNetApp, _discListCount));
         updateBluetoothDeviceList();

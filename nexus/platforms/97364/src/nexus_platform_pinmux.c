@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -55,6 +47,9 @@
 
 #if NEXUS_TRANSPORT_EXTENSION_TSIO
 #include "bchp_sca.h"
+#ifdef BCHP_PWR_SUPPORT
+#include "bchp_pwr.h"
+#endif
 #endif
 
 
@@ -305,6 +300,7 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
           );
    BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7, reg);
 
+   BCHP_PWR_AcquireResource(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_SMARTCARD);
    /* For gpio to work need to disable AFE_CMD_2 - set to zero, at reset = 1 */
    reg = BREG_Read32(hReg, BCHP_SCA_AFE_CMD_2);
    reg &= !(
@@ -312,6 +308,7 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
             BCHP_MASK( SCA_AFE_CMD_2, bp_modeb )
            );
    BREG_Write32(hReg, BCHP_SCA_AFE_CMD_2, reg);
+   BCHP_PWR_ReleaseResource(g_pCoreHandles->chp, BCHP_PWR_RESOURCE_SMARTCARD);
 
 #endif
 
@@ -319,5 +316,3 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 
    return BERR_SUCCESS;
 }
-
-

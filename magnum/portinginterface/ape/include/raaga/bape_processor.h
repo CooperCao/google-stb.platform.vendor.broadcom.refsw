@@ -54,20 +54,6 @@ typedef struct BAPE_Processor *BAPE_ProcessorHandle;
 
 /***************************************************************************
 Summary:
-Fade Settings
-***************************************************************************/
-typedef struct BAPE_FadeSettings
-{
-    unsigned level;             /* Percentage representing the volume level.
-                                   0 is muted, 100 is full volume. Default is 100. */
-    unsigned duration;          /* duration in milliseconds it will take to change
-                                   to a new level. Valid values are 3 - 1000 */
-    unsigned type;              /* specifies the type of fade -
-                                   0- Linear (Default), 1-Cubic-In, 2-Cubic-Out. */
-} BAPE_FadeSettings;
-
-/***************************************************************************
-Summary:
 KaraokeVocal Settings
 ***************************************************************************/
 typedef struct BAPE_KaraokeVocalSettings
@@ -95,19 +81,6 @@ typedef struct BAPE_ProcessorSettings
         BAPE_KaraokeVocalSettings karaokeVocal;
     } settings;
 } BAPE_ProcessorSettings;
-
-/***************************************************************************
-Summary:
-Fade Status
-***************************************************************************/
-typedef struct BAPE_FadeStatus
-{
-    /* Fade Effect Status */
-    bool active;
-    unsigned remaining;         /* MilliSeconds remaining in the current active fade */
-    unsigned level;             /* Percentage representing the current volume level.
-                                   0 is muted, 100 is full volume. Default is 100. */
-} BAPE_FadeStatus;
 
 /***************************************************************************
 Summary:

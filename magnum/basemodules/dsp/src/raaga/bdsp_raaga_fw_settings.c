@@ -1392,7 +1392,8 @@ const BDSP_Raaga_Audio_DpcmrConfigParams BDSP_sDefDpcmrUserConfig=
                 1                                   /* b_output_active */
             },
             0,          /* b_discard_drc */
-            1           /*compressor_profile*/
+            1,           /*compressor_profile*/
+	    0
 };
 
 const BDSP_Raaga_Audio_SRCUserConfigParams   BDSP_sDefaultSrcSettings =
@@ -1893,6 +1894,15 @@ const BDSP_Raaga_Audio_MixerDapv2ConfigParams  BDSP_sDefMixerDapv2ConfigParams =
     },
     1,                  /*i32Ms12Flag*/
     0,                  /*i32EnableDapv2*/
+    0,                  /*i32RampMode*/
+    {
+        {0x7FFFFFFF,0,0},
+        {0x7FFFFFFF,0,0},
+        {0x7FFFFFFF,0,0},
+        {0x7FFFFFFF,0,0},
+        {0x7FFFFFFF,0,0}
+
+    }, /*BDSP_Fader_Config    sFadeControl[5]*/
     {
         3,              /*ui32Mode*/
         0,              /*ui32MiProcessDisable*/

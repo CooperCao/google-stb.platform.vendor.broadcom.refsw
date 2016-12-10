@@ -39,22 +39,38 @@
 # Define this module
 MAGNUM_MODULES += BSAGELIB
 
+ifeq ($(SAGE_VERSION), 2x)
+    SAGE_KO = n
+endif
+
 include $(MAGNUM)/syslib/sagelib/bsagelib_public.inc
 
 # Module Includes
 BSAGELIB_INCLUDES += $(MAGNUM)/syslib/sagelib/include
 
 # Module Sources
-BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib.c
-BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_rai.c
-BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_rpc.c
-BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_management.c
-BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_pinmux.c
 ifeq ($(SAGE_VERSION), 2x)
 BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_boot_2x.c
 else
+ifeq ($(SAGE_KO), y)
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_boot_ko.c
+else
 BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_boot.c
 endif
+endif
+
+ifeq ($(SAGE_KO), y)
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_ko.c
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_rpc_ko.c
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_management_ko.c
+else
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib.c
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_rpc.c
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_management.c
+endif
+
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_rai.c
+BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_pinmux.c
 BSAGELIB_SOURCES += $(MAGNUM)/syslib/sagelib/src/bsagelib_standby.c
 
 include $(MAGNUM)/syslib/sagelib/bsagelib_tools.inc

@@ -48,6 +48,7 @@
 #else
 #include "nexus_platform_ioctl.h" /* allows driver to watch for certain platform ioctls */
 #endif
+#include "nexus_client_resources.h"
 
 /* do not #include linux header files here. this file is generic and must compile with no OS dependency.
 if a new OS feature is needed, an API must be added. */
@@ -130,7 +131,7 @@ nexus_driver_send_addr(void **paddr)
     /* inplace convert address from virtual to physical */
     void *addr = *paddr;
     if(addr) {
-        *paddr = (void *)NEXUS_AddrToOffset(addr);
+        *paddr = (void *)(unsigned long)NEXUS_AddrToOffset(addr);
     }
     return;
 }
@@ -142,7 +143,7 @@ nexus_driver_recv_addr_cached(void **paddr)
     void *addr = *paddr;
     /* inplace convert address from physical to virtual */
     if(addr) {
-        *paddr = NEXUS_OffsetToCachedAddr((uint32_t)addr);
+        *paddr = NEXUS_OffsetToCachedAddr((unsigned long)addr);
     }
     return;
 }
@@ -163,7 +164,7 @@ nexus_driver_module_init(unsigned index, struct nexus_driver_module_header *head
     header->objdb.cancel_callbacks_locked = nexus_driver_deactivate_callbacks;
     header->objdb.cancel_callbacks_context = header;
     g_nexus_driver_state_handlers[index].header = header;
-    BDBG_MSG(("nexus_driver_module_init: registering %d: %#lx (%s:%#lx) as %u", index, (unsigned long)header, name, (unsigned long)module));
+    BDBG_MSG(("nexus_driver_module_init: registering %d: %p (%s:%p)", index, (void *)header, name, (void *)module));
     return 0;
 }
 
@@ -339,7 +340,7 @@ int nexus_generic_driver_validate_mmap(unsigned module, void *context_, uint64_t
     if (!client) return NEXUS_NOT_AVAILABLE;
 
     BSTD_UNUSED(module); /* unused. added for api consistency. */
-    BDBG_MSG(("nexus_generic_driver_validate_mmap %#x, %d", offset, size));
+    BDBG_MSG(("nexus_generic_driver_validate_mmap " BDBG_UINT64_FMT ", %u", BDBG_UINT64_ARG(offset), size));
 
     BDBG_OBJECT_ASSERT(client, nexus_driver_client_state);
     BDBG_ASSERT(client->refcnt);
@@ -359,7 +360,7 @@ int nexus_generic_driver_validate_mmap(unsigned module, void *context_, uint64_t
         if(heap) {
             NEXUS_MemoryStatus status;
             NEXUS_Heap_GetStatus_priv(heap, &status);
-            BDBG_MSG(("heap: %#x %d", status.offset, status.size));
+            BDBG_MSG(("heap:  " BDBG_UINT64_FMT ")%d", BDBG_UINT64_ARG(status.offset), status.size));
             if( (status.memoryType & NEXUS_MEMORY_TYPE_DYNAMIC) == NEXUS_MEMORY_TYPE_DYNAMIC) {
                 hasDynamicHeap = true;
                 continue;
@@ -420,7 +421,7 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
                 rc = NEXUS_NOT_AVAILABLE; /* don't use BERR_TRACE. this is not an error in the driver. */
                 break;
             default:
-                BDBG_ERR(("ioctl without client %u %#x %#x", module, cmd, arg));
+                BDBG_ERR(("ioctl without client %u %#x %#lx", module, cmd, arg));
                 rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
                 break;
             }
@@ -749,7 +750,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
         if(mrc!=BERR_SUCCESS) {rc=BERR_TRACE(mrc);break;}
         rc=copy_to_user_small(data.buffer, dbgStr, data.buffer_size);
         if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
-        rc=copy_to_user_small(arg, &data, sizeof(data));
+        rc=copy_to_user_small((void *)arg, &data, sizeof(data));
         if(rc!=0) {rc=BERR_TRACE(rc);goto err_fault;}
         break;
     }}
@@ -770,7 +771,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
     {{
         struct nexus_driver_client_state *client = nexus_driver_client_id(context);
         b_objdb_set_client(&client->client);
-        NEXUS_Platform_P_StopCallbacks(arg);
+        NEXUS_Platform_P_StopCallbacks((void *)arg);
         b_objdb_set_client(NULL);
         break;
     }}
@@ -778,7 +779,7 @@ nexus_driver_proxy_ioctl(void *context, unsigned int cmd, unsigned long arg, uns
     {{
         struct nexus_driver_client_state *client = nexus_driver_client_id(context);
         b_objdb_set_client(&client->client);
-        NEXUS_Platform_P_StartCallbacks(arg);
+        NEXUS_Platform_P_StartCallbacks((void *)arg);
         b_objdb_set_client(NULL);
         break;
      }}
@@ -808,16 +809,17 @@ err_fault:
 static void
 nexus_driver_module_print_cb_null(void *context)
 {
-    void (*callback)() = (void(*)())context;
+    void (*callback)(void) = (void(*)(void))context;
     callback();
 }
 
-void
+NEXUS_Error
 nexus_driver_module_init_enum_cb(void *cntx, NEXUS_ModuleHandle handle, const char *name, const NEXUS_ModuleSettings *settings)
 {
     if (settings->dbgModules && settings->dbgPrint) {
         nexus_driver_proc_register_status(name, handle, settings->dbgModules, nexus_driver_module_print_cb_null, (void *)settings->dbgPrint);
     }
+    return NEXUS_SUCCESS;
 }
 
 void
@@ -1008,7 +1010,6 @@ static struct nexus_driver_client_state *
 nexus_driver_create_client_lock(const NEXUS_Certificate *pCertificate, const NEXUS_ClientConfiguration *pConfig)
 {
     struct nexus_driver_client_state *client;
-    unsigned i;
     int rc;
 
     client = BKNI_Malloc(sizeof(*client));
@@ -1126,7 +1127,7 @@ nexus_driver_process_cleanup_queue_lock(void)
             BDBG_OBJECT_ASSERT(client, nexus_driver_client_state);
             /* all clients in this list must be closed */
             BDBG_ASSERT(client->pid == 0);
-            BDBG_MSG(("process cleanup queue: client %#x, module %s", client, header->name));
+            BDBG_MSG(("process cleanup queue: client %p, module %s", (void *)client, header->name));
             NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
             NEXUS_CoreModule_Uninit_Client_priv(&client->client);
             NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
@@ -1312,7 +1313,6 @@ closes all clients before nexus modules are closed
 */
 static void nexus_driver_server_preuninit_lock(void)
 {
-    unsigned i;
     struct nexus_driver_client_state *client;
 
     nexus_driver_proc_unregister_status("mma");
@@ -1433,7 +1433,7 @@ void nexus_generic_driver_write_register(uint32_t addr, uint32_t value)
 }
 
 
-void nexus_driver_get_client_configuration(void *client_id, NEXUS_ClientConfiguration *pSettings)
+void nexus_driver_get_client_configuration(const struct b_objdb_client *client_id, NEXUS_ClientConfiguration *pSettings)
 {
     struct nexus_driver_client_state *client;
     LOCK();
@@ -1523,7 +1523,7 @@ static void *NEXUS_P_DriverInVararg_Allocate(NEXUS_P_DriverInVararg *state, unsi
     BDBG_MSG(("%p: alloc %p:%u -> %u", (void *)state, state->data, state->size, required_size));
     if( required_size > state->size) {
         void *buf = nexus_client_driver_alloc(state->client, required_size);
-        BDBG_MSG(("%p: realloc %p:%u -> %p:%u", (void *)state, state->data, state->size, required_size, buf));
+        BDBG_MSG(("%p: realloc %p:%u -> %p:%u", (void *)state, state->data, state->size, buf, required_size));
         if(buf==NULL) {
             (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
             return NULL;

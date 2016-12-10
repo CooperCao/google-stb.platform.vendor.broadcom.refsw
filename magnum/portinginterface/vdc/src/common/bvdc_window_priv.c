@@ -112,8 +112,7 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
 #if (BCHP_CHIP==7358) || (BCHP_CHIP==7552) || \
     (BCHP_CHIP==7360) || \
     (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==7362) || \
-    (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625) || \
-    (BCHP_CHIP==75525)
+    (BCHP_CHIP==7228) || (BCHP_CHIP==75635) || (BCHP_CHIP==73625)
     BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0, Vfd0, Scl0, Unknown),
     BVDC_P_MAKE_RES(Comp0_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp1_V0, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),
@@ -271,8 +270,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*Comp5_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
     /*Comp6_V0*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },
 
-#elif (BCHP_CHIP==7563)  || \
-      (BCHP_CHIP==7543) || (BCHP_CHIP==75635) || (BCHP_CHIP==75525)
+#elif (BCHP_CHIP==7563) || (BCHP_CHIP==7543) || (BCHP_CHIP==75635)
     /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
     /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_SD, FTR___ },
     /*Comp0_V1*/{ FTR___, FTR___, FTR___, FTR___, FTR___ },

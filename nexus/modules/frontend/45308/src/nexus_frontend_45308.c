@@ -588,17 +588,19 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         BMXT_Settings mxtSettings;
         BERR_Code rc;
         uint32_t val;
+        bool encryptTx = false;
 
         BDBG_MSG(("NEXUS_FrontendDevice_Open45308: configuring MXT"));
 
         BMXT_45308_GetDefaultSettings(&mxtSettings);
         mxtSettings.hHab = pDevice->satDevice->habHandle;
 
+        NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
+        encryptTx = NEXUS_TransportModule_P_IsMtsifEncrypted();
+        NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
         for (i=0; i<BMXT_NUM_MTSIF; i++) {
             mxtSettings.MtsifTxCfg[i].Enable = true;
-            NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
-            mxtSettings.MtsifTxCfg[i].Encrypt = NEXUS_TransportModule_P_IsMtsifEncrypted();
-            NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
+            mxtSettings.MtsifTxCfg[i].Encrypt = encryptTx;
         }
 
         mxtSettings.MtsifTxCfg[0].TxClockPolarity = 0;
@@ -672,6 +674,25 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         BDBG_MSG(("DEMOD_XPT Old divider: %d", (val & 0x000001FE)>>1));
         val &= ~0x000001FE;
         val |= 8<<1;
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+    }
+
+    {
+        /* Set MTSIF into a lower power state */
+        uint32_t val;
+        uint32_t addr;
+        BERR_Code e;
+
+        addr = 0x7100010;
+        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+        BDBG_MSG(("%08x: %08x", addr, val));
+        val = 0x21010;
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+
+        addr = 0x7100014;
+        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+        BDBG_MSG(("%08x: %08x", addr, val));
+        val = 0;
         e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
     }
 

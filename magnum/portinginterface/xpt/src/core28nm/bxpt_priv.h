@@ -376,7 +376,7 @@ typedef struct SoftRaveData
     uint32_t last_base_address;
     uint8_t *src_itb_mem, *dest_itb_mem;
     uint32_t last_src_itb_valid, last_dst_itb_valid;
-    uint32_t src_itb_base, dest_itb_base;
+    BMMA_DeviceOffset src_itb_base, dest_itb_base;
 
     uint32_t last_pts_dts;
     uint32_t last_sc;

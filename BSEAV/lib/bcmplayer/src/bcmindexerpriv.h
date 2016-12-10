@@ -176,6 +176,7 @@ struct BNAV_Indexer_HandleImpl
     struct {
         uint64_t last; /* last value seen from HW SCT */
         unsigned cnt;  /* number of overflows */
+        bool review; /* latest hiOverflow.cnt increment is subject review. if bad, decrement. */
     } hiOverflow;
 };
 

@@ -44,6 +44,7 @@ NEXUS_TOP ?= nexus
 
 # Locally define rules -- all is the default rule
 all: install
+NEXUS_ABICOMPAT_MODE?=y
 
 # Include nexus definitions
 include $(NEXUS_TOP)/build/nexus_defs.inc
@@ -211,7 +212,7 @@ BCMDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/usermode/$(B_REFSW_ARCH)/bcmdr
 bcmdriver: ${BCMDRIVER}
 ${BCMDRIVER}: ${BSEAV}/linux/driver/usermode/bcm_driver.h ${BSEAV}/linux/driver/usermode/bcm_driver.c
 	@echo "[Build.... bcmdriver]"
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG)  NEXUS_PLATFORM_VERSION_MAJOR=$(NEXUS_PLATFORM_VERSION_MAJOR) NEXUS_PLATFORM_VERSION_MINOR=$(NEXUS_PLATFORM_VERSION_MINOR) --no-print-directory
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG)  NEXUS_PLATFORM_VERSION_MAJOR=$(NEXUS_PLATFORM_VERSION_MAJOR) NEXUS_PLATFORM_VERSION_MINOR=$(NEXUS_PLATFORM_VERSION_MINOR) NEXUS_CACHEFLUSHALL=$(NEXUS_CACHEFLUSHALL) --no-print-directory
 
 
 .PHONY: bcmdriver_clean bcmdriver_install

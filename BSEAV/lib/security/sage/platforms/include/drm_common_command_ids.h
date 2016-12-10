@@ -58,11 +58,11 @@ typedef enum DrmWVOemCrypto_CommandId_e
     DrmWVOEMCrypto_CommandId_eWrapKeybox               = 5,
     DrmWVOEMCrypto_CommandId_eOpenSession              = 6,
     DrmWVOEMCrypto_CommandId_eCloseSession             = 7,
-    DrmWVOEMCrypto_CommandId_eDecryptCTR               = 8,
+    DrmWVOEMCrypto_CommandId_eDecryptCTR_V10           = 8,
     DrmWVOEMCrypto_CommandId_eGenerateDerivedKeys      = 9,
     DrmWVOEMCrypto_CommandId_eGenerateSignature        = 10,
     DrmWVOEMCrypto_CommandId_eGenerateNonce            = 11,
-    DrmWVOEMCrypto_CommandId_eLoadKeys                 = 12,
+    DrmWVOEMCrypto_CommandId_eLoadKeys_V9_or_V10       = 12,
     DrmWVOEMCrypto_CommandId_eRefreshKeys              = 13,
     DrmWVOEMCrypto_CommandId_eSelectKey                = 14,
     DrmWVOEMCrypto_CommandId_eRewrapDeviceRSAKey       = 15,
@@ -88,6 +88,11 @@ typedef enum DrmWVOemCrypto_CommandId_e
     DrmWVOEMCrypto_CommandId_eGetMaxNumberOfSessions   = 30,
     DrmWVOEMCrypto_CommandId_eQueryKeyControl          = 31,
     DrmWVOEMCrypto_CommandId_eForceDeleteUsageEntry    = 32,
+
+    /* APIs for v11 Support */
+    DrmWVOEMCrypto_CommandId_eDecryptCENC              = 33,
+    DrmWVOEMCrypto_CommandId_eSecurityPatchLevel       = 34,
+    DrmWVOEMCrypto_CommandId_eLoadKeys                 = 35,
 
     DrmWVOEMCrypto_CommandId_eMax
 }DrmWVOemCrypto_CommandId_e;

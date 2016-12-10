@@ -1,15 +1,39 @@
 /***************************************************************************
- *     Copyright (c) 2004-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *   This file contains various equalizer generation algorithms.
@@ -17,10 +41,6 @@
  *   2.26 format and the equation implemented is 
  *   y(n) = b0 * x(n) + b1 * x(n-1) + b2 * x(n-2) + a1 * y(n-1) + a2 * y(n-2)
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bape.h"
@@ -208,6 +228,7 @@ static const int32_t EQ_LPF_butter_2_exp [] = {
     -30, -30, -30, -30, -30, -30
 };
 
+#if !B_REFSW_MINIMAL
 /* Butterworth filter (LPF) order-6 */
 static const int32_t EQ_LPF_butter_3_mant [] = {
     0, 0, 0x40000000, 0x40000000, 0x2120fb83, 0x40000000,
@@ -219,6 +240,7 @@ static const int32_t EQ_LPF_butter_3_exp [] = {
     -30, -30, -30, -30, -30, -30,
     -30, -30, -30, -30, -30, -30
 };
+#endif
 /************ Tables for Butterworth filter (End) *********************/
 
 /************ Tables for Linkwitz-Riley filter (Begin) *********************/
@@ -240,6 +262,7 @@ static const int32_t EQ_LPF_lriley_2_exp [] = {
     -30, -30, -30, -30, -30, -30
 };
 
+#if !B_REFSW_MINIMAL
 /* Linkwitz-Riley filter (LPF) order-6 */
 static const int32_t EQ_LPF_lriley_3_mant [] = {
     0, 0, 0x40000000, 0x40000000, 0x40000000, 0x40000000,
@@ -251,6 +274,7 @@ static const int32_t EQ_LPF_lriley_3_exp [] = {
     -30, -30, -30, -30, -30, -30,
     -30, -30, -30, -30, -30, -30
 };
+#endif
 /************ Tables for Linkwitz-Riley filter (End) *********************/
 
 static const int32_t EQ_bass_control_mant [] = {
@@ -683,55 +707,55 @@ int32_t EQ_generate_geq_isrsafe( int32_t fs_int, int32_t req_db_int[5], int32_t 
 
 int32_t EQ_generate_tone_control_isrsafe (int32_t fs, int32_t gain_bass, int32_t gain_treble,
         int32_t fc_bass, int32_t fc_treble, BAPE_ToneControlEqType type_bass,
-	   	BAPE_ToneControlEqType type_treble, int32_t bandwidth_bass,
-	   	int32_t bandwidth_treble,
+        BAPE_ToneControlEqType type_treble, int32_t bandwidth_bass,
+        int32_t bandwidth_treble,
         int32_t b0[], int32_t b1[], int32_t b2[], int32_t a1[], int32_t a2[])
 {
-	/* Initialize the coefs */
-	b0[0] = b0[1] = 0x2000000;
-	b1[0] = b1[1] = b2[0] = b2[1] = 0x0;
-	a1[0] = a1[1] = a2[0] = a2[1] = 0x0;
+    /* Initialize the coefs */
+    b0[0] = b0[1] = 0x2000000;
+    b1[0] = b1[1] = b2[0] = b2[1] = 0x0;
+    a1[0] = a1[1] = a2[0] = a2[1] = 0x0;
 
-	if (type_bass == BAPE_ToneControlEqType_eShelving)
-	{
-		EQ_generate_bass (gain_bass, fs, fc_bass,
-				&b0[1], &b1[1], &b2[1], &a1[1], &a2[1]);
-	}
-	else
-	{
-		/* Find the q = fc/Bandwidth */
-		int32_t q_mant, q_exp;
-		int32_t b[3], a[3];
-		EQ_div (&q_mant, &q_exp, fc_bass * 100, 0, bandwidth_bass, 0);
-		q_mant = q_mant >> (-q_exp);
-		EQ_generate_peq_isrsafe (q_mant, fc_bass, gain_bass, fs, 70, b, a);
-		b0[1] = b[0];
-		b1[1] = b[1];
-		b2[1] = b[2];
+    if (type_bass == BAPE_ToneControlEqType_eShelving)
+    {
+        EQ_generate_bass (gain_bass, fs, fc_bass,
+                &b0[1], &b1[1], &b2[1], &a1[1], &a2[1]);
+    }
+    else
+    {
+        /* Find the q = fc/Bandwidth */
+        int32_t q_mant, q_exp;
+        int32_t b[3], a[3];
+        EQ_div (&q_mant, &q_exp, fc_bass * 100, 0, bandwidth_bass, 0);
+        q_mant = q_mant >> (-q_exp);
+        EQ_generate_peq_isrsafe (q_mant, fc_bass, gain_bass, fs, 70, b, a);
+        b0[1] = b[0];
+        b1[1] = b[1];
+        b2[1] = b[2];
 
-		a1[1] = a[1];
-		a2[1] = a[2];
-	}
-	if (type_treble == BAPE_ToneControlEqType_eShelving)
-	{
-		EQ_generate_treble (gain_treble, fs, fc_treble,
-				&b0[0], &b1[0], &b2[0], &a1[0], &a2[0]);
-	}
-	else
-	{
-		/* Find the q = fc/Bandwidth */
-		int32_t q_mant, q_exp;
-		int32_t b[3], a[3];
-		EQ_div (&q_mant, &q_exp, fc_treble * 100, 0, bandwidth_treble, 0);
-		q_mant = q_mant >> (-q_exp);
-		EQ_generate_peq_isrsafe (q_mant, fc_treble, gain_treble, fs, 70, b, a);
-		b0[0] = b[0];
-		b1[0] = b[1];
-		b2[0] = b[2];
+        a1[1] = a[1];
+        a2[1] = a[2];
+    }
+    if (type_treble == BAPE_ToneControlEqType_eShelving)
+    {
+        EQ_generate_treble (gain_treble, fs, fc_treble,
+                &b0[0], &b1[0], &b2[0], &a1[0], &a2[0]);
+    }
+    else
+    {
+        /* Find the q = fc/Bandwidth */
+        int32_t q_mant, q_exp;
+        int32_t b[3], a[3];
+        EQ_div (&q_mant, &q_exp, fc_treble * 100, 0, bandwidth_treble, 0);
+        q_mant = q_mant >> (-q_exp);
+        EQ_generate_peq_isrsafe (q_mant, fc_treble, gain_treble, fs, 70, b, a);
+        b0[0] = b[0];
+        b1[0] = b[1];
+        b2[0] = b[2];
 
-		a1[0] = a[1];
-		a2[0] = a[2];
-	}
+        a1[0] = a[1];
+        a2[0] = a[2];
+    }
 
     /* Multiply the Bass filter by 2 and divide the treble filter by 2 */
     b0[0] = b0[0] >> 1;
@@ -1444,4 +1468,3 @@ int32_t EQ_generate_treble (int32_t gain, int32_t fs, int32_t fc,
     return 0;
 }
 #endif /* BAPE_CHIP_SRC_TYPE_IS_IIR */  
-

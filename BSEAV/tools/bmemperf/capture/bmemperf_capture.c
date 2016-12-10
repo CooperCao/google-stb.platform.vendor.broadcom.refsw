@@ -262,8 +262,6 @@ int main(
     if (( strcmp( action, "start" ) == 0 ) ||  ( strcmp( action, "getstats" ) == 0 ) ||  ( strcmp( action, "setdetails" ) == 0 ) ||
         ( strcmp( action, "stop" ) == 0 ))
     {
-        struct stat statbuf;
-
         printf( "%s: detected action %s\n", __FUNCTION__, action );
 
         strncpy( ThisHost, "localhost", sizeof( ThisHost ));
@@ -373,38 +371,7 @@ int main(
 
         printf( "%s: 2 capture file (%s)\n", __FUNCTION__, sCaptureFilename );
 
-        /* if a capture file name is known */
-        if (strlen( sCaptureFilename ))
-        {
-            if (lstat( sCaptureFilename, &statbuf ) == -1)
-            {
-                printf( "Could not stat (%s)\n", sCaptureFilename );
-            }
-            else
-            {
-                printf( "~BYTES~" );
-                if (statbuf.st_size < 1024)
-                {
-                    printf( "%lu bytes\n", (unsigned long int) statbuf.st_size );
-                }
-                else if (statbuf.st_size < 1024*1024)
-                {
-                    float kilobytes = 1.0 * statbuf.st_size /1024.;
-                    printf( "%.2f KB\n", kilobytes );
-                }
-                else if (statbuf.st_size < 1024*1024*1024)
-                {
-                    float megabytes = 1.0 * statbuf.st_size /1024. / 1024.;
-                    printf( "%.2f MB\n", megabytes );
-                }
-                else
-                {
-                    float gigabytes = 1.0 * statbuf.st_size /1024. / 1024. / 1024.;
-                    printf( "%.2f GB\n", gigabytes );
-                }
-                printf( "~\n" );
-            }
-        }
+        output_file_size_in_human( sCaptureFilename );
     }
 
     if (( strcmp( action, "init" ) == 0 ) || ( strcmp( action, "stop" ) == 0 ))

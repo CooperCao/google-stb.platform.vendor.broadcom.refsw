@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2013 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #ifndef NEXUS_SAGE_TYPES_H__
 #define NEXUS_SAGE_TYPES_H__
@@ -70,6 +60,21 @@ extern "C" {
 
 /* A watchdog even occurred. Sage-cpu is in reset. */
 #define NEXUS_ERROR_SAGE_WATCHDOG NEXUS_MAKE_ERR_CODE(0x108, 2)
+
+/***************************************************************************
+Summary:
+Settings used to configure the Sage module.
+
+Description:
+
+See Also:
+NEXUS_SageModule_GetDefaultSettings
+NEXUS_SageModule_Init
+***************************************************************************/
+typedef struct NEXUS_SageModuleSettings
+{
+    unsigned clientHeapIndex; /* heap that client requests will be using */
+} NEXUS_SageModuleSettings;
 
 #ifdef __cplusplus
 }

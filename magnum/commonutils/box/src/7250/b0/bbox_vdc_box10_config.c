@@ -61,11 +61,10 @@
 BDBG_MODULE(BBOX_VDC_PRIV_BOX10);
 BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX10);
 
-/* Box mode 6 is similar to box mode 2 except for what is defined below */
+/* Box mode 10 is similar to box mode 6 and 2 except for what is defined below */
 void BBOX_P_Vdc_SetBox10SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap )
 {
-    BBOX_P_VDC_SET_SRC_LIMIT(pSourceCap, Mpeg1, MTG_DISABLE, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard, 8bit, false);
     BBOX_P_VDC_RESET_SRC_LIMIT(pSourceCap, Gfx1);
 }
 

@@ -82,6 +82,7 @@ struct NEXUS_SimpleEncoder
     bool audioStarted, videoStarted; /* to start */
     bool audioEncoderAcquired; /* Audio Encoder is opened */
     bool videoEncoderStarted;
+    bool abort;
     NEXUS_SimpleEncoderServerSettings serverSettings;
     NEXUS_SimpleEncoderStartSettings startSettings;
     NEXUS_SimpleEncoderSettings settings;
@@ -247,6 +248,7 @@ static void NEXUS_SimpleEncoder_P_Release( NEXUS_SimpleEncoderHandle handle )
 {
     NEXUS_OBJECT_ASSERT(NEXUS_SimpleEncoder, handle);
     if (handle->acquired) {
+        handle->abort = true; /* server aborts encoder internally */
         NEXUS_SimpleEncoder_Release(handle);
     }
     BDBG_ASSERT(!handle->acquired);
@@ -332,6 +334,7 @@ void NEXUS_SimpleEncoder_Release( NEXUS_SimpleEncoderHandle handle )
         BERR_TRACE(NEXUS_NOT_AVAILABLE);
         return;
     }
+
     /* it could be stopped in video encoder only mode earlier, also need to fully stopped. */
     if (handle->started) {
         /* client settings are lost anyway, so force it */
@@ -1167,7 +1170,8 @@ void nexus_simpleencoder_p_stop( NEXUS_SimpleEncoderHandle handle )
     if (handle->videoEncoderStarted) {
         NEXUS_VideoEncoderStopSettings settings;
         NEXUS_VideoEncoder_GetDefaultStopSettings(&settings);
-        settings.mode = NEXUS_VideoEncoderStopMode_eAbort; /* immediate */
+        settings.mode = (handle->startSettings.output.transport.type != NEXUS_TransportType_eMp4) || handle->abort?
+            NEXUS_VideoEncoderStopMode_eAbort : NEXUS_VideoEncoderStopMode_eImmediate; /* immediate */
         NEXUS_VideoEncoder_Stop(handle->serverSettings.videoEncoder, &settings);
         if (handle->startSettings.input.video) {
             nexus_simplevideodecoder_p_remove_encoder(handle->startSettings.input.video, handle->transcodeWindow, handle);

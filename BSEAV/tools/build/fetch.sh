@@ -72,7 +72,7 @@ while read file sum url sumtype; do
         cp -f $cache_file $dest_file
     elif [ -d $B_REFSW_CACHE_DIR -a -w $B_REFSW_CACHE_DIR ]; then
         tmp_file=${cache_file}.$USER.$$
-        wget -O $tmp_file $url
+        wget -O $tmp_file $url --no-check-certificate
         test_sum $tmp_file $sumtype $sum
         mv $tmp_file $cache_file
 	chmod a+rw $cache_file
@@ -80,7 +80,7 @@ while read file sum url sumtype; do
     else
         echo "Can't use cache $B_REFSW_CACHE_DIR"
         tmp_file=${dest_file}.$USER.$$
-        wget -O $tmp_file $url
+        wget -O $tmp_file $url --no-check-certificate
         test_sum $tmp_file $sumtype $sum
         mv $tmp_file $dest_file
     fi

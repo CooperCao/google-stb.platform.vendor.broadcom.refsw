@@ -68,10 +68,15 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 typedef struct Drm_WVOemCryptoParamSettings_t
 {
     BDBG_OBJECT(oemcrypto_brcm)
-    DrmCommonInit_t drmCommonInit;
+    DrmCommonInit_TL_t drmCommonInit;
     DrmCommonOperationStruct_t drmCommonOpStruct;
     char * drm_bin_file_path;
 }Drm_WVOemCryptoParamSettings_t;
+
+typedef enum Drm_WVOemCryptoCipherMode {
+    Drm_WVOemCrypto_CipherMode_CTR,
+    Drm_WVOemCrypto_CipherMode_CBC,
+} Drm_WVOemCryptoCipherMode;
 
 typedef struct
 {
@@ -82,7 +87,19 @@ typedef struct
     size_t         key_data_length;
     const uint8_t* key_control_iv;
     const uint8_t* key_control;
+    Drm_WVOemCryptoCipherMode cipher_mode;
 } Drm_WVOemCryptoKeyObject;
+
+typedef struct
+{
+    const uint8_t* key_id;
+    size_t         key_id_length;
+    const uint8_t* key_data_iv;
+    const uint8_t* key_data;
+    size_t         key_data_length;
+    const uint8_t* key_control_iv;
+    const uint8_t* key_control;
+} Drm_WVOemCryptoKeyObject_V10;
 
 typedef struct Drm_WVOemCryptoKeyRefreshObject
 {
@@ -113,14 +130,11 @@ typedef struct
             size_t max_length;
             size_t offset;
         } secure;
-        struct {                   /*/ type == OEMCrypto_BufferType_Direct*/
+        struct {                   /*type == OEMCrypto_BufferType_Direct*/
             bool is_video;
         } direct;
     } buffer;
 } Drm_WVOemCrypto_DestBufferDesc;
-
-
-
 
 typedef enum Drm_WVOemCryptoAlgorithm
 {
@@ -142,11 +156,18 @@ typedef struct Drm_WVOemCryptoHostSessionCtx_t
     size_t key_id_length;
     Drm_WVoemCryptoKeySlot_t keySlot;
     DrmCommonOperationStruct_t drmCommonOpStruct;
+    Drm_WVOemCryptoCipherMode cipher_mode;
     struct {
         uint32_t btp_sage_size;
         uint8_t *btp_sage_buffer;
     } btp_info;
 }Drm_WVOemCryptoHostSessionCtx_t;
+
+typedef struct Drm_WVOemCryptoEncryptPattern_t {
+  size_t encrypt;  /* number of 16 byte blocks to decrypt. */
+  size_t skip;     /* number of 16 byte blocks to leave in clear. */
+  size_t offset;   /* (Ignore) offset into the pattern in blocks for this call. */
+} Drm_WVOemCryptoEncryptPattern_t;
 
 #define SAGE_WVKBOX_DEVID_LEN 32
 #define SAGE_WVKBOX_DEVKEY_LEN 16
@@ -234,7 +255,20 @@ DrmRC drm_WVOemCrypto_LoadKeys(uint32_t session,
                                    uint32_t num_keys,
                                    void* key_array,
                                    const uint8_t* pst,
-                                   uint32_t       pst_length,
+                                   uint32_t pst_length,
+                                   int * wVRc);
+
+DrmRC drm_WVOemCrypto_LoadKeys_V9_or_V10(uint32_t session,
+                                   const uint8_t* message,
+                                   uint32_t message_length,
+                                   const uint8_t* signature,
+                                   uint32_t signature_length,
+                                   const uint8_t* enc_mac_key_iv,
+                                   const uint8_t* enc_mac_keys,
+                                   uint32_t num_keys,
+                                   void* key_array,
+                                   const uint8_t* pst,
+                                   uint32_t pst_length,
                                    int * wVRc);
 
 DrmRC drm_WVOemCrypto_RefreshKeys(uint32_t session,
@@ -250,18 +284,6 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
                                     const uint8_t* key_id,
                                     uint32_t key_id_length,
                                     int *wVRc);
-
-DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
-                                     const uint8_t* data_addr,
-                                     uint32_t data_length,
-                                     bool is_encrypted,
-                                     Drm_WVOemCryptoBufferType_t buffer_type,
-                                     const uint8_t* iv,
-                                     uint32_t block_offset,
-                                     void* out_buffer,
-                                     uint32_t *out_sz,
-                                     uint8_t subsample_flags,
-                                     int *wvRc);
 
 DrmRC drm_WVOemCrypto_InstallKeybox(const uint8_t* keybox,
                                     uint32_t keyBoxLength);
@@ -629,6 +651,118 @@ DrmRC Drm_WVOemCrypto_QueryKeyControl(uint32_t session,
 DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
                                         uint32_t pst_length,
                                         int *wvRc);
+
+/*****************************************************************************************
+ * DRM_WVOemCrypto_Security_Patch_Level
+ *
+ * Returns the current OEMCrypto security patch level supported.
+ *
+ * PARAMETERS:
+ * [security_patch_level]: Level of security patch
+ *
+ * RETURNS:
+ * SAGE_OEMCrypto_SUCCESS success
+ * SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE
+ *
+ ****************************************************************************************/
+DrmRC DRM_WVOemCrypto_Security_Patch_Level(uint8_t* security_patch_level,int *wvRc);
+
+/****************************************************************************************************
+Description:
+Decrypts (AES128CTR) or copies the payload in the buffer referenced by the *data_addr
+parameter into the buffer referenced by the out_buffer parameter, using the session context
+indicated by the session parameter.
+
+Parameters:
+[in] session: crypto session identifier.
+[in] data_addr: An unaligned pointer to this segment of the stream.
+[in] data_length: The length of this segment of the stream, in bytes.
+[in] is_encrypted: True if the buffer described by data_addr, data_length is encrypted. If
+is_encrypted is false, only the data_addr and data_length parameters are used. The iv and offset
+arguments are ignored.
+[in] iv: The initial value block to be used for content decryption.
+[in] block_offset: If nonzero, the decryption block boundary is different from the start of the data.
+[in] out_buffer: A callerowned descriptor that specifies the handling of the decrypted byte
+stream. See OEMCrypto_DestbufferDesc for details.
+[in] subsample_flags: bitwise flags indicating if this is the first, middle, or last subsample in a
+chunk of data. 1 = first subsample, 2 = last subsample, 3 = both first and last subsample, 0 =
+neither first nor last subsample.
+
+Returns:
+OEMCrypto_SUCCESS
+OEMCrypto_ERROR_NO_DEVICE_KEY
+OEMCrypto_ERROR_INVALID_SESSION
+OEMCrypto_ERROR_INVALID_CONTEXT
+OEMCrypto_ERROR_DECRYPT_FAILED
+OEMCrypto_ERROR_KEY_EXPIRED
+OEMCrypto_ERROR_INSUFFICIENT_RESOURCES
+OEMCrypto_ERROR_UNKNOWN_FAILURE
+
+Threading:
+This function may be called simultaneously with functions on other sessions, but not with other
+functions on this session.
+******************************************************************************************************/
+
+DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
+                                     const uint8_t* data_addr,
+                                     uint32_t data_length,
+                                     bool is_encrypted,
+                                     Drm_WVOemCryptoBufferType_t buffer_type,
+                                     const uint8_t* iv,
+                                     uint32_t block_offset,
+                                     void* out_buffer,
+                                     uint32_t *out_sz,
+                                     uint8_t subsample_flags,
+                                     int *wvRc);
+
+/****************************************************************************************************
+Description:
+Decrypts (AES128CTR) or copies the payload in the buffer referenced by the *data_addr
+parameter into the buffer referenced by the out_buffer parameter, using the session context
+indicated by the session parameter.
+
+Parameters:
+[in] session: crypto session identifier.
+[in] data_addr: An unaligned pointer to this segment of the stream.
+[in] data_length: The length of this segment of the stream, in bytes.
+[in] is_encrypted: True if the buffer described by data_addr, data_length is encrypted. If
+is_encrypted is false, only the data_addr and data_length parameters are used. The iv and offset
+arguments are ignored.
+[in] iv: The initial value block to be used for content decryption.
+[in] block_offset: If nonzero, the decryption block boundary is different from the start of the data.
+[in] out_buffer: A callerowned descriptor that specifies the handling of the decrypted byte
+stream. See OEMCrypto_DestbufferDesc for details.
+[in] pattern: struct to describe the pattern of encrypt/clear blocks in 16 byte lengths.
+[in] subsample_flags: bitwise flags indicating if this is the first, middle, or last subsample in a
+chunk of data. 1 = first subsample, 2 = last subsample, 3 = both first and last subsample, 0 =
+neither first nor last subsample.
+
+Returns:
+OEMCrypto_SUCCESS
+OEMCrypto_ERROR_NO_DEVICE_KEY
+OEMCrypto_ERROR_INVALID_SESSION
+OEMCrypto_ERROR_INVALID_CONTEXT
+OEMCrypto_ERROR_DECRYPT_FAILED
+OEMCrypto_ERROR_KEY_EXPIRED
+OEMCrypto_ERROR_INSUFFICIENT_RESOURCES
+OEMCrypto_ERROR_UNKNOWN_FAILURE
+
+Threading:
+This function may be called simultaneously with functions on other sessions, but not with other
+functions on this session.
+******************************************************************************************************/
+DrmRC drm_WVOemCrypto_DecryptCENC(uint32_t session,
+                                     const uint8_t* data_addr,
+                                     uint32_t data_length,
+                                     bool is_encrypted,
+                                     Drm_WVOemCryptoBufferType_t buffer_type,
+                                     const uint8_t* iv,
+                                     uint32_t block_offset,
+                                     void* out_buffer,
+                                     uint32_t *out_sz,
+                                     void *pattern,
+                                     uint8_t subsample_flags,
+                                     int *wvRc);
 
 #ifdef __cplusplus
 }

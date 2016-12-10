@@ -25,13 +25,15 @@
 # Revision History:
 #
 # $brcm_Log: $
-#
+#974371)
 #############################################################################
 
 
 echo "Broadcom Reference Software Build Server Config Tool"
 echo "----------------------------------------------------"
 echo "This tool is written for bash, but also works on zsh"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+#echo "DIR=${DIR}"
 echo
 # NOTE:
 #  To override this "safety-clause" -- such as when sourcing plat from a
@@ -57,12 +59,20 @@ if [ "" = "${BRCM_PLAT_DOT_OVERRIDE}" ] ; then
     *)
         echo "You must source the plat script, not run it."
         echo "Do the following:"
-        echo "alias plat='. /opt/brcm/scripts/plat'"
+        echo "alias plat='. ${DIR}/plat'"
         # we can exit because we're in a shell, not sourcing
         exit
     esac
 fi
 fi
+if [ "/opt/brcm/scripts" = "${DIR}" ] ; then
+    echo "CAUTION: /opt/brcm/scripts/plat is deprecated and will be removed."
+    echo "It is recommended to use the copy in your current repo."
+    echo "For example:"
+    echo "alias plat='.  \`git rev-parse --show-toplevel\`/BSEAV/tools/build/plat'"
+    echo
+fi
+
 
 # Convert from older vars without namespace.
 # DEBUG -> B_REFSW_DEBUG
@@ -88,6 +98,7 @@ IM_DEAD=
 NEW_TOOLCHAIN_PATH=
 SETSYSTEM=
 LINUX_ROOT=
+OLD_ARM=
 
 # Clear out variables used in setting defaults
 CHIP_REV_NOT_SUPPORTED=0
@@ -255,7 +266,6 @@ le|LE)
 97435|\
 97543|\
 97550|97552|\
-975525|\
 97563|975639|975635|975638|\
 97584|975845)
         export NEXUS_PLATFORM=$cmd
@@ -303,7 +313,7 @@ le|LE)
 3.3-1.0|3.3-1.1|3.3-1.2|3.3-1.3|3.3-1.4|3.3-1.5|\
 3.3-2.0|3.3-2.1|3.3-2.2|3.3-2.3|3.3-2.4|3.3-2.5|3.3-2.6|3.3-2.7|\
 3.3-3.0|3.3-3.0a|3.3-3.1|3.3-3.2|3.3-3.3|3.3-3.4|3.3-3.5|3.3-3.6|\
-3.3-3.7|3.3-3.8|3.3-3.9)
+3.3-3.7|3.3-3.8|3.3-3.9|3.3-4.0)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
@@ -318,8 +328,16 @@ le|LE)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
+    OLD_ARM=y
     ;;
-4.1-1.0|4.1-1.1|4.1-1.2|4.1-1.3|4.1-1.4)
+
+4.1-1.0|4.1-1.1|4.1-1.2|4.1-1.3)
+    # use the standard method to determine chip/ver linux and toolchain paths
+    LINUX_ROOT=/opt/brcm/linux-$cmd
+    NEW_TOOLCHAIN_PATH=xxx
+    ;;
+
+4.1-1.4|4.1-1.5)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
@@ -384,9 +402,6 @@ C|c)
     97422)
         export NEXUS_USE_7422_C=y
         ;;
-    975525)
-        export NEXUS_USE_75525_C=y
-        ;;
     esac
     ;;
 CWM|cwm)
@@ -447,8 +462,6 @@ SV|sv)
         export NEXUS_USE_7250_SV=y
         ;;
     97563|975635)
-        ;;
-    975525)
         ;;
     97584|975845)
         export NEXUS_USE_7584_SV=y
@@ -802,9 +815,10 @@ if [ -z "$NEXUS_PLATFORM" -a -n "$BCHP_VER" ] || [ -n "$NEXUS_PLATFORM" -a -z "$
 fi
 
 # URSR 16.4 default kernel versions:
-URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.4
-URSR_ARM64_LINUX_ROOT=/opt/brcm/linux-4.1-1.3
-URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-3.9
+# Sync to one kernel version for both 64 and 32
+URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.5
+URSR_ARM64_LINUX_ROOT=$URSR_ARM_LINUX_ROOT
+URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.0
 
 # If NEXUS_PLATFORM was specified and kernel version was not, set a default.
 # We need to make sure this isn't mismatched.
@@ -820,7 +834,11 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
     97260)
        case $BCHP_VER in
        A0)
-       LINUX_ROOT=$URSR_ARM_LINUX_ROOT
+       if [[ $B_REFSW_ARCH == "arm-linux" ]] ; then
+           LINUX_ROOT=$URSR_ARM_LINUX_ROOT
+       else
+           LINUX_ROOT=$URSR_ARM64_LINUX_ROOT
+       fi
        ;;
        *)
        CHIP_VER_NOT_VALID=1
@@ -830,11 +848,11 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
     97268|97271|97278)
        case $BCHP_VER in
        A0|B0)
-       export LINUX=$URSR_ARM64_LINUX_ROOT/7271a0
-       if [ $B_REFSW_ARCH = "arm-linux" ] ; then
-       export LINUX=$URSR_ARM64_LINUX_ROOT/7271a0-32
+       if [[ $B_REFSW_ARCH == "arm-linux" ]] ; then
+           LINUX_ROOT=$URSR_ARM_LINUX_ROOT
+       else
+           LINUX_ROOT=$URSR_ARM64_LINUX_ROOT
        fi
-       NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat $URSR_ARM64_LINUX_ROOT/misc/toolchain`/bin
        ;;
        *)
        CHIP_VER_NOT_VALID=1
@@ -1086,10 +1104,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
         esac
         ;;
-    97439)
-        LINUX_ROOT=$URSR_ARM_LINUX_ROOT
-        ;;
-    974371)
+    97439|974371)
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
         ;;
     97250)
@@ -1103,7 +1118,11 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         esac
         ;;
     97445)
+        case $BCHP_VER in
+        *)
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
+        ;;
+        esac
         ;;
     97252)
         # override for backward compat
@@ -1150,18 +1169,6 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
         B0)
         LINUX_ROOT=/opt/brcm/linux-2.6.37-3.5
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
-        ;;
-    975525)
-        case $BCHP_VER in
-        A0)
-        export NEXUS_PLATFORM=975525
-        export LINUX=$URSR_MIPS_LINUX_ROOT/7563a0
-        NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat $URSR_MIPS_LINUX_ROOT/misc/toolchain`/bin
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1230,7 +1237,11 @@ if [ ! -z $LINUX_ROOT ]; then
             export LINUX=${LINUX_ROOT}/`${LINUX_ROOT}/tools/board2build.pl ${PARENT_PLATFORM} ${BCHP_VER}`
     fi
     if [[ "$B_REFSW_ARCH" == "arm-linux" ]]; then
-            export LINUX=${LINUX_ROOT}/arm
+            if [[ "$OLD_ARM" == "y" ]]; then
+                export LINUX=${LINUX_ROOT}/`${LINUX_ROOT}/tools/board2build.pl ${NEXUS_PLATFORM} ${BCHP_VER}`
+            else
+                export LINUX=${LINUX_ROOT}/arm
+            fi
     elif [[ "$B_REFSW_ARCH" == "aarch64-linux" ]]; then
             export LINUX=${LINUX_ROOT}/arm64
     else

@@ -991,7 +991,7 @@ SymbolType *glsl_build_function_type(QualList *return_quals, SymbolType *return_
       functionParams = malloc_fast(sizeof(Symbol*) * param_count);
       unsigned i = 0;
       for (ParamList *l = params; l != NULL; l = l->next, i++) {
-         for (int j=0; i<i; j++) {
+         for (unsigned j=0; j<i; j++) {
             /* Rely on the fact that we've interned the strings to compare quickly */
             if (functionParams[j]->name == l->p->name)
                glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "%s", l->p->name);

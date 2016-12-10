@@ -831,22 +831,6 @@ NEXUS_VideoWindow_P_EnableMultiBufLog( NEXUS_VideoWindowHandle window, NEXUS_Vid
 }
 #endif /* BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser */
 
-
-/* we use secure picture buffers if told to, or if that's all we have */
-static bool nexus_window_p_use_secure_picbuf(NEXUS_VideoWindowHandle window, const NEXUS_VideoInput_P_Link *link)
-{
-    if (link->secureVideo) {
-        return true;
-    }
-    else if (link->input->type == NEXUS_VideoInputType_eHdmi) {
-        /* an exception for HDMI inputs */
-        return g_NEXUS_DisplayModule_State.moduleSettings.memConfig[window->display->index].window[window->index].secure == NEXUS_SecureVideo_eSecure;
-    }
-    else {
-        return false;
-    }
-}
-
 BERR_Code
 NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_VideoWindowSettings *cfg)
 {
@@ -878,7 +862,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     }
     else
     {
-        if (nexus_window_p_use_secure_picbuf(window, link)) {
+        if (link->secureVideo) {
             windowHeapIndex = pVideo->moduleSettings.secure.videoWindowHeapIndex[window->display->index][window->index];
         }
         else {
@@ -902,7 +886,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
     }
     {
         unsigned deinterlacerHeapIndex;
-        if (nexus_window_p_use_secure_picbuf(window, link)) {
+        if (link->secureVideo) {
             deinterlacerHeapIndex = pVideo->moduleSettings.secure.deinterlacerHeapIndex[window->display->index][window->index];
         }
         else {

@@ -2772,7 +2772,7 @@ BERR_Code BHSM_ConfigAlgorithm (
                 (pConfigAlgorithm->cryptoAlg.m2mCryptAlg.bEnableTimestamp     << BHSM_M2mModeShift_eEnableTimeStamp) |
                 (pConfigAlgorithm->cryptoAlg.m2mCryptAlg.bMscCtrlSel         << BHSM_M2mModeShift_eMscCtrlSel);
 
-            BDBG_MSG(("m2m Slot[%d] Entry[%d] Lo[0x%lx], Hi[0x%lx]",unKeySlotNum, pConfigAlgorithm->keyDestEntryType, m2mCntrlWordLo, m2mCntrlWordHi));
+            BDBG_MSG(("m2m Slot[%d] Entry[%d] Lo[%#x], Hi[%#x]",unKeySlotNum, pConfigAlgorithm->keyDestEntryType, (unsigned)m2mCntrlWordLo, (unsigned)m2mCntrlWordHi));
 
             /* Store m2mCntrlWordLo and m2mCntrlWordHi  */
             hHsm->aunM2MKeySlotInfo[unKeySlotNum].aKeySlotAlgorithm[pConfigAlgorithm->keyDestEntryType].ulM2MControlWordLo = m2mCntrlWordLo;
@@ -2836,7 +2836,7 @@ BERR_Code BHSM_ConfigAlgorithm (
                 (pConfigAlgorithm->cryptoAlg.caCryptAlg.bRpipePackets2Rregion   << BHSM_CaModeShift_RpipeForceRestrictedShift);
 
 
-            BDBG_MSG(("xptCntrlWordLo = 0x%lx, xptCntrlWordHi = 0x%lx", xptCntrlWordLo, xptCntrlWordHi));
+            BDBG_MSG(("xptCntrlWordLo = %#x, xptCntrlWordHi = %#x", (unsigned)xptCntrlWordLo, (unsigned)xptCntrlWordHi));
 
             /* store the control words according to CA, CP-S, or CP-D */
             if (pConfigAlgorithm->keyDestBlckType == BCMD_KeyDestBlockType_eCA)
@@ -2916,7 +2916,7 @@ BERR_Code BHSM_GetKeySlotConfigAlgorithm (
             inoutp_KeySlotInfoIO->cryptoAlg.m2mCryptAlg.IVModeSelect  = (m2mCntrlWordLo >> BHSM_M2mModeShift_eIVModeSel) & 0x03;
             inoutp_KeySlotInfoIO->cryptoAlg.m2mCryptAlg.SolitarySelect = (m2mCntrlWordLo >> BHSM_M2mModeShift_eSolitaryTermSel) & 0x07;
 
-            BDBG_MSG(("m2mCntrlWordLo = 0x%lx, m2mCntrlWordHi = 0x%lx", m2mCntrlWordLo, m2mCntrlWordHi));
+            BDBG_MSG(("m2mCntrlWordLo = %#x, m2mCntrlWordHi = %#x", (unsigned)m2mCntrlWordLo, (unsigned)m2mCntrlWordHi));
 
             break;
 
@@ -2964,7 +2964,7 @@ BERR_Code BHSM_GetKeySlotConfigAlgorithm (
             inoutp_KeySlotInfoIO->cryptoAlg.caCryptAlg.restrSCVal        = (xptCntrlWordHi >> BHSM_CaModeShift_eRestrScValShift) & 0x03;
             inoutp_KeySlotInfoIO->cryptoAlg.caCryptAlg.globalSCVal       = (xptCntrlWordHi >> BHSM_CaModeShift_eGlobalScValShift) & 0x03;
 
-            BDBG_MSG(("xptCntrlWordLo = 0x%lx, xptCntrlWordHi = 0x%lx", xptCntrlWordLo, xptCntrlWordHi));
+            BDBG_MSG(("xptCntrlWordLo = %#x, xptCntrlWordHi = %#x", (unsigned)xptCntrlWordLo, (unsigned)xptCntrlWordHi));
 
             break;
 

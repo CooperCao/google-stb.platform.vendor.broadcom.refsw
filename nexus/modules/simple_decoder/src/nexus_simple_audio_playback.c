@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,8 +56,8 @@ void NEXUS_SimpleAudioPlayback_GetDefaultServerSettings( NEXUS_SimpleAudioPlayba
 
 static void NEXUS_SimpleAudioPlayback_P_GetDefaultSettings(NEXUS_SimpleAudioPlaybackSettings *pSettings)
 {
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    pSettings->leftVolume = pSettings->rightVolume = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
+    BDBG_CASSERT(sizeof(NEXUS_SimpleAudioPlaybackSettings) == sizeof(NEXUS_AudioPlaybackSettings));
+    NEXUS_AudioPlayback_GetDefaultSettings((NEXUS_AudioPlaybackSettings *)pSettings);
 }
 
 NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( NEXUS_SimpleAudioDecoderServerHandle server, unsigned index, const NEXUS_SimpleAudioPlaybackServerSettings *pSettings )

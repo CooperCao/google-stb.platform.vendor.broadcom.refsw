@@ -628,24 +628,27 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         NEXUS_VideoFormatInfo info;
         bool still = false;
         unsigned index, secondaryMemcIndex;
+        const NEXUS_VideoDecoderMemory *mem;
 
 #if NEXUS_NUM_STILL_DECODES
         if (i >= NEXUS_NUM_VIDEO_DECODERS) {
             index = i - NEXUS_NUM_VIDEO_DECODERS;
             still = true;
-            if (!pSettings->stillDecoder[index].used) continue;
+            mem = &pSettings->stillDecoder[index];
+            if (!mem->used) continue;
             avdIndex = index; /* assumption based on one StillDecoder per AVD */
         }
         else
 #endif
         {
             index = i;
-            if (!pSettings->videoDecoder[index].used) {
+            mem = &pSettings->videoDecoder[index];
+            if (!mem->used) {
                 pConfig->videoDecoder.avdMapping[index] = NEXUS_MAX_XVD_DEVICES; /* unused */
                 continue;
             }
             avdIndex = pRtsSettings->videoDecoder[index].avdIndex;
-            if (pSettings->videoDecoder[index].mosaic.maxNumber) {
+            if (mem->mosaic.maxNumber) {
                 num_mosaic_decoders++;
             }
         }
@@ -663,23 +666,11 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         structs->xvd.settings.MemcIndexExtended = secondaryMemcIndex;
         structs->xvd.settings.pInfo = &memInfo;
 
-#if NEXUS_NUM_STILL_DECODES
-        if (still) {
-            BKNI_Memcpy(structs->xvd.supportedCodecs, pSettings->stillDecoder[index].supportedCodecs, sizeof(structs->xvd.supportedCodecs));
-            NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->stillDecoder[index].maxFormat, &info);
-            structs->xvd.channelSettings.bAVC51Enable = pSettings->stillDecoder[index].avc51Supported;
-            structs->xvd.channelSettings.eChannelMode = BXVD_ChannelMode_eStill;
-            structs->xvd.channelSettings.b10BitBuffersEnable = pSettings->stillDecoder[index].colorDepth >= 10;
-        }
-        else
-#endif
-        {
-            BKNI_Memcpy(structs->xvd.supportedCodecs, pSettings->videoDecoder[index].supportedCodecs, sizeof(structs->xvd.supportedCodecs));
-            NEXUS_VideoFormat_GetInfo_isrsafe(pSettings->videoDecoder[index].maxFormat, &info);
-            structs->xvd.channelSettings.bAVC51Enable = pSettings->videoDecoder[index].avc51Supported;
-            structs->xvd.channelSettings.eChannelMode = BXVD_ChannelMode_eVideo;
-            structs->xvd.channelSettings.b10BitBuffersEnable = pSettings->videoDecoder[index].colorDepth >= 10;
-        }
+        BKNI_Memcpy(structs->xvd.supportedCodecs, mem->supportedCodecs, sizeof(structs->xvd.supportedCodecs));
+        NEXUS_VideoFormat_GetInfo_isrsafe(mem->maxFormat, &info);
+        structs->xvd.channelSettings.bAVC51Enable = mem->avc51Supported;
+        structs->xvd.channelSettings.eChannelMode = still ? BXVD_ChannelMode_eStill : BXVD_ChannelMode_eVideo;
+        structs->xvd.channelSettings.b10BitBuffersEnable = mem->colorDepth >= 10;
 
         structs->xvd.channelSettings.peVideoCmprStdList = structs->xvd.stVideoCompressionList;
         NEXUS_VideoDecoder_SetVideoCmprStdList_priv(structs->xvd.supportedCodecs, &structs->xvd.channelSettings, BAVC_VideoCompressionStd_eMax);
@@ -690,7 +681,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         rc = BXVD_GetChannelMemoryParameters(&structs->xvd.channelSettings, &structs->xvd.settings, &structs->xvd.memConfig);
         if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
 
-        if (!still && pSettings->videoDecoder[index].mosaic.maxNumber) {
+        if (!still && mem->mosaic.maxNumber) {
             unsigned general, secure, picture, secondaryPicture;
 
             /* remove MVC for mosaic */
@@ -698,18 +689,18 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             NEXUS_VideoDecoder_SetVideoCmprStdList_priv(structs->xvd.supportedCodecs, &structs->xvd.channelSettings, BAVC_VideoCompressionStd_eMax);
 
             /* sum all mosaics and see if it's greater than single decode */
-            structs->xvd.channelSettings.eDecodeResolution = NEXUS_VideoDecoder_GetDecodeResolution_priv(pSettings->videoDecoder[index].mosaic.maxWidth, pSettings->videoDecoder[index].mosaic.maxHeight);
+            structs->xvd.channelSettings.eDecodeResolution = NEXUS_VideoDecoder_GetDecodeResolution_priv(mem->mosaic.maxWidth, mem->mosaic.maxHeight);
             if (structs->xvd.channelSettings.eDecodeResolution == BXVD_DecodeResolution_e4K) {
                 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
                 goto err_getsettings;
             }
-            structs->xvd.channelSettings.b10BitBuffersEnable = pSettings->videoDecoder[index].mosaic.colorDepth >= 10;
+            structs->xvd.channelSettings.b10BitBuffersEnable = mem->mosaic.colorDepth >= 10;
             rc = BXVD_GetChannelMemoryParameters(&structs->xvd.channelSettings, &structs->xvd.settings, &structs->xvd.mosaicMemConfig);
             if (rc) {rc = BERR_TRACE(rc); goto err_getsettings;}
-            general = structs->xvd.mosaicMemConfig.uiGeneralHeapSize * pSettings->videoDecoder[index].mosaic.maxNumber;
-            secure = structs->xvd.mosaicMemConfig.uiCabacHeapSize * pSettings->videoDecoder[index].mosaic.maxNumber;
-            picture = structs->xvd.mosaicMemConfig.uiPictureHeapSize * pSettings->videoDecoder[index].mosaic.maxNumber;
-            secondaryPicture = structs->xvd.mosaicMemConfig.uiPictureHeap1Size * pSettings->videoDecoder[index].mosaic.maxNumber;
+            general = structs->xvd.mosaicMemConfig.uiGeneralHeapSize * mem->mosaic.maxNumber;
+            secure = structs->xvd.mosaicMemConfig.uiCabacHeapSize * mem->mosaic.maxNumber;
+            picture = structs->xvd.mosaicMemConfig.uiPictureHeapSize * mem->mosaic.maxNumber;
+            secondaryPicture = structs->xvd.mosaicMemConfig.uiPictureHeap1Size * mem->mosaic.maxNumber;
 
             if (general > structs->xvd.memConfig.uiGeneralHeapSize) {
                 structs->xvd.memConfig.uiGeneralHeapSize = general;
@@ -728,7 +719,9 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         if (exclusiveDecoder[avdIndex] == NEXUS_NUM_VIDEO_DECODERS || exclusiveDecoder[avdIndex] == index) {
             for (sec=0;sec<nexus_memconfig_picbuftype_max;sec++) {
                 const char *name;
-                if (!nexus_p_usepicbuf(pSettings->videoDecoder[index].secure, sec)) continue;
+                if (!nexus_p_usepicbuf(mem->secure, sec)) {
+                    continue;
+                }
                 name = (sec==nexus_memconfig_picbuftype_unsecure)?"picture":"secure picture",
                 pConfig->pictureBuffer[memcIndex][sec].size += structs->xvd.memConfig.uiPictureHeapSize;
                 BDBG_MSG(("XVD MEMC%u HVD%u idx%u: %s %u", memcIndex, avdIndex, i, name, structs->xvd.memConfig.uiPictureHeapSize));
@@ -743,7 +736,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             pConfig->videoDecoder.heapSize[avdIndex].secure += structs->xvd.memConfig.uiCabacHeapSize;
             g_NEXUS_platformHandles.estimatedMemory.memc[memcIndex].videoDecoder.secure += structs->xvd.memConfig.uiCabacHeapSize;
 
-            if (!pSettings->videoDecoder[index].dynamicPictureBuffers &&
+            if (!mem->dynamicPictureBuffers &&
                 pConfig->pictureBuffer[memcIndex][nexus_memconfig_picbuftype_unsecure].size) {
                 pConfig->videoDecoder.heapSize[avdIndex].picture += structs->xvd.memConfig.uiPictureHeapSize;
                 pConfig->videoDecoder.heapSize[avdIndex].secondaryPicture += structs->xvd.memConfig.uiPictureHeap1Size;
@@ -755,7 +748,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
         }
 #if NEXUS_NUM_STILL_DECODES
         if (still) {
-            BKNI_Memcpy(&pConfig->videoDecoder.stillMemory[index], &pSettings->stillDecoder[index], sizeof(pConfig->videoDecoder.stillMemory[index]));
+            BKNI_Memcpy(&pConfig->videoDecoder.stillMemory[index], mem, sizeof(pConfig->videoDecoder.stillMemory[index]));
         }
         else
 #endif
@@ -767,7 +760,7 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             pConfig->videoDecoder.secure.avdHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[memcIndex][nexus_memconfig_picbuftype_secure];
             pConfig->videoDecoder.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_unsecure];
             pConfig->videoDecoder.secure.secondaryPictureHeapIndex[avdIndex] = memoryLayout.heapIndex.pictureBuffer[pRtsSettings->avd[avdIndex].secondaryMemcIndex][nexus_memconfig_picbuftype_secure];
-            BKNI_Memcpy(&pConfig->videoDecoder.memory[index], &pSettings->videoDecoder[index], sizeof(pConfig->videoDecoder.memory[index]));
+            BKNI_Memcpy(&pConfig->videoDecoder.memory[index], mem, sizeof(pConfig->videoDecoder.memory[index]));
         }
     }
 

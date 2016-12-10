@@ -282,6 +282,7 @@ void BAPE_InputCapture_Close(
     BKNI_Free(handle);
 }
 
+#if !B_REFSW_MINIMAL
 void BAPE_InputCapture_GetSettings(
     BAPE_InputCaptureHandle handle,
     BAPE_InputCaptureSettings *pSettings       /* [out] */
@@ -325,6 +326,7 @@ void BAPE_InputCapture_Flush(
     BAPE_InputCapture_Flush_isr(handle);
     BKNI_LeaveCriticalSection();
 }
+#endif
 
 void BAPE_InputCapture_Flush_isr(
     BAPE_InputCaptureHandle handle
@@ -338,6 +340,7 @@ void BAPE_InputCapture_Flush_isr(
         BAPE_InputCapture_P_ClearInterrupts_isr(handle);
     }
 }
+
 /***************************************************************************
 Summary:
 Get Default InputCapture Start Settings

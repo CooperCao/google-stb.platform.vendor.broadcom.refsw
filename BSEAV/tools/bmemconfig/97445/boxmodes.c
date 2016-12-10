@@ -1072,7 +1072,46 @@ int Memconfig_GetBoxModeDefaultSettings(
             rc = 0;
             break;
         }
+        case 19:
+        {
+            pSettings->boxModeId = boxMode;
+            pSettings->boxModeDescription                            = "Display:UHD/SD/480p60, Video:UHD Main/No PIP, Transcode: None";
+            pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].usage                         = "Vid Decoder 0 Luma for HEVC";
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Vid Decoder 0 Chroma for HEVC";
 
+            pSettings->display[0].property = Memconfig_DisplayProperty_ePrimary;
+            pSettings->display[1].property = Memconfig_DisplayProperty_eSecondary;
+            pSettings->display[2].property = Memconfig_DisplayProperty_eTertiary;
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->display[0].usageMain                = "Display Primary-MAIN";
+            pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[1].usageMain                = "Display Secondary-MAIN";
+            pSettings->display[2].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[2].usageMain                = "Display Tertiary-MAIN";
+
+            pSettings->graphics[0].used     = true;
+            pSettings->graphics[0].property = Memconfig_DisplayProperty_ePrimary;
+            pSettings->graphics[0].heapIdx  = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[0].usage    = "Primary Display FB";
+            pSettings->graphics[1].used     = true;
+            pSettings->graphics[1].property = Memconfig_DisplayProperty_eSecondary;
+            pSettings->graphics[1].heapIdx  = NEXUS_MEMC1_GRAPHICS_HEAP;
+            pSettings->graphics[1].usage    = "Secondary Display FB";
+            pSettings->graphics[2].used     = true;
+            pSettings->graphics[2].property = Memconfig_DisplayProperty_eTertiary;
+            pSettings->graphics[2].heapIdx  = NEXUS_MEMC0_GRAPHICS_HEAP;
+            pSettings->graphics[2].usage    = "Tertiary Display FB";
+
+            pSettings->graphics3d.used             = true;
+            pSettings->graphics3d.heapIdx          = NEXUS_MEMC0_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
+            pSettings->graphics3d.usage            = "V3D";
+
+            rc = 0;
+            break;
+        }
 
 /************* 97252 Box modes *****************/
 		case 2:

@@ -52,6 +52,7 @@
 #if NEXUS_HAS_HDMI_INPUT
 #include "nexus_hdmi_input.h"
 #endif
+#include "nexus_file_mux.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,6 +81,9 @@ typedef struct EncodeContext
 #if NEXUS_HAS_HDMI_INPUT
     NEXUS_HdmiInputHandle hdmiInput;
 #endif
+    NEXUS_FileMuxHandle fileMux;
+    NEXUS_MuxFileHandle muxFileOutput;
+    BKNI_EventHandle finishEvent;
     const char *filename, *indexname, *outputfile, *outputindex, *outputAes;
     NEXUS_FilePlayHandle file;
     FILE *pOutputFile;
@@ -92,6 +96,7 @@ typedef struct EncodeContext
     unsigned streamTotal, indexTotal, lastsize;
     bool stopped;
     bool outputEs;
+    bool outputMp4;
     struct {
         unsigned videoBitrate;/* bps */
         unsigned width;
@@ -322,6 +327,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     printf(
         "  -stopStartVideoEncoder   stop/start video encoder only\n"
         "  -output_es     output elementary stream\n"
+        "  -output_mp4    output mp4 file\n"
         "  -rt            real-time encoding (default is non-real-time)\n"
         "  -tts           record with 4 byte timestamp\n"
         "  -gui off \n"
@@ -412,26 +418,27 @@ static int start_encode(EncodeContext *pContext)
             return -1;
         }
     }
-    pContext->pOutputFile = fopen(pContext->outputfile, "w+");
-    if (!pContext->pOutputFile) {
-        BDBG_ERR(("unable to open '%s' for writing", pContext->outputfile));
-        return -1;
-    }
-    if (pContext->outputindex) {
-        pContext->pOutputIndex = fopen(pContext->outputindex, "w+");
-        if (!pContext->pOutputIndex) {
-            BDBG_ERR(("unable to open '%s' for writing", pContext->outputindex));
+    if (!pContext->outputMp4) {
+        pContext->pOutputFile = fopen(pContext->outputfile, "w+");
+        if (!pContext->pOutputFile) {
+            BDBG_ERR(("unable to open '%s' for writing", pContext->outputfile));
             return -1;
         }
-    }
-    if (pContext->outputAes) {
-        pContext->pOutputAes = fopen(pContext->outputAes, "w+");
-        if (!pContext->pOutputAes) {
-            BDBG_ERR(("unable to open '%s' for writing", pContext->outputAes));
-            return -1;
+        if (pContext->outputindex) {
+            pContext->pOutputIndex = fopen(pContext->outputindex, "w+");
+            if (!pContext->pOutputIndex) {
+                BDBG_ERR(("unable to open '%s' for writing", pContext->outputindex));
+                return -1;
+            }
+        }
+        if (pContext->outputAes) {
+            pContext->pOutputAes = fopen(pContext->outputAes, "w+");
+            if (!pContext->pOutputAes) {
+                BDBG_ERR(("unable to open '%s' for writing", pContext->outputAes));
+                return -1;
+            }
         }
     }
-
     NEXUS_SimpleEncoder_GetSettings(pContext->hEncoder, &encoderSettings);
     if (pContext->encoderSettings.videoBitrate) {
         encoderSettings.videoEncoder.bitrateMax = pContext->encoderSettings.videoBitrate;
@@ -522,8 +529,13 @@ static int start_encode(EncodeContext *pContext)
     NEXUS_SimpleEncoder_GetDefaultStartSettings(&startSettings);
     startSettings.input.video = pContext->hVideoDecoder;
     startSettings.input.audio = pContext->hAudioDecoder;
-    startSettings.recpump = pContext->outputEs? NULL : pContext->hRecpump;
-    startSettings.output.transport.type = pContext->outputEs? NEXUS_TransportType_eEs : NEXUS_TransportType_eTs;
+    startSettings.recpump = (pContext->outputEs || pContext->outputMp4)? NULL : pContext->hRecpump;
+    if (pContext->outputEs)
+        startSettings.output.transport.type = NEXUS_TransportType_eEs;
+    else if (pContext->outputMp4)
+        startSettings.output.transport.type = NEXUS_TransportType_eMp4;
+    else
+        startSettings.output.transport.type = NEXUS_TransportType_eTs;
     startSettings.output.video.index = !pContext->encoderStartSettings.raiIndex;
     startSettings.output.video.raiIndex = pContext->encoderStartSettings.raiIndex;
     startSettings.output.video.settings.interlaced = pContext->encoderSettings.interlaced;
@@ -587,6 +599,41 @@ static int start_encode(EncodeContext *pContext)
         }
     }
 #endif
+
+    if (pContext->outputMp4) {
+        NEXUS_FileMuxStartSettings muxFileConfig;
+
+        pContext->muxFileOutput = NEXUS_MuxFile_OpenPosix(pContext->outputfile);
+        if (!pContext->muxFileOutput) {
+            BDBG_ERR(("unable to create MuxFile '%s' for FileMux", pContext->outputfile));
+            return -1;
+        }
+
+        /* hard-code codecs for now */
+        if (!pContext->encoderStartSettings.videoCodec)
+            pContext->encoderStartSettings.videoCodec = NEXUS_VideoCodec_eH264;
+        if (!pContext->encoderStartSettings.audioCodec)
+            pContext->encoderStartSettings.audioCodec = NEXUS_AudioCodec_eAac;
+        NEXUS_FileMux_GetDefaultStartSettings(&muxFileConfig, NEXUS_TransportType_eMp4);
+        /* progressive download comptible means the meta data will be relocated to the beginning of the
+         * mp4 file, which means longer finish time to stop the file mux  */
+        /*muxFileConfig.streamSettings.mp4.progressiveDownloadCompatible = true;*/
+        if (pContext->hVideoDecoder) {
+            muxFileConfig.video[0].track = 1;
+            muxFileConfig.video[0].codec = pContext->encoderStartSettings.videoCodec;
+            muxFileConfig.video[0].simpleEncoder = pContext->hEncoder;
+        }
+        if(pContext->hAudioDecoder) {
+            muxFileConfig.audio[0].track = 2;
+            muxFileConfig.audio[0].codec = pContext->encoderStartSettings.audioCodec;
+            muxFileConfig.audio[0].simpleEncoder = pContext->hEncoder;
+        }
+
+        /* start mux */
+        rc = NEXUS_FileMux_Start(pContext->fileMux, &muxFileConfig, pContext->muxFileOutput);
+        BDBG_MSG(("NEXUS_FileMux_Start return %d", rc));
+    }
+
     if (pContext->input_type == input_type_graphics) {
         NEXUS_SurfaceCreateSettings surfaceCreateSettings;
         NEXUS_SurfaceMemory mem;
@@ -650,7 +697,7 @@ static int start_encode(EncodeContext *pContext)
     }
 
     /* recpump must start after decoders start */
-    if(!pContext->outputEs) {
+    if(!pContext->outputEs && !pContext->outputMp4) {
         rc = NEXUS_Recpump_Start(pContext->hRecpump);
         BDBG_ASSERT(!rc);
     }
@@ -676,7 +723,7 @@ static void stop_encode(EncodeContext *pContext)
     if (pContext->hPlayback) {
         NEXUS_Playback_Stop(pContext->hPlayback);
     }
-    if(!pContext->outputEs) {
+    if(!pContext->outputEs && !pContext->outputMp4) {
         NEXUS_Recpump_Stop(pContext->hRecpump);
     }
     /* resume auto stop mode before stop */
@@ -702,6 +749,16 @@ static void stop_encode(EncodeContext *pContext)
     if (pContext->input_type == input_type_graphics) {
         NEXUS_SimpleVideoDecoder_StopImageInput(pContext->hVideoDecoder);
     }
+    if (pContext->outputMp4) {
+        NEXUS_FileMux_Finish(pContext->fileMux);
+        if (BKNI_WaitForEvent(pContext->finishEvent, 5 * 60 * 1000) != BERR_SUCCESS) {
+            BDBG_ERR(("MuxFinish TimeOut"));
+        }
+        NEXUS_FileMux_Stop(pContext->fileMux);
+        NEXUS_MuxFile_Close(pContext->muxFileOutput);
+        NEXUS_FileMux_Destroy(pContext->fileMux);
+        BKNI_DestroyEvent(pContext->finishEvent);
+    }
     if (pContext->outputAes) {
         fclose(pContext->pOutputAes);
     }
@@ -709,7 +766,8 @@ static void stop_encode(EncodeContext *pContext)
         fclose(pContext->pOutputIndex);
         BNAV_Indexer_Close(pContext->bcmindexer);
     }
-    fclose(pContext->pOutputFile);
+    if (!pContext->outputMp4)
+        fclose(pContext->pOutputFile);
     if (pContext->input_type == input_type_decoder) {
         NEXUS_FilePlay_Close(pContext->file);
     }
@@ -848,6 +906,9 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-output_es")) {
             context.outputEs = true;
+        }
+        else if (!strcmp(argv[curarg], "-output_mp4")) {
+            context.outputMp4 = true;
         }
         else if (!strcmp(argv[curarg], "-interlaced")) {
             context.encoderSettings.interlaced = true;
@@ -1130,6 +1191,24 @@ int main(int argc, const char **argv)  {
             snprintf(buf, sizeof(buf), "videos/stream.ves");
             snprintf(aes, sizeof(aes), "videos/stream.aes");
         }
+    } if (context.outputMp4) {
+        NEXUS_FileMuxCreateSettings muxFileCreateSettings;
+
+        BKNI_CreateEvent(&context.finishEvent);
+        NEXUS_FileMux_GetDefaultCreateSettings(&muxFileCreateSettings);
+        muxFileCreateSettings.finished.callback = complete;
+        muxFileCreateSettings.finished.context = context.finishEvent;
+#if 0
+        muxFileCreateSettings.mp4.metadataCache *= 2;
+        muxFileCreateSettings.mp4.heapSize *= 2;
+        muxFileCreateSettings.mp4.sizeEntriesCache *= 2;
+        muxFileCreateSettings.mp4.relocationBuffer *= 8;
+#endif
+        context.fileMux = NEXUS_FileMux_Create(&muxFileCreateSettings);
+        if (!context.fileMux) {
+            BDBG_ERR(("file mux open failed!"));
+            return -1;
+        }
     } else {
         NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
         context.hRecpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
@@ -1166,7 +1245,7 @@ int main(int argc, const char **argv)  {
         }
     }
 
-    if (gui && !context.outputEs) {
+    if (gui && !context.outputEs && !context.outputMp4) {
         struct brecord_gui_settings settings;
         brecord_gui_get_default_settings(&settings);
         settings.sourceName = context.filename;
@@ -1201,7 +1280,7 @@ int main(int argc, const char **argv)  {
     starttime = b_get_time();
     do {
         thistime = b_get_time();
-        if(!context.outputEs) {
+        if(!context.outputEs && !context.outputMp4) {
             const void *dataBuffer, *indexBuffer;
             size_t dataSize=0, indexSize=0;
             NEXUS_RecpumpStatus status;
@@ -1273,7 +1352,7 @@ int main(int argc, const char **argv)  {
                 }
             }
 
-        } else {
+        } else if (context.outputEs){
             /* capture ES outputs */
             encoder_capture(&context);
 
@@ -1357,7 +1436,7 @@ check_for_end:
         dvr_crypto_destroy(crypto);
     }
     BKNI_DestroyEvent(dataReadyEvent);
-    if(!context.outputEs) {
+    if(!context.outputEs && !context.outputMp4) {
         NEXUS_Recpump_Close(context.hRecpump);
     }
     if (context.input_type == input_type_hdmi) {

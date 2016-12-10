@@ -152,9 +152,10 @@ static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg[BXVD_VideoProtocol_eMax
 
    /* BXVD_VideoProtocol_eMPEG2 */
    {
+
 #if BXVD_P_CORE_REVISION_NUM >= 19
-      { 154944, 1024*2, 0, 921600, 8192, BXVD_P_VideoAtomIndex_eA, 1}, /* MPEG2 HD Still */
-      { 154944, 1024*2, 0, 204800, 8192, BXVD_P_VideoAtomIndex_eB, 1}  /* MPEG2 SD Still */
+      { 154944, (128 * 1024), 0, 921600, 8192, BXVD_P_VideoAtomIndex_eA, 1}, /* MPEG2 HD Still */
+      { 154944,  (26 * 1024), 0, 204800, 8192, BXVD_P_VideoAtomIndex_eB, 1}  /* MPEG2 SD Still */
 #else
       { 154944, 1024, 0, 921600, 8192, BXVD_P_VideoAtomIndex_eA, 1}, /* MPEG2 HD Still */
       { 154944, 1024, 0, 204800, 8192, BXVD_P_VideoAtomIndex_eB, 1}  /* MPEG2 SD Still */
