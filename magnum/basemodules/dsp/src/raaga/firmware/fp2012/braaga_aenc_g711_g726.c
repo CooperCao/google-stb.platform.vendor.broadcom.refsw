@@ -2602,7 +2602,7 @@ const uint32_t BDSP_IMG_g711_g726_encode_array1[] = {
 	0xd4027e1f,
 	0x50d1ffff,
 	0xf17f8617,
-	0x730bf271,
+	0x72ebf271,
 	0x3e00c107,
 	0xc8ca8407,
 	0xf8044127,

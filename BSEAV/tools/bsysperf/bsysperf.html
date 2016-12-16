@@ -55,7 +55,9 @@
     <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
         <td valign=middle style="font-size:28pt;" ><b id=h1bsysperf onclick="MyClick(event);" >Bsysperf - System Profiling Tool</b></td>
         <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
-        <td >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span><br><span id=stbtime valign=middle ></span></td>
+        <td >Platform: <span id=platform >&nbsp;</span>&nbsp;<span id=platver>&nbsp;</span>&nbsp;&nbsp;&nbsp;<span id=VARIANT valign=middle >&nbsp;</span>
+                   <br><span id=UNAME   valign=middle >&nbsp;</span>&nbsp;&nbsp;&nbsp;<span id=BOLTVER valign=middle >&nbsp;</span>
+                   <br><span id=stbtime valign=middle ></span></td>
         <td id=cgicount valign=middle ></td>
     </tr>
 </table>
@@ -85,22 +87,29 @@
 <table border=0 style="border-collapse:collapse;" cols=5 >
 <tr><td colspan=5 class=whiteborders18 align=left style="font-weight:bold;width:320px;" >Record and Playback Controls</td></tr>
 <tr>
-<td style="width:100px;" ><input type=button id=buttonRecordStart    value="Start Record" onclick="MyClick(event);" style="background-color:lightgreen;" ></td>
-<td style="width:100px;" valign=middle ><input type=submit id=RecordSaveFile value="Save File" disabled="disabled" ></td>
+<td style="width:120px;" ><input type=button id=buttonRecordStart value="Start Record" onclick="MyClick(event);" style="background-color:lightgreen;width:110px;" ></td>
+<td style="width:120px;" valign=middle ><input type=submit id=RecordSaveFile value="Save File" style="background-color:lightgreen;width:110px;" disabled="disabled" ></td>
 <td style="width:200px;" ><table cols=1 style="border-collapse:collapse;border-color:red;" border=0 ><tr>
 <td id=recorddescriptor align=right >&nbsp;</td>
 <td id=recordsize ></td>
 </tr></table>
 </td>
 <td valign=middle ><table border=0 style="border-collapse:collapse;border-color:lime;" ><tr><td>
-<input type="file" id=ChooseFile onchange='readText(this)' style="width: 400px" />
+<input type="file" id=buttonChooseFile onchange='readText(this)' style="width: 400px" />
 <span id=selected_filename ><!-- put filename here --></span>
 </td></tr></table>
 </td>
 <td><input type=image  id=buttonPlaybackRun src=bmemperf_play.jpg style="height:30px;width:30px;" onclick="MyClick(event);" ></td>
 </tr>
 <!-- end first recording row -->
-<tr><td colspan=3 >&nbsp;</td>
+<tr>
+<td style="width:120px;" >
+  <input type=button id=buttonExportCpuStats value="Export CPU Stats" onclick="MyClick(event);" style="background-color:lightblue;width:110px;" disabled="disabled" >
+</td>
+<td style="width:120px;" >
+  <input type=button id=buttonExportNetStats value="Export Net Stats" onclick="MyClick(event);" style="background-color:lightblue;width:110px;" disabled="disabled" >
+</td>
+<td >&nbsp;</td><!-- spacer -->
 <td colspan=2 ><svg width="500" height="8" style="border:1px solid black;"><polygon id="progressbar" style="fill:lime;" ></svg></td>
 </tr>
 </table>

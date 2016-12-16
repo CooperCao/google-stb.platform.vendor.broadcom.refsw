@@ -54,6 +54,7 @@
 
 
 BDBG_MODULE(BVDC_XSRC);
+BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_XSRC);
 
 
@@ -207,6 +208,7 @@ void BVDC_P_Xsrc_Init_isr
 #else
     hXsrc->bDithering = true;
 #endif
+
     ulTaps            = BCHP_GET_FIELD_DATA(ulReg, XSRC_0_HW_CONFIGURATION, HORIZ_TAPS);
     switch(ulTaps)
     {
@@ -249,43 +251,6 @@ void BVDC_P_Xsrc_Init_isr
             BCHP_FIELD_ENUM(XSRC_0_CCA_CONFIG, CCA_CONFIG, DEFAULT ));
     }
 #endif
-
-    /* always dither: no harm to 8-bit source; */
-    if(hXsrc->bDithering)
-    {
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) &= ~(
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_INIT, SEQ) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_INIT, VALUE));
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) |=  (
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_INIT, SEQ,   ONCE_PER_SOP) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_LFSR_INIT, VALUE,            0));
-
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) &=  ~(
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, MODE      ) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH2) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH2 ) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH1) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH1 ) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH0) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH0 ));
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) |=  (
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_CTRL, MODE,   DITHER) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH2,  0) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH2,   1) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH1,  0) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH1,   1) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH0,  0) |
-            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH0,   1));
-
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) &= ~(
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T0) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T1) |
-            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T2));
-        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) |=  (
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T0, B3) |
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T1, B8) |
-            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T2, B12));
-    }
 
     hXsrc->ulSrcHrzAlign  = 2;
 
@@ -608,6 +573,7 @@ void BVDC_P_Xsrc_SetInfo_isr
        (hXsrc->ulPrevSrcHeight != ulDstVSize) ||  /* no vrt scl */
        (pPicture->eOrigSrcOrientation != hXsrc->ePrevSrcOrientation)    ||
        (pPicture->eDispOrientation  != hXsrc->ePrevDispOrientation)   ||
+       (pPicture->bSrc10Bit != hXsrc->bPrevSrc10Bit) ||
        !BVDC_P_XSRC_COMPARE_FIELD_DATA(hXsrc, XSRC_0_ENABLE, SCALER_ENABLE, 1)||
        (pPicture->bMosaicIntra))
     {
@@ -618,6 +584,7 @@ void BVDC_P_Xsrc_SetInfo_isr
 
         hXsrc->ePrevSrcOrientation  = pPicture->eOrigSrcOrientation;
         hXsrc->ePrevDispOrientation = pPicture->eDispOrientation;
+        hXsrc->bPrevSrc10Bit = pPicture->bSrc10Bit;
 
         hXsrc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
 
@@ -770,6 +737,25 @@ void BVDC_P_Xsrc_SetInfo_isr
             BCHP_FIELD_DATA(XSRC_0_HORIZ_FIR_INIT_PHASE_ACC_R, SIZE,
             lHrzPhsAccInit));
 #endif
+
+        /* enable dither for old XSRC HW if true 10-bit source (stream) */
+        /* XSRC is only acquired in BVN if connected to a 10-bit MFD    */
+        /* and only need to dither in XSRC for older chips without VFC  */
+        if(hXsrc->bDithering)
+        {
+            bool bDitherEn = (pPicture->bSrc10Bit) ? true : false;
+
+            BDBG_MODULE_MSG(BVDC_DITHER,("XSRC%d DITHER: %s", hXsrc->eId,
+                (bDitherEn) ? "ENABLE" : "DISABLE"));
+
+            BVDC_P_Dither_Setting_isr(&hXsrc->stDither, bDitherEn, 0xFFC, 0x1);
+            BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) = hXsrc->stDither.ulCtrlReg;
+            if(bDitherEn)
+            {
+                BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) = hXsrc->stDither.ulLfsrInitReg;
+                BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) = hXsrc->stDither.ulLfsrCtrlReg;
+            }
+        }
     }
 
     /* Printing out ratio in float format would be nice, but PI

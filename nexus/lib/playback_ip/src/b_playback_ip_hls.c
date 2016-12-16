@@ -2096,7 +2096,8 @@ B_PlaybackIp_HlsMediaProbeStart(
                         psi->mpegType = NEXUS_TransportType_eMpeg2Pes;
                         psi->audioPid = HLS_PES_AUDIO_ES_ID;
                         psi->audioCodec = B_PlaybackIp_UtilsAudioCodec2Nexus(track->info.audio.codec);
-                        BDBG_MSG(("PES audio track %u codec:%u", track->number, track->info.audio.codec));
+                        BDBG_MSG(("audio track %u codec:%u, container %d", track->number, track->info.audio.codec, psi->mpegType));
+    playback_ip->mediaStartTimeNoted = true;
                     }
                     else {
                         if (psi->audioPid == 0) {
@@ -4202,7 +4203,7 @@ static B_PlaybackIpError updateAudioDecoderTrickModeState(
                 BDBG_WRN(("%s: NEXUS_AudioDecoder_SetTrickState() handle=%p i=%d\n", __FUNCTION__, (void *)playback_ip->nexusHandles.simpleAudioDecoders[i], i));
             }
         }
-        else {
+        else if (playback_ip->nexusHandles.simpleAudioDecoder) {
             if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoder, &audioDecoderTrickSettings) != NEXUS_SUCCESS) {
                 BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
                 return  B_ERROR_UNKNOWN;
@@ -5429,7 +5430,7 @@ B_PlaybackIp_HlsMediaSegmentDownloadThread(
             }
             else if (wrapEsWithPes) {
                 /* Since we have to wrap ES w/ PES & each PES packet can atmost be 65K in length, we only read that much Audio Segment data into the Buffer. */
-                bytesToReadInSegment = 65535;
+                bytesToReadInSegment = 65530;
             }
             else if (playback_ip->contentLength > 0) {
                 /* we try to download that many bytes or until server closes the connection */

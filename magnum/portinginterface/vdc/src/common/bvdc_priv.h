@@ -417,13 +417,11 @@ void BVDC_P_WriteListInfo_isr
     ( const BVDC_P_ListInfo           *pList,
       BRDC_List_Handle                 hList );
 
-void BVDC_P_Dither_Init_isr
-    ( BVDC_P_DitherSetting            *pDitherSetting,
-      uint32_t                         ulLfsrCtrlT0,
-      uint32_t                         ulLfsrCtrlT1,
-      uint32_t                         ulLfsrCtrlT2,
-      uint32_t                         ulLfsrValue );
-#define BVDC_P_Dither_Init BVDC_P_Dither_Init_isr
+void BVDC_P_Dither_Setting_isr
+    ( BVDC_P_DitherSetting            *pDither,
+      bool                             bDitherEn,
+      uint32_t                         ulLfsrInitVale,
+      uint32_t                         ulScale );
 
 BERR_Code BVDC_P_CreateErrCb
     ( BVDC_P_Context                  *pVdc );

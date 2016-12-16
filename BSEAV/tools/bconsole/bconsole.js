@@ -62,6 +62,9 @@ var UUID = ""; // used to allow multiple browsers to access the STB
 var HIDE = false;
 var SHOW = true;
 var ttyCommand = ""; // the bash command to send to the STB
+var PrevKeyDown = 0;
+var CTRL = 17;
+var SpecialChar = ""; // used to send ctrl-c to stb
 
 function rtrim(stringToTrim) { return stringToTrim.replace(/\s+$/,""); }
 
@@ -79,12 +82,13 @@ window.onunload = function () {
 function MyBeforeUnload ()
 {
     //console.log("MyBeforeUnload");
-    if ( GetConsole.Value == 2) {
-        GetConsole.Value = 3; // EXIT
+    if ( GetConsole.Value == 2) /* if telnet session is still in progress */ {
+        GetConsole.Value = 3; // inform CGI we are wanting to EXIT
         ttyCommand = "exit";
         sendCgiRequest();
-        return false;
     }
+
+    return true;
 }
 
 function MyLoad ()
@@ -110,6 +114,8 @@ function MyLoad ()
         if ( checkboxconsole && checkboxconsole.checked == false) {
             hideOrShow ( 'row_console', HIDE );
         }
+
+        setTimeout ("ProcessCheckboxConsoleSelected(true)", REFRESH_IN_MILLISECONDS/5 );
     }
 
     sendCgiRequest();
@@ -152,6 +158,20 @@ function MyClick(event)
     setVariable(id);
 }
 
+/* In order to detect a CTRL-C key press, we need to keep track of when the CTRL key goes down and when it goes up */
+/* Pressing and releasing the CTRL key and then pressing and releasing the 'c' key is not the same thing as
+   pressing the CTRL key and then pressing the 'c' key and then releasing both of them at the same time. */
+function MyKeyUp(event)
+{
+    var debug=0;
+    var target = event.target || event.srcElement;
+    var id = target.id;
+    var contents = "";
+    //console.log ("MyKeyUp: id (" + id + "); keyCode=" + event.keyCode + "; contents.length:" + contents.length );
+
+    PrevKeyDown = 0;
+}
+
 function MyKeyDown(event)
 {
     var debug=0;
@@ -163,7 +183,18 @@ function MyKeyDown(event)
         contents = obj.value;
     }
 
-    //console.log ("MyKeyDown: id (" + id + "); keyCode=" + event.keyCode + "; contents.length:" + contents.length );
+    //console.log ("MyKeyDown: id (" + id + "); keyCode=" + event.keyCode + "; contents.length:" + contents.length + "; PrevKey " + PrevKeyDown );
+    if ( PrevKeyDown == CTRL && event.keyCode == 67 /* c character */ ) {
+        SpecialChar = "ctrl-c";
+        //console.log("MyKeyDown: " + SpecialChar + " detected" );
+    } else if ( PrevKeyDown == CTRL && event.keyCode == 68 /* d character */ ) {
+        //SpecialChar = "ctrl-d";
+        //console.log("MyKeyDown: " + SpecialChar + " detected" );
+    } else if ( PrevKeyDown == CTRL && event.keyCode == 90 /* z character */ ) {
+        //SpecialChar = "ctrl-z";
+        //console.log("MyKeyDown: " + SpecialChar + " detected" );
+    }
+    PrevKeyDown = event.keyCode;
 
     /* Special Case: if user enters return into an empty input element, we need to still something to telnet */
     if ( event.keyCode === 13 && contents.length == 0 && obj ) {
@@ -175,6 +206,9 @@ function MyKeyDown(event)
         obj.value = ""; // clear out the entry box
         checkForExit( contents );
         sendCgiRequest();
+    } else if ( SpecialChar.length ) {
+        obj.value = ""; // clear out the entry box
+        sendCgiRequest();
     }
 }
 
@@ -185,11 +219,31 @@ function checkForExit( fieldValue )
         GetConsole.Value = 3; // EXIT
         var objcheckbox=document.getElementById( "checkboxconsole" );
         if ( objcheckbox ) {
-            hideOrShow("row_console", HIDE );
+            //hideOrShow("row_console", HIDE );
             objcheckbox.checked = false;
         }
     }
 }
+
+function ProcessCheckboxConsoleSelected( fieldValue )
+{
+    //console.log( "ProcessCheckboxConsoleSelected: value (" + fieldValue + ")");
+
+    if ( GetConsole.Value == 0 && fieldValue == true ) GetConsole.Value = 1 /* INIT ... start the telnet threads */;
+
+    hideOrShow("row_console", fieldValue);
+    if (fieldValue) {
+        ClearInnerHtml ( "text_ttyConsole" );
+        AppendTextArea ( "text_ttyConsole", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" );
+        var objinput = document.getElementById('input_ttyConsole');
+        if (objinput) {
+            objinput.focus();
+        }
+
+        sendCgiRequest();
+    }
+}
+
 function setVariable(fieldName)
 {
     var debug=0;
@@ -208,15 +262,7 @@ function setVariable(fieldName)
             if (debug) alert("setVariable: checkbox; value " + fieldValue );
 
             if (fieldName == "checkboxconsole" ) {
-                hideOrShow("row_console", fieldValue);
-                if (fieldValue) {
-                    ClearInnerHtml ( "text_ttyConsole" );
-                    AppendTextArea ( "text_ttyConsole", "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n" );
-                    objinput = document.getElementById('input_ttyConsole');
-                    if (objinput) {
-                        objinput.focus();
-                    }
-                }
+                ProcessCheckboxConsoleSelected( fieldValue );
             }
 
             if (obj.checked) {
@@ -395,6 +441,11 @@ function sendCgiRequest( )
         CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS ); // look periodically for output from drivers and background processes
     }
 
+    if ( SpecialChar.length ) {
+        url += "&SpecialChar=" + SpecialChar;
+        SpecialChar = "";
+    }
+
     // seems the data sent to the browser cannot exceed 1010 for unknown reason
     if (url.length > 1010) {
         url = url.substr(0,1010);
@@ -466,8 +517,8 @@ debug=0;
                     i++;
                 } else if (entry == "\n") {
                 } else if ( entry == "DEBUG" ) {
-                    if(debug) AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
-                    if(debug) alert(entry + ":" + oResponses[i+1]);
+                    if(debug==0) AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
+                    //if(debug) alert(entry + ":" + oResponses[i+1]);
                     i++;
                 } else if (entry == "ttyContents") {
                     //AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
@@ -521,7 +572,7 @@ debug=0;
                 }
             }
         }  else {
-            alert("There was a problem retrieving the XML data:\n" + xmlhttp.statusText);
+            //alert("There was a problem retrieving the XML data:\n" + xmlhttp.statusText);
         }
 
     } //if (xmlhttp.readyState==4 )

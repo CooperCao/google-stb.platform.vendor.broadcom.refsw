@@ -923,7 +923,9 @@ static unsigned NEXUS_Platform_P_GetVmallocSize(const NEXUS_PlatformHeapSettings
     unsigned vmalloc;
     const nexus_p_memory_range *range;
 
-    required_vmalloc += BCHP_REGISTER_END;
+    /* Use the same register size maths as NEXUS_Platform_P_MapRegisters */
+    required_vmalloc += (BCHP_REGISTER_END - (BCHP_REGISTER_START & ~0xFFF));
+
     for(i=0;i<NEXUS_MAX_HEAPS;i++) {
         if( heap[i].size==0) {
             continue;

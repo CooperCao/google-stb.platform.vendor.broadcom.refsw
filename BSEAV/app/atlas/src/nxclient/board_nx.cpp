@@ -43,6 +43,7 @@
 #include "audio_decode_nx.h"
 #include "output_nx.h"
 #include "bluetooth_nx.h"
+#include "wifi.h"
 
 #if NEXUS_HAS_FRONTEND
 #include "tuner_qam_nx.h"
@@ -213,7 +214,7 @@ eRet CBoardResourcesNx::add(
             pWifi = new CWifi(MString(name)+"Nx", (id && (id != i)) ? id : i, pCfg);
             BDBG_ASSERT(pWifi);
             /* this is a singleton Wifi object so allow it to be checked out multiple times */
-            pNetwork->setCheckedOutMax(-1);
+            pWifi->setCheckedOutMax(-1);
             _wifiList.add(pWifi);
         }
         break;

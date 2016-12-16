@@ -182,10 +182,14 @@ typedef enum eNotification
     eNotify_NetworkWifiRssiResult,       /* status   - wifi network RSSI status */
     eNotify_NetworkWifiScanStarted,      /* status   - wifi network scan started */
     eNotify_NetworkWifiScanStopped,      /* status   - wifi network scan stopped */
+    eNotify_NetworkWifiScanFailure,      /* status   - wifi network scan failed */
     eNotify_NetworkWifiScanResult,       /* status   - results of wifi network scan are available */
     eNotify_NetworkWifiConnectionStatus, /* status   - wifi network connection status is available */
     eNotify_NetworkWifiConnected,        /* status   - wifi network has been connected */
     eNotify_NetworkWifiConnectFailure,   /* status   - wifi network connection attempt failture */
+    eNotify_NetworkWifiConnectFailureWrongKey,   /* status   - wifi network connection attempt failture because of incorrect key */
+    eNotify_NetworkWifiConnectFailureNetworkNotFound,   /* status   - wifi network connection attempt failture because of missing network */
+    eNotify_NetworkWifiConnectFailureAssocReject,   /* status   - wifi network connection attempt failture because of a rejected association with AP */
     eNotify_NetworkWifiDisconnected,     /* status   - wifi network has been disconnected */
 #ifdef WPA_SUPPLICANT_SUPPORT
     eNotify_NetworkWifiListUpdated, /* status   - updated list currently known wifi networks */

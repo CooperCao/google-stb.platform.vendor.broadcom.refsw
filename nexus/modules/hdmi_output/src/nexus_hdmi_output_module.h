@@ -224,9 +224,8 @@ typedef struct NEXUS_HdmiOutput
 
     struct
     {
-        bool inputDrmInfoFrameValid;
-        NEXUS_HdmiDynamicRangeMasteringInfoFrame inputDrmInfoFrame;
-        NEXUS_HdmiDynamicRangeMasteringInfoFrame outputDrmInfoFrame;
+        NEXUS_HdmiDynamicRangeMasteringInfoFrame inputInfoFrame;
+        NEXUS_HdmiDynamicRangeMasteringInfoFrame outputInfoFrame;
         bool connected;
         NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
     } drm;

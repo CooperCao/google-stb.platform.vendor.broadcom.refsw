@@ -156,13 +156,10 @@ typedef struct NEXUS_VideoInput_P_Link {
     NEXUS_EventCallbackHandle sourceChangedEventHandler, checkFormatChangedEventHandler;
     struct
     {
-        NEXUS_VideoEotf eotf;
-        NEXUS_MasteringDisplayColorVolume mdcv;
-        NEXUS_ContentLightLevel cll;
+        NEXUS_HdmiDynamicRangeMasteringInfoFrame inputInfoFrame;
         BKNI_EventHandle inputInfoUpdatedEvent;
         NEXUS_EventCallbackHandle inputInfoUpdatedEventHandler;
-    } hdrInputInfo;
-    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
+    } drm;
 
     BVDC_Source_CallbackData vdcSourceCallbackData; /* keep a copy of the VDC source callback data. this is more reliable than BVDC_Source_GetInputStatus.
                                                        be sure to enter a critical section before reading multiple items from this structure. */

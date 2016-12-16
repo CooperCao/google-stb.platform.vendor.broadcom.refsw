@@ -177,6 +177,9 @@ typedef struct BVDC_P_VfcContext
     uint32_t                       ulPrevHeight;
     BFMT_Orientation               ePrevSrcOrientation;
     BFMT_Orientation               ePrevDispOrientation;
+    bool                           bPrevSrc10Bit;
+    bool                           bPrevEnableStg;
+    BVDC_P_DitherSetting           stDither;
 
     /* sub-struct to manage vnet and rul build opreations */
     BVDC_P_SubRulContext           SubRul;

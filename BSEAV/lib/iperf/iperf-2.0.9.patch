@@ -1,0 +1,12 @@
+diff -ru iperf-2.0.9.orig/config.sub iperf-2.0.9/config.sub
+--- iperf-2.0.9.orig/config.sub	2016-06-06 11:48:21.000000000 -0700
++++ iperf-2.0.9/config.sub	2016-11-30 18:00:42.280075379 -0800
+@@ -230,7 +230,7 @@
+ 	| alpha | alphaev[4-8] | alphaev56 | alphaev6[78] | alphapca5[67] \
+ 	| alpha64 | alpha64ev[4-8] | alpha64ev56 | alpha64ev6[78] | alpha64pca5[67] \
+ 	| am33_2.0 \
+-	| arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] | avr \
++	| arc | arm | aarch64 | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] | avr \
+ 	| c4x | clipper \
+ 	| d10v | d30v | dlx | dsp16xx \
+ 	| fr30 | frv \

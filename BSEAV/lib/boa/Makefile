@@ -79,7 +79,7 @@ $(if ${NEXUS_BIN_DIR},,$(error NEXUS_BIN_DIR is not defined.))
 $(if ${B_REFSW_OBJ_ROOT},,$(error B_REFSW_OBJ_ROOT is not defined.))
 
 OBJ_BOA_DIR := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/boa/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
-COMPILER := ${B_REFSW_ARCH}-gcc
+COMPILER := $(strip ${CC})
 
 # DESTDIR is where you want the shared object libraries to end up, default to NEXUS_BIN_DIR
 DESTDIR ?= ${NEXUS_BIN_DIR}

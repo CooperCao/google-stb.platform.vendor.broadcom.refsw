@@ -46,6 +46,20 @@
 #include "network.h"
 
 #ifdef WPA_SUPPLICANT_SUPPORT
+typedef enum eConnectedState
+{
+    eConnectedState_Unknown,
+    eConnectedState_Connecting,
+    eConnectedState_Connected,
+    eConnectedState_Disconnecting,
+    eConnectedState_Disconnected,
+    eConnectedState_Scanning,
+    eConnectedState_Failure_Assoc_Reject,
+    eConnectedState_Failure_Network_Not_Found,
+    eConnectedState_Failure_Ssid_Temp_Disabled,
+    eConnectedState_Max
+} eConnectedState;
+
 typedef void (* CWifiWpaCallback)(char * msg, size_t len);
 class CModel;
 
@@ -133,12 +147,7 @@ public:
     void close(void);
     eRet start(void);
     void stop(void);
-
-    void wifiRssiCallback();
-    void wifiScanDoneCallback();
-    void wifiConnectDoneCallback();
-    void wifiUpdateNetworkSettings();
-
+    void                      processWpaResponse(const char * strCallback);
     eRet                      readInterface(void);
     eRet                      connectWifi(const char * strSSID, const char * strPassword);
     eRet                      disconnectWifi(void);
@@ -162,6 +171,11 @@ public:
     CWifiResponse *           getResponse(void);
     CWifiResponse *           removeResponse(void);
     eRet                      trigger(CAction * pAction);
+    void                      setConnectedState(const char * strConnectedState);
+    void                      setConnectedState(eConnectedState connectedState);
+    eConnectedState             getConnectedState(void);
+    eRet dhcpStart(void);
+    eRet dhcpStop(void);
     void                      setModel(CModel * pModel)    { _pModel = pModel;  }
     CModel *                  getModel(void)               { return(_pModel); }
     bool                      getStartState(void)          { return(_bThreadRun); }
@@ -170,6 +184,9 @@ public:
     MString                   getConnectedBSSID(void)      { return(_connectedStatusHash.get("bssid")); }
     void                      clearConnectedStatus(void)   { _connectedStatusHash.clear(); }
     bool                      isNetworkListEmpty(void)     { return(0 < _networksList.total() ? false : true); }
+    bool                      isScanEnabled(void)          { return(_bScanEnabled); }
+
+    STRING_TO_ENUM_DECLARE(stringToConnectedState, eConnectedState)
 
     struct wpa_ctrl * getWpaControl(void) { return(_pWpaControl); }
     struct wpa_ctrl * getWpaMonitor(void) { return(_pWpaMonitor); }
@@ -183,11 +200,14 @@ protected:
     CWidgetEngine *         _pWidgetEngine;
     eRet                    _scanStatus;
     bool                    _bScanStarted;
-    eConnectStatus          _connectStatus;
+    bool                    _bScanEnabled;
+    eConnectedState           _connectedState;
     MAutoList<CNetworkWifi> _networksList;
+    B_MutexHandle           _networksListMutex;
     MAutoList<CNetworkWifi> _scannedNetworksList;
     MString                 _strInterfacePath;
     MString                 _strInterfaceName;
+    MString                 _strConnectedState;
     MStringHash             _connectedStatusHash;
     int32_t                 _noiseLevel;
 
@@ -196,6 +216,8 @@ protected:
     B_MutexHandle         _actionMutex;
     MList <CWifiResponse> _responseList;
     B_MutexHandle         _responseMutex;
+    B_MutexHandle         _parseMutex;
+    B_MutexHandle         _connectedStateMutex;
     CModel *              _pModel;
 
     struct wpa_ctrl * _pWpaControl;

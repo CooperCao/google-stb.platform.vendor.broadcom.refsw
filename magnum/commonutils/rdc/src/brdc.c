@@ -80,7 +80,7 @@ BDBG_OBJECT_ID(BRDC_LST);
 /* HW7445-1476, use SW blockout before the fixes in */
 #if (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || (BCHP_CHIP==7366) || (BCHP_CHIP==74371) || \
     ((BCHP_CHIP==7439) && (BCHP_VER == BCHP_VER_A0))|| \
-    ((BCHP_CHIP==7464) && (BCHP_VER < BCHP_VER_C0))|| \
+    ((BCHP_CHIP==7364) && (BCHP_VER < BCHP_VER_C0))|| \
     (BCHP_CHIP==7250)|| (BCHP_CHIP==7563)|| (BCHP_CHIP==7543)
 #define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (1)
 #else

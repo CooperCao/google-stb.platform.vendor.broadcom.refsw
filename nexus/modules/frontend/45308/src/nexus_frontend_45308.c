@@ -677,25 +677,6 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45308_PostInitAP(NEXUS_45308Device
         e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
     }
 
-    {
-        /* Set MTSIF into a lower power state */
-        uint32_t val;
-        uint32_t addr;
-        BERR_Code e;
-
-        addr = 0x7100010;
-        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
-        BDBG_MSG(("%08x: %08x", addr, val));
-        val = 0x21010;
-        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
-
-        addr = 0x7100014;
-        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
-        BDBG_MSG(("%08x: %08x", addr, val));
-        val = 0;
-        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
-    }
-
     for (i=0; i < 3; i++) {
         uint32_t val;
         uint32_t clockAddr;

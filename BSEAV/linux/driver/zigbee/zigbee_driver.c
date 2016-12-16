@@ -50,7 +50,7 @@ static int debug;
 
 typedef void (*FUNCPTR)(int nArg1,...);
 
-#define DRV_NAME	"brcm-zigbee"
+#define DRV_NAME    "brcm-zigbee"
 
 struct zigbee_priv_data {
     struct cdev chr_dev;
@@ -65,7 +65,29 @@ struct zigbee_priv_data {
     const struct zigbee_regs *regs;
 };
 
-#define NUM_MINORS		1
+struct zigbee_priv {
+    void __iomem    *sun_top_ctrl;
+    void __iomem    *aon_ctrl;
+    void __iomem    *rf4ce_controller;
+};
+
+static struct zigbee_priv zigbee_priv;
+
+#define ZIGBEE_IO_MACRO(name)   \
+static inline u32 name##_readl(u32 off)                 \
+{                                   \
+    return __raw_readl(zigbee_priv.name + off);         \
+}                                   \
+static inline void name##_writel(u32 val, u32 off)          \
+{                                   \
+    __raw_writel(val, zigbee_priv.name + off);          \
+}                                   \
+
+ZIGBEE_IO_MACRO(sun_top_ctrl);
+ZIGBEE_IO_MACRO(aon_ctrl);
+ZIGBEE_IO_MACRO(rf4ce_controller);
+
+#define NUM_MINORS      1
 static struct zigbee_priv_data *minor_tbl[NUM_MINORS];
 
 struct zigbee_platform_data {
@@ -630,13 +652,13 @@ static inline void eui64_to_u32(uint32_t *hi, uint32_t *lo, const uint8_t *mac)
 */
 const void *of_get_eui64_address(struct device_node *np)
 {
-	struct property *pp;
+    struct property *pp;
 
-	pp = of_find_property(np, "local-extended-address", NULL);
-	if (pp && (pp->length == 8))
-		return pp->value;
+    pp = of_find_property(np, "local-extended-address", NULL);
+    if (pp && (pp->length == 8))
+        return pp->value;
 
-	return NULL;
+    return NULL;
 }
 
 static int brcmstb_zigbee_parse_dt_node(struct zigbee_priv_data *priv)
@@ -685,7 +707,7 @@ static int brcmstb_zigbee_parse_dt_node(struct zigbee_priv_data *priv)
         int val;
         printk(KERN_INFO "unable to obtain chip_id from device tree\n");
 #ifdef COMPILE_TIME
-        val = BDEV_RD(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
+        val = sun_top_ctrl_readl(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
 #else
         val = BDEV_RD(0x00404000);
 #endif
@@ -704,6 +726,21 @@ static int brcmstb_zigbee_parse_dt_node(struct zigbee_priv_data *priv)
     return status;
 }
 
+static const struct of_device_id sun_top_ctrl_match[] = {
+    { .compatible = "brcm,brcmstb-sun-top-ctrl", },
+    { }
+};
+
+static const struct of_device_id aon_ctrl_match[] = {
+    { .compatible = "brcm,brcmstb-aon-ctrl", },
+    { }
+};
+
+static const struct of_device_id rf4ce_controller_match[] = {
+    { .compatible = "brcm,rf4ce", },
+    { }
+};
+
 int brcmstb_zigbee_probe(struct platform_device *pdev)
 {
     int rc=0;
@@ -715,9 +752,7 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
 #ifdef DYNAMIC_MAJOR_NUMBER
     dev_t dev_no;
 #endif
-#ifndef COMPILE_TIME
     u32 val;
-#endif
 
     priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
     if (!priv)
@@ -725,6 +760,42 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     platform_set_drvdata(pdev, priv);
     priv->pdev = pdev;
     priv->dev = dev;
+
+    {
+        struct device_node *sun_top_ctrl;
+        struct device_node *aon_ctrl;
+        struct device_node *rf4ce_controller;
+
+        sun_top_ctrl = of_find_matching_node(NULL, sun_top_ctrl_match);
+        if (!sun_top_ctrl) {
+            printk(KERN_ALERT "error\n");
+        }
+
+        zigbee_priv.sun_top_ctrl = of_iomap(sun_top_ctrl, 0);
+        if (!zigbee_priv.sun_top_ctrl) {
+            printk(KERN_ALERT "error\n");
+        }
+
+        aon_ctrl = of_find_matching_node(NULL, aon_ctrl_match);
+        if (!aon_ctrl) {
+            printk(KERN_ALERT "error\n");
+        }
+
+        zigbee_priv.aon_ctrl = of_iomap(aon_ctrl, 0);
+        if (!zigbee_priv.aon_ctrl) {
+            printk(KERN_ALERT "error\n");
+        }
+
+        rf4ce_controller = of_find_matching_node(NULL, rf4ce_controller_match);
+        if (!rf4ce_controller) {
+            printk(KERN_ALERT "error\n");
+        }
+
+        zigbee_priv.rf4ce_controller = of_iomap(rf4ce_controller, 0);
+        if (!zigbee_priv.rf4ce_controller) {
+            printk(KERN_ALERT "error\n");
+        }
+    }
 
     brcmstb_zigbee_parse_dt_node(priv);
     pd = pdev->dev.platform_data;
@@ -747,7 +818,7 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     }
 
     res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-    priv->base = devm_request_and_ioremap(dev, res);
+    priv->base = devm_ioremap_resource(dev, res);
     if (!priv->base)
         return -ENODEV;
 
@@ -779,7 +850,7 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     //printk(KERN_INFO "base_addr=%p\n", base_addr);
 
 #ifdef COMPILE_TIME
-    printk(KERN_INFO "DRIVER:  BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID=0x%08lx\n", BDEV_RD(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID));
+    printk(KERN_INFO "DRIVER:  BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID=0x%08x\n", sun_top_ctrl_readl(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID));
 #else
     printk(KERN_INFO "DRIVER:  BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID=0x%08lx\n", BDEV_RD(0x00404000));
 #endif
@@ -795,7 +866,8 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     debug = 0;
 
     /* For S3 */
-#ifdef COMPILE_TIME
+
+#if 0 //def COMPILE_TIME
 #if BCHP_CHIP==7364
     BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cml_in_s3, 0x4); /* Set bit 14 */
     BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cmos_in_s3, 0x10); /* Set bit 20 */
@@ -809,33 +881,33 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
         printk(KERN_INFO "S3 support to be determined\n");
     } else if ((pd->chip_id & 0xffff0000) == 0x73640000) {
 //        BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cml_in_s3, 0x4); /* Set bit 14 */
-        val = BDEV_RD(0x00410074);
+        val = aon_ctrl_readl(BCHP_AON_CTRL_ANA_XTAL_CONTROL);
         val &= ~0x0000f000;
         val |= ((0x4 << 12) & 0x0000f000);
-        BDEV_WR(0x00410074, val);
+        aon_ctrl_writel(val, BCHP_AON_CTRL_ANA_XTAL_CONTROL);
 
 //        BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cmos_in_s3, 0x10); /* Set bit 20 */
-        val = BDEV_RD(0x00410074);
+        val = aon_ctrl_readl(BCHP_AON_CTRL_ANA_XTAL_CONTROL);
         val &= ~0x003f0000;
         val |= ((0x10 << 16) & 0x003f0000);
-        BDEV_WR(0x00410074, val);
+        aon_ctrl_writel(val, BCHP_AON_CTRL_ANA_XTAL_CONTROL);
     } else if ((pd->chip_id & 0xffff0000) == 0x73660000) {
 //#define BCHP_AON_CTRL_ANA_XTAL_CONTROL           0x00410074 /* [RW] Ana xtal gisb control */
 //#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_en_osc_cml_in_s3_MASK       0x0000f000
 //#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_en_osc_cml_in_s3_SHIFT      12
 //        BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cml_in_s3, 0x2); /* Set bit 13 */
-        val = BDEV_RD(0x00410074);
+        val = aon_ctrl_readl(BCHP_AON_CTRL_ANA_XTAL_CONTROL);
         val &= ~0x0000f000;
         val |= ((0x2 << 12) & 0x0000f000);
-        BDEV_WR(0x00410074, val);
+        aon_ctrl_writel(val, BCHP_AON_CTRL_ANA_XTAL_CONTROL);
 
 //#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_en_osc_cmos_in_s3_MASK      0x003f0000
 //#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_en_osc_cmos_in_s3_SHIFT     16
 //        BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cmos_in_s3, 0x10); /* Set bit 20 */
-        val = BDEV_RD(0x00410074);
+        val = aon_ctrl_readl(BCHP_AON_CTRL_ANA_XTAL_CONTROL);
         val &= ~0x003f0000;
         val |= ((0x10 << 16) & 0x003f0000);
-        BDEV_WR(0x00410074, val);
+        aon_ctrl_writel(val, BCHP_AON_CTRL_ANA_XTAL_CONTROL);
     } else {
         printk(KERN_INFO "unknown chip_id for S3\n");
     }

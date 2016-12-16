@@ -146,6 +146,9 @@ typedef struct BVDC_P_McvpContext
     /* sub-struct to manage vnet and rul build opreations */
     BVDC_P_SubRulContext               SubRul;
 
+    bool                               bPrevDitherEn;
+    BVDC_P_DitherSetting               stDither;
+
     BVDC_P_MvpMode                    stMcvpMode[BAVC_MOSAIC_MAX];
 } BVDC_P_McvpContext;
 

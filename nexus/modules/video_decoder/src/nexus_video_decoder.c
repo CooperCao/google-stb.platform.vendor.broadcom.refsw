@@ -1640,6 +1640,9 @@ NEXUS_Error NEXUS_VideoDecoder_P_OpenChannel(NEXUS_VideoDecoderHandle videoDecod
 
 
     /* prevent dual decode if a channel is in exclusive mode: 4K, MVC or 3 or 4 HD mosaic. */
+#if ((BCHP_CHIP == 7268) ||  (BCHP_CHIP == 7271))
+    if (g_pCoreHandles->boxConfig->stBox.ulBoxId != 6)
+#endif
     {
         unsigned num4K = 0, numHD = 0, numMvc = 0, num = 0, i;
         char problem[16] = "";

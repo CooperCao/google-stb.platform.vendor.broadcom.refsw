@@ -2557,9 +2557,8 @@ int http_validate_and_adjust_byte_ranges(B_PlaybackIpHandle playback_ip, off_t *
     byteRangeStart = *byteRangeStartPtr;
     byteRangeEnd = *byteRangeEndPtr;
     cacheIndex = playback_ip->lastUsedCacheIndex;
-    if (!playback_ip->dataCache[cacheIndex].inUse) /* since caches are not even yet setup, ignore byte range validation for now */
-        return 0;
-    if (playback_ip->serverClosed) {
+    if (playback_ip->serverClosed && playback_ip->dataCache[cacheIndex].inUse)
+    {
         /* we may need to adjust the requested if server is no longer sending data & player is asking for more data outside the cache */
         cacheIndex = playback_ip->cacheIndexUsingSocket;
         if (byteRangeStart > playback_ip->dataCache[cacheIndex].endOffset) {

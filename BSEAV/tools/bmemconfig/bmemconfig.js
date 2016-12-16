@@ -333,7 +333,7 @@ function GetNexusMemoryConfig()
     if(MasterSending==1) alert("sending " + url );
     if(debugobj) {debugobj.innerHTML = ""; } // clear out the debug output box
     xmlhttp.onreadystatechange = serverHttpResponse;
-    xmlhttp.open("GET",url,false);
+    xmlhttp.open("GET",url,true);
     xmlhttp.send(null);
 }
 

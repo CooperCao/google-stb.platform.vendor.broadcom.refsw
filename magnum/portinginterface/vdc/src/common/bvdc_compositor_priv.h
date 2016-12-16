@@ -336,6 +336,16 @@ typedef struct BVDC_P_CompositorContext
 
     /* this affects dvi dither setting */
     bool                              bIs10BitCore;
+    bool                              bIs2xClk;
+    bool                              bInDither;
+    bool                              bAlign12Bit;
+
+    /* Dither */
+    uint32_t                          ulDitherChange[BVDC_P_MAX_WINDOW_COUNT];
+    bool                              bInDitherEnable[BVDC_P_MAX_WINDOW_COUNT];
+    bool                              bCscDitherEnable[BVDC_P_MAX_WINDOW_COUNT];
+    BVDC_P_DitherSetting              stInDither;
+    BVDC_P_DitherSetting              stCscDither;
 
     /* Associated w/ this display handle. */
     BVDC_Display_Handle               hDisplay;

@@ -60,6 +60,7 @@
 #include "bmemperf_server.h"
 #include "bmemperf_cgi.h"
 #include "bmemperf_utils.h"
+#include "bmemperf_lib.h"
 #include "bmemperf_info.h"
 #include "nexus_platform.h"
 #include "bheaps.h"
@@ -917,6 +918,7 @@ int main(
         int            leftright    = 0;
         int            leftrightmax = 1;
         struct timeval now          = {1400000000, 0};
+        char          *boltVersion  = NULL;
 
         strncpy( versionInfo.platform, getPlatform(), sizeof( versionInfo.platform ) - 1 );
         strncpy( versionInfo.platVersion, getPlatformVersion(), sizeof( versionInfo.platVersion ) - 1 );
@@ -924,8 +926,16 @@ int main(
         versionInfo.minorVersion   = MINOR_VERSION;
         versionInfo.sizeOfResponse = sizeof( response );
         printf( "~PLATFORM~%s", versionInfo.platform );
+        printf( "~VARIANT~%s", getProductIdStr() );
         printf( "~PLATVER~%s", versionInfo.platVersion );
         printf( "~VERSION~Ver: %u.%u~", versionInfo.majorVersion, versionInfo.minorVersion );
+
+        boltVersion = getFileContents( "/proc/device-tree/bolt/tag" );
+        if ( boltVersion )
+        {
+            printf( "~BOLTVER~%s", boltVersion );
+            Bsysperf_Free( boltVersion );
+        }
 
         uname(&uname_info);
         printf("~UNAME~%d-bit %s %s~", (sizeof(char*) == 8)?64:32, uname_info.machine , uname_info.release );
@@ -1348,7 +1358,8 @@ int main(
         printf( "<tr bgcolor=lightgray ><th>Name</th><th>IP Addr</th><th>Rx Bytes</th><th>Tx Bytes</th><th>Rx Errors</th><th>Tx Errors</th>"
                 "<th>Rx Mbps (Avg)</th><th>Tx Mbps (Avg)</th><th>Graph</th></tr>\n" );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
-            printf( "<tr><td>%s</td> <td align=center >%s</td> <td align=center id=netif_rxBytes_%d >%s</td>", g_netStats[idx].name, g_netStats[idx].ipAddress, idx, formatul( g_netStats[idx].rxBytes ));
+            printf( "<tr><td id=ethname%d>%s</td> <td align=center >%s</td> <td align=center id=netif_rxBytes_%d >%s</td>",
+                    idx, g_netStats[idx].name, g_netStats[idx].ipAddress, idx, formatul( g_netStats[idx].rxBytes ));
             printf( "<td id=netif_txBytes_%d align=center >%s</td>", idx, formatul( g_netStats[idx].txBytes ));
             printf( "<td id=netif_rxError_%d align=center >%s</td>", idx, formatul( g_netStats[idx].rxErrors ));
             printf( "<td id=netif_txError_%d align=center >%s</td>", idx, formatul( g_netStats[idx].txErrors ));
@@ -1654,13 +1665,19 @@ int main(
 
 
         Bsysperf_WifiGetDriverVersion ( WIFI_INTERFACE_NAME, &wifiDriverVersion[0], sizeof(wifiDriverVersion) );
+
+        memset(mac_addr, 0, sizeof(mac_addr));
+        snprintf (mac_addr, sizeof(mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X",
+               tScanInfo.BSSID.octet[0], tScanInfo.BSSID.octet[1], tScanInfo.BSSID.octet[2],
+               tScanInfo.BSSID.octet[3], tScanInfo.BSSID.octet[4], tScanInfo.BSSID.octet[5]);
+
         printf( "~WIFISTATS~" );
         printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 ><tr>" );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-left: solid thin black;\" >Chip Number:<span class=bluetext>%d (0x%x)</span></td> ",
-                tRevInfo.ulChipNum, tRevInfo.ulChipNum );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-left: solid thin black;\" >"
+                "SSID:<span class=bluetext>%s</span></td> ", tScanInfo.tCredentials.acSSID );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >Driver Version:<span class=bluetext>%s </span></td> ",
                 wifiDriverVersion );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >PCI vendor id:<span class=bluetext>0x%x </span></td> ", tRevInfo.ulVendorId );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >MAC Addr:<span class=bluetext>%s</span></td> ", mac_addr );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-right: solid thin black;\" >Device id of chip:<span class=bluetext>0x%x </span></td> ",
                 tRevInfo.ulDeviceId );
         printf( "</tr>\n");
@@ -1717,11 +1734,6 @@ int main(
         }
         printf( "</tr>");
 
-        memset(mac_addr, 0, sizeof(mac_addr));
-        snprintf (mac_addr, sizeof(mac_addr), "%02X:%02X:%02X:%02X:%02X:%02X",
-               tScanInfo.BSSID.octet[0], tScanInfo.BSSID.octet[1], tScanInfo.BSSID.octet[2],
-               tScanInfo.BSSID.octet[3], tScanInfo.BSSID.octet[4], tScanInfo.BSSID.octet[5]);
-
 #ifdef BWL_SUPPORT
         if ( wifiAmpduGraph )
         {
@@ -1732,8 +1744,8 @@ int main(
 #endif
 
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
-        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >SSID:<span class=bluetext>%s</span></td> ", tScanInfo.tCredentials.acSSID );
-        printf( "<td align=left colspan=2 class=silver_allborders >MAC Addr:<span class=bluetext>%s</span></td> ", mac_addr );
+        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Chip Number:<span class=bluetext>%d (0x%x)</span></td> ", tRevInfo.ulChipNum, tRevInfo.ulChipNum );
+        printf( "<td align=left colspan=2 class=silver_allborders >PCI vendor id:<span class=bluetext>0x%x </span></td> ", tRevInfo.ulVendorId );
         printf( "<td align=left colspan=2 class=silver_allborders ><table style=\"border-collapse:collapse;\" ><tr><td>Rate (Mbps):</td><td><span class=bluetext><div id=WIFIRATE ></div></span></td></tr></table></td> " );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >AuthType:<span class=bluetext>%d</span></td>", tScanInfo.ulAuthType );
         printf( "</tr>");

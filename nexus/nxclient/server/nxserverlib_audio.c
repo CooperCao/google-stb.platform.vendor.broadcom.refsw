@@ -2248,7 +2248,7 @@ void nxserverlib_p_audio_get_audio_procesing_settings(struct b_session *session,
     {
             NEXUS_AudioMixerSettings mixerSettings;
             NEXUS_AudioMixer_GetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
-            BKNI_Memcpy(&pSettings->dolby, &mixerSettings.dolby, sizeof(NEXUS_AudioMixerDolbySettings));
+            BKNI_Memcpy(&pSettings->dolby.dolbySettings, &mixerSettings.dolby, sizeof(NEXUS_AudioMixerDolbySettings));
     }
 }
 

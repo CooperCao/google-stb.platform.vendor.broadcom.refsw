@@ -919,7 +919,6 @@ eRet CBoardResources::add(
         case eBoardResource_wifi:
         {
             CWifi * pWifi = NULL;
-            BDBG_ERR(("TTTTTTTTTTTTTTTTTTTTTTTTTTT cwifi pCfg:%p", pCfg));
             pWifi = new CWifi(name, (id && (id != i)) ? id : i, pCfg);
             BDBG_ASSERT(pWifi);
             /* this is a singleton Wifi object so allow it to be checked out multiple times */

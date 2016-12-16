@@ -826,11 +826,9 @@ BERR_Code BVDC_Source_SetDnrConfiguration
 
     /* set new value */
     hSource->stNewInfo.stDnrSettings = *pDnrSettings;
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_6)
     hSource->stNewInfo.stDnrSettings.iBnrLevel = BVDC_P_MIN(hSource->stNewInfo.stDnrSettings.iBnrLevel, BVDC_P_DNR_H_MAX_RANGE);
     hSource->stNewInfo.stDnrSettings.iMnrLevel = BVDC_P_MIN(hSource->stNewInfo.stDnrSettings.iMnrLevel, BVDC_P_DNR_H_MAX_RANGE);
     hSource->stNewInfo.stDnrSettings.iDcrLevel = BVDC_P_MIN(hSource->stNewInfo.stDnrSettings.iDcrLevel, BVDC_P_DNR_H_MAX_RANGE);
-#endif
     hSource->stNewInfo.stDirty.stBits.bDnrAdjust = BVDC_P_DIRTY;
 
     BDBG_LEAVE(BVDC_Source_SetDnrConfiguration);
@@ -2178,8 +2176,10 @@ static void BVDC_P_Source_PrintPicture_isr
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->ulLuminanceFrameBufferBlockOffset    : 0x%08x", pEnhanced->ulLuminanceFrameBufferBlockOffset));
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->hChrominanceFrameBufferBlock         : %p", (void *)pEnhanced->hChrominanceFrameBufferBlock));
                 BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->ulChrominanceFrameBufferBlockOffset  : 0x%08x", pEnhanced->ulChrominanceFrameBufferBlockOffset));
+                BSTD_UNUSED(pEnhanced);
             }
             pPic = pPic->pNext;
+            BSTD_UNUSED(ulPicIdx);
         }while (pPic);
 
         /* keep on printing until we get to zero, and update field. */

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -269,6 +269,9 @@ static void pipeline_checker_timer(void *arg)
             flags = errors.overflow.XcbuffRmx1Ibp;
             count = pTransport->overflow.xcbuff.ibp2rmx1;
             for (i=0; i<32; i++) { if ((flags >> i) & 1) { count[i]++; } }
+        }
+        if (errors.overflow.InputBuffer) {
+           pTransport->overflow.inputBuffer++;
         }
     }
 

@@ -449,6 +449,7 @@ typedef struct BVDC_P_SourceContext
 
     /* this affects XSRC allocation */
     bool                      bIs10BitCore;
+    bool                      bIs2xClk;
 
     /* Hold the previous field from mvd. */
     BAVC_MVD_Field            stPrevMvdField;

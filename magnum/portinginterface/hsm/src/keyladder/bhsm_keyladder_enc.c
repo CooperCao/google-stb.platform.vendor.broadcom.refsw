@@ -57,6 +57,9 @@ BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm )
 {
     BERR_Code rc = BERR_SUCCESS;
+    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    unsigned i = 0;
+    #endif
 
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
@@ -65,6 +68,33 @@ BERR_Code  BHSM_InitialiseKeyLadders ( BHSM_Handle hHsm )
         BERR_TRACE( rc );
         goto BHSM_P_DONE_LABEL;
     }
+
+    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    /* invalidate VKLs that have HOST ownership. */
+    for( i = 0; i < BHSM_MAX_VKL; i++ )
+    {
+        if( !hHsm->vkl[i].neverUsed && hHsm->vkl[i].client == BHSM_ClientType_eHost )
+        {
+            /* invalidate it. */
+            BHSM_InvalidateVkl_t invalidateVkl;
+
+            BDBG_MSG(("VKL [%d] Invalidating HOST VKL.", i ));
+
+            BKNI_Memset( &invalidateVkl, 0, sizeof(invalidateVkl) );
+            invalidateVkl.virtualKeyLadderID = (i | BHSM_VKL_ID_ALLOCATION_FLAG);
+            invalidateVkl.bInvalidateVkl = true;
+            rc = BHSM_InvalidateVKL( hHsm, &invalidateVkl );
+            if( rc != BERR_SUCCESS )
+            {
+                BERR_TRACE( rc ); /* failed to invalidate VKL. Continue with error. */
+                continue;
+            }
+
+            hHsm->vkl[i].neverUsed = true;
+            hHsm->vkl[i].client = BHSM_ClientType_eNone;
+        }
+    }
+    #endif
 
 BHSM_P_DONE_LABEL:
 
@@ -227,6 +257,7 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     BERR_Code           rc = BERR_SUCCESS;
     BHSM_BspMsg_h       hMsg = NULL;
     BHSM_BspMsgHeader_t header;
+    unsigned vklId = 0;
     uint8_t status;
 
     BDBG_ENTER( BHSM_InvalidateVKL );
@@ -236,6 +267,18 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     if( pConfig == NULL )
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    vklId = BHSM_RemapVklId(pConfig->virtualKeyLadderID);
+    if( vklId >= BCMD_VKL_KeyRam_eMax )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if( hHsm->vkl[vklId].client == BHSM_ClientType_eSAGE &&
+        hHsm->currentSettings.clientType == BHSM_ClientType_eHost )
+    {
+        return BERR_TRACE(BERR_INVALID_PARAMETER); /* can't invalidate a SAGE keyladder from HOST */
     }
 
     if( ( rc = BHSM_BspMsg_Create( hHsm, &hMsg ) ) != BERR_SUCCESS )
@@ -249,7 +292,7 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     #define HSM_INVALIDATE_VKL (BCMD_cmdType_eSESSION_INVALIDATE_KEY)
     BHSM_BspMsg_Header( hMsg, HSM_INVALIDATE_VKL, &header );
 
-    BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eVKLID, BHSM_RemapVklId(pConfig->virtualKeyLadderID ));
+    BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eVKLID, vklId );
     BHSM_BspMsg_Pack8( hMsg, BCMD_InvalidateKey_InCmd_eKeyFlag, BCMD_InvalidateKey_Flag_eSrcKeyOnly );
 
   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
@@ -281,10 +324,17 @@ BERR_Code BHSM_InvalidateVKL( BHSM_Handle hHsm,
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eStatus, &status );
     if( status != 0 )
     {
-        BDBG_ERR(("%s BSP error status[0x%02X]. VKL[%d] )", __FUNCTION__, status, BHSM_RemapVklId(pConfig->virtualKeyLadderID)));
+        BDBG_ERR(("%s BSP error status[0x%02X]. VKL[%d] )", __FUNCTION__, status, vklId ));
         rc = BHSM_STATUS_BSP_ERROR;
         goto BHSM_P_DONE_LABEL;
     }
+   #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    if( pConfig->bInvalidateVkl )
+    {
+        hHsm->vkl[vklId].client = BHSM_ClientType_eNone;
+        hHsm->vkl[vklId].neverUsed = true;
+    }
+   #endif
 
 BHSM_P_DONE_LABEL:
 

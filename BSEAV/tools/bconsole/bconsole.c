@@ -513,9 +513,10 @@ static int read_results(
     pipe = open( tempFilename2, O_RDONLY );
     /*printf("open(%s) O_RDONLY returned pipe %d \n", tempFilename2, pipe );*/
 
+    /* if the telnet thread has died and gone away */
     if (pipe <= 0)
     {
-        printf( "~DEBUG~open(%s) failed ... %s~", tempFilename2, strerror( errno ));
+        /*printf( "~DEBUG~open(%s) failed ... %s~", tempFilename2, strerror( errno ));*/
         return( 0 );
     }
 
@@ -560,6 +561,7 @@ int main(
     int                   tzOffset     = 0;
     int                   ttyConsole   = 0;
     char                  ttyCommand[128];
+    char                  SpecialChar[8];
 
     printf( "Content-type: text/html\n\n" );
 
@@ -574,6 +576,7 @@ int main(
 
     memset( ttyCommand, 0, sizeof( ttyCommand ));
     memset( g_uuid, 0, sizeof( g_uuid ));
+    memset( SpecialChar, 0, sizeof( SpecialChar ));
 
     if (strlen( queryString ))
     {
@@ -582,6 +585,7 @@ int main(
         scanForInt( queryString, "ttyConsole=", &ttyConsole ); /* 1 => INIT; 2 -> KILL_SUBTHREADS */
         scanForStr( queryString, "ttyCommand=", sizeof( ttyCommand ), ttyCommand );
         scanForStr( queryString, "uuid=", sizeof( g_uuid ), g_uuid );
+        scanForStr( queryString, "SpecialChar=", sizeof( SpecialChar ), SpecialChar );
     }
 
     /* if browser provided a new date/time value; this only happens once during initialization */
@@ -610,7 +614,6 @@ int main(
 
     #if 0
     printf( "\n~DEBUG~ttyConsole %d~", ttyConsole );
-    if (strlen( g_uuid )) {printf( "\n~DEBUG~g_uuid %s~", g_uuid ); }
     if (strlen( ttyCommand )) {printf( "\n~DEBUG~ttyCommand len %d ... (%s)~", strlen( ttyCommand ), ttyCommand ); }
     #endif
 
@@ -619,7 +622,7 @@ int main(
         int klog_pid = 0;
         int tty0_pid = 0;
         klog_pid = daemonize( NULL );                      /* this causes a fork to happen and another (child) thread gets started */
-        /*printf("after daemonize(): klog_pid %d (%d) \n", klog_pid, getpid() );*/
+        /*printf("~DEBUG~after daemonize(): klog_pid %d (%d)~", klog_pid, getpid() );*/
         if (klog_pid == 0)                                 /* 0 is the child; greater than zero is the parent */
         {
             /* start a background thread that will read the output from drivers (similar to dmesg utility) */
@@ -649,6 +652,31 @@ int main(
     {
         decodeURL( ttyCommand );
         process_command( ttyCommand );
+
+        usleep( 100000 );                                  /* wait a tenth of a second and then read the results of the shell command */
+
+        read_results();
+    }
+
+    if (strlen( SpecialChar ))                              /* the user entered a ctrl-c or ctrl-d or ctrl-z */
+    {
+        char buffer[4];
+
+        memset(buffer, 0, sizeof(buffer) );
+        if ( strcmp( SpecialChar, "ctrl-c") == 0 )
+        {
+            buffer[0] = 3;
+        }
+        else if ( strcmp( SpecialChar, "ctrl-d") == 0 )
+        {
+            buffer[0] = 4;
+        }
+        else if ( strcmp( SpecialChar, "ctrl-z") == 0 )
+        {
+            buffer[0] = 26;
+        }
+        printf("~DEBUG~detected %s~", SpecialChar );
+        process_command( buffer );
 
         usleep( 100000 );                                  /* wait a tenth of a second and then read the results of the shell command */
 

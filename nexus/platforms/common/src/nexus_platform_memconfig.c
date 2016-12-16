@@ -54,6 +54,9 @@
 #if NEXUS_HAS_VIDEO_ENCODER && !NEXUS_NUM_DSP_VIDEO_ENCODERS
 #include "bvce.h"
 #endif
+#if NEXUS_HAS_SAGE
+#include "bsagelib_types.h"
+#endif
 BDBG_MODULE(nexus_platform_settings); /* reuse same module as heap config */
 
 /* TODO: move to nexus_platform.c once available in all platforms */
@@ -930,7 +933,18 @@ static NEXUS_Error NEXUS_P_GetMemoryConfiguration(const NEXUS_Core_PreInitState 
             mainMemcIndex = preInitState->boxConfig.stVce.stInstance[vceIndex].uiMemcIndex;
             if (mainMemcIndex >= NEXUS_NUM_MEMC) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             nexus_p_get_driver_heap(0, true, &heap.output);
-            nexus_p_get_driver_heap(0, false, &heap.secure);
+#if NEXUS_HAS_SAGE
+#if defined NEXUS_VIDEO_SECURE_HEAP && (SAGE_VERSION < SAGE_VERSION_CALC(3,0))
+            /* must have compile time definition and run time use */
+            if (pPlatformSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size) {
+                heap.secure = NEXUS_VIDEO_SECURE_HEAP;
+            }
+            else
+#endif
+#endif
+            {
+                nexus_p_get_driver_heap(0, false, &heap.secure);
+            }
 
             rc = nexus_p_get_driver_heap(mainMemcIndex, false, &heap.firmware);
             if (rc) return BERR_TRACE(rc);

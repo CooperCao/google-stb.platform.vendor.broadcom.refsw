@@ -46,7 +46,7 @@ const uint32_t BDSP_IMG_adpcm_decode_array1[] = {
 	0xfc1c9517,
 	0xe7a18117,
 	0x6d739c30,
-	0x73072bf0,
+	0x72e72bf0,
 	0x3c1c9927,
 	0xfc1ca147,
 	0x6360044f,

@@ -212,5 +212,7 @@ int                output_file_size_in_human( const char *sFilename );
 char              *decodeFilename( const char *filename );
 int                sendFileToBrowser( const char *filename);
 int                readFileFromBrowser( const char *contentType, const char *contentLength, char *sFilename, unsigned long int lFilenameLen);
+int                getFileSize( const char *filename);
+char              *getFileContents( const char *filename);
 
 #endif /* __BMEMPERF_LIB_H__ */

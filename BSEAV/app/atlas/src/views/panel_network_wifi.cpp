@@ -1105,6 +1105,12 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         scanResults();
         break;
 
+    case eNotify_NetworkWifiScanFailure:
+        setMenuTitleStatus("Scan Failure!");
+        startUpdateTimers(true);
+        startScanTimers(true);
+        break;
+
     case eNotify_NetworkWifiScanResult:
     {
 #ifdef WPA_SUPPLICANT_SUPPORT
@@ -1140,6 +1146,9 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
     break;
 
     case eNotify_NetworkWifiConnectFailure:
+    case eNotify_NetworkWifiConnectFailureAssocReject:
+    case eNotify_NetworkWifiConnectFailureNetworkNotFound:
+    case eNotify_NetworkWifiConnectFailureWrongKey:
     {
         CWifi * pWifi = (CWifi *)notification.getData();
 
@@ -1148,7 +1157,25 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
 
         /* expand panel based on connection status */
         expand(false);
-        _MsgBoxStatus->setText("Connection Failure");
+        if (notification.getId() == eNotify_NetworkWifiConnectFailureAssocReject)
+        {
+            _MsgBoxStatus->setText("Assoc Rejection Failure");
+        }
+        else
+        if (notification.getId() == eNotify_NetworkWifiConnectFailureNetworkNotFound)
+        {
+            _MsgBoxStatus->setText("Missing Network Failure");
+        }
+        else
+        if (notification.getId() == eNotify_NetworkWifiConnectFailureWrongKey)
+        {
+            _MsgBoxStatus->setText("Incorrect Key Failure");
+        }
+        else
+        {
+            _MsgBoxStatus->setText("Connection Failure");
+        }
+
         _timerCloseMsgBox.start();
     }
     break;
@@ -1176,8 +1203,8 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
 
         clearConnectionStatus();
 
-        BDBG_MSG(("wifi connection status:%d", pNetwork->getConnectedStatus()));
-        switch (pNetwork->getConnectedStatus())
+        BDBG_MSG(("wifi connection status:%d", pNetwork->getConnectStatus()));
+        switch (pNetwork->getConnectStatus())
         {
         case eConnectStatus_Connecting:
             if (false == _MsgBoxStatus->isVisible())
@@ -1372,7 +1399,7 @@ void CPanelNetworkWifi::updateConnectStatus(CNetwork * pNetwork)
 
     BDBG_ASSERT(NULL != pNetwork);
 
-    if (eConnectStatus_Connected == pNetwork->getConnectedStatus())
+    if (eConnectStatus_Connected == pNetwork->getConnectStatus())
     {
         /* connected so get status */
         ret = pNetwork->getStatusList(&status);
@@ -1707,7 +1734,7 @@ void CPanelNetworkWifi::updateConnectedIcon(CNetwork * pNetwork)
 
     clearConnectionStatus();
 
-    if (eConnectStatus_Connected == pNetwork->getConnectedStatus())
+    if (eConnectStatus_Connected == pNetwork->getConnectStatus())
     {
         ret = pNetwork->getConnectedWifiNetwork(&info);
         CHECK_ERROR_GOTO("unable to retrieve connected wifi network", ret, error);

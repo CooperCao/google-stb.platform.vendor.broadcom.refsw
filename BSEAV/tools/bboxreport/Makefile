@@ -79,6 +79,7 @@ B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/bboxreport
 
 include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 APPS = $(THEAPPS)
 APPS ?= $(APP)
@@ -133,15 +134,6 @@ CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
 CFLAGS += -g
 CFLAGS += -D_LINUX_TYPES_H
 
-ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
-ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
-BCHP_VER_LOWER=d0
-BCHP_VER=D0
-endif
-endif
-
-BOXMODE_FILES = $(shell ls -1v $(NEXUS_TOP)/../magnum/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_memc_box*_config.c )
-
 AWKDIR := ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemconfig
 
 # Implicit rule for building local apps
@@ -176,7 +168,7 @@ else
 ###  that do NOT have box mode 0, we have to complete the initialization string that was started in the pre.awk
 ###  script above.
 	@echo ",\"unknown DDR SCB\",\"unknown\",0,0}" >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c
-	@$(foreach myfile,$(BOXMODE_FILES), awk -f ${AWKDIR}/bmemconfig_box_info.awk $(myfile) >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c || echo [Awk $(myfile) done] ; ) >/dev/null
+	@$(foreach myfile,$(BBOX_MEMC_FILES), awk -f ${AWKDIR}/bmemconfig_box_info.awk $(myfile) >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c || echo [Awk $(myfile) done] ; ) >/dev/null
 	@awk -f ${AWKDIR}/bmemconfig_box_info_post.awk $(NEXUS_BIN_DIR)/bboxreport_box_info.c > $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp || echo [Awk done];
 	@cat $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp >> $(NEXUS_BIN_DIR)/bboxreport_box_info.c
 	@rm $(NEXUS_BIN_DIR)/bboxreport_box_info.tmp

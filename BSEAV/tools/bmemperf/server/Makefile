@@ -50,15 +50,7 @@ BSEAV = $(shell cd ../../../;pwd)
 magnum = $(shell cd ../../../../magnum;pwd)
 
 include $(NEXUS_TOP)/examples/Makefile_prologue.inc
-
-ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
-ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
-BCHP_VER_LOWER=d0
-BCHP_VER=D0
-endif
-endif
-
-BCHP_VER_LOWER := $(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')
+include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 ifeq ($(B_REFSW_ARCH),)
 B_REFSW_ARCH=mipsel-linux
@@ -75,9 +67,6 @@ B_REFSW_CROSS_COMPILE ?= arm-linux-
 endif
 endif
 endif
-
-#tools
-CC = $(B_REFSW_CROSS_COMPILE)gcc
 
 ifeq ($(BINDIR),)
 ifeq ($(B_REFSW_OBJ_DIR),)
@@ -109,8 +98,6 @@ endif
 
 # Added for aarch64-linux-gcc
 APP_CFLAGS += -D_LINUX_TYPES_H
-
-BOXMODE_FILES = $(shell ls -1v $(NEXUS_TOP)/../magnum/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_memc_box*_config.c )
 
 install: all
 	@echo [Installing .. $< for $(B_THIS_DIR)]
@@ -146,7 +133,7 @@ ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
 else
 	@echo [Parsing for 28nm client info for chip ../$(BCHP_CHIP)/$(BCHP_VER_LOWER) and platform $(NEXUS_PLATFORM)]
 	@awk -f ../include/bmemperf_info_pre.awk Makefile > $(BINDIR)/bmemperf_info.c
-	@$(foreach myfile,$(BOXMODE_FILES), awk -f ../include/bmemperf_info.awk $(myfile) >> $(BINDIR)/bmemperf_info.c || echo [Awk $(myfile) done] ; ) >/dev/null
+	@$(foreach myfile,$(BBOX_MEMC_FILES), awk -f ../include/bmemperf_info.awk $(myfile) >> $(BINDIR)/bmemperf_info.c || echo [Awk $(myfile) done] ; ) >/dev/null
 	@awk -f ../include/bmemperf_info_post.awk $(BINDIR)/bmemperf_info.c > $(BINDIR)/bmemperf_info.tmp || echo [Awk done];
 	@cat $(BINDIR)/bmemperf_info.tmp >> $(BINDIR)/bmemperf_info.c
 	@rm $(BINDIR)/bmemperf_info.tmp

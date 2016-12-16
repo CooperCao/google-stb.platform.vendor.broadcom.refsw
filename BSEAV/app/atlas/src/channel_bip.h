@@ -160,6 +160,7 @@ public:
     void       gotoBackGroundRecord(void);
     MString    getUrlPath(void);
     MString    getUrlQuery(void);
+    MString    getUrlProgram(void);
     void       setHost(const char * pString);
     MString    getHost(void);
     void       setPort(uint16_t nPort);
@@ -180,11 +181,14 @@ protected:
     /* Cached Handles. */
     BIP_PlayerHandle _pPlayer;
 
-    BMediaPlayerState   _playerState;
-    BIP_Status          _asyncApiCompletionStatus;
-    BIP_CallbackDesc    _asyncCallbackDesc;  /* async completion callback. */
-    BIP_MediaInfoHandle _pMediaInfo;
+    BMediaPlayerState         _playerState;
+    BIP_Status                _asyncApiCompletionStatus;
+    BIP_CallbackDesc          _asyncCallbackDesc;  /* async completion callback. */
+    BIP_MediaInfoHandle       _pMediaInfo;
+    BIP_PlayerStreamInfo      _playerStreamInfo;
 
+    bool     _enableDynamicTrackSelection; /* this setting will be set to false when we get PIDS passed in
+                                              or when we have Multiple tracks. BIP Default is TRUE  */
     bool     _programNumberValid;
     uint16_t _programNumber;
 

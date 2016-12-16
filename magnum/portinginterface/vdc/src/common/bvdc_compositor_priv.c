@@ -61,18 +61,16 @@
 
 /* Dither settings for COMP */
 #define BVDC_P_DITHER_CMP_LFSR_VALUE                 (0xE0F82)
-#define BVDC_P_DITHER_CMP_V0_LFSR_CTRL_T0            (0x6)
-#define BVDC_P_DITHER_CMP_V0_LFSR_CTRL_T1            (0x3)
-#define BVDC_P_DITHER_CMP_V0_LFSR_CTRL_T2            (0x6)
-#define BVDC_P_DITHER_CMP_V1_LFSR_CTRL_T0            (0x4)
-#define BVDC_P_DITHER_CMP_V1_LFSR_CTRL_T1            (0x3)
-#define BVDC_P_DITHER_CMP_V1_LFSR_CTRL_T2            (0x6)
+#define BVDC_P_DITHER_CMP_SCALE_8BIT                 (0x1)
+#define BVDC_P_DITHER_CMP_SCALE_10BIT                (0x3)
+#define BVDC_P_DITHER_CMP_SCALE_12BIT                (0xC)
 
 BDBG_MODULE(BVDC_CMP);
 BDBG_FILE_MODULE(BVDC_CMP_SIZE);
 BDBG_FILE_MODULE(BVDC_CMP_CSC);
 BDBG_FILE_MODULE(BVDC_REPEATPOLARITY);
 BDBG_FILE_MODULE(BVDC_NLCSC);
+BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_CMP);
 
 /* SW7250-211/ SW7364-291
@@ -178,6 +176,47 @@ BERR_Code BVDC_P_Compositor_Create
         (hVdc->pFeatures->bCmpBIsBypass) &&
         (BVDC_CompositorId_eCompositor2 == pCompositor->eId));
 
+    switch(pCompositor->eId)
+    {
+        case BVDC_CompositorId_eCompositor0:
+            BVDC_P_MAKE_CMP(pCompositor, 0);
+            break;
+#if (BVDC_P_CMP_1_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor1:
+            BVDC_P_MAKE_CMP(pCompositor, 1);
+            break;
+#endif
+#if (BVDC_P_CMP_2_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor2:
+            BVDC_P_MAKE_CMP(pCompositor, 2);
+            break;
+#endif
+#if (BVDC_P_CMP_3_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor3:
+            BVDC_P_MAKE_CMP(pCompositor, 3);
+            break;
+#endif
+#if (BVDC_P_CMP_4_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor4:
+            BVDC_P_MAKE_CMP(pCompositor, 4);
+            break;
+#endif
+#if (BVDC_P_CMP_5_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor5:
+            BVDC_P_MAKE_CMP(pCompositor, 5);
+            break;
+#endif
+#if (BVDC_P_CMP_6_MAX_WINDOW_COUNT)
+        case BVDC_CompositorId_eCompositor6:
+            BVDC_P_MAKE_CMP(pCompositor, 6);
+            break;
+#endif
+        default:
+            BDBG_ERR(("Need to handle BVDC_CompositorId_eCompositor%d", pCompositor->eId));
+            BDBG_ASSERT(0);
+            break;
+    }
+
 #ifdef BCHP_CMP_0_HW_CONFIGURATION
     ulHwCfg = BREG_Read32(hVdc->hRegister,
         BCHP_CMP_0_HW_CONFIGURATION + pCompositor->ulRegOffset);
@@ -204,6 +243,18 @@ BERR_Code BVDC_P_Compositor_Create
     if(BVDC_CompositorId_eCompositor0 == pCompositor->eId)
         pCompositor->bIs10BitCore = true;
 #endif
+#endif
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_PROC_CLK_IS_2X_SHIFT
+    pCompositor->bIs2xClk = BVDC_P_GET_FIELD(
+        ulHwCfg, CMP_0_HW_CONFIGURATION, PROC_CLK_IS_2X);
+#endif
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_VIN_DITHER_Present_SHIFT
+    pCompositor->bInDither = BVDC_P_GET_FIELD(
+        ulHwCfg, CMP_0_HW_CONFIGURATION, VIN_DITHER_Present);
+#endif
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_CMP_OUT_BPC_SHIFT
+    pCompositor->bAlign12Bit = BVDC_P_GET_FIELD(
+        ulHwCfg, CMP_0_HW_CONFIGURATION, CMP_OUT_BPC);
 #endif
 
 #if (!defined(BCHP_CMP_0_HW_CONFIGURATION_V0_Ma_CSC_Present_SHIFT) && \
@@ -296,48 +347,6 @@ BERR_Code BVDC_P_Compositor_Create
             goto BVDC_P_Compositor_Create_Done;
         }
     }
-
-    switch(pCompositor->eId)
-    {
-        case BVDC_CompositorId_eCompositor0:
-            BVDC_P_MAKE_CMP(pCompositor, 0);
-            break;
-#if (BVDC_P_CMP_1_MAX_WINDOW_COUNT)
-        case BVDC_CompositorId_eCompositor1:
-            BVDC_P_MAKE_CMP(pCompositor, 1);
-            break;
-#endif
-#if (BVDC_P_CMP_2_MAX_WINDOW_COUNT)
-        case BVDC_CompositorId_eCompositor2:
-            BVDC_P_MAKE_CMP(pCompositor, 2);
-            break;
-#endif
-#if (BVDC_P_CMP_3_MAX_WINDOW_COUNT)
-        case BVDC_CompositorId_eCompositor3:
-            BVDC_P_MAKE_CMP(pCompositor, 3);
-            break;
-#endif
-#if (BVDC_P_CMP_4_MAX_WINDOW_COUNT)
-        case BVDC_CompositorId_eCompositor4:
-            BVDC_P_MAKE_CMP(pCompositor, 4);
-            break;
-#endif
-#if (BVDC_P_CMP_5_MAX_WINDOW_COUNT)
-        case BVDC_CompositorId_eCompositor5:
-            BVDC_P_MAKE_CMP(pCompositor, 5);
-            break;
-#endif
-#if (BVDC_P_CMP_6_MAX_WINDOW_COUNT)
-        case BVDC_CompositorId_eCompositor6:
-            BVDC_P_MAKE_CMP(pCompositor, 6);
-            break;
-#endif
-        default:
-            BDBG_ERR(("Need to handle BVDC_CompositorId_eCompositor%d", pCompositor->eId));
-            BDBG_ASSERT(0);
-            break;
-    }
-
 
     /* (5) Added this compositor to hVdc */
     hVdc->ahCompositor[eCompositorId] = (BVDC_Compositor_Handle)pCompositor;
@@ -993,10 +1002,9 @@ void BVDC_P_CscMc_Print_isr
     BDBG_MODULE_MSG(BVDC_CMP_CSC,(" [%04f %04f %04f %04f %04f]]",
         BVDC_P_CSC_CXTOF(pCscCoeffs->usCr0), BVDC_P_CSC_CXTOF(pCscCoeffs->usCr1), BVDC_P_CSC_CXTOF(pCscCoeffs->usCr2), BVDC_P_CSC_CXTOF(pCscCoeffs->usCrAlpha), BVDC_P_CSC_COTOF(pCscCoeffs->usCrOffset)));
 #endif
-
-#else
-    BSTD_UNUSED(pCscCoeffs);
 #endif
+
+    BSTD_UNUSED(pCscCoeffs);
     return;
 }
 
@@ -1028,10 +1036,9 @@ void BVDC_P_CscMb_Print_isr
     BDBG_MODULE_MSG(BVDC_CMP_CSC,(" [%08f %08f %08f %08f %08f]]",
         BVDC_P_CSC_CXTOF(pCscCoeffs->ulCr0), BVDC_P_CSC_CXTOF(pCscCoeffs->ulCr1), BVDC_P_CSC_CXTOF(pCscCoeffs->ulCr2), BVDC_P_CSC_CXTOF(pCscCoeffs->ulCrAlpha), BVDC_P_CSC_COTOF(pCscCoeffs->ulCrOffset)));
 #endif
-
-#else
-    BSTD_UNUSED(pCscCoeffs);
 #endif
+
+    BSTD_UNUSED(pCscCoeffs);
     return;
 }
 #endif
@@ -1306,7 +1313,108 @@ static void BVDC_P_Window_BuildCscRul_isr
         *pList->pulCurrent++ = BCHP_FIELD_DATA(CMP_0_V0_R0_MC_COEFF_C23, COEFF_ADD, pCscCoeffs->usCrOffset);
     }
 
+    BSTD_UNUSED(pCscCoeffs);
     BDBG_LEAVE(BVDC_P_Window_BuildCscRul_isr);
+    return;
+}
+
+/***************************************************************************
+ * {private}
+ *
+ * Configure dithering inside a compositor.
+ */
+static void BVDC_P_Window_BuildDitherRul_isr
+    ( BVDC_Window_Handle               hWindow,
+      BVDC_P_ListInfo                 *pList)
+{
+    BVDC_Compositor_Handle hCompositor;
+    BVDC_WindowId eWinInCmp;
+
+    BDBG_ENTER(BVDC_P_Window_BuildDitherRul_isr);
+    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+    hCompositor = hWindow->hCompositor;
+    eWinInCmp = hWindow->eId - BVDC_P_CMP_GET_V0ID(hCompositor);
+
+#ifdef BCHP_CMP_0_V0_IN_DITHER_422_CTRL
+    /* Identify 8-bit compostior with Input Dither HW */
+    if(!hCompositor->bIs10BitCore && hCompositor->bInDither &&
+       hCompositor->pFeatures->ulMaxVideoWindow > eWinInCmp)
+    {
+        uint32_t ulDitherCtrlRegAddr = (1==eWinInCmp)?
+            BCHP_CMP_0_V1_IN_DITHER_422_CTRL : BCHP_CMP_0_V0_IN_DITHER_422_CTRL;
+        uint32_t ulLfsrInitRegAddr = (1==eWinInCmp)?
+            BCHP_CMP_0_V1_IN_DITHER_LFSR_INIT : BCHP_CMP_0_V0_IN_DITHER_LFSR_INIT;
+        uint32_t ulLfsrCtrlRegAddr = (1==eWinInCmp)?
+            BCHP_CMP_0_V1_IN_DITHER_LFSR_CTRL : BCHP_CMP_0_V0_IN_DITHER_LFSR_CTRL;
+
+        BDBG_MODULE_MSG(BVDC_DITHER,("CMP_%d_V%d IN_DITHER: %s",
+            hCompositor->eId, eWinInCmp,
+            (hCompositor->bInDitherEnable[hWindow->eId]) ? "ENABLE" : "DISABLE"));
+
+        BVDC_P_Dither_Setting_isr(&hCompositor->stInDither,
+            hCompositor->bInDitherEnable[hWindow->eId],
+            BVDC_P_DITHER_CMP_LFSR_VALUE, BVDC_P_DITHER_CMP_SCALE_8BIT);
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(ulDitherCtrlRegAddr + hCompositor->ulRegOffset);
+        *pList->pulCurrent++ = hCompositor->stInDither.ulCtrlReg;
+
+        if(hCompositor->bInDitherEnable[hWindow->eId])
+        {
+            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+            *pList->pulCurrent++ = BRDC_REGISTER(ulLfsrInitRegAddr + hCompositor->ulRegOffset);
+            *pList->pulCurrent++ = hCompositor->stInDither.ulLfsrInitReg;
+
+            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+            *pList->pulCurrent++ = BRDC_REGISTER(ulLfsrCtrlRegAddr + hCompositor->ulRegOffset);
+            *pList->pulCurrent++ = hCompositor->stInDither.ulLfsrCtrlReg;
+        }
+    }
+#endif
+
+#ifdef BCHP_CMP_0_V0_CSC_DITHER_CTRL
+    /* CSC Dither: only with 10-bit compositor */
+    if(hCompositor->bIs10BitCore &&
+       hCompositor->pFeatures->ulMaxVideoWindow > eWinInCmp)
+    {
+        uint32_t ulScale = hCompositor->bAlign12Bit ?
+            BVDC_P_DITHER_CMP_SCALE_12BIT : BVDC_P_DITHER_CMP_SCALE_10BIT;
+        uint32_t ulDitherCtrlRegAddr = (1==eWinInCmp)?
+            BCHP_CMP_0_V1_CSC_DITHER_CTRL : BCHP_CMP_0_V0_CSC_DITHER_CTRL;
+        uint32_t ulLfsrInitRegAddr = (1==eWinInCmp)?
+            BCHP_CMP_0_V1_CSC_DITHER_LFSR_INIT : BCHP_CMP_0_V0_CSC_DITHER_LFSR_INIT;
+        uint32_t ulLfsrCtrlRegAddr = (1==eWinInCmp)?
+            BCHP_CMP_0_V1_CSC_DITHER_LFSR_CTRL : BCHP_CMP_0_V0_CSC_DITHER_LFSR_CTRL;
+
+        BDBG_MODULE_MSG(BVDC_DITHER,("CMP_%d_V%d CSC_DITHER: %s",
+            hCompositor->eId, eWinInCmp,
+            (hCompositor->bCscDitherEnable[hWindow->eId]) ? "ENABLE" : "DISABLE"));
+
+        BVDC_P_Dither_Setting_isr(&hCompositor->stCscDither,
+            hCompositor->bCscDitherEnable[hWindow->eId],
+            BVDC_P_DITHER_CMP_LFSR_VALUE, ulScale);
+
+        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pList->pulCurrent++ = BRDC_REGISTER(ulDitherCtrlRegAddr + hCompositor->ulRegOffset);
+        *pList->pulCurrent++ = hCompositor->stCscDither.ulCtrlReg;
+
+        if(hCompositor->bCscDitherEnable[hWindow->eId])
+        {
+            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+            *pList->pulCurrent++ = BRDC_REGISTER(ulLfsrInitRegAddr + hCompositor->ulRegOffset);
+            *pList->pulCurrent++ = hCompositor->stCscDither.ulLfsrInitReg;
+
+            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+            *pList->pulCurrent++ = BRDC_REGISTER(ulLfsrCtrlRegAddr + hCompositor->ulRegOffset);
+            *pList->pulCurrent++ = hCompositor->stCscDither.ulLfsrCtrlReg;
+        }
+    }
+#endif
+
+    BSTD_UNUSED(eWinInCmp);
+    BSTD_UNUSED(pList);
+    BDBG_LEAVE(BVDC_P_Window_BuildDitherRul_isr);
     return;
 }
 #endif
@@ -1580,6 +1688,19 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
                 hCompositor->ulCscAdjust[eVId]--;
             }
         }
+
+        if(hCompositor->ulDitherChange[eVId])
+        {
+            BVDC_Window_Handle hWindow = hCompositor->ahWindow[eVId];
+            BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
+
+            BVDC_P_Window_BuildDitherRul_isr(hWindow, pList);
+
+            if(pList->bLastExecuted)
+            {
+                hCompositor->ulDitherChange[eVId]--;
+            }
+        }
     }
 
     /* Color key */
@@ -1649,11 +1770,18 @@ static void BVDC_P_Compositor_BuildRul_isr
         hCompositor->ulColorKeyAdjust[eV0Id] = BVDC_P_RUL_UPDATE_THRESHOLD;
         hCompositor->bCscDemoCompute[eV0Id] = true;
 
+        hCompositor->ulDitherChange[eV0Id] = BVDC_P_RUL_UPDATE_THRESHOLD;
+        hCompositor->bInDitherEnable[eV0Id] = false;
+        hCompositor->bCscDitherEnable[eV0Id] = false;
+
         if(hCompositor->pFeatures->ulMaxVideoWindow > 1)
         {
             hCompositor->ulCscAdjust[eV1Id] = BVDC_P_RUL_UPDATE_THRESHOLD;
             hCompositor->ulColorKeyAdjust[eV1Id] = BVDC_P_RUL_UPDATE_THRESHOLD;
             hCompositor->bCscDemoCompute[eV1Id] = true;
+            hCompositor->ulDitherChange[eV1Id] = BVDC_P_RUL_UPDATE_THRESHOLD;
+            hCompositor->bInDitherEnable[eV1Id] = false;
+            hCompositor->bCscDitherEnable[eV1Id] = false;
         }
 
         /* Also make sure to enable CRC */

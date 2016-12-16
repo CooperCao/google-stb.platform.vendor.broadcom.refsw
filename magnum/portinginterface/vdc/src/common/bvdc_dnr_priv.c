@@ -55,6 +55,7 @@
 #include "bchp_mmisc.h"
 
 BDBG_MODULE(BVDC_DNR);
+BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_DNR);
 
 #define BVDC_P_MAKE_DNR(pDnr, sw_init, id, channel_init)                        \
@@ -160,6 +161,11 @@ BERR_Code BVDC_P_Dnr_Create
             pDnr->bDnrH = false;
             break;
     }
+#if BCHP_DNR_0_HW_CONFIGURATION_DNR_BPP_MASK
+    pDnr->b10BitMode = BVDC_P_COMPARE_FIELD_NAME(ulReg, DNR_0_HW_CONFIGURATION, DNR_BPP, BPP_10);
+#else
+    pDnr->b10BitMode = false;
+#endif
 #else
     pDnr->bDnrH = false;
 #endif
@@ -209,12 +215,6 @@ void BVDC_P_Dnr_Init_isr
 
     /* Clear out shadow registers. */
     BKNI_Memset_isr((void*)hDnr->aulRegs, 0x0, sizeof(hDnr->aulRegs));
-
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-    /* Initial value */
-    BVDC_P_DNR_GET_REG_DATA(DNR_0_EXT_FILT_CTRL) =
-        BCHP_FIELD_ENUM(DNR_0_EXT_FILT_CTRL, ENABLE, DISABLE);
-#endif
 
     /* Initialize state. */
     hDnr->bInitial      = true;
@@ -298,20 +298,12 @@ static void BVDC_P_Dnr_BuildRul_DrainVnet_isr
 {
     BDBG_OBJECT_ASSERT(hDnr, BVDC_DNR);
 
-#if (BVDC_P_SUPPORT_DNR_VER<BVDC_P_SUPPORT_DNR_VER_7)
-    /* reset sub and connect the module to a drain */
-    BVDC_P_SubRul_Drain_isr(&(hDnr->SubRul), pList,
-        hDnr->ulVnetResetAddr,hDnr->ulVnetResetMask,
-        hDnr->ulVnetResetAddr, hDnr->ulVnetResetMask);
-    BSTD_UNUSED(bNoCoreReset);
-#else
     /* reset sub and connect the module to a drain */
     BVDC_P_SubRul_Drain_isr(&(hDnr->SubRul), pList,
         bNoCoreReset ? 0 : hDnr->ulResetRegAddr,
         bNoCoreReset ? 0 : hDnr->ulResetMask,
         bNoCoreReset ? 0 : hDnr->ulVnetResetAddr,
         bNoCoreReset ? 0 : hDnr->ulVnetResetMask);
-#endif
 }
 
 /***************************************************************************
@@ -354,10 +346,6 @@ void BVDC_P_Dnr_BuildRul_isr
     /* reset DNR */
     if(hDnr->bInitial)
     {
-#if (BVDC_P_SUPPORT_DNR_VER<BVDC_P_SUPPORT_DNR_VER_7)
-        BVDC_P_BUILD_RESET(pList->pulCurrent,
-            hDnr->ulResetRegAddr, hDnr->ulResetMask);
-#endif
         hDnr->bInitial = false;
     }
 
@@ -367,26 +355,40 @@ void BVDC_P_Dnr_BuildRul_isr
         {
             BDBG_MSG(("DNR update RUL"));
 
-#if (BVDC_P_SUPPORT_DNR_VER <= BVDC_P_SUPPORT_DNR_VER_1)
-            /* PR35221: Disabled/modify/afterward */
-            BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_TOP_CTRL) &= ~(
-                BCHP_MASK(DNR_0_DNR_TOP_CTRL, DNR_ENABLE));
-            BVDC_P_DNR_WRITE_TO_RUL(DNR_0_DNR_TOP_CTRL, pList->pulCurrent);
-            BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_TOP_CTRL) |=  (
-                BCHP_FIELD_ENUM(DNR_0_DNR_TOP_CTRL, DNR_ENABLE, ENABLE));
-#endif
+            BDBG_CASSERT(4 == (((BCHP_DNR_0_VBNR_CONFIG - BCHP_DNR_0_SRC_PIC_SIZE) / sizeof(uint32_t)) + 1));
+            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_DNR_0_VBNR_CONFIG - BCHP_DNR_0_SRC_PIC_SIZE) / sizeof(uint32_t)) + 1);
+            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DNR_0_SRC_PIC_SIZE + hDnr->ulRegOffset);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_PIC_SIZE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CTRL);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG);
 
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_6)
-            BVDC_P_DNR_BLOCK_WRITE_TO_RUL(DNR_0_SRC_PIC_SIZE, DNR_0_MNR_CONFIG, pList->pulCurrent);
-#else
-            BVDC_P_DNR_BLOCK_WRITE_TO_RUL(DNR_0_LINE_STORE_CONFIG, DNR_0_EXT_FILT_CONFIG, pList->pulCurrent);
-#endif
+            BDBG_CASSERT(2 == (((BCHP_DNR_0_MNR_CONFIG - BCHP_DNR_0_MNR_CTRL) / sizeof(uint32_t)) + 1));
+            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_DNR_0_MNR_CONFIG - BCHP_DNR_0_MNR_CTRL) / sizeof(uint32_t)) + 1);
+            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DNR_0_MNR_CTRL + hDnr->ulRegOffset);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CTRL);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG);
+
             BVDC_P_DNR_WRITE_TO_RUL(DNR_0_DNR_DEMO_SETTING, pList->pulCurrent);
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_7)
             BVDC_P_DNR_WRITE_TO_RUL(DNR_0_DNR_DEMO_CTRL, pList->pulCurrent);
             BVDC_P_DNR_WRITE_TO_RUL(DNR_0_DNR_VIDEO_MODE, pList->pulCurrent);
-#endif
-            BVDC_P_DNR_BLOCK_WRITE_TO_RUL(DNR_0_DCR_CTRL, DNR_0_DCR_DITH_OUT_CTRL, pList->pulCurrent);
+
+            BDBG_CASSERT(3 == (((BCHP_DNR_0_DCR_FILT_CONFIG - BCHP_DNR_0_DCR_CTRL) / sizeof(uint32_t)) + 1));
+            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_DNR_0_DCR_FILT_CONFIG - BCHP_DNR_0_DCR_CTRL) / sizeof(uint32_t)) + 1);
+            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DNR_0_DCR_CTRL + hDnr->ulRegOffset);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_CTRL);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_LIMIT);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_CONFIG);
+
+            BDBG_CASSERT(5 == (((BCHP_DNR_0_DCR_DITH_OUT_CTRL - BCHP_DNR_0_DCR_DITH_ORDER_PATTERN) / sizeof(uint32_t)) + 1));
+            *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_DNR_0_DCR_DITH_OUT_CTRL - BCHP_DNR_0_DCR_DITH_ORDER_PATTERN) / sizeof(uint32_t)) + 1);
+            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DNR_0_DCR_DITH_ORDER_PATTERN + hDnr->ulRegOffset);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_PATTERN);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_VALUE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_PATTERN);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_RANDOM_VALUE);
+            *pList->pulCurrent++ = BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL);
+
             hDnr->ulUpdateAll--;
         }
 
@@ -449,7 +451,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
     pSrcInfo     = &hDnr->hSource->stCurInfo;
     pDnrSettings = &hDnr->hSource->stCurInfo.stDnrSettings;
 
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_7)
         /* remapping DNR level according to ARBVN-41 */
         iBnrLevel =
                 (pDnrSettings->iBnrLevel <= 100) ?
@@ -463,11 +464,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
                 (pDnrSettings->iDcrLevel <= 100) ?
                 (-20 + (4 * pDnrSettings->iDcrLevel / 5)) :
                 (-80 + (14 * pDnrSettings->iDcrLevel / 10));
-#else
-    iBnrLevel = pDnrSettings->iBnrLevel;
-    iMnrLevel = pDnrSettings->iMnrLevel;
-    iDcrLevel = pDnrSettings->iDcrLevel;
-#endif
 
     ulAdjQp = (pDnrSettings->ulQp != 0) ?
         pDnrSettings->ulQp : pPicture->ulAdjQp;
@@ -494,12 +490,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
     /* panscan offset within an 8x8 block */
     BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING) &= ~(
           BCHP_MASK(DNR_0_SRC_SCAN_SETTING, H_OFFSET)
-        | BCHP_MASK(DNR_0_SRC_SCAN_SETTING, V_OFFSET)
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-        | BCHP_MASK(DNR_0_SRC_SCAN_SETTING, SRC_FORMAT)
-        | BCHP_MASK(DNR_0_SRC_SCAN_SETTING, SRC_FIELD_ID)
-#endif
-        );
+        | BCHP_MASK(DNR_0_SRC_SCAN_SETTING, V_OFFSET));
 
     /* Internal computed or user computed */
     if(!pDnrSettings->bUserOffset)
@@ -516,28 +507,13 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
     if(BAVC_Polarity_eTopField == pPicture->PicComRulInfo.eSrcOrigPolarity)
     {
         ulVOffset = (ulVOffset + 1) / 2;
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING) |= (
-            BCHP_FIELD_ENUM(DNR_0_SRC_SCAN_SETTING, SRC_FORMAT,   FIELD) |
-            BCHP_FIELD_ENUM(DNR_0_SRC_SCAN_SETTING, SRC_FIELD_ID, TOP  ));
-#endif
     }
     else if(BAVC_Polarity_eBotField == pPicture->PicComRulInfo.eSrcOrigPolarity)
     {
         ulVOffset = (ulVOffset + 0) / 2;
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING) |= (
-            BCHP_FIELD_ENUM(DNR_0_SRC_SCAN_SETTING, SRC_FORMAT,   FIELD) |
-            BCHP_FIELD_ENUM(DNR_0_SRC_SCAN_SETTING, SRC_FIELD_ID, BOTTOM));
-#endif
     }
     else
     {
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING) |= (
-            BCHP_FIELD_ENUM(DNR_0_SRC_SCAN_SETTING, SRC_FORMAT,   FRAME) |
-            BCHP_FIELD_ENUM(DNR_0_SRC_SCAN_SETTING, SRC_FIELD_ID, TOP  ));
-#endif
     }
 
     BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_SCAN_SETTING) |= (
@@ -566,21 +542,13 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         ulDnrDemoBoundary = ulSrcHSize / 2;
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_TOP_CTRL) =
-#if (BVDC_P_SUPPORT_DNR_VER == BVDC_P_SUPPORT_DNR_VER_5)
-            BCHP_FIELD_DATA(DNR_0_DNR_TOP_CTRL, DNR_ENABLE_MODE, 1) |
-#endif
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_7)
-            BCHP_FIELD_DATA(DNR_0_DNR_TOP_CTRL, DNR_DEMO_ENABLE, ulDnrDemoEnable) |
-#endif
             BCHP_FIELD_ENUM(DNR_0_DNR_TOP_CTRL, DNR_ENABLE, ENABLE);
 
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_7)
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_DEMO_CTRL) =
             BCHP_FIELD_DATA(DNR_0_DNR_DEMO_CTRL, DNR_DEMO_ENABLE, ulDnrDemoEnable);
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_VIDEO_MODE) =
             BCHP_FIELD_DATA(DNR_0_DNR_VIDEO_MODE, BVB_VIDEO, eOrientation);
-#endif
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DNR_DEMO_SETTING) &= ~(
             BCHP_MASK(DNR_0_DNR_DEMO_SETTING, DEMO_L_R) |
@@ -590,13 +558,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_DNR_DEMO_SETTING, DEMO_L_R, ulDnrDemoSide) |
             BCHP_FIELD_DATA(DNR_0_DNR_DEMO_SETTING, DEMO_BOUNDARY, ulDnrDemoBoundary));
 
-        pSrcInfo->stDirty.stBits.bDnrAdjust = false;
-        hDnr->ulMnrQp = ulMnrQp;
-        hDnr->ulBnrQp = ulBnrQp;
-        hDnr->ulDcrQp = ulDcrQp;
-        hDnr->eOrientation = eOrientation;
-        hDnr->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
-
         /* Set src size. */
         BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_PIC_SIZE) &= ~(
             BCHP_MASK(DNR_0_SRC_PIC_SIZE, HSIZE) |
@@ -605,43 +566,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         BVDC_P_DNR_GET_REG_DATA(DNR_0_SRC_PIC_SIZE) |=  (
             BCHP_FIELD_DATA(DNR_0_SRC_PIC_SIZE, HSIZE, ulSrcHSize) |
             BCHP_FIELD_DATA(DNR_0_SRC_PIC_SIZE, VSIZE, ulSrcVSize));
-
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-#ifndef BCHP_DNR_0_LINE_STORE_CONFIG_MOD_WIDTH_MASK
-        /* line store config */
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_LINE_STORE_CONFIG) &=
-            ~(BCHP_MASK(DNR_0_LINE_STORE_CONFIG, LS_MODE));
-
-        if(ulSrcHSize <= BFMT_NTSC_WIDTH)
-        {
-            BVDC_P_DNR_GET_REG_DATA(DNR_0_LINE_STORE_CONFIG) |=
-                (BCHP_FIELD_ENUM(DNR_0_LINE_STORE_CONFIG, LS_MODE, SD));
-        }
-        else
-        {
-            BVDC_P_DNR_GET_REG_DATA(DNR_0_LINE_STORE_CONFIG) |=
-                (BCHP_FIELD_ENUM(DNR_0_LINE_STORE_CONFIG, LS_MODE, HD));
-        }
-#else
-        /* line store config */
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_LINE_STORE_CONFIG) &= ~(
-            BCHP_MASK(DNR_0_LINE_STORE_CONFIG, LS_MODE) |
-            BCHP_MASK(DNR_0_LINE_STORE_CONFIG, MOD_WIDTH));
-
-        if(ulSrcHSize <= BFMT_NTSC_WIDTH)
-        {
-            BVDC_P_DNR_GET_REG_DATA(DNR_0_LINE_STORE_CONFIG) |=  (
-                BCHP_FIELD_ENUM(DNR_0_LINE_STORE_CONFIG, LS_MODE, SD) |
-                BCHP_FIELD_DATA(DNR_0_LINE_STORE_CONFIG, MOD_WIDTH, ulSrcHSize));
-        }
-        else
-        {
-            BVDC_P_DNR_GET_REG_DATA(DNR_0_LINE_STORE_CONFIG) |=  (
-                BCHP_FIELD_ENUM(DNR_0_LINE_STORE_CONFIG, LS_MODE, HD) |
-                BCHP_FIELD_DATA(DNR_0_LINE_STORE_CONFIG, MOD_WIDTH, (ulSrcHSize + 2)/3));
-        }
-#endif
-#endif
 
         /* Block Noise Reduction (BNR) */
         pBnrCfg = (BVDC_P_BnrCfgEntry *)BVDC_P_Dnr_GetBnrCfg_isr(ulBnrQp,
@@ -657,7 +581,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             pBnrCfg->ulVBnr = (ulBnrQp > 0);
             pBnrCfg->ulLrLimit = (ulBnrQp == 0) ? 0 : BVDC_P_DNR_CLAMP(2, 14, 2 + (ulBnrQp >> 2) );
             pBnrCfg->ulSmallGrid = (pPicture->PicComRulInfo.eSrcOrigPolarity != BAVC_Polarity_eFrame);
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_3)
             pBnrCfg->ulHRel = (ulBnrQp == 0) ? 0 :
                 BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_VBNR_CONFIG, VBNR_REL),
                 2 + 14 / ulBnrQp);
@@ -677,14 +600,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
                         pBnrCfg->ulVRel = 4;
                 }
             }
-#else
-            pBnrCfg->ulHRel = (ulBnrQp == 0) ? 0 :
-                BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_BNR_CONFIG, BNR_REL),
-                2 + 14 / ulBnrQp);
-            pBnrCfg->ulVRel = (ulBnrQp == 0) ? 0 :
-                BVDC_P_DNR_CLAMP(4 - (uint32_t)(iBnrLevel + 100) / 150, BCHP_GET_FIELD_DATA(~0, DNR_0_BNR_CONFIG, BNR_REL),
-                2 + 14 / ulBnrQp);
-#endif
             pBnrCfg->ulHLimit = BVDC_P_DNR_CLAMP(0, 80 + 25 * (uint32_t)((iBnrLevel + 100) / 150), (7 * ulBnrQp / 2));
             pBnrCfg->ulVLimit = BVDC_P_DNR_CLAMP(0, 80 + 25 * (uint32_t)((iBnrLevel + 100) / 150), (7 * ulBnrQp / 2));
         }
@@ -695,11 +610,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         }
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CTRL) = (
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-            BCHP_FIELD_DATA(DNR_0_BNR_CTRL, HBNR_ENABLE, pBnrCfg->ulHBnr) |
-#endif
             BCHP_FIELD_DATA(DNR_0_BNR_CTRL, VBNR_ENABLE, pBnrCfg->ulVBnr));
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_3)
         /* TODO: program with the correct settings for VBNR and HBNR REL and LIMIT */
         BVDC_P_DNR_GET_REG_DATA(DNR_0_VBNR_CONFIG) &= ~(
             BCHP_MASK(DNR_0_VBNR_CONFIG, VBNR_LR_LIMIT) |
@@ -709,28 +620,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_LR_LIMIT, pBnrCfg->ulLrLimit) |
             BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_REL,      pBnrCfg->ulVRel)     |
             BCHP_FIELD_DATA(DNR_0_VBNR_CONFIG, VBNR_LIMIT,    pBnrCfg->ulVLimit);
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_HBNR_CONFIG) &= ~(
-            BCHP_MASK(DNR_0_HBNR_CONFIG, HBNR_SMALL_GRID) |
-            BCHP_MASK(DNR_0_HBNR_CONFIG, HBNR_REL) |
-            BCHP_MASK(DNR_0_HBNR_CONFIG, HBNR_LIMIT));
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_HBNR_CONFIG) |=
-            BCHP_FIELD_DATA(DNR_0_HBNR_CONFIG, HBNR_SMALL_GRID, pBnrCfg->ulSmallGrid) |
-            BCHP_FIELD_DATA(DNR_0_HBNR_CONFIG, HBNR_REL,        pBnrCfg->ulHRel)     |
-            BCHP_FIELD_DATA(DNR_0_HBNR_CONFIG, HBNR_LIMIT,      pBnrCfg->ulHLimit);
-#endif
-#else
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CONFIG) &= ~(
-            BCHP_MASK(DNR_0_BNR_CONFIG, VBNR_LR_LIMIT) |
-            BCHP_MASK(DNR_0_BNR_CONFIG, BNR_REL) |
-            BCHP_MASK(DNR_0_BNR_CONFIG, BNR_LIMIT) |
-            BCHP_MASK(DNR_0_BNR_CONFIG, HBNR_SMALL_GRID));
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_BNR_CONFIG) |=
-            BCHP_FIELD_DATA(DNR_0_BNR_CONFIG, VBNR_LR_LIMIT,   pBnrCfg->ulLrLimit) |
-            BCHP_FIELD_DATA(DNR_0_BNR_CONFIG, BNR_REL,         pBnrCfg->ulHRel)     |
-            BCHP_FIELD_DATA(DNR_0_BNR_CONFIG, BNR_LIMIT,       pBnrCfg->ulHLimit)   |
-            BCHP_FIELD_DATA(DNR_0_BNR_CONFIG, HBNR_SMALL_GRID, pBnrCfg->ulSmallGrid);
-#endif
 
         /* Mosquito Noise Reduction (MNR) */
         pMnrCfg = (BVDC_P_MnrCfgEntry *)BVDC_P_Dnr_GetMnrCfg_isr(ulMnrQp,
@@ -751,15 +640,9 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
                 BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_MERGE), 4),
                 ulMnrMerge);
 
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_6)
             pMnrCfg->ulRel = BVDC_P_DNR_CLAMP(36 - (3 * (uint32_t)((iMnrLevel + 100) / 150)),
                 BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_REL), 120),
                 120 - (ulMnrQp * 7) / 2);
-#else
-            pMnrCfg->ulRel = BVDC_P_DNR_CLAMP(12 - (uint32_t)((iMnrLevel + 100) / 150),
-                BVDC_P_MIN(BCHP_GET_FIELD_DATA(~0, DNR_0_MNR_CONFIG, MNR_REL), 100),
-                40 - (ulMnrQp * 7) / 2);
-#endif
 
             /* PR32066: zoneplate pattern cause video flicking/beating when either
              * BNR or MNR is turned on. */
@@ -769,11 +652,7 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
                 ulMnrQp * 14 / 10); */
             /* PR34386: */
             /*pMnrCfg->ulLimit = 0;*/
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_6)
             pMnrCfg->ulLimit = BVDC_P_DNR_CLAMP(0, 30 + 7 * (uint32_t)((iMnrLevel + 100) / 150), ((ulMnrQp > 3)? ulMnrQp-3 : 0) * 10 / 10);
-#else
-            pMnrCfg->ulLimit = BVDC_P_DNR_CLAMP(0, 50 + 7 * (uint32_t)((iMnrLevel + 100) / 150), ((ulMnrQp > 3)? ulMnrQp-3 : 0) * 15 / 10);
-#endif
             if(hDnr->ulFilterLimit == 0)
             {
                 hDnr->ulFilterLimit = pMnrCfg->ulLimit * 100;
@@ -804,31 +683,17 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_MNR_CTRL, MNR_ENABLE, pMnrCfg->ulMnr);
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG) &= ~(
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-            BCHP_MASK(DNR_0_MNR_CONFIG, MNR_SPOT) |
-#endif
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_7)
             BCHP_MASK(DNR_0_MNR_CONFIG, MNR_FILTER_SIZE) |
-#endif
             BCHP_MASK(DNR_0_MNR_CONFIG, MNR_MERGE) |
             BCHP_MASK(DNR_0_MNR_CONFIG, MNR_REL) |
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_2)
             BCHP_MASK(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND) |
-#endif
             BCHP_MASK(DNR_0_MNR_CONFIG, MNR_LIMIT));
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_MNR_CONFIG) |= (
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-            BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_SPOT,  pMnrCfg->ulSpot ) |
-#endif
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_7)
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_FILTER_SIZE, 0         ) |
-#endif
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_MERGE, pMnrCfg->ulMerge) |
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_REL,   pMnrCfg->ulRel  ) |
-#if (BVDC_P_SUPPORT_DNR_VER >= BVDC_P_SUPPORT_DNR_VER_2)
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_BLOCK_BOUND, 1         ) |
-#endif
             BCHP_FIELD_DATA(DNR_0_MNR_CONFIG, MNR_LIMIT, pMnrCfg->ulLimit));
 
         pDcrCfg = (BVDC_P_DcrCfgEntry *)BVDC_P_Dnr_GetDcrCfg_isr(ulDcrQp,
@@ -836,11 +701,11 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         hDnr->stDcrCfg = *pDcrCfg;
         pDcrCfg = &hDnr->stDcrCfg;
 
-#if (BVDC_P_SUPPORT_DNR_VER == BVDC_P_SUPPORT_DNR_VER_0)
-        ulDitherEn = 0;
-#else
-        ulDitherEn = (hDnr->hSource->bIs10BitCore)? 0 : (ulDcrQp > 0);
-#endif
+        ulDitherEn = (hDnr->b10BitMode) ? 0: (ulDcrQp > 0);
+        if(hDnr->ulDcrQp != ulDcrQp)
+        {
+            BDBG_MODULE_MSG(BVDC_DITHER,("DNR%d DITHER: %s", hDnr->eId, ulDitherEn ? "ENABLE" : "DISABLE"));
+        }
         ulDcrFiltEn = (ulDcrQp > 0);
         ulBright0 = 0;
         ulBright1 = 1;
@@ -852,9 +717,6 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
             BCHP_FIELD_DATA(DNR_0_DCR_CTRL, FILT_ENABLE, ulDcrFiltEn );
 
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_FILT_LIMIT) =
-#if (BVDC_P_SUPPORT_DNR_VER < BVDC_P_SUPPORT_DNR_VER_6)
-            BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_3_LIMIT, pDcrCfg->ulFilt3Limit) |
-#endif
             BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_2_LIMIT, pDcrCfg->ulFilt2Limit) |
             BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_1_LIMIT, pDcrCfg->ulFilt1Limit) |
             BCHP_FIELD_DATA(DNR_0_DCR_FILT_LIMIT, FILT_0_LIMIT, pDcrCfg->ulFilt0Limit);
@@ -889,11 +751,12 @@ BERR_Code BVDC_P_Dnr_SetInfo_isr
         BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_OUT_CTRL) =
             BCHP_FIELD_DATA(DNR_0_DCR_DITH_OUT_CTRL, DITH_CLAMP, 7);
 
-#if (BVDC_P_SUPPORT_DNR_VER == BVDC_P_SUPPORT_DNR_VER_0)
-        BVDC_P_DNR_GET_REG_DATA(DNR_0_DCR_DITH_ORDER_VALUE) =
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_VALUE, ORDER_A, 0) |
-            BCHP_FIELD_DATA(DNR_0_DCR_DITH_ORDER_VALUE, ORDER_B, 0);
-#endif
+        pSrcInfo->stDirty.stBits.bDnrAdjust = false;
+        hDnr->ulMnrQp = ulMnrQp;
+        hDnr->ulBnrQp = ulBnrQp;
+        hDnr->ulDcrQp = ulDcrQp;
+        hDnr->eOrientation = eOrientation;
+        hDnr->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
 
         BDBG_MSG(("-------------------------"));
         BDBG_MSG(("Dnr[%d]         : %dx%d", hDnr->eId - BVDC_P_DnrId_eDnr0,

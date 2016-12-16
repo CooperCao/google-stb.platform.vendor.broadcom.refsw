@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,6 @@
 #include "bstd.h"
 #include "nexus_platform_priv.h"
 #include "nexus_platform_features.h"
-#include "bchp_clkgen.h"
 
 BDBG_MODULE(nexus_platform_97260);
 
@@ -49,12 +48,14 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
 #if NEXUS_HAS_VIDEO_DECODER
     NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
     NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eVp9);
-    pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
+    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH264_Mvc);
+
+    pSettings->videoDecoder[0].mosaic.maxNumber = 0;
+
     switch (g_pPreInitState->boxMode) {
-    case 1:
-    case 2:
-        pSettings->videoDecoder[0].mosaic.maxNumber = 4;
-        pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
+    case 4:
+        pSettings->videoDecoder[0].mosaic.maxNumber = 3;
+        pSettings->videoDecoder[0].mosaic.maxWidth  = 1920;
         pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
         break;
     default:
@@ -72,32 +73,25 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128 * MB;
+    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 48 * MB;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 128 * MB;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
+
     switch(boxMode)
     {
-        case 1:
-        case 2:
-        case 1000:
-        case 1005:
+        /* Box 4 is a UHD mode so we need a larger CRR region */
+        case 4:
         {
-            pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128*1024*1024;
-            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64*1024 *1024;
-            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 128*1024*1024;
-            break;
-        }
-        default:
-        {
-            BDBG_ERR(("Box mode %d not supported",boxMode));
+            pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
             break;
         }
     }
 
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
-
     /* Increase graphics heap size if we have more than 1GB of RAM */
-    {
-        if (g_platformMemory.memoryLayout.memc[0].size > (1024 * MB)) {
-            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size *= 2;
-        }
+    if (g_platformMemory.memoryLayout.memc[0].size > (1024 * MB)) {
+        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size *= 2;
     }
 }
 
@@ -135,13 +129,20 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 
     BDBG_WRN(("Initialising %s platform in %s mode", board, mode));
 
-    /* Check box modes are compatible with chip type */
+    /* Check the selected box mode is compatible with the chip type. */
     switch (platformStatus.chipId) {
         case 0x72604:
             /* 72604 supports all box modes */
             break;
-        case 0x72600:
         case 0x72603:
+        {
+            if (platformStatus.boxMode > 3 ) {
+                BDBG_ERR(("Only box modes 1 - 3 are supported on %x",platformStatus.chipId));
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
+            break;
+        }
+        case 0x72600:
         default:
         {
             if (platformStatus.boxMode > 2 ) {

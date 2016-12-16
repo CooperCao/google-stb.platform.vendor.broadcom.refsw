@@ -618,7 +618,7 @@ const uint32_t BDSP_IMG_scm_task_code_array1[] = {
 	0x013ffffb,
 	0x013ffffb,
 	0x8d020a23,
-	0xd6d804a3,
+	0xd6d004a3,
 	0x08400c33,
 	0x4f7f8e3f,
 	0x1b440c47,

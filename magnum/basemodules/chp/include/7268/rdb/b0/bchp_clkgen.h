@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep 15 15:41:25 2016
- *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
+ * Date:           Generated on               Tue Dec  6 16:16:26 2016
+ *                 Full Compile MD5 Checksum  19d947b9ca8075283158749828f3af9b
  *                     (minus title and desc)
- *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
+ *                 MD5 Checksum               e73b28b118a55eb7f41ab706fca72cfd
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1139
  *                 unknown                    unknown
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
+ *                 DVTSWVER                   current
  *
  *
 ********************************************************************************/
@@ -2442,7 +2442,7 @@
 /* CLKGEN :: PLL_SYS0_PLL_CHANNEL_CTRL_CH_2 :: MDIV_CH2 [08:01] */
 #define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_MASK   0x000001fe
 #define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_SHIFT  1
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_DEFAULT 0x00000009
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_DEFAULT 0x00000064
 
 /* CLKGEN :: PLL_SYS0_PLL_CHANNEL_CTRL_CH_2 :: CLOCK_DIS_CH2 [00:00] */
 #define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK 0x00000001

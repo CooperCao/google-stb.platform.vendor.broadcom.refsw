@@ -760,66 +760,6 @@ static int trimln(
     return( rc );
 } /* trimln */
 
-#endif /* if 0 */
-
-/**
- *  Function: This function returns to the caller the number of bytes contained in the specified file.
- **/
-static int getFileSize(
-    const char *filename
-    )
-{
-    struct stat file_stats;
-
-    if (filename == NULL)
-    {
-        return( 0 );
-    }
-
-    if (stat( filename, &file_stats ) != 0)
-    {
-        PRINTF( "<!-- ERROR getting stats for file (%s) -->\n", filename );
-        return( 0 );
-    }
-
-    return( file_stats.st_size );
-} /* getFileSize */
-
-/**
- *  Function: This function returns to the caller the contents of the specified file. Space will malloc'ed
- *  for the file size. It is up to the caller to free the contents pointer.
- **/
-static char *getFileContents(
-    const char *filename
-    )
-{
-    FILE             *pFile    = NULL;
-    char             *contents = NULL;
-    unsigned long int filesize = 0;
-
-    if (filename == NULL)
-    {
-        return( contents );
-    }
-
-    filesize = getFileSize( filename );
-    if (filesize == 0)
-    {
-        return( contents );
-    }
-    contents = malloc( filesize + 1 );
-    /* if we successfully allocated space for te file*/
-    if (contents)
-    {
-        memset( contents, 0, filesize + 1 );
-        pFile = fopen( filename, "r" );
-        fread( contents, 1, filesize, pFile );
-        fclose( pFile );
-    }
-    return( contents );
-} /* getFileContents */
-
-#if 0
 /**
  *  Function: This function will search the provided name-value string for the specified search keyword
  *  and return to the user the value associated with the keyword. For example, if the name-value string

@@ -42,8 +42,7 @@
 
 #include "bvdc_gfxsurface_priv.h"
 #include "bvdc_feeder_priv.h"
-#include "bchp_gfd_0.h"
-
+#include "bchp_mfd_0.h"
 
 BDBG_MODULE(BVDC_GFXSUR);
 BDBG_OBJECT_ID(BVDC_GFXSUR);
@@ -482,8 +481,9 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
         BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulSurAddrReg[ullRegIdx & 1], ullSurAddr);
         BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulRSurAddrReg[ullRegIdx & 1], ullRSurAddr);
 
+        /* MFD_0_PICTURE0_LINE_ADDR_0 address length is the accurate address length, 7268b0 GFD0 is not */
         BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulRegIdxReg,
-            BCHP_GET_FIELD_DATA(ullRegIdx, GFD_0_SRC_START,  ADDR));
+            BCHP_GET_FIELD_DATA(ullRegIdx, MFD_0_PICTURE0_LINE_ADDR_0,  AVC_MPEG_LUMA_ADDR));
 
         pGfxSurface->ullRegIdx = ullRegIdx;
         BDBG_MSG(("%s [%d] "BDBG_UINT64_FMT" surface "BDBG_UINT64_FMT" "BDBG_UINT64_FMT,

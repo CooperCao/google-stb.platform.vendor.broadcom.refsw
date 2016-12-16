@@ -247,7 +247,6 @@ void BVDC_P_Display_Init
         (1.0000, 0.0000, 0.0000, 0.0000,
          0.0000, 1.0000, 0.0000, 0.0000,
          0.0000, 0.0000, 1.0000, 0.0000);
-    uint32_t  ulLfsrCtrlT0, ulLfsrCtrlT1, ulLfsrCtrlT2, ulLfsrValue;
     BFMT_VideoInfo *pCustomFmtInfo = NULL;
 
     BDBG_ENTER(BVDC_P_Display_Init);
@@ -434,25 +433,6 @@ void BVDC_P_Display_Init
     /* alignment off */
     hDisplay->eTimeStampPolarity   = BAVC_Polarity_eTopField;
     hDisplay->stNewInfo.hTargetDisplay = NULL;
-
-    /* Dither init */
-    /* PRIM_CSC_DITHER */
-
-    /* DVI_CSC_DITHER */
-    ulLfsrCtrlT0 = BVDC_P_DITHER_DISP_DVI_LFSR_CTRL_T0;
-    ulLfsrCtrlT1 = BVDC_P_DITHER_DISP_DVI_LFSR_CTRL_T1;
-    ulLfsrCtrlT2 = BVDC_P_DITHER_DISP_DVI_LFSR_CTRL_T2;
-    ulLfsrValue  = BVDC_P_DITHER_DISP_DVI_LFSR_VALUE;
-    BVDC_P_Dither_Init(&hDisplay->stDviDither,
-        ulLfsrCtrlT0, ulLfsrCtrlT1, ulLfsrCtrlT2, ulLfsrValue);
-
-    /* CSC_DITHER */
-    BVDC_P_Dither_Init(&hDisplay->st656Dither,
-        ulLfsrCtrlT0, ulLfsrCtrlT1, ulLfsrCtrlT2, ulLfsrValue);
-    /* Special settings for 656. Default is always 1 */
-    hDisplay->st656Dither.ulCh0Scale = BVDC_P_DITHER_DISP_CSC_SCALE_CH0;
-    hDisplay->st656Dither.ulCh1Scale = BVDC_P_DITHER_DISP_CSC_SCALE_CH1;
-    hDisplay->st656Dither.ulCh2Scale = BVDC_P_DITHER_DISP_CSC_SCALE_CH2;
 
     /* 4kx2k support */
     hDisplay->stNewInfo.stHdmiSettings.eHDMIFormat = BFMT_VideoFmt_eMaxCount;

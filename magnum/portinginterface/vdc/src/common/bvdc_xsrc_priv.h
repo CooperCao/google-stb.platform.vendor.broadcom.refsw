@@ -303,6 +303,8 @@ typedef struct BVDC_P_XsrcContext
     uint32_t                       ulPrevCtIndexLuma;
     uint32_t                       ulPrevCtIndexChroma;
     BVDC_P_CtInput                 ePrevCtInputType;
+    bool                           bPrevSrc10Bit;
+    BVDC_P_DitherSetting           stDither;
 
     /* private fields. */
     BVDC_P_XsrcId                  eId;

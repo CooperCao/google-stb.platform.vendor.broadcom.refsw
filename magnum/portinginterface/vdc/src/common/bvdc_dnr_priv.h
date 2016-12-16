@@ -121,19 +121,6 @@ extern "C" {
     *addr_ptr++ = BVDC_P_DNR_GET_REG_DATA(reg); \
 }
 
-/* This macro does a block write into RUL */
-#define BVDC_P_DNR_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) \
-do { \
-    uint32_t ulBlockSize = \
-        BVDC_P_REGS_ENTRIES(from, to);\
-    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
-    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hDnr->ulRegOffset); \
-    BKNI_Memcpy((void*)pulCurrent, \
-        (void*)&(hDnr->aulRegs[BVDC_P_DNR_GET_REG_IDX(from)]), \
-        ulBlockSize * sizeof(uint32_t)); \
-    pulCurrent += ulBlockSize; \
-} while(0)
-
 /* number of registers in one block. */
 #define BVDC_P_DNR_REGS_COUNT    \
     BVDC_P_REGS_ENTRIES(DNR_0_REG_START, DNR_0_REG_END)
@@ -236,6 +223,7 @@ typedef struct BVDC_P_DnrContext
     BVDC_P_SubRulContext           SubRul;
 
     bool                           bDnrH;
+    bool                           b10BitMode;
 } BVDC_P_DnrContext;
 
 

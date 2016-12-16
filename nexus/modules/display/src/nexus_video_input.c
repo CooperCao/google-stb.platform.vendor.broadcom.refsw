@@ -255,8 +255,9 @@ NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInp
     link->sourceChangedEventHandler = NEXUS_RegisterEvent(link->sourceChangedEvent, NEXUS_VideoInput_P_SourceChanged, source);
     link->resumeMode = NEXUS_VideoInputResumeMode_eAuto;
 
-    BKNI_CreateEvent(&link->hdrInputInfo.inputInfoUpdatedEvent);
-    link->hdrInputInfo.inputInfoUpdatedEventHandler = NEXUS_RegisterEvent(link->hdrInputInfo.inputInfoUpdatedEvent, NEXUS_VideoInput_P_HdrInputInfoUpdated, link);
+    BKNI_CreateEvent(&link->drm.inputInfoUpdatedEvent);
+    link->drm.inputInfoUpdatedEventHandler = NEXUS_RegisterEvent(link->drm.inputInfoUpdatedEvent, NEXUS_VideoInput_P_HdrInputInfoUpdated, link);
+    link->drm.inputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid;
 
 #if NEXUS_VBI_SUPPORT
     /* Only default a CC buffer. All others require app to set buffer size. */
@@ -469,8 +470,8 @@ NEXUS_VideoInput_P_DestroyLink_Uninit(NEXUS_VideoInput_P_Link *link)
         BKNI_Free(link->vbi.tt.data);
     }
 
-    NEXUS_UnregisterEvent(link->hdrInputInfo.inputInfoUpdatedEventHandler);
-    BKNI_DestroyEvent(link->hdrInputInfo.inputInfoUpdatedEvent);
+    NEXUS_UnregisterEvent(link->drm.inputInfoUpdatedEventHandler);
+    BKNI_DestroyEvent(link->drm.inputInfoUpdatedEvent);
 
     NEXUS_IsrCallback_Destroy(link->sourceChangedCallback);
     NEXUS_UnregisterEvent(link->sourceChangedEventHandler);
@@ -666,7 +667,7 @@ NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
 
     if (link->input->type == NEXUS_VideoInputType_eDecoder)
     {
-        BKNI_Memcpy(&drmInfoFrame, &link->drmInfoFrame,
+        BKNI_Memcpy(&drmInfoFrame, &link->drm.inputInfoFrame,
             sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
     }
 #if NEXUS_HAS_HDMI_INPUT
@@ -732,13 +733,13 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
         link->info.mfd.ulMaxContentLight,
         link->info.mfd.ulAvgContentLight);
 
-    if (BKNI_Memcmp(&drmInfoFrame, &link->drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
+    if (BKNI_Memcmp(&drmInfoFrame, &link->drm.inputInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
     {
         BDBG_MSG(("Update DRM Packet to use EOTF: %d", drmInfoFrame.eotf)) ;
-        BKNI_Memcpy(&link->drmInfoFrame, &drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
-        BKNI_SetEvent_isr(link->hdrInputInfo.inputInfoUpdatedEvent);
+        BKNI_Memcpy(&link->drm.inputInfoFrame, &drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
+        link->drm.inputInfoFrame.eotf = drmInfoFrame.eotf ;
+        BKNI_SetEvent_isr(link->drm.inputInfoUpdatedEvent);
     }
-
 }
 
 void

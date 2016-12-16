@@ -79,6 +79,7 @@ B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/brbviewer
 
 include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 APPS = $(THEAPPS)
 APPS ?= $(APP)
@@ -143,15 +144,6 @@ CFLAGS += -I${BINDIR}
 # Always build with debug
 CFLAGS += -g
 CFLAGS += -D_LINUX_TYPES_ -D_LINUX_TYPES_H
-
-ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
-ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
-BCHP_VER_LOWER=d0
-BCHP_VER=D0
-endif
-endif
-
-BOXMODE_FILES = $(shell ls -1v $(NEXUS_TOP)/../magnum/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_memc_box*_config.c )
 
 AWKDIR := ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemconfig
 

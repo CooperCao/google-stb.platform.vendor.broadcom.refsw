@@ -301,6 +301,11 @@ BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI)
 	uint8_t i ;
 	BERR_Code rc = BERR_SUCCESS ;
 
+	/* disable the auto i2c channels */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+	BKNI_LeaveCriticalSection() ;
+
 	for (i = 0; i < MAKE_AUTO_I2C_INTR_ENUM(LAST); i++)
 	{
 		/* skip interrupt if not enabled in table...  */

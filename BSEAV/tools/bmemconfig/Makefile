@@ -71,6 +71,7 @@ NEXUS_TOP?=${B_REFSW_REAL_NEXUS_TOP}
 OBJDIR ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}/nexus/bin
 
 include $(NEXUS_TOP)/examples/Makefile_prologue.inc
+include ${NEXUS_TOP}/../BSEAV/tools/bmemconfig/bmemconfig.inc
 
 vpath %.c ${NEXUS_TOP}/../BSEAV/tools/bmemconfig
 
@@ -131,22 +132,6 @@ CFLAGS += -g
 CFLAGS += -I$(NEXUS_TOP)/../BSEAV/tools/bmemconfig
 CFLAGS += -D_LINUX_TYPES_H
 
-ifeq ($(filter $(BCHP_CHIP),7445), $(BCHP_CHIP))
-ifeq ($(filter $(BCHP_VER),E0), $(BCHP_VER))
-BCHP_VER=D0
-BCHP_VER_LOWER=$(shell echo $(BCHP_VER) | tr A-Z a-z)
-endif
-endif
-
-ifeq ($(filter $(BCHP_CHIP),7364), $(BCHP_CHIP))
-ifeq ($(filter $(BCHP_VER),C0), $(BCHP_VER))
-BCHP_VER=B0
-BCHP_VER_LOWER=$(shell echo $(BCHP_VER) | tr A-Z a-z)
-endif
-endif
-
-BOXMODE_FILES = $(shell ls -1v $(NEXUS_TOP)/../magnum/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_memc_box*_config.c )
-
 # Build bmemconfig.cgi
 ${NEXUS_BIN_DIR}/bmemconfig.cgi: boa ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig.c $(EXTRA_OBJS)
 	@echo [Compile... $@]
@@ -186,8 +171,7 @@ else
 ###  that do NOT have box mode 0, we have to complete the initialization string that was started in the pre.awk
 ###  script above.
 	@echo ",\"unknown DDR SCB\",\"unknown\",0,0}" >> $(OBJDIR)/bmemconfig_box_info.c
-###	@echo [BOXMODE_FILES ... $(BOXMODE_FILES)]
-	@$(foreach myfile,$(BOXMODE_FILES), awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info.awk $(myfile) >> $(OBJDIR)/bmemconfig_box_info.c || echo [Awk $(myfile) done] ; ) >/dev/null
+	@$(foreach myfile,$(BBOX_MEMC_FILES), awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info.awk $(myfile) >> $(OBJDIR)/bmemconfig_box_info.c || echo [Awk $(myfile) done] ; ) >/dev/null
 	@awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bmemconfig_box_info_post.awk $(OBJDIR)/bmemconfig_box_info.c > $(OBJDIR)/bmemconfig_box_info.tmp || echo [Awk done];
 	@cat $(OBJDIR)/bmemconfig_box_info.tmp >> $(OBJDIR)/bmemconfig_box_info.c
 	@rm $(OBJDIR)/bmemconfig_box_info.tmp

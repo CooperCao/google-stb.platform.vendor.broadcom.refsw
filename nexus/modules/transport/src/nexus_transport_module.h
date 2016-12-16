@@ -772,6 +772,7 @@ struct NEXUS_Transport_P_State {
         struct {
             unsigned ibp2rave[32], ibp2msg[32], ibp2rmx0[32], ibp2rmx1[32];
         } xcbuff;
+        unsigned inputBuffer;
     } overflow;
 };
 

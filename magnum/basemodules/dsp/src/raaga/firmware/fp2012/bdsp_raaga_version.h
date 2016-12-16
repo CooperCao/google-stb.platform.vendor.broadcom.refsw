@@ -39,6 +39,6 @@
   *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
   *****************************************************************************/
 #define BDSP_RAAGA_MAJOR_VERSION       13
-#define BDSP_RAAGA_MINOR_VERSION       8
+#define BDSP_RAAGA_MINOR_VERSION       9
 #define BDSP_RAAGA_BRANCH_VERSION      0
 #define BDSP_RAAGA_BRANCH_SUBVERSION   0

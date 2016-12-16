@@ -79,6 +79,10 @@
 #if BCHP_DVI_MISC_0_REG_START
 #include "bchp_dvi_misc_0.h"
 #endif
+#if BCHP_DVI_CFC_0_REG_START
+#include "bchp_dvi_cfc_0.h"
+#endif
+
 #define BVDC_P_VF_EAV_PRDCT              3
 #define BVDC_P_VF_THRESH                 1  /* HW reset value */
 #define BVDC_P_VF_ENABLE                 1  /* HW reset value */
@@ -1303,34 +1307,6 @@ static void BVDC_P_Vec_Build_CSC_isr
     BDBG_MODULE_MSG(BVDC_DISP_CSC, ("     0x%08x 0x%08x 0x%08x 0x%08x",
         pCscMatrix->stCscCoeffs.usCr0, pCscMatrix->stCscCoeffs.usCr1,
         pCscMatrix->stCscCoeffs.usCr2, pCscMatrix->stCscCoeffs.usCrOffset));
-
-    return;
-}
-
-static void BVDC_P_Vec_Build_Dither_isr
-    ( BVDC_P_DitherSetting            *pDither,
-      BVDC_P_ListInfo                 *pList )
-{
-    /* CSC_0_DITHER_CONTROL */
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, MODE,       pDither->ulMode     ) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, OFFSET_CH2, pDither->ulCh2Offset) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, SCALE_CH2,  pDither->ulCh2Scale ) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, OFFSET_CH1, pDither->ulCh1Offset) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, SCALE_CH1,  pDither->ulCh1Scale ) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, OFFSET_CH0, pDither->ulCh0Offset) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_CONTROL, SCALE_CH0,  pDither->ulCh0Scale );
-
-    /* CSC_0_DITHER_LFSR */
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(CSC_0_DITHER_LFSR, T0, pDither->ulLfsrCtrlT0) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_LFSR, T1, pDither->ulLfsrCtrlT1) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_LFSR, T2, pDither->ulLfsrCtrlT2);
-
-    /* CSC_0_DITHER_LFSR_INIT */
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(CSC_0_DITHER_LFSR_INIT, SEQ,   pDither->ulLfsrSeq  ) |
-        BCHP_FIELD_DATA(CSC_0_DITHER_LFSR_INIT, VALUE, pDither->ulLfsrValue);
 
     return;
 }
@@ -3358,7 +3334,68 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         ucCh2 = pCmpInfo->ucRed;
     }
 
-#if BVDC_P_CMP_NON_LINEAR_CSC_VER < 3 /* TODO: bring up 7271B0 */
+#if BCHP_DVI_CFC_0_REG_START
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL + pstChan->ulDviRegOffset);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, CSC_MC_ENABLE, ENABLE) |
+        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, CSC_MB_ENABLE, DISABLE) |
+        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, CSC_MA_ENABLE, DISABLE) |
+        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_L2NL, BYPASS) |
+        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_NL2L, BYPASS) |
+        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, NL_CSC,   BYPASS);
+
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(3);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CFC_0_CSC_MIN_MAX_Y + pstChan->ulDviRegOffset);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_ENUM(DVI_CFC_0_CSC_MIN_MAX_Y, CLAMP_EN, ENABLE) |
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_MIN_MAX_Y, MAX, 0xFFF);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_ENUM(DVI_CFC_0_CSC_MIN_MAX_CB, CLAMP_EN, ENABLE) |
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_MIN_MAX_CB, MAX, 0xFFF);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_ENUM(DVI_CFC_0_CSC_MIN_MAX_CR, CLAMP_EN, ENABLE) |
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_MIN_MAX_CR, MAX, 0xFFF);
+
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(3 * 4);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CFC_0_CSC_R0_MC_COEFF_C00 + pstChan->ulDviRegOffset);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C00, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usY0);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C01, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usY1);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C02, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usY2);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C03, CSC_COEF_ADD,  pCscMatrix->stCscCoeffs.usYOffset);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C10, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCb0);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C11, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCb1);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C12, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCb2);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C13, CSC_COEF_ADD,  pCscMatrix->stCscCoeffs.usCbOffset);
+
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C20, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCr0);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C21, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCr1);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C22, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCr2);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C23, CSC_COEF_ADD,  pCscMatrix->stCscCoeffs.usCrOffset);
+
+#if 0 /* bypass not work yet??? */
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL + pstChan->ulDviRegOffset);
+    *pList->pulCurrent++ =
+         BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_ENABLE, 1) |
+         BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_VALUE,  1);
+#endif
+
+#elif BVDC_P_CMP_NON_LINEAR_CSC_VER < 3
     /* DVI_CSC_CSC_MODE (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_CSC_TABLE_SIZE);
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_CSC_MODE + pstChan->ulDviRegOffset);
@@ -3371,6 +3408,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, CTRL, ENABLE ) | BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, SEL_GAMMA, BT1886_GAMMA ):
         BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, CTRL, DISABLE );
 #endif /* #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC */
+#endif
 
     /* Blank padding color */
     /* DVI_DVF_DVF_VALUES (RW) */
@@ -3380,40 +3418,6 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         BCHP_FIELD_DATA(DVI_DVF_0_DVF_VALUES, CH2_BLANK, ucCh2 ) |
         BCHP_FIELD_DATA(DVI_DVF_0_DVF_VALUES, CH1_BLANK, ucCh1 ) |
         BCHP_FIELD_DATA(DVI_DVF_0_DVF_VALUES, CH0_BLANK, ucCh0 );
-
-    /* DVI_CSC_DITHER */
-    if(hDisplay->stCurInfo.stHdmiSettings.eHdmiColorDepth == BAVC_HDMI_BitsPerPixel_e24bit)
-    {
-        if(!hDisplay->hCompositor->bIs10BitCore)
-        {
-            hDisplay->stDviDither.ulCh0Offset = BVDC_P_DITHER_DISP_DVI_OFFSET_8BIT;
-            hDisplay->stDviDither.ulCh1Offset = BVDC_P_DITHER_DISP_DVI_OFFSET_8BIT;
-            hDisplay->stDviDither.ulCh2Offset = BVDC_P_DITHER_DISP_DVI_OFFSET_8BIT;
-            hDisplay->stDviDither.ulCh0Scale  = BVDC_P_DITHER_DISP_DVI_SCALE_8BIT;
-            hDisplay->stDviDither.ulCh1Scale  = BVDC_P_DITHER_DISP_DVI_SCALE_8BIT;
-            hDisplay->stDviDither.ulCh2Scale  = BVDC_P_DITHER_DISP_DVI_SCALE_8BIT;
-            hDisplay->stDviDither.ulMode      = 2; /* dither 8-bit output */
-        }
-        else
-        {
-            hDisplay->stDviDither.ulCh0Offset = BVDC_P_DITHER_DISP_DVI_OFFSET_10BIT;
-            hDisplay->stDviDither.ulCh1Offset = BVDC_P_DITHER_DISP_DVI_OFFSET_10BIT;
-            hDisplay->stDviDither.ulCh2Offset = BVDC_P_DITHER_DISP_DVI_OFFSET_10BIT;
-            hDisplay->stDviDither.ulCh0Scale  = BVDC_P_DITHER_DISP_DVI_SCALE_10BIT;
-            hDisplay->stDviDither.ulCh1Scale  = BVDC_P_DITHER_DISP_DVI_SCALE_10BIT;
-            hDisplay->stDviDither.ulCh2Scale  = BVDC_P_DITHER_DISP_DVI_SCALE_10BIT;
-            hDisplay->stDviDither.ulMode      = 2; /* dither 10-bit output */
-        }
-    }
-    else /* TODO: shall we dither for 10/12-bit? */
-    {
-        hDisplay->stDviDither.ulMode      = 0; /* rounding */
-    }
-
-    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_DITHER_TABLE_SIZE);
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_DITHER_CONTROL + pstChan->ulDviRegOffset);
-    BVDC_P_Vec_Build_Dither_isr(&hDisplay->stDviDither, pList);
-#endif
 
     return;
 }
@@ -3882,10 +3886,6 @@ static void BVDC_P_Vec_Build_656_CSC_isr
     }
 
     BVDC_P_Vec_Build_CSC_isr(&hDisplay->st656CscMatrix, pList);
-
-    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_DITHER_TABLE_SIZE);
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_ITU656_CSC_0_DITHER_CONTROL);
-    BVDC_P_Vec_Build_Dither_isr(&hDisplay->st656Dither, pList);
 
     return;
 }

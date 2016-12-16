@@ -1,4 +1,7 @@
 #!/bin/sh
+
+export LD_LIBARY_PATH=.
+
 case $1 in
 install)
     # A symlink to /data/videos is preferred because it's a larger
@@ -67,6 +70,10 @@ install)
 	if [ -e netapp_target_prep.sh ]; then
 	    source netapp_target_prep.sh `pwd`
 	fi
+    fi
+
+    if [ -e atlas_wlan_prep.sh ]; then
+	source atlas_wlan_prep.sh
     fi
 
     if [ -e atlas_zigbee_prep.sh ]; then

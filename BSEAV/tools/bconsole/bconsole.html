@@ -1,4 +1,4 @@
-<!-----------------------------------------------------------------------------
+<!--
 * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
 * This program is the proprietary software of Broadcom and/or its
@@ -39,7 +39,7 @@
 *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
 ------------------------------------------------------------------------------>
 <html><head><title>Broadcom STB Web Applications</title><script  type="text/javascript" src="bconsole.js" ></script></head>
-<body lang=EN-US onload="MyLoad();" onbeforeunload="return MyBeforeUnload();" >
+<body lang=EN-US onload="MyLoad();" onbeforeunload="MyBeforeUnload();" >
 
 <table border=0 style="border-collapse:collapse;" >
     <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
@@ -51,34 +51,19 @@
 </table>
 <hr>
 <table cols=2 border=0 id=overalltable style="border-collapse:collapse;" > <!-- this outer table is used to hide big sections when checkbox is not checked -->
-<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
-
-<tr id=row_checkboxes style="visibility:display;" >
-    <th align=left valign=top id=CHECKBOXES colspan=2 >
-      <table style="border-collapse:collapse;" >
-        <tr>
-            <td width=150 >
-              <table border=0 style="border-collapse:collapse;" >
-                <tr>
-                  <td><input type=checkbox id=checkboxconsole onclick="MyClick(event);" ></td><td><div id=ConsoleTag >Console</div></td>
-                </tr>
-              </table>
-            </td>
-        </tr>
-     </table>
-    </th>
-</tr>
-
-<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------ -->
 
 <tr id=row_console style="visibility:display;" ><th align=left valign=top id=th_ttyConsole colspan=2 >
     <table style="border-collapse:collapse;" >
-      <tr><td><textarea id=text_ttyConsole border=1 rows=20 cols=180 readonly style="visibility:display;font-family:Courier New;font-weight:bold;font-size:10pt;" ></textarea></td></tr>
-      <tr><td><input id=input_ttyConsole size=155 onchange="MyClick(event);" onkeydown="MyKeyDown(event);" placeholder="Enter root to login. Enter exit to terminate connection." style="font-size:16px;font-family:'Lucida';" ></td></tr>
+      <tr><td><textarea id=text_ttyConsole border=1 rows=40 cols=180 readonly
+      style="visibility:display;font-family:Courier New;font-weight:bold;font-size:10pt;background-color:black;color:white;" ></textarea></td></tr>
+      <tr><td><input id=input_ttyConsole size=155 onchange="MyClick(event);" onkeydown="MyKeyDown(event);" onkeyup="MyKeyUp(event);"
+      placeholder="Enter root to login. Enter exit to terminate connection."
+      style="font-size:16px;font-family:'Courier New';background-color:black;color:white;" ></td></tr>
     </table>
 </th></tr>
 
-<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+<!------------------------------------------------------------------------------------------------------------------------------------------------------ -->
 
 </table>
 

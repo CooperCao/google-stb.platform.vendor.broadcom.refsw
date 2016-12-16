@@ -1,3 +1,10 @@
+### There are three ways to determine which variant of the chip we are dealing with:
+###  1) in file bbox_memc_box?_config.c, there is a line similar to this ---> for: Box 7252_4Kstb
+###     (this is the preferred method, but does not always work ... fails for the 7366, 7364.)
+###  2) in file bbox_memc_box?_config.c, there is a line similar to this ---> static const uint32_t aulMemc0_20150528194048_4563_2t[] = {
+###     (this doesn't always work because the naming conventions are inconsistant and do not always have the variant in it.)
+###  3) failing both of the above, the fail safe is to extract the platform from the filename --->
+###     magnum/commonutils/box/src/7366/c0/bbox_memc_box1_config.c
 BEGIN {
     total=0;
     found_beginning_of_names=0;
@@ -6,6 +13,7 @@ BEGIN {
     ddr_string="";
     scb_string="";
     line = 0;
+    platform_from_filename="";
 }
 {
     line++;
@@ -17,8 +25,37 @@ BEGIN {
         ### printf ("/* num filename_parts is (" num ") */\n");
         boxmode = substr(filename_parts[3],4);
         printf ("/* Processing: (" FILENAME "); boxmode (" boxmode ") */\n");
+
+        ### split this /local/public/users/detrick/refsw/gitrepo038/nexus/../magnum/commonutils/box/src/7366/c0/bbox_memc_box1_config.c
+        num=split(FILENAME,PLAT_ELEMENTS,"magnum/commonutils/box/src/");
+        num=split(PLAT_ELEMENTS[2],PLAT_ELEMENTS2,"/");
+        platform_from_filename = PLAT_ELEMENTS2[1];
+        ### printf ("/* FILE: (" PLAT_ELEMENTS[2] "); platform_from_filename is (" platform_from_filename ") */\n");
     }
 
+    ### printf ("line is: " $0 "\n");
+    ### look for line that starts with: static const uint32_t aulMemc0_20141112013607_1stb1
+    if ( $1 == "static" && $2 == "const" && $3 == "uint32_t" && substr($4,1,8) == "aulMemc0" )
+    {
+        ### sometimes we can determine the variant from the aulMemc0 structure name
+        ### printf ("/* found line: " $0 " */\n");
+        num=split($4,variants,"_");
+        ### if ( num >=3 ) printf ("/* variants3 (" variants[3] ") length (" length(variants[3]) ") substr (" substr(variants[3],1,4) ") */\n");
+        if ( (variants[3] ~ /^[0-9]+$/) && (length(variants[3]) >= 4) ) {
+            ### printf ("/* variant is NUMERIC (" variants[3] ") ... platform is (" platform ")  platform_from_filename (" platform_from_filename ") */\n" );
+            if ( length(platform) < 4 ) {
+                printf ("/* overriding bad platform (" platform ") ... with one from filename (" platform_from_filename ") */\n" );
+                platform = platform_from_filename;
+            }
+        } else if ( (length(variants[3]) == 5) && (substr(variants[3],1,4) ~ /^[0-9]+$/) ) {
+            ### printf ("/* variant is numeric with one char at end " variants[3] ") ... platform is (" platform ") platform_from_filename (" platform_from_filename ") */\n" );
+        } else {
+            ### we could not determine the variant from the struct so use the platform name from the filename
+            ### printf ("/* variant is NOT numeric and at least 4 chars (" variants[3] ") ... platform is (" platform ") */\n" );
+            printf ("/* overriding bad platform (" platform ") ... with one from filename (" platform_from_filename ") */\n" );
+            platform = platform_from_filename;
+        }
+    }
     uint_tag=$1
     idx=$3;
     ddr=$5;
@@ -103,7 +140,7 @@ BEGIN {
         if (found_beginning_of_names == 1) {
            if (name_count==0 && boxmode>0) { # skip boxmode 0 because it is pre-initialized in bmemconfig_box_info_pre.awk
               split(ddr_string,ddr_string2,")"); # separate out the parenthesis at the end of the string
-              printf(",{"boxmode","memc_count",\""ddr_string2[1]" SCB@"scb_string"\",\""platform"\","a1[1]","a3[1]"}\n\n");
+              printf(",{"boxmode","memc_count",\""ddr_string2[1]" SCB@"scb_string"\",\"" toupper(platform) "\","a1[1]","a3[1]"}\n\n");
            }
            name_count++;
         }

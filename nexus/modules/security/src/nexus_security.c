@@ -948,9 +948,25 @@ static NEXUS_SecurityKeySlotType mapHsm2Nexus_keySlotType( BCMD_XptSecKeySlot_e 
     return NEXUS_SecurityKeySlotType_eType0;
 }
 
+BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeyLayer( NEXUS_SecurityKeyLayer keyLayer )
+{
+
+    switch( keyLayer )
+    {
+        case NEXUS_SecurityKeyLayer_eKey3: { return BCMD_KeyRamBuf_eKey3; }
+        case NEXUS_SecurityKeyLayer_eKey4: { return BCMD_KeyRamBuf_eKey4; }
+        case NEXUS_SecurityKeyLayer_eKey5: { return BCMD_KeyRamBuf_eKey5; }
+        case NEXUS_SecurityKeyLayer_eKey6: { return BCMD_KeyRamBuf_eKey6; }
+        case NEXUS_SecurityKeyLayer_eKey7: { return BCMD_KeyRamBuf_eKey7; }
+        default: { BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
+    }
+
+    return BCMD_KeyRamBuf_eMax;
+}
+
 
 /* Map the NEXUS keyslot type to a HSM keyslot type. */
-BCMD_XptSecKeySlot_e NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, /* the Nexus keyslot type */
+BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType, /* the Nexus keyslot type */
                                                       NEXUS_SecurityEngine engine )        /* the engine */
 {
     switch( nexusType )
@@ -1920,7 +1936,7 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
     switch (pSettings->keySlotEngine)
     {
         case NEXUS_SecurityEngine_eM2m:
-            type = NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
+            type = NEXUS_Security_P_mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
 
            #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
             if ( ( type != BCMD_XptSecKeySlot_eType0 ) &&
@@ -1939,7 +1955,7 @@ NEXUS_KeySlotHandle NEXUS_Security_AllocateKeySlot(const NEXUS_SecurityKeySlotSe
 
         case NEXUS_SecurityEngine_eCaCp:
         case NEXUS_SecurityEngine_eCa:
-            type = NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
+            type = NEXUS_Security_P_mapNexus2Hsm_KeyslotType( pSettings->keySlotType, pSettings->keySlotEngine );
 
             rc = NEXUS_Security_AllocateKeySlotForType( &keyHandle, pSettings, type );
             if( rc != NEXUS_SUCCESS ) { rc = BERR_TRACE( rc ); goto err_alloc; }

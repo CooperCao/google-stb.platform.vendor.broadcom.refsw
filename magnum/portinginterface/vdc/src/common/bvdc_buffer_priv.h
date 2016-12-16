@@ -281,6 +281,7 @@ typedef struct BVDC_P_PictureNode
     /* 8 or 10-bit depth */
     BAVC_VideoBitDepth                 eBitDepth;
     BAVC_VideoBitDepth                 eChromaBitDepth;
+    bool                               bSrc10Bit;
     bool                               bEnable10Bit;
     bool                               bEnableDcxm;
 

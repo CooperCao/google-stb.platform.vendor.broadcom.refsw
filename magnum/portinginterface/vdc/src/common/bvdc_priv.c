@@ -146,35 +146,54 @@ void BVDC_P_WriteListInfo_isr
 
 
 /***************************************************************************
- *
+ * BVDC_P_Dither_Init
+ * This function init the DITHER_LFSR_INIT and DITHER_LFSR_CTRL
  */
-void BVDC_P_Dither_Init_isr
-    ( BVDC_P_DitherSetting            *pDitherSetting,
-      uint32_t                         ulLfsrCtrlT0,
-      uint32_t                         ulLfsrCtrlT1,
-      uint32_t                         ulLfsrCtrlT2,
-      uint32_t                         ulLfsrValue )
+#if (BVDC_P_MFD_SUPPORT_10BIT_DITHER)
+void BVDC_P_Dither_Setting_isr
+    ( BVDC_P_DitherSetting            *pDither,
+      bool                             bDitherEn,
+      uint32_t                         ulLfsrInitVale,
+      uint32_t                         ulScale )
 {
-    if(pDitherSetting)
+    uint32_t ulMode = (bDitherEn) ?
+            BCHP_FIELD_ENUM(MFD_0_DITHER_CTRL, MODE, DITHER) :
+            BCHP_FIELD_ENUM(MFD_0_DITHER_CTRL, MODE, ROUNDING);
+
+    pDither->ulCtrlReg =
+        ulMode |
+        BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH2,       0) |
+        BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, SCALE_CH2,  ulScale) |
+        BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH1,       0) |
+        BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, SCALE_CH1,  ulScale) |
+        BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH0,       0) |
+        BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, SCALE_CH0,  ulScale);
+
+    if(bDitherEn)
     {
-        pDitherSetting->ulLfsrSeq    = 1;  /* once per sop */
-        pDitherSetting->ulLfsrValue  = ulLfsrValue;
-        pDitherSetting->ulLfsrCtrlT0 = ulLfsrCtrlT0;
-        pDitherSetting->ulLfsrCtrlT1 = ulLfsrCtrlT1;
-        pDitherSetting->ulLfsrCtrlT2 = ulLfsrCtrlT2;
+        pDither->ulLfsrInitReg =
+            BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_INIT, SEQ,     ONCE_PER_SOP) |
+            BCHP_FIELD_DATA(MFD_0_DITHER_LFSR_INIT, VALUE, ulLfsrInitVale);
 
-        pDitherSetting->ulMode       = 0;  /* 0=rounding, 1=TRUNCATE, 2=Dither */
-        pDitherSetting->ulCh0Offset  = 0;
-        pDitherSetting->ulCh1Offset  = 0;
-        pDitherSetting->ulCh2Offset  = 0;
-        pDitherSetting->ulCh0Scale   = 1;
-        pDitherSetting->ulCh1Scale   = 1;
-        pDitherSetting->ulCh2Scale   = 1;
+        pDither->ulLfsrCtrlReg =
+            BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T0,  B3) |
+            BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T1,  B8) |
+            BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T2, B12);
     }
-
-    return;
 }
-
+#else
+void BVDC_P_Dither_Setting_isr
+    ( BVDC_P_DitherSetting            *pDither,
+      bool                             bDitherEn,
+      uint32_t                         ulLfsrInitVale,
+      uint32_t                         ulScale )
+{
+    BSTD_UNUSED(pDither);
+    BSTD_UNUSED(bDitherEn);
+    BSTD_UNUSED(ulLfsrInitVale);
+    BSTD_UNUSED(ulScale);
+}
+#endif
 
 /***************************************************************************
  * BVDC_P_CompositorDisplay_isr

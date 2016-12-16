@@ -329,27 +329,6 @@ extern "C" {
 
 #define BVDC_P_DISP_INVALID_VF_CH (-1)
 
-/* Dither settings for DISP */
-#define BVDC_P_DITHER_DISP_CSC_LFSR_VALUE            (0xFFC01)
-#define BVDC_P_DITHER_DISP_CSC_LFSR_CTRL_T0          (0x5)
-#define BVDC_P_DITHER_DISP_CSC_LFSR_CTRL_T1          (0x3)
-#define BVDC_P_DITHER_DISP_CSC_LFSR_CTRL_T2          (0x5)
-/* Dither settings for DVI, 656 */
-#define BVDC_P_DITHER_DISP_DVI_LFSR_VALUE            (0)
-#define BVDC_P_DITHER_DISP_DVI_LFSR_CTRL_T0          (0x1)
-#define BVDC_P_DITHER_DISP_DVI_LFSR_CTRL_T1          (0x1)
-#define BVDC_P_DITHER_DISP_DVI_LFSR_CTRL_T2          (0x1)
-
-#define BVDC_P_DITHER_DISP_DVI_SCALE_10BIT           (0x1)
-#define BVDC_P_DITHER_DISP_DVI_OFFSET_10BIT          (0x0)
-#define BVDC_P_DITHER_DISP_DVI_SCALE_8BIT            (0x4)
-#define BVDC_P_DITHER_DISP_DVI_OFFSET_8BIT           (0x1)
-
-/* Special settings for 656 dither */
-#define BVDC_P_DITHER_DISP_CSC_SCALE_CH0             (0x1)
-#define BVDC_P_DITHER_DISP_CSC_SCALE_CH1             (0x5)
-#define BVDC_P_DITHER_DISP_CSC_SCALE_CH2             (0x5)
-
 /* Number of channels */
 #define BVDC_P_VEC_CH_NUM       3
 
@@ -1168,10 +1147,6 @@ typedef struct BVDC_P_DisplayContext
     uint32_t                    ulAlignSlaves;
     bool                        bAlignAdjusting;
 
-    /* Dither */
-    BVDC_P_DitherSetting        stCscDither;
-    BVDC_P_DitherSetting        stDviDither;
-    BVDC_P_DitherSetting        st656Dither;
     BVDC_Display_CallbackData   stCallbackData;
     bool                        bCallbackInit;
 

@@ -155,9 +155,11 @@ var PlaybackTimeSeconds = 0;
 var PlaybackFileContentsArrayIdx = 0;
 var PlaybackTimeoutId=0;
 var PlaybackPLATFORM = "";
+var PlaybackVARIANT = "";
 var PlaybackPLATVER = "";
 var PlaybackVERSION = "";
 var PlaybackUNAME = "";
+var PlaybackBOLTVER= "";
 var PlaybackCPUPERCENTS = "";
 var PlaybacknetStatsInit = "";
 var PlaybackSTBTIME = "";
@@ -526,8 +528,14 @@ function MyLoad()
             }
         }
 
-        var objChooseFile = document.getElementById("RecordSaveFile");
-        objChooseFile.addEventListener('click', ChooseFileListener, false);
+        var objRecordSaveFile = document.getElementById("RecordSaveFile");
+        objRecordSaveFile.addEventListener('click', RecordSaveFileListener, false);
+
+        var objExportCpuStats = document.getElementById("buttonExportCpuStats");
+        objExportCpuStats.addEventListener('click', ExportCpuStatsListener, false);
+
+        var objExportNetStats = document.getElementById("buttonExportNetStats");
+        objExportNetStats.addEventListener('click', ExportNetStatsListener, false);
 
         //console.log( "MyLoad: calling sendCgiRequest()");
         CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
@@ -1001,6 +1009,10 @@ function checkboxSelected ( fieldName, fieldValue )
         }
     } else if (fieldName == "checkboxRecord" ) {
         hideOrShow("row_Record", fieldValue);
+        // if the OneSecond timer is inactive and we are leaving Playback/Record, manually activate the OneSecond timer.
+        if ( CgiTimeoutId == 0 && fieldValue == HIDE ) {
+            OneSecond();
+        }
     }
 
     if ( fieldValue ) {
@@ -1066,7 +1078,8 @@ function setVariable(fieldName)
     if (debug) alert("setVariable: name " + fieldName + "; type " + obj.type );
 
     if ( PlaybackControl.Value ) { // if playback is in progress
-        if ( (fieldName == "buttonRecordStart") || (fieldName == "buttonPlaybackRun") || (fieldName == "h1bsysperf") ) {
+        if ( (fieldName == "buttonRecordStart") || (fieldName == "buttonPlaybackRun") || (fieldName == "h1bsysperf") ||
+             (fieldName == "brcmlogo") || (fieldName == "checkboxRecord" ) ) {
             // only allow these inputs to proceed during playback
         } else {
             return false;
@@ -1186,6 +1199,10 @@ function setVariable(fieldName)
                         obj.style.backgroundColor = "salmon";
                         setButtonDisabled( 'RecordSaveFile', true );
 
+                        setButtonDisabled( 'buttonExportCpuStats', true );
+                        setButtonDisabled( 'buttonExportNetStats', true );
+                        setButtonDisabled( 'buttonChooseFile', true );
+
                         RecordPlaybackConfigure ( "START" );
 
                         // clear the contents in case we had a previous recording
@@ -1194,9 +1211,11 @@ function setVariable(fieldName)
                         PlaybackTimeSeconds = Math.floor(localtime.getTime() / 1000);
                         RecordFileContents += "\nUNIXTIME " + PlaybackTimeSeconds + "|!|";
                         RecordFileContents += "PLATFORM~" + PlaybackPLATFORM;
+                        RecordFileContents +=  "~VARIANT~" + PlaybackVARIANT;
                         RecordFileContents +=  "~PLATVER~" + PlaybackPLATVER;
                         RecordFileContents +=  "~VERSION~" + PlaybackVERSION;
                         RecordFileContents +=  "~UNAME~" + PlaybackUNAME;
+                        RecordFileContents +=  "~BOLTVER~" + PlaybackBOLTVER;
                         //RecordFileContents +=  "~CPUPERCENTS~" + PlaybackCPUPERCENTS;
                         RecordFileContents +=  "~netStatsInit~" + PlaybacknetStatsInit;
                         RecordFileContents +=  "~STBTIME~" + PlaybackSTBTIME;
@@ -1213,10 +1232,21 @@ function setVariable(fieldName)
 
                         RecordPlaybackConfigure ( "STOP" );
 
-                        // do something with the file contents
-                        //alert(RecordFileContents);
+                        setButtonDisabled( 'buttonExportCpuStats', false );
+                        setButtonDisabled( 'buttonExportNetStats', false );
+                        setButtonDisabled( 'buttonChooseFile', false );
+
+                        RecordFileContentsArray = RecordFileContents.split("UNIXTIME ");
                     }
                 }
+            } else if (fieldName == "buttonExportCpuStats") {
+
+                // process is handled in function ExportCpuStatsListener()
+
+            } else if (fieldName == "buttonExportNetStats") {
+
+                // process is handled in function ExportNetStatsListener()
+
             }
         } else if ( obj.type == "image" ) {
             //console.log( fieldName + ": current state:" + PlaybackControl.Value );
@@ -1240,6 +1270,8 @@ function setVariable(fieldName)
 
                     PlaybackElementsSetDisabled ( true );
 
+                    setButtonDisabled( 'checkboxRecord', true ); // make sure the Record checkbox is disabled
+
                 } else if ( PlaybackControl.Value == 2 ) { // we are paused and need to resume playing
 
                     setButtonImage ( fieldName, "bmemperf_pause.jpg" );
@@ -1247,12 +1279,16 @@ function setVariable(fieldName)
                     //console.log( fieldName + "; new state:" + PlaybackControl.Value );
                     ProcessPlaybackEvents();
 
+                    setButtonDisabled( 'checkboxRecord', true ); // make sure the Record checkbox is disabled
+
                 } else { // we are running and someone hit pause
                     if ( PlaybackTimeoutId ) { clearTimeout( PlaybackTimeoutId ); }
 
                     setButtonImage ( fieldName, "bmemperf_play.jpg" );
                     PlaybackControl.Value = 2;
                     //console.log( fieldName + "; new state:" + PlaybackControl.Value );
+
+                    setButtonDisabled( 'checkboxRecord', false ); // make sure the Record checkbox is enabled
                 }
             }
         } else if ( obj.type == "select-one" ) {
@@ -2101,6 +2137,7 @@ function ProcessPlaybackEvents( )
     //console.log("ProcessPlaybackEvents: len " + RecordFileContentsArray.length + "; idx:" + PlaybackFileContentsArrayIdx );
     if ( RecordFileContentsArray.length && PlaybackFileContentsArrayIdx < RecordFileContentsArray.length ) {
 
+        clearTimeoutOneSecond( "ProcessPlaybackEvents" );
         clearTimeout ( CgiRetryTimeoutId );
 
         var seconds_response = RecordFileContentsArray[PlaybackFileContentsArrayIdx].split("|!|");
@@ -2123,6 +2160,10 @@ function ProcessPlaybackEvents( )
 
             PlaybackFileContentsArrayIdx++;
 
+            // make sure the export buttons are enabled
+            setButtonDisabled( 'buttonExportCpuStats', false );
+            setButtonDisabled( 'buttonExportNetStats', false );
+
             if ( PlaybackFileContentsArrayIdx >= RecordFileContentsArray.length ) { // playback is done
                 PlaybackFileContentsArrayIdx = 0;
                 PlaybackControl.Value = 0;
@@ -2133,6 +2174,8 @@ function ProcessPlaybackEvents( )
                 if ( PlaybackElementsDisabled.length ) { // if there is a list of elements we disabled for playback
                     PlaybackElementsSetDisabled ( false );
                 }
+
+                setButtonDisabled( 'checkboxRecord', false );
             }
 
             if ( PlaybackTimeoutId ) { clearTimeout( PlaybackTimeoutId ); }
@@ -2338,6 +2381,7 @@ function ProcessResponses ( oResponses )
             i++;
         } else if (entry == "IRQDETAILS") {
             var response = oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
             var obj2=document.getElementById("IRQDETAILS");
             if (obj2) {
                 obj2.innerHTML = oResponses[i+1];
@@ -2628,7 +2672,7 @@ function ProcessResponses ( oResponses )
                 if (obj2.checked) {
                     if ( oResponses[i+1].length ) {
                         if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -c running, make sure the START button is enabled
-                            set_iperf_cmd ( "", entry );
+                            //set_iperf_cmd ( "", entry ); // if we clear this out, what user is typing gets cleared BEFORE START button pressed
                             setButtonDisabled( 'iperf_start_stop_c', false );
                         } else {
                             iperfRunningClient = oResponses[i+1];
@@ -2668,7 +2712,7 @@ function ProcessResponses ( oResponses )
                             } else {
                                 if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -s running, make sure the START button is enabled
                                     setButtonDisabled( 'iperf_start_stop_s', false );
-                                    set_iperf_cmd ( "", entry );
+                                    //set_iperf_cmd ( "", entry ); // if we clear this out, what user is typing gets cleared BEFORE START button pressed
                                 } else {
                                     // if someone started iperf -s outside of bsysperf, do not allow bsysperf to start another one
                                     setButtonDisabled( 'iperf_start_stop_s', true );
@@ -2880,6 +2924,12 @@ function ProcessResponses ( oResponses )
             if (objplatform) {
                 objplatform.innerHTML = oResponses[i+1]; CurrentPlatform = oResponses[i+1];
             }
+        } else if (entry == "VARIANT") {
+            PlaybackVARIANT = oResponses[i+1];
+            var objvariant = document.getElementById("VARIANT");
+            if ( objvariant ) {
+                objvariant.innerHTML = "(Variant: " + oResponses[i+1] + ")";
+            }
             i++;
         } else if (entry == "PLATVER") {
             PlaybackPLATVER = oResponses[i+1];
@@ -2892,9 +2942,16 @@ function ProcessResponses ( oResponses )
         } else if (entry == "UNAME") {
             PlaybackUNAME = oResponses[i+1];
             //alert(entry + ":" + oResponses[i+1] );
-            var objplatform = document.getElementById("platver");
+            var objplatform = document.getElementById("UNAME");
             if (objplatform) {
-                objplatform.innerHTML += "&nbsp;" + oResponses[i+1];
+                objplatform.innerHTML = "Kernel: " + oResponses[i+1];
+            }
+            i++;
+        } else if (entry == "BOLTVER") {
+            PlaybackBOLTVER = oResponses[i+1];
+            var objplatform = document.getElementById("BOLTVER");
+            if (objplatform) {
+                objplatform.innerHTML = "Bolt: " + oResponses[i+1];
             }
             i++;
         } else if (entry == "HEAPTABLE") { // used to populate the MEMORY_HTML TH with heap table and PerfCache
@@ -3841,10 +3898,9 @@ function makeTextFile (text)
 }
 
 /**
- *  Function: This function will handle the processing when the user selects the
- *            "Save File" button.
+ *  Function: This function will handle the processing when the user selects the "Save File" button.
  **/
-function ChooseFileListener ()
+function RecordSaveFileListener ()
 {
     var link = document.createElement('a');
 
@@ -3856,7 +3912,134 @@ function ChooseFileListener ()
 
     // wait for the link to be added to the document
     window.requestAnimationFrame(function () {
-    var event = new MouseEvent('click');
+        var event = new MouseEvent('click');
+        link.dispatchEvent(event);
+        document.body.removeChild(link);
+    }); // end call to requestAnimationFrame
+}
+
+/**
+ *  Function: This function will handle the processing when the user selects the "Export CPU Stats" button.
+ **/
+function ExportCpuStatsListener ()
+{
+    var link = document.createElement('a');
+    var csv = "";
+
+    link.setAttribute('download', 'bsysperf_cpustats_' + UUID + '.csv' );
+
+    // loop through each array element and extract the CPU utilization numbers
+    for ( var idx=0; idx<RecordFileContentsArray.length ; idx++ ) {
+        // look for CPUINFO tag
+        if ( RecordFileContentsArray[idx] ) {
+            // "1479847989|!|~CPUINFO~4 000098 000097 000097 000097 ~NETBYTES~8956436 13474876,53252774358 53252774358,94926 672,~
+            var temp1 = RecordFileContentsArray[idx];
+            var temp2 = RecordFileContentsArray[idx].indexOf("CPUINFO");
+            if ( RecordFileContentsArray[idx].indexOf("CPUINFO") > 0 ) /* only interested in lines that have CPUINFO in them */ {
+                var time_elements = RecordFileContentsArray[idx].split("|!|");  // this should give us two elements
+                if ( time_elements.length > 1 ) {
+                    var elements = time_elements[1].split("~CPUINFO~");  // this should give us two elements
+                    if ( elements.length > 1) {
+                        var CPUINFO = elements[1].split("~"); // this should give us 4 000096 000099 000023 000045
+                        if ( csv.length > 0 ) csv += "\n";
+                        var CPUINFO_trimmed = rtrim(CPUINFO[0]);
+                        var num_cpus = CPUINFO_trimmed.substr(0,1);
+
+                        // if this is the first line in the file, output the header information
+                        if ( csv.length == 0 ) {
+                            csv += "UNIXTIME";
+                            for ( var cpu=0; cpu<num_cpus; cpu++ ) {
+                                csv += ",CPU " + cpu;
+                            }
+                            csv += "\n";
+                        }
+                        var with_commas = CPUINFO_trimmed.substr(2,99).replace(/ /g, ","); // replace every space with a comma
+                        csv += time_elements[0] + "," + with_commas;
+                    }
+                }
+            }
+        }
+    }
+    link.href = makeTextFile( csv );
+    document.body.appendChild(link);
+
+    // wait for the link to be added to the document
+    window.requestAnimationFrame(function () {
+        var event = new MouseEvent('click');
+        link.dispatchEvent(event);
+        document.body.removeChild(link);
+    }); // end call to requestAnimationFrame
+}
+
+/**
+ *  Function: This function will handle the processing when the user selects the "Export Net Stats" button.
+ **/
+function ExportNetStatsListener ()
+{
+    var link = document.createElement('a');
+    var csv = "";
+
+    link.setAttribute('download', 'bsysperf_netstats_' + UUID + '.csv' );
+
+    // loop through each array element and extract the CPU utilization numbers
+    for ( var idx=0; idx<RecordFileContentsArray.length ; idx++ ) {
+        // look for CPUINFO tag
+        if ( RecordFileContentsArray[idx] ) {
+            // "1479847989|!|~CPUINFO~4 000098 000097 000097 000097 ~NETBYTES~8956436 13474876,53252774358 53252774358,94926 672,~
+            var temp1 = RecordFileContentsArray[idx];
+            var temp2 = RecordFileContentsArray[idx].indexOf("NETBYTES");
+            if ( RecordFileContentsArray[idx].indexOf("NETBYTES") > 0 ) /* only interested in lines that have NETBYTES in them */ {
+                var time_elements = RecordFileContentsArray[idx].split("|!|");  // this should give us two elements
+                if ( time_elements.length > 1 ) {
+                    var elements = time_elements[1].split("~NETBYTES~");  // this should give us two elements
+                    if ( elements.length > 1) {
+                        var NETBYTES = elements[1].split("~"); // this should give us 8956436 13474876,53252774358 53252774358,94926 672,
+                        if ( csv.length > 0 ) csv += "\n";
+                        var NETBYTES_trimmed = rtrim(NETBYTES[0]);
+
+                        if ( NETBYTES_trimmed.length ) {
+                            var data = "";
+                            if ( NETBYTES_trimmed[NETBYTES_trimmed.length - 1] == ',' ) {
+                                data = NETBYTES_trimmed.substr(0, NETBYTES_trimmed.length -2); // do not include the end-of-line comma
+                            } else {
+                                data = NETBYTES_trimmed;
+                            }
+
+                            var eth_entries = data.split(","); // should give us 3 entries
+
+                            // if this is the first line in the file, output the header information
+                            if ( csv.length == 0 ) {
+                                csv += "UNIXTIME";
+                                var obj = 0;
+                                for ( var eth=0; eth<eth_entries.length; eth++ ) {
+                                    obj = document.getElementById ( "ethname" + eth ); //look for the ethernet interface name
+                                    if ( obj ) {
+                                        csv += "," + obj.innerHTML + " RX," + obj.innerHTML + " TX"; // we found the interface name
+                                    } else {
+                                        csv += ",ETH " + eth + " RX,ETH " + eth + " TX"; // could not find interface name
+                                    }
+                                }
+                                csv += "\n";
+                            }
+                            csv += time_elements[0];
+                            for (eth=0; eth<eth_entries.length; eth++) {
+                                var rxtx = eth_entries[eth].split(" "); // this will give us the RX and TX entries for this eth interface
+                                csv += "," + rxtx[0] + "," + rxtx[1];
+                            }
+                            csv += "\n";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    link.href = makeTextFile( csv );
+    document.body.appendChild(link);
+
+    // wait for the link to be added to the document
+    window.requestAnimationFrame(function () {
+        var event = new MouseEvent('click');
         link.dispatchEvent(event);
         document.body.removeChild(link);
     }); // end call to requestAnimationFrame
@@ -3957,6 +4140,10 @@ function readText(that)
             PlaybackElementsDisabled = "";
 
             FindInputElementsThatAreEnabled ();
+
+            // unlike the other inputs, these two buttons should get enabled but never disabled
+            setButtonDisabled( 'buttonExportCpuStats', false );
+            setButtonDisabled( 'buttonExportNetStats', false );
 
             UpdateProgressGraph ();
 

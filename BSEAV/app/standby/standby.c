@@ -44,6 +44,10 @@
 #include "pmlib.h"
 #include "util.h"
 
+#ifdef WOWLAN
+#include "unistd.h"
+#include "fcntl.h"
+#endif
 
 BDBG_MODULE(standby);
 
@@ -89,6 +93,9 @@ NEXUS_TransportWakeupFilter Filter[18] =
 };
 
 
+#ifdef WOWLAN
+int wakeonwlan = 0;
+#endif
 void get_pmlib_state(pmlib_state_t *state)
 {
     *state = g_power_state.g_state;
@@ -336,6 +343,10 @@ int activeStandbyMode(void)
  **/
 int passiveStandbyMode(void)
 {
+#ifdef WOWLAN
+    int fd;
+    char wakeup_count;
+#endif
     NEXUS_Error rc;
     NEXUS_TransportWakeupSettings xptWakeupSettings;
     NEXUS_PlatformStandbySettings nexusStandbySettings;
@@ -426,6 +437,15 @@ int passiveStandbyMode(void)
     brcm_pm_suspend(g_power_state.brcm_pm_ctx, BRCM_PM_STANDBY);
 
     NEXUS_Platform_GetStandbyStatus(&nexusStandbyStatus);
+
+#ifdef WOWLAN
+    fd = open("/sys/devices/platform/rdb/f17e0000.wlan/power/wakeup_count", O_RDONLY);
+    read(fd, &wakeup_count, 1);
+    if (wakeup_count - '0'){
+        printf("#####S2 Wake up due to WOWLAN#####\n");
+        wakeonwlan=1;
+    }
+#endif
 
     printf("S2 Wake up Status\n"
             "IR      : %d\n"
@@ -581,6 +601,62 @@ int haltMode(void)
 
     return 0;
 }
+#ifdef WOWLAN
+void *load_file(const char *fn, unsigned *_sz)
+{
+    char *data;
+    int sz;
+    int fd;
+    data = 0;
+    fd = open(fn, O_RDONLY);
+    if(fd < 0) return 0;
+    sz = lseek(fd, 0, SEEK_END);
+    if(sz < 0) goto oops;
+    if(lseek(fd, 0, SEEK_SET) != 0) goto oops;
+    data = (char*) malloc(sz);
+    if(data == 0) goto oops;
+    if(read(fd, data, sz) != sz) goto oops;
+    close(fd);
+    if(_sz) *_sz = sz;
+    return data;
+oops:
+    close(fd);
+    if(data != 0) free(data);
+    return 0;
+}
+
+static int insmod(const char *filename, const char *args)
+{    void *module;
+    unsigned int size;
+    int ret;
+
+    module = load_file(filename, &size);
+    if (!module)
+        return -1;
+
+    ret = init_module(module, size, args);
+    printf("#####insmod %s#####\n",filename);
+    free(module);
+    return ret;
+}
+
+static int rmmod(const char *modname)
+{
+    int ret = -1;
+    int maxtry = 10;
+    while (maxtry-- > 0) {
+        ret = delete_module(modname, O_NONBLOCK | O_EXCL);
+        if (ret < 0)
+            usleep(500000);
+        else
+            break;
+    }
+    if (ret != 0)
+        printf("Unable to unload driver module %s \n",
+             modname);
+    return ret;
+}
+#endif
 
 int onMode(void)
 {
@@ -607,6 +683,15 @@ int onMode(void)
 
     BKNI_ReleaseMutex(mutex);
 
+#ifdef WOWLAN
+    if (wakeonwlan) {
+        rmmod("wowl_plat");
+        rmmod("wl");
+        insmod("/root/wowl-plat.ko","");
+        insmod("/root/wl.ko","wlan0 /root/nvram.txt");
+        wakeonwlan = 0;
+    }
+#endif
     return rc;
 }
 

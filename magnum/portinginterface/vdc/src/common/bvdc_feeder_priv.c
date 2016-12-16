@@ -58,6 +58,7 @@
 #include "bchp_timer.h"
 #include "bchp_mmisc.h"
 BDBG_MODULE(BVDC_VFD);
+BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_FDR);
 
 /* HW7422-776: MFD stalls when switched from AVC format to fixed color mode */
@@ -325,6 +326,7 @@ BERR_Code BVDC_P_Feeder_Create
 #ifdef BCHP_MFD_0_HW_CONFIGURATION
         ulHwConfig = BREG_Read32(pFeeder->hRegister, BCHP_MFD_0_HW_CONFIGURATION + pFeeder->ulRegOffset);
         pFeeder->hSource->bIs10BitCore  = BVDC_P_COMPARE_FIELD_DATA(ulHwConfig, MFD_0_HW_CONFIGURATION, CORE_BVB_WIDTH_10, 1);
+        pFeeder->hSource->bIs2xClk = BVDC_P_COMPARE_FIELD_DATA(ulHwConfig, MFD_0_HW_CONFIGURATION, BVB_CLOCK_IS_2X, 1);
 #ifdef BCHP_MFD_0_HW_CONFIGURATION_SUPPORTS_MFD_TRIGGER_DEFAULT
         pFeeder->hSource->bMtgIsPresent = BVDC_P_COMPARE_FIELD_DATA(ulHwConfig, MFD_0_HW_CONFIGURATION, MFD_TRIGGER, 1);
 #endif
@@ -1935,34 +1937,23 @@ static BERR_Code BVDC_P_Feeder_SetDither_isr
     {
         BDBG_ASSERT(pFieldData);
 
-        hFeeder->stRegs.ulDitherCtrl &= ~(
-            BCHP_MASK(MFD_0_DITHER_CTRL,       MODE) |
-            BCHP_MASK(MFD_0_DITHER_CTRL, OFFSET_CH2) |
-            BCHP_MASK(MFD_0_DITHER_CTRL, OFFSET_CH1) |
-            BCHP_MASK(MFD_0_DITHER_CTRL, OFFSET_CH0) |
-            BCHP_MASK(MFD_0_DITHER_CTRL,  SCALE_CH2) |
-            BCHP_MASK(MFD_0_DITHER_CTRL,  SCALE_CH1) |
-            BCHP_MASK(MFD_0_DITHER_CTRL,  SCALE_CH0));
-
-        if((BAVC_VideoBitDepth_e8Bit != pFieldData->eBitDepth) && !hFeeder->hSource->bIs10BitCore)
+        if(!hFeeder->hSource->bIs10BitCore)
         {
-            hFeeder->stRegs.ulDitherCtrl |= (
-                BCHP_FIELD_ENUM(MFD_0_DITHER_CTRL, MODE, DITHER) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH2, 1) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH1, 1) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH0, 1) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_CTRL,  SCALE_CH2, 4) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_CTRL,  SCALE_CH1, 4) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_CTRL,  SCALE_CH0, 4));
+            bool bDitherEn =
+                (BAVC_VideoBitDepth_e8Bit != pFieldData->eBitDepth) ?
+                true : false;
 
-            hFeeder->stRegs.ulDitherLfsrInit = (
-                BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
-                BCHP_FIELD_DATA(MFD_0_DITHER_LFSR_INIT,          VALUE, 0));
+            if(bDitherEn != hFeeder->bPrevDitherEn)
+            {
+                hFeeder->bPrevDitherEn = bDitherEn;
+                BDBG_MODULE_MSG(BVDC_DITHER,("MFD%d DITHER: %s", hFeeder->eId,
+                    (bDitherEn) ? "ENABLE" : "DISABLE"));
 
-            hFeeder->stRegs.ulDitherLfsrCtrl = (
-                BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T0,  B3) |
-                BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T1,  B8) |
-                BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T2, B12));
+                BVDC_P_Dither_Setting_isr(&hFeeder->stDither, bDitherEn, 0, 0x1);
+                hFeeder->stRegs.ulDitherCtrl = hFeeder->stDither.ulCtrlReg;
+                hFeeder->stRegs.ulDitherLfsrInit = hFeeder->stDither.ulLfsrInitReg;
+                hFeeder->stRegs.ulDitherLfsrCtrl = hFeeder->stDither.ulLfsrCtrlReg;
+            }
         }
     }
 

@@ -136,16 +136,8 @@ static const uint32_t s_ulCaptureAbleFlags[] =
 #if (BVDC_P_NUM_SHARED_SCL > 0)
 static const uint32_t s_ulScalerAbleFlags[] =
 {
-#if (BVDC_P_SUPPORT_SCL >= 2)
     /* BVDC_P_ScalerId_eScl0 */   (BVDC_P_Able_eHd),
-#else
-    /* BVDC_P_ScalerId_eScl0 */   (0),
-#endif
-#if (BVDC_P_SUPPORT_SCL >= 3)
     /* BVDC_P_ScalerId_eScl1 */   (BVDC_P_Able_eHd),
-#else
-    /* BVDC_P_ScalerId_eScl1 */   (0),
-#endif
     /* BVDC_P_ScalerId_eScl2 */   (0),
     /* BVDC_P_ScalerId_eScl3 */   (0),
     /* BVDC_P_ScalerId_eScl4 */   (0),

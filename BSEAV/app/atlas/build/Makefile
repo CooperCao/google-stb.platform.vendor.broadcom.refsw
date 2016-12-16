@@ -330,7 +330,7 @@ $(ATLAS_BIN_DIR):
 all: $(ATLAS_BIN_DIR) $(APP)
 	${Q_}$(CP) -f $(APP) $(ATLAS_BIN_DIR)
 
-clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN) $(WPA_SUPPLICANT_CLEAN)
+clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN) $(WPA_SUPPLICANT_CLEAN) clean-wlan
 
 dist-clean: clean dist-clean-netapp
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/lib
@@ -915,6 +915,19 @@ ATLAS_INCLUDE_DIRS += -I$(NEXUS_TOP)/../magnum/commonutils/avc/include
 endif
 
 ####
+## Include wlan driver
+####
+
+ifneq ($(findstring $(NEXUS_PLATFORM), 97271), $(NEXUS_PLATFORM))
+#only build wlan support for 97271
+export WLAN_SUPPORT=n
+endif
+
+ifeq ($(WLAN_SUPPORT), y)
+include $(BSEAV)/connectivity/wlan/wlan.inc
+endif
+
+####
 ## Include zigbee
 ####
 
@@ -990,7 +1003,7 @@ eclipse:
 #
 # WPA Supplicant Support
 #
-ifeq ($(WPA_SUPPLICANT_SUPPORT),y)
+ifeq ($(WLAN_SUPPORT),y)
 include $(BSEAV)/lib/wpa_supplicant/b_wpa_supplicant_targets.inc
 CFLAGS += $(B_WPA_SUPPLICANT_CFLAGS) -DWPA_SUPPLICANT_SUPPORT
 LDFLAGS += $(B_WPA_SUPPLICANT_LDFLAGS)
@@ -1026,7 +1039,7 @@ vpath %.cpp $(VPATH)
 vpath %.c $(VPATH)
 
 # Implicit rule for building local app
-$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
+$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 	@echo [Linking... $(notdir $@)]
 	$(Q_)$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
 
@@ -1074,6 +1087,25 @@ nxclient-clean:
 #intentionally left blank
 endif
 
+#################
+##### WLAN
+#################
+ifeq ($(WLAN_SUPPORT),y)
+wlan:
+	@echo [Build..... wlan]
+	@$(MAKE) -C $(B_WLAN_INSRC_DIR)
+
+clean-wlan:
+	@echo [Clean..... wlan]
+	@$(MAKE) -C $(B_WLAN_INSRC_DIR) clean
+else
+wlan:
+clean-wlan:
+endif
+
+#################
+##### DVR lib
+#################
 ifeq ($(DVR_LIB_SUPPORT),y)
 dvrlib:
 	$(MAKE) -C $(DVR_LIB_DIR)
@@ -1084,6 +1116,7 @@ else
 dvrlib:
 clean-dvrlib:
 endif
+
 #################
 ##### Cablecard
 #################
@@ -1094,7 +1127,7 @@ podlibs: b_openssl_target_build
 	${Q_}$(MAKE) -C $(POD_DIR) DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT) TWOWAY_OOB_CABLECARD_SUPPORT=$(TWOWAY_OOB_CABLECARD_SUPPORT)
 	${Q_}$(MAKE) -C $(CP_DIR)/build -f makefile.cplib
 
-clean-podlibs: b_openssl_target_clean
+clean-podlibs: b_openssl_target_clean_all
 	${Q_}$(MAKE) -C $(POD_DIR) clean DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT)
 	${Q_}$(MAKE) -C $(CP_DIR)/build -f makefile.cplib clean
 
@@ -1388,7 +1421,7 @@ install:  bin_install $(STAGING_DIR)
 # Install drivers, libraries and apps
 #
 .PHONY: install-binaries
-install-binaries: api-install playback_ip_lib_install install-config-files install-pod-driver install-cable-files install-snmp-files install-netapp-files install-zigbee-files $(WPA_SUPPLICANT_INSTALL)
+install-binaries: api-install playback_ip_lib_install install-config-files install-pod-driver install-cable-files install-snmp-files install-netapp-files install-zigbee-files install-wlan-files $(WPA_SUPPLICANT_INSTALL)
 
 #
 # STAGING_DIR is phony because we always want to remove it and
@@ -1461,6 +1494,25 @@ endif
 ifeq ($(DCC_SUPPORT),y)
 	@${MKDIR} $(STAGING_DIR)/fonts/cc_fonts
 	@$(CP) $(PRERENDERED_CC_FONTS) $(STAGING_DIR)/fonts/cc_fonts
+endif
+
+ifeq ($(WLAN_SUPPORT),y)
+# Install all files needed for wlan driver
+install-wlan-files:
+	$(Q_)echo  [...... Installing wlan files ......]
+	$(Q_)$(CP) $(ATLAS_BIN_DIR)/wl $(STAGING_DIR)
+	$(Q_)$(CP) $(ATLAS_BIN_DIR)/wlinstall $(STAGING_DIR)
+	$(Q_)$(CP) $(ATLAS_BIN_DIR)/wl.ko $(STAGING_DIR)
+	$(Q_)$(CP) $(ATLAS_BIN_DIR)/lib/libnl-3.so* $(STAGING_DIR)
+	$(Q_)$(CP) $(ATLAS_BIN_DIR)/lib/libnl-genl-3.so* $(STAGING_DIR)
+	$(Q_)$(CP)  ../scripts/atlas_wlan_prep.sh $(STAGING_DIR)
+	$(Q_)chmod 755 $(STAGING_DIR)/atlas_wlan_prep.sh
+	$(Q_)$(CP)  ../scripts/udhcpc.script $(STAGING_DIR)
+	$(Q_)chmod 755 $(STAGING_DIR)/udhcpc.script
+	$(Q_)$(CP) $(ATLAS_BIN_DIR)/bcm97271*.txt $(STAGING_DIR)
+else
+install-wlan-files:
+#intentionally left empty
 endif
 
 ifeq ($(RF4CE_SUPPORT),y)

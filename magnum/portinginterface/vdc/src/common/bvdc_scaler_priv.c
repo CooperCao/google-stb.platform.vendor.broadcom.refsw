@@ -298,6 +298,9 @@ void BVDC_P_Scaler_Init_isr
 #if (BCHP_SCL_0_HW_CONFIGURATION_MODE_10BIT_MASK)
     hWindow->bIs10BitCore = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, MODE_10BIT);
 #endif
+#if (BCHP_SCL_0_HW_CONFIGURATION_BVB2X_CLK_MASK)
+    hWindow->bIs2xClk = BCHP_GET_FIELD_DATA(ulReg, SCL_0_HW_CONFIGURATION, BVB2X_CLK);
+#endif
     /* default settings for up sampler and down sampler */
     hScaler->stUpSampler.bUnbiasedRound = false;
     hScaler->stUpSampler.eFilterType    = BVDC_422To444Filter_eTenTaps;

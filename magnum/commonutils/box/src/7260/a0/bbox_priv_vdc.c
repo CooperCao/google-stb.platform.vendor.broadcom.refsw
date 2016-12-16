@@ -62,6 +62,8 @@
 
 #include "bbox_vdc_box1_config.h"
 #include "bbox_vdc_box2_config.h"
+#include "bbox_vdc_box3_config.h"
+#include "bbox_vdc_box4_config.h"
 #include "bbox_vdc_box1000_config.h"
 #include "bbox_vdc_box1005_config.h"
 
@@ -92,6 +94,13 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 2:
             BBOX_P_Vdc_SetBox2SourceCapabilities(pSourceCap);
             break;
+        case 3:
+            BBOX_P_Vdc_SetBox1SourceCapabilities(pSourceCap);
+            BBOX_P_Vdc_SetBox3SourceCapabilities(pSourceCap);
+            break;
+        case 4:
+            BBOX_P_Vdc_SetBox4SourceCapabilities(pSourceCap);
+            break;
         case 1000:
             BBOX_P_Vdc_SetBox1000SourceCapabilities(pSourceCap);
             break;
@@ -114,6 +123,13 @@ void BBOX_P_Vdc_SetDisplayCapabilities
         case 2:
             BBOX_P_Vdc_SetBox2DisplayCapabilities(pDisplayCap);
             break;
+        case 3:
+            BBOX_P_Vdc_SetBox1DisplayCapabilities(pDisplayCap);
+            BBOX_P_Vdc_SetBox3DisplayCapabilities(pDisplayCap);
+            break;
+        case 4:
+            BBOX_P_Vdc_SetBox4DisplayCapabilities(pDisplayCap);
+            break;
         case 1000:
             BBOX_P_Vdc_SetBox1000DisplayCapabilities(pDisplayCap);
             break;
@@ -131,10 +147,14 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
     switch (ulBoxId)
     {
         case 1:
+        case 3:
             BBOX_P_Vdc_SetBox1DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 2:
             BBOX_P_Vdc_SetBox2DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
+        case 4:
+            BBOX_P_Vdc_SetBox4DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 1000:
         case 1005:
@@ -150,10 +170,14 @@ void BBOX_P_Vdc_SetXcodeCapabilities
     switch (ulBoxId)
     {
         case 1:
+        case 3:
             BBOX_P_Vdc_SetBox1XcodeCapabilities(pXcodeCap);
             break;
         case 2:
             BBOX_P_Vdc_SetBox2XcodeCapabilities(pXcodeCap);
+            break;
+        case 4:
+            BBOX_P_Vdc_SetBox4XcodeCapabilities(pXcodeCap);
             break;
         case 1000:
         case 1005:
@@ -179,6 +203,12 @@ BERR_Code BBOX_P_GetMemConfig
         case 2:
             BBOX_P_GetBox2MemConfig(pBoxMemConfig);
             break;
+        case 3:
+            BBOX_P_GetBox3MemConfig(pBoxMemConfig);
+            break;
+        case 4:
+            BBOX_P_GetBox4MemConfig(pBoxMemConfig);
+            break;
         case 1000:
             BBOX_P_GetBox1000MemConfig(pBoxMemConfig);
             break;
@@ -200,6 +230,12 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 2:
             BBOX_P_GetBox2Rts(pBoxRts);
+            break;
+        case 3:
+            BBOX_P_GetBox3Rts(pBoxRts);
+            break;
+        case 4:
+            BBOX_P_GetBox4Rts(pBoxRts);
             break;
         case 1000:
             BBOX_P_GetBox1000Rts(pBoxRts);

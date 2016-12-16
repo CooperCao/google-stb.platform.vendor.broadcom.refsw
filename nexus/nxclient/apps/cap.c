@@ -46,9 +46,13 @@
 #if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_video_decoder.h"
 #endif
+#if NEXUS_HAS_AUDIO
+#include "nexus_audio.h"
+#endif
 #if NEXUS_HAS_TRANSPORT
 #include "nexus_transport_capabilities.h"
 #endif
+#include "media_probe.h"
 #include "bstd.h"
 #include "bkni.h"
 #include <stdlib.h>
@@ -75,6 +79,7 @@ static void print_usage(void)
     "  -video_decoders            # of video decoders\n"
     "  -rec_pumps                 # of record pumps\n"
     "  -local_displays            # of local displays\n"
+    "  -support_decode <filename> # Does the chip support the codecs in this file\n"
     );
 }
 
@@ -158,6 +163,39 @@ int main(int argc, char **argv)
                 result = 0;
             break;
         }
+        else if (!strcmp(argv[curarg], "-support_decode") && (curarg + 1 < argc)) {
+            struct probe_request probe_request;
+            struct probe_results probe_results;
+
+            probe_media_get_default_request(&probe_request);
+            probe_request.streamname = argv[++curarg];
+            probe_request.quiet = true;
+
+            rc = probe_media_request(&probe_request, &probe_results);
+
+            if (rc) {
+                BDBG_ERR(("media probe can't parse '%s'", argv[curarg]));
+                break;
+            } else {
+                result = 0;
+#if NEXUS_HAS_VIDEO_DECODER
+                if (probe_results.num_video) {
+                    NEXUS_VideoDecoderCapabilities capabilities;
+                    NEXUS_GetVideoDecoderCapabilities(&capabilities);
+                    result = capabilities.memory[0].supportedCodecs[probe_results.video[0].codec];
+                    break;
+                }
+#endif
+#if NEXUS_HAS_AUDIO
+                if (probe_results.num_audio) {
+                    NEXUS_AudioCapabilities capabilities;
+                    NEXUS_GetAudioCapabilities(&capabilities);
+                    result += (capabilities.dsp.codecs[probe_results.audio[0].codec].decode << 1);
+                }
+#endif
+            }
+        }
+
         curarg++;
     }
 

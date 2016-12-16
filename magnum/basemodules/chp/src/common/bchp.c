@@ -819,9 +819,8 @@ BERR_Code BCHP_GetMemoryInfo(BCHP_Handle hChip, BCHP_MemoryInfo *pInfo)
         rc = BCHP_GetMemoryInfo_PreInit(hChip->regHandle, &hChip->memoryInfo);
         if (rc) return BERR_TRACE(rc);
         hChip->memoryInfoSet = true;
-    } else {
-        BKNI_Memcpy((void*)pInfo, (void*)&hChip->memoryInfo, sizeof(BCHP_MemoryInfo));
     }
+    BKNI_Memcpy((void*)pInfo, (void*)&hChip->memoryInfo, sizeof(BCHP_MemoryInfo));
 #if BCHP_UNIFIED_IMPL
     for (i=0;i < (sizeof(pInfo->memc)/sizeof(pInfo->memc[0])) && pInfo->memc[i].width;i++) {
         if (hChip->openSettings.memoryLayout.memc[i].size == 0) {

@@ -51,6 +51,9 @@
 #include "nexus_platform_client.h"
 #include "drmconstants.h"
 #include "drm_data.h"
+#ifdef PLAYREADY_HOST_IMPL
+#include "bsagelib_types.h"
+#endif
 
 BDBG_MODULE(drm_prdy);
 
@@ -1736,12 +1739,14 @@ DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting)
 
     pPrdyCxt->oemSettings.heap = heapSettings.heap;
 #ifdef PLAYREADY_HOST_IMPL
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 #ifdef USE_UNIFIED_COMMON_DRM
     pPrdyCxt->oemSettings.drmType = 0;
 #else
     pPrdyCxt->oemSettings.drmType = BSAGElib_BinFileDrmType_ePlayready;
 #endif
     BDBG_MSG(("%s:drmType 0x%x", __FUNCTION__,pPrdyCxt->oemSettings.drmType));
+#endif
 #endif
     pPrdyCxt->pOEMContext = Drm_Platform_Initialize(&pPrdyCxt->oemSettings);
     ChkMem(pPrdyCxt->pOEMContext);
@@ -2932,7 +2937,107 @@ ErrorExit:
 
    return DRM_Prdy_fail;
 }
+#ifndef CMD_DRM_PLAYREADY_SAGE_IMPL
+/***********************************************************************************
+ * Function: DRM_Prdy_Reader_Bind_Netflix_WCK()
+ *
+ * Enables protection of the content key.
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix_WCK(
+        DRM_Prdy_Handle_t          pPrdyContext,
+        uint8_t					   *pSessionID,
+        DRM_Prdy_DecryptContext_t  *pDecryptContext)
+{
+    DRM_RESULT              dr = DRM_SUCCESS;
+    DRM_Prdy_Error_e        result = DRM_Prdy_ok;
+    uint8_t                *pbNewOpaqueBuffer = NULL;
+    const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
 
+    BDBG_MSG(("%s - entering", __FUNCTION__));
+
+    BDBG_ASSERT(pPrdyContext != NULL);
+    BDBG_ASSERT(pDecryptContext != NULL);
+
+    if(pDecryptContext->pDecrypt == NULL){
+        ChkMem(pDecryptContext->pDecrypt = Oem_MemAlloc(SIZEOF(DRM_DECRYPT_CONTEXT)));
+        BKNI_Memset(pDecryptContext->pDecrypt, 0, SIZEOF(DRM_DECRYPT_CONTEXT));
+    }
+
+    while( (dr = Drm_Reader_Bind_Netflix_WCK(
+                    pPrdyContext->pDrmAppCtx,
+                    rgstrRights,
+                    1,
+                    (DRMPFNPOLICYCALLBACK)DRM_Prdy_policy_callback,
+                    (void *) pPrdyContext,
+                    (DRM_BYTE *) pSessionID,
+                    (DRM_DECRYPT_CONTEXT *) pDecryptContext->pDecrypt)) == DRM_E_BUFFERTOOSMALL)
+    {
+
+        uint32_t cbNewOpaqueBuffer = pPrdyContext->cbOpaqueBuffer * 2;
+        BDBG_ASSERT( cbNewOpaqueBuffer > pPrdyContext->cbOpaqueBuffer ); /* overflow check */
+
+        if( cbNewOpaqueBuffer > DRM_MAXIMUM_APPCONTEXT_OPAQUE_BUFFER_SIZE )
+        {
+            ChkDR( DRM_E_OUTOFMEMORY );
+        }
+
+        ChkMem( pbNewOpaqueBuffer = ( uint8_t* )Oem_MemAlloc( cbNewOpaqueBuffer ) );
+
+        ChkDR( Drm_ResizeOpaqueBuffer(
+                    pPrdyContext->pDrmAppCtx,
+                    pbNewOpaqueBuffer,
+                    cbNewOpaqueBuffer ) );
+
+        /*
+         Free the old buffer and then transfer the new buffer ownership
+         Free must happen after Drm_ResizeOpaqueBuffer because that
+         function assumes the existing buffer is still valid
+        */
+        SAFE_OEM_FREE( pPrdyContext->pbOpaqueBuffer );
+        pPrdyContext->cbOpaqueBuffer = cbNewOpaqueBuffer;
+        pPrdyContext->pbOpaqueBuffer = pbNewOpaqueBuffer;
+        pbNewOpaqueBuffer = NULL;
+    }
+
+    if (DRM_FAILED( dr )) {
+        if (dr == DRM_E_LICENSE_NOT_FOUND) {
+            /* could not find a license for the KID */
+            BDBG_ERR(("%s: no licenses found in the license store. Please request one from the license server.\n", __FUNCTION__));
+            result = DRM_Prdy_license_not_found;
+        }
+        else if(dr == DRM_E_LICENSE_EXPIRED) {
+            /* License is expired */
+            BDBG_ERR(("%s: License expired. Please request one from the license server.\n", __FUNCTION__));
+            result = DRM_Prdy_license_expired;
+        }
+        else if(  dr == DRM_E_RIV_TOO_SMALL ||
+                  dr == DRM_E_LICEVAL_REQUIRED_REVOCATION_LIST_NOT_AVAILABLE )
+        {
+            /* Revocation Package must be update */
+            BDBG_ERR(("%s: Revocation Package must be update. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            result = DRM_Prdy_revocation_package_expired;
+        }
+        else {
+            BDBG_ERR(("%s: unexpected failure during bind. 0x%x\n", __FUNCTION__,(unsigned int)dr));
+            result = DRM_Prdy_fail;
+        }
+    }
+
+   BDBG_MSG(("%s: Exiting with success\n", __FUNCTION__));
+   return result;
+
+ErrorExit:
+   BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+   if( pDecryptContext->pDecrypt != NULL) {
+       SAFE_OEM_FREE(pDecryptContext->pDecrypt);
+   }
+   if( pbNewOpaqueBuffer != NULL) {
+       SAFE_OEM_FREE(pbNewOpaqueBuffer);
+   }
+
+   return DRM_Prdy_fail;
+}
+#endif
 DRM_Prdy_Error_e DRM_Prdy_Reader_Commit(
         DRM_Prdy_Handle_t      pPrdyContext)
 {

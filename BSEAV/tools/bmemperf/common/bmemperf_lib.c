@@ -78,6 +78,7 @@
 
 #define PRINTFLOG noprintf
 #define FILENAME_TAG "filename=\""
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__) /* shorter version of __FILE__ */
 static bmemperf_cpu_percent g_cpuData;
 
 const char *noprintf(
@@ -1223,14 +1224,20 @@ unsigned int bmemperf_readReg32( unsigned int offset )
     if (BCHP_REGISTER_START & offset)
     {
         offset -= BCHP_REGISTER_START;
-        PRINTFLOG( "bmemperf_lib.c:%u - (offset 0x%x); g_pMem %p \n", __LINE__, offset, g_pMem );
+        /*PRINTFLOG( "%s:%u - (offset 0x%x); g_pMem %p \n", __FILENAME__, __LINE__, offset, g_pMem );*/
+    }
+    /* some chips (74371, 7271, 7344, 7364, 7250, 7260, 7586, 7268, 7366) have a non-zero base address; if one of these, subtract the base offset */
+    else if (BCHP_REGISTER_START && offset)
+    {
+        /*PRINTFLOG( "%s:%u - (offset 0x%x); g_pMem %p \n", __FILENAME__, __LINE__, offset, g_pMem );*/
+        offset -= BCHP_REGISTER_START;
     }
     pMemTemp += offset >>2;
-    /*printf("%s:%u pMemTemp %p \n", __FILE__, __LINE__, (void*) pMemTemp );
+    /*PRINTFLOG("%s:%u g_pMem %p; offset 0x%x; BCHP_REGISTER_START 0x%x\n", __FILENAME__, __LINE__, (void*) g_pMem, offset, BCHP_REGISTER_START );
     fflush(stdout);fflush(stderr);*/
 
     returnValue = *pMemTemp;
-    /*printf("%s:%u returnValue 0x%x \n", __FILE__, __LINE__, (unsigned int ) returnValue );
+    /*PRINTFLOG("%s:%u returnValue 0x%x \n", __FILENAME__, __LINE__, (unsigned int ) returnValue );
     fflush(stdout);fflush(stderr);*/
 
     return ( returnValue );
@@ -2376,3 +2383,60 @@ int readFileFromBrowser(
 
     return( 0 );
 } /* readFileFromBrowser */
+
+/**
+ *  Function: This function returns to the caller the number of bytes contained in the specified file.
+ **/
+int getFileSize(
+    const char *filename
+    )
+{
+    struct stat file_stats;
+
+    if (filename == NULL)
+    {
+        return( 0 );
+    }
+
+    if (stat( filename, &file_stats ) != 0)
+    {
+        PRINTF( "<!-- ERROR getting stats for file (%s) -->\n", filename );
+        return( 0 );
+    }
+
+    return( file_stats.st_size );
+} /* getFileSize */
+
+/**
+ *  Function: This function returns to the caller the contents of the specified file. Space will be
+ *  malloc'ed for the file size. It is up to the caller to free the contents pointer.
+ **/
+char *getFileContents(
+    const char *filename
+    )
+{
+    FILE             *pFile    = NULL;
+    char             *contents = NULL;
+    unsigned long int filesize = 0;
+
+    if (filename == NULL)
+    {
+        return( contents );
+    }
+
+    filesize = getFileSize( filename );
+    if (filesize == 0)
+    {
+        return( contents );
+    }
+    contents = malloc( filesize + 1 );
+    /* if we successfully allocated space for te file*/
+    if (contents)
+    {
+        memset( contents, 0, filesize + 1 );
+        pFile = fopen( filename, "r" );
+        fread( contents, 1, filesize, pFile );
+        fclose( pFile );
+    }
+    return( contents );
+} /* getFileContents */

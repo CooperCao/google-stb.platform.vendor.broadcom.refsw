@@ -2081,7 +2081,11 @@ extern "C" {
 #define BVDC_P_SUPPORT_DSCL                   (1)
 #define BVDC_P_SUPPORT_DSCL_VER               (3)
 #else
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_SUPPORT_XSRC                   (3) /* Number of stand alone XSRC HW */
+#else
 #define BVDC_P_SUPPORT_XSRC                   (2) /* Number of stand alone XSRC HW */
+#endif
 #define BVDC_P_SUPPORT_MADR                   (2) /* Number of MAD-R HW */
 #define BVDC_P_SUPPORT_MCVP                   (2) /* Number of MCVP HW */
 #define BVDC_P_SUPPORT_LOOP_BACK              (6) /* Number of VNET_B_LOOP_BACK_x_SRC */
@@ -2168,7 +2172,11 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#if BCHP_VER >= BCHP_VER_B0
+
+#if ((BCHP_CHIP==7268)||(BCHP_CHIP==7271)) && (BCHP_VER==BCHP_VER_B0)
+#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
+#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
+#elif BCHP_VER >= BCHP_VER_B0
 #define BVDC_P_CMP_NON_LINEAR_CSC_VER         (3)
 #define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
 #else
@@ -3734,21 +3742,11 @@ typedef struct
 typedef struct
 {
     /* xxx_DITHER_LFSR_INIT */
-    uint32_t                        ulLfsrSeq;
-    uint32_t                        ulLfsrValue;
+    uint32_t                        ulLfsrInitReg;
     /* xxx_DITHER_LFSR_CTRL */
-    uint32_t                        ulLfsrCtrlT0;
-    uint32_t                        ulLfsrCtrlT1;
-    uint32_t                        ulLfsrCtrlT2;
+    uint32_t                        ulLfsrCtrlReg;
     /* xxx_DITHER_CTRL */
-    uint32_t                        ulMode;
-    uint32_t                        ulCh0Offset;
-    uint32_t                        ulCh0Scale;
-    uint32_t                        ulCh1Offset;
-    uint32_t                        ulCh1Scale;
-    uint32_t                        ulCh2Offset;
-    uint32_t                        ulCh2Scale;
-
+    uint32_t                        ulCtrlReg;
 } BVDC_P_DitherSetting;
 
 

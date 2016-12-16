@@ -55,11 +55,14 @@ THEAPPS = \
 	${NEXUS_BIN_DIR}/bsysperf.js \
 	${NEXUS_BIN_DIR}/bsysperf.css \
 	${NEXUS_BIN_DIR}/bsysperf.png \
+	${NEXUS_BIN_DIR}/bmemperf_play.jpg \
+	${NEXUS_BIN_DIR}/bmemperf_pause.jpg \
 	${NEXUS_BIN_DIR}/bsysperf_flame.js \
 	${NEXUS_BIN_DIR}/chart1.js \
 	${NEXUS_BIN_DIR}/chart2.js \
 	${NEXUS_BIN_DIR}/boundingbox.js \
 	${NEXUS_BIN_DIR}/svgvml3d.js \
+	${NEXUS_BIN_DIR}/iperf \
 
 NEXUS_PLATFORM ?= $(PLATFORM)
 ifndef NEXUS_PLATFORM
@@ -109,11 +112,22 @@ BWL_SRC_FILES = $(shell find $(BWL_SRC_DIR) -name "*.c" -o -name "*.h" -o -name 
 BOA_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/boa
 BOA_SRC_FILES = $(shell find $(BOA_SRC_DIR) -name "Makefile" -o -name "boa*.gz" -o -name "boa.conf" -o -name "index*" )
 
+IPERF_SRC_DIR = $(NEXUS_TOP)/../BSEAV/lib/iperf
+IPERF_SRC_FILES = $(shell find $(IPERF_SRC_DIR) -name "Makefile" -o -name "*.info" -o -name "*.inc" )
+
 # This cleans nexus and local apps
-clean: clean_apps clean_boa clean_bwl
+clean: clean_apps clean_boa clean_bwl clean_iperf
 
 $(BINDIR)/../bin/boa_server: $(BOA_SRC_FILES)
+	@echo [Building ... $(notdir $@)]
 	$(MAKE) -C $(BOA_SRC_DIR)
+
+${NEXUS_BIN_DIR}/iperf: $(IPERF_SRC_FILES)
+	@echo [Building ... $(notdir $@)]
+	$(MAKE) -C $(IPERF_SRC_DIR) install_to_nexus_bin
+
+clean_iperf:
+	$(MAKE) -C $(IPERF_SRC_DIR) clean
 
 clean_boa:
 	$(MAKE) -C $(BOA_SRC_DIR) clean
@@ -127,6 +141,8 @@ clean_apps:
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.js
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf_flame.js
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.png
+	@-$(RM) ${NEXUS_BIN_DIR}/bmemperf_play.jpg
+	@-$(RM) ${NEXUS_BIN_DIR}/bmemperf_pause.jpg
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.cgi
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.sh
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf_server
@@ -188,6 +204,8 @@ EXTRA_OBJS += ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_wifi.c
 LDFLAGS += -L$(BWL_OBJ_DIR) -lbwl
 CFLAGS += -DBWL_SUPPORT
 CFLAGS += -I$(BWL_SRC_DIR)/include
+
+CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
 
 # Always build with debug
 CFLAGS += -g

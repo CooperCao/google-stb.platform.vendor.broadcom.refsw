@@ -619,6 +619,11 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
 
     NEXUS_HdmiOutput_SelectVideoSettingsPriorityTable_priv() ;
 
+
+    /* set DRM InfoFrame eotf to invalid, so DRM InfoFrame will be updated at least once */
+    pOutput->drm.inputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid ;
+    pOutput->drm.outputInfoFrame.eotf = NEXUS_VideoEotf_eInvalid ;
+
     /* force a hot plug if a device is attached */
     if (deviceAttached)
     {
@@ -1285,7 +1290,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
         }
     }
 
-    pStatus->eotf = output->drm.outputDrmInfoFrame.eotf;
+    pStatus->eotf = output->drm.outputInfoFrame.eotf;
 
 #if BHDM_HAS_HDMI_20_SUPPORT
     {

@@ -49,9 +49,11 @@
 #include "bvdc_source_priv.h"
 #include "bvdc_window_priv.h"
 #include "bvdc_vnet_priv.h"
+#include "bvdc_compositor_priv.h"
 
 
 BDBG_MODULE(BVDC_VFC);
+BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_VFC);
 
 
@@ -181,36 +183,6 @@ void BVDC_P_Vfc_Init_isr
     BKNI_Memset((void*)hVfc->aulRegs, 0x0, sizeof(hVfc->aulRegs));
 
     hVfc->ulPrevWidth = 0xffffffff;
-
-    /* always dither: no harm to 8-bit source; */
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_INIT) &= ~(
-        BCHP_MASK(VFC_0_BYPASS_DITHER_LFSR_INIT, SEQ) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_LFSR_INIT, VALUE));
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_INIT) |=  (
-        BCHP_FIELD_ENUM(VFC_0_BYPASS_DITHER_LFSR_INIT, SEQ,   ONCE_PER_SOP) |
-        BCHP_FIELD_DATA(VFC_0_BYPASS_DITHER_LFSR_INIT, VALUE,            0));
-
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_422_CTRL) &=  ~(
-        BCHP_MASK(VFC_0_BYPASS_DITHER_422_CTRL, MODE      ) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_422_CTRL, OFFSET_CH1) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_422_CTRL, SCALE_CH1 ) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_422_CTRL, OFFSET_CH0) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_422_CTRL, SCALE_CH0 ));
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_422_CTRL) |=  (
-        BCHP_FIELD_ENUM(VFC_0_BYPASS_DITHER_422_CTRL, MODE,   DITHER) |
-        BCHP_FIELD_DATA(VFC_0_BYPASS_DITHER_422_CTRL, OFFSET_CH1,  0) |
-        BCHP_FIELD_DATA(VFC_0_BYPASS_DITHER_422_CTRL, SCALE_CH1,   1) |
-        BCHP_FIELD_DATA(VFC_0_BYPASS_DITHER_422_CTRL, OFFSET_CH0,  0) |
-        BCHP_FIELD_DATA(VFC_0_BYPASS_DITHER_422_CTRL, SCALE_CH0,   1));
-
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_CTRL) &= ~(
-        BCHP_MASK(VFC_0_BYPASS_DITHER_LFSR_CTRL, T0) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_LFSR_CTRL, T1) |
-        BCHP_MASK(VFC_0_BYPASS_DITHER_LFSR_CTRL, T2));
-    BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_CTRL) |=  (
-        BCHP_FIELD_ENUM(VFC_0_BYPASS_DITHER_LFSR_CTRL, T0, B3) |
-        BCHP_FIELD_ENUM(VFC_0_BYPASS_DITHER_LFSR_CTRL, T1, B8) |
-        BCHP_FIELD_ENUM(VFC_0_BYPASS_DITHER_LFSR_CTRL, T2, B12));
 
     /* Initialize state. */
     hVfc->bInitial = true;
@@ -409,26 +381,28 @@ void BVDC_P_Vfc_SetInfo_isr
       const BVDC_P_PictureNodePtr   pPicture )
 {
     uint32_t ulDstVSize;               /* Dst height, in row unit */
+    uint32_t ulOutMuxCtrl;
 
     BDBG_ENTER(BVDC_P_Vfc_SetInfo_isr);
     BDBG_OBJECT_ASSERT(hVfc, BVDC_VFC);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-    BDBG_OBJECT_ASSERT(hWindow->stCurInfo.hSource, BVDC_SRC);
 
     ulDstVSize = pPicture->pXsrcOut->ulHeight >> (BAVC_Polarity_eFrame!=pPicture->eSrcPolarity);
-#if 0
     if((hVfc->ulPrevWidth  != pPicture->pXsrcOut->ulWidth) ||
        (hVfc->ulPrevHeight != ulDstVSize) ||  /* no vrt scl */
        (pPicture->eOrigSrcOrientation != hVfc->ePrevSrcOrientation)    ||
        (pPicture->eDispOrientation    != hVfc->ePrevDispOrientation)   ||
+       (pPicture->bSrc10Bit != hVfc->bPrevSrc10Bit) ||
+       (hWindow->hCompositor->hDisplay->stCurInfo.bEnableStg != hVfc->bPrevEnableStg) ||
        !BVDC_P_VFC_COMPARE_FIELD_DATA(hVfc, VFC_0_ENABLE, ENABLE, 1))
-#endif
     {
         /* for next "dirty" check */
         hVfc->ulPrevWidth = pPicture->pXsrcOut->ulWidth;
         hVfc->ulPrevHeight = ulDstVSize;
         hVfc->ePrevSrcOrientation  = pPicture->eOrigSrcOrientation;
         hVfc->ePrevDispOrientation = pPicture->eDispOrientation;
+        hVfc->bPrevSrc10Bit = pPicture->bSrc10Bit;
+        hVfc->bPrevEnableStg = hWindow->hCompositor->hDisplay->stCurInfo.bEnableStg;
         hVfc->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
 
         BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_ENABLE) =
@@ -439,13 +413,36 @@ void BVDC_P_Vfc_SetInfo_isr
             BVDC_P_VNET_USED_VFC_AT_WRITER(pPicture->stVnetMode) ?
             pPicture->eOrigSrcOrientation : pPicture->eDispOrientation);
 
-        BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_PIC_SIZE) |=  (
+        BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_PIC_SIZE) =  (
             BCHP_FIELD_DATA(VFC_0_PIC_SIZE, HSIZE, pPicture->pXsrcOut->ulWidth) |
             BCHP_FIELD_DATA(VFC_0_PIC_SIZE, VSIZE, ulDstVSize));
 
-        BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_OUT_MUX_CTRL) |=  (
+        ulOutMuxCtrl = hWindow->hCompositor->bIs10BitCore ?
+            BCHP_FIELD_ENUM(VFC_0_OUT_MUX_CTRL, OUT_MUX_CTRL, BYPASS_HDR) :
+            BCHP_FIELD_ENUM(VFC_0_OUT_MUX_CTRL, OUT_MUX_CTRL, BYPASS_HDR_10BIT_TO_8BIT);
+        BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_OUT_MUX_CTRL) =  (
             BCHP_FIELD_ENUM(VFC_0_OUT_MUX_CTRL, VFC_BYPASS,   DISABLE) |
-            BCHP_FIELD_ENUM(VFC_0_OUT_MUX_CTRL, OUT_MUX_CTRL, BYPASS_HDR_10BIT_TO_8BIT));
+            ulOutMuxCtrl);
+
+        /* only enable dithering if VFC is connected to a 8-bit non transcode */
+        /* window path from a 10-bit source */
+        if(!hWindow->bIs10BitCore)
+        {
+            bool bDitherEn =
+                (pPicture->bSrc10Bit || !hWindow->hCompositor->hDisplay->stCurInfo.bEnableStg) ?
+                true : false;
+            BDBG_MODULE_MSG(BVDC_DITHER,("VFC%d DITHER: %s", hVfc->eId,
+                (bDitherEn) ? "ENABLE" : "DISABLE"));
+
+            BVDC_P_Dither_Setting_isr(&hVfc->stDither, bDitherEn, 0xFFC, 0x1);
+
+            BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_422_CTRL) = hVfc->stDither.ulCtrlReg;
+            if(bDitherEn)
+            {
+                BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_INIT) = hVfc->stDither.ulLfsrInitReg;
+                BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_CTRL) = hVfc->stDither.ulLfsrCtrlReg;
+            }
+        }
     }
     BDBG_LEAVE(BVDC_P_Vfc_SetInfo_isr);
     return;

@@ -983,7 +983,7 @@ int main(int argc, const char **argv)  {
             else {
                 passthrough[num_passthrough].remap_pid = 0;
             }
-            context.encoderStartSettings.num_passthrough = num_passthrough++;
+            context.encoderStartSettings.num_passthrough = ++num_passthrough;
         }
         else if (!strcmp(argv[curarg], "-crypto") && curarg+1 < argc) {
             encrypt_algo = lookup(g_securityAlgoStrs, argv[++curarg]);
@@ -1003,6 +1003,10 @@ int main(int argc, const char **argv)  {
         }
         else if (!context.outputindex) {
             context.outputindex = argv[curarg];
+        }
+        else {
+            print_usage(&cmdline);
+            return -1;
         }
         curarg++;
     }
@@ -1394,6 +1398,17 @@ int main(int argc, const char **argv)  {
                     context.stopped = false;
                 }
             }
+        }
+        else if (context.outputMp4)
+        {
+            /*
+             * this is to prevent busy loop on NEXUS_Playback_GetStatus
+             * which can prevent file module from servicing transaction completion requests
+             * - ts path sleeps 250 or until data
+             * - es path sleeps 100 if no data
+             * - so we sleep 100 here.  BKNI_Sleep(1) also works with no other system loading.
+             */
+            BKNI_Sleep(100);
         }
 
 check_for_end:

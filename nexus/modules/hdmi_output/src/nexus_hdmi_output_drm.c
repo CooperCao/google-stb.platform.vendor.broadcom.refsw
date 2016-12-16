@@ -199,13 +199,13 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
     BERR_Code rc = BERR_SUCCESS;
     BAVC_HDMI_DRMInfoFrame stDRMInfoFrame ;
 
-    if (BKNI_Memcmp(&output->drm.outputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputDrmInfoFrame)))
+    if (BKNI_Memcmp(&output->drm.outputInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputInfoFrame)))
     {
 #if !BDBG_NO_MSG
         BDBG_MSG(("NEXUS_HdmiOutput_P_SetDrmInfoFrame")) ;
-        NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->drm.outputDrmInfoFrame, pDrmInfoFrame);
+        NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->drm.outputInfoFrame, pDrmInfoFrame);
 #endif
-        BKNI_Memcpy(&output->drm.outputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputDrmInfoFrame));
+        BKNI_Memcpy(&output->drm.outputInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputInfoFrame));
 
         BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
         NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(&stDRMInfoFrame, pDrmInfoFrame);
@@ -283,9 +283,9 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ApplyInputDrmInfoFrame(NEXUS_HdmiOutputHan
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
 
-    if (output->drm.inputDrmInfoFrameValid)
+    if (output->drm.inputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
     {
-        NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->drm.inputDrmInfoFrame);
+        NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->drm.inputInfoFrame);
 
         /* check compat with EDID -> modify as necessary and print debug */
         NEXUS_HdmiOutput_P_DrmInfoFrame_ApplyEdid(output, &drmInfoFrame);
@@ -388,10 +388,9 @@ NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(NEXUS_HdmiOutputHandle ou
     NEXUS_Error rc = NEXUS_SUCCESS;
     bool changed = false;
 
-    if (!output->drm.inputDrmInfoFrameValid || BKNI_Memcmp(&output->drm.inputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputDrmInfoFrame)))
+    if (BKNI_Memcmp(&output->drm.inputInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputInfoFrame)))
     {
-        BKNI_Memcpy(&output->drm.inputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputDrmInfoFrame));
-        output->drm.inputDrmInfoFrameValid = true;
+        BKNI_Memcpy(&output->drm.inputInfoFrame, pDrmInfoFrame, sizeof(output->drm.inputInfoFrame));
         changed = true;
     }
 
@@ -410,13 +409,13 @@ bool NEXUS_HdmiOutput_GetEotf_priv(
     NEXUS_VideoEotf *pEotf
 )
 {
-    if (hdmiOutput->drm.outputDrmInfoFrame.eotf == NEXUS_VideoEotf_eInvalid)
+    if (hdmiOutput->drm.outputInfoFrame.eotf == NEXUS_VideoEotf_eInvalid)
     {
-        /* user has requested to turn off packet transmission */
-        if (hdmiOutput->drm.inputDrmInfoFrameValid)
+        /* output invalid means user has requested to turn off packet transmission or we are in init state */
+        if (hdmiOutput->drm.inputInfoFrame.eotf != NEXUS_VideoEotf_eInvalid)
         {
             /* if input is valid, tell display that output is input (no conversion) */
-            *pEotf = hdmiOutput->drm.inputDrmInfoFrame.eotf;
+            *pEotf = hdmiOutput->drm.inputInfoFrame.eotf;
         }
         else
         {
@@ -427,7 +426,7 @@ bool NEXUS_HdmiOutput_GetEotf_priv(
     else
     {
         /* grab normal computed output eotf */
-        *pEotf = hdmiOutput->drm.outputDrmInfoFrame.eotf;
+        *pEotf = hdmiOutput->drm.outputInfoFrame.eotf;
     }
 
     return true;

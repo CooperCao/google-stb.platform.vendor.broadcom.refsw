@@ -316,7 +316,7 @@ int main(int argc, char *argv[])
 
             if (pAppCtx->hMediaInfo)
             {
-               if (!pAppCtx->disableVideo && playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eVideo, &mediaInfoTrack) )
+               if (!pAppCtx->disableVideo && playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eVideo, pAppCtx->trackGroupIndex, &mediaInfoTrack) )
                {
                    playerSettings.videoTrackId = mediaInfoTrack.trackId;
                    playerSettings.videoTrackSettings.pidTypeSettings.video.codec = mediaInfoTrack.info.video.codec;
@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
                    }
                    else
                    {
-                       trackFound = playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &mediaInfoTrack);
+                       trackFound = playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eAudio, pAppCtx->trackGroupIndex, &mediaInfoTrack);
                        if ( trackFound)
                        {
                            playerSettings.audioTrackId = mediaInfoTrack.trackId;
@@ -352,6 +352,19 @@ int main(int argc, char *argv[])
                        {
                            BDBG_WRN((BIP_MSG_PRE_FMT "Not able to found any Audio track" BIP_MSG_PRE_ARG));
                        }
+                   }
+               }
+
+               /* Select & specify PCR trackId. */
+               if (pAppCtx->playerStreamInfo.transportType == NEXUS_TransportType_eTs)
+               {
+                   if (playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_ePcr, pAppCtx->trackGroupIndex, &mediaInfoTrack))
+                   {
+                       pAppCtx->playerStreamInfo.mpeg2Ts.pcrPid = mediaInfoTrack.trackId;
+                   }
+                   else
+                   {
+                       BDBG_WRN((BIP_MSG_PRE_FMT "Not able to found any PCR track" BIP_MSG_PRE_ARG));
                    }
                }
 

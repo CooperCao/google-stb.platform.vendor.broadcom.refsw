@@ -1028,6 +1028,7 @@ typedef struct BVDC_P_WindowContext
     BVDC_P_Window_AspRatioSettings stAspRatioSettings;
 
     bool                           bIs10BitCore;
+    bool                           bIs2xClk;
     bool                           bSupportDcxm;
 
     /* Compression settings */

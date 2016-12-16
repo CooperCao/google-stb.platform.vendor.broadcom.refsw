@@ -51,6 +51,7 @@
 #include "bvdc_mcdi_priv.h"
 #include "bchp_mmisc.h"
 #include "bvdc_vnet_priv.h"
+#include "bvdc_compositor_priv.h"
 
 #if (BVDC_P_SUPPORT_DMISC)
 #include "bchp_dmisc.h"
@@ -61,6 +62,7 @@
 BDBG_MODULE(BVDC_MCVP);
 BDBG_FILE_MODULE(BVDC_DEINTERLACER_MOSAIC);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
+BDBG_FILE_MODULE(BVDC_DITHER);
 BDBG_OBJECT_ID(BVDC_MVP);
 
 
@@ -890,21 +892,36 @@ static void BVDC_P_Mcvp_BuildRul_SetEnable_isr
 #if (BVDC_P_SUPPORT_MCVP_VER >= BVDC_P_MCVP_VER_6)
         if(hMcvp->hMcdi->bMadr)
         {
-            uint32_t ulDitherMode;
-
-
-            ulDitherMode =
+            bool bDitherEn =
 #if BVDC_CRC_CAPTURE
-                BCHP_FIELD_ENUM (MVP_TOP_0_DITHER_CTRL, MODE, ROUNDING);
+                false;
 #else
-                BCHP_FIELD_ENUM (MVP_TOP_0_DITHER_CTRL, MODE, DITHER);
+                /* enable dithering for 10 bit source (stream is 10b and MFD */
+                /* is 10-bit or psuedo 10 bit source), and MADR is connected */
+                /* to a 10-bit window path and MADR is not in bypass mode */
+                (pPicture->bSrc10Bit && hMcvp->hWindow->bIs10BitCore && bMcdi &&
+                 !hMcvp->hWindow->hCompositor->hDisplay->stCurInfo.bEnableStg) ?
+                    true : false;
 #endif
+
+            if(hMcvp->bPrevDitherEn != bDitherEn)
+            {
+                BDBG_MODULE_MSG(BVDC_DITHER,("MVP%d DITHER: %s", hMcvp->eId,
+                    (bDitherEn) ? "ENABLE" : "DISABLE"));
+                hMcvp->bPrevDitherEn = bDitherEn;
+            }
+
+            BVDC_P_Dither_Setting_isr(&hMcvp->stDither, bDitherEn, 0xa2706, 0x1);
+
             BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MVP_TOP_0_DITHER_CTRL, ulRegOffset,
-            ulDitherMode |
-            BCHP_FIELD_ENUM(MVP_TOP_0_DITHER_CTRL, OFFSET_CH1, DEFAULT) |
-            BCHP_FIELD_ENUM(MVP_TOP_0_DITHER_CTRL, SCALE_CH1,  DEFAULT) |
-            BCHP_FIELD_ENUM(MVP_TOP_0_DITHER_CTRL, OFFSET_CH0, DEFAULT) |
-            BCHP_FIELD_ENUM(MVP_TOP_0_DITHER_CTRL, SCALE_CH0,  DEFAULT));
+                hMcvp->stDither.ulCtrlReg);
+            if(bDitherEn)
+            {
+                BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MVP_TOP_0_DITHER_LFSR_INIT, ulRegOffset,
+                    hMcvp->stDither.ulLfsrInitReg);
+                BVDC_P_SUBRUL_ONE_REG(pList, BCHP_MVP_TOP_0_DITHER_LFSR_CTRL, ulRegOffset,
+                    hMcvp->stDither.ulLfsrCtrlReg);
+            }
         }
 #endif
 

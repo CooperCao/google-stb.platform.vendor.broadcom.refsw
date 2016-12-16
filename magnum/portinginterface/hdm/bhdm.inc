@@ -100,6 +100,7 @@ ifeq ($(filter $(BCHP_CHIP), 7422 7425 7429 74295 7435 7231 7358 7344 7346 7360 
 ##################
 else
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_priv.c
+	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core28nm/bhdm_save_restore.c
 
 #########################################
 ## Majority of 28nm chips support HDMI 2.0

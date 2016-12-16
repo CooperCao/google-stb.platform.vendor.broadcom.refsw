@@ -173,10 +173,14 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_NonTunerLockStatus).s(), "eNotify_NonTuner
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiRssiResult).s(), "eNotify_NetworkWifiRssiResult")             /* status   - wifi network RSSI status */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStarted).s(), "eNotify_NetworkWifiScanStarted")           /* status   - wifi network scan started */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStopped).s(), "eNotify_NetworkWifiScanStopped")           /* status   - wifi network scan stopped */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanFailure).s(), "eNotify_NetworkWifiScanFailure")             /* status   - wifi network scan failed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResult).s(), "eNotify_NetworkWifiScanResult")             /* status   - results of wifi network scan are available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectionStatus).s(), "eNotify_NetworkWifiConnectionStatus") /* status   - wifi network connection status is available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnected).s(), "eNotify_NetworkWifiConnected")               /* status   - wifi network connected */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailure).s(), "eNotify_NetworkWifiConnectFailure")     /* status   - wifi network connection attempt failure */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureWrongKey).s(), "eNotify_NetworkWifiConnectFailureWrongKey")  /* status   - wifi network connection attempt failture because of incorrect key */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureNetworkNotFound).s(), "eNotify_NetworkWifiConnectFailureNetworkNotFound")  /* status   - wifi network connection attempt failture because of missing network */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureAssocReject).s(), "eNotify_NetworkWifiConnectFailureAssocReject")  /* status   - wifi network connection attempt failture because of a rejected association with AP */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnected).s(), "eNotify_NetworkWifiDisconnected")         /* status   - wifi network disconnected */
 #ifdef WPA_SUPPLICANT_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiListUpdated).s(), "eNotify_NetworkWifiListUpdated") /* status   - updated list currently known wifi networks*/

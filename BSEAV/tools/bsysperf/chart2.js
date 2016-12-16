@@ -171,7 +171,9 @@ function DrawScene(which)
   xmax++;
   ymax++;
   if (zmin==zmax)
-  { alert("You must input some data before drawing.");
+  { var SceneIds = [ "Scene222","Scene333" ];
+    var obj= document.getElementById( SceneIds[which] );
+    if ( obj ) obj.innerHTML = "<text x=50 y=50>No data to graph!</text>";
     return;
   }
   if ( S[sidx].Delete )

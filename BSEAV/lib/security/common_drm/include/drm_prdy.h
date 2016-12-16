@@ -506,6 +506,49 @@ DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix(
         DRM_Prdy_DecryptContext_t  *pDecryptContext);
 
 
+#ifndef CMD_DRM_PLAYREADY_SAGE_IMPL
+/***********************************************************************************
+ * Function: DRM_Prdy_Reader_Bind_Netflix_WCK()
+ *
+ * Description:
+ * Performs the same operation as Drm_Reader_Bind_Netflix after
+ * configuring PlayReady to protect the content key.  Applies primarily
+ * to devices without a TEE since the content key is always protected on
+ * TEE-based devices.
+ *
+ * Note that this function will allocate memory sizeof(DRM_DECRYPT_CONTEXT) bytes for
+ * pDecryptContext->pDecrypt internally.
+ *
+ * Maps to:
+ *  Drm_Reader_Bind_Netflix()
+ *  Drm_ResizeOpaqueBuffer() if needed
+ *
+ * Parameters:
+ *  pPrdyContext:    [in] A valid DRM_Prdy_Context
+ *  pSessionID       [in] A 16-byte secure stop session ID received via a call to DRM_Prdy_LicenseAcq_ProcessResponseEx
+ *  pDecryptContext: [out] A decryption context to be used to decrypt data.
+ *
+ * Returns:
+ *   On Success:   DRM_Prdy_ok
+ *   On Failure:   any other error code.
+ *
+ * Note:
+ *  In order to keep this function simple and make it easy to use, it always use
+ *  g_dstrWMDRM_RIGHT_PLAYBACK for the rights and no callback is supported. However,
+ *  application can call DRM_Prdy_Get_Protection_Policy to retrieve the protection
+ *  information for the content after this function has been successfully executed.
+ *
+ *  Also, for pDecryptContext, the application must call DRM_Prdy_Reader_Close on
+ *  this context when finishes using it.
+ *
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_Reader_Bind_Netflix_WCK(
+        DRM_Prdy_Handle_t           pPrdyContext,
+        uint8_t					   *pSessionID,
+        DRM_Prdy_DecryptContext_t  *pDecryptContext);
+
+#endif
+
 /***********************************************************************************
  * Function: DRM_Prdy_Reader_Commit()
  *

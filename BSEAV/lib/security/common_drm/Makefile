@@ -365,7 +365,11 @@ include $(NEXUS_TOP)/nxclient/include/nxclient.inc
 DRM_BUILD_PROFILE   := 900
 CFLAGS              += -DDRM_BUILD_PROFILE=$(DRM_BUILD_PROFILE)
 CFLAGS              += ${NXCLIENT_CFLAGS}
+ifeq ($(SAGE_VERSION), 2x)
+CFLAGS              += -I$(URSR_TOP)/BSEAV/lib/playready/2.5/inc/2x -DTARGET_LITTLE_ENDIAN=1
+else
 CFLAGS              += -I$(URSR_TOP)/BSEAV/lib/playready/2.5/inc -DTARGET_LITTLE_ENDIAN=1
+endif
 CFLAGS              += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 
 PRDY_BASENAME       := cmndrmprdy

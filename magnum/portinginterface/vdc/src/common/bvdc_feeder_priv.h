@@ -504,6 +504,8 @@ typedef struct BVDC_P_FeederContext
     BAVC_VideoBitDepth             eChromaBitDepth;
     BAVC_MFD_Picture               stMfdPicture;
 
+    BVDC_P_DitherSetting           stDither;
+    bool                           bPrevDitherEn;
 } BVDC_P_FeederContext;
 
 

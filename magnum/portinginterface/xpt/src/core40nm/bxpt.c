@@ -2854,16 +2854,45 @@ BERR_Code BXPT_CheckPipelineErrors(
     BXPT_PipelineErrors *Errors
     )
 {
-    BERR_Code status = BERR_SUCCESS;
+   uint32_t reg;
+
+   uint32_t inputBufferOverflow = 0;
+
+   BDBG_ASSERT(Errors);
+   BKNI_Memset(Errors, 0, sizeof(*Errors));
+
+#if defined BCHP_XPT_FE_INTR_STATUS0_REG_INPUT_BUFFER_OVFL_ERR_MASK
+   reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_INTR_STATUS0_REG );
+   inputBufferOverflow = BCHP_GET_FIELD_DATA(reg, XPT_FE_INTR_STATUS0_REG, INPUT_BUFFER_OVFL_ERR);
+   BCHP_SET_FIELD_DATA(reg, XPT_FE_INTR_STATUS0_REG, INPUT_BUFFER_OVFL_ERR, 0);
+   BREG_Write32(hXpt->hRegister, BCHP_XPT_FE_INTR_STATUS0_REG, reg);
+#elif defined BCHP_XPT_FE_INTR_STATUS1_REG_INPUT_BUFFER_OVFL_ERR_MASK
+   reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_INTR_STATUS1_REG );
+   inputBufferOverflow = BCHP_GET_FIELD_DATA(reg, XPT_FE_INTR_STATUS1_REG, INPUT_BUFFER_OVFL_ERR);
+   BCHP_SET_FIELD_DATA(reg, XPT_FE_INTR_STATUS1_REG, INPUT_BUFFER_OVFL_ERR, 0);
+   BREG_Write32(hXpt->hRegister, BCHP_XPT_FE_INTR_STATUS1_REG, reg);
+#elif defined BCHP_XPT_FE_INTR_STATUS2_REG_INPUT_BUFFER_OVFL_ERR_MASK
+   reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_FE_INTR_STATUS2_REG );
+   inputBufferOverflow = BCHP_GET_FIELD_DATA(reg, XPT_FE_INTR_STATUS2_REG, INPUT_BUFFER_OVFL_ERR);
+   BCHP_SET_FIELD_DATA(reg, XPT_FE_INTR_STATUS2_REG, INPUT_BUFFER_OVFL_ERR, 0);
+   BREG_Write32(hXpt->hRegister, BCHP_XPT_FE_INTR_STATUS2_REG, reg);
+#else
+   #error "INPUT_BUFFER_OVFL_ERR not defined in a known register."
+#endif
+   if (inputBufferOverflow)
+   {
+      BDBG_ERR(( "Input band buffer has overflowed. Please check RTS settings and/or box mode."));
+      Errors->overflow.InputBuffer = 1;
+   }
 
 #if BXPT_HAS_FIXED_RSBUF_CONFIG
-    status |= BXPT_P_RsBuf_ReportOverflows( hXpt, Errors );
+   (void) BXPT_P_RsBuf_ReportOverflows( hXpt, Errors );
 #endif
 #if BXPT_HAS_FIXED_XCBUF_CONFIG
-    status |= BXPT_P_XcBuf_ReportOverflows( hXpt, Errors );
+   (void) BXPT_P_XcBuf_ReportOverflows( hXpt, Errors );
 #endif
 
-    return status ? BXPT_ERR_DATA_PIPELINE : status;
+   return BERR_SUCCESS;
 }
 #endif
 

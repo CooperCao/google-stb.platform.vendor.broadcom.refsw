@@ -93,6 +93,9 @@ static void printUsage(
             "  -disableTsm                  #   Disable TSM\n"
             "  -enableAudioPrimer           #   If set, BIP Player's audio priming feature is enabled which enables quick language switching for SAP\n"
           );
+    printf(
+            "  -trackGroupIndex <index>     #   Select AV tracks belonging to this trackGroupIndex (0: 1st trackGroup, 1: 2nd trackGroup, etc.)\n"
+          );
     exit(0);
 } /* printUsage */
 
@@ -237,6 +240,10 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-enableAudioPrimer") )
         {
             pAppCtx->enableAudioPrimer =  true;
+        }
+        else if ( !strcmp(argv[i], "-trackGroupIndex") )
+        {
+            pAppCtx->trackGroupIndex = strtoul(argv[++i], NULL, 0);
         }
         else
         {
@@ -548,6 +555,7 @@ BIP_Status runTimeCmdParsing(
 bool playerGetTrackOfType(
     BIP_MediaInfoHandle hMediaInfo,
     BIP_MediaInfoTrackType trackType,
+    unsigned trackGroupIndex,
     BIP_MediaInfoTrack *pMediaInfoTrackOut
     )
 {
@@ -563,7 +571,16 @@ bool playerGetTrackOfType(
 
     if (pMediaInfoStream->numberOfTrackGroups != 0)
     {
-        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+        unsigned i = 0;
+        for (
+            pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+            i != trackGroupIndex;
+            pMediaInfoTrackGroup = pMediaInfoTrackGroup->pNextTrackGroup
+            )
+        {
+            i++;
+        }
+        BDBG_ASSERT(pMediaInfoTrackGroup);
         pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
         trackGroupPresent = true;
     }

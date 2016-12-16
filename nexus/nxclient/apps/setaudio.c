@@ -53,7 +53,8 @@
 
 BDBG_MODULE(setaudio);
 
-#define MAX_VOLUME 10
+#define NUM_VOL_STEPS 10
+#define MIN_VOL 9000 /* Value is in 1/100th of a dB */
 #define MAX_DOLBY_ENHANCER 16
 #define MAX_DOLBY_LEVELER 10
 
@@ -94,7 +95,7 @@ static void print_usage(void)
         );
     printf(
         "  -vol {0..%d}\n",
-        MAX_VOLUME
+        NUM_VOL_STEPS
         );
     printf(
         "  -avl {on|off}  \tauto volume level control\n"
@@ -116,9 +117,8 @@ static void print_usage(void)
         );
 }
 
-#define CONVERT_TO_USER_VOL(vol,max_vol) (((vol) - NEXUS_AUDIO_VOLUME_LINEAR_MIN + 1) * (max_vol) / (NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN))
-#define CONVERT_TO_NEXUS_LINEAR_VOL(vol,max_vol) (((vol) * (NEXUS_AUDIO_VOLUME_LINEAR_NORMAL - NEXUS_AUDIO_VOLUME_LINEAR_MIN) / (max_vol)) + NEXUS_AUDIO_VOLUME_LINEAR_MIN)
-
+#define CONVERT_TO_USER_VOL(vol,steps) (vol + MIN_VOL) * steps / MIN_VOL
+#define CONVERT_TO_NEXUS_DECIBEL_VOL(vol,steps) -MIN_VOL + (vol * MIN_VOL / steps) /* Range of 0dB to -90dB */
 static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_AudioProcessingSettings *pAudioProcessingSettings)
 {
     printf(
@@ -146,8 +146,8 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         pSettings->rfm.additionalDelay,
 
         pSettings->muted?"muted ":"",
-        CONVERT_TO_USER_VOL(pSettings->leftVolume, MAX_VOLUME),
-        CONVERT_TO_USER_VOL(pSettings->rightVolume, MAX_VOLUME),
+        CONVERT_TO_USER_VOL(pSettings->leftVolume, NUM_VOL_STEPS),
+        CONVERT_TO_USER_VOL(pSettings->rightVolume, NUM_VOL_STEPS),
         pSettings->volumeType == NEXUS_AudioVolumeType_eLinear?"linear":"decibel");
     printf(
         "avl                   %s\n"
@@ -268,9 +268,9 @@ int main(int argc, char **argv)  {
             unsigned vol;
             change = true;
             vol = atoi(argv[++curarg]);
-            if (vol > MAX_VOLUME) vol = MAX_VOLUME;
-            audioSettings.volumeType = NEXUS_AudioVolumeType_eLinear;
-            audioSettings.rightVolume = audioSettings.leftVolume = CONVERT_TO_NEXUS_LINEAR_VOL(vol, MAX_VOLUME);
+            if (vol > NUM_VOL_STEPS) vol = NUM_VOL_STEPS;
+            audioSettings.volumeType = NEXUS_AudioVolumeType_eDecibel;
+            audioSettings.rightVolume = audioSettings.leftVolume = CONVERT_TO_NEXUS_DECIBEL_VOL(vol, NUM_VOL_STEPS);
         }
         else if (!strcmp(argv[curarg], "-avl") && curarg+1<argc) {
             processing_change = true;

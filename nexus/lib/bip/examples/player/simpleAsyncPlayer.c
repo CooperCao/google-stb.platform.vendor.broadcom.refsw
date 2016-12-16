@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,7 +166,7 @@ static BIP_Status processMediaPlayerState(
                     /* Get first Video & Audio track entry from pMediaInfoStream .*/
                     if (pAppCtx->hMediaInfo)
                     {
-                        if (playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eVideo, &mediaInfoTrack) )
+                        if (playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eVideo, 0 /*1st trackGroup */, &mediaInfoTrack) )
                         {
                             playerSettings.videoTrackId = mediaInfoTrack.trackId;
                             playerSettings.videoTrackSettings.pidTypeSettings.video.codec = mediaInfoTrack.info.video.codec;
@@ -175,7 +175,7 @@ static BIP_Status processMediaPlayerState(
                             videoCodec = mediaInfoTrack.info.video.codec;
                         }
 
-                        if (playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &mediaInfoTrack) )
+                        if (playerGetTrackOfType(pAppCtx->hMediaInfo, BIP_MediaInfoTrackType_eAudio, 0 /* 1st trackGroup */, &mediaInfoTrack) )
                         {
                             playerSettings.audioTrackId = mediaInfoTrack.trackId;
                             playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = mediaInfoTrack.info.audio.codec;

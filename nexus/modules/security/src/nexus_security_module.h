@@ -157,8 +157,12 @@ extern NEXUS_ModuleHandle NEXUS_P_SecurityModule;
 
 
 /* converts a nexus keyslot type to a HSM keyslot type. */
-BCMD_XptSecKeySlot_e NEXUS_SECURITY_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType,
+BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKeySlotType nexusType,
                                                                 NEXUS_SecurityEngine engine );
+
+/* converts a nexus keylayer type to a HSM keylayer type. */
+BCMD_KeyRamBuf_e NEXUS_Security_P_mapNexus2Hsm_KeyLayer( NEXUS_SecurityKeyLayer keyLayer );
+
 
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_RegionVerify);

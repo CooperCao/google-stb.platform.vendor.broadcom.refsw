@@ -892,7 +892,8 @@ NEXUS_Display_Open(unsigned displayIndex,const NEXUS_DisplaySettings *pSettings)
     unsigned i;
     NEXUS_DisplaySettings defaultSettings;
 
-    if (displayIndex >= NEXUS_NUM_DISPLAYS || pVideo->cap.display[displayIndex].numVideoWindows == 0) {
+    if (displayIndex >= NEXUS_NUM_DISPLAYS || \
+        ((pVideo->cap.display[displayIndex].numVideoWindows == 0) && (!pVideo->cap.display[displayIndex].graphics.width))) {
         BDBG_ERR(("display[%d] cannot be opened!", displayIndex));
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;

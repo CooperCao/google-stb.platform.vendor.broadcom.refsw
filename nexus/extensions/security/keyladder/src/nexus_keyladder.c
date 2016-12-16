@@ -412,7 +412,7 @@ NEXUS_Error NEXUS_Security_GenerateSessionKey(
     bool bDecrypt;
     bool bKey2Decrypt;
     BCMD_RootKeySrc_e rootkeySrc = BCMD_RootKeySrc_eCusKey;
-    BCMD_KeyRamBuf_e keyladderID;
+    BCMD_KeyRamBuf_e keyLayer;
     BHSM_Handle hHsm;
     BCMD_KeyLadderType_e    keyLadderType;
     BCMD_SwizzleType_e      swizzleType;
@@ -424,7 +424,7 @@ NEXUS_Error NEXUS_Security_GenerateSessionKey(
     NEXUS_Security_GetHsm_priv(&hHsm);
     if( !hHsm || !pSessionKey ) { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
 
-    keyladderID = BCMD_KeyRamBuf_eKey3;
+    keyLayer = BCMD_KeyRamBuf_eKey3;
 
     keyEntryType = pSessionKey->keyEntryType;
 
@@ -450,7 +450,7 @@ NEXUS_Error NEXUS_Security_GenerateSessionKey(
                 rootkeySrc,
                 swizzleType,
                 pSessionKey->cusKeyL, pSessionKey->cusKeyVarL, pSessionKey->cusKeyH, pSessionKey->cusKeyVarH,
-                keyladderID,
+                keyLayer,
                 (pSessionKey->keySize == 8) ? BCMD_KeySize_e64 : BCMD_KeySize_e128,
                 pSessionKey->bRouteKey,
                 entryType,
@@ -559,7 +559,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
     BHSM_GenerateRouteKeyIO_t   generateRouteKeyIO;
     bool bDecrypt;
     BCMD_KeySize_e keySize;
-    BCMD_KeyRamBuf_e keyladderID;
+    BCMD_KeyRamBuf_e keyLayer;
     BHSM_Handle hHsm;
     BCMD_RootKeySrc_e rootkeySrc = BCMD_RootKeySrc_eCusKey;
     BCMD_KeyLadderType_e  keyLadderType;
@@ -587,18 +587,18 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
     if(pCW->keyLadderSelect == NEXUS_SecurityKeyLadderSelect_ePKL)
     {
-        keyladderID = 10;
+        keyLayer = 10;
     }
     else
     {
-        keyladderID = BCMD_KeyRamBuf_eKey4;
+        keyLayer = BCMD_KeyRamBuf_eKey4;
         if ( !bKey4 )
-            keyladderID ++;
+            keyLayer ++;
     }
 #else
-    keyladderID = BCMD_KeyRamBuf_eKey4;
+    keyLayer = BCMD_KeyRamBuf_eKey4;
     if ( !bKey4 )
-        keyladderID ++;
+        keyLayer ++;
 
 #endif
 
@@ -613,7 +613,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
                 0,
                 0,
                 0, 0, 0, 0,
-                keyladderID,
+                keyLayer,
                 keySize,
                 pCW->bRouteKey,
                 entryType,
@@ -775,12 +775,26 @@ NEXUS_OBJECT_CLASS_MAKE( NEXUS_VirtualKeyLadder, NEXUS_Security_FreeVKL );
 static void NEXUS_VirtualKeyLadder_P_Finalizer( NEXUS_VirtualKeyLadderHandle vklHandle )
 {
     BHSM_Handle hHsm;
+    BERR_Code hsmRc;
+    BHSM_InvalidateVkl_t invalidate;
+
     BDBG_ENTER( NEXUS_VirtualKeyLadder_P_Finalizer );
 
     NEXUS_OBJECT_ASSERT( NEXUS_VirtualKeyLadder, vklHandle );
 
     NEXUS_Security_GetHsm_priv(&hHsm);
     if( !hHsm ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
+
+    BKNI_Memset( &invalidate, 0, sizeof(invalidate) );
+
+    invalidate.bInvalidateVkl = true;           /* for Zeus4+*/
+    invalidate.keyLayer = BCMD_KeyRamBuf_eKey3; /* For Zeus1/2/3 */
+    invalidate.virtualKeyLadderID = vklHandle->vkl;
+
+    hsmRc = BHSM_InvalidateVKL( hHsm, &invalidate );
+    if( hsmRc != BERR_SUCCESS ){
+        BDBG_ERR(("Failed to invalidate VKL"));  /* continue, best effort. */
+    }
 
     BHSM_FreeVKL( hHsm, vklHandle->vkl );
 
@@ -826,7 +840,7 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
     BHSM_GenerateRouteKeyIO_t   generateRouteKeyIO;
     bool bDecrypt;
     BCMD_KeySize_e keySize;
-    BCMD_KeyRamBuf_e keyladderID;
+    BCMD_KeyRamBuf_e keyLayer;
     BHSM_Handle hHsm;
     BCMD_RootKeySrc_e rootkeySrc = BCMD_RootKeySrc_eCusKey;
     BCMD_KeyLadderType_e    keyLadderType;
@@ -854,20 +868,12 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
     if( pCW->keyLadderSelect == NEXUS_SecurityKeyLadderSelect_ePKL)
     {
-        keyladderID = 10;
+        keyLayer = 10;
     }
     else
 #endif
     {
-        switch( pCW->keylayer )
-        {
-            case NEXUS_SecurityKeyLayer_eKey3: { keyladderID = BCMD_KeyRamBuf_eKey3; break; }
-            case NEXUS_SecurityKeyLayer_eKey4: { keyladderID = BCMD_KeyRamBuf_eKey4; break; }
-            case NEXUS_SecurityKeyLayer_eKey5: { keyladderID = BCMD_KeyRamBuf_eKey5; break; }
-            case NEXUS_SecurityKeyLayer_eKey6: { keyladderID = BCMD_KeyRamBuf_eKey6; break; }
-            case NEXUS_SecurityKeyLayer_eKey7: { keyladderID = BCMD_KeyRamBuf_eKey7; break; }
-            default: { return BERR_TRACE( NEXUS_INVALID_PARAMETER ); }
-        }
+        keyLayer = NEXUS_Security_P_mapNexus2Hsm_KeyLayer( pCW->keylayer );
     }
 
     NEXUS_Security_GetHsmDestBlkType (keyHandle, pCW->dest, &blockType);
@@ -881,7 +887,7 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
                 0,
                 0,
                 0, 0, 0, 0,
-                keyladderID,
+                keyLayer,
                 keySize,
                 pCW->bRouteKey,
                 entryType,

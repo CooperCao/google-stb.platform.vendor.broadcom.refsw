@@ -164,6 +164,7 @@ typedef struct AppCtx
     int                             stcSyncMode;
     bool                            disableTsm;
     bool                            enableAudioPrimer;
+    unsigned                        trackGroupIndex;
 } AppCtx;
 
 void unInitAppCtx( AppCtx *pAppCtx);
@@ -171,13 +172,8 @@ AppCtx *initAppCtx( void );
 BIP_Status parseOptions(int argc, char *argv[], AppCtx *pAppCtx);
 BIP_Status runTimeCmdParsing(AppCtx *pAppCtx,CmdOptions *pCmdOptions);
 BIP_Status stressTrickModes(AppCtx *pAppCtx);
-bool playerGetTrackOfType( BIP_MediaInfoHandle hMediaInfo, BIP_MediaInfoTrackType trackType, BIP_MediaInfoTrack *pMediaInfoTrackOut);
-bool playerGetSpecialAudioTrackType(
-        BIP_MediaInfoHandle             hMediaInfo,
-        BIP_MediaInfoTrack              *pMediaInfoTrackOut,
-        const char                      *language,
-        BIP_MediaInfoAudioAc3Bsmod      serviceType
-        );
+bool playerGetTrackOfType( BIP_MediaInfoHandle hMediaInfo, BIP_MediaInfoTrackType trackType, unsigned trackGroupIndex, BIP_MediaInfoTrack *pMediaInfoTrackOut);
+bool playerGetSpecialAudioTrackType(BIP_MediaInfoHandle hMediaInfo, BIP_MediaInfoTrack *pMediaInfoTrackOut, const char *language, BIP_MediaInfoAudioAc3Bsmod serviceType);
 
 
 #endif /* #ifndef PLAYER_CMD_H */

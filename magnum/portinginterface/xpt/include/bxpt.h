@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2577,6 +2577,7 @@ typedef struct BXPT_PipelineErrors
         uint32_t RsbuffMpodIbp, RsbuffIbp, RsbuffPbp;
         uint32_t XcbuffRaveIbp, XcbuffRavePbp, XcbuffMsgIbp, XcbuffMsgPbp;
         uint32_t XcbuffRmx0Ibp, XcbuffRmx1Ibp, XcbuffRmx0Pbp, XcbuffRmx1Pbp;
+        uint32_t InputBuffer;
     } overflow; /* each bit in each uint32_t value represents a single buffer */
 } BXPT_PipelineErrors;
 
@@ -2587,9 +2588,8 @@ Check for RS and XC buffer overflows. If any are found, print a user-friendly
 message through BDBG_ERR().
 
 Returns:
-    BERR_SUCCESS -              No error detected.
+    BERR_SUCCESS -              Errors counts updated to reflect current status.
     BERR_NOT_SUPPORTED -        Not supported on the current chip.
-    BXPT_ERR_DATA_PIPELINE -    Error was detected
 ***************************************************************************/
 BERR_Code BXPT_CheckPipelineErrors(
     BXPT_Handle xpt,

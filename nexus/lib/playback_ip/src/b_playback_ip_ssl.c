@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -145,7 +145,7 @@ static int _ssl_connect( B_PlaybackIpSsl *sslHandle )
                 FD_ZERO(&readfds);
                 FD_SET(rc,&readfds);
                 if ((rc = select(width,&readfds,NULL,NULL,&tv)) < 0) {
-                    BDBG_ERR(("%s: select failure: errno %d\n", __FUNCTION__, errno));
+                    BDBG_ERR(("%s: select failure: errno %d, fd = %d\n", __FUNCTION__, errno, width-1));
                     return -1;
                 }
                 else if (rc == 0 || !FD_ISSET(sslHandle->sd, &readfds)) {
@@ -595,6 +595,7 @@ void B_PlaybackIp_SslSessionShutdown(
 
     if (sslHandle->ssl) {
         _ssl_shutdown(sslHandle->ssl, 5); /* Limit retries to avoid delays */
+        SSL_SESSION_free(sslHandle->session);
         SSL_free(sslHandle->ssl);
         sslHandle->sbio = NULL; /* SSL_set_bio ties BIO to SSL, so SSL_free will free BIO */
         sslHandle->ssl = NULL;
@@ -700,7 +701,7 @@ error:
             sslHandle->sbio = NULL; /* SSL_set_bio ties BIO to SSL, so SSL_free will free BIO */
             sslHandle->ssl=NULL;
         }
-        free(sslHandle);
+        BKNI_Free(sslHandle);
         sslHandle=NULL;
     }
 

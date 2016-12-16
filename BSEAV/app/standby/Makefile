@@ -136,6 +136,9 @@ clean_pmlib:
 CFLAGS += $(PMLIB_CFLAGS)
 LDFLAGS += $(PMLIB_LDFLAGS)
 
+ifeq ($(WOWLAN_SUPPORT),y)
+CFLAGS += -DWOWLAN
+endif
 
 # needed for Android
 ifeq ($(B_REFSW_ANDROID),y)

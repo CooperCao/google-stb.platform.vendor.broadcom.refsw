@@ -217,6 +217,7 @@ endif # LIVEMEDIA_SUPPORT
 ifeq ($(SPF_SUPPORT),y)
 #Changes for RTSP-ES support
     export SPF_SUPPORT=y
+    B_PLAYBACK_IP_LIB_PUBLIC_INCLUDES += $(NEXUS_TOP)/../BSEAV/lib/livemedia
     B_PLAYBACK_IP_LIB_DEFINES += SPF_SUPPORT
     B_PLAYBACK_IP_LIB_SOURCES += \
                     $(B_LIB_TOP)/playback_ip/src/b_playback_ip_rtsp_es.c \

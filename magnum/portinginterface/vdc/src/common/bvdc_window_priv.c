@@ -2710,8 +2710,9 @@ BERR_Code BVDC_P_Window_ValidateChanges
 
 #if (BVDC_P_SUPPORT_XSRC)
         /* (12) Aquire XSRC */
-        if((hWindow->stNewInfo.hSource->bIs10BitCore && !hWindow->bIs10BitCore &&
-            BVDC_P_STATE_IS_CREATE(hWindow)))
+        if(hWindow->stNewInfo.hSource->bIs2xClk &&
+           (!hWindow->bIs2xClk || !hWindow->hCompositor->bIs2xClk) &&
+           BVDC_P_STATE_IS_CREATE(hWindow))
         {
             BVDC_P_Xsrc_Handle *phXsrc=&hWindow->stNewResource.hXsrc;
 
@@ -2740,8 +2741,9 @@ BERR_Code BVDC_P_Window_ValidateChanges
 
 #if (BVDC_P_SUPPORT_VFC)
         /* (13) Aquire VFC */
-        if((hWindow->stNewInfo.hSource->bIs10BitCore && !hWindow->bIs10BitCore &&
-            BVDC_P_STATE_IS_CREATE(hWindow)))
+        if(hWindow->stNewInfo.hSource->bIs10BitCore &&
+           (!hWindow->bIs10BitCore || !hWindow->hCompositor->bIs10BitCore) &&
+           BVDC_P_STATE_IS_CREATE(hWindow))
         {
             BVDC_P_Vfc_Handle *phVfc=&hWindow->stNewResource.hVfc;
 
@@ -4203,11 +4205,6 @@ static void BVDC_P_Window_EnforceMinSizeLimit_isr
 {
     uint32_t ulMinHeight = (bInterlace) ? ulMinV * 2 : ulMinV;
 
-#if !(BDBG_DEBUG_BUILD)
-    BSTD_UNUSED(pchName);
-    BSTD_UNUSED(hWindow);
-#endif
-
     if(pRec != NULL)
     {
         if(pRec->ulWidth < ulMinH)
@@ -4223,6 +4220,9 @@ static void BVDC_P_Window_EnforceMinSizeLimit_isr
             pRec->ulHeight = ulMinHeight;
         }
     }
+
+    BSTD_UNUSED(pchName);
+    BSTD_UNUSED(hWindow);
 }
 
 /***************************************************************************
@@ -5086,6 +5086,7 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         pPicture->eTransferCharacteristics       = pXvdFieldData->eTransferCharacteristics;
         pPicture->PicComRulInfo.eSrcOrigPolarity = pXvdFieldData->eSourcePolarity;
         pPicture->PicComRulInfo.bNoCoreReset     = false;
+        pPicture->eBitDepth                      = BAVC_VideoBitDepth_e8Bit;
 
         /* bOrientationOverride only valid when original
          * orientation from FMT is 2D */
@@ -5119,6 +5120,7 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         /* vdec source has no way to identify the real field repeat from polarity
            repeat, so we simply disable the field repeat detection. */
         pPicture->stFlags.bPictureRepeatFlag    = false;
+        pPicture->eBitDepth                     = BAVC_VideoBitDepth_e8Bit;
 
         /* Determined eMatrixCoefficients for analog source. */
         pPicture->eMatrixCoefficients  =
@@ -5149,6 +5151,15 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         pPicture->hBuffer = hWindow->hBuffer;
         /*hSource->bPictureChanged = false;*/
     }
+
+    /* Source classification based on input source and DNR */
+    pPicture->bSrc10Bit =
+        ((pPicture->eBitDepth != BAVC_VideoBitDepth_e8Bit &&
+          hSource->bIs10BitCore &&
+          !hSource->stCurInfo.bMosaicMode) ||
+         (BVDC_P_VNET_USED_DNR(hWindow->stVnetMode) &&
+          hWindow->stCurResource.hDnr->b10BitMode &&
+          hSource->stCurInfo.stDnrSettings.eDcrMode == BVDC_FilterMode_eEnable));
 
     /* Set eDispOrientation and e3dSrcBufSel for 3d */
     pPicture->e3dSrcBufSel = hWindow->hCompositor->hDisplay->stCurInfo.e3dSrcBufSel;
@@ -6181,10 +6192,6 @@ void BVDC_P_Window_GetBufSize_isr
     uint32_t  ulStride;
 #endif
 
-#if (!BDBG_DEBUG_BUILD)
-    BSTD_UNUSED(eWinId);
-#endif
-
 #if (!BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     BSTD_UNUSED(bMosaicMode);
     BSTD_UNUSED(b3DMode);
@@ -6323,6 +6330,7 @@ void BVDC_P_Window_GetBufSize_isr
         *pulBufSize = ulBufSize;
     }
 
+    BSTD_UNUSED(eWinId);
     return;
 }
 
@@ -14164,6 +14172,31 @@ void BVDC_P_Window_Reader_isr
         hCompositor->ulCscAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
         hCompositor->bCscCompute[hWindow->eId] = true;
         hCompositor->bCscDemoCompute[hWindow->eId] = true;
+    }
+
+    if(!hCompositor->bIsBypass)
+    {
+        /* Evaluate dither condition for compositor: */
+        /* Input Dither is enable if source is 10-bit and window is 10-bit */
+        /* and MADR is not in the path or not enable */
+        bool bInDitherEnable = (pPicture->bSrc10Bit && hWindow->bIs10BitCore &&
+           !(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode) &&
+             hWindow->stCurResource.hMcvp->hMcdi->bMadr)) ? true : false;
+        /* CSC dither is enabled with the above condition and HDMI output */
+        /* color depth is 8-bit */
+        bool bHdmiOutput8Bit =
+            ((hCompositor->hDisplay->stDviChan.bEnable || hCompositor->hDisplay->stCurInfo.bEnableHdmi) &&
+             (hCompositor->hDisplay->stCurInfo.stHdmiSettings.eHdmiColorDepth == BAVC_HDMI_BitsPerPixel_e24bit)) ? true : false;
+        bool bCscDitherEnable = bInDitherEnable & bHdmiOutput8Bit & !hWindow->stCurInfo.bMosaicMode;
+        /* disable input dithering for transcode path */
+        bInDitherEnable &= !hCompositor->hDisplay->stCurInfo.bEnableStg;
+        if(bInDitherEnable != hCompositor->bInDitherEnable[hWindow->eId] ||
+           bCscDitherEnable != hCompositor->bCscDitherEnable[hWindow->eId])
+        {
+            hCompositor->bInDitherEnable[hWindow->eId] = bInDitherEnable;
+            hCompositor->bCscDitherEnable[hWindow->eId] = bCscDitherEnable;
+            hCompositor->ulDitherChange[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
+        }
     }
 
     /* Note: the reader side setting should start from upstream then to the downstream. */
