@@ -142,7 +142,8 @@ void BHDM_AudioVideoRateChangeCB_isr(
 		&& (hHDMI->ulVertRefreshRate == ulVertRefreshRate))
 		{
 			BDBG_MSG(("No change in video settings...")) ;
-			goto done ;
+			/* Remove pending debug of No Audio SWANDROID-3614 */
+			/* goto done ; */
 		}
 
 		/* modify the video settings if there is a change in the refresh or pixel clock rate.
