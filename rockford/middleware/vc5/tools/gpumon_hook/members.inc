@@ -984,3 +984,6 @@ void (*map_glGetSamplerParameterIuivEXT)(GLuint sampler, GLenum pname, GLuint *p
 
 #if GL_EXT_texture_sRGB_RG8
 #endif /* GL_EXT_texture_sRGB_RG8*/
+
+#if GL_EXT_texture_sRGB_decode
+#endif /* GL_EXT_texture_sRGB_decode*/

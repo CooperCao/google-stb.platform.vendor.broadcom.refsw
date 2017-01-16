@@ -10,7 +10,7 @@ All rights reserved.
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_int_config.h"
 #include "../common/khrn_process.h"
-#define GL20_EXTS_STR_MAX_SIZE 1718
+#define GL20_EXTS_STR_MAX_SIZE 1745
 static inline char *gl20_exts_str(char *s_in)
 {
    char *s = s_in;
@@ -136,6 +136,9 @@ static inline char *gl20_exts_str(char *s_in)
    s += 23;
    *(s++) = ' ';
 #endif
+   memcpy(s, "GL_EXT_texture_sRGB_decode", 26);
+   s += 26;
+   *(s++) = ' ';
    memcpy(s, "GL_KHR_blend_equation_advanced", 30);
    s += 30;
    *(s++) = ' ';
@@ -277,7 +280,7 @@ static inline char *gl20_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define GL20_MAX_EXTS 65
+#define GL20_MAX_EXTS 66
 static inline unsigned gl20_exts(const char **e_in)
 {
    const char **e = e_in;
@@ -343,6 +346,7 @@ static inline unsigned gl20_exts(const char **e_in)
 #if V3D_VER_AT_LEAST(3,3,0,0)
    *(e++) = "GL_EXT_texture_sRGB_RG8";
 #endif
+   *(e++) = "GL_EXT_texture_sRGB_decode";
    *(e++) = "GL_KHR_blend_equation_advanced";
    *(e++) = "GL_KHR_blend_equation_advanced_coherent";
    *(e++) = "GL_KHR_debug";

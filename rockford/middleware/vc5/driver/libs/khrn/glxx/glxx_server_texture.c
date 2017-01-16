@@ -1662,6 +1662,12 @@ void glxx_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state,
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
 #endif
+   case GL_TEXTURE_SRGB_DECODE_EXT:
+      if (!IS_GL_11(state) && (*i == GL_DECODE_EXT || *i == GL_SKIP_DECODE_EXT))
+         sampler->skip_srgb_decode = (*i == GL_SKIP_DECODE_EXT);
+      else
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
+      break;
    case GL_TEXTURE_BORDER_COLOR:
       if (!IS_GL_11(state))
       {
@@ -1712,6 +1718,7 @@ static bool is_texparam(GLenum pname) {
    case GL_TEXTURE_MAX_LEVEL:
    case GL_TEXTURE_BORDER_COLOR:
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
+   case GL_TEXTURE_SRGB_DECODE_EXT:
    case GL_TEXTURE_PROTECTED_EXT:
       return true;
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
@@ -1750,6 +1757,7 @@ void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenu
    case GL_TEXTURE_COMPARE_FUNC:
    case GL_TEXTURE_BORDER_COLOR:
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
+   case GL_TEXTURE_SRGB_DECODE_EXT:
       if (glxx_tex_target_is_multisample(texture->target))
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
       else

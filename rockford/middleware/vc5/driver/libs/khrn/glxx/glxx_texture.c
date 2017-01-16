@@ -361,6 +361,7 @@ static void init_default_texture_sampler(enum glxx_tex_target target,
    sampler->compare_func = GL_LEQUAL;
 
    sampler->unnormalised_coords = false;
+   sampler->skip_srgb_decode = false;
 
    memset(sampler->border_color, 0, sizeof(sampler->border_color));
 
@@ -2261,7 +2262,7 @@ static bool pack_sampler(
       sampler->filter.mag, sampler->filter.min,
       sampler->anisotropy, sampler->unnormalised_coords);
    s.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
-   s.srgb_override = false;
+   s.srgb_override = sampler->skip_srgb_decode;
    s.max_lod = gfx_umin(gfx_float_to_uint32(sampler->max_lod * 256.0f), (V3D_MAX_MIP_COUNT - 1) << 8);
    s.min_lod = gfx_umin(gfx_float_to_uint32(sampler->min_lod * 256.0f), s.max_lod);
    s.fixed_bias = 0;
@@ -2395,7 +2396,7 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem
    ind.height  = tp->h;
    ind.depth   = tp->d;
    ind.ttype   = tp->tmu_trans.type;
-   ind.srgb    = tp->tmu_trans.srgb;
+   ind.srgb    = tp->tmu_trans.srgb && !sampler->skip_srgb_decode;
    ind.ahdr    = false;
    ind.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
    memcpy(ind.swizzles, tp->tmu_trans.swizzles, sizeof(ind.swizzles));
@@ -3015,6 +3016,7 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
             &p_imgs[face][base_level],
             num_levels,
             texture->img[face][base_level] == p_imgs[face][base_level],
+            texture->sampler.skip_srgb_decode,
             fences, secure_context);
       }
    }
@@ -3032,7 +3034,8 @@ bool glxx_texture_generate_mipmap(GLXX_TEXTURE_T *texture,
       {
          for (unsigned level = base_level + 1; level < base_level + num_levels; level++)
          {
-            bool ok = khrn_image_subsample(p_imgs[face][level], p_imgs[face][level-1], fences);
+            bool ok = khrn_image_subsample(p_imgs[face][level], p_imgs[face][level-1],
+                                           texture->sampler.skip_srgb_decode, fences);
             if (!ok)
                goto fail;
          }

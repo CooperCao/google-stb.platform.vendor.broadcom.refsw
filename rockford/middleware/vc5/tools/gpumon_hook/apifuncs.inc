@@ -984,3 +984,6 @@ DLLEXPORT void DLLEXPORTENTRY glGetSamplerParameterIuivEXT(GLuint sampler, GLenu
 
 #if GL_EXT_texture_sRGB_RG8
 #endif /* GL_EXT_texture_sRGB_RG8*/
+
+#if GL_EXT_texture_sRGB_decode
+#endif /* GL_EXT_texture_sRGB_decode*/

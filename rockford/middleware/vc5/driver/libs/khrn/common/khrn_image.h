@@ -119,13 +119,13 @@ extern bool khrn_image_copy_one_elem_slice(KHRN_IMAGE_T *dst, unsigned dst_x,
       bool secure_context);
 
 extern bool khrn_image_subsample(KHRN_IMAGE_T *dst, KHRN_IMAGE_T const *src,
-     glxx_context_fences *fences);
+     bool force_no_srgb, glxx_context_fences *fences);
 
 extern bool khrn_image_generate_mipmaps_tfu(
    KHRN_IMAGE_T* src_image,
    KHRN_IMAGE_T* const* dst_images,
    unsigned num_dst_levels,
-   bool skip_dst_level_0,
+   bool skip_dst_level_0, bool force_no_srgb,
    glxx_context_fences *fences,
    bool secure_context
    );

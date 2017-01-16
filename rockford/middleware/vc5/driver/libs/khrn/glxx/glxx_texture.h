@@ -86,6 +86,7 @@ typedef struct glxx_tex_sampler_state {
     * GL_CLAMP_TO_BORDER & GL_CLAMP_TO_EDGE will be treated as one of
     * BORDER/CLAMP_TO_EDGE. */
    bool unnormalised_coords;
+   bool skip_srgb_decode;
    uint32_t border_color[4];
    char   *debug_label;
 }GLXX_TEXTURE_SAMPLER_STATE_T;

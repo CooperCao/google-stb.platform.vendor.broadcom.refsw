@@ -2152,3 +2152,9 @@ AddEnum(GL_SR8_EXT);
 #if GL_EXT_texture_sRGB_RG8
 AddEnum(GL_SRG8_EXT);
 #endif /* GL_EXT_texture_sRGB_RG8*/
+
+#if GL_EXT_texture_sRGB_decode
+AddEnum(GL_TEXTURE_SRGB_DECODE_EXT);
+AddEnum(GL_DECODE_EXT);
+AddEnum(GL_SKIP_DECODE_EXT);
+#endif /* GL_EXT_texture_sRGB_decode*/

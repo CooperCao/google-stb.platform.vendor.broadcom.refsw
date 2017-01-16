@@ -913,3 +913,5 @@ CASE(glGetSamplerParameterIuivEXT, 0x0061aa77);
 // GL_EXT_texture_sRGB_RG8
 #if V3D_VER_AT_LEAST(3,3,0,0)
 #endif /* V3D_VER_AT_LEAST(3,3,0,0)*/
+
+// GL_EXT_texture_sRGB_decode

@@ -1630,6 +1630,7 @@ bool glxx_is_int_sampler_texparam(GLXX_SERVER_STATE_T *state, GLenum pname)
       case GL_TEXTURE_COMPARE_MODE:
       case GL_TEXTURE_COMPARE_FUNC:
       case GL_TEXTURE_BORDER_COLOR:
+      case GL_TEXTURE_SRGB_DECODE_EXT:
          return !IS_GL_11(state);
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -1712,6 +1713,10 @@ uint32_t glxx_get_texparameter_sampler_internal(GLXX_SERVER_STATE_T *state, GLXX
          params[0] = so->unnormalised_coords ? GL_TRUE : GL_FALSE;
          result = 1;
          break;
+      case GL_TEXTURE_SRGB_DECODE_EXT:
+         params[0] = so->skip_srgb_decode ? GL_SKIP_DECODE_EXT : GL_DECODE_EXT;
+         result = 1;
+         break;
       case GL_TEXTURE_BORDER_COLOR:
          for (uint32_t i = 0; i < 4; i++)
             params[i] = so->border_color[i];
@@ -1743,6 +1748,7 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
       case GL_TEXTURE_COMPARE_FUNC:
       case GL_TEXTURE_BORDER_COLOR:
       case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
+      case GL_TEXTURE_SRGB_DECODE_EXT:
          result = glxx_get_texparameter_sampler_internal(state, &texture->sampler, pname, params);
          break;
       case GL_GENERATE_MIPMAP:

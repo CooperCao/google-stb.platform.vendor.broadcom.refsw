@@ -387,19 +387,16 @@ bool khrn_image_copy_one_elem_slice(KHRN_IMAGE_T *dst, unsigned dst_x, unsigned
 
 /* Format of dst & src must match */
 bool khrn_image_subsample(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src,
-      glxx_context_fences *fences)
+      bool force_no_srgb, glxx_context_fences *fences)
 {
    GFX_BUFFER_BLIT_TGT_T dst_b, src_b;
-   void *src_ptr, *dst_ptr;
-   bool ok;
-   unsigned i;
 
    assert(src->num_array_elems == dst->num_array_elems);
 
-   ok = false;
+   bool ok = false;
 
-   src_ptr = image_map(src, fences->fence_to_depend_on, false);
-   dst_ptr = image_map(dst, NULL, true);
+   void *src_ptr = image_map(src, fences->fence_to_depend_on, false);
+   void *dst_ptr = image_map(dst, NULL, true);
    if (src_ptr == NULL || dst_ptr == NULL)
       goto end;
 
@@ -411,7 +408,17 @@ bool khrn_image_subsample(KHRN_IMAGE_T *dst, const KHRN_IMAGE_T *src,
    gfx_buffer_blit_tgt_set_pos(&dst_b, 0, 0, 0);
    dst_b.p = dst_ptr;
 
-   for (i = 0; i < src->num_array_elems; i++)
+   if (force_no_srgb)
+   {
+      assert(src_b.desc.num_planes == dst_b.desc.num_planes);
+      for (unsigned i=0; i<src_b.desc.num_planes; i++)
+      {
+         src_b.desc.planes[i].lfmt = gfx_lfmt_srgb_to_unorm(src_b.desc.planes[i].lfmt);
+         dst_b.desc.planes[i].lfmt = gfx_lfmt_srgb_to_unorm(dst_b.desc.planes[i].lfmt);
+      }
+   }
+
+   for (unsigned i = 0; i < src->num_array_elems; i++)
    {
       gfx_buffer_subsample(&dst_b, &src_b);
       dst_b.p = (uint8_t*)dst_b.p + dst->blob->array_pitch;
@@ -428,7 +435,7 @@ end:
 
 bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
       KHRN_IMAGE_T* const* dst_images,
-      unsigned num_dst_levels, bool skip_dst_level_0,
+      unsigned num_dst_levels, bool skip_dst_level_0, bool force_no_srgb,
       glxx_context_fences *fences, bool secure_context)
 {
    KHRN_BLOB_T* src_blob = src_image->blob;
@@ -466,6 +473,9 @@ bool khrn_image_generate_mipmaps_tfu(KHRN_IMAGE_T* src_image,
    V3D_TFU_COMMAND_T tfu_cmd;
    if (!v3d_build_tfu_cmd(&tfu_cmd, src_desc, dst_desc, num_dst_levels, skip_dst_level_0, 0, 0))
       return false;;
+
+   if (force_no_srgb)
+      tfu_cmd.srgb = false;
 
    // Create a struct to hold sync/lock lists.
    v3d_lock_sync *completion_data = v3d_lock_sync_create();
