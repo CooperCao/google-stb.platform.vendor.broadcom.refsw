@@ -281,6 +281,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
                 /* HDMI i2c is always run at 100k */
                 i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
+                i2cSettings.use5v = true;
+
             }
             else
             {
@@ -318,8 +320,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
                 i2cSettings.dataGpio = NULL;
             }
 
-            BDBG_MSG(("i = %d, interruptMode = %d, autoI2c = %d, softI2c = %d, fourByteXferMode = %d, burstMode = %d",
-                        i, i2cSettings.interruptMode, i2cSettings.autoI2c.enabled , i2cSettings.softI2c, i2cSettings.fourByteXferMode, i2cSettings.burstMode));
+            BDBG_MSG(("i = %d, interruptMode = %d, autoI2c = %d, softI2c = %d, fourByteXferMode = %d, burstMode = %d, use5V = %d",
+                        i, i2cSettings.interruptMode, i2cSettings.autoI2c.enabled , i2cSettings.softI2c, i2cSettings.fourByteXferMode, i2cSettings.burstMode, i2cSettings.use5v));
             pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
             BDBG_MSG(("pConfig->i2c[%d] = %p", i, (void *)pConfig->i2c[i]));
             if(NULL == pConfig->i2c[i])
