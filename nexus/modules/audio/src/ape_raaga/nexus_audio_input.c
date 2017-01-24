@@ -2784,6 +2784,20 @@ void NEXUS_AudioInput_HasConnectedOutputs(
     }
 }
 
+void NEXUS_AudioInput_IsRunning(
+    NEXUS_AudioInputHandle input,
+    bool *pRunning
+    )
+{
+    BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
+    if (NEXUS_AudioInput_P_IsRunningUpstream(input)) {
+        *pRunning = true;
+    }
+    else {
+        *pRunning = false;
+    }
+}
+
 NEXUS_AudioMixerHandle NEXUS_AudioInput_P_LocateMixer(
     NEXUS_AudioInputHandle source,
     NEXUS_AudioMixerHandle hLastMixerHandle
