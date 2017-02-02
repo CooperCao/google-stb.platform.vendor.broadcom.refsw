@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -386,7 +386,7 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     }
     else
     {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but errror occurred reading it.", __FUNCTION__));
+        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
     }
@@ -4595,7 +4595,7 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
     }
     else
     {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but errror occurred reading it.", __FUNCTION__));
+        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
     }
@@ -4744,7 +4744,7 @@ DrmRC DRM_WVOemCrypto_DeactivateUsageEntry(uint8_t *pst,
     }
     else
     {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but errror occurred reading it.", __FUNCTION__));
+        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
     }
@@ -5157,7 +5157,7 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
     }
     else
     {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but errror occurred reading it.", __FUNCTION__));
+        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
     }
@@ -5353,7 +5353,7 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
     uint32_t filesize = 0;
     uint32_t read_size = 0;
     uint8_t *usage_table_buff = NULL;
-    bool bOnlyUsageTableBackupExists = false;
+    bool bUsageTableBackupExists = false;
     char *pActiveUsageTableFilePath = NULL;
     uint8_t digest[32] = {0x00};
     bool integrity_valid = false;
@@ -5366,21 +5366,21 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
     /* Verify backup file accessible */
     if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK|W_OK) != 0)
     {
-        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
-        bOnlyUsageTableBackupExists = false;
+        BDBG_WRN(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
+        bUsageTableBackupExists = false;
         /* Continue onwards as main usage table may still be accessible */
     }
     else
     {
-        bOnlyUsageTableBackupExists = true;
+        bUsageTableBackupExists = true;
     }
 
     if(access(USAGE_TABLE_FILE_PATH, R_OK|W_OK) != 0)
     {
-        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_FILE_PATH, strerror(errno)));
-        if(!bOnlyUsageTableBackupExists)
+        BDBG_WRN(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_FILE_PATH, strerror(errno)));
+        if(!bUsageTableBackupExists)
         {
-            BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
+            BDBG_WRN(("%s - Main and backup usage tables are not read/writeable (errno = %s)", __FUNCTION__, strerror(errno)));
             rc = Drm_FileErr;
             goto ErrorExit;
         }
@@ -5402,9 +5402,14 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
         rc = DRM_Common_P_GetFileSize(pActiveUsageTableFilePath, &filesize);
         if(rc != Drm_Success)
         {
-            BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
-            rc = Drm_Err;
-            goto ErrorExit;
+            BDBG_ERR(("%s - '%s' Error determine file size of bin file", __FUNCTION__, pActiveUsageTableFilePath));
+            goto UseBackup;
+        }
+
+        if(filesize <= SHA256_DIGEST_SIZE || filesize > (MAX_USAGE_TABLE_SIZE + SHA256_DIGEST_SIZE))
+        {
+            BDBG_ERR(("%s - '%s' Invalid file size %u bytes", __FUNCTION__, pActiveUsageTableFilePath, filesize));
+            goto UseBackup;
         }
 
         DRM_Common_MemoryAllocate(&usage_table_buff, filesize);
@@ -5418,17 +5423,15 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
         fptr = fopen(pActiveUsageTableFilePath, "rb");
         if(fptr == NULL)
         {
-            BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
-            rc = Drm_Err;
-            goto ErrorExit;
+            BDBG_ERR(("%s - %s Error opening drm bin file (%s)", __FUNCTION__, pActiveUsageTableFilePath, pActiveUsageTableFilePath));
+            goto UseBackup;
         }
 
         read_size = fread(usage_table_buff, 1, filesize, fptr);
         if(read_size != filesize)
         {
-            BDBG_ERR(("%s - Error reading Usage Table file size (%u != %u)", __FUNCTION__, read_size, filesize));
-            rc = Drm_Err;
-            goto ErrorExit;
+            BDBG_ERR(("%s - %s Error reading Usage Table file size (%u != %u)", __FUNCTION__, pActiveUsageTableFilePath, read_size, filesize));
+            goto UseBackup;
         }
 
         /*
@@ -5438,49 +5441,55 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
         if(rc != Drm_Success)
         {
             BDBG_ERR(("%s - Error calculating SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
-            rc = Drm_Err;
-            goto ErrorExit;
+            goto UseBackup;
         }
 
         if(BKNI_Memcmp(digest, &usage_table_buff[filesize-SHA256_DIGEST_SIZE], SHA256_DIGEST_SIZE) != 0)
         {
             BDBG_ERR(("%s - Error comparing SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
+            goto UseBackup;
+        }
 
-            if(!bOnlyUsageTableBackupExists ||
-                !strncmp(pActiveUsageTableFilePath, USAGE_TABLE_BACKUP_FILE_PATH, strlen(USAGE_TABLE_BACKUP_FILE_PATH)))
+        /* Passed all checks. Valid usage table available */
+        integrity_valid = true;
+        break;
+
+UseBackup:
+        if(bUsageTableBackupExists &&
+            strncmp(pActiveUsageTableFilePath, USAGE_TABLE_BACKUP_FILE_PATH, strlen(USAGE_TABLE_BACKUP_FILE_PATH)) != 0)
+        {
+            /* Time to call for backup */
+            pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+
+            /* reset initial conditions */
+            if(usage_table_buff != NULL)
             {
-                /* Usage tables corrupted, we need to wipe and recreate */
-                rc = Drm_FileErr;
-                goto ErrorExit;
+                DRM_Common_MemoryFree(usage_table_buff);
+                usage_table_buff = NULL;
             }
-            else
+
+            if(fptr != NULL)
             {
-                /* Time to call for backup */
-                if(usage_table_buff != NULL)
-                {
-                    DRM_Common_MemoryFree(usage_table_buff);
-                    usage_table_buff = NULL;
-                }
-                if(fptr != NULL)
-                {
-                    fclose(fptr);
-                    fptr = NULL;
-                }
-                filesize = 0;
-                BKNI_Memset(digest, 0x00, 32);
-                pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+                fclose(fptr);
+                fptr = NULL;
             }
+
+            filesize = 0;
+            BKNI_Memset(digest, 0x00, sizeof(digest));
         }
         else
         {
-            integrity_valid = true;
+            /* Could not find a valid usage table */
+            BDBG_ERR(("%s - Error, unable to read a valid usage table.", __FUNCTION__));
+            rc = Drm_FileErr;
+            goto ErrorExit;
         }
     }
 
     /*
-     * see if MAX_USAGE_TABLE_SIZE will fit in detected file
+     * Valid usage table found, verify if MAX_USAGE_TABLE_SIZE will fit in detected file
      * */
-    if (pUsageTableSharedMemory == NULL || (*pUsageTableSharedMemorySize) < filesize-SHA256_DIGEST_SIZE)
+    if(pUsageTableSharedMemory == NULL || (*pUsageTableSharedMemorySize) < filesize-SHA256_DIGEST_SIZE)
     {
         BDBG_ERR(("%s - Error, shared pointer memory is NULL or allocated size (%u) is not enough. File size detected is '%u' bytes",
                              __FUNCTION__, (*pUsageTableSharedMemorySize), filesize-SHA256_DIGEST_SIZE));
@@ -5489,10 +5498,9 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
     }
 
     BKNI_Memcpy(pUsageTableSharedMemory, usage_table_buff, filesize-SHA256_DIGEST_SIZE);
-    (*pUsageTableSharedMemorySize) = filesize-SHA256_DIGEST_SIZE;
+        (*pUsageTableSharedMemorySize) = filesize-SHA256_DIGEST_SIZE;
 
 ErrorExit:
-
 
     if(usage_table_buff != NULL)
     {
@@ -5982,7 +5990,7 @@ DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
     }
     else
     {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but errror occurred reading it.", __FUNCTION__));
+        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
         *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE ;
         goto ErrorExit;
     }
