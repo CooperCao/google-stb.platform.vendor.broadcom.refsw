@@ -54,7 +54,7 @@ ANDROID_BASE_LDFLAGS := \
 	-nostdlib \
 	$(B_REFSW_ANDROID_LIB)/crtbegin_dynamic.o \
 	$(B_REFSW_ANDROID_LIB)/crtend_android.o \
-	-lc -lm -lcutils -lc++ -ldl
+	-lc -lm -lcutils -llog -lc++ -ldl
 
 ifeq ($(B_REFSW_USES_CLANG),y)
 ifeq ($(B_REFSW_ARCH), aarch64-linux)

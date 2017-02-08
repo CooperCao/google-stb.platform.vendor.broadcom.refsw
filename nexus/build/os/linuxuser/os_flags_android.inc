@@ -117,7 +117,8 @@ NEXUS_CFLAGS += -I$(ANDROID)/system/core/include \
 	-I$(ANDROID)/bionic/libm \
 	-I$(ANDROID)/out/target/product/${ANDROID_PRODUCT_OUT}/obj/SHARED_LIBRARIES/libm_intermediates \
 	-I$(ANDROID)/frameworks/native/include \
-	-I$(ANDROID)/bionic/libc/kernel/uapi
+	-I$(ANDROID)/bionic/libc/kernel/uapi \
+   -I$(LINUX)/include
 
 # includes - arch specific - only arm/aarch64 supported.
 ifeq ($(B_REFSW_ARCH), aarch64-linux)
@@ -138,7 +139,7 @@ NEXUS_LDFLAGS := -nostdlib  \
 
 ifeq ($(B_REFSW_USES_CLANG),y)
 NEXUS_LDFLAGS += -Wl,--no-whole-archive \
-	-lc -lm -lcutils -lc++ -ldl \
+	-lc -lm -lcutils -llog -lc++ -ldl \
 	-Wl,--no-undefined \
 	-Wl,--whole-archive
 ifeq ($(B_REFSW_ARCH), aarch64-linux)
@@ -154,7 +155,7 @@ NEXUS_LDFLAGS += \
 endif
 else
 NEXUS_LDFLAGS += -Wl,--no-whole-archive \
-	-lcutils -lc -lm -lgcc \
+	-lcutils -llog -lc -lm -lgcc \
 	-Wl,--no-undefined \
 	-Wl,--whole-archive
 endif
