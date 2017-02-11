@@ -4908,6 +4908,9 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 			/* do nothing */ ;
 		}
 	}
+
+	/* disable the automatic use of BT2020; app must explictly enable BT2020 */
+#if 0
 	else if (hHDMI->AttachedEDID.ColorimetryDB.bExtended[BHDM_EDID_ColorimetryDbExtendedSupport_eBT2020cYCC])
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_2020_CL ;
@@ -4916,6 +4919,7 @@ BERR_Code BHDM_EDID_GetPreferredColorimetry(
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL ;
 	}
+#endif
 	else /* BT 2020 not supported */
 	{
 		*eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709 ;
