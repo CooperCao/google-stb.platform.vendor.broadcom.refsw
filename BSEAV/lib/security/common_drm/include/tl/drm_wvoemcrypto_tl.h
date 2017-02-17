@@ -143,6 +143,7 @@ typedef struct Drm_WVOemCryptoHostSessionCtx_t
     size_t key_id_length;
     Drm_WVoemCryptoKeySlot_t keySlot;
     DrmCommonOperationStruct_t drmCommonOpStruct;
+    bool decrypt_called;
     struct {
         uint32_t btp_sage_size;
         uint8_t *btp_sage_buffer;
