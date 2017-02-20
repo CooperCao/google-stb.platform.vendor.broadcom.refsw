@@ -1,17 +1,17 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_wl_server.h"
 
 #include "display_wl_server.h"
 #include "private_nexus.h"
+#include "memory_drm.h"
 #include "memory_nexus.h"
 #include "sched_nexus.h"
 
 #include <malloc.h>
 #include <memory.h>
+#include <string.h>
 
 static bool ExplicitSync(void *context)
 {
@@ -32,7 +32,12 @@ void NXPL_RegisterNexusDisplayPlatform(NXPL_PlatformHandle *handle, NEXUS_DISPLA
 
    if (platform != NULL)
    {
-      platform->memoryInterface = CreateMemoryInterface();
+      platform->memoryInterface = CreateDRMMemoryInterface();
+      if (platform->memoryInterface != NULL)
+         platform->drm = true;
+      else
+         platform->memoryInterface = CreateMemoryInterface();
+
       platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
 
       /* block GL calls until TFU conversion has finished */
@@ -70,7 +75,11 @@ void NXPL_UnregisterNexusDisplayPlatform(NXPL_PlatformHandle handle)
       /* Wayland overrides for display interface - server side*/
       DestroyDisplayInterfaceWaylandServer(data->displayInterface);
 
-      DestroyMemoryInterface(data->memoryInterface);
+      if (data->drm)
+         DestroyDRMMemoryInterface(data->memoryInterface);
+      else
+         DestroyMemoryInterface(data->memoryInterface);
+
       DestroySchedInterface(data->schedInterface);
 
       memset(data, 0, sizeof(NXPL_InternalPlatformHandle));

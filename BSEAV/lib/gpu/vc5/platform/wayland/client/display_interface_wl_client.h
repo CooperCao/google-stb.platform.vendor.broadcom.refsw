@@ -1,15 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __DISPLAY_INTERFACE_WL_CLIENT_H__
 #define __DISPLAY_INTERFACE_WL_CLIENT_H__
 
 #include "display_interface.h"
-#include "default_wl_client.h"
+#include "wl_client.h"
 #include "fence_interface.h"
 #include "wayland-egl.h"
+#include <stdbool.h>
 
 /* An implementation of display interface that uses provided Wayland client
  * and fence interface do show WaylandClientSurface surfaces.

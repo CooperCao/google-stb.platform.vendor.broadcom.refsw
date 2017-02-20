@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -1704,13 +1697,15 @@ static bool stages_valid(CompiledShader **sh, bool separable) {
 }
 
 static void validate_tess_geom_match(enum tess_mode tes_mode, bool tes_points, enum gs_in_type gs_mode) {
-   if (tes_points && gs_mode != GS_IN_POINTS)
-      glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'points' mode in geometry shader");
-
-   if (tes_mode == TESS_ISOLINES && gs_mode != GS_IN_LINES)
-      glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'lines' mode in geometry shader");
-   else if (gs_mode != GS_IN_TRIANGLES)
-      glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'triangles' mode in geometry shader");
+   if (tes_points) {
+      if (gs_mode != GS_IN_POINTS)
+         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'points' mode in geometry shader");
+   } else {
+      if (tes_mode == TESS_ISOLINES && gs_mode != GS_IN_LINES)
+         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'lines' mode in geometry shader");
+      else if (gs_mode != GS_IN_TRIANGLES)
+         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'triangles' mode in geometry shader");
+   }
 }
 
 GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE_T *source, bool separable)

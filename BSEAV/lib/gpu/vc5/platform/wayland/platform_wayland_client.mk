@@ -33,6 +33,7 @@ SOURCES := \
 	../common/fence_interface.c \
 	../common/fence_interface_nexus.c \
 	../common/fence_queue.c \
+	../common/memory_drm.c \
 	../common/memory_nexus.c \
 	../common/queue.c \
 	../common/ring_buffer.c \
@@ -45,7 +46,8 @@ SOURCES := \
 	client/default_wl_client.c \
 	client/display_interface_wl_client.c \
 	client/display_wl_client.c \
-	client/surface_interface_wl_client.c
+	client/surface_interface_wl_client.c \
+	client/wl_client.c
 
 $(SOURCES):  $(WAYLAND_CLIENT_HEADER)
 

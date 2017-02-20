@@ -1,16 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __SURFACE_INTERFACE_WL_CLIENT_H__
 #define __SURFACE_INTERFACE_WL_CLIENT_H__
 
 #include "surface_interface.h"
-#include <EGL/begl_displayplatform.h>
 
-#include "default_wl_client.h"
-#include "wayland_nexus_client.h"
+#include <EGL/begl_displayplatform.h>
+#include "wl_client.h"
 #include "list.h"
 #include <stdbool.h>
 

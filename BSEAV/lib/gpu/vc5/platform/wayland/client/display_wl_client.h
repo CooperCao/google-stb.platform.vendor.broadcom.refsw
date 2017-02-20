@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __DISPLAY_WAYLAND_CLIENT_H__
 #define __DISPLAY_WAYLAND_CLIENT_H__
 
@@ -16,7 +14,7 @@ extern "C" {
 #endif
 
 struct BEGL_DisplayInterface *CreateDisplayInterfaceWaylandClient(
-      WaylandClient *wlc);
+      WaylandClientPlatform *platform);
 
 void DestroyDisplayInterfaceWaylandClient(struct BEGL_DisplayInterface *disp);
 

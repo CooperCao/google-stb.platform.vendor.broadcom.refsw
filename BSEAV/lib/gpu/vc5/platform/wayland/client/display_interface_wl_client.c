@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "display_interface_wl_client.h"
 
 #include "surface_interface_wl_client.h"
@@ -123,7 +121,6 @@ void buffer_release_callback(void *data, struct wl_buffer *buffer)
 static void set_buffer_release_callback(DisplayInterfaceWlClient *self,
       WaylandClientBuffer *cb)
 {
-   int result = 0;
    if (!cb->buffer_release_callback)
    {
       static const struct wl_buffer_listener listener =

@@ -35,6 +35,7 @@ SOURCES :=	\
 	../common/fence_interface.c \
 	../common/fence_interface_nexus.c \
 	../common/fence_queue.c \
+	../common/memory_drm.c \
 	../common/memory_nexus.c \
 	../common/queue.c \
 	../common/ring_buffer.c \
