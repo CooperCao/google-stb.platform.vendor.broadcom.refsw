@@ -1,20 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_COMMON_H
-#define GLSL_COMMON_H
+#include "libs/core/v3d/v3d_ver.h"
+#include "libs/util/common.h"
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "libs/core/v3d/v3d_ver.h"
+#include <string.h>
 
 #define GLSL_SHADER_VERSION(major, minor, es) (((100 * (major)) + (minor))  + ((es) ? 1000000 : 0))
 #define GLSL_SHADER_VERSION_NUMBER(version) ((version) >= 1000000 ? ((version) - 1000000) : (version))
@@ -309,5 +303,3 @@ typedef struct _Qualifiers
 // Functions.
 
 bool glsl_parsing_user_code(void);
-
-#endif // COMMON_H

@@ -1,18 +1,19 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "vcos_types.h"
+#include <stddef.h>
 #include <math.h>
+#include <assert.h>
 #ifdef __cplusplus
 #include <cmath>
 #endif
+#include "libs/util/common.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /** misc */
 
@@ -232,8 +233,6 @@ static inline float gfx_fclamp(float x, float min, float max)
 
 static inline int32_t gfx_check_srange(int32_t x, int32_t min, int32_t max)
 {
-   vcos_unused_in_release(min);
-   vcos_unused_in_release(max);
    assert(x >= min);
    assert(x <= max);
    return x;
@@ -241,8 +240,6 @@ static inline int32_t gfx_check_srange(int32_t x, int32_t min, int32_t max)
 
 static inline uint32_t gfx_check_urange(uint32_t x, uint32_t min, uint32_t max)
 {
-   vcos_unused_in_release(min);
-   vcos_unused_in_release(max);
    assert(x >= min);
    assert(x <= max);
    return x;
@@ -250,8 +247,6 @@ static inline uint32_t gfx_check_urange(uint32_t x, uint32_t min, uint32_t max)
 
 static inline uint64_t gfx_check_urange64(uint64_t x, uint64_t min, uint64_t max)
 {
-   vcos_unused_in_release(min);
-   vcos_unused_in_release(max);
    assert(x >= min);
    assert(x <= max);
    return x;
@@ -259,8 +254,6 @@ static inline uint64_t gfx_check_urange64(uint64_t x, uint64_t min, uint64_t max
 
 static inline float gfx_check_frange(float x, float min, float max)
 {
-   vcos_unused_in_release(min);
-   vcos_unused_in_release(max);
    assert(x >= min);
    assert(x <= max);
    return x;
@@ -579,14 +572,12 @@ static inline bool gfx_aligned(void *p, uint32_t align)
 
 static inline uint32_t gfx_bits(uint32_t x, uint32_t num_bits)
 {
-   vcos_unused_in_release(num_bits);
    assert(!(x & ~gfx_mask(num_bits)));
    return x;
 }
 
 static inline uint64_t gfx_bits64(uint64_t x, uint32_t num_bits)
 {
-   vcos_unused_in_release(num_bits);
    assert(!(x & ~gfx_mask64(num_bits)));
    return x;
 }
@@ -780,4 +771,4 @@ static inline bool gfx_float16_lt_bitwise(uint32_t a, uint32_t b)
    return gfx_bitwise_orderable_float16(a) < gfx_bitwise_orderable_float16(b);
 }
 
-VCOS_EXTERN_C_END
+EXTERN_C_END

@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_PREPRO_TOKEN_H
-#define GLSL_PREPRO_TOKEN_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_const_types.h"
 #include "glsl_symbols.h"
@@ -132,6 +124,4 @@ extern void glsl_token_malloc_print(void);
 extern void glsl_token_dump(Token *token);
 extern void glsl_tokenlist_dump(TokenList *list, const char *sep);
 extern void glsl_tokenseq_dump(TokenSeq *seq, const char *sep);
-#endif
-
 #endif

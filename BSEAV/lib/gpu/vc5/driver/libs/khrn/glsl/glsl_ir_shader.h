@@ -1,19 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_IR_SHADER_H_INCLUDED
-#define GLSL_IR_SHADER_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_dataflow.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /* IR format used inside the compiler: */
 typedef struct _IROutput {
@@ -37,6 +29,8 @@ typedef struct _SSAShader{
    IROutput *outputs;
    int       n_outputs;
 } SSAShader;
+
+void glsl_ssa_shader_term(SSAShader *sh);
 
 
 /* IR format used in relocatable programs: (Some elements are shared from above) */
@@ -84,6 +78,4 @@ IRShader *glsl_ir_shader_from_blocks(CFGBlock *blocks, int num_blocks, IROutput 
 IRShader *glsl_ir_shader_from_file(const char *fname);
 void      glsl_ir_shader_to_file  (const IRShader *sh, const char *fname);
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

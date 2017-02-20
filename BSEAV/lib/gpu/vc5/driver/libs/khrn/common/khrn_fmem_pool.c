@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Fmem pool allocator
-
-FILE DESCRIPTION
-Implementation of fmem pool allocator.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_fmem_pool.h"
 #include "khrn_int_common.h"
 #include "khrn_render_state.h"
@@ -198,6 +191,16 @@ fail:
    return NULL;
 }
 
+void khrn_fmem_pool_post_cpu_write(KHRN_FMEM_POOL_T* pool)
+{
+   for (unsigned i=0; i < pool->n_buffers; i++)
+   {
+      KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
+      assert(buffer->bytes_used != ~0u);
+      gmem_flush_mapped_range(buffer->handle, 0, buffer->bytes_used);
+   }
+}
+
 void khrn_fmem_pool_submit(
    KHRN_FMEM_POOL_T *pool,
 #if KHRN_DEBUG
@@ -225,17 +228,16 @@ void khrn_fmem_pool_submit(
          common_rw_flags
        | V3D_BARRIER_TLB_IMAGE_READ;
 
-   for (unsigned i=0; i < pool->n_buffers; i++)
+#if KHRN_DEBUG
+   if (memaccess)
    {
-      KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
-      assert(buffer->bytes_used != ~0u);
-      gmem_flush_mapped_range(buffer->handle, 0, buffer->bytes_used);
-
-   #if KHRN_DEBUG
-      if (memaccess)
+      for (unsigned i=0; i < pool->n_buffers; i++)
+      {
+         KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
          khrn_memaccess_add_buffer(memaccess, buffer->handle, *bin_rw_flags, *render_rw_flags);
-   #endif
+      }
    }
+#endif
 
    assert(pool->buffers_submitted == false);
    pool->buffers_submitted = true;

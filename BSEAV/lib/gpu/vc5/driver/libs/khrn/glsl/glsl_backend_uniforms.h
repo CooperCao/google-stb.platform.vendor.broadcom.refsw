@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BACKEND_UNIFORMS_H_INCLUDED
-#define GLSL_BACKEND_UNIFORMS_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "libs/core/v3d/v3d_ver.h"
 
@@ -22,6 +14,7 @@ typedef enum {
    BACKEND_UNIFORM_UBO_ADDRESS,
    BACKEND_UNIFORM_SSBO_ADDRESS,
    BACKEND_UNIFORM_ATOMIC_ADDRESS,
+   BACKEND_UNIFORM_UBO_LOAD,
    BACKEND_UNIFORM_SSBO_SIZE,
    BACKEND_UNIFORM_TEX_PARAM0,
    BACKEND_UNIFORM_TEX_PARAM1,
@@ -66,5 +59,3 @@ typedef enum {
    BACKEND_SPECIAL_UNIFORM_QUORUM,
    BACKEND_SPECIAL_UNIFORM_LAST_ELEMENT = BACKEND_SPECIAL_UNIFORM_QUORUM
 } BackendSpecialUniformFlavour;
-
-#endif

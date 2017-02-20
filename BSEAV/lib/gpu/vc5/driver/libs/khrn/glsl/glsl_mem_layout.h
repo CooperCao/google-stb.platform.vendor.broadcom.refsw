@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_UNIFORM_LAYOUT_H
-#define GLSL_UNIFORM_LAYOUT_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_common.h"
 #include "glsl_symbols.h"
@@ -59,5 +51,3 @@ MemLayout *glsl_mem_prim_nonmatrix_layout(int stride);
 
 unsigned glsl_mem_calculate_block_layout(MemLayout *layout, const SymbolType *type);
 unsigned glsl_mem_calculate_non_block_layout(MemLayout *layout, const SymbolType *type);
-
-#endif /* GLSL_UNIFORM_LAYOUT_H */

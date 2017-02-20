@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Functions to support selecting EGL configurations.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
 #include "egl_thread.h"
@@ -892,13 +884,14 @@ EGLAPI EGLBoolean EGLAPIENTRY eglGetConfigAttrib(EGLDisplay dpy,
       goto end;
    }
 
-   *value = egl_config_get_attrib(conf, attribute, &valid);
+   EGLint ret = egl_config_get_attrib(conf, attribute, &valid);
    if (!valid)
    {
       error = EGL_BAD_ATTRIBUTE;
       goto end;
    }
 
+   *value = ret;
    error = EGL_SUCCESS;
 end:
    egl_thread_set_error(error);

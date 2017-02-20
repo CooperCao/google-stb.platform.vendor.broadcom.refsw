@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BUILDERS_H
-#define GLSL_BUILDERS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_symbols.h"
 #include "glsl_symbol_table.h"
@@ -76,5 +68,3 @@ SymbolType *glsl_build_function_type(QualList *return_quals, SymbolType *return_
 
 // Instantiates all function params in the main symbol table.
 void glsl_instantiate_function_params(SymbolTable *table, SymbolType *fun);
-
-#endif // BUILDERS_H

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-Handles calls to glDrawArrays and glDrawElements.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
 #include "../common/khrn_interlock.h"
@@ -437,21 +430,21 @@ static AdvancedBlendQualifier convert_to_blend_qualifier(uint32_t b)
 {
    switch (b)
    {
-   case GLXX_ADV_BLEND_MULTIPLY       : return ADV_BLEND_MULTIPLY;
-   case GLXX_ADV_BLEND_SCREEN         : return ADV_BLEND_SCREEN;
-   case GLXX_ADV_BLEND_OVERLAY        : return ADV_BLEND_OVERLAY;
-   case GLXX_ADV_BLEND_DARKEN         : return ADV_BLEND_DARKEN;
-   case GLXX_ADV_BLEND_LIGHTEN        : return ADV_BLEND_LIGHTEN;
-   case GLXX_ADV_BLEND_COLORDODGE     : return ADV_BLEND_COLORDODGE;
-   case GLXX_ADV_BLEND_COLORBURN      : return ADV_BLEND_COLORBURN;
-   case GLXX_ADV_BLEND_HARDLIGHT      : return ADV_BLEND_HARDLIGHT;
-   case GLXX_ADV_BLEND_SOFTLIGHT      : return ADV_BLEND_SOFTLIGHT;
-   case GLXX_ADV_BLEND_DIFFERENCE     : return ADV_BLEND_DIFFERENCE;
-   case GLXX_ADV_BLEND_EXCLUSION      : return ADV_BLEND_EXCLUSION;
-   case GLXX_ADV_BLEND_HSL_HUE        : return ADV_BLEND_HSL_HUE;
-   case GLXX_ADV_BLEND_HSL_SATURATION : return ADV_BLEND_HSL_SATURATION;
-   case GLXX_ADV_BLEND_HSL_COLOR      : return ADV_BLEND_HSL_COLOR;
-   case GLXX_ADV_BLEND_HSL_LUMINOSITY : return ADV_BLEND_HSL_LUMINOSITY;
+   case GLSL_ADV_BLEND_MULTIPLY       : return ADV_BLEND_MULTIPLY;
+   case GLSL_ADV_BLEND_SCREEN         : return ADV_BLEND_SCREEN;
+   case GLSL_ADV_BLEND_OVERLAY        : return ADV_BLEND_OVERLAY;
+   case GLSL_ADV_BLEND_DARKEN         : return ADV_BLEND_DARKEN;
+   case GLSL_ADV_BLEND_LIGHTEN        : return ADV_BLEND_LIGHTEN;
+   case GLSL_ADV_BLEND_COLORDODGE     : return ADV_BLEND_COLORDODGE;
+   case GLSL_ADV_BLEND_COLORBURN      : return ADV_BLEND_COLORBURN;
+   case GLSL_ADV_BLEND_HARDLIGHT      : return ADV_BLEND_HARDLIGHT;
+   case GLSL_ADV_BLEND_SOFTLIGHT      : return ADV_BLEND_SOFTLIGHT;
+   case GLSL_ADV_BLEND_DIFFERENCE     : return ADV_BLEND_DIFFERENCE;
+   case GLSL_ADV_BLEND_EXCLUSION      : return ADV_BLEND_EXCLUSION;
+   case GLSL_ADV_BLEND_HSL_HUE        : return ADV_BLEND_HSL_HUE;
+   case GLSL_ADV_BLEND_HSL_SATURATION : return ADV_BLEND_HSL_SATURATION;
+   case GLSL_ADV_BLEND_HSL_COLOR      : return ADV_BLEND_HSL_COLOR;
+   case GLSL_ADV_BLEND_HSL_LUMINOSITY : return ADV_BLEND_HSL_LUMINOSITY;
    default:
       assert(0); return 0;
    }
@@ -713,6 +706,34 @@ static bool clamp_indices_and_instances(GLXX_DRAW_T *draw,
    return true;
 }
 
+static bool has_possible_self_write_conflicting_preprocess_read(
+   glxx_hw_render_state const* rs,
+   GLXX_SERVER_STATE_T const* state)
+{
+   if (!rs->tf.used)
+      return false;
+
+   GL20_PROGRAM_COMMON_T const* program_common = gl20_program_common_get(state);
+   GLSL_PROGRAM_T const* glsl_program = program_common->linked_glsl_program;
+   for (unsigned i = 0; i != glsl_program->num_uniform_blocks; ++i)
+   {
+      unsigned block_index_start = glsl_program->uniform_blocks[i].index;
+      unsigned block_index_end = block_index_start + glsl_program->uniform_blocks[i].array_length;
+      for (unsigned b = block_index_start; b != block_index_end; ++b)
+      {
+         unsigned binding_point = program_common->ubo_binding_point[b];
+         GLXX_BUFFER_T* buffer = state->uniform_block.binding_points[binding_point].buffer.obj;
+         if (buffer->last_tf_write_count > 0)
+         {
+            KHRN_RES_INTERLOCK_T* res = glxx_buffer_get_res_interlock(buffer);
+            if (khrn_interlock_is_writer(&res->interlock, (KHRN_RENDER_STATE_T*)rs))
+               return true;
+         }
+      }
+   }
+   return false;
+}
+
 /* All GL error have been raised before calling. It is safe to mutate any state
  * but the only error that can be raised is GL_OUT_OF_MEMORY.
  */
@@ -748,6 +769,12 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
          log_warn("%s: installing framebuffer failed", VCOS_FUNCTION);
          glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
          break;
+      }
+
+      if (has_possible_self_write_conflicting_preprocess_read(rs, state))
+      {
+         glxx_hw_render_state_flush(rs);
+         continue;
       }
 
       if (!state->transform_feedback.in_use)

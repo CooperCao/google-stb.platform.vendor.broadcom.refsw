@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-BCM2708 implementation of hardware abstraction layer.
-Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_math.h"
 #include "../common/khrn_options.h"
@@ -38,6 +29,7 @@ Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
 #include "libs/core/v3d/v3d_common.h"
 #include "libs/core/v3d/v3d_cl.h"
 #include "libs/core/v3d/v3d_vpm.h"
+#include "libs/core/v3d/v3d_clear_shader.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
 #include "libs/util/gfx_util/gfx_util_conv.h"
 
@@ -486,12 +478,12 @@ static int get_tlb_write_type_from_rt_type(v3d_rt_type_t rt)
    case V3D_RT_TYPE_16UI:
    case V3D_RT_TYPE_32I:
    case V3D_RT_TYPE_32UI:
-      return GLXX_FB_I32;
+      return GLSL_FB_I32;
    case V3D_RT_TYPE_8:
    case V3D_RT_TYPE_16F:
-      return GLXX_FB_F16;
+      return GLSL_FB_F16;
    case V3D_RT_TYPE_32F:
-      return GLXX_FB_F32;
+      return GLSL_FB_F32;
    default:
       unreachable();
       return 0;
@@ -818,7 +810,7 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
                                            GLXX_PRIMITIVE_T draw_mode)
 {
    const GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
-   uint32_t backend_mask = fb->ms ? ~0u : ~(uint32_t)GLXX_SAMPLE_OPS_M;
+   uint32_t backend_mask = fb->ms ? ~0u : ~(uint32_t)GLSL_SAMPLE_OPS_M;
    uint32_t backend = state->statebits.backend & backend_mask;
 
    if (!IS_GL_11(state))
@@ -831,22 +823,22 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
    switch (draw_mode)
    {
    case GL_POINTS:
-      backend |= GLXX_PRIM_POINT;
+      backend |= GLSL_PRIM_POINT;
       break;
    case GL_LINES:
    case GL_LINE_LOOP:
    case GL_LINE_STRIP:
-      backend |= GLXX_PRIM_LINE;
+      backend |= GLSL_PRIM_LINE;
       break;
    default:
       /* Triangles */
       switch (state->fill_mode)
       {
       case GL_POINT_BRCM:
-         backend |= GLXX_PRIM_POINT;
+         backend |= GLSL_PRIM_POINT;
          break;
       case GL_LINE_BRCM:
-         backend |= GLXX_PRIM_LINE;
+         backend |= GLSL_PRIM_LINE;
          break;
       case GL_FILL_BRCM:
          /* Do nothing */
@@ -856,14 +848,14 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
       }
    }
 
-   if (rs->z_prepass_allowed) backend |= GLXX_Z_ONLY_WRITE;
+   if (rs->z_prepass_allowed) backend |= GLSL_Z_ONLY_WRITE;
 
    bool activeOcclusion = glxx_server_has_active_query_type(GLXX_Q_OCCLUSION, state, rs);
 
    if (!activeOcclusion && no_depth_updates(state, rs) && no_stencil_updates(state, rs))
-      backend |= GLXX_FEZ_SAFE_WITH_DISCARD;
+      backend |= GLSL_FEZ_SAFE_WITH_DISCARD;
 
-   if (state->sample_mask.enable && fb->ms) backend |= GLXX_SAMPLE_MASK;
+   if (state->sample_mask.enable && fb->ms) backend |= GLSL_SAMPLE_MASK;
 
    for (int i = 0; i < GLXX_MAX_RENDER_TARGETS; i++)
    {
@@ -875,20 +867,20 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
 #if !V3D_VER_AT_LEAST(4,0,2,0)
          v3d_rt_bpp_t bpp = fb->color_internal_bpp[i];
          if (fmt_requires_alpha16(type, bpp))
-            fb_gadget |= GLXX_FB_ALPHA_16_WORKAROUND;
+            fb_gadget |= GLSL_FB_ALPHA_16_WORKAROUND;
 #endif
       }
       else
-         fb_gadget = GLXX_FB_NOT_PRESENT;
+         fb_gadget = GLSL_FB_NOT_PRESENT;
 
-      assert((fb_gadget & (~GLXX_FB_GADGET_M)) == 0);
+      assert((fb_gadget & (~GLSL_FB_GADGET_M)) == 0);
 
-      uint32_t shift = GLXX_FB_GADGET_S + 3*i;
-      backend &= ~(GLXX_FB_GADGET_M << shift);
+      uint32_t shift = GLSL_FB_GADGET_S + 3*i;
+      backend &= ~(GLSL_FB_GADGET_M << shift);
       backend |= (fb_gadget << shift);
    }
 
-   backend |= glxx_advanced_blend_eqn(state) << GLXX_ADV_BLEND_S;
+   backend |= glxx_advanced_blend_eqn(state) << GLSL_ADV_BLEND_S;
 
    return backend;
 }
@@ -1873,7 +1865,6 @@ static bool post_draw_journal(
 
 GLXX_LINK_RESULT_DATA_T *glxx_get_shaders(GLXX_SERVER_STATE_T *state)
 {
-   GLXX_LINK_RESULT_DATA_T *result;
    GLXX_BINARY_CACHE_T     *cache;
    IR_PROGRAM_T            *ir;
 
@@ -1896,6 +1887,7 @@ GLXX_LINK_RESULT_DATA_T *glxx_get_shaders(GLXX_SERVER_STATE_T *state)
    }
 
    /* Try to get a previous binary from the cache */
+   GLXX_LINK_RESULT_DATA_T *result;
    result = glxx_binary_cache_get_shaders(cache, &state->shaderkey_common);
 
    if (result == NULL) {
@@ -1961,20 +1953,29 @@ v3d_addr_t glxx_hw_install_uniforms(
    const glxx_hw_compute_uniforms   *compute_uniforms)
 {
    khrn_fmem* fmem = &rs->fmem;
-   uint32_t *ptr = khrn_fmem_data(fmem, 4 * map->count, V3D_QPU_UNIFS_ALIGN);
-   if (!ptr)
-      return 0;
-   v3d_addr_t result = khrn_fmem_hw_address(fmem, ptr);
 
+   uint32_t* ustream_ptr = khrn_fmem_data(fmem, sizeof(uint32_t) * map->num_uniforms, V3D_QPU_UNIFS_ALIGN);
+   if (!ustream_ptr)
+      return 0;
+
+   GL20_PROGRAM_COMMON_T* program_common = NULL;
    uint32_t *data;
-   if (!IS_GL_11(state)) data = gl20_program_common_get(state)->uniform_data;
-   else                  data = (uint32_t *)&state->gl11;
+   if (!IS_GL_11(state))
+   {
+      program_common = gl20_program_common_get(state);
+      data = program_common->uniform_data;
+   }
+   else
+   {
+      data = (uint32_t *)&state->gl11;
+   }
 
    /* Install uniforms */
-   for (unsigned i = 0; i < map->count; i++)
+   uint32_t* ptr = ustream_ptr;
+   for (unsigned i = 0; i < map->num_immediates; i++)
    {
-      const BackendUniformFlavour u_type  = map->entry[2 * i];
-      const uint32_t              u_value = map->entry[2 * i + 1];
+      const BackendUniformFlavour u_type  = map->immediates[i].type;
+      const uint32_t              u_value = map->immediates[i].value;
 
       assert(u_type >= 0 && u_type <= BACKEND_UNIFORM_LAST_ELEMENT);
 
@@ -2012,12 +2013,12 @@ v3d_addr_t glxx_hw_install_uniforms(
          bool write = false;
          int offset = 0;
          if (u_type == BACKEND_UNIFORM_SSBO_ADDRESS) {
-            uint32_t binding_point = gl20_program_common_get(state)->ssbo_binding_point[u_value & 0x1F];
+            uint32_t binding_point = program_common->ssbo_binding_point[u_value & 0x1F];
             binding                = &state->ssbo.binding_points[binding_point];
             offset                 = u_value >> 5;
             write = true;
          } else if (u_type == BACKEND_UNIFORM_UBO_ADDRESS) {
-            uint32_t binding_point = gl20_program_common_get(state)->ubo_binding_point[u_value & 0x1F];
+            uint32_t binding_point = program_common->ubo_binding_point[u_value & 0x1F];
             binding                = &state->uniform_block.binding_points[binding_point];
             offset                 = u_value >> 5;
          } else { // u_type == BACKEND_UNIFORM_ATOMIC_ADDRESS
@@ -2053,11 +2054,16 @@ v3d_addr_t glxx_hw_install_uniforms(
          break;
       }
 
+      case BACKEND_UNIFORM_UBO_LOAD:
+         // UBO load handled outside this loop, value is how many words to skip.
+         ptr += u_value;
+         continue;
+
       case BACKEND_UNIFORM_SSBO_SIZE:
       {
          /* Not having a buffer bound gives undefined behaviour - we crash */
          const GLXX_INDEXED_BINDING_POINT_T *binding;
-         uint32_t binding_point = gl20_program_common_get(state)->ssbo_binding_point[u_value];
+         uint32_t binding_point = program_common->ssbo_binding_point[u_value];
          binding = &state->ssbo.binding_points[binding_point];
          size_t size = glxx_indexed_binding_point_get_size(binding);
          if (binding->offset < size)
@@ -2204,7 +2210,60 @@ v3d_addr_t glxx_hw_install_uniforms(
       ptr++;
    }
 
-   return result;
+   if (map->num_buffers > 0)
+   {
+      unsigned fetch_start = 0;
+      for (unsigned b = 0; b != map->num_buffers; ++b)
+      {
+         glxx_ustream_buffer const* ubo_buffer = &map->buffers[b];
+
+         unsigned fetch_end = ubo_buffer->fetch_end;
+         unsigned num_fetches = fetch_end - fetch_start;
+
+         uint32_t binding_point = program_common->ubo_binding_point[ubo_buffer->index];
+         const GLXX_INDEXED_BINDING_POINT_T* binding = &state->uniform_block.binding_points[binding_point];
+
+         KHRN_RES_INTERLOCK_T* res = glxx_buffer_get_res_interlock(binding->buffer.obj);
+         v3d_size_t src_offset = binding->offset + ubo_buffer->range_start;
+         v3d_size_t src_size = ubo_buffer->range_end - ubo_buffer->range_start;
+         assert((src_offset & 3) == 0);
+
+         if (  khrn_options.no_ustream_jobs
+            || (!khrn_options.force_ustream_jobs && !khrn_interlock_read_now_would_stall(&res->interlock)))
+         {
+            uint32_t const* src = (uint32_t*)khrn_res_interlock_pre_cpu_access_now(
+               &res,
+               src_offset,
+               src_size,
+               KHRN_MAP_READ_BIT);
+            if (!src)
+               return 0;
+            glxx_shader_fill_ustream(ustream_ptr, src, map->fetches + fetch_start, num_fetches);
+            khrn_res_interlock_post_cpu_access(res, src_offset, src_size, KHRN_MAP_READ_BIT);
+         }
+         else
+         {
+            // Ensure UBO is mapped as usermode job depends on this.
+            if (!gmem_map_and_get_ptr(res->handle))
+               return 0;
+
+            khrn_fmem_record_res_interlock_read(fmem, res, KHRN_INTERLOCK_STAGE_PREPROCESS);
+            glxx_ustream_job* job = khrn_fmem_add_ustream_job(&rs->fmem);
+            if (!job)
+               return 0;
+            job->dst_ptr = ustream_ptr;
+            job->src_mem = res->handle;
+            job->fetches = map->fetches + fetch_start;
+            job->num_fetches = num_fetches;
+            job->src_offset = src_offset;
+            job->src_size = src_size;
+         }
+
+         fetch_start = fetch_end;
+      }
+   }
+
+   return khrn_fmem_hw_address(fmem, ustream_ptr);
 }
 
 static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, GLenum mode)
@@ -2580,11 +2639,21 @@ static bool write_gl_shader_record(
       {
          V3D_SHADREC_GL_GEOM_T stage_shadrec =
          {
+#if V3D_HAS_RELAXED_THRSW
+            .gs_bin.four_thread        = link_data->vps[s][MODE_BIN].four_thread,
+            .gs_bin.single_seg         = link_data->vps[s][MODE_BIN].single_seg,
+#else
             .gs_bin.threading          = link_data->vps[s][MODE_BIN].threading,
+#endif
             .gs_bin.propagate_nans     = true,
             .gs_bin.addr               = code_addr + link_data->vps[s][MODE_BIN].code_offset,
             .gs_bin.unifs_addr         = vp_unifs_addrs[s][MODE_BIN],
+#if V3D_HAS_RELAXED_THRSW
+            .gs_render.four_thread     = link_data->vps[s][MODE_RENDER].four_thread,
+            .gs_render.single_seg      = link_data->vps[s][MODE_RENDER].single_seg,
+#else
             .gs_render.threading       = link_data->vps[s][MODE_RENDER].threading,
+#endif
             .gs_render.propagate_nans  = true,
             .gs_render.addr            = code_addr + link_data->vps[s][MODE_RENDER].code_offset,
             .gs_render.unifs_addr      = vp_unifs_addrs[s][MODE_RENDER],
@@ -2678,15 +2747,30 @@ static bool write_gl_shader_record(
       .vs_output_size = vpm_cfg_v->output_size[MODE_RENDER],
       .vs_input_size = vpm_cfg_v->input_size[MODE_RENDER],
       .defaults = defaults_addr,
+#if V3D_HAS_RELAXED_THRSW
+      .fs.four_thread = link_data->fs.four_thread,
+      .fs.single_seg  = link_data->fs.single_seg,
+#else
       .fs.threading = link_data->fs.threading,
+#endif
       .fs.propagate_nans = true,
       .fs.addr = code_addr + link_data->fs.code_offset,
       .fs.unifs_addr = frag_unifs_addr,
+#if V3D_HAS_RELAXED_THRSW
+      .vs.four_thread = link_data->vps[GLXX_SHADER_VPS_VS][MODE_RENDER].four_thread,
+      .vs.single_seg  = link_data->vps[GLXX_SHADER_VPS_VS][MODE_RENDER].single_seg,
+#else
       .vs.threading = link_data->vps[GLXX_SHADER_VPS_VS][MODE_RENDER].threading,
+#endif
       .vs.propagate_nans = true,
       .vs.addr = code_addr + link_data->vps[GLXX_SHADER_VPS_VS][MODE_RENDER].code_offset,
       .vs.unifs_addr = vp_unifs_addrs[GLXX_SHADER_VPS_VS][MODE_RENDER],
+#if V3D_HAS_RELAXED_THRSW
+      .cs.four_thread = link_data->vps[GLXX_SHADER_VPS_VS][MODE_BIN].four_thread,
+      .cs.single_seg  = link_data->vps[GLXX_SHADER_VPS_VS][MODE_BIN].single_seg,
+#else
       .cs.threading = link_data->vps[GLXX_SHADER_VPS_VS][MODE_BIN].threading,
+#endif
       .cs.propagate_nans = true,
       .cs.addr = code_addr + link_data->vps[GLXX_SHADER_VPS_VS][MODE_BIN].code_offset,
       .cs.unifs_addr = vp_unifs_addrs[GLXX_SHADER_VPS_VS][MODE_BIN],
@@ -2898,88 +2982,6 @@ static uint32_t *copy_shader_to_fmem(KHRN_FMEM_T* fmem, uint32_t shaderSize, uin
    return fshader_ptr;
 }
 
-/* Pack the colours into a shader uniform block, skipping uniform 1, which is used for configuration. */
-static void pack_colors_in_uniforms(const uint32_t color_value[4],
-   uint32_t *uniform, unsigned uniform_count, v3d_rt_type_t rt_type)
-{
-   switch (uniform_count)
-   {
-   case 3:
-      {
-         uint32_t color_f16[4];
-         if (rt_type == V3D_RT_TYPE_8)
-         {
-            for (unsigned i = 0; i < 4; i++)
-            {
-               float f = gfx_float_from_bits(color_value[i]);
-               uint32_t u = gfx_float_to_unorm8(f);
-               color_f16[i] = gfx_unorm_to_float16(u, 8);
-            }
-         }
-         else
-         {
-            for (unsigned i = 0; i < 4; i++)
-               color_f16[i] = gfx_floatbits_to_float16(color_value[i]);
-         }
-         uniform[2] = gfx_pack_1616(color_f16[2], color_f16[3]);
-         uniform[0] = gfx_pack_1616(color_f16[0], color_f16[1]);
-      }
-      break;
-   case 5:
-      uniform[4] = color_value[3];
-      uniform[3] = color_value[2];
-      uniform[2] = color_value[1];
-      uniform[0] = color_value[0];
-      break;
-   default:
-      unreachable();
-   }
-}
-
-/* TODO: MRT and other fanciness? */
-static uint32_t clear_shader_2[] =
-{
-   0xbb800000, 0x3c403186, // nop            ; ldunif
-#if V3D_VER_HAS_LATE_UNIF
-   0xb682d000, 0x3c203188, // mov tlbu, r5   ; thrsw
-   0xbb800000, 0x3c403186, // nop            ; ldunif
-   0xb682d000, 0x3c003187, // mov tlb, r5
-#else
-   0xb682d000, 0x3c003188, // mov tlbu, r5
-   0xbb800000, 0x3c403186, // nop            ; ldunif
-   0xb682d000, 0x3c203187, // mov tlb, r5    ; thrsw
-   0xbb800000, 0x3c003186, // nop
-   0xbb800000, 0x3c003186, // nop
-#endif
-};
-
-static uint32_t clear_shader_4[] =
-{
-   0xbb800000, 0x3c403186, // nop; ldunif
-   0xb682d000, 0x3c003188, // mov tlbu, r5
-   0xbb800000, 0x3c403186, // nop; ldunif
-#if V3D_VER_HAS_LATE_UNIF
-   0xb682d000, 0x3c603187, // mov tlb, r5; ldunif ; thrsw
-   0xb682d000, 0x3c403187, // mov tlb, r5; ldunif
-   0xb682d000, 0x3c003187, // mov tlb, r5
-#else
-   0xb682d000, 0x3c403187, // mov tlb, r5; ldunif
-   0xb682d000, 0x3c403187, // mov tlb, r5; ldunif
-   0xb682d000, 0x3c203187, // mov tlb, r5; thrsw
-   0xbb800000, 0x3c003186, // nop
-   0xbb800000, 0x3c003186, // nop
-#endif
-};
-
-static uint32_t clear_shader_no_color[] =
-{
-   0xbb800000, 0x3c003186, // nop
-   0x00000000, 0x03003206, // mov tlbu, 0
-   0xb7800000, 0x3c203187, // xor tlb, r0, r0 ; thrsw
-   0x00000000, 0x030031c6, // mov tlb, 0
-   0x00000000, 0x030031c6, // mov tlb, 0
-};
-
 /* Draw a rectangle quickly using a non-vertex shader. Currently only used as
  * the slow path of a clear operation,
  */
@@ -3012,57 +3014,16 @@ bool glxx_draw_rect(
    if (clear->stencil)
       glxx_bufstate_rw(&rs->stencil_buffer_state);
 
-   uint32_t *shaderCode;
-   uint32_t shaderSize;
-   uint32_t uniformCount;
-   uint8_t cfg;
-   unsigned cfg_unif_pos;
-   if (clear->color_buffer_mask)
-   {
-      int tlb_write_type = get_tlb_write_type_from_rt_type(hw_fb->color_internal_type[rt]);
-
-      /* Allocate memory and copy the shader to the fmem */
-      /* TODO: select shader based on MRT etc. */
-      /* If we write f16 then we have 2 writes , f32 and i32 have 4 */
-      if (tlb_write_type == GLXX_FB_F16)
-      {
-         shaderCode = clear_shader_2;
-         shaderSize = sizeof(clear_shader_2);   /* NB: sizeof(array) */
-         uniformCount = 3;
-      }
-      else
-      {
-         shaderCode = clear_shader_4;
-         shaderSize = sizeof(clear_shader_4);
-         uniformCount = 5;
-      }
-      // Set the configuration byte
-      cfg = tlb_write_type << 6 |  (7 - rt) << 3 | 7;
-      cfg_unif_pos = 1;
-   }
-   else
-   {
-      shaderCode = clear_shader_no_color;
-      shaderSize = sizeof(clear_shader_no_color);
-      uniformCount = 1;
-
-      /* Configure tlb for f32 color writes, but disable the write masks later */
-      /* GFXH-1212 means we must write 4 values to prevent a lockup */
-      cfg = 0x3F;
-      cfg_unif_pos = 0;
-   }
-
-   uint32_t *funif_ptr = khrn_fmem_data(&rs->fmem, uniformCount * 4, V3D_SHADREC_ALIGN);
+   uint32_t *funif_ptr = khrn_fmem_data(&rs->fmem, V3D_CLEAR_SHADER_MAX_UNIFS * sizeof(uint32_t), V3D_QPU_UNIFS_ALIGN);
    if (funif_ptr == NULL)
       return false;
 
+   uint32_t *shader_code;
+   uint32_t shader_size;
    if (clear->color_buffer_mask)
-      /* fill in uniforms, skipping uniform 1 which is used as a configuration byte */
-      pack_colors_in_uniforms(clear->color_value, funif_ptr, uniformCount,
-            hw_fb->color_internal_type[rt]);
-
-   /* set up the config uniform; unused config entries must be all 1s */
-   funif_ptr[cfg_unif_pos] = 0xffffff00 | cfg;
+      v3d_clear_shader_color(&shader_code, &shader_size, funif_ptr, hw_fb->color_internal_type[rt], rt, clear->color_value);
+   else
+      v3d_clear_shader_no_color(&shader_code, &shader_size, funif_ptr);
 
    /* Use x, y, z to create vertex data to be used in the clear */
    uint32_t *vdata_ptr = draw_rect_vertex_data(&rs->fmem, x, xmax, y, ymax, gfx_float_to_bits(clear->depth_value));
@@ -3070,11 +3031,11 @@ bool glxx_draw_rect(
       return false;
 
    /* Install the shader and shader record. */
-   uint32_t *fshader_ptr = copy_shader_to_fmem(&rs->fmem, shaderSize, shaderCode);
+   uint32_t *fshader_ptr = copy_shader_to_fmem(&rs->fmem, shader_size, shader_code);
    if (fshader_ptr == NULL)
       return false;
    v3d_addr_t nv_shadrec_hw = create_nv_shader_record(&rs->fmem, fshader_ptr, funif_ptr, vdata_ptr,
-      /*does_z_writes=*/false, V3D_THREADING_T1);
+      /*does_z_writes=*/false, V3D_HAS_RELAXED_THRSW ? V3D_THREADING_T4 : V3D_THREADING_T1);
    if (!nv_shadrec_hw)
       return false;
 

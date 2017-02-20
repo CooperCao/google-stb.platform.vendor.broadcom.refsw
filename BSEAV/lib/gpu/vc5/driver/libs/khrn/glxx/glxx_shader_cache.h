@@ -1,37 +1,64 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Stuff for 1.1 and 2.0 shader caches
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_SHADER_CACHE_H
 #define GLXX_SHADER_CACHE_H
 
 #include "../common/khrn_res_interlock.h"
 #include "glxx_int_config.h"
 #include "gl_public_api.h"
-#include "../glsl/glsl_gadgettype.h"
+#include "../glsl/glsl_backend_cfg.h"
 #include "../glsl/glsl_ir_program.h"
 #include "../glsl/glsl_binary_program.h"
+#include "../glsl/glsl_backend_uniforms.h"
 #include "libs/core/v3d/v3d_gen.h"
 #include "libs/core/v3d/v3d_vpm.h"
+#include "libs/util/assert_helpers.h"
+
+typedef struct glxx_ustream_immediate
+{
+   BackendUniformFlavour type;
+   uint32_t value;
+} glxx_ustream_immediate;
+
+typedef struct glxx_ustream_buffer
+{
+   uint32_t index       : 8;  // UBO index.
+   uint32_t fetch_end   : 24; // End of fetches with this UBO.
+   uint16_t range_start;
+   uint16_t range_end;
+} glxx_ustream_buffer;
+
+typedef struct glxx_ustream_fetch
+{
+   uint32_t dst20_src12;
+} glxx_ustream_fetch;
+static_assrt(sizeof(glxx_ustream_fetch) == sizeof(uint32_t));
+
+static_assrt(GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS <= (1 << 8));
+static_assrt(GLXX_CONFIG_MAX_UNIFORM_BLOCK_SIZE/4 <= (1 << 12));
 
 /* Specifies uniform stream.  We have one type-value pair for every uniform. */
 typedef struct
 {
-   uint32_t count;
-   uint32_t entry[1];  /* extendable array */
+   uint32_t num_uniforms;     // Number of uniforms in stream.
+   uint32_t num_immediates;   // Number of immediates, BACKEND_UNIFORM_UBO_LOAD entries advance the uniform write pointer.
+   uint32_t num_buffers;      // Number of indirect buffers.
+   glxx_ustream_immediate* immediates;
+   glxx_ustream_buffer* buffers;
+   glxx_ustream_fetch* fetches;
 } GLXX_UNIFORM_MAP_T;
 
 typedef struct
 {
    v3d_size_t code_offset; // Offset of code for this shader in GLXX_LINK_RESULT_DATA_T.res_i
    GLXX_UNIFORM_MAP_T *uniform_map;
+#if V3D_HAS_RELAXED_THRSW
+   bool four_thread;
+   bool single_seg;
+#else
    v3d_threading_t threading;
+#endif
 } GLXX_SHADER_DATA_T;
 
 #define GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA  (1<<0)
@@ -137,76 +164,9 @@ typedef struct glxx_link_result_data
 
 } GLXX_LINK_RESULT_DATA_T;
 
-/*
-33222222222211111111110000000000
-10987654321098765432109876543210
---------aaaadzwffwffwffwffpp-ccc   backend
-
-a = advanced blend type
-p = prim point
-f = framebuffer type
-w = fb alpha workaround
-z = z only write
-d = fez safe with discard
-*/
-
-/* backend */
-#define GLXX_SAMPLE_MS       (1<<0)
-#define GLXX_SAMPLE_ALPHA    (1<<1)
-#define GLXX_SAMPLE_MASK     (1<<2)
-#define GLXX_SAMPLE_OPS_M    (0x7<<0)
-#define GLXX_PRIM_NOT_POINT_OR_LINE (0<<4)
-#define GLXX_PRIM_POINT             (1<<4)
-#define GLXX_PRIM_LINE              (2<<4)
-#define GLXX_PRIM_M                 (3<<4)
-
-#define GLXX_FB_GADGET_M (0x7)
-#define GLXX_FB_GADGET_S 6
-#define GLXX_FB_F16         3    /* These numbers correspond to the TLB write */
-#define GLXX_FB_F32         0    /* types used by the HW in the config reg.   */
-#define GLXX_FB_I32         1
-#define GLXX_FB_NOT_PRESENT 2
-/* V3Dv3.3 and earlier must write alpha if it's present for 16-bit RTs */
-#define GLXX_FB_ALPHA_16_WORKAROUND (1<<2)
-
-/* Leave space for 4 fb gadgets. 6, 9, 12, 15 */
-
-#define GLXX_Z_ONLY_WRITE          (1<<18)
-#define GLXX_FEZ_SAFE_WITH_DISCARD (1<<19)
-
-/* Advanced blend */
-#define GLXX_ADV_BLEND_S              20
-#define GLXX_ADV_BLEND_M              (0xf << GLXX_ADV_BLEND_S)
-#define GLXX_ADV_BLEND_MULTIPLY       1
-#define GLXX_ADV_BLEND_SCREEN         2
-#define GLXX_ADV_BLEND_OVERLAY        3
-#define GLXX_ADV_BLEND_DARKEN         4
-#define GLXX_ADV_BLEND_LIGHTEN        5
-#define GLXX_ADV_BLEND_COLORDODGE     6
-#define GLXX_ADV_BLEND_COLORBURN      7
-#define GLXX_ADV_BLEND_HARDLIGHT      8
-#define GLXX_ADV_BLEND_SOFTLIGHT      9
-#define GLXX_ADV_BLEND_DIFFERENCE     10
-#define GLXX_ADV_BLEND_EXCLUSION      11
-#define GLXX_ADV_BLEND_HSL_HUE        12
-#define GLXX_ADV_BLEND_HSL_SATURATION 13
-#define GLXX_ADV_BLEND_HSL_COLOR      14
-#define GLXX_ADV_BLEND_HSL_LUMINOSITY 15
-
-typedef struct glxx_link_result_key
-{
-   uint32_t backend;
-
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-   glsl_gadgettype_t gadgettype[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
-   glsl_gadgettype_t img_gadgettype[GLXX_CONFIG_MAX_IMAGE_UNITS];
-#endif
-
-} GLXX_LINK_RESULT_KEY_T;
-
 typedef struct
 {
-   GLXX_LINK_RESULT_KEY_T key;
+   GLSL_BACKEND_CFG_T key;
    GLXX_LINK_RESULT_DATA_T data;
    bool used;
 } GLXX_BINARY_CACHE_ENTRY_T;
@@ -222,12 +182,12 @@ typedef struct
 
 extern GLXX_LINK_RESULT_DATA_T *glxx_binary_cache_get_shaders(
    GLXX_BINARY_CACHE_T *cache,
-   GLXX_LINK_RESULT_KEY_T *key);
+   GLSL_BACKEND_CFG_T *key);
 
 extern GLXX_LINK_RESULT_DATA_T *glxx_get_shaders_and_cache(
    GLXX_BINARY_CACHE_T *cache,
    IR_PROGRAM_T *ir,
-   GLXX_LINK_RESULT_KEY_T *key);
+   GLSL_BACKEND_CFG_T *key);
 
 extern void glxx_binary_cache_invalidate(GLXX_BINARY_CACHE_T *cache);
 

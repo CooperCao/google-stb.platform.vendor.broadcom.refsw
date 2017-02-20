@@ -1,28 +1,15 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Translate a Dataflow graph to Backflow. This involves inserting hw-specific
-constructs as well as the parts of the shader that depend on things other than
-shader source.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_backend_uniforms.h"
 #include "glsl_backflow.h"
 #include "glsl_backflow_visitor.h"
 #include "glsl_backend.h"
 
 #include "glsl_sched_node_helpers.h"
+#include "glsl_backend_cfg.h"
 #include "glsl_qbe_fragment.h"
 #include "glsl_qbe_fragment_adv_blend.h"
-
-#include "../glxx/glxx_shader_cache.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
 
@@ -119,11 +106,11 @@ static void fragment_backend(
 
    for (unsigned i = 0; i < V3D_MAX_RENDER_TARGETS; i++)
    {
-      if (s->rt[i].type == GLXX_FB_NOT_PRESENT) continue;
+      if (s->rt[i].type == GLSL_FB_NOT_PRESENT) continue;
 
-      assert(s->rt[i].type == GLXX_FB_F16 ||
-             s->rt[i].type == GLXX_FB_F32 ||
-             s->rt[i].type == GLXX_FB_I32);
+      assert(s->rt[i].type == GLSL_FB_F16 ||
+             s->rt[i].type == GLSL_FB_F32 ||
+             s->rt[i].type == GLSL_FB_I32);
 
       // Read FB for advanced blending
       // Blending is not supported for integer formats
@@ -147,7 +134,7 @@ static void fragment_backend(
           */
          int vec_sz = rt_channels;
          int swap = 0;
-         if (s->rt[i].type == GLXX_FB_F16) {
+         if (s->rt[i].type == GLSL_FB_F16) {
             vec_sz = (rt_channels+1)/2;   /* F16 targets have half the outputs */
             swap = 1;                     /* and support the 'swap' field (bit 2) */
          }
@@ -173,7 +160,7 @@ static void fragment_backend(
             /* Pad out the output array for working around GFXH-1212 */
             for (int j=0; j<4; j++) if (out[j] == NULL) out[j] = tr_cfloat(0.0f);
 
-            if (s->rt[i].type == GLXX_FB_F16) {
+            if (s->rt[i].type == GLSL_FB_F16) {
                /* Pack the values in pairs for output */
                for (int j=0; j<vec_sz; j++) {
                   assert(out[2*j] != NULL && out[2*j+1] != NULL);
@@ -194,6 +181,7 @@ static void fragment_backend(
       }
    }
 
+#if !V3D_HAS_RELAXED_THRSW
    /* QPU restrictions prevent us writing nothing to the TLB. Write some fake data */
    if (s->requires_sbwait && block->first_tlb_read == NULL && tlb_node_count == 0) {
       /* Check rt[0] for the workaround. If the target is present but the output from
@@ -209,10 +197,11 @@ static void fragment_backend(
          tlb_nodes[tlb_node_count++] = tr_const(0);
       }
    }
+#endif
 
    Backflow *first_write = NULL;
    Backflow *last_write  = NULL;
-   assert(tlb_node_count <= vcos_countof(tlb_nodes));
+   assert(tlb_node_count <= countof(tlb_nodes));
    for (unsigned i = 0; i < tlb_node_count; i++)
    {
       uint32_t dataflow_age = tlb_nodes[i]->age;

@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-
-FILE DESCRIPTION
-Environment configurable, one-shot options.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_OPTIONS_H
 #define KHRN_OPTIONS_H
 
@@ -87,6 +79,8 @@ typedef struct {
    uint32_t random_sample_rate_shading_seed;
 #endif
 
+   bool     force_ustream_jobs;        /* Force all UBO serialisation to execute as a CPU job */
+   bool     no_ustream_jobs;           /* Force all UBO serialisation to execute immediately */
    bool     gl_error_assist;           /* Outputs useful info when the error occurs */
    bool     force_dither_off;          /* Ensure dithering is always off */
    bool     z_prepass;                 /* Z-prepass enabled */

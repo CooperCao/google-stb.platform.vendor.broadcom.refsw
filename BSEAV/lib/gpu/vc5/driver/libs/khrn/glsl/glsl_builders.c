@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdlib.h>
 #include <string.h>
 
@@ -663,9 +656,11 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
 
    if (glsl_type_contains(type, PRIM_ATOMIC_TYPE)) {
       if (!q.lq || !(q.lq->qualified & BINDING_QUALED))
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "%s type requires binding qualifier", type->name);
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "type %s requires binding qualifier", type->name);
+      if (q.lq && (q.lq->qualified & LOC_QUALED))
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "location qualifier not valid for type %s", type->name);
       if (q.pq != PREC_HIGHP)
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "%s type is only available for highp", type->name);
+         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "type %s is only available at highp", type->name);
    }
 
    if (q.mq != MEMORY_NONE && !is_arrays_of_image_type(type))
@@ -839,14 +834,12 @@ static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
 
    StructMember *memb = malloc_fast(sizeof(StructMember) * members->count);
 
-   int i;
-   MapNode *map_node;
-   for (map_node = members->head, i = 0; map_node; map_node = map_node->next, i++)
-   {
-      StructMember *member = map_node->v;
+   int i = 0;
+   GLSL_MAP_FOREACH(map_entry, members) {
+      StructMember *member = map_entry->v;
 
       /* If this is a buffer variable, and the last member then unsized array is allowed */
-      if (valid_sq != STORAGE_BUFFER || map_node->next != NULL)
+      if (valid_sq != STORAGE_BUFFER || i != (members->count - 1))
          glsl_error_if_type_incomplete(member->type);
 
       memb[i].name   = member->name;
@@ -856,6 +849,8 @@ static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
       memb[i].memq   = member->memq;
 
       resultType->scalar_count += member->type->scalar_count;
+
+      ++i;
    }
    assert(i == members->count);
 
@@ -866,6 +861,8 @@ static SymbolType *glsl_build_struct_or_block_type(SymbolTypeFlavour flavour,
       resultType->u.block_type.member_count = members->count;
       resultType->u.block_type.member       = memb;
    }
+
+   glsl_map_delete(members);
 
    return resultType;
 }

@@ -1,21 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_ARENAMEM_H_INCLUDED
-#define GLSL_ARENAMEM_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stddef.h>
 
 #include "glsl_safemem.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct _ArenaAlloc ArenaAlloc;
 
@@ -51,6 +43,4 @@ void        glsl_arena_print       (const ArenaAlloc *a);
 
 void glsl_arena_free (ArenaAlloc *a);
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

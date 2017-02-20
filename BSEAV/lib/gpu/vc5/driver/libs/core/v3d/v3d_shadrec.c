@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "v3d_shadrec.h"
 #include "v3d_align.h"
 
@@ -114,9 +107,18 @@ void v3d_create_nv_shader_record(
    shader_record.vs_input_size = 0;
 #endif
    shader_record.defaults = defaults_addr;
+#if V3D_HAS_RELAXED_THRSW
+   shader_record.fs.four_thread = (threading == V3D_THREADING_T4);
+   shader_record.fs.single_seg  = false; // Not applicable to fragment shaders
+   shader_record.vs.four_thread = true;  // Ignored in NV shader
+   shader_record.vs.single_seg  = true;  // Ignored in NV shader
+   shader_record.cs.four_thread = true;  // Ignored in NV shader
+   shader_record.cs.single_seg  = true;  // Ignored in NV shader
+#else
    shader_record.fs.threading = threading;
    shader_record.vs.threading = V3D_THREADING_T1; // Ignored in NV shader
    shader_record.cs.threading = V3D_THREADING_T1; // Ignored in NV shader
+#endif
    shader_record.fs.propagate_nans = false;
    shader_record.vs.propagate_nans = false; // Ignored in NV shader
    shader_record.cs.propagate_nans = false; // Ignored in NV shader

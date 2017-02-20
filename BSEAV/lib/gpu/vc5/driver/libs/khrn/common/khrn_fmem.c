@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Control per-frame memory allocator
-
-FILE DESCRIPTION
-Handles allocation of memory for control lists and associated data that will be
-generated each frame as HW input.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_fmem.h"
 #include "khrn_mr_crc.h"
 #include "khrn_render_state.h"
@@ -17,6 +8,7 @@ generated each frame as HW input.
 #include "khrn_process.h"
 #include "khrn_tile_state.h"
 #include "../glxx/glxx_query.h"
+#include "../glxx/glxx_shader.h"
 #include "khrn_fence.h"
 #include "../egl/egl_context_gl.h"
 #include "khrn_options.h"
@@ -48,6 +40,16 @@ static void free_client_handles(KHRN_UINTPTR_VECTOR_T *handles)
    khrn_uintptr_vector_destroy(handles);
 }
 
+static void free_ustream_jobs(glxx_ustream_job_block* blocks)
+{
+   for (glxx_ustream_job_block* block = blocks; block; )
+   {
+      glxx_ustream_job_block* next = block->next;
+      free(block);
+      block = next;
+   }
+}
+
 static khrn_fmem_persist* persist_create(KHRN_RENDER_STATE_T *rs)
 {
    khrn_fmem_persist* persist = (khrn_fmem_persist*)calloc(1, sizeof(khrn_fmem_persist));
@@ -61,6 +63,8 @@ static khrn_fmem_persist* persist_create(KHRN_RENDER_STATE_T *rs)
 #ifdef KHRN_GEOMD
    fmem_debug_info_init(&persist->debug_info);
 #endif
+
+   persist->num_tail_ustream_jobs = ~0u;
 
    return persist;
 }
@@ -84,6 +88,8 @@ static void persist_destroy(khrn_fmem_persist* persist)
       khrn_tile_state_release_shared(persist->bin_shared_tile_state);
 
    free_client_handles(&persist->client_handles);
+
+   free_ustream_jobs(persist->ustream_jobs);
 
 #ifdef KHRN_GEOMD
    fmem_debug_info_deinit(&persist->debug_info);
@@ -154,7 +160,6 @@ bool khrn_fmem_init(KHRN_FMEM_T *fmem, KHRN_RENDER_STATE_T *render_state)
    khrn_uintptr_vector_init(&fmem->res_interlocks);
    khrn_uintptr_vector_init(&fmem->fences_to_signal);
    khrn_uintptr_vector_init(&fmem->fences_to_depend_on);
-
    return true;
 }
 
@@ -632,6 +637,18 @@ static void submit_bin_render(
       render_completion, persist);
 }
 
+static void khrn_fmem_preprocess_job(void* data)
+{
+   khrn_fmem_persist* persist = (khrn_fmem_persist*)data;
+
+   glxx_shader_process_ustream_jobs(persist->ustream_jobs, persist->num_tail_ustream_jobs);
+   free_ustream_jobs(persist->ustream_jobs);
+   persist->ustream_jobs = NULL;
+
+   // Now perform gmem_sync_cpu_post_write for all the fmem blocks.
+   khrn_fmem_pool_post_cpu_write(&persist->pool);
+}
+
 void khrn_fmem_flush(KHRN_FMEM_T *fmem)
 {
    assert(!fmem->in_begin_clist);
@@ -649,11 +666,31 @@ void khrn_fmem_flush(KHRN_FMEM_T *fmem)
    get_deps_from_and_release_fences(&stage_deps[0], fmem);
    get_deps_from_interlocks(stage_deps, fmem);
 
+   job_t stage_jobs[KHRN_INTERLOCK_NUM_STAGES] = { 0, };
+   if (fmem->persist->ustream_jobs != NULL)
+   {
+      // Preprocess better be the first stage.
+      static_assrt(KHRN_INTERLOCK_STAGE_PREPROCESS == 1);
+
+      // Issue job to complete uniform-streams and flush CPU cache.
+      stage_jobs[0] = v3d_scheduler_submit_usermode_job(
+         &stage_deps[0],
+         khrn_fmem_preprocess_job,
+         fmem->persist);
+
+      // Following stages are dependent on preprocess.
+      v3d_scheduler_add_dep(&stage_deps[1], stage_jobs[0]);
+   }
+   else
+   {
+      // Flush CPU cache now if we don't have any uniform-streams to complete later.
+      khrn_fmem_pool_post_cpu_write(&fmem->persist->pool);
+   }
+
    // Stage dependencies are transitive.
    for (unsigned s = 1; s != countof(stage_deps); ++s)
       v3d_scheduler_merge_deps(&stage_deps[s], &stage_deps[s-1]);
 
-   job_t stage_jobs[KHRN_INTERLOCK_NUM_STAGES] = { 0, };
    submit_bin_render(fmem, stage_deps, stage_jobs);
 
    // Find job for last active stage.
@@ -888,4 +925,23 @@ v3d_addr_t khrn_fmem_lock_and_sync(KHRN_FMEM_T *fmem, gmem_handle_t handle,
 #endif
 
    return gmem_get_addr(handle);
+}
+
+glxx_ustream_job* khrn_fmem_add_ustream_job(khrn_fmem* fmem)
+{
+   khrn_fmem_persist* persist = fmem->persist;
+   if (persist->num_tail_ustream_jobs >= countof(persist->ustream_jobs->jobs))
+   {
+      glxx_ustream_job_block* block = (glxx_ustream_job_block*)malloc(sizeof(glxx_ustream_job_block));
+      if (!block)
+         return NULL;
+      block->next = NULL;
+
+      glxx_ustream_job_block** tail_next =
+            !persist->ustream_jobs ? &persist->ustream_jobs : &persist->ustream_jobs_tail->next;
+      *tail_next = block;
+      persist->ustream_jobs_tail = block;
+      persist->num_tail_ustream_jobs = 0;
+   }
+   return &persist->ustream_jobs_tail->jobs[persist->num_tail_ustream_jobs++];
 }

@@ -1,20 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Takes a dataflow graph and schedules the nodes. The algorithm is designed to
-help reduce register pressure.
-
-We feed nodes directly to the allocator rather than producing a list which is
-fed to the allocator in one go. This is because we may want to use feedback
-from the allocator to decide which thing to schedule next.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 //#define OUTPUT_GRAPHVIZ_ON_SUCCESS
 //#define OUTPUT_GRAPHVIZ_ON_FAILURE
 
@@ -61,9 +47,9 @@ static void graphviz(Backflow **roots, int num_roots, const BackflowChain *iodep
 static void dpostv_init_backend_fields(Backflow *backend, void *data) {
    BackflowPriorityQueue *age_queue = data;
 
-   bool is_uniform = (backend->type == SIG && backend->u.sigbits == SIGBIT_LDUNIF);
+   bool is_uniform = (backend->type == SIG && backend->u.sigbits == V3D_QPU_SIG_LDUNIF);
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-   bool is_attribute = (backend->type == SIG && backend->u.sigbits == SIGBIT_LDVPM);
+   bool is_attribute = (backend->type == SIG && backend->u.sigbits == V3D_QPU_SIG_LDVPM);
 #else
    bool is_attribute = false;
 #endif
@@ -71,10 +57,13 @@ static void dpostv_init_backend_fields(Backflow *backend, void *data) {
    backend->phase = 0;
    backend->reg = 0;
    backend->remaining_dependents = 0;
+   glsl_backflow_chain_init(&backend->data_dependents);
    for (int i = 0; i < BACKFLOW_DEP_COUNT; i++)
    {
-      if (backend->dependencies[i] != NULL)
+      if (backend->dependencies[i] != NULL) {
          backend->dependencies[i]->remaining_dependents++;
+         glsl_backflow_chain_append(&backend->dependencies[i]->data_dependents, backend);
+      }
    }
 
    if (backend->type != SPECIAL_VOID && !is_uniform && !is_attribute)
@@ -127,11 +116,11 @@ static void iodep_texture(struct sched_deps_s *deps, Backflow *consumer, Backflo
 }
 
 static bool node_is_buffer(const Backflow *d) {
-   return (d->type == SIG && d->u.sigbits == SIGBIT_LDUNIF && d->unif_type == BACKEND_UNIFORM_SSBO_ADDRESS);
+   return (d->type == SIG && d->u.sigbits == V3D_QPU_SIG_LDUNIF && d->unif_type == BACKEND_UNIFORM_SSBO_ADDRESS);
 }
 
 static bool node_is_shared_ptr(const Backflow *d) {
-   return (d->type == SIG && d->u.sigbits == SIGBIT_LDUNIF &&
+   return (d->type == SIG && d->u.sigbits == V3D_QPU_SIG_LDUNIF &&
            d->unif_type == BACKEND_UNIFORM_SPECIAL && d->unif == BACKEND_SPECIAL_UNIFORM_SHARED_PTR);
 }
 
@@ -221,6 +210,7 @@ static void start_new_section(struct thread_section *sec, Backflow *pre_write, B
 static uint32_t fix_texture_dependencies(SchedBlock *block,
                                          struct sched_deps_s *sched_deps,
                                          uint32_t thread_count,
+                                         bool lthrsw,
                                          bool sbwaited)
 {
    uint32_t input_fifo_size  = V3D_TMU_INPUT_FIFO_SIZE / thread_count;
@@ -305,31 +295,45 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
    /* If the block has multiple thread sections, fix peripheral access into particular ones */
    /* TODO: Make this more intelligent */
    if (thread_count > 1) {
-      if (block->first_tlb_read) {
-         /* If sbwaited && section_count == 1 then there is nothing to do */
-         if (sbwaited && section_count > 1) {
-            /* There's already been an sbwait, so place ldtlb in the first section */
-            iodep_texture(sched_deps, first_thrsw, block->last_tlb_read);
-         } else if (!sbwaited) {
-            /* Create a new section at the start for ldtlb. TODO: Try to use an existing one */
-            Backflow *cond_false = create_sig(SIGBIT_LDUNIF);
-            cond_false->unif_type = BACKEND_UNIFORM_LITERAL;
-            cond_false->unif = 1;
-            Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
-            fake_tmu_lookup->magic_write = REG_MAGIC_TMUA;
-            Backflow *fake_tmu_read = create_sig(SIGBIT_LDTMU);
-            Backflow *sbwait_switch = glsl_backflow_thrsw();
-            iodep_texture(sched_deps, sbwait_switch, fake_tmu_lookup);
-            iodep_texture(sched_deps, fake_tmu_read, sbwait_switch);
-            if (block->tmu_lookups)
-               iodep_texture(sched_deps, block->tmu_lookups->first_write, fake_tmu_read);
-            iodep_texture(sched_deps, block->first_tlb_read, fake_tmu_read);
-            iodep_texture(sched_deps, first_thrsw, block->last_tlb_read);
+      /* TLB reads need to pick a section. We choose the first to save checking if
+       * any other is OK. It also simplifies the placement below */
+      if (block->first_tlb_read && section_count > 1) {
+         iodep_texture(sched_deps, first_thrsw, block->last_tlb_read);
+      }
 
-            first_thrsw = sbwait_switch;
-            if (last_thrsw == NULL) last_thrsw = sbwait_switch;
-            section_count++;
-         }
+      bool new_for_lthrsw = (lthrsw && last_thrsw == NULL);
+      bool new_for_reads  = (block->first_tlb_read && !sbwaited);
+      if (new_for_lthrsw || new_for_reads) {
+#if V3D_HAS_RELAXED_THRSW
+         Backflow *new_switch = glsl_backflow_thrsw();
+         Backflow *new_dep = new_switch;
+#else
+         Backflow *cond_false = create_sig(V3D_QPU_SIG_LDUNIF);
+         cond_false->unif_type = BACKEND_UNIFORM_LITERAL;
+         cond_false->unif = 1;
+         Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
+         fake_tmu_lookup->magic_write = REG_MAGIC_TMUA;
+         Backflow *fake_tmu_read = create_sig(V3D_QPU_SIG_LDTMU);
+         Backflow *new_switch = glsl_backflow_thrsw();
+         iodep_texture(sched_deps, new_switch, fake_tmu_lookup);
+         iodep_texture(sched_deps, fake_tmu_read, new_switch);
+         Backflow *new_dep = fake_tmu_read;
+#endif
+         first_thrsw = new_switch;
+         if (last_thrsw == NULL) last_thrsw = new_switch;
+         section_count++;
+
+         if (block->first_tlb_read)
+            iodep_texture(sched_deps, block->first_tlb_read, new_switch);
+         if (block->tmu_lookups)
+            iodep_texture(sched_deps, block->tmu_lookups->first_write, new_dep);
+
+         /* XXX Hack the dependency system. Create a dummy node which is a block
+          * dependency, then create texture iodeps to the new nodes */
+         /* TODO: Could we do this more directly? The sched_deps structure might just work for this */
+         Backflow *dummy = glsl_backflow_dummy();
+         glsl_backflow_chain_append(&block->iodeps, dummy);
+         iodep_texture(sched_deps, dummy, new_dep);
       }
 
       if (section_count > 1) {
@@ -408,7 +412,7 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
    glsl_backflow_chain_init(&sched_deps.consumers);
    glsl_backflow_chain_init(&sched_deps.suppliers);
 
-   uint32_t thrsw_count = fix_texture_dependencies(block, &sched_deps, threads, sbwaited);
+   uint32_t thrsw_count = fix_texture_dependencies(block, &sched_deps, threads, lthrsw, sbwaited);
 
    BackflowVisitor *sched_visit = glsl_backflow_visitor_begin(&age_queue, NULL, dpostv_init_backend_fields);
 

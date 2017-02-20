@@ -1,13 +1,8 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+#include "glsl_dominators.h"
 #include "glsl_basic_block.h"
 #include "glsl_ir_shader.h"
 #include "glsl_safemem.h"
@@ -234,6 +229,75 @@ static NodeSet *get_reverse_graph(const NodeSet *g, int n) {
       }
    }
    return r_g;
+}
+
+/* Return whether b postdominates a */
+static bool does_postdominate(const int *ipdoms, int a, int b) {
+   if (a == b) return true;
+   else if (ipdoms[a] == b) return true;
+   else if (a == 0) return false;      /* Technically we don't need this, since ipdoms[0] == 0 */
+   else return does_postdominate(ipdoms, ipdoms[a], b);
+}
+
+static void cd_sets(const SSABlock *blocks, const NodeSet *r_g_in, int n, struct cd_set *cd) {
+   /* TODO: Can we generate a reverse postorder walk on an abstract_cfg directly? */
+   int *rpo_id = alloc_reverse_postorder_numbering(r_g_in, n);
+   NodeSet *r_g = renumber_nodeset(r_g_in, n, rpo_id);
+
+   NodeSet *pred = get_reverse_graph(r_g, n);
+   free_nodeset(r_g, n);
+
+   struct abstract_cfg cfg = { .s = pred, .n = n };
+
+   int *doms = glsl_alloc_idoms(&cfg);
+   bool **df = glsl_dom_frontiers_alloc(&cfg, doms);
+
+   free_nodeset(pred, n);
+
+   int *invert_rpo_id = glsl_safemem_malloc(n * sizeof(int));
+   for (int i=0; i<n; i++) invert_rpo_id[rpo_id[i]] = i;
+
+   for (int i=0; i<n; i++) {
+      int count = 0;
+      int *cd_nodes = glsl_safemem_malloc(n * sizeof(int));
+      bool *cond = glsl_safemem_malloc(n * sizeof(bool));
+      for (int j=0; j<n; j++) {
+         if (df[i][j]) {
+            int true_succ = rpo_id[blocks[invert_rpo_id[j]].next_true];
+            cd_nodes[count] = j;
+            cond[count++] = does_postdominate(doms, true_succ, i);
+         }
+      }
+
+      int id = invert_rpo_id[i];
+      cd[id].n = count;
+      cd[id].dep = glsl_safemem_malloc(count * sizeof(struct cd_dep));
+      for (int j=0; j<count; j++) {
+         cd[id].dep[j].node = invert_rpo_id[cd_nodes[j]];
+         cd[id].dep[j].cond = cond[j];
+      }
+      glsl_safemem_free(cd_nodes);
+      glsl_safemem_free(cond);
+   }
+
+   glsl_safemem_free(invert_rpo_id);
+   glsl_safemem_free(rpo_id);
+
+   glsl_dom_frontiers_free(df, n);
+   glsl_safemem_free(doms);
+}
+
+/* TODO: Passing blocks here means that the abstract CFG hasn't really worked ... */
+struct cd_set *glsl_cd_sets_alloc(const struct abstract_cfg *cfg, const SSABlock *blocks) {
+   struct cd_set *cd = glsl_safemem_malloc(cfg->n * sizeof(struct cd_set));
+   cd_sets(blocks, cfg->s, cfg->n, cd);
+   return cd;
+}
+
+void glsl_cd_sets_free(struct cd_set *cd, int n_blocks) {
+   if (!cd) return;
+   for (int i=0; i<n_blocks; i++) glsl_safemem_free(cd[i].dep);
+   glsl_safemem_free(cd);
 }
 
 /* From the reverse CFG, work out which blocks are unconditional */

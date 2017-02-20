@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_CONST_OPERATORS_H
-#define GLSL_CONST_OPERATORS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_const_types.h"
 
@@ -408,5 +400,3 @@ static inline const_value op_tan(const_value operand) {
    const_value one_on_cos = op_recip(cos);
    return op_f_mul(sin, one_on_cos);
 }
-
-#endif // CONST_OPERATORS_H

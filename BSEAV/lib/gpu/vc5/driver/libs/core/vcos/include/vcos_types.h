@@ -1,46 +1,6 @@
-/*
- * Broadcom Proprietary and Confidential. (c)2010-2011 Broadcom.  All rights reserved.
- *
- * This program is the proprietary software of Broadcom and/or
- * its licensors, and may only be used, duplicated, modified or distributed
- * pursuant to the terms and conditions of a separate, written license
- * agreement executed between you and Broadcom (an "Authorized License").
- * Except as set forth in an Authorized License, Broadcom grants no license
- * (express or implied), right to use, or waiver of any kind with respect to
- * the Software, and Broadcom expressly reserves all rights in and to the
- * Software and all intellectual property rights therein.  IF YOU HAVE NO
- * AUTHORIZED LICENSE, THEN YOU HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY
- * WAY, AND SHOULD IMMEDIATELY NOTIFY BROADCOM AND DISCONTINUE ALL USE OF
- * THE SOFTWARE.
- *
- * Except as expressly set forth in the Authorized License,
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use
- *    all reasonable efforts to protect the confidentiality thereof, and to
- *    use this information only in connection with your use of Broadcom
- *    integrated circuit products.
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH
- *    RESPECT TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL
- *    IMPLIED WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS
- *    FOR A PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS,
- *    QUIET ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU
- *    ASSUME THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- */
-
-/*=============================================================================
-VideoCore OS Abstraction Layer - basic types
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef VCOS_TYPES_H
 #define VCOS_TYPES_H
 
@@ -50,15 +10,10 @@ VideoCore OS Abstraction Layer - basic types
 #include <stddef.h>
 #include "vcos_platform_types.h"
 #include "vcos_attr.h"
+#include "libs/util/common.h"
 
 #ifdef __cplusplus
 #include <stdexcept>
-#endif
-
-// inline is a keyword in C99 and C++, although MSVC supports a
-// good portion of C99, somehow the inline keyword missed the list
-#if defined(_MSC_VER) && !defined(inline) && !defined(__cplusplus)
-#define inline __inline
 #endif
 
 /* Error return codes - chosen to be similar to errno values */
@@ -187,13 +142,7 @@ typedef struct vcos_datestr
 #define vcos_min(x,y) ((x) < (y) ? (x) : (y))
 #define vcos_max(x,y) ((x) > (y) ? (x) : (y))
 
-/** Return the count of an array. FIXME: under gcc we could make
- * this report an error for pointers using __builtin_types_compatible().
- */
-#define vcos_countof(x) (sizeof((x)) / sizeof((x)[0]))
-
-/* for backward compatibility */
-#define countof(x) (sizeof((x)) / sizeof((x)[0]))
+#define vcos_countof(x) countof(x)
 
 #define VCOS_ALIGN_DOWN(p,n) (((ptrdiff_t)(p)) & ~((n)-1))
 #define VCOS_ALIGN_UP(p,n) VCOS_ALIGN_DOWN((ptrdiff_t)(p)+(n)-1,(n))
@@ -223,18 +172,6 @@ typedef int32_t vcos_fourcc_t;
 #define vcos_unused_in_release(x)
 #endif
 
-#ifdef NDEBUG
-#define IS_DEBUG 0
-#else
-#define IS_DEBUG 1
-#endif
-
-#ifdef NDEBUG
-#define debug_only(x) do { } while(0)
-#else
-#define debug_only(x) do { x; } while(0)
-#endif
-
 /** For backward compatibility */
 typedef vcos_fourcc_t fourcc_t;
 typedef vcos_fourcc_t FOURCC_T;
@@ -252,14 +189,6 @@ typedef vcos_fourcc_t FOURCC_T;
 #else
 #define VCOS_EXTERN_C_BEGIN
 #define VCOS_EXTERN_C_END
-#endif
-
-#ifdef _MSC_VER
-#define PRIuSIZE "Iu"
-#define PRIxSIZE "Ix"
-#else
-#define PRIuSIZE "zu"
-#define PRIxSIZE "zx"
 #endif
 
 #endif

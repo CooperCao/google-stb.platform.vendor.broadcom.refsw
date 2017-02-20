@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,6 @@
  *  ANY LIMITED REMEDY.
  *
  **************************************************************************/
-
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -192,6 +191,7 @@ void BVC5_GetPerfCounterDesc(
 void BVC5_GetPerfCounterGroupInfo(
    BVC5_Handle             hVC5,
    uint32_t                uiGroup,
+   uint32_t                uiGrpNameSize,
    char                    *chGrpName,
    uint32_t                *uiMaxActiveCounter,
    uint32_t                *uiTotalCounter
@@ -205,7 +205,7 @@ void BVC5_GetPerfCounterGroupInfo(
          uiTotalCounter != NULL &&
          uiGroup < BVC5_P_PERF_COUNTER_NUM_GROUPS)
    {
-      _strncpy(chGrpName, hVC5->sPerfCounters.sGroupDescs[uiGroup].caName, BVC5_MAX_GROUP_NAME_LEN);
+      _strncpy(chGrpName, hVC5->sPerfCounters.sGroupDescs[uiGroup].caName, uiGrpNameSize);
       *uiMaxActiveCounter = hVC5->sPerfCounters.sGroupDescs[uiGroup].uiMaxActiveCounters;
       *uiTotalCounter = hVC5->sPerfCounters.sGroupDescs[uiGroup].uiTotalCounters;
    }

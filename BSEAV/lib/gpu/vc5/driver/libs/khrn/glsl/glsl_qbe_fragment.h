@@ -1,17 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_QBE_FRAGMENT_H__
-#define GLSL_QBE_FRAGMENT_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_backflow.h"
+#include "libs/core/v3d/v3d_ver.h"
 #include "libs/core/v3d/v3d_limits.h"
 
 typedef struct {
@@ -20,7 +13,9 @@ typedef struct {
    bool sample_mask;
    bool fez_safe_with_discard;
    bool early_fragment_tests;
+#if !V3D_HAS_RELAXED_THRSW
    bool requires_sbwait;
+#endif
 
    struct {
       int type;
@@ -38,5 +33,3 @@ void glsl_fragment_backend(
    const FragmentBackendState *s,
    bool *does_discard_out,
    bool *does_z_change_out);
-
-#endif

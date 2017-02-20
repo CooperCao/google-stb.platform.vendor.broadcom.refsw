@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_INTRINSIC_IR_BUILDER_H_INCLUDED
-#define GLSL_INTRINSIC_IR_BUILDER_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_ast.h"
 #include "glsl_dataflow.h"
@@ -17,5 +9,3 @@ FILE DESCRIPTION
 #include "glsl_intrinsic_types.h"
 
 void glsl_intrinsic_ir_calculate_dataflow(BasicBlock* ctx, Dataflow **scalar_values, Expr *expr);
-
-#endif

@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BACKFLOW_VISITOR_H
-#define GLSL_BACKFLOW_VISITOR_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_backflow.h"
 
@@ -26,6 +18,3 @@ BackflowVisitor *glsl_backflow_visitor_begin(void *data, BackflowPreVisitor prev
 void             glsl_backflow_visitor_end(BackflowVisitor *visitor);
 
 void glsl_backflow_visit(Backflow *backflow, BackflowVisitor *v);
-
-
-#endif // BACKFLOW_VISITOR_H

@@ -1,24 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BACKFLOW_H
-#define GLSL_BACKFLOW_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_dataflow.h"
 #include "glsl_fastmem.h"
-#include "glsl_gadgettype.h"
 #include "glsl_list.h"
 #include "glsl_ir_shader.h"
 #include "glsl_binary_shader.h"
-#include "../glxx/glxx_int_config.h"
-#include "../glxx/glxx_shader_cache.h"
+#include "libs/core/v3d/v3d_qpu_instr.h"
 #include "glsl_backend_reg.h"
 
 typedef struct backflow_s Backflow;
@@ -75,9 +65,7 @@ typedef enum {
    BACKFLOW_TMUWT,
 #if V3D_VER_AT_LEAST(4,0,2,0)
    BACKFLOW_VPMWT,
-#endif
 
-#if V3D_VER_AT_LEAST(4,0,2,0)
    BACKFLOW_LDVPMV_IN,
    BACKFLOW_LDVPMV_OUT,
    BACKFLOW_LDVPMD_IN,
@@ -143,23 +131,6 @@ typedef enum {
 } VaryingType;
 
 typedef enum {
-   SIGBIT_THRSW  = (1<<0),
-   SIGBIT_LDUNIF = (1<<1),
-   SIGBIT_LDTMU  = (1<<2),
-   SIGBIT_LDVARY = (1<<3),
-#if V3D_VER_AT_LEAST(4,0,2,0)
-   SIGBIT_WRTMUC = (1<<4),
-#else
-   SIGBIT_LDVPM  = (1<<4),
-#endif
-   SIGBIT_IMMED  = (1<<5),
-   SIGBIT_LDTLB  = (1<<6),
-   SIGBIT_LDTLBU = (1<<7),
-   SIGBIT_UCB    = (1<<8),
-   SIGBIT_ROTATE = (1<<9),
-} SigFlavour;
-
-typedef enum {
    UNPACK_ABS   = 0,
    UNPACK_NONE  = 1,
    UNPACK_F16_A = 2,
@@ -197,10 +168,10 @@ struct backflow_s {
          uint32_t    row;
       } varying;
 
-      SigFlavour sigbits;
+      v3d_qpu_sigbits_t sigbits;
    } u;
 
-   uint32_t magic_write;
+   backend_reg magic_write;
    uint32_t cond_setf;
 
    uint32_t unif_type;
@@ -314,8 +285,6 @@ void glsl_iodep(Backflow *consumer, Backflow *supplier);
 bool glsl_sched_node_requires_regfile(BackflowFlavour op);
 bool glsl_sched_node_admits_unpack(BackflowFlavour op);
 
-Backflow *glsl_backflow_fake_tmu(SchedBlock *b);
-
 void tr_read_tlb(bool ms, uint32_t rt_num, uint32_t rt_type, uint32_t required_components,
                  Backflow **result, Backflow **first_read, Backflow **last_read);
 
@@ -328,7 +297,7 @@ unsigned vertex_shader_inputs(SchedShaderInputs *ins,
 
 SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
                             const bool *output_active, SchedShaderInputs *ins,
-                            const GLXX_LINK_RESULT_KEY_T *key);
+                            const struct glsl_backend_cfg *key);
 
 typedef struct {
    int size;
@@ -342,5 +311,3 @@ extern void glsl_backflow_priority_queue_heapify(BackflowPriorityQueue* queue);
 
 extern void glsl_backflow_priority_queue_push(BackflowPriorityQueue* queue, Backflow *node);
 extern Backflow *glsl_backflow_priority_queue_pop(BackflowPriorityQueue* queue);
-
-#endif // GLSL_BACKFLOW_H

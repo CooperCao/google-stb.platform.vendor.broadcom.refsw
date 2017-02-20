@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_binary_program.h"
 
 BINARY_PROGRAM_T *glsl_binary_program_create() {
@@ -22,8 +15,8 @@ BINARY_PROGRAM_T *glsl_binary_program_create() {
    return ret;
 }
 
-BINARY_PROGRAM_T *glsl_binary_program_from_dataflow(IR_PROGRAM_T                 *ir,
-                                                    const GLXX_LINK_RESULT_KEY_T *key)
+BINARY_PROGRAM_T *glsl_binary_program_from_dataflow(IR_PROGRAM_T                  *ir,
+                                                    const struct glsl_backend_cfg *key)
 {
    BINARY_PROGRAM_T *ret = glsl_binary_program_create();
    if(!ret) return NULL;

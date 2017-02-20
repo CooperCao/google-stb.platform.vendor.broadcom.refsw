@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Format for dataflow binary objects
-=============================================================================*/
-
-#ifndef GLSL_IR_PROGRAM_H
-#define GLSL_IR_PROGRAM_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "libs/core/v3d/v3d_limits.h"
 #include "glsl_ir_shader.h"
@@ -117,5 +108,3 @@ void glsl_link_map_free(LinkMap *l);
 
 IR_PROGRAM_T *glsl_ir_program_create();
 void          glsl_ir_program_free(IR_PROGRAM_T *bin);
-
-#endif

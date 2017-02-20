@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_DATAFLOW_BUILDER_H
-#define GLSL_DATAFLOW_BUILDER_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_ast.h"
 #include "glsl_basic_block.h"
@@ -26,5 +18,3 @@ void glsl_expr_calculate_function_call_args(BasicBlock* ctx, Symbol *function, E
 
 // Prototype for the function that brings dataflow calculation together, so that the individual functions can recurse.
 void glsl_expr_calculate_dataflow(BasicBlock* ctx, Dataflow **scalar_values, Expr *expr);
-
-#endif // DATAFLOW_BUILDER_H

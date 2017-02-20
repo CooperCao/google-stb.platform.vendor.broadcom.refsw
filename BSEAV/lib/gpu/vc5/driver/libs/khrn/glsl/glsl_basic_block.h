@@ -1,21 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BASICBLOCK_H_INCLUDED
-#define GLSL_BASICBLOCK_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_dataflow.h"
 #include "glsl_common.h"
 #include "glsl_map.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct _BasicBlock {
    Map *loads;          // Symbol* -> Dataflow** - DATAFLOW_LOAD nodes
@@ -30,6 +22,12 @@ typedef struct _BasicBlock {
 } BasicBlock;
 
 BasicBlock *glsl_basic_block_construct();
+void        glsl_basic_block_delete(BasicBlock *b);
+
+// Returned map is a set of BasicBlock*s (k=v for all k,v pairs)
+Map *glsl_basic_block_all_reachable(BasicBlock *entry);
+
+void glsl_basic_block_delete_reachable(BasicBlock *entry);
 
 typedef struct _BasicBlockList {
    BasicBlock *v;
@@ -50,6 +48,4 @@ Dataflow  *glsl_basic_block_get_scalar_value (BasicBlock *basic_block, const Sym
 void       glsl_basic_block_set_scalar_values(BasicBlock *basic_block, const Symbol *symbol, Dataflow **values);
 void       glsl_basic_block_set_scalar_value (BasicBlock *basic_block, const Symbol *symbol, unsigned index, Dataflow *value);
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

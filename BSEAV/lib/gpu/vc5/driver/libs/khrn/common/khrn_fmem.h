@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Control per-frame memory allocator
-
-FILE DESCRIPTION
-Handles allocation of memory for control lists and associated data that will be
-generated each frame as HW input.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef KHRN_FMEM_4_H
 #define KHRN_FMEM_4_H
 
@@ -38,6 +30,8 @@ typedef struct
 } KHRN_FMEM_BLOCK_T;
 
 typedef struct glxx_query_block glxx_query_block;
+typedef struct glxx_ustream_job glxx_ustream_job;
+typedef struct glxx_ustream_job_block glxx_ustream_job_block;
 
 /* Precious things of the FMEM that need to live longer than the render state
    reside in khrn_fmem_persist, which is cleaned up when the
@@ -65,6 +59,11 @@ typedef struct khrn_fmem_persist
    khrn_shared_tile_state* bin_shared_tile_state;
 
    khrn_interlock_stages_t delete_stage;
+
+   glxx_ustream_job_block* ustream_jobs;
+   glxx_ustream_job_block* ustream_jobs_tail;
+   uint32_t num_tail_ustream_jobs;
+
 } khrn_fmem_persist;
 
 struct khrn_fmem_tmu_cfg_alloc
@@ -276,6 +275,8 @@ static inline bool khrn_fmem_has_queries(KHRN_FMEM_T *fmem)
 #endif
    return res;
 }
+
+glxx_ustream_job* khrn_fmem_add_ustream_job(khrn_fmem* fmem);
 
 VCOS_EXTERN_C_END
 

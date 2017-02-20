@@ -1,17 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#include "vcos.h"
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_stackmem.h"
 #include "glsl_errors.h"
+#include "libs/util/common.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <assert.h>
 
 typedef struct glsl_allocation_list_s {
    struct glsl_allocation_list_s *next;

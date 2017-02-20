@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES 1.1 and 2.0 server-side state structure declaration.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_SERVER_H
 #define GLXX_SERVER_H
 
@@ -26,7 +18,6 @@ OpenGL ES 1.1 and 2.0 server-side state structure declaration.
 #include "glxx_texture.h"
 #include "glxx_shared.h"
 #include "glxx_buffer.h"
-#include "glxx_shader_cache.h"
 #include "glxx_draw.h"
 #include "glxx_int_attrib.h"
 #include "glxx_pixel_store.h"
@@ -41,6 +32,8 @@ OpenGL ES 1.1 and 2.0 server-side state structure declaration.
 #include "../gl11/gl11_matrix.h"
 #include "../gl11/gl11_texunit.h"
 #include "../gl11/gl11_shader_cache.h"
+
+#include "../glsl/glsl_backend_cfg.h"
 
 #include "../egl/egl_context_gl.h"
 
@@ -350,21 +343,21 @@ typedef enum
    GLXX_BLEND_EQN_INVALID = V3D_BLEND_EQN_INVALID,
 
    GLXX_ADV_BLEND_EQN_BIT              = 0x20,
-   GLXX_ADV_BLEND_EQN_MULTIPLY         = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_MULTIPLY,
-   GLXX_ADV_BLEND_EQN_SCREEN           = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_SCREEN,
-   GLXX_ADV_BLEND_EQN_OVERLAY          = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_OVERLAY,
-   GLXX_ADV_BLEND_EQN_DARKEN           = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_DARKEN,
-   GLXX_ADV_BLEND_EQN_LIGHTEN          = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_LIGHTEN,
-   GLXX_ADV_BLEND_EQN_COLORDODGE       = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_COLORDODGE,
-   GLXX_ADV_BLEND_EQN_COLORBURN        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_COLORBURN,
-   GLXX_ADV_BLEND_EQN_HARDLIGHT        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HARDLIGHT,
-   GLXX_ADV_BLEND_EQN_SOFTLIGHT        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_SOFTLIGHT,
-   GLXX_ADV_BLEND_EQN_DIFFERENCE       = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_DIFFERENCE,
-   GLXX_ADV_BLEND_EQN_EXCLUSION        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_EXCLUSION,
-   GLXX_ADV_BLEND_EQN_HSL_HUE          = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_HUE,
-   GLXX_ADV_BLEND_EQN_HSL_SATURATION   = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_SATURATION,
-   GLXX_ADV_BLEND_EQN_HSL_COLOR        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_COLOR,
-   GLXX_ADV_BLEND_EQN_HSL_LUMINOSITY   = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_LUMINOSITY
+   GLXX_ADV_BLEND_EQN_MULTIPLY         = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_MULTIPLY,
+   GLXX_ADV_BLEND_EQN_SCREEN           = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_SCREEN,
+   GLXX_ADV_BLEND_EQN_OVERLAY          = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_OVERLAY,
+   GLXX_ADV_BLEND_EQN_DARKEN           = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_DARKEN,
+   GLXX_ADV_BLEND_EQN_LIGHTEN          = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_LIGHTEN,
+   GLXX_ADV_BLEND_EQN_COLORDODGE       = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_COLORDODGE,
+   GLXX_ADV_BLEND_EQN_COLORBURN        = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_COLORBURN,
+   GLXX_ADV_BLEND_EQN_HARDLIGHT        = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_HARDLIGHT,
+   GLXX_ADV_BLEND_EQN_SOFTLIGHT        = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_SOFTLIGHT,
+   GLXX_ADV_BLEND_EQN_DIFFERENCE       = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_DIFFERENCE,
+   GLXX_ADV_BLEND_EQN_EXCLUSION        = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_EXCLUSION,
+   GLXX_ADV_BLEND_EQN_HSL_HUE          = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_HSL_HUE,
+   GLXX_ADV_BLEND_EQN_HSL_SATURATION   = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_HSL_SATURATION,
+   GLXX_ADV_BLEND_EQN_HSL_COLOR        = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_HSL_COLOR,
+   GLXX_ADV_BLEND_EQN_HSL_LUMINOSITY   = GLXX_ADV_BLEND_EQN_BIT + GLSL_ADV_BLEND_HSL_LUMINOSITY
 } glxx_blend_eqn_t;
 
 typedef struct
@@ -386,7 +379,7 @@ struct GLXX_SERVER_STATE_T_
 
    GLenum error;
 
-   GLXX_LINK_RESULT_KEY_T shaderkey_common;
+   GLSL_BACKEND_CFG_T shaderkey_common;
 
    struct {
       uint32_t backend;

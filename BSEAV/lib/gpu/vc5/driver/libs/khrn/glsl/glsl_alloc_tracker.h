@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_ALLOC_TRACKER_H_INCLUDED
-#define GLSL_ALLOC_TRACKER_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stddef.h>
 #include <stdbool.h>
@@ -23,5 +15,3 @@ bool                  glsl_alloc_tracker_add (glsl_alloc_tracker_t *tracker,
                                               size_t                bytes);
 void glsl_alloc_tracker_print(const glsl_alloc_tracker_t *tracker);
 void glsl_alloc_tracker_free (glsl_alloc_tracker_t       *tracker);
-
-#endif

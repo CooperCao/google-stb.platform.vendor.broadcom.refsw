@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 
 #include <stdlib.h>
@@ -50,7 +43,7 @@ static bool swizzle_valid_as_lvalue(unsigned char *swizzle_slots)
    return true;
 }
 
-MemoryQualifier glsl_get_mem_flags(Expr *expr) {
+MemoryQualifier glsl_get_mem_flags(Expr *expr, ShaderFlavour flavour) {
    switch (expr->flavour) {
       case EXPR_INSTANCE:
       {
@@ -69,12 +62,31 @@ MemoryQualifier glsl_get_mem_flags(Expr *expr) {
       }
 
       case EXPR_SUBSCRIPT:
-         return glsl_get_mem_flags(expr->u.subscript.aggregate);
+      {
+         Expr *a = expr->u.subscript.aggregate;
+
+         MemoryQualifier mq = MEMORY_NONE;
+         if (flavour == SHADER_TESS_CONTROL && a->flavour == EXPR_INSTANCE) {
+            const Symbol *sym = a->u.instance.symbol;
+            bool is_vtx_output = ( sym->flavour == SYMBOL_VAR_INSTANCE              &&
+                                   sym->u.var_instance.storage_qual == STORAGE_OUT  &&
+                                   sym->u.var_instance.type_qual    != TYPE_QUAL_PATCH );
+
+            Expr *s = expr->u.subscript.subscript;
+            bool sub_is_inv_id = (s->flavour == EXPR_INSTANCE &&
+                                  s->u.instance.symbol == glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__HIGHP__INT__GL_INVOCATIONID));
+
+            if (is_vtx_output && !sub_is_inv_id)
+               mq = MEMORY_READONLY;
+         }
+
+         return glsl_get_mem_flags(a, flavour) | mq;
+      }
 
       case EXPR_FIELD_SELECTOR:
       {
          Expr *aggregate = expr->u.field_selector.aggregate;
-         MemoryQualifier mq = glsl_get_mem_flags(aggregate);
+         MemoryQualifier mq = glsl_get_mem_flags(aggregate, flavour);
          MemoryQualifier field_mq;
          SymbolType *t = aggregate->type;
          assert(t->flavour == SYMBOL_STRUCT_TYPE || t->flavour == SYMBOL_BLOCK_TYPE);
@@ -87,7 +99,7 @@ MemoryQualifier glsl_get_mem_flags(Expr *expr) {
       }
 
       case EXPR_SWIZZLE:
-         return glsl_get_mem_flags(expr->u.swizzle.aggregate);
+         return glsl_get_mem_flags(expr->u.swizzle.aggregate, flavour);
 
       default:
          return MEMORY_NONE;
@@ -401,34 +413,36 @@ static void validate_qualifier_augment(const Statement *s, ShaderFlavour flavour
 }
 
 static void spostv_check_and_mark_exits(Statement *s, void *data) {
+   struct validate_data *info = data;
+
    /* First check that writeonly isn't misapplied */
    MemoryQualifier mq = MEMORY_NONE;
    switch (s->flavour) {
       case STATEMENT_VAR_DECL:
          if (s->u.var_decl.initializer)
-            mq = glsl_get_mem_flags(s->u.var_decl.initializer);
+            mq = glsl_get_mem_flags(s->u.var_decl.initializer, info->flavour);
          break;
       case STATEMENT_EXPR:
-         mq = glsl_get_mem_flags(s->u.expr.expr);
+         mq = glsl_get_mem_flags(s->u.expr.expr, info->flavour);
          break;
       case STATEMENT_SELECTION:
-         mq = glsl_get_mem_flags(s->u.selection.cond);
+         mq = glsl_get_mem_flags(s->u.selection.cond, info->flavour);
          break;
       case STATEMENT_ITERATOR_FOR:
          if (s->u.iterator_for.loop)
-            mq = glsl_get_mem_flags(s->u.iterator_for.loop);
+            mq = glsl_get_mem_flags(s->u.iterator_for.loop, info->flavour);
          break;
       case STATEMENT_ITERATOR_DO_WHILE:
-         mq = glsl_get_mem_flags(s->u.iterator_do_while.cond);
+         mq = glsl_get_mem_flags(s->u.iterator_do_while.cond, info->flavour);
          break;
       case STATEMENT_SWITCH:
-         mq = glsl_get_mem_flags(s->u.switch_stmt.cond);
+         mq = glsl_get_mem_flags(s->u.switch_stmt.cond, info->flavour);
          break;
       case STATEMENT_CASE:
-         mq = glsl_get_mem_flags(s->u.case_stmt.expr);
+         mq = glsl_get_mem_flags(s->u.case_stmt.expr, info->flavour);
          break;
       case STATEMENT_RETURN_EXPR:
-         mq = glsl_get_mem_flags(s->u.return_expr.expr);
+         mq = glsl_get_mem_flags(s->u.return_expr.expr, info->flavour);
          break;
       default:
          /* No checking needed */
@@ -437,7 +451,6 @@ static void spostv_check_and_mark_exits(Statement *s, void *data) {
    if (mq & MEMORY_WRITEONLY)
       glsl_compile_error(ERROR_SEMANTIC, 5, s->line_num, NULL);
 
-   struct validate_data *info = data;
    if (s->flavour == STATEMENT_DISCARD && info->flavour != SHADER_FRAGMENT)
       glsl_compile_error(ERROR_CUSTOM, 12, s->line_num, NULL);
    if (s->flavour == STATEMENT_VAR_DECL && info->flavour == SHADER_COMPUTE)
@@ -487,6 +500,8 @@ static void ensure_arg_n_const(Symbol *called, ExprChain *args, int n) {
 }
 
 static void epostv_validate(Expr *e, void *data) {
+   struct validate_data *d = data;
+
    /* Validate that reading things doesn't violate writeonly */
    switch(e->flavour) {
       case EXPR_VALUE:         /* Doesn't read anything */
@@ -509,7 +524,7 @@ static void epostv_validate(Expr *e, void *data) {
       case EXPR_LOGICAL_NOT:
       case EXPR_BITWISE_NOT:
       {
-         MemoryQualifier mq = glsl_get_mem_flags(e->u.unary_op.operand);
+         MemoryQualifier mq = glsl_get_mem_flags(e->u.unary_op.operand, d->flavour);
          if (mq & MEMORY_WRITEONLY)
             glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          break;
@@ -535,8 +550,8 @@ static void epostv_validate(Expr *e, void *data) {
       case EXPR_SHL:
       case EXPR_SHR:
       {
-         MemoryQualifier lmq = glsl_get_mem_flags(e->u.binary_op.left);
-         MemoryQualifier rmq = glsl_get_mem_flags(e->u.binary_op.right);
+         MemoryQualifier lmq = glsl_get_mem_flags(e->u.binary_op.left, d->flavour);
+         MemoryQualifier rmq = glsl_get_mem_flags(e->u.binary_op.right, d->flavour);
          if ( (lmq & MEMORY_WRITEONLY) || (rmq & MEMORY_WRITEONLY) )
             glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          break;
@@ -544,7 +559,7 @@ static void epostv_validate(Expr *e, void *data) {
 
       case EXPR_PRIM_CONSTRUCTOR_CALL:
          for (ExprChainNode *node = e->u.prim_constructor_call.args->first; node; node=node->next) {
-            MemoryQualifier mq = glsl_get_mem_flags(node->expr);
+            MemoryQualifier mq = glsl_get_mem_flags(node->expr, d->flavour);
             if (mq & MEMORY_WRITEONLY)
                glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          }
@@ -552,7 +567,7 @@ static void epostv_validate(Expr *e, void *data) {
 
       case EXPR_COMPOUND_CONSTRUCTOR_CALL:
          for (ExprChainNode *node = e->u.compound_constructor_call.args->first; node; node=node->next) {
-            MemoryQualifier mq = glsl_get_mem_flags(node->expr);
+            MemoryQualifier mq = glsl_get_mem_flags(node->expr, d->flavour);
             if (mq & MEMORY_WRITEONLY)
                glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          }
@@ -560,24 +575,27 @@ static void epostv_validate(Expr *e, void *data) {
 
       case EXPR_ASSIGN:
       {
-         MemoryQualifier rmq = glsl_get_mem_flags(e->u.assign_op.rvalue);
+         MemoryQualifier lmq = glsl_get_mem_flags(e->u.assign_op.lvalue, d->flavour);
+         MemoryQualifier rmq = glsl_get_mem_flags(e->u.assign_op.rvalue, d->flavour);
+         if (lmq & MEMORY_READONLY)
+            glsl_compile_error(ERROR_SEMANTIC, 15, e->line_num, NULL);
          if (rmq & MEMORY_WRITEONLY)
             glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          break;
       }
       case EXPR_CONDITIONAL:
       {
-         MemoryQualifier cmq = glsl_get_mem_flags(e->u.cond_op.cond);
-         MemoryQualifier tmq = glsl_get_mem_flags(e->u.cond_op.if_true);
-         MemoryQualifier fmq = glsl_get_mem_flags(e->u.cond_op.if_false);
+         MemoryQualifier cmq = glsl_get_mem_flags(e->u.cond_op.cond, d->flavour);
+         MemoryQualifier tmq = glsl_get_mem_flags(e->u.cond_op.if_true, d->flavour);
+         MemoryQualifier fmq = glsl_get_mem_flags(e->u.cond_op.if_false, d->flavour);
          if ( (cmq & MEMORY_WRITEONLY) || (tmq & MEMORY_WRITEONLY) || (fmq & MEMORY_WRITEONLY) )
             glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          break;
       }
       case EXPR_SEQUENCE:
       {
-         MemoryQualifier lmq = glsl_get_mem_flags(e->u.sequence.all_these);
-         MemoryQualifier rmq = glsl_get_mem_flags(e->u.sequence.then_this);
+         MemoryQualifier lmq = glsl_get_mem_flags(e->u.sequence.all_these, d->flavour);
+         MemoryQualifier rmq = glsl_get_mem_flags(e->u.sequence.then_this, d->flavour);
          if ( (lmq & MEMORY_WRITEONLY) || (rmq & MEMORY_WRITEONLY) )
             glsl_compile_error(ERROR_SEMANTIC, 5, e->line_num, NULL);
          break;
@@ -587,7 +605,6 @@ static void epostv_validate(Expr *e, void *data) {
          break;
    }
 
-   struct validate_data *d = data;
    if (e->flavour == EXPR_FUNCTION_CALL) {
       Symbol *called = e->u.function_call.function;
       if (called->u.function_instance.function_def == NULL)
@@ -637,15 +654,28 @@ static void epostv_validate(Expr *e, void *data) {
    }
 
    if (e->flavour == EXPR_SUBSCRIPT) {
-      /* Check that all interface blocks are indexed by constant expressions */
-      SymbolType *aggregate_type = e->u.subscript.aggregate->type;
+      bool shader5 = d->version >= GLSL_SHADER_VERSION(3,20,1) || glsl_ext_status(GLSL_EXT_GPU_SHADER5) != GLSL_DISABLED;
+
+      Expr *a = e->u.subscript.aggregate;
+      Expr *s = e->u.subscript.subscript;
+      SymbolType *aggregate_type = a->type;
       while (aggregate_type->flavour == SYMBOL_ARRAY_TYPE)
          aggregate_type = aggregate_type->u.array_type.member_type;
-      if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE && !e->u.subscript.subscript->compile_time_value) {
-         bool shader5 = d->version >= GLSL_SHADER_VERSION(3,20,1) || glsl_ext_status(GLSL_EXT_GPU_SHADER5) != GLSL_DISABLED;
-         if (!shader5 || e->u.subscript.aggregate->u.instance.symbol->u.var_instance.storage_qual == STORAGE_BUFFER)
-            glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "indexing array of interface blocks");
+
+      bool requires_constant = false;
+
+      if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE) {
+         assert(a->flavour == EXPR_INSTANCE);
+         switch(a->u.instance.symbol->u.var_instance.storage_qual) {
+            case STORAGE_UNIFORM: requires_constant = !shader5; break;
+            case STORAGE_BUFFER:  requires_constant = true;     break;
+            default:              requires_constant = false;    break;
+         }
       }
+
+      /* Check that all interface blocks are indexed by constant expressions */
+      if (requires_constant && !s->compile_time_value)
+         glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "indexing array of interface blocks");
    }
 }
 

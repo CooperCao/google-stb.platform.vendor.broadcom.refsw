@@ -1,19 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BASICBLOCK_BUILDER_H_INCLUDED
-#define GLSL_BASICBLOCK_BUILDER_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_nast.h"
 #include "glsl_basic_block.h"
 
 BasicBlock *glsl_basic_block_build(NStmtList *nast);
-
-#endif

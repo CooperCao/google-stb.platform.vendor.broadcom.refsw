@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_backflow.h"
 #include "glsl_backflow_visitor.h"
 #include "glsl_backend.h"
@@ -79,13 +72,6 @@ void dpostv_node_combine(Backflow *node, void *data) {
 
       /* Validity checking: These would be invalid nodes, and would break this */
       assert(operand->unif == BACKEND_UNIFORM_UNASSIGNED);
-
-      /* Fix the data_dependents chains in the modified nodes */
-      glsl_backflow_chain_remove(&operand->data_dependents, node);
-      for (int i=0; i<BACKFLOW_DEP_COUNT; i++) {
-         if (operand->dependencies[i] != NULL)
-            glsl_backflow_chain_append(&operand->dependencies[i]->data_dependents, node);
-      }
    }
 
    if (node->dependencies[0]) {
@@ -124,9 +110,6 @@ void dpostv_node_combine(Backflow *node, void *data) {
 
                node->u.alu.unpack[i-1] = unpack_code;
                node->dependencies[i] = operand->dependencies[1];
-
-               glsl_backflow_chain_remove(&operand->data_dependents, node);
-               glsl_backflow_chain_append(&operand->dependencies[1]->data_dependents, node);
             }
          }
       }

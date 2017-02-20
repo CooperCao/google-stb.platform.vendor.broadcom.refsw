@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Interlock system
-
-FILE DESCRIPTION
-Interlock system to ensure correct ordering of reads/writes.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../egl/egl_platform.h"
 #include "khrn_int_common.h"
 #include "khrn_interlock.h"
@@ -259,9 +251,14 @@ bool khrn_interlock_update_from_rs(KHRN_INTERLOCK_T *interlock,
       khrn_interlock_stages_t read_stages = decode_stages(interlock->readers, rs_index);
       if (read_stages)
       {
-         uint64_t last_read_job = stage_jobs[gfx_msb(read_stages)];
-         assert(last_read_job != 0);
-         v3d_scheduler_add_dep(&interlock->pre_write, last_read_job);
+         unsigned last_read_stage = gfx_msb(read_stages);
+         uint64_t last_read_job = stage_jobs[last_read_stage];
+
+         // It's possible for preprocess to not have a job ID if it ran immediately.
+         assert((1 << last_read_stage) == KHRN_INTERLOCK_STAGE_PREPROCESS || last_read_job != 0);
+
+         if (last_read_job != 0)
+            v3d_scheduler_add_dep(&interlock->pre_write, last_read_job);
       }
    }
 

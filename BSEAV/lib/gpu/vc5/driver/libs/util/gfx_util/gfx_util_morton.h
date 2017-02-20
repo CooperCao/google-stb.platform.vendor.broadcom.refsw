@@ -1,19 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GFX_UTIL_MORTON_H
 #define GFX_UTIL_MORTON_H
 
 #include "gfx_util.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 /* See http://en.wikipedia.org/wiki/Morton_order */
 
@@ -67,6 +60,6 @@ extern void gfx_morton_init(GFX_MORTON_STATE_T *state,
 extern bool gfx_morton_next(GFX_MORTON_STATE_T *state,
    uint32_t *x, uint32_t *y, bool *last);
 
-VCOS_EXTERN_C_END
+EXTERN_C_END
 
 #endif

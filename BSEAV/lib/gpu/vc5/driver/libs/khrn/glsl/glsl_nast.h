@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_NAST_H_INCLUDED
-#define GLSL_NAST_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_common.h"
 
@@ -139,5 +131,3 @@ const NStmt *glsl_nstmt_new_return_expr(Expr *expr);
 NStmtList *glsl_nstmt_list_new(void);
 void glsl_nstmt_list_add(NStmtList *list, const NStmt *value);
 void glsl_nstmt_list_add_list(NStmtList *dst, NStmtList *src);
-
-#endif

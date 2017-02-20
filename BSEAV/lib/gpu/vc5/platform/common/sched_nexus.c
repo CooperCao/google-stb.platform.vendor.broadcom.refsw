@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "sched_nexus.h"
 #include "platform_common.h"
 #include "gmem.h"
@@ -769,7 +767,7 @@ static BEGL_SchedStatus GetPerfCounterGroupInfo(void *context, void *session, ui
    /* so group description needs to be retrieved one by one      */
    /* We rely on the fact that Nexus and our counter structures are identical */
    NEXUS_Graphicsv3d_GetPerfCounterGroupInfo(ctx->session, group,
-                                             desc->name,
+                                             sizeof(desc->name), desc->name,
                                              &desc->max_active_counters,
                                              &desc->total_counters);
 

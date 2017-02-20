@@ -1,23 +1,22 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "glsl_errors.h"
 #include "glsl_ir_shader.h"
 
+void glsl_ssa_shader_term(SSAShader *sh) {
+   for (int i=0; i<sh->n_blocks; i++) glsl_safemem_free(sh->blocks[i].outputs);
+   glsl_safemem_free(sh->blocks);
+   glsl_safemem_free(sh->outputs);
+}
+
+
 #define DF_COPY_CHUNK_SIZE 16
 
-typedef struct
-{
+typedef struct {
    struct {
       int  new_id;
       bool seen;

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 
 #include <stdlib.h>
@@ -40,8 +33,10 @@ bool glsl_shallow_match_nonfunction_types(const SymbolType *a, const SymbolType 
    else if (a->flavour == SYMBOL_ARRAY_TYPE && b->flavour == SYMBOL_ARRAY_TYPE)
    {
       // Array types are not canonical, so do a manual match.
-      assert(a->u.array_type.member_count && b->u.array_type.member_count);
       if (a->u.array_type.member_count != b->u.array_type.member_count)
+         return false;
+      /* Unsized arrays are never a match */
+      if (a->u.array_type.member_count == 0)
          return false;
 
       return glsl_shallow_match_nonfunction_types(a->u.array_type.member_type,
@@ -303,12 +298,12 @@ static void check_args_valid_for_overload(SymbolType *overload, ExprChain *args,
          MemoryQualifier v = MEMORY_READONLY | MEMORY_WRITEONLY |
                              MEMORY_COHERENT | MEMORY_VOLATILE;
          if (relaxed_memq) v &= ~(MEMORY_COHERENT | MEMORY_VOLATILE);
-         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr);
+         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr, g_ShaderFlavour);
          MemoryQualifier arg_only = arg_mq & ~param->u.param_instance.mem_qual;
          if (arg_only & v)
             glsl_compile_error(ERROR_CUSTOM, 16, arg->expr->line_num, "invalid memory qualifiers");
       } else {
-         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr);
+         MemoryQualifier arg_mq = glsl_get_mem_flags(arg->expr, g_ShaderFlavour);
          if ( (pq == PARAM_QUAL_IN || pq == PARAM_QUAL_INOUT) && (arg_mq & MEMORY_WRITEONLY) )
             glsl_compile_error(ERROR_SEMANTIC, 5, arg->expr->line_num, NULL);
       }

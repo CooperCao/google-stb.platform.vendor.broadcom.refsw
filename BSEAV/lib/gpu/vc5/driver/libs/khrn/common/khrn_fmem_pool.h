@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Per-frame memory pool
-
-FILE DESCRIPTION
-Handles allocation and uploading of memory for control lists and
-associated data that will be generated each frame as HW input.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 /*
   Overview
   --------
@@ -87,6 +79,8 @@ extern void khrn_fmem_pool_init(KHRN_FMEM_POOL_T *pool,
 extern void khrn_fmem_pool_deinit(KHRN_FMEM_POOL_T *pool);
 
 extern void *khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool);
+
+extern void khrn_fmem_pool_post_cpu_write(KHRN_FMEM_POOL_T* pool);
 
 extern void khrn_fmem_pool_submit(
    KHRN_FMEM_POOL_T *pool,

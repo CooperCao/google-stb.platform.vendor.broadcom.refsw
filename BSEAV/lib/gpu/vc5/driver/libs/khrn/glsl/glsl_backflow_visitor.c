@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdlib.h>
 
 #include "glsl_map.h"
@@ -64,5 +57,6 @@ struct backflow_visitor *glsl_backflow_visitor_begin(void *data, BackflowPreVisi
 }
 
 void glsl_backflow_visitor_end(struct backflow_visitor *v) {
+   glsl_map_delete(v->map);
    glsl_safemem_free(v);
 }

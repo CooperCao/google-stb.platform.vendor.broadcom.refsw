@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <setjmp.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -26,9 +19,11 @@ FILE DESCRIPTION
 #include "glsl_dominators.h"
 
 #include "glsl_sched_node_helpers.h"
+#include "glsl_backend_cfg.h"
 #include "glsl_qbe_vertex.h"
 #include "glsl_qbe_fragment.h"
 
+#include "libs/core/v3d/v3d_gen.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
 BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
@@ -40,7 +35,12 @@ BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour flavour) {
    ret->code_size  = 0;
    ret->unif       = NULL;
    ret->unif_count = 0;
+#if V3D_HAS_RELAXED_THRSW
+   ret->four_thread = true;
+   ret->single_seg  = true;
+#else
    ret->n_threads  = 0;
+#endif
 
    switch(flavour) {
    case SHADER_FRAGMENT:
@@ -97,7 +97,7 @@ static void dpostv_find_live_attribs(Dataflow *dataflow, void *data)
       int id = dataflow->u.linkable_value.row;
       assert(id < d->link->num_ins);
       int row = d->link->ins[id];
-      assert(row < 4*GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+      assert(row < 4*V3D_MAX_ATTR_ARRAYS);
 
       /* This is attribute i, scalar j. We are using at least j scalars of i */
       int i = row / 4;
@@ -127,7 +127,7 @@ static bool get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkM
    attr->vertexid_used = false;
    attr->instanceid_used = false;
    attr->baseinstance_used = false;
-   for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++)
+   for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++)
       attr->scalars_used[i] = 0;
 
    glsl_dataflow_reloc_visitor_begin(&pass, b->dataflow, b->num_dataflow, temp);
@@ -146,30 +146,36 @@ static bool get_attrib_info(const CFGBlock *b, ATTRIBS_USED_T *attr, const LinkM
 }
 
 static void fragment_backend_init(FragmentBackendState *s,
-                                  uint32_t backend, bool early_fragment_tests, bool requires_sbwait)
+                                  uint32_t backend, bool early_fragment_tests
+#if !V3D_HAS_RELAXED_THRSW
+                                  , bool requires_sbwait
+#endif
+                                  )
 {
-   s->ms                       = !!(backend & GLXX_SAMPLE_MS);
-   s->sample_alpha_to_coverage = s->ms && !!(backend & GLXX_SAMPLE_ALPHA);
-   s->sample_mask              = s->ms && !!(backend & GLXX_SAMPLE_MASK);
-   s->fez_safe_with_discard    = !!(backend & GLXX_FEZ_SAFE_WITH_DISCARD);
+   s->ms                       = !!(backend & GLSL_SAMPLE_MS);
+   s->sample_alpha_to_coverage = s->ms && !!(backend & GLSL_SAMPLE_ALPHA);
+   s->sample_mask              = s->ms && !!(backend & GLSL_SAMPLE_MASK);
+   s->fez_safe_with_discard    = !!(backend & GLSL_FEZ_SAFE_WITH_DISCARD);
    s->early_fragment_tests     = early_fragment_tests;
+#if !V3D_HAS_RELAXED_THRSW
    s->requires_sbwait          = requires_sbwait;
+#endif
 
-   for (int i=0; i<GLXX_MAX_RENDER_TARGETS; i++) {
-      int shift = GLXX_FB_GADGET_S + 3*i;
-      uint32_t mask = GLXX_FB_GADGET_M << shift;
+   for (int i=0; i<V3D_MAX_RENDER_TARGETS; i++) {
+      int shift = GLSL_FB_GADGET_S + 3*i;
+      uint32_t mask = GLSL_FB_GADGET_M << shift;
       int fb_gadget = (backend & mask) >> shift;
       s->rt[i].type = fb_gadget & 0x3;
-      s->rt[i].alpha_16_workaround = (fb_gadget & GLXX_FB_ALPHA_16_WORKAROUND);
+      s->rt[i].alpha_16_workaround = (fb_gadget & GLSL_FB_ALPHA_16_WORKAROUND);
    }
 
-   s->adv_blend = (backend & GLXX_ADV_BLEND_M) >> GLXX_ADV_BLEND_S;
+   s->adv_blend = (backend & GLSL_ADV_BLEND_M) >> GLSL_ADV_BLEND_S;
 }
 
 static void vertex_backend_init(VertexBackendState *s, uint32_t backend, bool bin_mode, bool has_point_size) {
    s->bin_mode        = bin_mode;
-   s->emit_point_size = ((backend & GLXX_PRIM_M) == GLXX_PRIM_POINT) && has_point_size;
-   s->z_only_active   = !!(backend & GLXX_Z_ONLY_WRITE) && bin_mode;
+   s->emit_point_size = ((backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && has_point_size;
+   s->z_only_active   = !!(backend & GLSL_Z_ONLY_WRITE) && bin_mode;
 }
 
 static RegList *reg_list_prepend(RegList *p, Backflow *node, uint32_t reg) {
@@ -375,11 +381,18 @@ static const struct postamble_info postamble_infos[] = {
 
 /* Uniforms: quorum, op_set_quorum */
 static const uint32_t barrier_preamble[] = {
+#if V3D_HAS_RELAXED_THRSW
+   0xbb80f000, 0x3c602183, // ycd rf3              ; nop          ; thrsw ; ldunif
+   0xbbf42000, 0x3c005106, // eidx.pushz -         ; mov rf4, r5
+   0x7d83e0c1, 0x3dea2184, // shr.ifna rf4, rf3, 1
+   0xb6836100, 0x3c003191, // mov syncu, rf4
+#else
    0xbb00f000, 0x08646003, // ycd rf3              ; sub.pushz r0, r0, r0 ; thrsw ; ldunif
    0xbbf42000, 0x3c005106, // eidx.pushz -         ; mov rf4, r5
    0x7de3e0c1, 0x3dfca304, // shr.ifna rf4, rf3, 1 ; mov.ifnb tmua, r0
    0xbb800000, 0x3c803186, // nop                                         ; ldtmu
    0xb6836100, 0x3c003191, // mov syncu, rf4
+#endif
 };
 
 /* Uniform op_wait_inc_check */
@@ -395,18 +408,18 @@ static const uint32_t barrier_code_lthrsw[] = {
    0x7d838001, 0x3de03191, // shr syncu, r0, 1
 };
 
-#if V3D_VER_AT_LEAST(3,4,0,0)
+#if V3D_VER_AT_LEAST(4,0,2,0)
 static inline uint32_t gfxh1370_tsy_op(v3d_tsy_op_t op) { return op; }
 #else
 /* Work around GFXH-1370 by setting the high 3 bits of TSY configs. */
 static inline uint32_t gfxh1370_tsy_op(v3d_tsy_op_t op) { return 0xE0 | op; }
 #endif
 
-BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 flavour,
-                                                  bool                          bin_mode,
-                                                  GLSL_VARY_MAP_T              *vary_map,
-                                                  IR_PROGRAM_T                 *ir,
-                                                  const GLXX_LINK_RESULT_KEY_T *key)
+BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavour,
+                                                  bool                     bin_mode,
+                                                  GLSL_VARY_MAP_T          *vary_map,
+                                                  IR_PROGRAM_T             *ir,
+                                                  const GLSL_BACKEND_CFG_T *key)
 {
    BINARY_SHADER_T *binary = glsl_binary_shader_create(flavour);
    if(!binary) goto failed;
@@ -430,7 +443,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
          break;
       case SHADER_TESS_EVALUATION:
       case SHADER_VERTEX:
-         get_nodes_used(l, vary_map, ((key->backend & GLXX_PRIM_M) == GLXX_PRIM_POINT), shader_outputs_used);
+         get_nodes_used(l, vary_map, ((key->backend & GLSL_PRIM_M) == GLSL_PRIM_POINT), shader_outputs_used);
          break;
       default: unreachable();
    }
@@ -445,7 +458,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
    SchedShaderInputs ins;
    switch (flavour) {
       case SHADER_FRAGMENT:
-         fragment_shader_inputs(&ins, key->backend & GLXX_PRIM_M, ir->varying);
+         fragment_shader_inputs(&ins, key->backend & GLSL_PRIM_M, ir->varying);
          break;
       case SHADER_VERTEX:
       {
@@ -456,14 +469,14 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
             goto failed;
 
          binary->u.vertex.input_words = vertex_shader_inputs(&ins, attr);
-         binary->u.vertex.has_point_size = (((key->backend & GLXX_PRIM_M) == GLXX_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
+         binary->u.vertex.has_point_size = (((key->backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
          break;
       }
       case SHADER_TESS_CONTROL:
          break;
 
       case SHADER_TESS_EVALUATION:
-         binary->u.tess_e.has_point_size = (((key->backend & GLXX_PRIM_M) == GLXX_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
+         binary->u.tess_e.has_point_size = (((key->backend & GLSL_PRIM_M) == GLSL_PRIM_POINT) && l->outs[DF_VNODE_POINT_SIZE] != -1);
          break;
 
       case SHADER_GEOMETRY:
@@ -485,13 +498,18 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
       tblocks[i] = translate_block(&sh->blocks[i], l, output_active[i], (i==0) ? &ins : NULL, key);
    }
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   if (flavour == SHADER_VERTEX) tblocks[0]->last_vpm_read = ins.read_dep;
-#endif
-
    glsl_safemem_free(shader_outputs_used);
    for (int i=0; i<sh->num_cfg_blocks; i++) glsl_safemem_free(output_active[i]);
    glsl_safemem_free(output_active);
+
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+   if (flavour == SHADER_VERTEX) tblocks[0]->last_vpm_read = ins.read_dep;
+
+   /* Only the final block may be per-sample. Blocks reading per-sample from  *
+    * other blocks is not permitted.                                          */
+   for (int i=0; i<sh->num_cfg_blocks; i++)
+      assert(!tblocks[i]->per_sample || i == sh->num_cfg_blocks-1);
+#endif
 
    bool *does_thrsw = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool));
    int max_threading = 4;
@@ -515,24 +533,19 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
    }
 
    int lthrsw_block = -1;
-   if (has_thrsw) {
-      lthrsw_block = glsl_find_lthrsw_block(sh->blocks, sh->num_cfg_blocks, does_thrsw);
-
-      /* If the lthrsw block is not allowed to threadswitch, add a fake TMU request */
-      if (!does_thrsw[lthrsw_block])
-         glsl_backflow_fake_tmu(tblocks[lthrsw_block]);
-   } else
-      max_threading = 1;
+   if (has_thrsw) lthrsw_block = glsl_find_lthrsw_block(sh->blocks, sh->num_cfg_blocks, does_thrsw);
    glsl_safemem_free(does_thrsw);
 
-   int final_block_id = sh->num_cfg_blocks-1;
-
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   /* Only the final block may be per-sample. Blocks reading per-sample from  *
-    * other blocks is not permitted.                                          */
-   for (int i=0; i<sh->num_cfg_blocks; i++)
-      assert(!tblocks[i]->per_sample || i == final_block_id);
+#if V3D_HAS_RELAXED_THRSW
+   if (!has_thrsw && flavour == SHADER_FRAGMENT) {
+      lthrsw_block = 0;
+      has_thrsw = true;
+   }
+#else
+   if (!has_thrsw) max_threading = 1;
 #endif
+
+   int final_block_id = sh->num_cfg_blocks-1;
 
    bool shader_needs_tmuwt = false;
    for (int i=0; i<sh->num_cfg_blocks; i++) {
@@ -565,8 +578,12 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
    SchedBlock *final_block = tblocks[final_block_id];
    if (flavour == SHADER_FRAGMENT) {
       FragmentBackendState s;
+#if V3D_HAS_RELAXED_THRSW
+      fragment_backend_init(&s, key->backend, ir->early_fragment_tests);
+#else
       bool sbwaited = uses_barrier || (final_block_id != 0 && tblocks[0]->first_tlb_read);
       fragment_backend_init(&s, key->backend, ir->early_fragment_tests, !sbwaited);
+#endif
       for (int i=0; i<sh->num_cfg_blocks; i++) binary->u.fragment.per_sample = binary->u.fragment.per_sample ||
                                                                                (s.ms && tblocks[i]->per_sample);
       glsl_fragment_backend(final_block, final_block_id, sh, l, &s,
@@ -681,7 +698,11 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
 
    GENERATED_SHADER_T **backend_result = glsl_safemem_malloc(sh->num_cfg_blocks*sizeof(GENERATED_SHADER_T));
    int threads;
+#if V3D_HAS_RELAXED_THRSW
+   int min_threads = 2;
+#else
    int min_threads = uses_barrier ? 2 : 1;
+#endif
    for (threads = max_threading; threads >= min_threads; threads /= 2) {
       bool good = true;
 
@@ -777,11 +798,18 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
       code_size += 8*(backend_result[i]->instruction_count + postamble_infos[bi[i].postamble_type].instr_count);
    }
 
-   binary->unif      = malloc(unif_size);
-   binary->code      = malloc(code_size);
-   binary->n_threads = threads;
+   binary->unif = malloc(unif_size);
+   binary->code = malloc(code_size);
    if(binary->unif == NULL || binary->code == NULL)
       goto failed;
+
+#if V3D_HAS_RELAXED_THRSW
+   binary->four_thread = (threads == 4);
+   binary->single_seg  = !has_thrsw;
+   assert(!binary->single_seg || flavour != SHADER_FRAGMENT);
+#else
+   binary->n_threads = threads;
+#endif
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    binary->uses_control_flow = (sh->num_cfg_blocks != 1);
@@ -855,7 +883,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 
    for (int i=0; i<sh->num_cfg_blocks; i++)
       glsl_safemem_free(backend_result[i]);
    glsl_safemem_free(backend_result);
-#ifdef NDEBUG
+#ifndef NDEBUG
    glsl_safemem_verify();
 #endif
    return binary;

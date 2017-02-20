@@ -1,15 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Creates GLES2.0 shaders as dataflow graphs and passes them to the compiler
-backend.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../glsl/glsl_ir_program.h"
 #include "glxx_shader.h"
 #include "glxx_hw.h"
@@ -26,10 +17,10 @@ void glxx_binary_cache_invalidate(GLXX_BINARY_CACHE_T *cache)
 }
 
 GLXX_LINK_RESULT_DATA_T *glxx_binary_cache_get_shaders(GLXX_BINARY_CACHE_T *cache,
-                                                       GLXX_LINK_RESULT_KEY_T *key)
+                                                       GLSL_BACKEND_CFG_T  *key)
 {
    for (unsigned i = 0; i < cache->used; i++) {
-      if (cache->entry[i].used && !memcmp(&cache->entry[i].key, key, sizeof(GLXX_LINK_RESULT_KEY_T)))
+      if (cache->entry[i].used && !memcmp(&cache->entry[i].key, key, sizeof(GLSL_BACKEND_CFG_T)))
          return &cache->entry[i].data;
    }
 
@@ -39,7 +30,7 @@ GLXX_LINK_RESULT_DATA_T *glxx_binary_cache_get_shaders(GLXX_BINARY_CACHE_T *cach
 GLXX_LINK_RESULT_DATA_T *glxx_get_shaders_and_cache(
    GLXX_BINARY_CACHE_T *cache,
    IR_PROGRAM_T *ir,
-   GLXX_LINK_RESULT_KEY_T *key)
+   GLSL_BACKEND_CFG_T *key)
 {
    /* Compile new version of this shader and add it to the cache. */
    int i = cache->next;
