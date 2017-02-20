@@ -1,18 +1,15 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "default_wl_client.h"
 
 #include "display_wl_client.h"
 #include "private_nexus.h"
+#include "memory_drm.h"
 #include "memory_nexus.h"
 #include "sched_nexus.h"
 
 #include "nexus_platform_common.h"
-
-#include <wayland-client.h>
 
 #include <EGL/egl.h>
 
@@ -32,23 +29,27 @@ All rights reserved.
  * client platform and the real BEGL_DisplayInterface.
  */
 
-static void RegisterDisplayPlatform(WaylandClient *wlc)
+static void RegisterDisplayPlatform(WaylandClientPlatform *platform)
 {
-   WaylandClientDisplayPlatform *platform = &wlc->platform;
-
    /* use standard Nexus memory and sched interfaces */
-   platform->memoryInterface = CreateMemoryInterface();
+   platform->drm = false;
+   platform->memoryInterface = CreateDRMMemoryInterface();
+   if (platform->memoryInterface != NULL)
+      platform->drm = true;
+   else
+      platform->memoryInterface = CreateMemoryInterface();
+
    platform->schedInterface  = CreateSchedInterface(platform->memoryInterface);
 
    /* Wayland overrides for display interface - client side*/
-   platform->displayInterface = CreateDisplayInterfaceWaylandClient(wlc);
+   platform->displayInterface = CreateDisplayInterfaceWaylandClient(platform);
 
    BEGL_RegisterMemoryInterface(platform->memoryInterface);
    BEGL_RegisterSchedInterface(platform->schedInterface);
    BEGL_RegisterDisplayInterface(platform->displayInterface);
 }
 
-static void UnregisterDisplayPlatform(WaylandClientDisplayPlatform *platform)
+static void UnregisterDisplayPlatform(WaylandClientPlatform *platform)
 {
    /* Tell the 3D driver that the platform layer is about to go away so it can perform
     * final cleanup. */
@@ -67,114 +68,60 @@ static void UnregisterDisplayPlatform(WaylandClientDisplayPlatform *platform)
    DestroySchedInterface(platform->schedInterface);
    platform->schedInterface = NULL;
 
-   DestroyMemoryInterface(platform->memoryInterface);
+   if (platform->drm)
+      DestroyDRMMemoryInterface(platform->memoryInterface);
+   else
+      DestroyMemoryInterface(platform->memoryInterface);
    platform->memoryInterface = NULL;
 }
 
-static void RegistryGolbalAdd(void *data, struct wl_registry *registry,
-      uint32_t name, const char *interface, uint32_t version)
-{
-   if (strcmp(interface, "wl_nexus") == 0)
-   {
-      WaylandClient *wlc = (WaylandClient *)data;
-
-      wlc->nexus = (struct wl_nexus *) wl_registry_bind(registry, name,
-            &wl_nexus_interface, version);
-
-      wl_proxy_set_queue((struct wl_proxy *) wlc->nexus,
-            wlc->events);
-   }
-}
-
-static void RegistryGlobalRemove(void *data, struct wl_registry *registry,
-      uint32_t name)
-{
-   /* nothing to do here */
-}
-
-static void DestroyWaylandClient(WaylandClient *wlc)
+static void DestroyWaylandClientPlatform(
+      WaylandClientPlatform *platform)
 {
    /* This function may be called on partially initialised client */
 
-   if (wlc->joined)
+   if (platform->joined)
    {
-      UnregisterDisplayPlatform(&wlc->platform);
+      UnregisterDisplayPlatform(platform);
       NxClient_Uninit();
-      wlc->joined = false;
+      platform->joined = false;
    }
-
-   if (wlc->nexus) /* uses wlc->events */
-   {
-      wl_nexus_destroy(wlc->nexus);
-      wlc->nexus = NULL;
-   }
-
-   if (wlc->registry) /* uses wlc->events */
-   {
-      wl_registry_destroy(wlc->registry);
-      wlc->registry = NULL;
-   }
-
-   if (wlc->events)
-   {
-      wl_event_queue_destroy(wlc->events);
-      wlc->events = NULL;
-   }
-
-   /* display isn't ours to disconnect */
-   wlc->display = NULL;
+   DestroyWaylandClient(&platform->client);
 }
 
-static bool InitWaylandClient(WaylandClient *wlc,
+static bool InitWaylandClientPlatform(
+      WaylandClientPlatform *platform,
       struct wl_display *display)
 {
-   assert(!wlc->joined);
+   assert(!platform->joined);
 
-   if (!display)
+   if (!InitWaylandClient(&platform->client, display))
       return false;
-   wlc->display = display;
-
-   wlc->registry = wl_display_get_registry(wlc->display);
-   wlc->events = wl_display_create_queue(wlc->display);
-   if (wlc->events == NULL)
-      goto error;
-
-   static const struct wl_registry_listener registryGlobalListener = {
-         RegistryGolbalAdd, RegistryGlobalRemove };
-
-   wl_registry_add_listener(wlc->registry, &registryGlobalListener, wlc);
-   wl_proxy_set_queue((struct wl_proxy *) wlc->registry,
-         wlc->events);
-   wl_display_roundtrip_queue(wlc->display, wlc->events); // Blocking
-   if (wlc->nexus == NULL)
-      goto error;
-
-   wl_nexus_set_user_data(wlc->nexus, wlc);
 
    if (NxClient_Join(NULL) != NEXUS_SUCCESS)
       goto error;
-   RegisterDisplayPlatform(wlc);
-   wlc->joined = true;
+   RegisterDisplayPlatform(platform);
+   platform->joined = true;
 
    return true;
 
 error:
-   DestroyWaylandClient(wlc);
+   DestroyWaylandClientPlatform(platform);
    return false;
 }
 
-static WaylandClient s_wlclient;
+static WaylandClientPlatform s_platform;
 
 /* called by eglGetDisplay() */
 void *GetDefaultDisplay(void *context)
 {
-   return s_wlclient.display;
+   return s_platform.client.display;
 }
 
 /* called by eglGetDisplay() */
 bool SetDefaultDisplay(void *context, void *display)
 {
-   return InitWaylandClient(&s_wlclient, display);
+   return InitWaylandClientPlatform(&s_platform, display);
 }
 
 __attribute__((constructor))
@@ -195,5 +142,5 @@ static void v3d_wlclient_load(void)
 __attribute__((destructor))
 static void v3d_wlclient_unload(void)
 {
-   DestroyWaylandClient(&s_wlclient);
+   DestroyWaylandClientPlatform(&s_platform);
 }

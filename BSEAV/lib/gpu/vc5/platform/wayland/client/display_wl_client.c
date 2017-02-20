@@ -1,8 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "display_wl_client.h"
 
 #include "display_interface.h"
@@ -32,7 +30,7 @@ All rights reserved.
 
 typedef struct PlatformState
 {
-   WaylandClient *client;
+   WaylandClientPlatform *platform;
 
    int swap_interval;
    struct wl_egl_window *wl_egl_window;
@@ -76,6 +74,8 @@ static BEGL_Error WlcGetNativeSurface(void *context,
 
 static BEGL_Error WlcSurfaceGetInfo(void *context, void *surface, BEGL_SurfaceInfo *info)
 {
+   BSTD_UNUSED(context);
+
    if (surface != NULL && surface != (void*)0xFFFFFFFF && info != NULL)
    {
       WaylandClientBuffer *cb = (WaylandClientBuffer *)surface;
@@ -165,14 +165,14 @@ static bool WlcPlatformSupported(void *context, uint32_t platform)
 
 static bool WlcSetDefaultDisplay(void *context, void *display)
 {
-   WaylandClient *wlc = (WaylandClient *)context;
-   return wlc->display == display; /* disallow change */
+   WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
+   return platform->client.display == display; /* disallow change */
 }
 
 static void *WlcGetDefaultDisplay(void *context)
 {
-   WaylandClient *wlc = (WaylandClient *)context;
-   return wlc->display;
+   WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
+   return platform->client.display;
 }
 
 static const char *WlcGetClientExtensions(void *context)
@@ -197,24 +197,24 @@ static void WlcResizeCallback(void *context, struct wl_egl_window * wl_egl_windo
 
 static void *WlcWindowPlatformStateCreate(void *context, void *native)
 {
-   WaylandClient *wlc = (WaylandClient *)context;
+   WaylandClientPlatform *platform = (WaylandClientPlatform *)context;
    struct wl_egl_window *wl_egl_window = (struct wl_egl_window *)native;
    PlatformState *state = NULL;
 
-   if (wlc && wl_egl_window && wl_egl_window->surface)
+   if (platform && wl_egl_window && wl_egl_window->surface)
    {
       state = calloc(1, sizeof(*state));
       if (state)
       {
-         state->client = wlc;
+         state->platform = platform;
          state->swap_interval = 1;
          state->wl_egl_window = wl_egl_window;
          state->wl_egl_window->resize.context = state;
          state->wl_egl_window->resize.callback = WlcResizeCallback;
 
-         FenceInteraface_InitNexus(&state->fence_interface, wlc->platform.schedInterface);
-         SurfaceInterface_InitWlClient(&state->surface_interface, state->client);
-         DisplayInterface_InitWlClient(&state->display_interface, state->client,
+         FenceInteraface_InitNexus(&state->fence_interface, platform->schedInterface);
+         SurfaceInterface_InitWlClient(&state->surface_interface, &platform->client);
+         DisplayInterface_InitWlClient(&state->display_interface, &platform->client,
                &state->fence_interface, state->wl_egl_window, SWAPCHAIN_COUNT);
 
          if (!DisplayFramework_Start(&state->display_framework,
@@ -263,12 +263,12 @@ static BEGL_Error WlcWindowPlatformStateDestroy(void *context, void *windowState
 }
 
 struct BEGL_DisplayInterface *CreateDisplayInterfaceWaylandClient(
-      WaylandClient *wlc)
+      WaylandClientPlatform *platform)
 {
    BEGL_DisplayInterface *disp = calloc(1, sizeof(*disp));
    if (disp)
    {
-      disp->context = wlc;
+      disp->context = platform;
       disp->WindowGetInfo = WlcWindowGetInfo;
       disp->GetNativeSurface = WlcGetNativeSurface;
       disp->SurfaceGetInfo = WlcSurfaceGetInfo;

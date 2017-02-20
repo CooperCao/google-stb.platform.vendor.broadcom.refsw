@@ -1,12 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef __DEFAULT_WAYLAND_CLIENT_H__
 #define __DEFAULT_WAYLAND_CLIENT_H__
 
-#include "wayland_nexus_client.h"
+#include "wl_client.h"
 #include "display_helpers.h"
 
 #include <EGL/begl_memplatform.h>
@@ -15,22 +13,14 @@ All rights reserved.
 
 #include <stdbool.h>
 
-typedef struct WaylandClientDisplayPlatform
+typedef struct WaylandClientPlatform
 {
+   struct WaylandClient client;
+   bool joined;
+   bool drm;
    BEGL_MemoryInterface    *memoryInterface;
    BEGL_SchedInterface     *schedInterface;
    BEGL_DisplayInterface   *displayInterface;
-} WaylandClientDisplayPlatform;
-
-typedef struct WaylandClient
-{
-   struct wl_display *display;
-   struct wl_registry *registry;
-   struct wl_event_queue *events;
-   struct wl_nexus *nexus;
-   bool joined;
-
-   WaylandClientDisplayPlatform platform;
-} WaylandClient;
+} WaylandClientPlatform;
 
 #endif /* __DEFAULT_WAYLAND_CLIENT_H__ */
