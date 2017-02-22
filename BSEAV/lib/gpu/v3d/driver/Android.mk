@@ -25,7 +25,8 @@ LOCAL_C_INCLUDES := \
 	$(BSEAV_TOP)/lib/gpu/vc5/tools/gpumon_hook \
 	$(V3D_DRIVER_TOP)/platform/default_android \
 	$(V3D_DRIVER_TOP)/platform/android \
-	$(V3D_DRIVER_TOP)/platform/nexus
+	$(V3D_DRIVER_TOP)/platform/nexus \
+   $(ANDROID_TOP)/frameworks/native/libs/arect/include
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
