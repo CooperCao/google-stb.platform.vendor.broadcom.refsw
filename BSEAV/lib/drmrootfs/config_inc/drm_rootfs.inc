@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,10 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
 /*
-// IMPORTANT:  This file should be included EXCLUSIVELY by drm_data.cpp.
+// IMPORTANT:  This file should be included EXCLUSIVELY by drm_data.c.
 */
 
 #ifdef __cplusplus
@@ -91,7 +92,7 @@ char drm_bin_file_rootfs_path[] ="./drm.bin";
 **   exists in rootfs.
 **
 ** NOTES:
-**   This file must only be included in drm_data.h.
+**   This file must only be included in drm_data.c.
 **
 **  Refer to drm_data.h for more details.
 **
@@ -107,10 +108,12 @@ char ta_pr25_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_25.bin";
 char ta_pr25_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_25_dev.bin";
 char ta_wv_bin_file_rootfs_path[] ="/system/bin/sage_ta_widevine.bin";
 char ta_wv_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_widevine_dev.bin";
-char ta_dtcp_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcp.bin";
-char ta_dtcp_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcp_dev.bin";
+char ta_dtcp_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcpip.bin";
+char ta_dtcp_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_dtcpip_dev.bin";
 char ta_adobe_bin_file_rootfs_path[] ="/system/bin/sage_ta_adobe.bin";
 char ta_adobe_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_adobe_dev.bin";
+char ta_mediaroom_bin_file_rootfs_path[] ="/system/bin/sage_ta_mediaroom.bin";
+char ta_mediaroom_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_mediaroom_dev.bin";
 #else
 char ta_bin_file_rootfs_path[] ="./sage_ta_common_drm.bin";
 char ta_dev_bin_file_rootfs_path[] ="./sage_ta_common_drm_dev.bin";
@@ -122,10 +125,12 @@ char ta_pr25_bin_file_rootfs_path[] ="./sage_ta_playready_25.bin";
 char ta_pr25_dev_bin_file_rootfs_path[] ="./sage_ta_playready_25_dev.bin";
 char ta_wv_bin_file_rootfs_path[] ="./sage_ta_widevine.bin";
 char ta_wv_dev_bin_file_rootfs_path[] ="./sage_ta_widevine_dev.bin";
-char ta_dtcp_bin_file_rootfs_path[] ="./sage_ta_dtcp.bin";
-char ta_dtcp_dev_bin_file_rootfs_path[] ="./sage_ta_dtcp_dev.bin";
+char ta_dtcp_bin_file_rootfs_path[] ="./sage_ta_dtcpip.bin";
+char ta_dtcp_dev_bin_file_rootfs_path[] ="./sage_ta_dtcpip_dev.bin";
 char ta_adobe_bin_file_rootfs_path[] ="./sage_ta_adobe.bin";
 char ta_adobe_dev_bin_file_rootfs_path[] ="./sage_ta_adobe_dev.bin";
+char ta_mediaroom_bin_file_rootfs_path[] ="./sage_ta_mediaroom.bin";
+char ta_mediaroom_dev_bin_file_rootfs_path[] ="./sage_ta_mediaroom_dev.bin";
 #endif
 
 /******************************************************************************

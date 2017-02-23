@@ -62,6 +62,8 @@ BDBG_MODULE(bmxt_fe);
 #define PARSER_OUTPUT_PIPE_SEL_TO_INDEX(pops)    (BMXT_IS_3128_FAMILY() ? pops-1 : pops)
 #define PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(index) (BMXT_IS_3128_FAMILY() ? index+1 : index)
 
+#define BMXT_P_LEGACY_PARSER_BAND_ID_MAX 16 /* on pre-4538, MINI_PID_PARSER?_TO_PARSER?_BAND_ID.PARSER?_BAND_ID is a 4-bit number */
+
 #define R(reg) (handle->platform.regoffsets[reg] + handle->platform.regbase)
 #define STEP(res) (handle->platform.stepsize[res])
 #define EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
@@ -311,6 +313,19 @@ static void BMXT_Open_PostOpen(BMXT_Handle mxt)
         #endif
         BDBG_MSG(("PID_TABLE %3u: %08x -> %08x", i, reg, val));
         BMXT_RegWrite32(mxt, addr, val);
+    }
+
+    /* for platforms with PARSER-level BAND_ID mapping (pre-4538), set correct MTSIF_TX defaults on possible virtual (not physical) parser's PID_TABLE entries */
+    if (handle->platform.regoffsets[BCHP_DEMOD_XPT_FE_MTSIF_TX0_BAND0_BAND3_ID] == BMXT_NOREG) {
+        for (; i<BMXT_P_LEGACY_PARSER_BAND_ID_MAX; i++) {
+            uint32_t val = 0;
+            unsigned pipeSel = PARSER_OUTPUT_PIPE_SEL_FROM_INDEX(0); /* default to TX0 */
+
+            addr = R(BCHP_DEMOD_XPT_FE_PID_TABLE_i_ARRAY_BASE) + (4*i);
+            reg = BMXT_RegRead32(mxt, addr);
+            BCHP_SET_FIELD_DATA(val, DEMOD_XPT_FE_PID_TABLE_i, PARSER_OUTPUT_PIPE_SEL, pipeSel);
+            BMXT_RegWrite32(mxt, addr, val);
+        }
     }
 
     /* set IB, PB and IB->PB mapping defaults */
@@ -773,20 +788,23 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
         if (parserNum >= LEGACY_NUM_REMAP_PB) {
             if (parserNum!=pConfig->virtualParserNum) {
                 BDBG_WRN(("SetParserConfig%u: parser is not a remappable parser (%u)", parserNum, pConfig->virtualParserNum));
+                goto post_map;
             }
         }
-        else
-        {
-            RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID) + 4*(parserNum/4);
-            Reg = BMXT_RegRead32(handle, RegAddr);
-            switch (parserNum%4) {
-                case 0: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER0_BAND_ID, pConfig->virtualParserNum); break;
-                case 1: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER1_BAND_ID, pConfig->virtualParserNum); break;
-                case 2: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER2_BAND_ID, pConfig->virtualParserNum); break;
-                case 3: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER3_BAND_ID, pConfig->virtualParserNum); break;
-            }
-            BMXT_RegWrite32(handle, RegAddr, Reg);
+        if (pConfig->virtualParserNum >= BMXT_P_LEGACY_PARSER_BAND_ID_MAX) {
+            BDBG_WRN(("SetParserConfig%u: parser cannot be remapped to parser %u >= %u", parserNum, pConfig->virtualParserNum, BMXT_P_LEGACY_PARSER_BAND_ID_MAX));
+            goto post_map;
         }
+
+        RegAddr = R(BCHP_DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID) + 4*(parserNum/4);
+        Reg = BMXT_RegRead32(handle, RegAddr);
+        switch (parserNum%4) {
+            case 0: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER0_BAND_ID, pConfig->virtualParserNum); break;
+            case 1: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER1_BAND_ID, pConfig->virtualParserNum); break;
+            case 2: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER2_BAND_ID, pConfig->virtualParserNum); break;
+            case 3: BCHP_SET_FIELD_DATA(Reg, DEMOD_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID, PARSER3_BAND_ID, pConfig->virtualParserNum); break;
+        }
+        BMXT_RegWrite32(handle, RegAddr, Reg);
         BDBG_MSG(("BAND_ID mapping: PARSER: parser%u, addr 0x%08x", parserNum, RegAddr));
 
         #if 1
@@ -817,6 +835,7 @@ BERR_Code BMXT_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const BMX
 }
 #endif
 
+post_map:
     /* channel start or new settings while channel was running */
     if (pConfig->Enable) {
         BMXT_P_ParserVersion(handle, parserNum);
@@ -1183,6 +1202,12 @@ BERR_Code BMXT_Tbg_SetParserConfig(BMXT_Handle handle, unsigned parserNum, const
 BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pConfig)
 {
     uint32_t reg;
+    BMXT_Chip chip = handle->settings.chip;
+    BHAB_Handle hab = handle->hHab;
+    uint32_t temp_val, val;
+    uint32_t JTAG_OTP_GENERAL_STATUS_0, statusOffset;
+    BERR_Code rc;
+
     BDBG_ASSERT(handle);
     BDBG_ASSERT(pConfig);
 
@@ -1196,45 +1221,59 @@ BERR_Code BMXT_Tbg_GetGlobalConfig(BMXT_Handle handle, BMXT_Tbg_GlobalConfig *pC
     reg = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_TB_GLOBAL_CTRL2));
     pConfig->markerPidValue = BCHP_GET_FIELD_DATA(reg, DEMOD_XPT_FE_TB_GLOBAL_CTRL2, MARKER_PID_VALUE);
 
-{
-    BMXT_Chip chip = handle->settings.chip;
-    BHAB_Handle hab = handle->hHab;
-    uint32_t temp_val, val = 0;
-    BERR_Code rc;
+    pConfig->markerFeedId = 0;
 
-    if (handle->platform.type == BMXT_P_PlatformType_eHab) {
-        /* make direct HAB call, instead of calling BMXT_RegRead32 wrapper */
-        switch (chip) {
-            case BMXT_Chip_e4538:
-                reg = 0x90820; /* BCHP_JTAG_OTP_GENERAL_STATUS_3 */
-                rc = BHAB_ReadRegister(hab, reg, &val);
-                if (rc!=BERR_SUCCESS) {
-                    rc = BERR_TRACE(rc);
-                    goto done;
-                }
-                break;
-            case BMXT_Chip_e45216:
-                reg = 0x692103c; /* BCHP_JTAG_OTP_GENERAL_STATUS_10 */
-                rc = BHAB_ReadRegister(hab, reg, &temp_val);
-                if (rc!=BERR_SUCCESS) {
-                    rc = BERR_TRACE(rc);
-                    goto done;
-                }
-                val = (temp_val & 0x03ffffff);
-
-                reg = 0x6921040; /* BCHP_JTAG_OTP_GENERAL_STATUS_11 */
-                rc = BHAB_ReadRegister(hab, reg, &temp_val);
-                if (rc!=BERR_SUCCESS) {
-                    rc = BERR_TRACE(rc);
-                    goto done;
-                }
-                val |= ((temp_val & 0x3f) << 26);
-                break;
-            default: BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
-        }
+    if (handle->platform.type != BMXT_P_PlatformType_eHab) {
+        goto done;
     }
+
+    switch (chip) {
+        case BMXT_Chip_e4538:
+            JTAG_OTP_GENERAL_STATUS_0 = 0x90814;
+            statusOffset = 3;
+        case BMXT_Chip_e45216:
+            JTAG_OTP_GENERAL_STATUS_0 = 0x6921014;
+            statusOffset = 10;
+        case BMXT_Chip_e45308:
+            JTAG_OTP_GENERAL_STATUS_0 = 0x7021014;
+            statusOffset = 10;
+        default:
+            BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+    }
+
+    switch (chip) {
+        case BMXT_Chip_e4538: /* STATUS_3 */
+            reg = JTAG_OTP_GENERAL_STATUS_0 + 4*statusOffset;
+            rc = BHAB_ReadRegister(hab, reg, &val);
+            if (rc!=BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto done;
+            }
+            break;
+        case BMXT_Chip_e45216:
+        case BMXT_Chip_e45308: /* STATUS_10 and STATUS_11 */
+            reg = JTAG_OTP_GENERAL_STATUS_0 + 4*statusOffset;
+            rc = BHAB_ReadRegister(hab, reg, &temp_val);
+            if (rc!=BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto done;
+            }
+            val = (temp_val & 0x03ffffff);
+
+            reg = JTAG_OTP_GENERAL_STATUS_0 + 4*(statusOffset+1);
+            rc = BHAB_ReadRegister(hab, reg, &temp_val);
+            if (rc!=BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto done;
+            }
+            val |= ((temp_val & 0x3f) << 26);
+            break;
+        default:
+            BERR_TRACE(BERR_INVALID_PARAMETER); goto done;
+    }
+
     pConfig->markerFeedId = val;
-}
+
 done:
     return BERR_SUCCESS;
 }

@@ -20,24 +20,16 @@
 <body onload="MyLoad();" >
 <table border=0 style="border-collapse:collapse;" >
     <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
-        <td valign=middle style="font-size:28pt;" ><b id=h1brbviewer onclick="MyClick(event);" >Brbviewer - System Viewer</b></td>
+        <td valign=middle style="font-size:28pt;" ><b id=h1brbviewer onclick="MyClick(event);" >Brbviewer - System Viewer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></td>
         <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
-        <td >Platform: <span id=platform ></span>&nbsp;<span id=platver></span><br><span id=stbtime valign=middle ></span></td>
+        <td >Platform: <span id=platform >&nbsp;</span>&nbsp;<span id=platver>&nbsp;</span>&nbsp;&nbsp;&nbsp;<span id=VARIANT valign=middle >&nbsp;</span>
+                   <br><span id=UNAME   valign=middle >&nbsp;</span>&nbsp;&nbsp;&nbsp;<span id=BOLTVER valign=middle >&nbsp;</span>
+                   <br><span id=stbtime valign=middle >&nbsp;</span></td>
         <td id=cgicount valign=middle ></td>
     </tr>
 </table>
 <hr />
 <table cols=2 border=0 id=overalltable style="border-collapse:collapse;" width="80%" > <!-- this outer table is used to hide big sections when checkbox is not checked -->
-
-<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
-
-<tr id=row_checkboxes style="visibility:display;" ><th align=left valign=top id=CHECKBOXES colspan=2 >
-    <table border=0 >
-        <tr>
-            <td width=150 ><input type=checkbox id=checkboxbvnview onclick="MyClick(event);" >BVN View</td>
-        </tr>
-    </table>
-</th></tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 

@@ -58,9 +58,20 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
         break;
     case 3:
     case 4:
-    case 1000:
         /* mosaic not supported */
         pSettings->videoDecoder[0].mosaic.maxNumber = 0;
+        break;
+    /* supported on b0 only*/
+    case 5:
+    case 6:
+    case 8:
+        pSettings->videoDecoder[0].mosaic.maxNumber = 3;
+        pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
+        pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
+        pSettings->videoDecoder[0].mosaic.colorDepth = 10;
+        pSettings->videoDecoder[1].mosaic.maxNumber = 1;
+        pSettings->videoDecoder[1].mosaic.maxWidth = 1920;
+        pSettings->videoDecoder[1].mosaic.maxHeight = 1088;
         break;
     default:
         break;
@@ -82,29 +93,26 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     {
     case 1:
     case 2:
-    case 1000:
+    case 5:
+    case 6:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024;
-        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 512*1024*1024;
         break;
     case 3:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
-        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 348*1024*1024; /* 1000 - 76-53 -32 -64(pic) -161(pic)-256 kernel */
         break;
     case 4:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 90*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
-        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024; /* 1000- (65+45+32+27(pic)+161(pic)+256(kernel)) */
         break;
     default:
         BDBG_ERR(("Box mode %d not supported",boxMode));
         break;
     }
 
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*1024*1024;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
-
-    return;
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)

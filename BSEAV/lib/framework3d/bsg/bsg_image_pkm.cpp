@@ -110,6 +110,7 @@ static uint16_t static_bswap16(uint16_t x)
 // ETC2PACKAGE_SRGBA1_SIGNED_NO_MIPMAPS 11                GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2
 
 const uint32_t ETC1_RGB_NO_MIPMAPS              = 0;
+#ifdef BSG_USE_ES3
 const uint32_t ETC2PACKAGE_RGB_NO_MIPMAPS       = 1;
 const uint32_t ETC2PACKAGE_RGBA_NO_MIPMAPS_OLD  = 2;
 const uint32_t ETC2PACKAGE_RGBA_NO_MIPMAPS      = 3;
@@ -121,6 +122,7 @@ const uint32_t ETC2PACKAGE_RG_SIGNED_NO_MIPMAPS = 8;
 const uint32_t ETC2PACKAGE_SRGB_NO_MIPMAPS      = 9;
 const uint32_t ETC2PACKAGE_SRGBA_NO_MIPMAPS     = 10;
 const uint32_t ETC2PACKAGE_SRGBA1_NO_MIPMAPS    = 11;
+#endif
 
 static uint16_t ReadUInt16(FILE *fp, const char *err)
 {

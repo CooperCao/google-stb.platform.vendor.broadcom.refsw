@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -230,7 +230,7 @@ static struct NEXUS_Platform_P_State
         void *addr;
         unsigned long length;
         bool dynamic;
-        NEXUS_MemoryMapType memoryMapType;
+        NEXUS_AddrType memoryMapType;
     } mmaps[NEXUS_MAX_HEAPS];
     int proxy_fd;
     bool stop;
@@ -259,10 +259,10 @@ void NEXUS_Platform_Uninit_proxy(void);
 NEXUS_Error NEXUS_Platform_InitStandby_proxy(const NEXUS_PlatformStandbySettings *pSettings);
 void NEXUS_Platform_UninitStandby_proxy(void);
 
-void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type)
+void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
 {
     void *addr;
-    if (type!=NEXUS_MemoryMapType_eCached) return NULL; /* only cached mmap allows in proxy */
+    if (type!=NEXUS_AddrType_eCached) return NULL; /* only cached mmap allows in proxy */
     addr = mmap64(0, length, PROT_READ|PROT_WRITE, MAP_SHARED, NEXUS_Platform_P_State.fd, offset);
     if (addr == MAP_FAILED) {
         BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%u, errno=%d", BDBG_UINT64_ARG(offset), (unsigned)length, errno));
@@ -272,7 +272,7 @@ void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_Memory
     return addr;
 }
 
-void NEXUS_Platform_P_UnmapMemory( void *addr, size_t length, NEXUS_MemoryMapType memoryMapType)
+void NEXUS_Platform_P_UnmapMemory( void *addr, size_t length, NEXUS_AddrType memoryMapType)
 {
     BSTD_UNUSED(memoryMapType);
     BDBG_MSG(("unmap: addr:%p size:%u", addr, (unsigned)length));
@@ -283,16 +283,16 @@ void NEXUS_Platform_P_UnmapMemory( void *addr, size_t length, NEXUS_MemoryMapTyp
 static NEXUS_Error nexus_p_add_heap(unsigned i, NEXUS_HeapHandle heap, NEXUS_Addr base, unsigned length, NEXUS_MemoryType memoryType, bool dynamic, void *user_address)
 {
     void *addr = NULL;
-    NEXUS_MemoryMapType memoryMapType = NEXUS_MemoryMapType_eFake;
+    NEXUS_AddrType memoryMapType = NEXUS_AddrType_eFake;
 
     if (user_address) {
         addr = user_address;
     }
     else if( (memoryType & (NEXUS_MEMORY_TYPE_NOT_MAPPED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED)) == 0) {
-        memoryMapType = ((memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED)==NEXUS_MEMORY_TYPE_APPLICATION_CACHED)?NEXUS_MemoryMapType_eCached:NEXUS_MemoryMapType_eFake;
+        memoryMapType = ((memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED)==NEXUS_MEMORY_TYPE_APPLICATION_CACHED)?NEXUS_AddrType_eCached:NEXUS_AddrType_eFake;
         addr = nexus_p_map_memory(base, length, memoryMapType);
         if (!addr) return BERR_TRACE(BERR_OS_ERROR);
-        NEXUS_P_AddMap(base, addr, addr, length);
+        NEXUS_P_AddMap(base, addr, memoryMapType, addr, memoryMapType, length);
     }
 
     NEXUS_Platform_P_State.mmaps[i].heap = heap;
@@ -317,10 +317,10 @@ static NEXUS_Error
 NEXUS_Platform_P_InitOS(void)
 {
     NEXUS_Error rc;
-    PROXY_NEXUS_GetMemory mem;
     unsigned i;
     struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
     struct nexus_map_settings map_settings;
+    unsigned valid_heaps;
 
     if(!state->slave) {
         for(i=0;i<NEXUS_ModulePriority_eMax;i++) {
@@ -353,11 +353,8 @@ NEXUS_Platform_P_InitOS(void)
 
     nexus_p_start_watchdog_thread();
 
+    BKNI_Memset(&state->clientConfig, 0, sizeof(state->clientConfig));
     NEXUS_Platform_GetClientConfiguration(&state->clientConfig);
-
-    BDBG_MSG((">IOCTL_PROXY_NEXUS_GetMemory"));
-    rc = ioctl(state->proxy_fd, IOCTL_PROXY_NEXUS_GetMemory, &mem);
-    if (rc) {rc=BERR_TRACE(rc);goto err_get_memory;}
 
     nexus_p_get_default_map_settings(&map_settings);
     map_settings.offset = (unsigned long)g_NEXUS_P_CpuNotAccessibleRange.start + 4096;
@@ -367,29 +364,41 @@ NEXUS_Platform_P_InitOS(void)
     rc = nexus_p_init_map(&map_settings);
     if (rc) {rc = BERR_TRACE(rc); goto err_init_map;}
 
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        BDBG_MSG(("mem.region[%d]: " BDBG_UINT64_FMT " %#x %d", i, BDBG_UINT64_ARG(mem.region[i].base), (unsigned)mem.region[i].length, mem.region[i].memoryType));
-        if (mem.region[i].length) {
-            rc = nexus_p_add_heap(i, (NEXUS_HeapHandle)-1, mem.region[i].base, mem.region[i].length, mem.region[i].memoryType, false, NULL);
+    for (valid_heaps=0,i=0;i<NEXUS_MAX_HEAPS;i++) {
+        NEXUS_HeapHandle heap = state->clientConfig.heap[i];
+        if (heap) {
+            NEXUS_MemoryStatus status;
+            unsigned memoryType;
+            rc = NEXUS_Platform_GetHeapStatus_driver(heap, &status);
+            if(rc!=NEXUS_SUCCESS) {rc=BERR_TRACE(rc);goto err_heap;}
+            rc = nexus_p_add_heap(i, heap, status.offset, status.size, status.memoryType, false, NULL);
             if (rc) { rc = BERR_TRACE(BERR_OS_ERROR); goto err_mmap; }
+            valid_heaps++;
         }
     }
+    if(valid_heaps==0) {
+        /* likely NEXUS_Platform_GetClientConfiguration call have failed and client was disconnected */
+        rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto err_heap;
+    }
+
 
     BLST_D_INIT(&state->stopped_callbacks);
 
-#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
     if(!state->slave) {
+#if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
         (void)NEXUS_Platform_P_InitWakeupDriver();
-        (void)NEXUS_Platform_P_InitThermalMonitor();
-    }
 #endif
+#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
+        (void)NEXUS_Platform_P_InitThermalMonitor();
+#endif
+    }
 
     return NEXUS_SUCCESS;
 
 err_mmap:
+err_heap:
     NEXUS_Platform_P_UninitOS();
 err_init_map:
-err_get_memory:
 err_threads:
 err_create_mutex:
     state->stop = true;
@@ -412,12 +421,14 @@ NEXUS_Platform_P_UninitOS(void)
     struct NEXUS_Platform_P_State *state = &NEXUS_Platform_P_State;
     nexus_proxy_stopped_callback_entry *entry;
 
-#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
     if(!state->slave) {
+#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
         NEXUS_Platform_P_UninitThermalMonitor();
-        NEXUS_Platform_P_UninitWakeupDriver();
-    }
 #endif
+#if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
+        NEXUS_Platform_P_UninitWakeupDriver();
+#endif
+    }
 
     nexus_p_stop_watchdog_thread();
 
@@ -743,6 +754,7 @@ NEXUS_Platform_GetDefaultSettings_tagged(NEXUS_PlatformSettings *pSettings, size
         pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eUartMessage].enabled = true;
         pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eDramMessage].enabled = true;
         pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled = true;
+        pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].enabled = true;
     }
     else
     {
@@ -757,6 +769,10 @@ NEXUS_Platform_GetDefaultSettings_tagged(NEXUS_PlatformSettings *pSettings, size
         if ( NEXUS_GetEnv("audio_core_file") )
         {
             pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled = true;
+        }
+        if ( NEXUS_GetEnv("audio_target_print_file") )
+        {
+            pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].enabled = true;
         }
     }
     #endif
@@ -956,6 +972,7 @@ NEXUS_Platform_Init_tagged(const NEXUS_PlatformSettings *pSettings, const NEXUS_
     errCode = NEXUS_Platform_P_InitImage(pSettings?&pSettings->imgInterface:NULL);
     if ( errCode!=BERR_SUCCESS ) { errCode = BERR_TRACE(errCode); goto err_platform_init; }
 #endif
+    NEXUS_P_PrintEnv(BDBG_STRING("proxy: "));
 
     BDBG_MSG((">PLATFORM"));
     errCode = NEXUS_Platform_Init_tagged_proxy(pSettings, pMemConfig, platformCheck, versionCheck, structSizeCheck);
@@ -1164,7 +1181,7 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, PROXY_NEXUS_RunScheduler *runSchedul
 
             if (data->out.callbacks[i].interfaceHandle) {
                 /* remember the current callback so we only sync with schedulers where necessary */
-                scheduler->current_callback = data->out.callbacks[i].interfaceHandle;
+                scheduler->current_callback = (void *)(unsigned long)data->out.callbacks[i].interfaceHandle;
 
                 /* must acquire callbackLock before releasing dataLock.
                 dataLock cannot be held during callback. */
@@ -1174,9 +1191,10 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, PROXY_NEXUS_RunScheduler *runSchedul
                 NEXUS_LockModule();
                 /* check NEXUS_P_Proxy_FindStoppedCallbacks. this is needed for non-Close StopCallbacks
                 where the stop may be persistent. */
-                entry = NEXUS_P_Proxy_FindStoppedCallbacks(data->out.callbacks[i].interfaceHandle);
+                entry = NEXUS_P_Proxy_FindStoppedCallbacks((void *)(unsigned long)data->out.callbacks[i].interfaceHandle);
                 NEXUS_UnlockModule();
                 if (!entry) {
+                    NEXUS_Callback callback;
 #if NEXUS_P_DEBUG_PROXY_CALLBACKS
 #if NEXUS_PROXY_STATISTICS
                     NEXUS_Time stop_callback;
@@ -1184,9 +1202,10 @@ NEXUS_Platform_P_RunCallbacks(int proxy_fd, PROXY_NEXUS_RunScheduler *runSchedul
                     scheduler->stats.callbackCount++;
 #endif
                     NEXUS_Time_Get(&scheduler->monitor.startTime);
-                    scheduler->monitor.callback = data->out.callbacks[i].desc.callback;
+                    scheduler->monitor.callback = (NEXUS_Callback)(unsigned long)data->out.callbacks[i].desc.callback;
 #endif
-                    data->out.callbacks[i].desc.callback(data->out.callbacks[i].desc.context, data->out.callbacks[i].desc.param);
+                    callback = (NEXUS_Callback)(unsigned long)data->out.callbacks[i].desc.callback;
+                    callback((void *)(unsigned long)data->out.callbacks[i].desc.context, data->out.callbacks[i].desc.param);
 #if NEXUS_P_DEBUG_PROXY_CALLBACKS
                     scheduler->monitor.callback = NULL;
 #if NEXUS_PROXY_STATISTICS
@@ -1348,8 +1367,8 @@ void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
             /* delete in-flight callbacks that have been stopped */
             BKNI_AcquireMutex(scheduler->dataLock);
             for (j=0;j<PROXY_NEXUS_CALLBACK_PACKET && j<scheduler->data.out.count;j++) {
-                if (scheduler->data.out.callbacks[j].interfaceHandle == interfaceHandle) {
-                    scheduler->data.out.callbacks[j].interfaceHandle = NULL;
+                if ( (void *)(unsigned long)scheduler->data.out.callbacks[j].interfaceHandle == interfaceHandle) {
+                    scheduler->data.out.callbacks[j].interfaceHandle = (unsigned long)NULL;
                 }
             }
             wait = (scheduler->current_callback == interfaceHandle);
@@ -1531,8 +1550,8 @@ BERR_Code  NEXUS_Platform_P_CacheFlush( void* addr, size_t nbytes )
     BERR_Code rc;
     PROXY_NEXUS_CacheFlush data;
 
-    data.address = (void*)addr;
-    data.length = (size_t)nbytes;
+    data.address = (unsigned long)addr;
+    data.length = nbytes;
     rc = ioctl(NEXUS_Platform_P_State.fd, IOCTL_PROXY_NEXUS_CacheFlush, &data);
     if (rc!=0) { BERR_TRACE(BERR_OS_ERROR);}
     return BERR_SUCCESS;

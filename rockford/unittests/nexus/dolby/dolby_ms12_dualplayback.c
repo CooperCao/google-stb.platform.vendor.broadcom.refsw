@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1883,7 +1883,7 @@ int dolby_digital_plus_cmdline_parse(int argc, const char *argv[], struct util_o
     {
         /* if secondary stream enabled, make sure we either have a pid, or a separate file */
         if ( (dolby->primary_stream && strcmp(dolby->secondary_stream, dolby->primary_stream) == 0 && secondaryAudioPid != INVALID_PID) ||
-             (dolby->primary_stream && strcmp(dolby->secondary_stream, dolby->primary_stream) == 0) || dolby->dualMain )
+             (dolby->primary_stream && strcmp(dolby->secondary_stream, dolby->primary_stream) != 0) || dolby->dualMain )
         {
             opts[SECONDARY_DECODE].filename = dolby->secondary_stream;
             opts[SECONDARY_DECODE].common.probe = true;

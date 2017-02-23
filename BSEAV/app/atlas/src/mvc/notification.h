@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,27 +56,30 @@ typedef enum eNotification
     eNotify_KeyDown,        /* keypress - key pressed down */
     eNotify_VirtualKeyDown, /* keypress - fake remote key pressed down */
 
-    eNotify_Tune,                     /* command  - tune */
-    eNotify_ChUp,                     /* command  - change channel up */
-    eNotify_ChDown,                   /* command  - change channel down */
-    eNotify_ScanStart,                /* command  - start channel scan */
-    eNotify_ScanStop,                 /* command  - stop channel scan */
-    eNotify_PlaybackListDump,         /* command  - dump playback list */
-    eNotify_PlaybackStart,            /* command  - start a playback */
-    eNotify_PlaybackStop,             /* command  - stop a playback */
-    eNotify_PlaybackTrickMode,        /* command  - do trickmode playback */
-    eNotify_SetVolume,                /* command  - change volume level */
-    eNotify_SetMute,                  /* command  - change mute state */
-    eNotify_RecordStart,              /* command  - start a record */
-    eNotify_RecordStop,               /* command  - stop a record */
-    eNotify_EncodeStart,              /* command  - start an encode */
-    eNotify_EncodeStop,               /* command  - stop an encode */
-    eNotify_RefreshPlaybackList,      /* command  - stop a playback */
-    eNotify_ChannelListLoad,          /* command  - load channel list */
-    eNotify_ChannelListSave,          /* command  - save channel list */
-    eNotify_ChannelListDump,          /* command  - dump channel list */
-    eNotify_SetAudioProgram,          /* command  - change current audio pid */
-    eNotify_SetAudioProcessing,       /* command  - change audio processing type */
+    eNotify_Tune,                /* command  - tune */
+    eNotify_ChUp,                /* command  - change channel up */
+    eNotify_ChDown,              /* command  - change channel down */
+    eNotify_ScanStart,           /* command  - start channel scan */
+    eNotify_ScanStop,            /* command  - stop channel scan */
+    eNotify_PlaybackListDump,    /* command  - dump playback list */
+    eNotify_PlaybackStart,       /* command  - start a playback */
+    eNotify_PlaybackStop,        /* command  - stop a playback */
+    eNotify_PlaybackTrickMode,   /* command  - do trickmode playback */
+    eNotify_SetVolume,           /* command  - change volume level */
+    eNotify_SetMute,             /* command  - change mute state */
+    eNotify_RecordStart,         /* command  - start a record */
+    eNotify_RecordStop,          /* command  - stop a record */
+    eNotify_EncodeStart,         /* command  - start an encode */
+    eNotify_EncodeStop,          /* command  - stop an encode */
+    eNotify_RefreshPlaybackList, /* command  - stop a playback */
+    eNotify_ChannelListLoad,     /* command  - load channel list */
+    eNotify_ChannelListSave,     /* command  - save channel list */
+    eNotify_ChannelListDump,     /* command  - dump channel list */
+    eNotify_SetAudioProgram,     /* command  - change current audio pid */
+    eNotify_SetAudioProcessing,  /* command  - change audio processing type */
+#ifdef CPUTEST_SUPPORT
+    eNotify_SetCpuTestLevel, /* command  - change cpu test level */
+#endif
     eNotify_SetSpdifInput,            /* command  - change spdif input type */
     eNotify_SetHdmiAudioInput,        /* command  - change hdmi audio input type */
     eNotify_SetAudioDownmix,          /* command  - change audio downmix */
@@ -86,6 +89,7 @@ typedef enum eNotification
     eNotify_SetVideoFormat,           /* command  - change video format and graphics */
     eNotify_SetContentMode,           /* command  - change video content mode */
     eNotify_SetColorSpace,            /* command  - change video colorspace */
+    eNotify_SetColorDepth,            /* command  - change video color depth for main video decoder */
     eNotify_SetMpaaDecimation,        /* command  - change mpaa decimation state */
     eNotify_SetDeinterlacer,          /* command  - change MAD deinterlacer state */
     eNotify_SetBoxDetect,             /* command  - change box detect state */
@@ -163,6 +167,9 @@ typedef enum eNotification
     eNotify_VideoFormatChanged,          /* status   - video format has changed */
     eNotify_ContentModeChanged,          /* status   - video content mode has changed */
     eNotify_ColorSpaceChanged,           /* status   - video colorspace has changed */
+    eNotify_ColorSpaceFailure,           /* status   - failure changing video colorspace */
+    eNotify_ColorDepthChanged,           /* status   - video color depth has changed */
+    eNotify_ColorDepthFailure,           /* status   - failure changing video color depth */
     eNotify_MpaaDecimationChanged,       /* status   - video component mpaa decimation has changed */
     eNotify_DeinterlacerChanged,         /* status   - video deinterlacer setting has changed */
     eNotify_BoxDetectChanged,            /* status   - video box detect setting has changed */
@@ -179,18 +186,23 @@ typedef enum eNotification
     eNotify_Capabilities,                /* status   - nexus capabilities */
     eNotify_TunerLockStatus,             /* status   - tuner lock status has changed */
     eNotify_NonTunerLockStatus,          /* status   - non tuner lock status has changed like IP or Streamer */
-    eNotify_NetworkWifiRssiResult,       /* status   - wifi network RSSI status */
-    eNotify_NetworkWifiScanStarted,      /* status   - wifi network scan started */
-    eNotify_NetworkWifiScanStopped,      /* status   - wifi network scan stopped */
-    eNotify_NetworkWifiScanFailure,      /* status   - wifi network scan failed */
-    eNotify_NetworkWifiScanResult,       /* status   - results of wifi network scan are available */
-    eNotify_NetworkWifiConnectionStatus, /* status   - wifi network connection status is available */
-    eNotify_NetworkWifiConnected,        /* status   - wifi network has been connected */
-    eNotify_NetworkWifiConnectFailure,   /* status   - wifi network connection attempt failture */
-    eNotify_NetworkWifiConnectFailureWrongKey,   /* status   - wifi network connection attempt failture because of incorrect key */
-    eNotify_NetworkWifiConnectFailureNetworkNotFound,   /* status   - wifi network connection attempt failture because of missing network */
-    eNotify_NetworkWifiConnectFailureAssocReject,   /* status   - wifi network connection attempt failture because of a rejected association with AP */
-    eNotify_NetworkWifiDisconnected,     /* status   - wifi network has been disconnected */
+#ifdef CPUTEST_SUPPORT
+    eNotify_CpuTestStarted, /* status   - cpu stress test started */
+    eNotify_CpuTestStopped, /* status   - cpu stress test stopped */
+#endif
+    eNotify_NetworkWifiRssiResult,                    /* status   - wifi network RSSI status */
+    eNotify_NetworkWifiScanStarted,                   /* status   - wifi network scan started */
+    eNotify_NetworkWifiScanStopped,                   /* status   - wifi network scan stopped */
+    eNotify_NetworkWifiScanFailure,                   /* status   - wifi network scan failed */
+    eNotify_NetworkWifiScanResult,                    /* status   - results of wifi network scan are available */
+    eNotify_NetworkWifiConnectionStatus,              /* status   - wifi network connection status is available */
+    eNotify_NetworkWifiConnected,                     /* status   - wifi network has been connected */
+    eNotify_NetworkWifiConnectAssocStart,             /* status   - wifi network connection association with AP started */
+    eNotify_NetworkWifiConnectFailure,                /* status   - wifi network connection attempt failture */
+    eNotify_NetworkWifiConnectFailureWrongKey,        /* status   - wifi network connection attempt failture because of incorrect key */
+    eNotify_NetworkWifiConnectFailureNetworkNotFound, /* status   - wifi network connection attempt failture because of missing network */
+    eNotify_NetworkWifiConnectFailureAssocReject,     /* status   - wifi network connection attempt failture because of a rejected association with AP */
+    eNotify_NetworkWifiDisconnected,                  /* status   - wifi network has been disconnected */
 #ifdef WPA_SUPPLICANT_SUPPORT
     eNotify_NetworkWifiListUpdated, /* status   - updated list currently known wifi networks */
 #endif

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,9 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+
+#if BAPE_CHIP_MAX_DACS > 0
+
 #ifdef BCHP_HIFIDAC_CTRL0_REG_START
 /* Old-style RDB */
 #include "bchp_hifidac_ctrl0.h"
@@ -1937,5 +1940,124 @@ static BERR_Code BAPE_Dac_P_ApplySettings(
 
     return BERR_SUCCESS;
 }
+/**************************************************************************/
+
+#else
+BDBG_OBJECT_ID(BAPE_Dac);
+
+typedef struct BAPE_Dac
+{
+    BDBG_OBJECT(BAPE_Dac)
+} BAPE_Dac;
+
+void BAPE_Dac_GetDefaultSettings(
+    BAPE_DacSettings *pSettings
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
 
 /**************************************************************************/
+
+BERR_Code BAPE_Dac_Open(
+    BAPE_Handle deviceHandle,
+    unsigned index,
+    const BAPE_DacSettings *pSettings,
+    BAPE_DacHandle *pHandle             /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/**************************************************************************/
+
+void BAPE_Dac_Close(
+    BAPE_DacHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+/**************************************************************************/
+
+void BAPE_Dac_GetSettings(
+    BAPE_DacHandle handle,
+    BAPE_DacSettings *pSettings     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+/**************************************************************************/
+
+BERR_Code BAPE_Dac_SetSettings(
+    BAPE_DacHandle handle,
+    const BAPE_DacSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/**************************************************************************/
+
+void BAPE_Dac_GetOutputPort(
+    BAPE_DacHandle handle,
+    BAPE_OutputPort *pOutputPort        /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pOutputPort);
+}
+
+/**************************************************************************/
+
+void BAPE_Dac_PowerUp(
+    BAPE_DacHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+/**************************************************************************/
+
+void BAPE_Dac_PowerDown(
+    BAPE_DacHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+/***************************************************************************
+        BAPE Internal APIs: From bape_fmm_priv.h
+***************************************************************************/
+
+BERR_Code BAPE_Dac_P_ResumeFromStandby(BAPE_Handle handle)
+{
+    BSTD_UNUSED(handle);
+    return BERR_SUCCESS;
+}
+
+BERR_Code BAPE_Dac_P_PrepareForStandby(
+    BAPE_Handle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_SUCCESS;
+}
+
+BERR_Code BAPE_P_InitDacHw( BAPE_Handle handle )
+{
+    BSTD_UNUSED(handle);
+    return BERR_SUCCESS;
+}
+
+/**************************************************************************/
+
+#endif

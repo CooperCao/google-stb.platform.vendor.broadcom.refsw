@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,11 +50,7 @@ void BDSP_Raaga_P_Analyse_CIT_VideoEncode_GlobalTaskConfig(BDSP_VF_P_sENC_GLOBAL
 void BDSP_Raaga_P_Analyse_CIT_VideoDecode_GlobalTaskConfig(BDSP_VF_P_sGLOBAL_TASK_CONFIG  *psVideoDecGblTaskCfg);
 
 void BDSP_Raaga_P_Analyse_CIT_Scm_GlobalTaskConfig(BDSP_SCM_P_sGLOBAL_TASK_CONFIG *psScmGblTaskCfg);
+void BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(BDSP_RaagaTask  *pRaagaTask);
 
-void BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(BMEM_Handle      hHeap,
-                                                    BDSP_AF_P_sGLOBAL_TASK_CONFIG          *psGblTaskCfg);
-
-void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle        hHeap,
-                                             BDSP_AF_P_sNODE_CONFIG          *psNodeCfg);
-
+void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BDSP_AF_P_sNODE_CONFIG *psNodeCfg);
 #endif /*BDSP_RAAGA_CIT_LOG_H__*/

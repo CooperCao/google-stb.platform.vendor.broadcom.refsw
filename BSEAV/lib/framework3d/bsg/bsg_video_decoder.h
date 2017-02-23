@@ -213,7 +213,6 @@ namespace bsg
       VideoDecoderPrivate                 *m_videoDecoderPrivate;
 
       eVideoUpdateMode                    m_updateMode;
-      int32_t                             m_fullScreenStreamIndex;
    };
 }
 

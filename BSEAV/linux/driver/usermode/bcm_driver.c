@@ -55,9 +55,6 @@
 #include <linux/mutex.h>
 #include "bcm_driver.h"
 #include "bcmdriver_common.h"
-#if B_NETIF_DMA
-#include "netif_dma.h"
-#endif
 #if LINUX_VERSION_CODE > KERNEL_VERSION(3,10,0)
 #include <linux/seq_file.h>
 #include <linux/uidgid.h>
@@ -137,9 +134,9 @@ static void breg_write(uint32_t addr, uint32_t value)
 #if defined(CONFIG_ARM) || defined(CONFIG_ARM64)
 #include "bcmdriver_arm.c"
 #include "linux/brcmstb/cma_driver.h"
-#endif
 /* temp stub */
 #define dma_cache_wback_inv(ADDR,SIZE)  printk( KERN_ERR "BCMDRV: need to port dma_cache_wback_inv for arm linux\n\n")
+#endif
 static int g_irq_start_index = 32;
 #define make_linux_irq(i)   ((i)+g_irq_start_index-1)
 #define unmake_linux_irq(i) ((i)-g_irq_start_index+1)
@@ -184,17 +181,6 @@ typedef struct
 #define MODULE_NAME "bcmdriver"
 #define INFINITE 0xFFFFFFFF
 #define BRCM_MAJOR 30 /* Major device number */
-
-#ifdef HAVE_RSRVD
-/* don't call get_RAM_size(). it will return total memory on the board, even though upper memory may be unusable. e.g. 512M board may only have 256M usable.
-this may need to change in the future. */
-#define BOARD_MEM_SIZE       (get_RAM_size()>(256*1024*1024)?(256*1024*1024):get_RAM_size())
-#define KERNEL_MEM_SIZE     ( BOARD_MEM_SIZE - get_RSVD_size() )
-#else
-/* default to these values for now */
-#define KERNEL_MEM_SIZE     (32*1024*1024)
-#define BOARD_MEM_SIZE      (256*1024*1024)
-#endif
 
 static int  brcm_stb_init(void);
 static int  brcm_open(struct inode *inode, struct file *file);
@@ -590,51 +576,19 @@ static int proc_read_version(struct seq_file *m, void *v)
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
 static int proc_read_meminfo(char *page, char **start,off_t off, int count,int *eof, void *data)
+{
+    unsigned long s, l;
+    bmem_region_info(0, &s, &l);
+    return sprintf(page, "Kernel memory %d \n", (unsigned)s);
+}
 #else
 static int proc_read_meminfo(struct seq_file *m, void *v)
-#endif
 {
-    int len = 0, temp_len;
-    static int kernelMem = -1;
-    static int boardMem = -1;
-
-
-    if ( -1 == kernelMem )
-    {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0) /*to do use DT to determine this*/
-        kernelMem = 0x10000000;
-        boardMem = 0x40000000;
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) 
-        unsigned long start = 0, len = 0;
-        bmem_region_info(0, &start, &len);
-        kernelMem = start;
-        boardMem = start + len;
-#else
-        kernelMem = KERNEL_MEM_SIZE;
-        boardMem = BOARD_MEM_SIZE;
-#endif
-    }
-
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
-    len = snprintf(page, 0, "Kernel memory %d \n", kernelMem); /* returns the number of characters needed */
-    len = snprintf(page, (len+1), "Kernel memory %d \n", kernelMem);
-
-    temp_len = snprintf(page+len, 0, "Reserved Av memory %d \n", (boardMem-kernelMem));
-    temp_len = snprintf(page+len, (temp_len+1), "Reserved Av memory %d \n", (boardMem-kernelMem));
-
-    len += temp_len;
-#else
-    temp_len=0;
-    seq_printf(m, "Kernel memory %d \n", kernelMem); /* returns the number of characters needed */
-    seq_printf(m, "Kernel memory %d \n", kernelMem);
-
-    seq_printf(m, "Reserved Av memory %d \n", (boardMem-kernelMem));
-    seq_printf(m, "Reserved Av memory %d \n", (boardMem-kernelMem));
-#endif
-
-    return len;
+    /* TODO: should use bmem to learn actual regions available */
+    seq_printf(m, "Kernel memory %d \n", 0x10000000);
+    return 0;
 }
-
+#endif
 
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
 static int proc_read_debug(char *page, char **start,off_t off, int count,int *eof, void *data)
@@ -928,12 +882,6 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
     int i;
     unsigned long retValue;
 
-#if B_NETIF_DMA
-    result = bnetif_ioctl(inode, file, cmd, arg);
-    if (result!=-ENOSYS) {
-        return  result;
-    }
-#endif
     result = 0;
 
     /* non-root users are restricted on ioctl. */
@@ -1112,7 +1060,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
 
     case BRCM_IOCTL_GET_DCACHE_LINE_SIZE:
         {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) && defined(CONFIG_ARM) || defined(CONFIG_ARM64)
             struct brcm_cache_info info;
             brcm_get_cache_info(&info);
             put_user(info.max_writeback, (unsigned __user *)arg);
@@ -1947,12 +1895,7 @@ error:
 static int __init __init_module(void)
 {
     int ret=0;
-
-#if B_NETIF_DMA
-    init_bnetif_dma();
-#endif
     ret = brcm_stb_init();
-
     return ret;
 }
 module_init(__init_module);
@@ -1962,10 +1905,6 @@ static void __exit __cleanup_module(void)
     int i;
 
     PINFO("Cleanup_modules...\n");
-#if B_NETIF_DMA
-    cleanup_bnetif_dma();
-#endif
-
     for ( i = 1; i <  g_sChipConfig.maxNumIrq; i++ )
     {
         if ( g_sChipConfig.pIntTable[i].manageInt & INT_ENABLE_MASK )

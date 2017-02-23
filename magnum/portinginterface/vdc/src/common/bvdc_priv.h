@@ -396,6 +396,9 @@ typedef struct BVDC_P_Context
 
     /* memory info */
     BCHP_MemoryInfo                stMemInfo;
+
+    /* Memconfig settings */
+    bool                           abSyncSlipInMemconfig[BVDC_MAX_DISPLAYS][BVDC_MAX_VIDEO_WINDOWS];
 } BVDC_P_Context;
 
 

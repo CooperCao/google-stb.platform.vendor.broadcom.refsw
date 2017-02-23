@@ -816,7 +816,7 @@ static void BVDC_P_HdDvi_ReadHwStatus_isr
     ulOffset = hHdDvi->ulOffset;
 
     /* Error flag: HD_DVI_0_PCTR_ERROR_STATUS */
-    ulReg = BREG_Read32_isr(hHdDvi->hReg, hHdDvi->ulPctrErrRegAddr);
+    ulReg = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulPctrErrRegAddr);
     hHdDvi->bPctrErr =
         BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_PCTR_ERROR_STATUS, INPUT_STALLED      ) ||
         BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_PCTR_ERROR_STATUS, INPUT_STALLED_ERROR);
@@ -838,7 +838,7 @@ static void BVDC_P_HdDvi_ReadHwStatus_isr
 #endif
 
     /* HD_DVI_0_BRIDGE_ERRORS_RDB_CLR */
-    ulReg = BREG_Read32_isr(hHdDvi->hReg, hHdDvi->ulBridgeErrRegAddr);
+    ulReg = (uint32_t)BRDC_ReadScratch_isrsafe(hHdDvi->hReg, hHdDvi->ulBridgeErrRegAddr);
     hHdDvi->bBridgeErr  =
         BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_BRIDGE_ERRORS_RDB_CLR, HOST_ERROR_RDB_CLR          ) ||
         BCHP_GET_FIELD_DATA(ulReg, HD_DVI_0_BRIDGE_ERRORS_RDB_CLR, MISSED_PICTURE_ERROR_RDB_CLR);

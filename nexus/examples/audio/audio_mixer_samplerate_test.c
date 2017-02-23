@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
  *****************************************************************************/
 #include <stdio.h>
 #include "nexus_platform.h"
-#if NEXUS_HAS_AUDIO && NEXUS_NUM_AUDIO_PLAYBACKS && NEXUS_HAS_PLAYBACK
+#if NEXUS_HAS_AUDIO && NEXUS_HAS_PLAYBACK
 #include "nexus_platform_features.h"
 #include "bstd.h"
 #include "bkni.h"
@@ -169,6 +169,10 @@ int main(int argc, char **argv)
     NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_AudioDecoderStartSettings audioProgram;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     NEXUS_DisplayHandle display;
     NEXUS_VideoWindowHandle window;
     NEXUS_PidChannelHandle audioPidChannel;
@@ -194,6 +198,35 @@ int main(int argc, char **argv)
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&config);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 ||
+        audioCapabilities.numPlaybacks == 0 ||
+        audioCapabilities.numMixers == 0 ||
+        !audioCapabilities.dsp.mixer)
+    {
+        printf("This application is not supported on this platform (requires decoder, playbacks and mixers).\n");
+        return 0;
+    }
+
+
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]);
+    }
+    #endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -263,25 +296,25 @@ int main(int argc, char **argv)
             NEXUS_Display_SetSettings(display, &displaySettings);
         }
     }
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
+    if (audioHdmiHandle)
+    {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
 
 #endif
 
     /* Connect DAC to mixer */
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
-                               NEXUS_AudioMixer_GetConnector(mixer));
-#endif
-
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutputSettings outputSettings;
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
-            NEXUS_AudioMixer_GetConnector(mixer));
-#endif
-
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioMixer_GetConnector(mixer));
+    }
+    if (audioSpdifHandle) {
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioMixer_GetConnector(mixer));
+    }
     /* Setup transport */
 
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);

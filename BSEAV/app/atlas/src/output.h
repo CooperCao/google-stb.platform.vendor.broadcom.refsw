@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -98,8 +98,9 @@ public:
     virtual bool              isValidVideoFormat(NEXUS_VideoFormat format)     = 0;
     virtual NEXUS_VideoFormat getPreferredVideoFormat(void)                    = 0;
     virtual NEXUS_ColorSpace  getPreferredColorSpace(NEXUS_VideoFormat format) = 0;
-    virtual eRet              setColorSpace(NEXUS_ColorSpace colorSpace) { BSTD_UNUSED(colorSpace); return(eRet_Ok); }
-    virtual eRet              setMpaaDecimation(bool bMpaaDecimation)    { BSTD_UNUSED(bMpaaDecimation); return(eRet_Ok); }
+    virtual eRet              setColorSpace(NEXUS_ColorSpace * pColorSpace) { BSTD_UNUSED(pColorSpace); return(eRet_Ok); }
+    virtual eRet              setColorDepth(uint8_t * pColorDepth)          { BSTD_UNUSED(pColorDepth); return(eRet_Ok); }
+    virtual eRet              setMpaaDecimation(bool bMpaaDecimation)       { BSTD_UNUSED(bMpaaDecimation); return(eRet_Ok); }
 
     /* audio - pure virtual functions only apply to audio capable outputs */
     virtual NEXUS_AudioOutput getConnectorA() = 0;
@@ -128,7 +129,7 @@ public:
 
     virtual eRet              initialize(void);
     virtual NEXUS_VideoOutput getConnectorV(void);
-    virtual eRet              setColorSpace(NEXUS_ColorSpace colorSpace);
+    virtual eRet              setColorSpace(NEXUS_ColorSpace * pColorSpace);
     virtual eRet              setMpaaDecimation(bool bMpaaDecimation);
     virtual bool              isValidVideoFormat(NEXUS_VideoFormat format);
     virtual NEXUS_VideoFormat getPreferredVideoFormat(void)
@@ -258,7 +259,8 @@ public:
     void                      timerCallback(void * pTimer);
     virtual NEXUS_VideoOutput getConnectorV(void);
     virtual NEXUS_AudioOutput getConnectorA(void);
-    virtual eRet              setColorSpace(NEXUS_ColorSpace colorSpace);
+    virtual eRet              setColorSpace(NEXUS_ColorSpace * pColorSpace);
+    virtual eRet              setColorDepth(uint8_t * pColorDepth);
     virtual bool              isValidVideoFormat(NEXUS_VideoFormat format, NEXUS_HdmiOutputStatus * pStatus);
     virtual bool              isValidVideoFormat(NEXUS_VideoFormat format) { return(isValidVideoFormat(format, NULL)); }
     virtual bool              isValidAudioCodec(NEXUS_AudioCodec codec, NEXUS_HdmiOutputStatus * pStatus);

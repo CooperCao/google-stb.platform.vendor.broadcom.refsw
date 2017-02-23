@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,163 +70,163 @@
 /***************************************************************************
  *NAND - Nand Flash Control Registers
  ***************************************************************************/
-#define BCHP_NAND_REVISION                       0x20203000 /* [RO] NAND Revision */
-#define BCHP_NAND_CMD_START                      0x20203004 /* [RW] Nand Flash Command Start */
-#define BCHP_NAND_CMD_EXT_ADDRESS                0x20203008 /* [RW] Nand Flash Command Extended Address */
-#define BCHP_NAND_CMD_ADDRESS                    0x2020300c /* [RW] Nand Flash Command Address */
-#define BCHP_NAND_CMD_END_ADDRESS                0x20203010 /* [RW] Nand Flash Command End Address */
-#define BCHP_NAND_INTFC_STATUS                   0x20203014 /* [RO] Nand Flash Interface Status */
-#define BCHP_NAND_CS_NAND_SELECT                 0x20203018 /* [RW] Nand Flash EBI CS Select */
-#define BCHP_NAND_CS_NAND_XOR                    0x2020301c /* [RW] Nand Flash EBI CS XOR masking on CPU address Control */
-#define BCHP_NAND_LL_OP                          0x20203020 /* [RW] Nand Flash Low Level Operation */
-#define BCHP_NAND_MPLANE_BASE_EXT_ADDRESS        0x20203024 /* [RW] Nand Flash Multiplane base address */
-#define BCHP_NAND_MPLANE_BASE_ADDRESS            0x20203028 /* [RW] Nand Flash Multiplane base address */
-#define BCHP_NAND_DATA_SCRAMBLE                  0x2020302c /* [RW] Nand Flash Data Scrambler Configuration */
-#define BCHP_NAND_ACC_CONTROL_CS0                0x20203050 /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS0                 0x20203054 /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS0                     0x20203058 /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS0                   0x2020305c /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS0                   0x20203060 /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_ACC_CONTROL_CS1                0x20203064 /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS1                 0x20203068 /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS1                     0x2020306c /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS1                   0x20203070 /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS1                   0x20203074 /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_ACC_CONTROL_CS2                0x20203078 /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS2                 0x2020307c /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS2                     0x20203080 /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS2                   0x20203084 /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS2                   0x20203088 /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_ACC_CONTROL_CS3                0x2020308c /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS3                 0x20203090 /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS3                     0x20203094 /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS3                   0x20203098 /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS3                   0x2020309c /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_ACC_CONTROL_CS4                0x202030a0 /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS4                 0x202030a4 /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS4                     0x202030a8 /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS4                   0x202030ac /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS4                   0x202030b0 /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_ACC_CONTROL_CS5                0x202030b4 /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS5                 0x202030b8 /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS5                     0x202030bc /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS5                   0x202030c0 /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS5                   0x202030c4 /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_ACC_CONTROL_CS6                0x202030c8 /* [RW] Nand Flash Access Control */
-#define BCHP_NAND_CONFIG_EXT_CS6                 0x202030cc /* [RW] Nand Flash Config Extension */
-#define BCHP_NAND_CONFIG_CS6                     0x202030d0 /* [RW] Nand Flash Config */
-#define BCHP_NAND_TIMING_1_CS6                   0x202030d4 /* [RW] Nand Flash Timing Parameters 1 */
-#define BCHP_NAND_TIMING_2_CS6                   0x202030d8 /* [RW] Nand Flash Timing Parameters 2 */
-#define BCHP_NAND_CORR_STAT_THRESHOLD            0x202030dc /* [RW] Correctable Error Reporting Threshold */
-#define BCHP_NAND_CORR_STAT_THRESHOLD_EXT        0x202030e0 /* [RW] Correctable Error Reporting Threshold */
-#define BCHP_NAND_BLK_WR_PROTECT                 0x202030e4 /* [RW] Block Write Protect Enable and Size for EBI_CS0b */
-#define BCHP_NAND_MULTIPLANE_OPCODES_1           0x202030e8 /* [RW] Nand Flash Multiplane Customized Opcodes */
-#define BCHP_NAND_MULTIPLANE_OPCODES_2           0x202030ec /* [RW] Nand Flash Multiplane Customized Opcodes */
-#define BCHP_NAND_MULTIPLANE_CTRL                0x202030f0 /* [RW] Nand Flash Multiplane Control */
-#define BCHP_NAND_UNCORR_ERROR_COUNT             0x202030fc /* [RW] Read Uncorrectable Event Count */
-#define BCHP_NAND_CORR_ERROR_COUNT               0x20203100 /* [RO] Read Error Count */
-#define BCHP_NAND_READ_ERROR_COUNT               0x20203104 /* [RO] Read Error Count */
-#define BCHP_NAND_BLOCK_LOCK_STATUS              0x20203108 /* [RO] Nand Flash Block Lock Status */
-#define BCHP_NAND_ECC_CORR_EXT_ADDR              0x2020310c /* [RO] ECC Correctable Error Extended Address */
-#define BCHP_NAND_ECC_CORR_ADDR                  0x20203110 /* [RO] ECC Correctable Error Address */
-#define BCHP_NAND_ECC_UNC_EXT_ADDR               0x20203114 /* [RO] ECC Uncorrectable Error Extended Address */
-#define BCHP_NAND_ECC_UNC_ADDR                   0x20203118 /* [RO] ECC Uncorrectable Error Address */
-#define BCHP_NAND_FLASH_READ_EXT_ADDR            0x2020311c /* [RO] Flash Read Data Extended Address */
-#define BCHP_NAND_FLASH_READ_ADDR                0x20203120 /* [RO] Flash Read Data Address */
-#define BCHP_NAND_PROGRAM_PAGE_EXT_ADDR          0x20203124 /* [RO] Page Program Extended Address */
-#define BCHP_NAND_PROGRAM_PAGE_ADDR              0x20203128 /* [RO] Page Program Address */
-#define BCHP_NAND_COPY_BACK_EXT_ADDR             0x2020312c /* [RO] Copy Back Extended Address */
-#define BCHP_NAND_COPY_BACK_ADDR                 0x20203130 /* [RO] Copy Back Address */
-#define BCHP_NAND_BLOCK_ERASE_EXT_ADDR           0x20203134 /* [RO] Block Erase Extended Address */
-#define BCHP_NAND_BLOCK_ERASE_ADDR               0x20203138 /* [RO] Block Erase Address */
-#define BCHP_NAND_INV_READ_EXT_ADDR              0x2020313c /* [RO] Flash Invalid Data Extended Address */
-#define BCHP_NAND_INV_READ_ADDR                  0x20203140 /* [RO] Flash Invalid Data Address */
-#define BCHP_NAND_INIT_STATUS                    0x20203144 /* [RO] Initialization status */
-#define BCHP_NAND_ONFI_STATUS                    0x20203148 /* [RW] ONFI Status */
-#define BCHP_NAND_ONFI_DEBUG_DATA                0x2020314c /* [RO] ONFI Debug Data */
-#define BCHP_NAND_SEMAPHORE                      0x20203150 /* [RW] Semaphore */
-#define BCHP_NAND_SET_FEATURE_DATA               0x20203184 /* [RW] Nand Flash Set Feature Data */
-#define BCHP_NAND_GET_FEATURE_DATA               0x20203188 /* [RO] Nand Flash Get Feature Data */
-#define BCHP_NAND_FLASH_JEDEC_ID                 0x2020318c /* [RO] Nand Flash Device ID */
-#define BCHP_NAND_FLASH_JEDEC_ID_EXT             0x20203190 /* [RO] Nand Flash Extended Device ID */
-#define BCHP_NAND_FLASH_DEVICE_ID                0x20203194 /* [RO] Nand Flash Device ID */
-#define BCHP_NAND_FLASH_DEVICE_ID_EXT            0x20203198 /* [RO] Nand Flash Extended Device ID */
-#define BCHP_NAND_LL_RDDATA                      0x2020319c /* [RO] Nand Flash Low Level Read Data */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_0          0x20203200 /* [RO] Nand Flash Spare Area Read Bytes 0-3 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_4          0x20203204 /* [RO] Nand Flash Spare Area Read Bytes 4-7 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_8          0x20203208 /* [RO] Nand Flash Spare Area Read Bytes 8-11 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_C          0x2020320c /* [RO] Nand Flash Spare Area Read Bytes 12-15 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_10         0x20203210 /* [RO] Nand Flash Spare Area Read Bytes 16-19 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_14         0x20203214 /* [RO] Nand Flash Spare Area Read Bytes 20-23 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_18         0x20203218 /* [RO] Nand Flash Spare Area Read Bytes 24-27 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_1C         0x2020321c /* [RO] Nand Flash Spare Area Read Bytes 28-31 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_20         0x20203220 /* [RO] Nand Flash Spare Area Read Bytes 32-35 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_24         0x20203224 /* [RO] Nand Flash Spare Area Read Bytes 36-39 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_28         0x20203228 /* [RO] Nand Flash Spare Area Read Bytes 40-43 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_2C         0x2020322c /* [RO] Nand Flash Spare Area Read Bytes 44-47 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_30         0x20203230 /* [RO] Nand Flash Spare Area Read Bytes 48-51 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_34         0x20203234 /* [RO] Nand Flash Spare Area Read Bytes 52-55 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_38         0x20203238 /* [RO] Nand Flash Spare Area Read Bytes 56-59 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_3C         0x2020323c /* [RO] Nand Flash Spare Area Read Bytes 60-63 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_40         0x20203240 /* [RO] Nand Flash Spare Area Read Bytes 64-67 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_44         0x20203244 /* [RO] Nand Flash Spare Area Read Bytes 68-71 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_48         0x20203248 /* [RO] Nand Flash Spare Area Read Bytes 72-75 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_4C         0x2020324c /* [RO] Nand Flash Spare Area Read Bytes 76-79 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_50         0x20203250 /* [RO] Nand Flash Spare Area Read Bytes 80-83 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_54         0x20203254 /* [RO] Nand Flash Spare Area Read Bytes 84-87 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_58         0x20203258 /* [RO] Nand Flash Spare Area Read Bytes 88-91 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_5C         0x2020325c /* [RO] Nand Flash Spare Area Read Bytes 92-95 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_60         0x20203260 /* [RO] Nand Flash Spare Area Read Bytes 96-99 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_64         0x20203264 /* [RO] Nand Flash Spare Area Read Bytes 100-103 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_68         0x20203268 /* [RO] Nand Flash Spare Area Read Bytes 104-107 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_6C         0x2020326c /* [RO] Nand Flash Spare Area Read Bytes 108-111 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_70         0x20203270 /* [RO] Nand Flash Spare Area Read Bytes 112-115 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_74         0x20203274 /* [RO] Nand Flash Spare Area Read Bytes 116-119 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_78         0x20203278 /* [RO] Nand Flash Spare Area Read Bytes 120-123 */
-#define BCHP_NAND_SPARE_AREA_READ_OFS_7C         0x2020327c /* [RO] Nand Flash Spare Area Read Bytes 124-127 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_0         0x20203400 /* [RW] Nand Flash Spare Area Write Bytes 0-3 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_4         0x20203404 /* [RW] Nand Flash Spare Area Write Bytes 4-7 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_8         0x20203408 /* [RW] Nand Flash Spare Area Write Bytes 8-11 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_C         0x2020340c /* [RW] Nand Flash Spare Area Write Bytes 12-15 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_10        0x20203410 /* [RW] Nand Flash Spare Area Write Bytes 16-19 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_14        0x20203414 /* [RW] Nand Flash Spare Area Write Bytes 20-23 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_18        0x20203418 /* [RW] Nand Flash Spare Area Write Bytes 24-27 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_1C        0x2020341c /* [RW] Nand Flash Spare Area Write Bytes 28-31 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_20        0x20203420 /* [RW] Nand Flash Spare Area Write Bytes 32-35 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_24        0x20203424 /* [RW] Nand Flash Spare Area Write Bytes 36-39 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_28        0x20203428 /* [RW] Nand Flash Spare Area Write Bytes 40-43 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_2C        0x2020342c /* [RW] Nand Flash Spare Area Write Bytes 44-47 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_30        0x20203430 /* [RW] Nand Flash Spare Area Write Bytes 48-51 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_34        0x20203434 /* [RW] Nand Flash Spare Area Write Bytes 52-55 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_38        0x20203438 /* [RW] Nand Flash Spare Area Write Bytes 56-59 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_3C        0x2020343c /* [RW] Nand Flash Spare Area Write Bytes 60-63 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_40        0x20203440 /* [RW] Nand Flash Spare Area Write Bytes 64-67 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_44        0x20203444 /* [RW] Nand Flash Spare Area Write Bytes 68-71 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_48        0x20203448 /* [RW] Nand Flash Spare Area Write Bytes 72-75 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_4C        0x2020344c /* [RW] Nand Flash Spare Area Write Bytes 76-79 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_50        0x20203450 /* [RW] Nand Flash Spare Area Write Bytes 80-83 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_54        0x20203454 /* [RW] Nand Flash Spare Area Write Bytes 84-87 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_58        0x20203458 /* [RW] Nand Flash Spare Area Write Bytes 88-91 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_5C        0x2020345c /* [RW] Nand Flash Spare Area Write Bytes 92-95 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_60        0x20203460 /* [RW] Nand Flash Spare Area Write Bytes 96-99 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_64        0x20203464 /* [RW] Nand Flash Spare Area Write Bytes 100-103 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_68        0x20203468 /* [RW] Nand Flash Spare Area Write Bytes 104-107 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_6C        0x2020346c /* [RW] Nand Flash Spare Area Write Bytes 108-111 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_70        0x20203470 /* [RW] Nand Flash Spare Area Write Bytes 112-115 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_74        0x20203474 /* [RW] Nand Flash Spare Area Write Bytes 116-119 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_78        0x20203478 /* [RW] Nand Flash Spare Area Write Bytes 120-123 */
-#define BCHP_NAND_SPARE_AREA_WRITE_OFS_7C        0x2020347c /* [RW] Nand Flash Spare Area Write Bytes 124-127 */
-#define BCHP_NAND_DDR_TIMING                     0x20203500 /* [RW] Nand Flash DDR TIMING */
-#define BCHP_NAND_DDR_NCDL_CALIB_CTL             0x20203504 /* [RW] Nand Flash Calibration Control for Master DLL */
-#define BCHP_NAND_DDR_NCDL_CALIB_PERIOD          0x20203508 /* [RW] Nand Flash Calibration Period */
-#define BCHP_NAND_DDR_NCDL_CALIB_STAT            0x2020350c /* [RO] Nand Flash Calibration Status for Master DLL */
-#define BCHP_NAND_DDR_NCDL_MODE                  0x20203510 /* [RW] Nand Flash NCDL mode for Slave DLLs */
-#define BCHP_NAND_DDR_NCDL_OFFSET                0x20203514 /* [RW] Nand Flash NCDL offset for Slave DLLs */
-#define BCHP_NAND_DDR_PHY_CTL                    0x20203518 /* [RW] Nand Flash DDR PHY CONTROL */
-#define BCHP_NAND_DDR_PHY_BIST_CTL               0x2020351c /* [RW] Nand Flash DDR PHY BIST CONTROL */
-#define BCHP_NAND_DDR_PHY_BIST_STAT              0x20203520 /* [RO] Nand Flash DDR PHY BIST STATUS */
-#define BCHP_NAND_DDR_DIAG_STAT0                 0x20203524 /* [RO] Nand Flash DDR DIAG STATUS0 */
-#define BCHP_NAND_DDR_DIAG_STAT1                 0x20203528 /* [RO] Nand Flash DDR DIAG STATUS1 */
+#define BCHP_NAND_REVISION                       0x20203000 /* [RO][32] NAND Revision */
+#define BCHP_NAND_CMD_START                      0x20203004 /* [RW][32] Nand Flash Command Start */
+#define BCHP_NAND_CMD_EXT_ADDRESS                0x20203008 /* [RW][32] Nand Flash Command Extended Address */
+#define BCHP_NAND_CMD_ADDRESS                    0x2020300c /* [RW][32] Nand Flash Command Address */
+#define BCHP_NAND_CMD_END_ADDRESS                0x20203010 /* [RW][32] Nand Flash Command End Address */
+#define BCHP_NAND_INTFC_STATUS                   0x20203014 /* [RO][32] Nand Flash Interface Status */
+#define BCHP_NAND_CS_NAND_SELECT                 0x20203018 /* [RW][32] Nand Flash EBI CS Select */
+#define BCHP_NAND_CS_NAND_XOR                    0x2020301c /* [RW][32] Nand Flash EBI CS XOR masking on CPU address Control */
+#define BCHP_NAND_LL_OP                          0x20203020 /* [RW][32] Nand Flash Low Level Operation */
+#define BCHP_NAND_MPLANE_BASE_EXT_ADDRESS        0x20203024 /* [RW][32] Nand Flash Multiplane base address */
+#define BCHP_NAND_MPLANE_BASE_ADDRESS            0x20203028 /* [RW][32] Nand Flash Multiplane base address */
+#define BCHP_NAND_DATA_SCRAMBLE                  0x2020302c /* [RW][32] Nand Flash Data Scrambler Configuration */
+#define BCHP_NAND_ACC_CONTROL_CS0                0x20203050 /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS0                 0x20203054 /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS0                     0x20203058 /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS0                   0x2020305c /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS0                   0x20203060 /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_ACC_CONTROL_CS1                0x20203064 /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS1                 0x20203068 /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS1                     0x2020306c /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS1                   0x20203070 /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS1                   0x20203074 /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_ACC_CONTROL_CS2                0x20203078 /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS2                 0x2020307c /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS2                     0x20203080 /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS2                   0x20203084 /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS2                   0x20203088 /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_ACC_CONTROL_CS3                0x2020308c /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS3                 0x20203090 /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS3                     0x20203094 /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS3                   0x20203098 /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS3                   0x2020309c /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_ACC_CONTROL_CS4                0x202030a0 /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS4                 0x202030a4 /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS4                     0x202030a8 /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS4                   0x202030ac /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS4                   0x202030b0 /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_ACC_CONTROL_CS5                0x202030b4 /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS5                 0x202030b8 /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS5                     0x202030bc /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS5                   0x202030c0 /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS5                   0x202030c4 /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_ACC_CONTROL_CS6                0x202030c8 /* [RW][32] Nand Flash Access Control */
+#define BCHP_NAND_CONFIG_EXT_CS6                 0x202030cc /* [RW][32] Nand Flash Config Extension */
+#define BCHP_NAND_CONFIG_CS6                     0x202030d0 /* [RW][32] Nand Flash Config */
+#define BCHP_NAND_TIMING_1_CS6                   0x202030d4 /* [RW][32] Nand Flash Timing Parameters 1 */
+#define BCHP_NAND_TIMING_2_CS6                   0x202030d8 /* [RW][32] Nand Flash Timing Parameters 2 */
+#define BCHP_NAND_CORR_STAT_THRESHOLD            0x202030dc /* [RW][32] Correctable Error Reporting Threshold */
+#define BCHP_NAND_CORR_STAT_THRESHOLD_EXT        0x202030e0 /* [RW][32] Correctable Error Reporting Threshold */
+#define BCHP_NAND_BLK_WR_PROTECT                 0x202030e4 /* [RW][32] Block Write Protect Enable and Size for EBI_CS0b */
+#define BCHP_NAND_MULTIPLANE_OPCODES_1           0x202030e8 /* [RW][32] Nand Flash Multiplane Customized Opcodes */
+#define BCHP_NAND_MULTIPLANE_OPCODES_2           0x202030ec /* [RW][32] Nand Flash Multiplane Customized Opcodes */
+#define BCHP_NAND_MULTIPLANE_CTRL                0x202030f0 /* [RW][32] Nand Flash Multiplane Control */
+#define BCHP_NAND_UNCORR_ERROR_COUNT             0x202030fc /* [RW][32] Read Uncorrectable Event Count */
+#define BCHP_NAND_CORR_ERROR_COUNT               0x20203100 /* [RO][32] Read Error Count */
+#define BCHP_NAND_READ_ERROR_COUNT               0x20203104 /* [RO][32] Read Error Count */
+#define BCHP_NAND_BLOCK_LOCK_STATUS              0x20203108 /* [RO][32] Nand Flash Block Lock Status */
+#define BCHP_NAND_ECC_CORR_EXT_ADDR              0x2020310c /* [RO][32] ECC Correctable Error Extended Address */
+#define BCHP_NAND_ECC_CORR_ADDR                  0x20203110 /* [RO][32] ECC Correctable Error Address */
+#define BCHP_NAND_ECC_UNC_EXT_ADDR               0x20203114 /* [RO][32] ECC Uncorrectable Error Extended Address */
+#define BCHP_NAND_ECC_UNC_ADDR                   0x20203118 /* [RO][32] ECC Uncorrectable Error Address */
+#define BCHP_NAND_FLASH_READ_EXT_ADDR            0x2020311c /* [RO][32] Flash Read Data Extended Address */
+#define BCHP_NAND_FLASH_READ_ADDR                0x20203120 /* [RO][32] Flash Read Data Address */
+#define BCHP_NAND_PROGRAM_PAGE_EXT_ADDR          0x20203124 /* [RO][32] Page Program Extended Address */
+#define BCHP_NAND_PROGRAM_PAGE_ADDR              0x20203128 /* [RO][32] Page Program Address */
+#define BCHP_NAND_COPY_BACK_EXT_ADDR             0x2020312c /* [RO][32] Copy Back Extended Address */
+#define BCHP_NAND_COPY_BACK_ADDR                 0x20203130 /* [RO][32] Copy Back Address */
+#define BCHP_NAND_BLOCK_ERASE_EXT_ADDR           0x20203134 /* [RO][32] Block Erase Extended Address */
+#define BCHP_NAND_BLOCK_ERASE_ADDR               0x20203138 /* [RO][32] Block Erase Address */
+#define BCHP_NAND_INV_READ_EXT_ADDR              0x2020313c /* [RO][32] Flash Invalid Data Extended Address */
+#define BCHP_NAND_INV_READ_ADDR                  0x20203140 /* [RO][32] Flash Invalid Data Address */
+#define BCHP_NAND_INIT_STATUS                    0x20203144 /* [RO][32] Initialization status */
+#define BCHP_NAND_ONFI_STATUS                    0x20203148 /* [RW][32] ONFI Status */
+#define BCHP_NAND_ONFI_DEBUG_DATA                0x2020314c /* [RO][32] ONFI Debug Data */
+#define BCHP_NAND_SEMAPHORE                      0x20203150 /* [RW][32] Semaphore */
+#define BCHP_NAND_SET_FEATURE_DATA               0x20203184 /* [RW][32] Nand Flash Set Feature Data */
+#define BCHP_NAND_GET_FEATURE_DATA               0x20203188 /* [RO][32] Nand Flash Get Feature Data */
+#define BCHP_NAND_FLASH_JEDEC_ID                 0x2020318c /* [RO][32] Nand Flash Device ID */
+#define BCHP_NAND_FLASH_JEDEC_ID_EXT             0x20203190 /* [RO][32] Nand Flash Extended Device ID */
+#define BCHP_NAND_FLASH_DEVICE_ID                0x20203194 /* [RO][32] Nand Flash Device ID */
+#define BCHP_NAND_FLASH_DEVICE_ID_EXT            0x20203198 /* [RO][32] Nand Flash Extended Device ID */
+#define BCHP_NAND_LL_RDDATA                      0x2020319c /* [RO][32] Nand Flash Low Level Read Data */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_0          0x20203200 /* [RO][32] Nand Flash Spare Area Read Bytes 0-3 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_4          0x20203204 /* [RO][32] Nand Flash Spare Area Read Bytes 4-7 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_8          0x20203208 /* [RO][32] Nand Flash Spare Area Read Bytes 8-11 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_C          0x2020320c /* [RO][32] Nand Flash Spare Area Read Bytes 12-15 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_10         0x20203210 /* [RO][32] Nand Flash Spare Area Read Bytes 16-19 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_14         0x20203214 /* [RO][32] Nand Flash Spare Area Read Bytes 20-23 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_18         0x20203218 /* [RO][32] Nand Flash Spare Area Read Bytes 24-27 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_1C         0x2020321c /* [RO][32] Nand Flash Spare Area Read Bytes 28-31 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_20         0x20203220 /* [RO][32] Nand Flash Spare Area Read Bytes 32-35 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_24         0x20203224 /* [RO][32] Nand Flash Spare Area Read Bytes 36-39 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_28         0x20203228 /* [RO][32] Nand Flash Spare Area Read Bytes 40-43 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_2C         0x2020322c /* [RO][32] Nand Flash Spare Area Read Bytes 44-47 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_30         0x20203230 /* [RO][32] Nand Flash Spare Area Read Bytes 48-51 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_34         0x20203234 /* [RO][32] Nand Flash Spare Area Read Bytes 52-55 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_38         0x20203238 /* [RO][32] Nand Flash Spare Area Read Bytes 56-59 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_3C         0x2020323c /* [RO][32] Nand Flash Spare Area Read Bytes 60-63 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_40         0x20203240 /* [RO][32] Nand Flash Spare Area Read Bytes 64-67 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_44         0x20203244 /* [RO][32] Nand Flash Spare Area Read Bytes 68-71 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_48         0x20203248 /* [RO][32] Nand Flash Spare Area Read Bytes 72-75 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_4C         0x2020324c /* [RO][32] Nand Flash Spare Area Read Bytes 76-79 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_50         0x20203250 /* [RO][32] Nand Flash Spare Area Read Bytes 80-83 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_54         0x20203254 /* [RO][32] Nand Flash Spare Area Read Bytes 84-87 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_58         0x20203258 /* [RO][32] Nand Flash Spare Area Read Bytes 88-91 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_5C         0x2020325c /* [RO][32] Nand Flash Spare Area Read Bytes 92-95 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_60         0x20203260 /* [RO][32] Nand Flash Spare Area Read Bytes 96-99 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_64         0x20203264 /* [RO][32] Nand Flash Spare Area Read Bytes 100-103 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_68         0x20203268 /* [RO][32] Nand Flash Spare Area Read Bytes 104-107 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_6C         0x2020326c /* [RO][32] Nand Flash Spare Area Read Bytes 108-111 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_70         0x20203270 /* [RO][32] Nand Flash Spare Area Read Bytes 112-115 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_74         0x20203274 /* [RO][32] Nand Flash Spare Area Read Bytes 116-119 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_78         0x20203278 /* [RO][32] Nand Flash Spare Area Read Bytes 120-123 */
+#define BCHP_NAND_SPARE_AREA_READ_OFS_7C         0x2020327c /* [RO][32] Nand Flash Spare Area Read Bytes 124-127 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_0         0x20203400 /* [RW][32] Nand Flash Spare Area Write Bytes 0-3 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_4         0x20203404 /* [RW][32] Nand Flash Spare Area Write Bytes 4-7 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_8         0x20203408 /* [RW][32] Nand Flash Spare Area Write Bytes 8-11 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_C         0x2020340c /* [RW][32] Nand Flash Spare Area Write Bytes 12-15 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_10        0x20203410 /* [RW][32] Nand Flash Spare Area Write Bytes 16-19 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_14        0x20203414 /* [RW][32] Nand Flash Spare Area Write Bytes 20-23 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_18        0x20203418 /* [RW][32] Nand Flash Spare Area Write Bytes 24-27 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_1C        0x2020341c /* [RW][32] Nand Flash Spare Area Write Bytes 28-31 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_20        0x20203420 /* [RW][32] Nand Flash Spare Area Write Bytes 32-35 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_24        0x20203424 /* [RW][32] Nand Flash Spare Area Write Bytes 36-39 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_28        0x20203428 /* [RW][32] Nand Flash Spare Area Write Bytes 40-43 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_2C        0x2020342c /* [RW][32] Nand Flash Spare Area Write Bytes 44-47 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_30        0x20203430 /* [RW][32] Nand Flash Spare Area Write Bytes 48-51 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_34        0x20203434 /* [RW][32] Nand Flash Spare Area Write Bytes 52-55 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_38        0x20203438 /* [RW][32] Nand Flash Spare Area Write Bytes 56-59 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_3C        0x2020343c /* [RW][32] Nand Flash Spare Area Write Bytes 60-63 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_40        0x20203440 /* [RW][32] Nand Flash Spare Area Write Bytes 64-67 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_44        0x20203444 /* [RW][32] Nand Flash Spare Area Write Bytes 68-71 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_48        0x20203448 /* [RW][32] Nand Flash Spare Area Write Bytes 72-75 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_4C        0x2020344c /* [RW][32] Nand Flash Spare Area Write Bytes 76-79 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_50        0x20203450 /* [RW][32] Nand Flash Spare Area Write Bytes 80-83 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_54        0x20203454 /* [RW][32] Nand Flash Spare Area Write Bytes 84-87 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_58        0x20203458 /* [RW][32] Nand Flash Spare Area Write Bytes 88-91 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_5C        0x2020345c /* [RW][32] Nand Flash Spare Area Write Bytes 92-95 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_60        0x20203460 /* [RW][32] Nand Flash Spare Area Write Bytes 96-99 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_64        0x20203464 /* [RW][32] Nand Flash Spare Area Write Bytes 100-103 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_68        0x20203468 /* [RW][32] Nand Flash Spare Area Write Bytes 104-107 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_6C        0x2020346c /* [RW][32] Nand Flash Spare Area Write Bytes 108-111 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_70        0x20203470 /* [RW][32] Nand Flash Spare Area Write Bytes 112-115 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_74        0x20203474 /* [RW][32] Nand Flash Spare Area Write Bytes 116-119 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_78        0x20203478 /* [RW][32] Nand Flash Spare Area Write Bytes 120-123 */
+#define BCHP_NAND_SPARE_AREA_WRITE_OFS_7C        0x2020347c /* [RW][32] Nand Flash Spare Area Write Bytes 124-127 */
+#define BCHP_NAND_DDR_TIMING                     0x20203500 /* [RW][32] Nand Flash DDR TIMING */
+#define BCHP_NAND_DDR_NCDL_CALIB_CTL             0x20203504 /* [RW][32] Nand Flash Calibration Control for Master DLL */
+#define BCHP_NAND_DDR_NCDL_CALIB_PERIOD          0x20203508 /* [RW][32] Nand Flash Calibration Period */
+#define BCHP_NAND_DDR_NCDL_CALIB_STAT            0x2020350c /* [RO][32] Nand Flash Calibration Status for Master DLL */
+#define BCHP_NAND_DDR_NCDL_MODE                  0x20203510 /* [RW][32] Nand Flash NCDL mode for Slave DLLs */
+#define BCHP_NAND_DDR_NCDL_OFFSET                0x20203514 /* [RW][32] Nand Flash NCDL offset for Slave DLLs */
+#define BCHP_NAND_DDR_PHY_CTL                    0x20203518 /* [RW][32] Nand Flash DDR PHY CONTROL */
+#define BCHP_NAND_DDR_PHY_BIST_CTL               0x2020351c /* [RW][32] Nand Flash DDR PHY BIST CONTROL */
+#define BCHP_NAND_DDR_PHY_BIST_STAT              0x20203520 /* [RO][32] Nand Flash DDR PHY BIST STATUS */
+#define BCHP_NAND_DDR_DIAG_STAT0                 0x20203524 /* [RO][32] Nand Flash DDR DIAG STATUS0 */
+#define BCHP_NAND_DDR_DIAG_STAT1                 0x20203528 /* [RO][32] Nand Flash DDR DIAG STATUS1 */
 
 /***************************************************************************
  *REVISION - NAND Revision

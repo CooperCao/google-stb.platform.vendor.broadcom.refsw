@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2006-2011 Broadcom Corporation
+ *  Copyright (C) 2006-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
  *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 
@@ -62,6 +52,8 @@ typedef enum {
     BIMG_Ioctl_Req_Type_Exit    /* exit is a special request from the user application, which is used to release another process which might wait inside ioctl */
 }BIMG_Ioctl_Req_Type ;
 
+typedef uint64_t BIMG_Ioctl_Pointer;
+
 typedef struct {
     char id[BIMG_ID_MAX_LEN];
     uint32_t req_type;
@@ -70,29 +62,29 @@ typedef struct {
             uint32_t image_id;
         } open;
         struct {
-            void *image;
+            BIMG_Ioctl_Pointer image;
             uint32_t chunk;
             uint32_t length;
         } next;
         struct {
-            void *image;
+            BIMG_Ioctl_Pointer image;
         } close;
-    } data; 
+    } data;
 }BIMG_Ioctl_Req ;
 
 typedef struct {
     int result;
     union {
         struct {
-            void *image;
+            BIMG_Ioctl_Pointer image;
         } open;
         struct {
-            const void *data;
+            BIMG_Ioctl_Pointer data;
         } next;
         struct {
             uint32_t dummy;
         } close;
-    } data; 
+    } data;
 }BIMG_Ioctl_Ack;
 
 typedef struct {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,12 @@
 
 #define MAX_NETWORK_WIFI_PROPS  255
 #define MAX_CONNECTION_STATUS   16
+#ifdef NETAPP_SUPPORT
 #define MENU_WIDTH              340
+#else
+#define MENU_WIDTH              265
+#endif
+#define STATUS_MENU_WIDTH       270
 #define MENU_HEIGHT             355
 
 #include "channel.h"
@@ -50,6 +55,7 @@
 #include "network.h"
 #ifdef WPA_SUPPLICANT_SUPPORT
 #include "wifi.h"
+#include "panel_wps.h"
 #endif
 
 BDBG_MODULE(panel_network_wifi);
@@ -68,14 +74,18 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
     _pConnection(NULL),
     _pSsid(NULL),
     _pChannel(NULL),
+#ifdef NETAPP_SUPPORT
     _pModeA(NULL),
     _pModeB(NULL),
     _pModeG(NULL),
     _pModeN(NULL),
     _pModeAC(NULL),
+#endif
     _pSignalLevel(NULL),
     _pSecurity(NULL),
+#ifdef NETAPP_SUPPORT
     _mode(eWifiMode_Max),
+#endif
     _bConnected(false)
 {
     eRet ret = eRet_Ok;
@@ -99,7 +109,6 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
         MRect rect          = _pContainerBkgnd->getGeometry();
         MRect rectContainer = _pContainerBkgnd->getGeometry();
         int   margin        = 5;
-        int   percentage    = 0;
         int   end           = 0;
 
         /* connection icon */
@@ -119,9 +128,8 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
 
         /* ssid */
         {
-            percentage = 35;
             rect.setX(end + margin / 2);
-            rect.setWidth((width - margin * 2) * percentage / 100);
+            rect.setWidth(115);
             rect.setHeight(18);
             end = rect.x() + rect.width();
 
@@ -134,9 +142,8 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
 
         /* channel */
         {
-            percentage = 9;
             rect.setX(end + margin);
-            rect.setWidth((width - margin * 2) * percentage / 100);
+            rect.setWidth(29);
             end = rect.x() + rect.width();
 
             _pChannel = new CWidgetLabel(MString(strName)+"Channel", pPanel->getEngine(), pPanel, rect, font, _pContainerBkgnd->getWin());
@@ -145,6 +152,7 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
             _pChannel->setBackgroundFillMode(fill_eGradient);
         }
 
+#ifdef NETAPP_SUPPORT
         /* mode A/B/G/N/AC */
         {
             rect.setY(rect.y() + 1);
@@ -205,6 +213,7 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
             _pModeAC->setTextColor(COLOR_GREY);
             _pModeAC->setBackgroundFillMode(fill_eGradient);
         }
+#endif
 
         /* signal level */
         {
@@ -246,6 +255,7 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
     ret = pMenu->addButton(_pContainer, strName);
     CHECK_ERROR_GOTO("unable to add button to menu", ret, error);
 
+#ifdef NETAPP_SUPPORT
     /* set up wifi mode enum to mode label mapping */
     _pModeToLabel[eWifiMode_A]   = _pModeA;
     _pModeToLabel[eWifiMode_B]   = _pModeB;
@@ -256,6 +266,7 @@ CPanelNetworkWifiProp::CPanelNetworkWifiProp(
 
     /* clear wifi mode */
     setMode(eWifiMode_Max);
+#endif
 error:
     return;
 }
@@ -267,11 +278,13 @@ CPanelNetworkWifiProp::~CPanelNetworkWifiProp()
     DEL(_pConnection);
     DEL(_pSsid);
     DEL(_pChannel);
+#ifdef NETAPP_SUPPORT
     DEL(_pModeA);
     DEL(_pModeB);
     DEL(_pModeG);
     DEL(_pModeN);
     DEL(_pModeAC);
+#endif
     DEL(_pSignalLevel);
     DEL(_pSecurity);
 }
@@ -305,6 +318,7 @@ void CPanelNetworkWifiProp::setChannel(const char * pText)
     _pChannel->setText(pText, bwidget_justify_horiz_right, bwidget_justify_vert_middle);
 }
 
+#ifdef NETAPP_SUPPORT
 void CPanelNetworkWifiProp::setMode(eWifiMode mode)
 {
     CWidgetLabel * pLabelMode = _pModeToLabel[mode];
@@ -353,6 +367,7 @@ void CPanelNetworkWifiProp::setMode(eWifiMode mode)
         }
     }
 } /* setMode */
+#endif
 
 void CPanelNetworkWifiProp::setSignalLevel(uint8_t percent)
 {
@@ -486,7 +501,11 @@ void CPanelNetworkWifiProp::dump(bool bForce)
         BDBG_SetModuleLevel("panel_network_wifi", BDBG_eMsg);
     }
 
+#ifdef NETAPP_SUPPORT
     BDBG_MSG(("Network Wifi Property ssid:%s channel:%d mode:%d secure:%d", getSsid().s(), getChannel(), getMode(), isSecure()));
+#else
+    BDBG_MSG(("Network Wifi Property ssid:%s channel:%d secure:%d", getSsid().s(), getChannel(), isSecure()));
+#endif
 
     if (true == bForce)
     {
@@ -505,12 +524,19 @@ CPanelNetworkWifi::CPanelNetworkWifi(
     CPanel("CPanelNetworkWifi", pWidgetEngine, pScreenMain, pParentWidget, geometry, font, parentWin),
     _pNetworkWifiMenu(NULL),
     _pPropertiesMenu(NULL),
+#ifdef WPA_SUPPLICANT_SUPPORT
+    _pWpsButton(NULL),
+    _pWpsLabel(NULL),
+#endif
     _pStatusMenu(NULL),
     _bExpandPanel(false),
     _pExpand(NULL),
+#ifdef NETAPP_SUPPORT
     _pHeadingProperties(NULL),
-    _pGridTitle(NULL),
-    _pGrid(NULL),
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+    _pPanelWps(NULL),
+#endif
     _timerCloseMsgBox(pWidgetEngine, this, 3000),
     _timerUpdate(pWidgetEngine, this, 500),
     _timerScan(pWidgetEngine, this, 10000),
@@ -577,8 +603,36 @@ eRet CPanelNetworkWifi::initialize(
         _pPropertiesMenu->showMenuBar(false);
         _pPropertiesMenu->showEdit(false);
         _pPropertiesMenu->setScroll(true);
+#ifdef WPA_SUPPLICANT_SUPPORT
+        _pPropertiesMenu->setMenuTitle(NULL, " SSID                             Ch    Signal");
 
-        _pHeadingProperties = new CWidgetLabel("CPanelNetworkWifi::_pHeadingProperties", getEngine(), _pNetworkWifiMenu, MRect(0, 36, MENU_WIDTH, 20), font12);
+        /* wifi protected setup (WPS) */
+        {
+            int margin = 7;
+            MRect rectWps(margin, 35, 25, 25);
+
+            /* create Wifi Protected Setup (WPS) push button and logo */
+            _pWpsButton = new CWidgetButton("CPanelNetworkWifi::_pWpsButton", getEngine(), this, rectWps, font12, _pNetworkWifiMenu->getWin());
+            CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _pWpsButton, ret, eRet_OutOfMemory, error);
+            _pWpsButton->setTextColor(COLOR_EGGSHELL);
+            _pWpsButton->setBevel(0);
+            _pWpsButton->setBackgroundColor(_pPropertiesMenu->getBackgroundColor());
+            _pWpsButton->loadImage("images/wps_logo_small.png");
+
+            /* create Wifi Protected Setup (WPS) label text */
+            rectWps.setX(rectWps.x() + rectWps.width());
+            rectWps.setWidth(MENU_WIDTH - rectWps.x() - rectWps.width());
+            _pWpsLabel = new CWidgetLabel("CPanelNetworkWifi::_pWpsLabel", getEngine(), _pNetworkWifiMenu, rectWps, font12);
+            CHECK_PTR_ERROR_GOTO("unable to allocate label widget", _pWpsLabel, ret, eRet_OutOfMemory, error);
+            _pWpsLabel->setText("Wifi Protected Setup (WPS)", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
+            _pWpsLabel->setTextColor(COLOR_EGGSHELL);
+            _pWpsLabel->setBevel(0);
+            _pWpsLabel->setBackgroundColor(_pPropertiesMenu->getBackgroundColor());
+        }
+#endif
+
+#ifdef NETAPP_SUPPORT
+        _pHeadingProperties = new CWidgetLabel("CPanelNetworkWifi::_pHeadingProperties", getEngine(), _pNetworkWifiMenu, MRect(0, 35, MENU_WIDTH, 20), font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate heading widget", _pHeadingProperties, ret, eRet_OutOfMemory, error);
         _pHeadingProperties->setBackgroundColor(_pPropertiesMenu->getBackgroundColor());
         _pHeadingProperties->setTextColor(0xFF80C42F);
@@ -586,6 +640,7 @@ eRet CPanelNetworkWifi::initialize(
         _pHeadingProperties->setZOrder(2);
         _pHeadingProperties->setText("  SSID                             Ch    Modes         Signal",
                 bwidget_justify_horiz_left, bwidget_justify_vert_bottom);
+#endif
 
         /* create max number of buttons - we will create/add them once, then
          * activate/deactivate them from the CWidgetMenu as needed. */
@@ -605,19 +660,23 @@ eRet CPanelNetworkWifi::initialize(
         }
 
         /* expandable status menu */
-        _pStatusMenu = new CWidgetMenu("CPanelNetworkWifi::_pStatusMenu", getEngine(), _pNetworkWifiMenu, MRect(0, 0, MENU_WIDTH, 200), font14, font12);
+        _pStatusMenu = new CWidgetMenu("CPanelNetworkWifi::_pStatusMenu", getEngine(), _pNetworkWifiMenu, MRect(0, 0, STATUS_MENU_WIDTH, 200), font14, font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate menu widget", _pStatusMenu, ret, eRet_OutOfMemory, error);
         _pStatusMenu->showMenuBar(false);
         _pStatusMenu->showEdit(false);
         _pStatusMenu->setMenuTitle(NULL, "Connection Status");
         _pStatusMenu->setScroll(true);
 
+        _pStatusMenu->setListViewBackgroundColor(0xFF222222);
+        _pStatusMenu->setListViewTextColor(COLOR_EGGSHELL);
+        _pStatusMenu->setListViewBevel(0);
+
         /* create double labels for tag/value in connection status
          * our window is big enough to hold them all so no need to scroll */
         for (int i = 0; i < MAX_CONNECTION_STATUS; i++)
         {
             CPanelNetworkWifiStatus * pStatus = NULL;
-            pStatus = new CPanelNetworkWifiStatus(this, _pStatusMenu, MString(i).s(), font12, 35);
+            pStatus = new CPanelNetworkWifiStatus(this, _pStatusMenu, MString(i).s(), font10, 35);
             CHECK_PTR_ERROR_GOTO("unable to allocate NetworkWifi status", pStatus, ret, eRet_OutOfMemory, error);
 
             /* start buttons as inactive - layout() will activate as needed */
@@ -658,6 +717,15 @@ eRet CPanelNetworkWifi::initialize(
         }
 
         _pBack->setFocus();
+
+#ifdef WPA_SUPPLICANT_SUPPORT
+        {
+            _pPanelWps = new CPanelWps(getWidgetEngine(), getScreenMain(), getScreenMain(), MRect(0, 0, 10, 10), font14);
+            CHECK_PTR_ERROR_GOTO("unable to initialize WPS panel", _pPanelWps, ret, eRet_OutOfMemory, error);
+            _pPanelWps->initialize(pModel, _pConfig);
+            _pPanelWps->show(false);
+        }
+#endif
     }
 
     clear();
@@ -676,10 +744,19 @@ void CPanelNetworkWifi::uninitialize()
     _timerUpdate.stop();
     DEL(_MsgBoxStatus);
     DEL(_pBack);
+#ifdef NETAPP_SUPPORT
     DEL(_pHeadingProperties);
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+    DEL(_pPanelWps);
+#endif
     DEL(_pExpand);
     DEL(_pStatusMenu);
     DEL(_pPropertiesMenu);
+#ifdef WPA_SUPPLICANT_SUPPORT
+    DEL(_pWpsButton);
+    DEL(_pWpsLabel);
+#endif
     DEL(_pNetworkWifiMenu);
 }
 
@@ -692,20 +769,30 @@ void CPanelNetworkWifi::layout()
     MRect rectPanel   = getGeometry();
     MRect rectProps   = _pPropertiesMenu->getGeometry();
     MRect rectStatus  = _pPropertiesMenu->getGeometry();
+#ifdef NETAPP_SUPPORT
     MRect rectHeading = _pHeadingProperties->getGeometry();
+#endif
     MRect rectNetworkMenu;
 
     /* layout properties menu */
     rectProps.setX(0);
+#ifdef NETAPP_SUPPORT
     rectProps.setY(30);
-    rectProps.setWidth(rectMenu.width());
     rectProps.setHeight((rectMenu.height() - 30));
+#else
+    /* move properties menu lower to accomodate WPS button */
+    rectProps.setY(60);
+    rectProps.setHeight((rectMenu.height() - 60));
+#endif
+    rectProps.setWidth(rectMenu.width());
     _pPropertiesMenu->setGeometry(rectProps);
 
     /* layout connection status menu */
     rectStatus = rectProps;
     rectStatus.setX(rectProps.x() + rectProps.width());
-    rectStatus.setWidth(rectProps.width() * 4 / 5); /* 4/5 size of properties menu */
+    rectStatus.setY(30);
+    rectStatus.setWidth(STATUS_MENU_WIDTH);
+    rectStatus.setHeight((rectMenu.height() - 30));
     _pStatusMenu->setGeometry(rectStatus);
 
     /* combine properties and status menus to determine panel size */
@@ -758,7 +845,7 @@ eRet CPanelNetworkWifi::connect(CPanelNetworkWifiProp * pNetworkProp)
 
     if (false == _MsgBoxStatus->isVisible())
     {
-        _MsgBoxStatus->showModal("Connecting to Wifi Network", -1, NULL, NULL, NULL);
+        _MsgBoxStatus->showModal(MString("Connecting to ") + strSSID, -1, NULL, NULL, NULL);
     }
 
     return(ret);
@@ -846,6 +933,25 @@ void CPanelNetworkWifi::onClick(bwidget_t widget)
         }
     }
 
+#ifdef WPA_SUPPLICANT_SUPPORT
+    if (_pWpsButton == pWidget)
+    {
+        CNetworkWifiConnectData dataConnect;
+        dataConnect._bWps = true;
+        notifyObservers(eNotify_NetworkWifiConnect, &dataConnect);
+
+        if (false == _pPanelWps->isVisible())
+        {
+            MString strRet = _pPanelWps->showModal();
+            BDBG_MSG(("WPS modal popup returned:%s", strRet.s()));
+            if (strRet == "Cancel")
+            {
+                notifyObservers(eNotify_NetworkWifiDisconnect, &dataConnect);
+            }
+        }
+    }
+    else
+#endif
     if (_pExpand == pWidget)
     {
         expand(!_bExpandPanel);
@@ -941,20 +1047,18 @@ bool CPanelNetworkWifi::isStatusActive(CPanelNetworkWifiStatus * pStatus)
 void CPanelNetworkWifi::clear()
 {
     {
-        MListItr <CPanelNetworkWifiProp> itr(&_propList);
         CPanelNetworkWifiProp *          pProp = NULL;
 
-        for (pProp = itr.first(); pProp; pProp = itr.next())
+        for (pProp = _propList.first(); pProp; pProp = _propList.next())
         {
             pProp->setSsid("");
             activateProp(pProp, false);
         }
     }
     {
-        MListItr <CPanelNetworkWifiStatus> itr(&_statusList);
         CPanelNetworkWifiStatus *          pStatus = NULL;
 
-        for (pStatus = itr.first(); pStatus; pStatus = itr.next())
+        for (pStatus = _statusList.first(); pStatus; pStatus = _statusList.next())
         {
             activateStatus(pStatus, false);
         }
@@ -967,6 +1071,8 @@ void CPanelNetworkWifi::scan(bool bStart)
     {
         return;
     }
+
+    BDBG_MSG(("CPanelNetworkWifi::scan(%d)", bStart));
 
     notifyObservers((true == bStart) ? eNotify_NetworkWifiScanStart : eNotify_NetworkWifiScanStop);
     startUpdateTimers(bStart);
@@ -995,10 +1101,9 @@ void CPanelNetworkWifi::show(bool bShow)
 
 void CPanelNetworkWifi::clearConnectionStatus()
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     CPanelNetworkWifiProp *          pProp = NULL;
 
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         pProp->setConnected(false);
     }
@@ -1006,10 +1111,9 @@ void CPanelNetworkWifi::clearConnectionStatus()
 
 CPanelNetworkWifiProp * CPanelNetworkWifi::findProp(const char * strBssid)
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     CPanelNetworkWifiProp *          pProp = NULL;
 
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         if (pProp->getBssid() == strBssid)
         {
@@ -1025,10 +1129,9 @@ CPanelNetworkWifiProp * CPanelNetworkWifi::findProp(
         const int    nChannel
         )
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     CPanelNetworkWifiProp *          pProp = NULL;
 
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         if (pProp->getSsid() == strSsid)
         {
@@ -1049,8 +1152,7 @@ void CPanelNetworkWifi::setMenuTitleStatus(const char * pStr)
 
     if (NULL != pStr)
     {
-        strText += " - ";
-        strText += pStr;
+        strText = pStr;
     }
     _pNetworkWifiMenu->setMenuTitle(strText.s(), NULL);
 }
@@ -1065,17 +1167,12 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         if (&_timerUpdate == pTimer)
         {
             updateConnectStatus();
-            /* Let NetApp Scan in the background because if we we set a timeout too short and the background task
-             * is in the process of trying to connect() the scan will be timed out, cancelled and then restarted.
-             *
-             * scan();
-             */
         }
         else
         if (&_timerScan == pTimer)
         {
             /* start a new scan */
-            scan(true);
+            scan();
         }
         else
         if (&_timerCloseMsgBox == pTimer)
@@ -1118,7 +1215,6 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
 #elif NETAPP_SUPPORT
         CNetwork * pNetwork = (CNetwork *)notification.getData();
 #endif
-
         setMenuTitleStatus();
 #ifdef WPA_SUPPLICANT_SUPPORT
         updateNetworkList(pWifi);
@@ -1142,6 +1238,10 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         /* expand panel based on connection status */
         expand(true);
         _MsgBoxStatus->cancelModal("");
+
+        /* _pPanelWps gets this notification too so it will manage closing itself
+        _pPanelWps->cancelModal(""); */
+        BDBG_WRN(("Wifi Connection Success"));
     }
     break;
 
@@ -1159,20 +1259,24 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         expand(false);
         if (notification.getId() == eNotify_NetworkWifiConnectFailureAssocReject)
         {
+            BDBG_WRN(("Association rejection failure"));
             _MsgBoxStatus->setText("Assoc Rejection Failure");
         }
         else
         if (notification.getId() == eNotify_NetworkWifiConnectFailureNetworkNotFound)
         {
+            BDBG_WRN(("Missing network failure"));
             _MsgBoxStatus->setText("Missing Network Failure");
         }
         else
         if (notification.getId() == eNotify_NetworkWifiConnectFailureWrongKey)
         {
+            BDBG_WRN(("Incorrent Key failure"));
             _MsgBoxStatus->setText("Incorrect Key Failure");
         }
         else
         {
+            BDBG_WRN(("Connection failure"));
             _MsgBoxStatus->setText("Connection Failure");
         }
 
@@ -1189,6 +1293,7 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
 
         /* expand panel based on connection status */
         expand(false);
+        BDBG_WRN(("Wifi Disconnection Success"));
     }
     break;
 #endif /* ifdef WPA_SUPPLICANT_SUPPORT */
@@ -1266,16 +1371,18 @@ void CPanelNetworkWifi::processNotification(CNotification & notification)
         break;
     } /* switch */
 
+    /* forward notification to WPS panel */
+    _pPanelWps->processNotification(notification);
+
 error:
     return;
 } /* processNotification */
 
 CPanelNetworkWifiProp * CPanelNetworkWifi::findEmptyProp()
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     CPanelNetworkWifiProp *          pProp = NULL;
 
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         if (pProp->getSsid().isEmpty())
         {
@@ -1300,24 +1407,27 @@ void CPanelNetworkWifi::updateConnectStatus()
 #ifdef WPA_SUPPLICANT_SUPPORT
 void CPanelNetworkWifi::updateConnectStatus(CWifi * pNetwork)
 {
-    MStringHash *             pConnectStatus = pNetwork->getConnectedStatus();
-    MString                   strBSSID       = pNetwork->getConnectedBSSID();
+    MStringHash               connectStatusHash;
+    MString                   strBSSID;
     CPanelNetworkWifiStatus * pStatusWidget  = NULL;
 
-    MListItr <CPanelNetworkWifiStatus> itr(&_statusList);
 
+    pNetwork->getConnectedStatus(&connectStatusHash);
+
+    strBSSID = connectStatusHash.get("bssid");
     BDBG_MSG(("%s connected network:%s", __FUNCTION__, strBSSID.s()));
 
     if (0 < strBSSID.length())
     {
-        pConnectStatus = pNetwork->getConnectedStatus();
-        pStatusWidget  = itr.first();
-        for (pConnectStatus->first(); pConnectStatus->current(); pConnectStatus->next())
+        /* connected so update status */
+
+        pStatusWidget = _statusList.first();
+        for (connectStatusHash.first(); connectStatusHash.current(); connectStatusHash.next())
         {
             if (NULL != pStatusWidget)
             {
-                pStatusWidget->setTag(pConnectStatus->name() + ":");
-                pStatusWidget->setValue(pConnectStatus->value());
+                pStatusWidget->setTag(connectStatusHash.name() + ":");
+                pStatusWidget->setValue(connectStatusHash.value());
 
                 /* note we do not use the button's show() method here since that is
                  * manipulated by the control itself when scrolling.  the setListButtonActive()
@@ -1326,7 +1436,7 @@ void CPanelNetworkWifi::updateConnectStatus(CWifi * pNetwork)
                  * properly */
                 _pStatusMenu->setListButtonActive(pStatusWidget->getContainer(), true);
 
-                pStatusWidget = itr.next();
+                pStatusWidget = _statusList.next();
             }
             else
             {
@@ -1337,11 +1447,10 @@ void CPanelNetworkWifi::updateConnectStatus(CWifi * pNetwork)
         /* save network object */
         _pNetwork = pNetwork;
     }
-
-    if (0 == pNetwork->getConnectedBSSID().length())
+    else
     {
         /* disconnected so clear status */
-        pStatusWidget = itr.first();
+        pStatusWidget = _statusList.first();
 
         /* clear network object */
         _pNetwork = NULL;
@@ -1353,14 +1462,15 @@ error:
     /* hide any remaining unused buttons */
     while (NULL != pStatusWidget)
     {
-        _pStatusMenu->setListButtonActive(pStatusWidget->getContainer(), false);
-        pStatusWidget = itr.next();
+        _pStatusMenu->setListButtonActive(pStatusWidget->getContainer(), true);
+        pStatusWidget->setTag("");
+        pStatusWidget->setValue("");
+        pStatusWidget = _statusList.next();
     }
 } /* updateConnectStatus */
 
 eRet CPanelNetworkWifi::updateSignalStrength(CNetworkWifi * pNetwork)
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     CNetworkWifi                     info;
     CPanelNetworkWifiProp *          pProp = NULL;
     eRet ret                               = eRet_Ok;
@@ -1374,7 +1484,7 @@ eRet CPanelNetworkWifi::updateSignalStrength(CNetworkWifi * pNetwork)
      */
 
     /* search property list for a match */
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         if (*pProp == info)
         {
@@ -1395,8 +1505,6 @@ void CPanelNetworkWifi::updateConnectStatus(CNetwork * pNetwork)
     CPanelNetworkWifiStatus * pStatus = NULL;
     MStringHash               status;
 
-    MListItr <CPanelNetworkWifiStatus> itr(&_statusList);
-
     BDBG_ASSERT(NULL != pNetwork);
 
     if (eConnectStatus_Connected == pNetwork->getConnectStatus())
@@ -1407,7 +1515,7 @@ void CPanelNetworkWifi::updateConnectStatus(CNetwork * pNetwork)
 
         if (true == status.first())
         {
-            pStatus = itr.first();
+            pStatus = _statusList.first();
             for (status.first(); status.current(); status.next())
             {
                 if (NULL != pStatus)
@@ -1422,7 +1530,7 @@ void CPanelNetworkWifi::updateConnectStatus(CNetwork * pNetwork)
                      * properly */
                     _pStatusMenu->setListButtonActive(pStatus->getContainer(), true);
 
-                    pStatus = itr.next();
+                    pStatus = _statusList.next();
                 }
                 else
                 {
@@ -1437,10 +1545,7 @@ void CPanelNetworkWifi::updateConnectStatus(CNetwork * pNetwork)
     else
     {
         /* disconnected so clear status */
-        pStatus = itr.first();
-
-        /* clear network object */
-        _pNetwork = NULL;
+        pStatus = _statusList.first();
     }
 error:
     updateConnectedIcon(pNetwork);
@@ -1449,13 +1554,12 @@ error:
     while (NULL != pStatus)
     {
         _pStatusMenu->setListButtonActive(pStatus->getContainer(), false);
-        pStatus = itr.next();
+        pStatus = _statusList.next();
     }
 } /* updateConnectStatus */
 
 eRet CPanelNetworkWifi::updateSignalStrength(CNetwork * pNetwork)
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     NETAPP_WIFI_AP_INFO              info;
     CPanelNetworkWifiProp *          pProp = NULL;
     eRet ret                               = eRet_Ok;
@@ -1465,7 +1569,7 @@ eRet CPanelNetworkWifi::updateSignalStrength(CNetwork * pNetwork)
     CHECK_ERROR_GOTO("unable to get connected wifi network info", ret, error);
 
     /* search property list for a match */
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         if (*pProp == info)
         {
@@ -1484,10 +1588,8 @@ error:
 #ifdef WPA_SUPPLICANT_SUPPORT
 void CPanelNetworkWifi::updateNetworkList(CWifi * pWifi)
 {
-    int            i        = 0;
-    CNetworkWifi * pNetwork = NULL;
-
-    MAutoList<CNetworkWifi> * pScannedNetworksList = NULL;
+    int                       i                    = 0;
+    CNetworkWifi *            pNetwork             = NULL;
     CPanelNetworkWifiProp *   pProp                = NULL;
     CPanelNetworkWifiProp *   pPropFocus           = NULL;
     uint32_t                  nIndex               = 0;
@@ -1496,14 +1598,12 @@ void CPanelNetworkWifi::updateNetworkList(CWifi * pWifi)
 
     BDBG_ASSERT(NULL != pWifi);
 
-    pScannedNetworksList = pWifi->getScannedNetworkList();
-
     /* debug: printout network list */
-    for (pNetwork = pScannedNetworksList->first();
-         pNetwork;
-         pNetwork = pScannedNetworksList->next())
+    i = 0;
+    while (NULL != (pNetwork = pWifi->getScannedNetwork(i)))
     {
         BDBG_MSG(("Network: %s %s %d %s ssid:%s", pNetwork->_strBSSID.s(), pNetwork->_strFrequency.s(), pNetwork->_signalToNoise, pNetwork->_strFlags.s(), pNetwork->_strSSID.s()));
+        i++;
     }
 
     /* add/update networks - note that the pScannedNetworksList contains a list of
@@ -1511,9 +1611,8 @@ void CPanelNetworkWifi::updateNetworkList(CWifi * pWifi)
      * we will only show the closest AP (best signal level) and use that to
      * represent the entire network of APs with the same SSID.
      */
-    for (pNetwork = pScannedNetworksList->first();
-         pNetwork;
-         pNetwork = pScannedNetworksList->next())
+    i = 0;
+    while (NULL != (pNetwork = pWifi->getScannedNetwork(i)))
     {
         /* ignore unnamed networks */
         if (true == pNetwork->_strSSID.isEmpty()) { continue; }
@@ -1547,6 +1646,8 @@ void CPanelNetworkWifi::updateNetworkList(CWifi * pWifi)
                 BDBG_MSG(("create new prop for newly found network:%s", pPropNew->getBssid().s()));
             }
         }
+
+        i++;
     }
 
     for (pPropFocus = _propList.first(); pPropFocus; pPropFocus = _propList.next())
@@ -1560,9 +1661,8 @@ void CPanelNetworkWifi::updateNetworkList(CWifi * pWifi)
      * we must remove outdated networks that no longer exist */
     for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
-        for (pNetwork = pScannedNetworksList->first();
-             pNetwork;
-             pNetwork = pScannedNetworksList->next())
+        i = 0;
+        while (NULL != (pNetwork = pWifi->getScannedNetwork(i)))
         {
             if (pProp->getSsid() == pNetwork->_strSSID)
             {
@@ -1573,6 +1673,8 @@ void CPanelNetworkWifi::updateNetworkList(CWifi * pWifi)
                 activateProp(pProp, true);
                 break;
             }
+
+            i++;
         }
 
         if (NULL == pNetwork)
@@ -1611,8 +1713,6 @@ void CPanelNetworkWifi::updateConnectedIcon(CWifi * pNetwork)
     eRet                    ret   = eRet_Ok;
     MString                 strConnectedBSSID;
 
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
-
     clearConnectionStatus();
 
     strConnectedBSSID = pNetwork->getConnectedBSSID();
@@ -1629,7 +1729,6 @@ error:
 #elif NETAPP_SUPPORT
 void CPanelNetworkWifi::updateNetworkList(CNetwork * pNetwork)
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     NETAPP_WIFI_AP_INFO *            pInfo = NULL;
     CPanelNetworkWifiProp *          pProp = NULL;
     uint32_t  nIndex                       = 0;
@@ -1645,7 +1744,7 @@ void CPanelNetworkWifi::updateNetworkList(CNetwork * pNetwork)
         if (false == MString(pInfo->cSSID).isEmpty())
         {
             /* search property list for a match */
-            for (pProp = itr.first(); pProp; pProp = itr.next())
+            for (pProp = _propList.first(); pProp; pProp = _propList.next())
             {
                 if (*pProp == *pInfo)
                 {
@@ -1680,7 +1779,7 @@ void CPanelNetworkWifi::updateNetworkList(CNetwork * pNetwork)
 
     /* now that we have added/updated the given networks to our property list,
      * we must remove outdated networks that no longer exist */
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         nIndex = 0;
         pInfo  = pNetwork->getNetworkInfo(nIndex);
@@ -1730,8 +1829,6 @@ void CPanelNetworkWifi::updateConnectedIcon(CNetwork * pNetwork)
     CPanelNetworkWifiProp * pProp = NULL;
     eRet                    ret   = eRet_Ok;
 
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
-
     clearConnectionStatus();
 
     if (eConnectStatus_Connected == pNetwork->getConnectStatus())
@@ -1739,7 +1836,7 @@ void CPanelNetworkWifi::updateConnectedIcon(CNetwork * pNetwork)
         ret = pNetwork->getConnectedWifiNetwork(&info);
         CHECK_ERROR_GOTO("unable to retrieve connected wifi network", ret, error);
 
-        for (pProp = itr.first(); pProp; pProp = itr.next())
+        for (pProp = _propList.first(); pProp; pProp = _propList.next())
         {
             if (*pProp == info)
             {
@@ -1756,10 +1853,9 @@ error:
 
 void CPanelNetworkWifi::dump(bool bForce)
 {
-    MListItr <CPanelNetworkWifiProp> itr(&_propList);
     CPanelNetworkWifiProp *          pProp = NULL;
 
-    for (pProp = itr.first(); pProp; pProp = itr.next())
+    for (pProp = _propList.first(); pProp; pProp = _propList.next())
     {
         pProp->dump(bForce);
     }

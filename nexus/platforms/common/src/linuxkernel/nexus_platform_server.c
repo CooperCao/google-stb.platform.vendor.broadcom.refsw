@@ -194,17 +194,6 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
     BSTD_UNUSED(pSettings);
 }
 
-NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *type, void *object)
-{
-    return NEXUS_Platform_P_AcquireObject(&client->driver_client->client, type, object);
-}
-
-void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *type, void *object)
-{
-    NEXUS_Platform_P_ReleaseObject(type, object);
-    return;
-}
-
 void NEXUS_Platform_GetClientResources( NEXUS_ClientHandle client, NEXUS_ClientResources *pResources )
 {
 #if NEXUS_SERVER_SUPPORT

@@ -109,7 +109,7 @@ typedef enum NxClient_StandbyCpuMode {
 Standby settings structure used by a client
 to request one of standby modes
 **/
-typedef struct NxClient_StandbySetttings
+typedef struct NxClient_StandbySettings
 {
     NEXUS_PlatformStandbySettings settings;
     NxClient_StandbyCpuMode mode; /* Deprecated */

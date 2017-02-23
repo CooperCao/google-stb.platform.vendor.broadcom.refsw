@@ -92,7 +92,7 @@ void NEXUS_SyncChannelModule_GetDefaultSettings(NEXUS_SyncChannelModuleSettings 
     pSettings->audio.unconditionalUnmuteTimeout = synclibSettings.sAudio.uiUnconditionalUnmuteTimeout;
 }
 
-void NEXUS_SyncChannelModule_Print(void)
+static void NEXUS_SyncChannelModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     BDBG_LOG(("Sync Channel:"));
@@ -1998,7 +1998,7 @@ void NEXUS_SyncChannel_GetSettings(NEXUS_SyncChannelHandle syncChannel, NEXUS_Sy
     *pSettings = syncChannel->settings;
 }
 
-NEXUS_Error NEXUS_Synclib_P_SetVideoSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
+static NEXUS_Error NEXUS_Synclib_P_SetVideoSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     NEXUS_VideoInputSyncStatus status;
     BSYNClib_VideoSource_Config vsourceConfig;
@@ -2046,7 +2046,7 @@ NEXUS_Error NEXUS_Synclib_P_SetVideoSink(NEXUS_SyncChannelHandle syncChannel, co
     return 0;
 }
 
-NEXUS_Error NEXUS_SyncChannel_P_ApplyAudioConnectState(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
+static NEXUS_Error NEXUS_SyncChannel_P_ApplyAudioConnectState(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_AudioInputSyncStatus status;
@@ -2071,7 +2071,7 @@ NEXUS_Error NEXUS_SyncChannel_P_ApplyAudioConnectState(NEXUS_SyncChannelHandle s
     return rc;
 }
 
-NEXUS_Error NEXUS_Synclib_P_SetAudioSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
+static NEXUS_Error NEXUS_Synclib_P_SetAudioSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     BSYNClib_AudioSource_Config asourceConfig;
@@ -2096,7 +2096,7 @@ NEXUS_Error NEXUS_Synclib_P_SetAudioSource(NEXUS_SyncChannelHandle syncChannel, 
     return rc;
 }
 
-NEXUS_Error NEXUS_Synclib_P_SetAudioSink(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
+static NEXUS_Error NEXUS_Synclib_P_SetAudioSink(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     BSYNClib_AudioSink_Config asinkConfig;
 

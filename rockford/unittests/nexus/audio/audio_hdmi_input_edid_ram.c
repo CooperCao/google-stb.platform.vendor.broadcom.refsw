@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform
 *    Specific APIs to initialze the a board.
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "nexus_platform.h"
@@ -60,10 +52,12 @@
 #if NEXUS_NUM_HDMI_INPUTS
 #include "nexus_hdmi_input.h"
 #endif
+#if NEXUS_HAS_AUDIO
 #include "nexus_audio_input.h"
 #include "nexus_audio_decoder.h"
 #include "nexus_audio_dac.h"
 #include "nexus_audio_output.h"
+#endif
 #include "bstd.h"
 #include "bkni.h"
 #include <stdio.h>
@@ -181,7 +175,7 @@ void avmute_changed(void *context, int param)
 
 int main(int argc, char **argv)
 {
-#if NEXUS_HAS_HDMI_INPUT
+#if NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_AUDIO
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_VideoWindowHandle window;
@@ -242,7 +236,7 @@ int main(int argc, char **argv)
     fprintf(stderr, "hdmiInput Port: %d\n", hdmiInputIndex) ;
     fprintf(stderr, "Display Refresh Rate : %d\n", refreshHz) ;
     fprintf(stderr, "dvoLinkMode : %d\n", 
-		platformSettings.displayModuleSettings.panel.lvds.dvoLinkMode) ;
+        platformSettings.displayModuleSettings.panel.lvds.dvoLinkMode) ;
     fprintf(stderr, "Exit after : %d seconds\n", loopCount) ;
 #endif  
     
@@ -427,4 +421,3 @@ int main(int argc, char **argv)
 #endif
     return 0;
 }
-

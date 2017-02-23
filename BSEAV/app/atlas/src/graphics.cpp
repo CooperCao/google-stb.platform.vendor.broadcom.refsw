@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -493,6 +493,8 @@ eRet CGraphics::initGraphics(
         /* create surface compositor */
         {
             NEXUS_SurfaceCompositorSettings settings;
+            NEXUS_DisplayCapabilities       capsDisplay;
+            NEXUS_GetDisplayCapabilities(&capsDisplay);
 
             _surfaceCompositor = NEXUS_SurfaceCompositor_Create(0);
             NEXUS_SurfaceCompositor_GetSettings(_surfaceCompositor, &settings);
@@ -509,6 +511,15 @@ eRet CGraphics::initGraphics(
             settings.display[0].framebuffer.height          = rectMaxGraphicsHD.height();
             settings.display[0].framebuffer.backgroundColor = 0x0; /* transparent background for video window to show through*/
             settings.display[0].framebuffer.heap            = NEXUS_Platform_GetFramebufferHeap(0);
+            if (capsDisplay.display[0].graphics.compression == NEXUS_GraphicsCompression_eRequired)
+            {
+                settings.display[0].framebuffer.pixelFormat = NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8;
+            }
+            else
+            {
+                settings.display[0].framebuffer.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
+            }
+
             BDBG_WRN(("HD framebuffer w:%d h:%d", settings.display[0].framebuffer.width, settings.display[0].framebuffer.height));
 
             if (NULL != _pDisplaySecondary)
@@ -523,6 +534,14 @@ eRet CGraphics::initGraphics(
                 settings.display[1].framebuffer.height          = rectMaxGraphicsSD.height();
                 settings.display[1].framebuffer.backgroundColor = 0x0; /*transparent background for video window to show through*/
                 settings.display[1].framebuffer.heap            = NEXUS_Platform_GetFramebufferHeap(1);
+                if (capsDisplay.display[1].graphics.compression == NEXUS_GraphicsCompression_eRequired)
+                {
+                    settings.display[1].framebuffer.pixelFormat = NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8;
+                }
+                else
+                {
+                    settings.display[1].framebuffer.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
+                }
                 BDBG_WRN(("SD framebuffer w:%d h:%d", settings.display[1].framebuffer.width, settings.display[1].framebuffer.height));
             }
 
@@ -842,7 +861,6 @@ eRet CGraphics::destripeToSurface(
     nerror = NEXUS_Graphics2D_DestripeToSurface(getBlitter(), stripedSurface, stillSurface, &rectTarget);
     CHECK_NEXUS_ERROR_GOTO("unable to destripe given surface", ret, nerror, error);
     graphicsCheckpoint();
-    flush(stillSurface);
 
 error:
     return(ret);

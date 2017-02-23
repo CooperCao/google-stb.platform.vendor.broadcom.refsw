@@ -57,6 +57,22 @@ struct {
 /****************************************
 * Module functions
 ***************/
+NEXUS_Error NEXUS_Smartcard_Translate_Error_Code_priv(BERR_Code rc){
+	if(rc == BSCD_STATUS_SEND_FAILED)
+		return NEXUS_SMARTCARD_SEND_FAILED;
+	else if(rc == BSCD_STATUS_PARITY_EDC_ERR)
+		return NEXUS_SMARTCARD_PARITY_EDC;
+	else if(rc == BSCD_STATUS_READ_FAILED)
+		return NEXUS_SMARTCARD_READ_FAILED;
+	else if(rc == BSCD_STATUS_TIME_OUT)
+		return NEXUS_TIMEOUT;
+	else if(rc == BSCD_STATUS_DEACTIVATE)
+		return NEXUS_SMARTCARD_DEACTIVATED;
+	else if(rc)
+		return NEXUS_UNKNOWN;
+	else
+		return NEXUS_SUCCESS;
+}
 
 void NEXUS_SmartcardModule_GetDefaultSettings(NEXUS_SmartcardModuleSettings *pSettings)
 {
@@ -305,7 +321,7 @@ static void NEXUS_Smartcard_P_CardInsertedRemoved_isr(BSCD_ChannelHandle channel
     }
 }
 
-NEXUS_Error NEXUS_Smartcard_P_Open(NEXUS_SmartcardHandle smartcard, unsigned index, const NEXUS_SmartcardSettings *pSettings)
+static NEXUS_Error NEXUS_Smartcard_P_Open(NEXUS_SmartcardHandle smartcard, unsigned index, const NEXUS_SmartcardSettings *pSettings)
 {
     NEXUS_Error errCode;
 
@@ -490,7 +506,7 @@ error:
     return NULL;
 }
 
-void NEXUS_Smartcard_P_Close(NEXUS_SmartcardHandle smartcard)
+static void NEXUS_Smartcard_P_Close(NEXUS_SmartcardHandle smartcard)
 {
     if (smartcard->channelHandle)
     {
@@ -541,12 +557,15 @@ NEXUS_Error NEXUS_Smartcard_Reset(NEXUS_SmartcardHandle smartcard, bool warmRese
 
 NEXUS_Error NEXUS_Smartcard_Read(NEXUS_SmartcardHandle smartcard, void *pData,  size_t numBytes, size_t *pBytesRead)
 {
+    BERR_Code rc=NEXUS_SUCCESS;
     BDBG_OBJECT_ASSERT(smartcard, NEXUS_Smartcard);
 
     smartcard->state = NEXUS_SmartcardState_eReceiving;
-    if (BSCD_Channel_Receive(smartcard->channelHandle, pData, (unsigned long *) pBytesRead, numBytes)) {
+    rc = BSCD_Channel_Receive(smartcard->channelHandle, pData, (unsigned long *) pBytesRead, numBytes);
+    if (rc) {
         smartcard->state = NEXUS_SmartcardState_eReady;
-        return BERR_TRACE(NEXUS_UNKNOWN);
+        rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
+        return BERR_TRACE(rc);
     }
 
     smartcard->state = NEXUS_SmartcardState_eReady;
@@ -559,14 +578,17 @@ NEXUS_Error NEXUS_Smartcard_Read(NEXUS_SmartcardHandle smartcard, void *pData,  
 
 NEXUS_Error NEXUS_Smartcard_Write(NEXUS_SmartcardHandle smartcard, const void *pData, size_t numBytes, size_t *pBytesWritten)
 {
+    BERR_Code rc=NEXUS_SUCCESS;
     BDBG_OBJECT_ASSERT(smartcard, NEXUS_Smartcard);
 
     smartcard->state = NEXUS_SmartcardState_eTransmitting;
+    rc = BSCD_Channel_Transmit(smartcard->channelHandle, (uint8_t *) pData, numBytes);
 
-    if (BSCD_Channel_Transmit(smartcard->channelHandle, (uint8_t *) pData, numBytes)) {
+    if (rc) {
         *pBytesWritten = 0;
         smartcard->state = NEXUS_SmartcardState_eTransmitted;
-        return BERR_TRACE(NEXUS_UNKNOWN);
+        rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
+        return BERR_TRACE(rc);
     }
     else {
         *pBytesWritten = numBytes;
@@ -626,17 +648,21 @@ NEXUS_Error NEXUS_Smartcard_ResetCard(NEXUS_SmartcardHandle smartcard, void *pDa
     BKNI_Sleep(10);
 
     rc = BSCD_Channel_ResetCard(smartcard->channelHandle, smartcard->channelSettings.resetCardAction);
-    if(rc == BSCD_STATUS_DEACTIVATE)
-        return BERR_TRACE(NEXUS_SMARTCARD_DEACTIVATED);
-    else if(rc)
-        return BERR_TRACE(NEXUS_UNKNOWN);
+    if(rc) {
+        rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
+        return BERR_TRACE(rc);
+    }
 
     if(numBytes == 0){
         return NEXUS_SUCCESS;
     }
 
     if (pData) {
-        BSCD_Channel_Receive(smartcard->channelHandle, pData, &readCount, numBytes);
+        rc = BSCD_Channel_Receive(smartcard->channelHandle, pData, &readCount, numBytes);
+        if(rc) {
+            rc = NEXUS_Smartcard_Translate_Error_Code_priv(rc);
+            return BERR_TRACE(rc);
+        }
 
         if(readCount < 2){
             BDBG_ERR(("Minimum ATR size is two bytes. Data read (%u bytes) is less than minimum ATR size of two bytes.", (unsigned)readCount));

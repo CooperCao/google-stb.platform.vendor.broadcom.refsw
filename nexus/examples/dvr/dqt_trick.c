@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,24 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
-/* Nexus example app */
 
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if NEXUS_HAS_PLAYBACK
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO
 
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
@@ -189,13 +177,22 @@ int main(void)
         BDBG_ASSERT(!rc);
         getchar();
 
-        printf("GOP rewind. press ENTER for next.\n");
+        printf("DQT rewind. press ENTER for next.\n");
         NEXUS_Playback_GetDefaultTrickModeSettings(&playbackTrick);
         playbackTrick.rate = -1*NEXUS_NORMAL_PLAY_SPEED;
-        playbackTrick.mode = NEXUS_PlaybackHostTrickMode_ePlayGop;
+        playbackTrick.mode = NEXUS_PlaybackHostTrickMode_ePlayDqt;
         /* mode_modifier % 100 is the number of frames per GOP to send to the decoder 
            mode_modifier / 100 is the number of GOPs to skip */
         playbackTrick.mode_modifier = -8; /* send 8 frames per GOP, every GOP */
+        rc = NEXUS_Playback_TrickMode(playback, &playbackTrick);
+        BDBG_ASSERT(!rc);
+        getchar();
+
+        printf("MDQT IP rewind. press ENTER for next.\n");
+        NEXUS_Playback_GetDefaultTrickModeSettings(&playbackTrick);
+        playbackTrick.rate = -1*NEXUS_NORMAL_PLAY_SPEED;
+        playbackTrick.mode = NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP;
+        playbackTrick.mode_modifier = -1;
         rc = NEXUS_Playback_TrickMode(playback, &playbackTrick);
         BDBG_ASSERT(!rc);
         getchar();
@@ -208,10 +205,10 @@ int main(void)
 
     return 0;
 }
-#else /* NEXUS_HAS_PLAYBACK */
+#else
 int main(void)
 {
-    printf("This application is not supported on this platform (needs playback)!\n");
+    printf("This application is not supported on this platform\n");
     return 0;
 }
 #endif

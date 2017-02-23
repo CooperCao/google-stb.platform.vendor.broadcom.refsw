@@ -76,13 +76,6 @@ void NEXUS_Platform_P_UninitWebCpuServer(void);
 
 BDBG_MODULE(nexus_platform_os);
 
-/* define prototypes for init/uninit functions */
-#define NEXUS_PLATFORM_P_DRIVER_MODULE(module) \
-    extern BERR_Code nexus_client_##module##_init(NEXUS_P_ClientModuleHandle module); \
-    extern void nexus_client_##module##_uninit(void);
-#include "nexus_ipc_modules.h"
-#undef NEXUS_PLATFORM_P_DRIVER_MODULE
-
 static NEXUS_Error NEXUS_Platform_P_StartIpcClient(const NEXUS_ClientAuthenticationSettings *pSettings);
 static void NEXUS_Platform_P_StopIpcClient(void);
 static NEXUS_Error NEXUS_Platform_P_InitOS(void);
@@ -95,7 +88,7 @@ static struct {
     void (*uninit)(void);
 } g_nexus_client_handlers[] = {
 #define NEXUS_PLATFORM_P_DRIVER_MODULE(module) {#module, NULL, nexus_client_##module##_init, nexus_client_##module##_uninit},
-#include "nexus_ipc_modules.h"
+#include "nexus_driver_modules.h"
 #undef NEXUS_PLATFORM_P_DRIVER_MODULE
 };
 #define NEXUS_PLATFORM_P_NUM_DRIVERS  (sizeof(g_nexus_client_handlers)/sizeof(*g_nexus_client_handlers))
@@ -112,25 +105,25 @@ static struct NEXUS_Platform_P_State
         void *uncached_addr;
         unsigned long length;
         bool dynamic;
-        NEXUS_MemoryMapType memoryMapType;
+        NEXUS_AddrType memoryMapType;
     } mmaps[NEXUS_MAX_HEAPS];
     bool init;
 } NEXUS_Platform_P_State;
 
 #define NEXUS_MODULE_SELF NEXUS_Platform_P_State.module
 
-void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type)
+void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
 {
     void *addr;
     switch(type) {
-    case NEXUS_MemoryMapType_eCached:
+    case NEXUS_AddrType_eCached:
         addr = mmap64(0, length, PROT_READ|PROT_WRITE, MAP_SHARED, NEXUS_Platform_P_State.mem_fd, offset);
         if (addr == MAP_FAILED) {
             BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%lu, errno=%d", BDBG_UINT64_ARG(offset), (unsigned long)length, errno));
             addr = NULL;
         }
         break;
-    case NEXUS_MemoryMapType_eFake:
+    case NEXUS_AddrType_eFake:
         addr = mmap64(0, length, PROT_NONE, MAP_SHARED, NEXUS_Platform_P_State.fake_mem_fd, 0);
         if (addr == MAP_FAILED) {
             BDBG_ERR(("mmap failed: offset " BDBG_UINT64_FMT ", size=%lu, errno=%d", BDBG_UINT64_ARG(offset), (unsigned long)length, errno));
@@ -145,7 +138,7 @@ void *NEXUS_Platform_P_MapMemory( NEXUS_Addr offset, size_t length, NEXUS_Memory
     return addr;
 }
 
-void NEXUS_Platform_P_UnmapMemory( void *addr, size_t length, NEXUS_MemoryMapType type)
+void NEXUS_Platform_P_UnmapMemory( void *addr, size_t length, NEXUS_AddrType type)
 {
     BDBG_MSG(("unmap: addr:%p size:%u", addr, (unsigned)length));
     BSTD_UNUSED(type);
@@ -158,7 +151,7 @@ static NEXUS_Error nexus_p_add_heap(unsigned i, NEXUS_HeapHandle heap, NEXUS_Add
     void *addr;
     void *uncached_addr = NULL;
     bool addmap = true;
-    NEXUS_MemoryMapType memoryMapType = NEXUS_MemoryMapType_eFake;
+    NEXUS_AddrType memoryMapType = NEXUS_AddrType_eFake;
 
     if (user_address) {
         addr = user_address;
@@ -167,11 +160,11 @@ static NEXUS_Error nexus_p_add_heap(unsigned i, NEXUS_HeapHandle heap, NEXUS_Add
         /* clients don't deal with eDriver or fake addresses, just eApplication mapping.
         Nexus interfaces using eSecure memory require pointers, so we do an mmap, but it is not usable by the CPU. */
         if(memoryType & NEXUS_MEMORY_TYPE_SECURE) {
-            memoryMapType = NEXUS_MemoryMapType_eFake;
+            memoryMapType = NEXUS_AddrType_eFake;
             addr = NEXUS_Platform_P_MapMemory( base , length, memoryMapType);
             if (addr==MAP_FAILED) return BERR_TRACE(BERR_OS_ERROR);
         } else if (memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED) {
-            memoryMapType = NEXUS_MemoryMapType_eCached;
+            memoryMapType = NEXUS_AddrType_eCached;
             addr = NEXUS_Platform_P_MapMemory( base , length, memoryMapType);
             if (addr==MAP_FAILED) return BERR_TRACE(BERR_OS_ERROR);
         }
@@ -198,7 +191,7 @@ static NEXUS_Error nexus_p_add_heap(unsigned i, NEXUS_HeapHandle heap, NEXUS_Add
 #endif
 
     if (addmap) {
-        NEXUS_P_AddMap(base, addr, uncached_addr, length);
+        NEXUS_P_AddMap(base, addr, memoryMapType, uncached_addr, memoryMapType, length);
     }
 
     NEXUS_Platform_P_State.mmaps[i].memoryMapType = memoryMapType;
@@ -217,7 +210,7 @@ static void nexus_p_remove_heap(unsigned i)
             NEXUS_Platform_P_UnmapMemory(NEXUS_Platform_P_State.mmaps[i].addr, NEXUS_Platform_P_State.mmaps[i].length, NEXUS_Platform_P_State.mmaps[i].memoryMapType );
         }
         if (NEXUS_Platform_P_State.mmaps[i].uncached_addr) {
-            NEXUS_Platform_P_UnmapMemory(NEXUS_Platform_P_State.mmaps[i].uncached_addr, NEXUS_Platform_P_State.mmaps[i].length, NEXUS_MemoryMapType_eUncached);
+            NEXUS_Platform_P_UnmapMemory(NEXUS_Platform_P_State.mmaps[i].uncached_addr, NEXUS_Platform_P_State.mmaps[i].length, NEXUS_AddrType_eUncached);
         }
         NEXUS_Platform_P_State.mmaps[i].heap = NULL;
     }
@@ -457,6 +450,8 @@ NEXUS_Error NEXUS_Platform_AuthenticatedJoin( const NEXUS_ClientAuthenticationSe
     /* Now, proceed to boot the board. -- Always initialize base first */
     rc = NEXUS_Base_Init(NULL);
     if ( rc !=BERR_SUCCESS ) { rc = BERR_TRACE(rc); goto err_base; }
+
+    NEXUS_P_PrintEnv(BDBG_STRING("client: "));
 
     BDBG_MSG((">CORE_LOCAL"));
     rc = NEXUS_CoreModule_LocalInit();

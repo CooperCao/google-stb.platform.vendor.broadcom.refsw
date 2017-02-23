@@ -44,7 +44,6 @@
 
 #include "bxvd.h"
 #include "bkni.h"
-#include "bmem.h"
 #include "bmma.h"
 #include "breg_mem.h"
 #include "bxvd_userdata.h"
@@ -149,9 +148,13 @@ extern "C" {
    BXVD_DBG_MSG(hXvd, ("%s reset pollcnt: %d", string, uiPollCnt));        \
 }
 
-
+#if !BXVD_P_FW_40BIT_API
 #define BXVD_P_IS_FW_VERSION_VALID(pInitRsp)                              \
    (((pInitRsp->sw_version >> 8) & 0xff) == BXVD_P_CURRENT_MAJOR_VERSION)
+#else
+#define BXVD_P_IS_FW_VERSION_VALID(pInitRsp)                              \
+   (((pInitRsp->sw_version >> 24) & 0xff) == BXVD_P_CURRENT_MAJOR_VERSION)
+#endif
 
 #define BXVD_P_CREATE_PROTOCOLS_MASK(eVidCmprStd) \
    ( 1 << (eVidCmprStd - BAVC_VideoCompressionStd_eMPEG4Part2))
@@ -192,7 +195,7 @@ extern "C" {
 #endif
 
 #define BXVD_P_OFFSET_TO_VA(hXvdCh, uiOffset)                                               \
-   (hXvdCh->uiFWGenMemBaseVirtAddr + ((unsigned long)uiOffset - hXvdCh->uiFWGenMemBasePhyAddr))
+   (hXvdCh->uiFWGenMemBaseVirtAddr + (unsigned long) ((BXVD_P_PHY_ADDR)uiOffset - hXvdCh->FWGenMemBasePhyAddr))
 
 /* Wrapper macros to help debug issues with shared memory and the HIM, in particular the release and
  * delivery queue offsets.  These macros check that only one thread is trying to access the read/write
@@ -415,6 +418,9 @@ extern "C" {
 #define BXVD_P_GET_QUEUE_DEPTH            BXVD_AVD_P_GET_QUEUE_DEPTH
 #define BXVD_P_INCREMENT_2BASED_OFFSET    BXVD_AVD_P_INCREMENT_2BASED_OFFSET
 
+#ifndef BXVD_P_PHY_ADDR
+#define BXVD_P_PHY_ADDR BMMA_DeviceOffset
+#endif
 
 /***********************************************************************
  *  Private Enums
@@ -546,6 +552,8 @@ typedef struct BXVD_P_CallBackRequests
 /*PR28082*/
   bool bMarker;
   bool bPPBReceived;
+  bool bEndOfGOP; /* SW7425-2686: multi-pass DQT, signals that reverse playback of the current GOP has begun. */
+
 } BXVD_P_CallBackRequests;
 
 /*!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
@@ -587,16 +595,16 @@ typedef struct BXVD_P_DecodeFWMemSize
 typedef struct BXVD_P_DecodeFWBaseAddrs
 {
    BMMA_Block_Handle hFWContextBlock;
-   uint32_t          uiFWContextBase;           /* FW Context memory physical base address */
+   BXVD_P_PHY_ADDR   FWContextBase;             /* FW Context memory physical base address */
    BMMA_Block_Handle hFWCabacBlock;
-   uint32_t          uiFWCabacBase;             /* FW Cabac memory base address */
+   BXVD_P_PHY_ADDR   FWCabacBase;               /* FW Cabac memory base address */
    BMMA_Block_Handle hFWPicBlock;
-   uint32_t          uiFWPicBase;               /* FW Picture Base */
+   BXVD_P_PHY_ADDR   FWPicBase;                 /* FW Picture Base */
    BMMA_Block_Handle hFWPicBlock1;
-   uint32_t          uiFWPicBase1;              /* FW Picture Base 1 for split picture buffers */
-   uint32_t          uiFWCabacWorklistBase;     /* FW Cabac worklist memory base address */
-   uint32_t          uiFWInnerLoopWorklistBase; /* FW Inner loop worklist memory base address */
-   uint32_t          uiFWDirectModeBase;        /* FW Direct Mode memory base address */
+   BXVD_P_PHY_ADDR   FWPicBase1;                /* FW Picture Base 1 for split picture buffers */
+   BXVD_P_PHY_ADDR   FWCabacWorklistBase;       /* FW Cabac worklist memory base address */
+   BXVD_P_PHY_ADDR   FWInnerLoopWorklistBase;   /* FW Inner loop worklist memory base address */
+   BXVD_P_PHY_ADDR   FWDirectModeBase;          /* FW Direct Mode memory base address */
    BMMA_Block_Handle hFWInterLayerPicBlock;
    uint32_t          uiFWInterLayerPicBase;     /* FW Inter Layer Pic memory base address */
    uint32_t          uiFWInterLayerMVBase;      /* FW Inter Layer Motion Vector memory base address */
@@ -653,7 +661,8 @@ typedef struct BXVD_P_Context
   BMMA_Block_Handle    hFWMemBlock;
   unsigned long        uiFWMemBaseVirtAddr;
   uint32_t             uiFWMemBaseUncachedVirtAddr;
-  unsigned long        uiFWMemBasePhyAddr;
+  BXVD_P_PHY_ADDR      FWMemBasePhyAddr;
+
   uint32_t             uiFWMemSize;
   uint8_t              bFWMemAllocated;
   BXVD_AVDBootMode     eAVDBootMode;
@@ -663,8 +672,8 @@ typedef struct BXVD_P_Context
 
   /* Instruction base addresses for outer and inner loop */
 
-  unsigned long        uiOuterLoopInstructionBase;
-  unsigned long        uiInnerLoopInstructionBase;
+  BXVD_P_PHY_ADDR      uiOuterLoopInstructionBase;
+  BXVD_P_PHY_ADDR      uiInnerLoopInstructionBase;
 
   /* End of code addresses for outer and inner loop */
   uint32_t             uiOuterLoopEOC;
@@ -672,7 +681,7 @@ typedef struct BXVD_P_Context
 
 #if BXVD_P_HEVD_DUAL_PIPE_PRESENT
   /* Inner Loop 2 Instruction base and end of code */
-  unsigned long        uiInnerLoop2InstructionBase;
+  BXVD_P_PHY_ADDR      uiInnerLoop2InstructionBase;
   uint32_t             uiInnerLoop2EOC;
 #endif
 
@@ -691,7 +700,8 @@ typedef struct BXVD_P_Context
   BMMA_Block_Handle    hFWGenMemBlock;
   unsigned long        uiFWGenMemBaseVirtAddr;
   unsigned long        uiFWGenMemBaseUncachedVirtAddr;
-  unsigned long        uiFWGenMemBasePhyAddr;
+  BXVD_P_PHY_ADDR      FWGenMemBasePhyAddr;
+
   uint32_t             uiFWGenMemSize;
 
 #if BXVD_P_CAPTURE_RVC
@@ -703,24 +713,24 @@ typedef struct BXVD_P_Context
   /* Pointers to Decoder debug log buffers */
   BMMA_Block_Handle    hFWDbgBuf_MemBlock;
   unsigned long        uiDecoderDbgBufVirtAddr;
-  unsigned long        uiDecoderDbgBufPhyAddr;
+  BXVD_P_PHY_ADDR      DecoderDbgBufPhyAddr;
 
   bool                 bFWDbgLoggingStarted;
 
   /* Size and pointers to FW Picture buffers */
   BMMA_Block_Handle    hFWPicMemBlock;
-  unsigned long        uiFWPicMemBasePhyAddr;
+  BXVD_P_PHY_ADDR      FWPicMemBasePhyAddr;
   unsigned long        uiFWPicMemBaseVirtAddr;
   uint32_t             uiFWPicMemSize;
 
   BMMA_Block_Handle    hFWPicMem1Block;
-  unsigned long        uiFWPicMem1BasePhyAddr;
+  BXVD_P_PHY_ADDR      FWPicMem1BasePhyAddr;
   unsigned long        uiFWPicMem1BaseVirtAddr;
   uint32_t             uiFWPicMem1Size;
 
   /* Pointers to FW/XVD Cabac Bin memory */
   BMMA_Block_Handle    hFWCabacMemBlock;
-  unsigned long        uiFWCabacMemBasePhyAddr;
+  BXVD_P_PHY_ADDR      FWCabacMemBasePhyAddr;
   uint32_t             uiFWCabacMemSize;
 
   /* Register offset and mask values */
@@ -922,7 +932,7 @@ typedef struct BXVD_P_Channel
   /* General Memory for this channel */
   BMMA_Block_Handle   hFWGenMemBlock;
   unsigned long       uiFWGenMemBaseVirtAddr;
-  unsigned long       uiFWGenMemBasePhyAddr;
+  BXVD_P_PHY_ADDR     FWGenMemBasePhyAddr;
 
 #if !BXVD_P_FW_HIM_API
   uint32_t            uiFWGenMemBaseUncachedVirtAddr;
@@ -930,20 +940,20 @@ typedef struct BXVD_P_Channel
   /* Picture Memory for this channel */
   BMMA_Block_Handle   hFWPicMemBlock;
   uint32_t            uiFWPicOffset;
-  unsigned long       uiFWPicMemBasePhyAddr;
+  BXVD_P_PHY_ADDR     FWPicMemBasePhyAddr;
   unsigned long       uiFWPicMemBaseVirtAddr;
 
   BMMA_Block_Handle   hFWPicMem1Block;
   uint32_t            uiFWPicOffset1;
-  unsigned long       uiFWPicMem1BasePhyAddr;
+  BXVD_P_PHY_ADDR     FWPicMem1BasePhyAddr;
   unsigned long       uiFWPicMem1BaseVirtAddr;
 
   BMMA_Block_Handle   hFWPicChromaMemBlock;
-  unsigned long       uiFWPicChromaBasePhyAddr;
+  BXVD_P_PHY_ADDR     FWPicChromaBasePhyAddr;
 
   /* Cabac Memory for this channel */
   BMMA_Block_Handle   hFWCabacMemBlock;
-  unsigned long       uiFWCabacMemBasePhyAddr;
+  BXVD_P_PHY_ADDR     FWCabacMemBasePhyAddr;
 
   BXVD_P_HandleType eHandleType;
 
@@ -991,6 +1001,9 @@ typedef struct BXVD_P_Channel
    /* SW7445-2757: to aid in debug, create a unique serial number
     * each time a channel is opened. */
    uint32_t uiSerialNumber;
+
+   /* SW7425-2686: contains the settings for multi-pass DQT */
+   BXVD_TrickModeSettings stTrickModeSettings;
 
 } BXVD_P_Channel;
 

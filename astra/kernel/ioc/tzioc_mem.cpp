@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,7 @@
 #include "lib_printf.h"
 
 // Static non-const data from TzIocMem class
-spinlock_t TzIoc::TzIocMem::lock;
+SpinLock TzIoc::TzIocMem::lock;
 struct tzioc_mem_cb TzIoc::TzIocMem::memCB;
 tzutils::Vector<TzIoc::TzIocMem::PaddrMap> TzIoc::TzIocMem::paddrMaps;
 
@@ -114,7 +114,8 @@ void TzIoc::TzIocMem::init(void *devTree)
         fdt_get_property(devTree, nodeOffset, "layout", &propLen);
 
     if (!fpHeapsLayout) {
-        printf("Invalid layout property in device tree tz-heaps node\n");
+        printf("Invalid (or missing) layout property in device tree tz-heaps node\n");
+        printf("Using default layout algorithm\n");
 
         // Use default layout algorithm
         uint32_t numPages = heapsSize >> TZIOC_MEM_PAGE_SHIFT;
@@ -168,7 +169,7 @@ void TzIoc::TzIocMem::init(void *devTree)
     printf("\n");
 
     // Init spinlock
-    spinlock_init("TzIocMem.lock", &lock);
+    spinLockInit(&lock);
 
     // Init shared memory
 
@@ -192,9 +193,9 @@ void *TzIoc::TzIocMem::alloc(
 {
     void *pBuff;
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     int err = __tzioc_mem_alloc(pClient->id, ulSize, &pBuff);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     if (err) {
         printf("TzIoc mem alloc failed, client %d\n", pClient->id);
@@ -210,17 +211,17 @@ void TzIoc::TzIocMem::free(
 {
     UNUSED(pClient);
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     __tzioc_mem_free(pClient->id, pBuff);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 }
 
 int TzIoc::TzIocMem::mapPaddr(
     struct tzioc_client *pClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize,
     uint32_t ulFlags,
-    uint32_t *pulVaddr)
+    uintptr_t *pulVaddr)
 {
     TzTask *task = (TzTask *)pClient->task;
     PageTable *pageTable = task->userPageTable();
@@ -240,7 +241,7 @@ int TzIoc::TzIocMem::mapPaddr(
 
     pageTable->mapPageRange(
         vaPageStart,
-        (void *)((uint32_t)vaPageStart + endOffset),
+        (void *)((uintptr_t)vaPageStart + endOffset),
         paPageStart,
         (ulFlags & TZIOC_MEM_DEVICE) ?
             MAIR_DEVICE :               // device memory
@@ -255,7 +256,7 @@ int TzIoc::TzIocMem::mapPaddr(
         true);                          // non-secure
 
     uint32_t ulVaddr =
-        (uint32_t)vaPageStart + startOffset;
+        (uintptr_t)vaPageStart + startOffset;
 
     // record mapping
     PaddrMap paddrMap = {
@@ -272,7 +273,7 @@ int TzIoc::TzIocMem::mapPaddr(
 
 int TzIoc::TzIocMem::unmapPaddr(
     struct tzioc_client *pClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize)
 {
     // find mapping
@@ -305,7 +306,7 @@ int TzIoc::TzIocMem::unmapPaddr(
 
     pageTable->unmapPageRange(
         vaPageStart,
-        (void *)((uint32_t)vaPageStart + endOffset));
+        (void *)((uintptr_t)vaPageStart + endOffset));
 
     pageTable->releaseAddrRange(
         vaPageStart,
@@ -346,7 +347,7 @@ int TzIoc::TzIocMem::mapPaddrs(
 
         pageTable->mapPageRange(
             vaPageStart,
-            (void *)((uint32_t)vaPageStart + endOffset),
+            (void *)((uintptr_t)vaPageStart + endOffset),
             paPageStart,
             (ulFlags & TZIOC_MEM_DEVICE) ?
                 MAIR_DEVICE :               // device memory
@@ -361,7 +362,7 @@ int TzIoc::TzIocMem::mapPaddrs(
             true);                          // non-secure
 
         uint32_t ulVaddr =
-            (uint32_t)vaPageStart + startOffset;
+            (uintptr_t)vaPageStart + startOffset;
 
         // record mapping
         PaddrMap paddrMap = {
@@ -424,7 +425,7 @@ int TzIoc::TzIocMem::unmapPaddrs(
 
         pageTable->unmapPageRange(
             vaPageStart,
-            (void *)((uint32_t)vaPageStart + endOffset));
+            (void *)((uintptr_t)vaPageStart + endOffset));
 
         pageTable->releaseAddrRange(
             vaPageStart,

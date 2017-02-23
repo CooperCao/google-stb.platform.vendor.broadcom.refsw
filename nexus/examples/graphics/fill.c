@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 /* Nexus example app: show graphics framebuffer with CPU drawing */
 
@@ -65,6 +54,9 @@
 #include "bkni.h"
 #include <stdlib.h>
 
+#undef min
+#define min(A,B) ((A)<(B)?(A):(B))
+
 BDBG_MODULE(fill);
 
 void complete(void *data, int unused)
@@ -79,6 +71,7 @@ int main(void)
     NEXUS_SurfaceCreateSettings createSettings;
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
+    NEXUS_DisplayCapabilities displayCap;
     NEXUS_GraphicsSettings graphicsSettings;
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DFillSettings fillSettings;
@@ -98,6 +91,7 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetDisplayCapabilities(&displayCap);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.displayType = NEXUS_DisplayType_eAuto;
@@ -121,7 +115,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -129,10 +123,10 @@ int main(void)
 
     NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
     createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-    createSettings.width = info.width;
-    createSettings.height = info.height;
+    createSettings.width = min(displayCap.display[0].graphics.width, info.width);
+    createSettings.height = min(displayCap.display[0].graphics.height, info.height);
     createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    surface = NEXUS_Surface_Create(&createSettings);
+    surface = NEXUS_Display_CreateFramebuffer(display, &createSettings);
 
     BKNI_CreateEvent(&checkpointEvent);
     BKNI_CreateEvent(&spaceAvailableEvent);
@@ -162,6 +156,8 @@ int main(void)
 
     NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
     graphicsSettings.enabled = true;
+    graphicsSettings.clip.width = createSettings.width;
+    graphicsSettings.clip.height = createSettings.height;
     NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
     NEXUS_Display_SetGraphicsFramebuffer(display, surface);
     

@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -87,6 +87,12 @@
     Actual HW block number is 4
 */
 #define BDSP_AF_P_MAX_ADAPTIVE_RATE_BLOCKS      8
+
+/**************************************************************************
+        Inter Task Communication Buffer allocation
+***************************************************************************/
+#define BDSP_AF_P_INTERTASK_IOBUFFER_SIZE       (uint32_t) ((6144*6*8)+4)/*(11200*4)*/
+#define BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE    (uint32_t) ((4544*6*8)+4)/*(17408*2)*/
 
 /**************************************************************************
 Summary:
@@ -794,7 +800,7 @@ typedef struct BDSP_AF_P_sFMM_DEST_SPDIF_CLK_CBIT_CFG
 
     uint32_t                    ui32AudFmmMsCtrlHwSpdifCfg;
 
-    uint32_t                    ui32SpdifDramConfigPtr;         /* Address to BDSP_AF_P_sSPDIF_USER_CFG Structure in Dram */
+    dramaddr_t                  ui32SpdifDramConfigPtr;         /* Address to BDSP_AF_P_sSPDIF_USER_CFG Structure in Dram */
 
     uint32_t                    ui32PcmOnSpdif; /* 0=  PCM  and 1= Compressed*/
 
@@ -1052,7 +1058,7 @@ typedef struct BDSP_AF_P_sStcTrigConfig
     uint32_t                ui32StcIncHiAddr;
     uint32_t                ui32StcIncLowAddr;
     /* Address of register to send trigger for incrementing STC */
-    uint32_t                ui32StcIncTrigAddr;
+    dramaddr_t                ui32StcIncTrigAddr;
 /* Trigger bit in the above register. Bit count [031]*/
     uint32_t                ui32TriggerBit;
 
@@ -1086,14 +1092,14 @@ typedef struct BDSP_AF_P_sGLOBAL_TASK_CONFIG
 
 
 
-    uint32_t                    ui32FmmDestCfgAddr;
+    dramaddr_t                    ui32FmmDestCfgAddr;
                                                                     /*  FMM destination configuration information. This structure is required
                                                                         one per Task. How to associate an o/p port with the correct sampling
                                                                         frequency to be programmed in the case of SRC? */
 
-    uint32_t                    ui32FmmGateOpenConfigAddr;
+    dramaddr_t                    ui32FmmGateOpenConfigAddr;
 
-    uint32_t                    ui32FwOpSamplingFreqMapLutAddr;     /*  This is the FW Input-Output sampling frequency mapping LUT*/
+    dramaddr_t                    ui32FwOpSamplingFreqMapLutAddr;     /*  This is the FW Input-Output sampling frequency mapping LUT*/
 
     uint32_t                    ui32NumOpPorts;                     /*  This tells the number of output ports */
 
@@ -1101,11 +1107,11 @@ typedef struct BDSP_AF_P_sGLOBAL_TASK_CONFIG
                                                                         Structure **/
     BDSP_AF_P_sDRAM_BUFFER      sDramScratchBuffer;                 /*  The scratch buffer is being moved to global task config */
 
-    uint32_t                    ui32TaskFwHwCfgAddr;                /*  This address contains the structure of BDSP_AF_P_sFW_HW_CFG*/
+    dramaddr_t                    ui32TaskFwHwCfgAddr;                /*  This address contains the structure of BDSP_AF_P_sFW_HW_CFG*/
 
     BDSP_AF_P_TimeBaseType      eTimeBaseType;                      /*  Time base type for a task 45Khz or 27 Mhz (Direct TV) */
 
-    uint32_t                    ui32StcTrigConfigAddr;              /* DRAM address where STC trigger configuratio is passed */
+    dramaddr_t                    ui32StcTrigConfigAddr;              /* DRAM address where STC trigger configuratio is passed */
 
     /*  These fields are reserved for future usage */
     uint32_t                    ui32Reserved0;
@@ -1114,4 +1120,21 @@ typedef struct BDSP_AF_P_sGLOBAL_TASK_CONFIG
     uint32_t                    ui32Reserved3;
 }BDSP_AF_P_sGLOBAL_TASK_CONFIG;
 
+/***************************************************************************
+Summary:
+    Enum data type describing Scheduling group of a task
+
+Description:
+        default/InterruptModeAxVideoEncode
+See Also:
+    None.
+****************************************************************************/
+typedef enum BDSP_AF_P_eSchedulingGroup
+{
+    BDSP_AF_P_eSchedulingGroup_Default = 0, /* default scheduling group, for normal audio and video tasks */
+    BDSP_AF_P_eSchedulingGroup_IntrModeAxVidEncode,/* Interrupt Mode Ax video encode */
+    BDSP_AF_P_eSchedulingGroup_Max,
+    BDSP_AF_P_eSchedulingGroup_Invalid = 0x7FFFFFFF
+
+}BDSP_AF_P_eSchedulingGroup;
 #endif /*BDSP_COMMON_FW_H_*/

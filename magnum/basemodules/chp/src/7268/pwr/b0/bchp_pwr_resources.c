@@ -2307,17 +2307,17 @@ void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
     }
 }
 
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_CORE_CLOCK_SELECT[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_CPU_CLOCK_SELECT[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_SID_CLOCK_SELECT[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDS0_SELECT_HVDS0_CORE_CLOCK_SELECT[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK[] = {{0},{0},{0},{0},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_RAAGA_DSP_0_RAAGA0_DSP_SELECT_RAAGA0[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_SMARTCARD_MUX_SELECT_SC0_CLOCK[] = {{0},{0},{0},{0},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_SMARTCARD_MUX_SELECT_SC1_CLOCK[] = {{0},{0},{0},{0},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_V3D_SELECT_V3D_CORE_CLOCK_SELECT[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
-const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_VEC_AIO_GFX_M2MC0_SELECT_M2MC0[] = {{0},{1},{1},{1},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_CORE_CLOCK_SELECT[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_CPU_CLOCK_SELECT[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_SID_CLOCK_SELECT[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDS0_SELECT_HVDS0_CORE_CLOCK_SELECT[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_HVDS0_SELECT_HVDS0_CPU_CLOCK_SELECT[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_ITU656_0_MUX_SELECT_VEC_ITU656_0_CLOCK[] = {{0},{0},{0},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_RAAGA_DSP_0_RAAGA0_DSP_SELECT_RAAGA0[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_SMARTCARD_MUX_SELECT_SC0_CLOCK[] = {{0},{0},{0},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_SMARTCARD_MUX_SELECT_SC1_CLOCK[] = {{0},{0},{0},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_V3D_SELECT_V3D_CORE_CLOCK_SELECT[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
+const BCHP_PWR_P_MuxTable BCHP_PWR_P_MuxTable_MX_VEC_AIO_GFX_M2MC0_SELECT_M2MC0[] = {{0},{1},{1},{0},{0},{0},{0},{0},{0},};
 
 const BCHP_PWR_P_MuxMap BCHP_PWR_P_MuxMapList[BCHP_PWR_P_NUM_MUXES] = {
     {BCHP_PWR_MX_HVDP0_SELECT_HVDP0_CORE_CLOCK_SELECT, BCHP_PWR_P_MuxTable_MX_HVDP0_SELECT_HVDP0_CORE_CLOCK_SELECT},
@@ -2333,16 +2333,16 @@ const BCHP_PWR_P_MuxMap BCHP_PWR_P_MuxMapList[BCHP_PWR_P_NUM_MUXES] = {
     {BCHP_PWR_MX_VEC_AIO_GFX_M2MC0_SELECT_M2MC0, BCHP_PWR_P_MuxTable_MX_VEC_AIO_GFX_M2MC0_SELECT_M2MC0},
 };
 
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH0_div[] = {{200,3,11},{0,3,0},{0,3,0},{0,3,0},{200,3,14},{190,3,9},{200,3,9},{220,3,10},{200,3,100},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH1_div[] = {{200,3,6},{0,3,0},{0,3,0},{0,3,0},{200,3,14},{190,3,6},{200,3,6},{220,3,6},{200,3,100},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH2_div[] = {{200,3,8},{0,3,0},{0,3,0},{0,3,0},{200,3,14},{190,3,8},{200,3,8},{220,3,8},{200,3,101},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH3_div[] = {{200,3,7},{0,3,0},{0,3,0},{0,3,0},{200,3,14},{190,3,9},{200,3,6},{220,3,6},{200,3,100},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH4_div[] = {{200,3,7},{0,3,0},{0,3,0},{0,3,0},{200,3,14},{190,3,9},{200,3,6},{220,3,6},{200,3,135},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH2_div[] = {{0,3,0},{194,3,12},{194,3,10},{194,3,7},{0,3,0},{0,3,0},{0,3,0},{0,3,0},{184,3,11},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH3_div[] = {{0,3,0},{194,3,15},{194,3,15},{194,3,9},{0,3,0},{0,3,0},{0,3,0},{0,3,0},{184,3,13},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH4_div[] = {{0,3,0},{194,3,15},{194,3,15},{194,3,15},{0,3,0},{0,3,0},{0,3,0},{0,3,0},{184,3,9},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH5_div[] = {{0,3,0},{194,3,15},{194,3,15},{194,3,15},{0,3,0},{0,3,0},{0,3,0},{0,3,0},{184,3,7},};
-const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_RAAGA_CTRL_CH0_div[] = {{130,2,5},{0,0,0},{0,0,0},{0,0,0},{120,2,5},{120,2,5},{130,2,5},{144,2,5},{65,1,87},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH0_div[] = {{200,3,12},{0,0,0},{0,0,0},{200,3,12},{200,3,12},{200,3,12},{200,3,12},{200,3,12},{200,3,12},{200,3,100},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH1_div[] = {{200,3,6},{0,0,0},{0,0,0},{200,3,8},{200,3,6},{200,3,6},{200,3,6},{200,3,6},{200,3,6},{200,3,100},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH2_div[] = {{200,3,8},{0,0,0},{0,0,0},{200,3,10},{200,3,8},{200,3,7},{200,3,7},{200,3,7},{200,3,7},{200,3,101},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH3_div[] = {{200,3,7},{0,0,0},{0,0,0},{200,3,8},{200,3,7},{200,3,6},{200,3,6},{200,3,6},{200,3,6},{200,3,100},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH4_div[] = {{200,3,7},{0,0,0},{0,0,0},{200,3,8},{200,3,7},{200,3,6},{200,3,6},{200,3,6},{200,3,6},{200,3,135},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH2_div[] = {{167,3,0},{167,3,7},{167,3,6},{167,3,0},{167,3,0},{167,3,0},{184,3,0},{194,3,0},{206,3,0},{184,3,11},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH3_div[] = {{167,3,0},{167,3,8},{167,3,7},{167,3,0},{167,3,0},{167,3,0},{184,3,0},{194,3,0},{206,3,0},{184,3,13},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH4_div[] = {{167,3,0},{167,3,15},{167,3,15},{167,3,0},{167,3,0},{167,3,0},{184,3,0},{194,3,0},{206,3,0},{184,3,9},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_CPU_CTRL_CH5_div[] = {{167,3,0},{167,3,15},{167,3,15},{167,3,0},{167,3,0},{167,3,0},{184,3,0},{194,3,0},{206,3,0},{184,3,7},};
+const BCHP_PWR_P_DivTable BCHP_PWR_P_DivTable_DV_RAAGA_CTRL_CH0_div[] = {{60,1,5},{0,0,0},{0,0,0},{60,1,8},{60,1,5},{60,1,5},{60,1,4},{60,1,4},{60,1,4},{65,1,87},};
 
 const BCHP_PWR_P_FreqMap BCHP_PWR_P_FreqMapList[BCHP_PWR_P_NUM_DIVS] = {
     {BCHP_PWR_DV_AVX_CTRL_CH0_div, BCHP_PWR_P_DivTable_DV_AVX_CTRL_CH0_div},

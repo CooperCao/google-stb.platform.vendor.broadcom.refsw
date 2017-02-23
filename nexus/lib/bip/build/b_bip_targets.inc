@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 ifndef B_BIP_TARGETS_DEFINED
 B_BIP_TARGETS_DEFINED := y
@@ -54,8 +53,8 @@ B_BIP_OTHER_CLEAN_ALL += b_os_lib_target_clean_all
 B_BIP_BUILD_FILES += $(B_OS_LIB_BUILD_FILES)
 
 ifneq ($(LIVEMEDIA_SUPPORT),n)
-    include $(BSEAV)/lib/livemedia/b_livemedia_targets.inc
-    include $(BSEAV)/lib/livemedia/blive_ext/build/b_blive_ext_targets.inc
+    include $(BSEAV)/opensource/livemedia/b_livemedia_targets.inc
+    include $(BSEAV)/opensource/livemedia/blive_ext/build/b_blive_ext_targets.inc
     B_BIP_OTHER_BUILDS += b_livemedia_target_build b_blive_ext_target_build
     B_BIP_OTHER_CLEANS += b_livemedia_target_clean b_blive_ext_target_clean
     B_BIP_OTHER_CLEAN_ALL += b_livemedia_target_clean_all b_blive_ext_target_clean_all
@@ -68,13 +67,7 @@ B_BIP_OTHER_CLEANS += b_tshdrbuilder_target_clean
 B_BIP_OTHER_CLEAN_ALL += b_tshdrbuilder_target_clean_all
 B_BIP_BUILD_FILES += $(B_TSHDRBUILDER_BUILD_FILES)
 
-include $(BSEAV)/../rockford/lib/psip/b_psip_targets.inc
-B_BIP_OTHER_BUILDS += b_psip_target_build
-B_BIP_OTHER_CLEANS += b_psip_target_clean
-B_BIP_OTHER_CLEAN_ALL += b_psip_target_clean_all
-B_BIP_BUILD_FILES += $(B_PSIP_BUILD_FILES)
-
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 B_BIP_OTHER_BUILDS += b_openssl_target_build
 B_BIP_OTHER_CLEANS += b_openssl_target_clean
 B_BIP_OTHER_CLEAN_ALL += b_openssl_target_clean_all

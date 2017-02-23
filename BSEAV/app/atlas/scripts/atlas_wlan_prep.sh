@@ -1,6 +1,6 @@
 #!/bin/sh
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,9 +64,13 @@ do
     esac
 done
 
+if [ ! -d /var/run/wpa_supplicant ]; then
+    mkdir -p /var/run/wpa_supplicant
+    FORCE="true"
+fi
+
 if [ "${FORCE}" == "true" ]; then
     killall -9 wpa_supplicant
-    rm -f /var/run/wpa_supplicant/wlan0
 fi
 
 if [ -f /tmp/udhcpc.wlan0.pid ]; then

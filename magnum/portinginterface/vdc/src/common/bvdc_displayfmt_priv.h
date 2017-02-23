@@ -534,10 +534,6 @@ void BVDC_P_Display_GetCscTable_isr
       BVDC_P_Output                    eOutputColorSpace,
       const BVDC_P_DisplayCscMatrix  **ppCscTable );
 
-void BVDC_P_Display_GetDviCscTable_isr
-    ( const BVDC_P_DisplayInfo        *pDispInfo,
-      const BVDC_P_DisplayCscMatrix  **ppCscTable );
-
 void BVDC_P_Display_Get656CscTable_isr
     ( const BVDC_P_DisplayInfo        *pDispInfo,
       bool                             bBypass,

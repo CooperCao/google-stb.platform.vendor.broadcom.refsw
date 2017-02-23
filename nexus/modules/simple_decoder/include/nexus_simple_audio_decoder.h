@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,12 +43,10 @@
 #include "nexus_simple_decoder_types.h"
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder_types.h"
-#else
-#include "../../audio/include/nexus_audio_decoder_types.h"
-#endif
-#include "nexus_audio_types.h"
-#include "nexus_audio_mixer.h"
 #include "nexus_audio_processor.h"
+#endif
+#include "nexus_core_compat.h"
+#include "nexus_audio_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -126,6 +124,8 @@ typedef struct NEXUS_SimpleAudioDecoderStartSettings
     struct {
         bool pcm, compressed; /* start primers for pcm and/or compressed if regular decoder not available. */
     } primer;
+
+    bool master; /* when using ePersistent decoder type with DSP mixer downstream, we need the app to tell us if we are the master. */
 
     struct {
         bool enabled;                   /* If true, decoder will be used to passthrough application-provided IEC61937 data via GetPassthroughBuffer()

@@ -48,16 +48,19 @@ typedef struct Args
 {
     PlatformInputMethod method;
     const char * name;
-    const char * gfxSdr2HdrPath;
-    const char * vidSdr2HdrPath;
-    const char * vidHdr2SdrPath;
-    const char * scenarioPath;
-    const char * sdrStreamPath;
-    const char * hdrStreamPath;
-    const char * hlgStreamPath;
-    const char * mixStreamPath;
-    const char * sdrThumbnailPath;
-    const char * sdrBackgroundPath;
+    char * gfxSdr2HdrPath;
+    char * vidSdr2HdrPath;
+    char * vidHdr2SdrPath;
+    char * vidHlg2HdrPath;
+    char * scenarioPath;
+    char * sdrStreamPath;
+    char * hdrStreamPath;
+    char * hlgStreamPath;
+    char * mixStreamPath;
+    char * sdrThumbnailPath;
+    char * sdrBackgroundPath;
+    char * configRoot;
+    char * sharedResourceRoot;
     struct
     {
         struct

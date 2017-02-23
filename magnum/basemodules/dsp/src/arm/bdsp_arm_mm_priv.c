@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -47,9 +47,8 @@ BDBG_OBJECT_ID(BDSP_ArmStage);
 
 
 BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
-    BMEM_Handle memHandle,
     BDSP_Arm_MapTableEntry *pMapTable,
-    void *pAddress,
+	BDSP_MMA_Memory *pMemory,
     uint32_t size,
     BDSP_ARM_AF_P_MemoryMapType eMapType,
     uint32_t ui32MaxEntry
@@ -59,6 +58,7 @@ BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
     uint32_t ui32PhyAddr = 0;
     BDSP_Arm_MapTableEntry *pTable = pMapTable;
     int32_t i = 0;
+	void *pAddress =  pMemory->pAddr;;
 
     BDBG_ENTER(BDSP_Arm_P_InsertEntry_MapTable);
 
@@ -88,7 +88,7 @@ BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
     }
     else
     {
-        BDSP_MEM_P_ConvertAddressToOffset(memHandle, pAddress, &ui32PhyAddr);
+		ui32PhyAddr = pMemory->offset;
     }
     pTable->entry_valid = true;
     pTable->offset      = ui32PhyAddr;
@@ -100,9 +100,8 @@ BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
 }
 
 BERR_Code  BDSP_Arm_P_DeleteEntry_MapTable(
-    BMEM_Handle memHandle,
-    BDSP_Arm_MapTableEntry *pMapTable,
-    void *pAddress,
+	BDSP_Arm_MapTableEntry *pMapTable,
+	BDSP_MMA_Memory *pMemory,
     uint32_t ui32MaxEntry
     )
 {
@@ -110,6 +109,7 @@ BERR_Code  BDSP_Arm_P_DeleteEntry_MapTable(
     uint32_t ui32PhyAddr = 0;
     BDSP_Arm_MapTableEntry *pTable = pMapTable;
     int32_t i = 0;
+	void *pAddress =  pMemory->pAddr;;
 
     BDBG_ENTER(BDSP_Arm_P_DeleteEntry_MapTable);
 
@@ -119,7 +119,8 @@ BERR_Code  BDSP_Arm_P_DeleteEntry_MapTable(
 	}
 	else
     {
-        BDSP_MEM_P_ConvertAddressToOffset(memHandle, pAddress, &ui32PhyAddr);
+		ui32PhyAddr = pMemory->offset;
+
     }
     while(i < (int32_t)ui32MaxEntry)
     {
@@ -285,7 +286,7 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequired(
 
     for ( i = 0; i < BDSP_ARM_SystemImgId_eMax; i++ )
     {
-        systemImgSize += pImgCache[i].size;
+        systemImgSize += pImgCache[i].size+127;
     }
 
     for ( algorithm = 0; algorithm < BDSP_Algorithm_eMax; algorithm++ )
@@ -343,7 +344,7 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequired(
         size = pAlgoTypeBuf[i].ui32Size ;
         for(j=0; j< pSettings->maxAlgorithms[i]; j++ ) /* In case pDevice->settings.maxAlgorithms[i]  is corrupted better use a define */
         {
-            pDwnldMemInfo->ui32AllocatedBinSize += size;
+            pDwnldMemInfo->ui32AllocatedBinSize += size+127;
         }
     }
 
@@ -367,6 +368,7 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequired(
 
 BERR_Code BDSP_ARM_MM_P_GetFwMemRequirement(BDSP_Arm *pDevice)
 {
+	BERR_Code errCode;
     BDSP_Arm_P_DwnldMemInfo *pDwnldMemInfo;
 
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
@@ -375,14 +377,17 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequirement(BDSP_Arm *pDevice)
 
     BDSP_ARM_MM_P_GetFwMemRequired(&(pDevice->settings),pDwnldMemInfo,(void *)&(pDevice->imgCache[0]),true,NULL);
 
-    pDwnldMemInfo->pImgBuf = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pDwnldMemInfo->ui32AllocwithGuardBand,2,0); /* 32bit aligned */
-    if(pDwnldMemInfo->pImgBuf == NULL ){
-        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-    }
-    BDBG_MSG(("**************Allocated size %d, Bin Size = %d, ptr = %p Preloaded = %d", pDwnldMemInfo->ui32AllocwithGuardBand,pDwnldMemInfo->ui32AllocatedBinSize,pDwnldMemInfo->pImgBuf,pDwnldMemInfo->IsImagePreLoaded));
+	errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,pDwnldMemInfo->ui32AllocwithGuardBand, &(pDwnldMemInfo->ImgBuf),BDSP_MMA_Alignment_32bit);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Cannot allocate the requested IMG Memory"));
+		return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+	}
+    BDBG_MSG(("**************Allocated size %d, Bin Size = %d, ptr = %p Preloaded = %d", pDwnldMemInfo->ui32AllocwithGuardBand,pDwnldMemInfo->ui32AllocatedBinSize,pDwnldMemInfo->ImgBuf.pAddr,pDwnldMemInfo->IsImagePreLoaded));
     pDevice->fwHeapSize = pDwnldMemInfo->ui32AllocwithGuardBand;
-    pDevice->pFwHeapMemory = pDwnldMemInfo->pImgBuf;
-    return BERR_SUCCESS;
+    pDevice->pFwHeapMemory = pDwnldMemInfo->ImgBuf.pAddr;
+	pDevice->FwHeapOffset = pDwnldMemInfo->ImgBuf.offset;
+    return errCode;
 }
 
 
@@ -392,7 +397,6 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
     )
 {
     BERR_Code err = BERR_SUCCESS;
-    void *pBaseAddr;
     BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
 
     BDBG_ENTER(BDSP_Arm_P_AllocateInitMemory);
@@ -409,31 +413,36 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
     }
 
     /* Allocate memory for storing cmd q handles */
-    pDevice->armInterfaceQHndl = (BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *)BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE * sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER)),2, 0);
-    if(NULL == pDevice->armInterfaceQHndl)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for storing cmd q handles!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto err_alloc_QueueHndl;
-    }
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->armInterfaceQHndl, (BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE * sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER)),BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
-    if (BERR_SUCCESS != err)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Error in updating the MAP Table for cmd q handle memory"));
-        err = BERR_TRACE(err);
-        goto err_updating_maptable_cmd_q_hndl;
-    }
-
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						(BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE * sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER)),
+						&(pDevice->sArmInterfaceQ.Memory),
+						BDSP_MMA_Alignment_32bit);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for storing cmd q handles!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_alloc_QueueHndl;
+	}
+	pDevice->sArmInterfaceQ.parmInterfaceQHndl =  pDevice->sArmInterfaceQ.Memory.pAddr;
+	err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->sArmInterfaceQ.Memory, (BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE * sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER)),BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Error in updating the MAP Table for cmd q handle memory"));
+		err = BERR_TRACE(err);
+		goto err_updating_maptable_cmd_q_hndl;
+	}
     /* Allocate Command queue */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Command)*BDSP_ARM_MAX_FW_TASK_PER_DSP),2, 0);
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for cmd queue!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto err_alloc_CmdQueue;
-    }
-    pDevice->memInfo.cmdQueueParams.pBaseAddr = pBaseAddr;
-    pDevice->memInfo.cmdQueueParams.uiMsgQueueSize = BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Command)*BDSP_ARM_MAX_FW_TASK_PER_DSP;
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						(BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Command)*BDSP_ARM_MAX_FW_TASK_PER_DSP),
+						&(pDevice->memInfo.cmdQueueParams.Queue),
+						BDSP_MMA_Alignment_32bit);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for cmd queue!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_alloc_CmdQueue;
+	}
+	pDevice->memInfo.cmdQueueParams.uiMsgQueueSize = BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Command)*BDSP_ARM_MAX_FW_TASK_PER_DSP;
 
     /* Mapping comand send through TZIOC cmd err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddr, pDevice->memInfo.cmdQueueParams.uiMsgQueueSize,BDSP_ARM_AF_P_Map_eDram,BDSP_ARM_MAX_ALLOC_DEVICE);*/
     if (BERR_SUCCESS != err)
@@ -444,14 +453,16 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
     }
 
     /* Allocate Generic Response queue */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response)),2, 0);
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for gen resp queue!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto err_alloc_GenRespQueue;
-    }
-    pDevice->memInfo.genRspQueueParams.pBaseAddr = pBaseAddr;
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						(BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response)),
+						&(pDevice->memInfo.genRspQueueParams.Queue),
+						BDSP_MMA_Alignment_32bit);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for gen resp queue!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_alloc_GenRespQueue;
+	}
     pDevice->memInfo.genRspQueueParams.uiMsgQueueSize = BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response);
 
     /* Mapping comand send through TZIOC cmd err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddr, pDevice->memInfo.genRspQueueParams.uiMsgQueueSize,BDSP_ARM_AF_P_Map_eDram,BDSP_ARM_MAX_ALLOC_DEVICE);*/
@@ -463,17 +474,18 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
     }
 
     /* Allocate memory for the MAP Table */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_MAP_Table),2, 0);
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for MAP Table!!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto err_alloc_MapTable;
-    }
-    pDevice->memInfo.sMapTable.pBaseAddr = pBaseAddr;
-    pDevice->memInfo.sMapTable.ui32Size  = sizeof(BDSP_MAP_Table);
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pBaseAddr, sizeof(BDSP_MAP_Table),BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						sizeof(BDSP_MAP_Table),
+						&(pDevice->memInfo.sMapTable.Buffer),
+						BDSP_MMA_Alignment_32bit);
+	if(BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for MAP Table!!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_alloc_MapTable;
+	}
+	pDevice->memInfo.sMapTable.ui32Size  = sizeof(BDSP_MAP_Table);
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sMapTable.Buffer, sizeof(BDSP_MAP_Table),BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Error in updating the MAP Table for MAP Table Store Address"));
@@ -482,33 +494,36 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
     }
 
     /* Allocate memory for the Hbc Info */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_Arm_P_HbcInfo),2, 0);
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for BDSP_Arm_P_HbcInfo!!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto err_alloc_hbcinfo;
-    }
-    pDevice->psHbcInfo = pBaseAddr;
-	pDevice->psHbcInfo->hbcValid = 0;
-	pDevice->psHbcInfo->hbc = 0;
-
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						sizeof(BDSP_Arm_P_HbcInfo),
+						&(pDevice->HbcInfo.Memory),
+						BDSP_MMA_Alignment_32bit);
+	if(BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateInitMemory: Unable to Allocate memory for BDSP_Arm_P_HbcInfo!!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto err_alloc_hbcinfo;
+	}
+	pDevice->HbcInfo.psHbcInfo = (BDSP_Arm_P_HbcInfo *)pDevice->HbcInfo.Memory.pAddr;
+	pDevice->HbcInfo.psHbcInfo->hbcValid = 0;
+	pDevice->HbcInfo.psHbcInfo->hbc = 0;
+	BDSP_MMA_P_FlushCache(pDevice->HbcInfo.Memory, sizeof(BDSP_Arm_P_HbcInfo));
     goto alloc_init_mem_sucess;
 
 err_alloc_hbcinfo:
 err_updating_maptableaddr_map_table:
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.sMapTable.pBaseAddr);
+	BDSP_MMA_P_FreeMemory(&pDevice->memInfo.sMapTable.Buffer);
 err_alloc_MapTable:
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.genRspQueueParams.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);
+	BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.genRspQueueParams.Queue, BDSP_ARM_MAX_ALLOC_DEVICE);
 err_updating_resp_queue_map_table:
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.genRspQueueParams.pBaseAddr);
+	BDSP_MMA_P_FreeMemory(&pDevice->memInfo.genRspQueueParams.Queue);
 err_alloc_GenRespQueue:
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.cmdQueueParams.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);
+	BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.cmdQueueParams.Queue, BDSP_ARM_MAX_ALLOC_DEVICE);
 err_updating_cmd_queue_map_table:
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.cmdQueueParams.pBaseAddr);
+	BDSP_MMA_P_FreeMemory(&pDevice->memInfo.cmdQueueParams.Queue);
 err_alloc_CmdQueue:
 err_updating_maptable_cmd_q_hndl:
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->armInterfaceQHndl);
+	BDSP_MMA_P_FreeMemory(&pDevice->sArmInterfaceQ.Memory);
 err_alloc_QueueHndl:
 err_calcMemPoolReq:
     BDSP_Arm_P_FreeFwExec(pDeviceHandle);
@@ -531,22 +546,23 @@ BERR_Code BDSP_Arm_P_FreeInitMemory(
     /* Nothing complex needs to be done to release the FW images, just destroy the FW heap and free the memory */
     BDSP_Arm_P_FreeFwExec(pDeviceHandle);
 
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->armInterfaceQHndl);
+	BDSP_MMA_P_FreeMemory(&pDevice->sArmInterfaceQ.Memory);
 
-    /*BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.cmdQueueParams.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);*/
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.cmdQueueParams.pBaseAddr);
+	/*BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.cmdQueueParams.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);*/
+	BDSP_MMA_P_FreeMemory(&pDevice->memInfo.cmdQueueParams.Queue);
 
-    /*BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.genRspQueueParams.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);*/
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.genRspQueueParams.pBaseAddr);
+	BDSP_MMA_P_FreeMemory(&pDevice->memInfo.genRspQueueParams.Queue);
 
-    err = BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.sMapTable.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);
+    err = BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sMapTable.Buffer, BDSP_ARM_MAX_ALLOC_DEVICE);
     if(err != BERR_SUCCESS)
     {
         BDBG_ERR(("Unable to Delete the Entry of Map Table from the Device Memory Map List...Anyways going ahead and deleting it"));
     }
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.sMapTable.pBaseAddr);
 
-	BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->psHbcInfo);
+	/*BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pDevice->memInfo.genRspQueueParams.pBaseAddr, BDSP_ARM_MAX_ALLOC_DEVICE);*/
+	BDSP_MMA_P_FreeMemory(&pDevice->memInfo.sMapTable.Buffer);
+
+	BDSP_MMA_P_FreeMemory(&pDevice->HbcInfo.Memory);
 
     BDBG_LEAVE(BDSP_Arm_P_FreeInitMemory);
     return err;
@@ -638,10 +654,9 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 {
     BERR_Code err = BERR_SUCCESS;
     uint32_t ui32TempScratch = 0, ui32TempIs = 0, ui32TempIsIf = 0;
-    uint32_t ui32BaseAddr = 0,  ui32PhysAddr = 0;
+    uint32_t ui32BaseAddr = 0;
     uint32_t ui32NumCh=0, k = 0;
     int32_t i32Index = 0;
-    void *pAddress = NULL;
     BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
 
     BDBG_ENTER(BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq);
@@ -651,75 +666,76 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
     BDSP_Arm_MM_P_CalcScratchAndISbufferReq(&ui32TempScratch, &ui32TempIs, &ui32TempIsIf, &ui32NumCh);
 
     /* Allocate Scratch Memory */
-    if (ui32TempScratch)
-    {
-        pAddress = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle,ui32TempScratch,2,0);
-        if(NULL == pAddress)
-        {
-            BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for Scratch Buffer!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto error_alloc;
-        }
-
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle, pAddress,&ui32PhysAddr);
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]),pAddress, ui32TempScratch, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for Scratch Buffer"));
-            err = BERR_TRACE(err);
-            goto error_alloc;
-        }
-    }
-    pDevice->memInfo.sScratchandISBuff.ui32DspScratchMemGrant.ui32DramBufferAddress = ui32PhysAddr;
-    pDevice->memInfo.sScratchandISBuff.ui32DspScratchMemGrant.ui32BufferSizeInBytes = ui32TempScratch;
+	if (ui32TempScratch)
+	{
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+			ui32TempScratch,
+			&(pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.Buffer),
+			BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for Scratch Buffer!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto error_alloc;
+		}
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]),&pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.Buffer, ui32TempScratch, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for Scratch Buffer"));
+			err = BERR_TRACE(err);
+			goto error_alloc;
+		}
+	}
+	pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.ui32Size = ui32TempScratch;
 
     /* Allocate InterStage Memory */
     for(i32Index=0; i32Index < BDSP_ARM_MAX_BRANCH; i32Index++)
     {
         /* Allocate IO Memory */
-        pAddress= BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, ui32TempIs*ui32NumCh ,2, 0); /* 32 bit aligned*/
-        if(NULL == pAddress)
-        {
-            BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Buffer of InterStage!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto error_alloc;
-        }
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+					ui32TempIs*ui32NumCh,
+					&(pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].Buffer),
+					BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Buffer of InterStage!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto error_alloc;
+		}
 
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddress, (ui32TempIs*ui32NumCh), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO buffer"));
-            err = BERR_TRACE(err);
-            goto error_alloc;
-        }
-
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle, pAddress,&ui32PhysAddr);
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].Buffer, (ui32TempIs*ui32NumCh), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO buffer"));
+			err = BERR_TRACE(err);
+			goto error_alloc;
+		}
 
         for(k=0; k<ui32NumCh; k++)
         {
-            ui32BaseAddr = ui32PhysAddr + (k*ui32TempIs);
-            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].sCircBuffer[k].ui32BaseAddr = ui32BaseAddr;
-            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].sCircBuffer[k].ui32ReadAddr = ui32BaseAddr;
-            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].sCircBuffer[k].ui32WriteAddr= ui32BaseAddr;
-            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].sCircBuffer[k].ui32EndAddr  = ui32BaseAddr + ui32TempIs;
-            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].sCircBuffer[k].ui32WrapAddr = ui32BaseAddr + ui32TempIs;
+            ui32BaseAddr = pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].Buffer.offset + (k*ui32TempIs);
+            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.sCircBuffer[k].ui32BaseAddr = ui32BaseAddr;
+            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.sCircBuffer[k].ui32ReadAddr = ui32BaseAddr;
+            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.sCircBuffer[k].ui32WriteAddr= ui32BaseAddr;
+            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.sCircBuffer[k].ui32EndAddr  = ui32BaseAddr + ui32TempIs;
+            pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.sCircBuffer[k].ui32WrapAddr = ui32BaseAddr + ui32TempIs;
         }
-        pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].ui32NumBuffers = ui32NumCh;/*worst case, maxchannels*/
-        pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].eBufferType    = BDSP_AF_P_BufferType_eDRAM_IS;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.ui32NumBuffers = ui32NumCh;/*worst case, maxchannels*/
+        pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].IOBuff.eBufferType    = BDSP_AF_P_BufferType_eDRAM_IS;
 
         /* Allocate IO Generic Memory and also the configuration structure*/
-        pAddress = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, ui32TempIsIf ,2, 0);    /* 32 bit aligned*/
-        if(NULL == pAddress)
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+							ui32TempIsIf,
+							&(pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].Buffer),
+							BDSP_MMA_Alignment_32bit);
+        if(BERR_SUCCESS != err)
         {
             BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Generic!"));
             err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             /*Free scratch and IO buffer here*/
             goto error_alloc;
         }
-
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle, pAddress,&ui32PhysAddr);
-
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddress, ui32TempIsIf, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
+        err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].Buffer, ui32TempIsIf, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
         if (BERR_SUCCESS != err)
         {
             BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO Gen buffer"));
@@ -727,15 +743,15 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
             goto error_alloc;
         }
 
-        ui32BaseAddr = ui32PhysAddr;
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].sCircBuffer.ui32BaseAddr = ui32BaseAddr;
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].sCircBuffer.ui32ReadAddr = ui32BaseAddr;
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].sCircBuffer.ui32WriteAddr= ui32BaseAddr;
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].sCircBuffer.ui32EndAddr  = ui32BaseAddr + ui32TempIsIf;
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].sCircBuffer.ui32WrapAddr = ui32BaseAddr + ui32TempIsIf;
+        ui32BaseAddr = pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].Buffer.offset;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.sCircBuffer.ui32BaseAddr = ui32BaseAddr;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.sCircBuffer.ui32ReadAddr = ui32BaseAddr;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.sCircBuffer.ui32WriteAddr= ui32BaseAddr;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.sCircBuffer.ui32EndAddr  = ui32BaseAddr + ui32TempIsIf;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.sCircBuffer.ui32WrapAddr = ui32BaseAddr + ui32TempIsIf;
 
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].ui32NumBuffers = 1;
-        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].eBufferType    = BDSP_AF_P_BufferType_eDRAM_IS;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.ui32NumBuffers = 1;
+        pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].IOGenericBuff.eBufferType    = BDSP_AF_P_BufferType_eDRAM_IS;
 
     }
     goto end;
@@ -751,49 +767,32 @@ void BDSP_Arm_P_FreeScratchISbuffer(
             )
 {
     BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
-    void *pAddress = NULL;
     int32_t j = 0;
 
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
 
     BDBG_ENTER(BDSP_Arm_P_FreeScratchISbuffer);
-    if (pDevice->memInfo.sScratchandISBuff.ui32DspScratchMemGrant.ui32BufferSizeInBytes)
-    {
-        pAddress = NULL;
-        if(pDevice->memInfo.sScratchandISBuff.ui32DspScratchMemGrant.ui32DramBufferAddress)
-        {
-            BDSP_MEM_P_ConvertOffsetToCacheAddr(
-                    pDevice->memHandle,
-                    pDevice->memInfo.sScratchandISBuff.ui32DspScratchMemGrant.ui32DramBufferAddress,
-                    &pAddress);
-            BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddress,BDSP_ARM_MAX_ALLOC_DEVICE);
-            BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
-        }
-    }
+	if (pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.ui32Size)
+	{
+		if(pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.Buffer.pAddr)
+		{
+			BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]),&pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.Buffer,BDSP_ARM_MAX_ALLOC_DEVICE);
+			BDSP_MMA_P_FreeMemory(&pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.Buffer);
+		}
+	}
 
     for(j = 0; j<BDSP_ARM_MAX_BRANCH; j++)
     {
-        pAddress = NULL;
-        if(pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[j].sCircBuffer[0].ui32BaseAddr)
+        if(pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[j].Buffer.pAddr)
         {
-            BDSP_MEM_P_ConvertOffsetToCacheAddr(
-                pDevice->memHandle,
-                pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[j].sCircBuffer[0].ui32BaseAddr,
-                &pAddress);
-
-            BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddress,BDSP_ARM_MAX_ALLOC_DEVICE);
-            BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
+            BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[j].Buffer,BDSP_ARM_MAX_ALLOC_DEVICE);
+            BDSP_MMA_P_FreeMemory(&pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[j].Buffer);
         }
 
-        pAddress = NULL;
-        if(pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[j].sCircBuffer.ui32BaseAddr)
+        if(pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[j].Buffer.pAddr)
         {
-            BDSP_MEM_P_ConvertOffsetToCacheAddr(
-                pDevice->memHandle,
-                pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[j].sCircBuffer.ui32BaseAddr,
-                &pAddress);
-            BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddress,BDSP_ARM_MAX_ALLOC_DEVICE);
-            BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
+            BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[j].Buffer,BDSP_ARM_MAX_ALLOC_DEVICE);
+            BDSP_MMA_P_FreeMemory(&pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[j].Buffer);
         }
     }
     BDBG_LEAVE(BDSP_Arm_P_FreeScratchISbuffer);
@@ -955,62 +954,59 @@ BERR_Code BDSP_Arm_P_AllocateTaskMemory(
                     BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE +
                     BDSP_CIT_P_TASK_STC_TRIG_CONFIG_SIZE;
 
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+					ui32UsedSize,
+					&(pArmTask->taskMemGrants.sTaskCfgBufInfo.Buffer),
+					BDSP_MMA_Alignment_32bit);
+	if(BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for TaskCfgBuf!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto end;
+	}
+	pArmTask->taskMemGrants.sTaskCfgBufInfo.ui32Size = ui32UsedSize;
 
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, ui32UsedSize,2, 0);  /* 32 bit aligned*/
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for TaskCfgBuf!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
-    else
-    {
-        pArmTask->taskMemGrants.sTaskCfgBufInfo.pBaseAddr= pBaseAddr;
-        pArmTask->taskMemGrants.sTaskCfgBufInfo.ui32Size = ui32UsedSize;
+	err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskCfgBufInfo.Buffer, ui32UsedSize, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Task config Buffer"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
 
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, ui32UsedSize, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Task config Buffer"));
-            err = BERR_TRACE(err);
-            goto end;
-        }
-    }
-
-    /*No buffer allocations in the new CIT restructure during Task create time*/
-    /*Interframe, usercfg, status buff will be created during stage create time*/
-
-    /* Sync Queue */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response)),2, 0);
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for sync task queue!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
-    pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.pBaseAddr = pBaseAddr;
-    pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.uiMsgQueueSize = BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response);
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response)), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
-    if (BERR_SUCCESS != err)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Sync Queue"));
-        err = BERR_TRACE(err);
-        goto end;
-    }
+	/* Sync Queue */
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+					(BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response)),
+					&(pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.Queue),
+					BDSP_MMA_Alignment_32bit);
+	if(BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for sync task queue!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto end;
+	}
+	pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.uiMsgQueueSize = BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response);
+	err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.Queue, (BDSP_ARM_MAX_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_Response)), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Sync Queue"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
 
     /* Async Queue */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg)),2, 0);
-    if(NULL == pBaseAddr)
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+					(BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg)),
+					&(pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.Queue),
+					BDSP_MMA_Alignment_32bit);
+    if(BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for async task queue!"));
         err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         goto end;
     }
-    pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.pBaseAddr = pBaseAddr;
     pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.uiMsgQueueSize = BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg);
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr,(BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg)), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.Queue,(BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg)), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Async Queue"));
@@ -1026,21 +1022,22 @@ BERR_Code BDSP_Arm_P_AllocateTaskMemory(
         err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         goto end;
     }
-    pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pBaseAddr = pBaseAddr;
+    pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pAddr = pBaseAddr;
     pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.ui32Size = BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE * sizeof(BDSP_Arm_P_AsynEventMsg);
 
     /* Task stack swap memory */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES, 2, 0);
-    if(NULL == pBaseAddr)
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+					BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES,
+					&(pArmTask->taskMemGrants.sStackSwapBuff.Buffer),
+					BDSP_MMA_Alignment_32bit);
+    if(BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for task stack swap!"));
         err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         goto end;
     }
-    pArmTask->taskMemGrants.sStackSwapBuff.pBaseAddr = pBaseAddr;
     pArmTask->taskMemGrants.sStackSwapBuff.ui32Size = BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES;
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sStackSwapBuff.Buffer, BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Stack Swap Buffer"));
@@ -1049,17 +1046,18 @@ BERR_Code BDSP_Arm_P_AllocateTaskMemory(
     }
 
     /*Gate Open Buffer configuration memory */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle,(BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER)), 2, 0);
-    if(NULL == pBaseAddr)
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+					(BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER)),
+					&(pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer),
+					BDSP_MMA_Alignment_32bit);
+    if(BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for task Gate Open Configuration!"));
         err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         goto end;
     }
-    pArmTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr = pBaseAddr;
     pArmTask->taskMemGrants.sTaskGateOpenBufInfo.ui32Size = (BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, (BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER)), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer, (BDSP_AF_P_MAX_OP_FORKS * SIZEOF(BDSP_AF_P_sIO_BUFFER)), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for task Gate Open Configuration!"));
@@ -1078,85 +1076,92 @@ BERR_Code BDSP_Arm_P_AllocateTaskMemory(
     }
     else
     {
-        /* Cit memory. This is now context dependent as the sizes changes for different context */
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_ARM_AF_P_sTASK_CONFIG),2, 0);
-        if(NULL == pBaseAddr)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for cit!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        pArmTask->taskMemGrants.sCitStruct.pBaseAddr= pBaseAddr;
-        pArmTask->taskMemGrants.sCitStruct.ui32Size = sizeof(BDSP_AF_P_sTASK_CONFIG);
 
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, sizeof(BDSP_AF_P_sTASK_CONFIG), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for CIT Buffer"));
-            err = BERR_TRACE(err);
-            goto end;
-        }
+		/* Cit memory. This is now context dependent as the sizes changes for different context */
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						sizeof(BDSP_ARM_AF_P_sTASK_CONFIG),
+						&(pArmTask->taskMemGrants.sCitStruct.Buffer),
+						BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for cit!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		pArmTask->taskMemGrants.sCitStruct.ui32Size = sizeof(BDSP_AF_P_sTASK_CONFIG);
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sCitStruct.Buffer, sizeof(BDSP_AF_P_sTASK_CONFIG), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for CIT Buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
 
-        /* Allocate memory for the spare cit structure used as working buffer by basemodules */
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_ARM_AF_P_sTASK_CONFIG),2, 0);
-        if(NULL == pBaseAddr)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for cit!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr = pBaseAddr;
-        pArmTask->taskMemGrants.sSpareCitStruct.ui32Size = sizeof(BDSP_AF_P_sTASK_CONFIG);
-
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, sizeof(BDSP_AF_P_sTASK_CONFIG), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for SPARE CIT Buffer"));
-            err = BERR_TRACE(err);
-            goto end;
-        }
+		/* Allocate memory for the spare cit structure used as working buffer by basemodules */
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						sizeof(BDSP_ARM_AF_P_sTASK_CONFIG),
+						&(pArmTask->taskMemGrants.sSpareCitStruct.Buffer),
+						BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for cit!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		pArmTask->taskMemGrants.sSpareCitStruct.ui32Size = sizeof(BDSP_AF_P_sTASK_CONFIG);
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sSpareCitStruct.Buffer, sizeof(BDSP_AF_P_sTASK_CONFIG), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for SPARE CIT Buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
     }
 
-    /* Start Task memory */
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, sizeof(BDSP_P_TaskParamInfo),2, 0);
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for start task params!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
-    pArmTask->taskMemGrants.sTaskInfo.pBaseAddr = pBaseAddr;
-    pArmTask->taskMemGrants.sTaskInfo.ui32Size = sizeof(BDSP_P_TaskParamInfo);
+	/* Start Task memory */
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+						sizeof(BDSP_P_TaskParamInfo),
+						&(pArmTask->taskMemGrants.sTaskInfo.Buffer),
+						BDSP_MMA_Alignment_32bit);
+	if(BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for start task params!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto end;
+	}
+	pArmTask->taskMemGrants.sTaskInfo.ui32Size = sizeof(BDSP_P_TaskParamInfo);
+	err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskInfo.Buffer, sizeof(BDSP_P_TaskParamInfo), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Task Info"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
 
-    err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pBaseAddr, sizeof(BDSP_P_TaskParamInfo), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
-    if (BERR_SUCCESS != err)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Task Info"));
-        err = BERR_TRACE(err);
-        goto end;
-    }
+	/*Create the Feedback Buffer required for the master task*/
+	if(true == pSettings->masterTask)
+	{
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+							(BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4),
+							&(pArmTask->FeedbackBuffer),
+							BDSP_MMA_Alignment_32bit);
 
-    /*Create the Feedback Buffer required for the master task*/
-    if(true == pSettings->masterTask)
-    {
-        pArmTask->pFeedbackBuffer = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4) ,5, 0);    /* 32 bit aligned*/
-        if ( NULL == pArmTask->pFeedbackBuffer )
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for Feedback  Buffer !"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        BKNI_Memset((void *)pArmTask->pFeedbackBuffer, 0x0, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4));
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pArmTask->pFeedbackBuffer, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4));
-
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pArmTask->pFeedbackBuffer, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Master Task Feedback buffer"));
-            err = BERR_TRACE(err);
-            goto end;
-        }
-    }
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Unable to Allocate memory for Feedback  Buffer !"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		BKNI_Memset((void *)pArmTask->FeedbackBuffer.pAddr, 0x0, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4));
+		BDSP_MMA_P_FlushCache(pArmTask->FeedbackBuffer, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4));
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->FeedbackBuffer, (BDSP_ARM_AF_P_INTERTASK_FEEDBACK_BUFFER_SIZE + 4), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_TASK);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateTaskMemory: Error in updating the MAP Table for Master Task Feedback buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
+	}
 
     /* Create the Queues required for the task */
     err = BDSP_Arm_P_CreateTaskQueues( pTaskHandle);
@@ -1182,8 +1187,6 @@ BERR_Code BDSP_Arm_P_FreeTaskMemory(
 {
     BERR_Code err = BERR_SUCCESS;
     BDSP_ArmTask   *pArmTask = (BDSP_ArmTask   *)pTaskHandle;
-    BDSP_ArmContext   *pArmContext = (BDSP_ArmContext   *)pArmTask->pContext;
-    BDSP_Arm *pDevice = (BDSP_Arm *)pArmContext->pDevice;
 
     BDBG_ENTER(BDSP_Arm_P_FreeTaskMemory);
 
@@ -1196,47 +1199,45 @@ BERR_Code BDSP_Arm_P_FreeTaskMemory(
         err = BERR_TRACE(err);
     }
 
-    if (pArmTask->settings.masterTask == BDSP_TaskSchedulingMode_eMaster)
+	if (pArmTask->settings.masterTask == BDSP_TaskSchedulingMode_eMaster)
+	{
+		if ((pArmTask->FeedbackBuffer.pAddr !=NULL))
+		{
+			BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->FeedbackBuffer, BDSP_ARM_MAX_ALLOC_TASK);
+			BDSP_MMA_P_FreeMemory(&pArmTask->FeedbackBuffer);
+		}
+	}
+
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.Queue, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.Queue);
+
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.Queue, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.Queue);
+
+    if ( pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pAddr )
     {
-        if ((pArmTask->pFeedbackBuffer!=NULL))
-        {
-            BDBG_MSG(("BDSP_Arm_P_FreeTaskMemory: Freeing pArmTask->pFeedbackBuffer = 0x%p",pArmTask->pFeedbackBuffer));
-            BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pArmTask->pFeedbackBuffer, BDSP_ARM_MAX_ALLOC_TASK);
-            BDSP_MEM_P_FreeMemory(pDevice->memHandle, pArmTask->pFeedbackBuffer);
-            pArmTask->pFeedbackBuffer = NULL;
-        }
+        BKNI_Free(pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pAddr);
+        pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pAddr= 0;
     }
 
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]),pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sTaskQueue.sTaskSyncQueue.pBaseAddr);
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer);
 
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]),pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sTaskQueue.sTaskAsyncQueue.pBaseAddr);
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sStackSwapBuff.Buffer, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sStackSwapBuff.Buffer);
 
-    if ( pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pBaseAddr )
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]),&pArmTask->taskMemGrants.sTaskCfgBufInfo.Buffer, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sTaskCfgBufInfo.Buffer);
+
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sTaskInfo.Buffer, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sTaskInfo.Buffer);
+
+    BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sCitStruct.Buffer, BDSP_ARM_MAX_ALLOC_TASK);
+    BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sCitStruct.Buffer);
+    if(pArmTask->taskMemGrants.sSpareCitStruct.Buffer.pAddr!= NULL )
     {
-        BKNI_Free(pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pBaseAddr);
-        pArmTask->taskMemGrants.sTaskQueue.sAsyncMsgBufmem.pBaseAddr= 0;
-    }
-
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pArmTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr);
-
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]), pArmTask->taskMemGrants.sStackSwapBuff.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sStackSwapBuff.pBaseAddr);
-
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]),pArmTask->taskMemGrants.sTaskCfgBufInfo.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sTaskCfgBufInfo.pBaseAddr);
-
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]),pArmTask->taskMemGrants.sTaskInfo.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sTaskInfo.pBaseAddr);
-
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]),pArmTask->taskMemGrants.sCitStruct.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sCitStruct.pBaseAddr);
-    if(pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr!= NULL )
-    {
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmTask->sTaskMapTable[0]),pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr, BDSP_ARM_MAX_ALLOC_TASK);
-        BDSP_MEM_P_FreeMemory(pDevice->memHandle,pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr);
+        BDSP_Arm_P_DeleteEntry_MapTable(&(pArmTask->sTaskMapTable[0]), &pArmTask->taskMemGrants.sSpareCitStruct.Buffer, BDSP_ARM_MAX_ALLOC_TASK);
+        BDSP_MMA_P_FreeMemory(&pArmTask->taskMemGrants.sSpareCitStruct.Buffer);
     }
 
     BDBG_LEAVE(BDSP_Arm_P_FreeTaskMemory);
@@ -1248,8 +1249,10 @@ BERR_Code BDSP_Arm_P_AllocateStageMemory(
     )
 {
     BERR_Code err = BERR_SUCCESS;
-    uint32_t armOffsetAddr = 0, i;
-    void *pBaseAddr = 0;
+	BDSP_MMA_Memory Buffer;
+	uint8_t *pAddr;
+	uint32_t Offset, i;
+
     BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
     BDSP_ArmContext *pArmContext = (BDSP_ArmContext *)pArmStage->pContext;
 
@@ -1267,197 +1270,172 @@ BERR_Code BDSP_Arm_P_AllocateStageMemory(
     }
 
     /*Interframe allocation for a stage*/
-    pArmStage->sDramInterFrameBuffer.ui32DramBufferAddress= 0;
-    pArmStage->sDramInterFrameBuffer.ui32BufferSizeInBytes= 0;;
-    if( pArmStage->stageMemInfo.ui32InterframeBufReqd )
-    {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pArmStage->stageMemInfo.ui32InterframeBufReqd,2, 0);  /* 32 bit aligned*/
+	pArmStage->sDramInterFrameBuffer.ui32Size = 0;;
+	if( pArmStage->stageMemInfo.ui32InterframeBufReqd )
+	{
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+							pArmStage->stageMemInfo.ui32InterframeBufReqd,
+							&(pArmStage->sDramInterFrameBuffer.Buffer),
+							BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for IFrameCfgBuf!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramInterFrameBuffer.Buffer, pArmStage->stageMemInfo.ui32InterframeBufReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for InterFrame Buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
+		pArmStage->sDramInterFrameBuffer.ui32Size = pArmStage->stageMemInfo.ui32InterframeBufReqd;
+	}
 
-        if(NULL == pBaseAddr)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for IFrameCfgBuf!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        else
-        {
-            err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pBaseAddr, pArmStage->stageMemInfo.ui32InterframeBufReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
-            if (BERR_SUCCESS != err)
-            {
-                BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for InterFrame Buffer"));
-                err = BERR_TRACE(err);
-                goto end;
-            }
+	pArmStage->sDramUserConfigBuffer.ui32Size = 0;
+	if( pArmStage->stageMemInfo.ui32UserConfigReqd )
+	{
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+							pArmStage->stageMemInfo.ui32UserConfigReqd,
+							&(pArmStage->sDramUserConfigBuffer.Buffer),
+							BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for Userconfig!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramUserConfigBuffer.Buffer, pArmStage->stageMemInfo.ui32UserConfigReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for User Config Buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
+		pArmStage->sDramUserConfigBuffer.ui32Size = pArmStage->stageMemInfo.ui32UserConfigReqd;
+	}
 
-            /*convert to physical and */
-            BDSP_MEM_P_ConvertAddressToOffset(  pDevice->memHandle,
-                                            pBaseAddr,
-                                            &armOffsetAddr
-                                         );
-            /*ui32BaseAddr = armOffsetAddr;*/
+	/* Allocate memory for the host buffer to hold the modified settings when the task is running */
+	pArmStage->sDramUserConfigSpareBuffer.ui32Size = 0;
+	if(pArmStage->stageMemInfo.ui32UserConfigReqd)
+	{
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+							pArmStage->stageMemInfo.ui32UserConfigReqd,
+							&(pArmStage->sDramUserConfigSpareBuffer.Buffer),
+							BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for Userconfig!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),&pArmStage->sDramUserConfigSpareBuffer.Buffer, pArmStage->stageMemInfo.ui32UserConfigReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for Spare User Config Buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
+		pArmStage->sDramUserConfigSpareBuffer.ui32Size = pArmStage->stageMemInfo.ui32UserConfigReqd;
+	}
 
-            pArmStage->sDramInterFrameBuffer.ui32DramBufferAddress = armOffsetAddr;
-            pArmStage->sDramInterFrameBuffer.ui32BufferSizeInBytes= pArmStage->stageMemInfo.ui32InterframeBufReqd;
-        }
-    }
-
-    pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress = 0;
-    pArmStage->sDramUserConfigBuffer.ui32BufferSizeInBytes = 0;
-    if( pArmStage->stageMemInfo.ui32UserConfigReqd )
-    {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pArmStage->stageMemInfo.ui32UserConfigReqd, 2, 0);  /* 32 bit aligned*/
-        pArmStage->sDramUserConfigBuffer.pDramBufferAddress = pBaseAddr;
-
-        if(NULL == pBaseAddr)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for Userconfig!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        else
-        {
-            err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pBaseAddr, pArmStage->stageMemInfo.ui32UserConfigReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
-            if (BERR_SUCCESS != err)
-            {
-                BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for User Config Buffer"));
-                err = BERR_TRACE(err);
-                goto end;
-            }
-
-            /*convert to physical and */
-            BDSP_MEM_P_ConvertAddressToOffset(  pDevice->memHandle,
-                                            pBaseAddr,
-                                            &armOffsetAddr
-                                         );
-
-            pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress = armOffsetAddr;
-            pArmStage->sDramUserConfigBuffer.ui32BufferSizeInBytes = pArmStage->stageMemInfo.ui32UserConfigReqd;
-        }
-    }
-
-    /* Allocate memory for the host buffer to hold the modified settings when the task is running */
-    pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress = 0;
-    pArmStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes = 0;
-    if(pArmStage->stageMemInfo.ui32UserConfigReqd)
-    {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pArmStage->stageMemInfo.ui32UserConfigReqd, 2, 0);  /* 32 bit aligned*/
-        pArmStage->sDramUserConfigSpareBuffer.pDramBufferAddress = pBaseAddr;
-
-        if(NULL == pBaseAddr)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for Userconfig!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        else
-        {
-            err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pBaseAddr, pArmStage->stageMemInfo.ui32UserConfigReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
-            if (BERR_SUCCESS != err)
-            {
-                BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for Spare User Config Buffer"));
-                err = BERR_TRACE(err);
-                goto end;
-            }
-
-            /*convert to physical and */
-            BDSP_MEM_P_ConvertAddressToOffset(  pDevice->memHandle,
-                                            pBaseAddr,
-                                            &armOffsetAddr
-                                         );
-
-            pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress = armOffsetAddr;
-            pArmStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes = pArmStage->stageMemInfo.ui32UserConfigReqd;
-        }
-    }
-
-    /*Status Buffer allocation for a stage*/
-    pArmStage->sDramStatusBuffer.ui32DramBufferAddress= 0;
-    pArmStage->sDramStatusBuffer.ui32BufferSizeInBytes= 0;
-    if(pArmStage->stageMemInfo.ui32StatusBufReqd)
-    {
-        pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, pArmStage->stageMemInfo.ui32StatusBufReqd,2, 0);  /* 32 bit aligned*/
-        pArmStage->sDramStatusBuffer.pDramBufferAddress = pBaseAddr;
-
-        if(NULL == pBaseAddr)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for Status Buffer!"));
-            err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-            goto end;
-        }
-        else
-        {
-            err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pBaseAddr, pArmStage->stageMemInfo.ui32StatusBufReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
-            if (BERR_SUCCESS != err)
-            {
-                BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for Status Buffer"));
-                err = BERR_TRACE(err);
-                goto end;
-            }
-
-            /*convert to physical and */
-            BDSP_MEM_P_ConvertAddressToOffset(  pDevice->memHandle,
-                                            pBaseAddr,
-                                            &armOffsetAddr
-                                         );
-
-            pArmStage->sDramStatusBuffer.ui32DramBufferAddress= armOffsetAddr;
-            pArmStage->sDramStatusBuffer.ui32BufferSizeInBytes= pArmStage->stageMemInfo.ui32StatusBufReqd;
-        }
-    }
-
+	/*Status Buffer allocation for a stage*/
+	pArmStage->sDramStatusBuffer.ui32Size = 0;
+	if(pArmStage->stageMemInfo.ui32StatusBufReqd)
+	{
+		err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+							pArmStage->stageMemInfo.ui32StatusBufReqd,
+							&(pArmStage->sDramStatusBuffer.Buffer),
+							BDSP_MMA_Alignment_32bit);
+		if(BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for Status Buffer!"));
+			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+			goto end;
+		}
+		err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramStatusBuffer.Buffer, pArmStage->stageMemInfo.ui32StatusBufReqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for Status Buffer"));
+			err = BERR_TRACE(err);
+			goto end;
+		}
+		pArmStage->sDramStatusBuffer.ui32Size = pArmStage->stageMemInfo.ui32StatusBufReqd;
+	}
     /*Configuration structure allocations for a stage*/
     bytesreqd=(SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER))*(BDSP_AF_P_MAX_IP_FORKS+BDSP_AF_P_MAX_OP_FORKS);
 
     /* For IDS output buffer descriptors */
     bytesreqd+=(SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
 
-    pBaseAddr = BDSP_MEM_P_AllocateAlignedMemory(pDevice->memHandle, bytesreqd,2, 0);  /* 32 bit aligned*/
-    if(NULL == pBaseAddr)
-    {
-        BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for IFrameCfgBuf!"));
-        err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-        goto end;
-    }
-    else
-    {
-        err = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pBaseAddr, bytesreqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for Stage and IDS IO Buffer and IO config buffer for input and output"));
-            err = BERR_TRACE(err);
-            goto end;
-        }
+	err = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,
+								bytesreqd,
+								&Buffer,
+								BDSP_MMA_Alignment_32bit);
+	if(BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to Allocate memory for IFrameCfgBuf!"));
+		err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+		goto end;
+	}
 
-        /*Split the memory for all the input and output descriptors in vitual memory itself as their contents needs to be populated later.*/
-        for(i=0; i<BDSP_AF_P_MAX_IP_FORKS; i++)
-        {
-            pArmStage->sStageInput[i].pIoBuffDesc = pBaseAddr;
-            pArmStage->sStageInput[i].pIoGenBuffDesc = (void *)((uint8_t *)pBaseAddr+SIZEOF(BDSP_AF_P_sIO_BUFFER));
+	err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]), &Buffer, bytesreqd, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_STAGE);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Error in updating the MAP Table for Stage and IDS IO Buffer and IO config buffer for input and output"));
+		err = BERR_TRACE(err);
+		goto end;
+	}
 
-            pBaseAddr=(void *)((uint8_t *)pBaseAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-        }
-        for(i=0; i<BDSP_AF_P_MAX_OP_FORKS; i++)
-        {
-            pArmStage->sStageOutput[i].pIoBuffDesc = pBaseAddr;
-            pArmStage->sStageOutput[i].pIoGenBuffDesc = (void *)((uint8_t *)pBaseAddr+SIZEOF(BDSP_AF_P_sIO_BUFFER));
+	pAddr = (uint8_t *)Buffer.pAddr;
+	Offset = (uint32_t)Buffer.offset;
 
-            pBaseAddr=(void *)((uint8_t *)pBaseAddr+ SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
+	/*Split the memory for all the input and output descriptors in vitual memory itself as their contents needs to be populated later.*/
+	for(i=0; i<BDSP_AF_P_MAX_IP_FORKS; i++)
+	{
+		pArmStage->sStageInput[i].IoBuffDesc.hBlock = Buffer.hBlock;
+		pArmStage->sStageInput[i].IoBuffDesc.pAddr  = (void *)pAddr;
+		pArmStage->sStageInput[i].IoBuffDesc.offset = Offset;
+		pAddr = pAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER);
+		Offset = Offset + SIZEOF(BDSP_AF_P_sIO_BUFFER);
 
-            /*mark all of them invalid till stages are connected to make them valid*/
-            pArmStage->eStageOpBuffDataType[i] = BDSP_AF_P_DistinctOpType_eInvalid;
-        }
+		pArmStage->sStageInput[i].IoGenBuffDesc.hBlock = Buffer.hBlock;
+		pArmStage->sStageInput[i].IoGenBuffDesc.pAddr  = (void *)pAddr;
+		pArmStage->sStageInput[i].IoGenBuffDesc.offset = Offset;
+		pAddr = pAddr + SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER);
+		Offset = Offset + SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER);
+	}
+	for(i=0; i<BDSP_AF_P_MAX_OP_FORKS; i++)
+	{
+		pArmStage->sStageOutput[i].IoBuffDesc.hBlock = Buffer.hBlock;
+		pArmStage->sStageOutput[i].IoBuffDesc.pAddr  = (void *)pAddr;
+		pArmStage->sStageOutput[i].IoBuffDesc.offset = Offset;
+		pAddr = pAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER);
+		Offset = Offset + SIZEOF(BDSP_AF_P_sIO_BUFFER);
 
-        /* IDS output buffer descriptor memory split */
-        /*convert to physical only for ids stage output */
-        BDSP_MEM_P_ConvertAddressToOffset(  pDevice->memHandle,
-                                        pBaseAddr,
-                                        &armOffsetAddr
-                                     );
+		pArmStage->sStageOutput[i].IoGenBuffDesc.hBlock = Buffer.hBlock;
+		pArmStage->sStageOutput[i].IoGenBuffDesc.pAddr  = (void *)pAddr;
+		pArmStage->sStageOutput[i].IoGenBuffDesc.offset = Offset;
+		pAddr = pAddr + SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER);
+		Offset = Offset + SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER);
 
-        pArmStage->sIdsStageOutput.ui32StageIOBuffCfgAddr=armOffsetAddr;
-        pArmStage->sIdsStageOutput.ui32StageIOGenericDataBuffCfgAddr=armOffsetAddr+SIZEOF(BDSP_AF_P_sIO_BUFFER);
-        pBaseAddr=(void *)((uint8_t *)pBaseAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER)+ SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-    }
+		/*mark all of them invalid till stages are connected to make them valid*/
+		pArmStage->eStageOpBuffDataType[i] = BDSP_AF_P_DistinctOpType_eInvalid;
+	}
+
+	pArmStage->sIdsStageOutput.IoBuffDesc.hBlock = Buffer.hBlock;
+	pArmStage->sIdsStageOutput.IoBuffDesc.pAddr = (void *)pAddr;
+	pArmStage->sIdsStageOutput.IoBuffDesc.offset = Offset;
+	pAddr = pAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER);
+	Offset = Offset + SIZEOF(BDSP_AF_P_sIO_BUFFER);
+
+	pArmStage->sIdsStageOutput.IoGenBuffDesc.hBlock = Buffer.hBlock;
+	pArmStage->sIdsStageOutput.IoGenBuffDesc.pAddr = (void *)pAddr;
+	pArmStage->sIdsStageOutput.IoGenBuffDesc.offset = Offset;
+
+	pArmStage->sIdsStageOutput.StageIOBuffDescAddr = pArmStage->sIdsStageOutput.IoBuffDesc.offset;
+	pArmStage->sIdsStageOutput.StageIOGenericBuffDescAddr = pArmStage->sIdsStageOutput.IoGenBuffDesc.offset;
 
 end:
     if(err != BERR_SUCCESS)
@@ -1474,66 +1452,41 @@ BERR_Code BDSP_Arm_P_FreeStageMemory(
     )
 {
     BERR_Code err = BERR_SUCCESS;
-    void *pAddress=NULL;
     BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
-    BDSP_Arm *pDevice = (BDSP_Arm *)pArmStage->pContext->pDevice;
 
     BDBG_ENTER(BDSP_Arm_P_FreeStageMemory);
 
-    /* Free the interframe buffer allocation */
-    if(pArmStage->sDramInterFrameBuffer.ui32DramBufferAddress)
-    {
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
-                                    pArmStage->sDramInterFrameBuffer.ui32DramBufferAddress,
-                                    &pAddress);
+	/* Free the interframe buffer allocation */
+	if(pArmStage->sDramInterFrameBuffer.Buffer.pAddr)
+	{
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramInterFrameBuffer.Buffer, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_MMA_P_FreeMemory(&pArmStage->sDramInterFrameBuffer.Buffer);
+	}
 
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pAddress, BDSP_ARM_MAX_ALLOC_STAGE);
+	/* Free the user settings buffer allocation */
+	if(pArmStage->sDramUserConfigBuffer.Buffer.pAddr)
+	{
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramUserConfigBuffer.Buffer, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_MMA_P_FreeMemory(&pArmStage->sDramUserConfigBuffer.Buffer);
+	}
 
-        BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
-    }
+	/* Free the BDSP working buffer of user settings */
+	if(pArmStage->sDramUserConfigSpareBuffer.Buffer.pAddr)
+	{
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramUserConfigSpareBuffer.Buffer, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_MMA_P_FreeMemory(&pArmStage->sDramUserConfigSpareBuffer.Buffer);
+	}
 
-    /* Free the user settings buffer allocation */
+	/* Free the status buffer allocation */
+	if(pArmStage->sDramStatusBuffer.Buffer.pAddr)
+	{
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sDramStatusBuffer.Buffer, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_MMA_P_FreeMemory(&pArmStage->sDramStatusBuffer.Buffer);
+	}
 
-    if(pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress)
-    {
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
-                                    pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress,
-                                    &pAddress);
-
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pAddress, BDSP_ARM_MAX_ALLOC_STAGE);
-
-        BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
-    }
-
-    /* Free the BDSP working buffer of user settings */
-    if(pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress )
-    {
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
-                                pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress,
-                                &pAddress);
-
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pAddress, BDSP_ARM_MAX_ALLOC_STAGE);
-
-        BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
-    }
-
-    /* Free the status buffer allocation */
-    if(pArmStage->sDramStatusBuffer.ui32DramBufferAddress)
-    {
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
-                                    pArmStage->sDramStatusBuffer.ui32DramBufferAddress,
-                                    &pAddress);
-
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pAddress, BDSP_ARM_MAX_ALLOC_STAGE);
-
-        BDSP_MEM_P_FreeMemory(pDevice->memHandle, pAddress);
-    }
-
-    /* Free the descriptor buffer allocation */
-    BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), (void *)pArmStage->sStageInput[0].pIoBuffDesc, BDSP_ARM_MAX_ALLOC_STAGE);
-
-    BDSP_MEM_P_FreeMemory(pDevice->memHandle, pArmStage->sStageInput[0].pIoBuffDesc);
-
+	/* Free the descriptor buffer allocation */
+	BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmStage->sStageInput[0].IoBuffDesc, BDSP_ARM_MAX_ALLOC_STAGE);
+	BDSP_MMA_P_FreeMemory(&pArmStage->sStageInput[0].IoBuffDesc);
     BDBG_LEAVE(BDSP_Arm_P_FreeStageMemory);
     return err;
 }

@@ -1,6 +1,8 @@
 <html><head>
     <title>Memory Config GUI</title>
+    <link rel="stylesheet" type="text/css" href="brcm_alert.css" />
     <script type="text/javascript" src="bmemconfig.js" ></script>
+    <script type="text/javascript" src="brcm_alert.js" ></script>
     </head>
 <body onload="MyLoad();" id=bodymemconfig link=blue vlink=blue alink=blue >
 <table cols=2 border=0 width=80% style="border-collapse:collapse;" >
@@ -53,6 +55,16 @@
         <tr><td style=width:50px >&nbsp;</td><td align=left ><input type="submit" id="btnupload" value="Upload File!" ></td><td align=right ></form><input type="submit" id="btncancel" value="Cancel" onclick="RestoreClick(event);" ></td> <td style=width:50px >&nbsp;</td></tr>
         <tr><td colspan=4 align=center >&nbsp;</td></tr>
     </table>
+</div>
+<div id="brcmAlertDiv" style="visibility:hidden;" >
+    <div id="brcmAlert">
+        <table id="brcmAlert_table">
+            <tr id="brcmAlert_tr">
+                <td id="brcmAlert_td">  <textarea id="brcmAlert_content" rows="30" cols="150" style="font-family:Courier New;" ></textarea>  </td>
+                <td id="brcmAlert_td">  <input type=button id='brcmAlert_ok'  onclick="brcmAlertOkay()" value="OKAY" ></td>
+            </tr>
+        </table>
+    </div>
 </div>
 </body>
 </html>

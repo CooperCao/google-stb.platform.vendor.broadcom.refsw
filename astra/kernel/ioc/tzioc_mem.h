@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,10 +50,10 @@
 #define TZIOC_MEM_REGIONS
 
 typedef struct tzioc_mem_region {
-    uint32_t ulPaddr;
-    uint32_t ulVaddr;
-    uint32_t ulSize;
-    uint32_t ulFlags;
+	uintptr_t ulPaddr;
+	uintptr_t ulVaddr;
+	uint32_t ulSize;
+	uint32_t ulFlags;
 } tzioc_mem_region;
 
 #define TZIOC_MEM_DEVICE                (0x1 << 0)
@@ -69,13 +69,13 @@ class TzIoc::TzIocMem
 public:
     /* defines and types */
 
-    /* physical address mapping record */
-    struct PaddrMap {
-        struct tzioc_client *pClient;
-        uint32_t ulPaddr;
-        uint32_t ulVaddr;
-        uint32_t ulSize;
-    };
+	/* physical address mapping record */
+	struct PaddrMap {
+		struct tzioc_client *pClient;
+		uintptr_t ulPaddr;
+		uintptr_t ulVaddr;
+		uint32_t ulSize;
+	};
 
 public:
     /* static methods */
@@ -89,17 +89,17 @@ public:
         struct tzioc_client *pClient,
         void *pBuff);
 
-    static int mapPaddr(
-        struct tzioc_client *pClient,
-        uint32_t ulPaddr,
-        uint32_t ulSize,
-        uint32_t ulFlags,
-        uint32_t *pulVaddr);
+	static int mapPaddr(
+		struct tzioc_client *pClient,
+		uintptr_t ulPaddr,
+		uint32_t ulSize,
+		uint32_t ulFlags,
+		uintptr_t *pulVaddr);
 
-    static int unmapPaddr(
-        struct tzioc_client *pClient,
-        uint32_t ulPaddr,
-        uint32_t ulSize);
+	static int unmapPaddr(
+		struct tzioc_client *pClient,
+		uintptr_t ulPaddr,
+		uint32_t ulSize);
 
     static int mapPaddrs(
         struct tzioc_client *pClient,
@@ -130,7 +130,7 @@ private:
     /* private data */
 
     /* spinlock for data access */
-    static spinlock_t lock;
+	static SpinLock lock;
 
     /* mem control block */
     static struct tzioc_mem_cb memCB;

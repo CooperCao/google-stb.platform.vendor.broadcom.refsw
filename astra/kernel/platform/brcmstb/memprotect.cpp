@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,7 +85,7 @@ enum {
 
 void Platform::memProtect(void *physStartAddr, void *physStopAddr)
 {
-    uint32_t rangeBase;
+    uintptr_t rangeBase;
     int i;
 
     // Look for an unused ARCH range
@@ -109,11 +109,11 @@ void Platform::memProtect(void *physStartAddr, void *physStopAddr)
 
     // Set up ARCH range for protection
     REG_WR(rangeBase + RANGE_ADDRESS_ULIMIT,
-           ((uint32_t)physStopAddr >> RANGE_ADDRESS_SHIFT) <<
+           ((uintptr_t)physStopAddr >> RANGE_ADDRESS_SHIFT) <<
            RANGE_ADDRESS_ULIMIT_ULIMIT_SHIFT);
 
     REG_WR(rangeBase + RANGE_ADDRESS_LLIMIT,
-           ((uint32_t)physStartAddr >> RANGE_ADDRESS_SHIFT) <<
+           ((uintptr_t)physStartAddr >> RANGE_ADDRESS_SHIFT) <<
            RANGE_ADDRESS_LLIMIT_LLIMIT_SHIFT);
 
     REG_WR(rangeBase + RANGE_PERMISSIONS,

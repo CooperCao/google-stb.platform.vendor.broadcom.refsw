@@ -77,18 +77,22 @@ extern "C" {
 #define BODS_TS_MODE_SERIAL                 1
 #define BODS_TS_MODE_PARALLEL               2
 #if (BODS_CHIP == 7563) || (BODS_CHIP == 3466) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
-#define BODS_THD_CONFIG_PARAMS_BUF1         0x18
+#define BODS_DVBT_CONFIG_PARAMS_BUF1        0x18
 #else
-#define BODS_THD_CONFIG_PARAMS_BUF1         0x10
+#define BODS_DVBT_CONFIG_PARAMS_BUF1        0x10
 #endif
-#define BODS_THD_CONFIG_PARAMS_BUF2         0x40
-#define BODS_THD_CONFIG_PARAMS_BUF3         0
+#define BODS_DVBT_CONFIG_PARAMS_BUF2        0x40
+#define BODS_DVBT_CONFIG_PARAMS_BUF3        0
+#define BODS_ISDBT_CONFIG_PARAMS_BUF1       0x18
+#define BODS_ISDBT_CONFIG_PARAMS_BUF2       0x40
+#define BODS_ISDBT_CONFIG_PARAMS_BUF3       0
 #define BODS_DVBT2_CONFIG_PARAMS_BUF1       0x18
 #define BODS_DVBT2_CONFIG_PARAMS_BUF2       0x40
 #define BODS_DVBT2_CONFIG_PARAMS_BUF3       0
 #define BODS_DVBC2_CONFIG_PARAMS_BUF1       0x18
 #define BODS_DVBC2_CONFIG_PARAMS_BUF2       0x40
 #define BODS_DVBC2_CONFIG_PARAMS_BUF3       0
+#define BODS_MAX_SOFT_DECISIONS             30
 
 typedef enum BODS_OpCodesDS{
         BODS_eAcquire = 0x10,

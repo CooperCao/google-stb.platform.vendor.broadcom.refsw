@@ -52,7 +52,7 @@
 #include "nexus_audio_init.h"
 #endif
 
-#include "nexus_platform_compat.h"
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C"

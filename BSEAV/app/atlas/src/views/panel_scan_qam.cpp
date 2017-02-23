@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -157,35 +157,35 @@ eRet CPanelScanQam::initialize(
         _Settings->setMenuTitle(NULL, "Settings");
         _Settings->setScroll(true);
         {
-            ret = addDualLabelEditButton(_Settings, "Start Freq", &_StartFreq, &_StartFreqLabel, &_StartFreqEdit, &_StartFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "Start Freq", &_StartFreq, &_StartFreqLabel, &_StartFreqEdit, &_StartFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _StartFreq->setFocusable(false);
             _StartFreqLabel->setText("Start Freq:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _StartFreqEdit->setText(GET_STR(_pCfg, UI_QAM_SCAN_START_FREQ), bwidget_justify_horiz_right);
             _StartFreqUnits->setText("Hz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "End Freq", &_EndFreq, &_EndFreqLabel, &_EndFreqEdit, &_EndFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "End Freq", &_EndFreq, &_EndFreqLabel, &_EndFreqEdit, &_EndFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _EndFreq->setFocusable(false);
             _EndFreqLabel->setText("End Freq:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _EndFreqEdit->setText(GET_STR(_pCfg, UI_QAM_SCAN_END_FREQ), bwidget_justify_horiz_right);
             _EndFreqUnits->setText("Hz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "Bandwidth", &_BandwidthFreq, &_BandwidthFreqLabel, &_BandwidthFreqEdit, &_BandwidthFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "Bandwidth", &_BandwidthFreq, &_BandwidthFreqLabel, &_BandwidthFreqEdit, &_BandwidthFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _BandwidthFreq->setFocusable(false);
             _BandwidthFreqLabel->setText("Bandwidth:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _BandwidthFreqEdit->setText("6000000", bwidget_justify_horiz_right);
             _BandwidthFreqUnits->setText("Hz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "Step Freq", &_StepFreq, &_StepFreqLabel, &_StepFreqEdit, &_StepFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "Step Freq", &_StepFreq, &_StepFreqLabel, &_StepFreqEdit, &_StepFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _StepFreq->setFocusable(false);
             _StepFreqLabel->setText("Step Freq:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _StepFreqEdit->setText("6000000", bwidget_justify_horiz_right);
             _StepFreqUnits->setText("Hz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addLabelPopupButton(_Settings, "Mode", &_Mode, &_ModeLabel, &_ModePopup, font12);
+            ret = _Settings->addLabelPopupButton(this, "Mode", &_Mode, &_ModeLabel, &_ModePopup, font12);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Mode->setFocusable(false);
             _ModeLabel->setText("Mode:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -203,21 +203,21 @@ eRet CPanelScanQam::initialize(
                 _ModePopup->select(_ModeAuto);
             }
 
-            ret = addDualLabelEditButton(_Settings, "Symbol Rate Max", &_SymbolRateMax, &_SymbolRateMaxLabel, &_SymbolRateMaxEdit, &_SymbolRateMaxUnits, font12, 100, 70);
+            ret = _Settings->addDualLabelEditButton(this, "Symbol Rate Max", &_SymbolRateMax, &_SymbolRateMaxLabel, &_SymbolRateMaxEdit, &_SymbolRateMaxUnits, font12, 100, 70);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _SymbolRateMax->setFocusable(false);
             _SymbolRateMaxLabel->setText("Sym Rate Max:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _SymbolRateMaxEdit->setText("5360537", bwidget_justify_horiz_right);
             _SymbolRateMaxUnits->setText("Baud", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "Symbol Rate Min", &_SymbolRateMin, &_SymbolRateMinLabel, &_SymbolRateMinEdit, &_SymbolRateMinUnits, font12, 100, 70);
+            ret = _Settings->addDualLabelEditButton(this, "Symbol Rate Min", &_SymbolRateMin, &_SymbolRateMinLabel, &_SymbolRateMinEdit, &_SymbolRateMinUnits, font12, 100, 70);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _SymbolRateMin->setFocusable(false);
             _SymbolRateMinLabel->setText("Sym Rate Min:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _SymbolRateMinEdit->setText("5056900", bwidget_justify_horiz_right);
             _SymbolRateMinUnits->setText("Baud", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addLabelPopupButton(_Settings, "Annex", &_Annex, &_AnnexLabel, &_AnnexPopup, font12);
+            ret = _Settings->addLabelPopupButton(this, "Annex", &_Annex, &_AnnexLabel, &_AnnexPopup, font12);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Annex->setFocusable(false);
             _AnnexLabel->setText("Annex:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);

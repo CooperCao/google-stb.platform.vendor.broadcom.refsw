@@ -190,6 +190,14 @@ BERR_Code BXPT_PacketSub_OpenChannel(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
+#ifdef BXPT_PACKETSUB_REQUIRES_FORCED_INSERTION
+    if (!ChannelSettings->ForcedInsertionEn)
+    {
+       BDBG_ERR(( "ChannelSettings->ForcedInsertionEn must be true on this chip" ));
+       return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+#endif
+
     /* Create the packet sub channel handle. */
     hLocal = &hXpt->PacketSubHandles[ ChannelNo ];
     hLocal->hChip = hXpt->hChip;
@@ -391,6 +399,14 @@ BERR_Code BXPT_PacketSub_SetForcedInsertion(
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hPSub );
+
+#ifdef BXPT_PACKETSUB_REQUIRES_FORCED_INSERTION
+    if (!Enable)
+    {
+       BDBG_ERR(( "Forced Insertion must be used on this chip" ));
+       return BERR_TRACE( BERR_INVALID_PARAMETER );
+    }
+#endif
 
     Reg = BXPT_PacketSub_P_ReadReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0 );
     Reg &= ~(
@@ -908,7 +924,12 @@ BERR_Code BXPT_PacketSub_StopChannel(
         BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, PSUB_ENABLE ) |
         BCHP_MASK( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN )
     );
+#ifdef BXPT_PACKETSUB_REQUIRES_FORCED_INSERTION
+    /* Do nothing. FORCED_INSERTION_EN was set above and that's the only mode supported. */
+    BSTD_UNUSED(OldForcedInsertionState);
+#else
     Reg |= BCHP_FIELD_DATA( XPT_PSUB_PSUB0_CTRL0, FORCED_INSERTION_EN, OldForcedInsertionState );
+#endif
     BXPT_PacketSub_P_WriteReg( hPSub, BCHP_XPT_PSUB_PSUB0_CTRL0, Reg );
 
     /* Clear the first desc addr (for cleaner debugging) */

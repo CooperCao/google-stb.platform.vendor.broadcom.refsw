@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,7 +55,11 @@
 #define ALIGN_PT  __attribute__((__aligned__(4096)))
 #define ALIGN_16K  __attribute__((__aligned__(16384)))
 
+#define NOINLINE __attribute__ ((noinline))
+
 #define UNUSED(x) (void)(x)
+
+#define COMPILER_BARRIER() asm volatile("":::"memory")
 
 #define MAX_DT_SIZE_BYTES  (16 * 1024)
 
@@ -67,11 +71,16 @@
 #define NUM_BOOTSTRAP_BLOCKS        32
 #define MAX_NUM_PAGE_TABLE_BLOCKS   1024
 
-#define KERNEL_HEAP_START   0xC8000000
-#define KERNEL_STACKS_START 0xDFFFF000
+// 8MB max kernel image size (code + data).
+#define KERNEL_PAGE_TABLE_BLOCK_SIZE  (PAGE_SIZE_4K_BYTES/8)
+
 
 #define USER_SPACE_STACK_SIZE  (128*1024)
 
 #define NS_WORLD_PRIORITY  50
+
+#define ARCH_PAGE_SIZE          4096
+
+#define ARCH_HALT()  while (1) { asm volatile ("wfi":::); }
 
 #endif

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -197,7 +197,7 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x013fffff,
 	0x3d840007,
 	0x013fffff,
-	0xa7578dd7,
+	0xa77c09d7,
 	0x000018a1,
 	0x7404050f,
 	0x7400030f,
@@ -977,8 +977,8 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x000038ab,
 	0x07bffe07,
 	0x013fffff,
-	0xa77e09d7,
-	0x0000189e,
+	0xa7220dd7,
+	0x0000189f,
 	0x73563117,
 	0x3fa8461f,
 	0x72052b1f,
@@ -1063,8 +1063,8 @@ const uint32_t BDSP_IMG_vorbis_ids_array1[] = {
 	0x000038aa,
 	0x07bffe07,
 	0x013fffff,
-	0xa76889d7,
-	0x0000189e,
+	0xa70c8dd7,
+	0x0000189f,
 	0x740811cf,
 	0x2b107e77,
 	0x013fffff,

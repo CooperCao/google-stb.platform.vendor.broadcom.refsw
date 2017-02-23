@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -88,7 +88,12 @@ class CAudioCapture;
 class CSnmp;
 #endif
 class MXmlElement;
-
+#ifdef CPUTEST_SUPPORT
+class CCpuTest;
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+class CWifi;
+#endif
 class CConfig;
 
 #ifdef __cplusplus
@@ -219,6 +224,14 @@ public:
     NEXUS_SimpleAudioDecoderServerHandle getSimpleAudioDecoderServer() {return _simpleAudioDecoderServer;}
     NEXUS_SimpleEncoderServerHandle      getSimpleEncoderServer() {return _simpleEncoderServer;}
 
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CWifi *                              getWifi(void) { return(_pWifi); }
+    void                                 setWifi(CWifi * pWifi) { _pWifi = pWifi; }
+#endif
+#ifdef CPUTEST_SUPPORT
+    CCpuTest *                           getCpuTest(void) { return(_pCpuTest); }
+    void                                 setCpuTest(CCpuTest * pCpuTest) { _pCpuTest = pCpuTest; }
+#endif
 #if RF4CE_SUPPORT
     void                                 addRf4ceRemote(CRf4ceRemote * pRf4ceRemote);
     void                                 removeRf4ceRemote(CRf4ceRemote * pRf4ceRemote);
@@ -329,6 +342,12 @@ protected:
     NEXUS_SimpleVideoDecoderServerHandle _simpleVideoDecoderServer;
     NEXUS_SimpleAudioDecoderServerHandle _simpleAudioDecoderServer;
     NEXUS_SimpleEncoderServerHandle      _simpleEncoderServer;
+#ifdef CPUTEST_SUPPORT
+    CCpuTest *                           _pCpuTest;
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CWifi *                              _pWifi;
+#endif
 };
 
 #ifdef __cplusplus

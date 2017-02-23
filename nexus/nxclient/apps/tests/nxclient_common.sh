@@ -12,7 +12,8 @@ NX_STREAMS=(
     'videos/ratatouille-clip_h720p.mkv'
     'videos/wild.wmv'
     'videos/battlestar.mp4'
-    #TODO: 'videos/big_buck_bunny_4kp60_10bit.ts'
+    'videos/BRCM_Logo_7445C_HEVC_1920x1080p60.v1.ts'
+    'videos/Star_Wars_Rebels_Extended_Trailer.1920x1080.webm'
 );
 
 NX_PCMSTREAMS=(
@@ -40,7 +41,11 @@ function nx_start_server {
     ulimit -n 10000
 
     # start server
-    nexus nxserver $* &
+    if [ _${NX_NEXUS_DIR} != _ ]; then
+        ( cd ${NX_NEXUS_DIR} ; exec nexus nxserver $* ) &
+    else
+        nexus nxserver $* &
+    fi
     NX_SERVERPID=$!
     sleep 1
     wait_for_server

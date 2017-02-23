@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 
 #include "nexus_platform.h"
@@ -53,7 +44,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#if NEXUS_HAS_HDMI_OUTPUT
+#if NEXUS_HAS_AUDIO && NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_CEC && NEXUS_NUM_CEC
 #include "nexus_surface.h"
 #include "nexus_graphics2d.h"
 #include "nexus_display.h"
@@ -70,11 +61,8 @@
 #include "nexus_playback.h"
 #include "nexus_file.h"
 #include "nexus_parser_band.h"
-
 #include "nexus_transport_wakeup.h"
-#endif
 
-#if NEXUS_HAS_CEC && NEXUS_NUM_CEC && NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #include "nexus_cec.h"
 
@@ -103,21 +91,28 @@ NEXUS_HdmiOutputHandle hdmiOutput;
 NEXUS_CecHandle hCec;
 bool deviceReady = false, standby_start = false;
 
+#define FILENAME "videos/cnnticker.mpg"
+
 /***********************************************
 ***********************************************/
-void playback_start(void)
+static void playback_start(void)
 {
+	int rc;
 	if(playback_started)
 		return;
 
-	file = NEXUS_FilePlay_OpenPosix("videos/cnnticker.mpg", NULL);
+	file = NEXUS_FilePlay_OpenPosix(FILENAME, NULL);
 	if (!file) {
-		fprintf(stderr, "can't open file\n");
-	BDBG_ASSERT(file);
+		BDBG_ERR(("can't open file %s", FILENAME));
+		return;
 	}
 
 	/* Start playback */
-	NEXUS_Playback_Start(playback, file, NULL);
+	rc = NEXUS_Playback_Start(playback, file, NULL);
+	if (rc) {
+		NEXUS_FilePlay_Close(file);
+		return;
+	}
 
 	playback_started = true;
 }
@@ -775,14 +770,9 @@ done:
     return 0;
 }
 #else
-
-int main(int argc, char **argv)
+int main(void)
 {
-    BSTD_UNUSED(argc);
-    printf("%s Support for CEC has been disabled; use 'NEXUS_CEC_SUPPORT=y' to enable",
-        argv[0]) ;
-    return 0 ;
+    printf("This application is not supported on this platform\n");
+    return 0;
 }
-
 #endif
-

@@ -40,7 +40,7 @@
 # bwin.mak
 # This file should be included by applications linking to bwin.
 #
-# Inputs: BSEAV, B_RESW_ARCH
+# Inputs: BSEAV, B_REFSW_ARCH
 # Outputs: BWIN_CFLAGS, BWIN_LDFLAGS
 
 BWIN_DIR = $(BSEAV)/lib/bwin
@@ -51,6 +51,8 @@ else
 DEBUG_SUFFIX=release
 endif
 
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 BWIN_LIBDIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bwin
 
 BWIN_CFLAGS = -I$(BWIN_DIR)/include
@@ -59,27 +61,28 @@ BWIN_LDFLAGS = -L$(BWIN_LIBDIR) -lbwin
 # By default, use freetype offline and use
 # prerendered fonts in the application.
 FREETYPE_SUPPORT ?= n
-FREETYPE_DIR = $(BSEAV)/lib/freetype-2.1.5
-FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/freetype-2.1.5
+FREETYPE_DIR = $(BSEAV)/opensource/freetype
+FREETYPE_NAME = freetype-2.1.5
+FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/$(FREETYPE_NAME)
 
 PNG_SUPPORT ?= y
 JPEG_SUPPORT = y
 
 LIB_DIR = $(BSEAV)/lib
 
-LIBPNG_DIR = $(BSEAV)/lib/libpng
-LIBPNG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng
-ZLIB_DIR = $(BSEAV)/lib/zlib
-ZLIB_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/zlib
-LIBJPEG_DIR = $(BSEAV)/lib/jpeg-6b
-LIBJPEG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/jpeg-6b
+LIBPNG_DIR = $(BSEAV)/opensource/libpng
+LIBPNG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/libpng-1.2.8
+ZLIB_DIR = $(BSEAV)/opensource/zlib
+ZLIB_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/zlib-1.1.3
+LIBJPEG_DIR = $(BSEAV)/opensource/jpeg
+LIBJPEG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b
 
 ifeq ($(FREETYPE_SUPPORT),y)
 BWIN_LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype -L$(FREETYPE_ODIR)
 endif
 
 ifeq ($(PNG_SUPPORT),y)
-BWIN_LDFLAGS += -L$(LIBPNG_ODIR) -lpng -L$(ZLIB_ODIR)/$(B_REFSW_ARCH) -lz
+BWIN_LDFLAGS += -L$(LIBPNG_ODIR) -lpng -L$(ZLIB_ODIR) -lz
 endif
 
 ifeq ($(JPEG_SUPPORT),y)

@@ -453,18 +453,18 @@ NEXUS_RecpumpHandle NEXUS_Recpump_Open(unsigned index, const NEXUS_RecpumpOpenSe
     /* get bufferBase for data and index buffers */
     {
     BAVC_XptContextMap context;
-    unsigned offset;
+    BSTD_DeviceOffset offset;
     rc = BXPT_Rave_GetContextRegisters(r->rave_rec, &context);
     if (rc) { rc=BERR_TRACE(rc); goto error; }
 
     r->rave_rec_index = NEXUS_RAVE_INDEX(context.CDB_Read);
 
-    offset = BREG_Read32(g_pCoreHandles->reg, context.CDB_Base);
+    offset = BREG_ReadAddr(g_pCoreHandles->reg, context.CDB_Base);
     r->data.bufferBase = (uint8_t*)r->rave_rec_mem.data.buffer + (offset - r->rave_rec_mem.data.offset); /* convert offset -> cached ptr */
     r->data.flushableBuffer = NEXUS_P_CpuAccessibleAddress(r->data.bufferBase);
 
     if (r->rave_rec_mem.index.buffer) {
-        offset = BREG_Read32(g_pCoreHandles->reg, context.ITB_Base);
+        offset = BREG_ReadAddr(g_pCoreHandles->reg, context.ITB_Base);
         r->index.bufferBase = (uint8_t*)r->rave_rec_mem.index.buffer + (offset - r->rave_rec_mem.index.offset); /* convert offset -> cached ptr */
         r->index.flushableBuffer = NEXUS_P_CpuAccessibleAddress(r->index.bufferBase);
     }
@@ -1084,6 +1084,12 @@ static NEXUS_Error NEXUS_Recpump_P_Start(NEXUS_RecpumpHandle r)
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 #endif /* #if BXPT_HAS_LOCAL_ATS */
+
+    if (r->bipPidChannelNum) {
+        /* these are cleared automatically on RAVE flush */
+        rec_cfg.bipIndexing = true;
+        rec_cfg.bipPidChannel = r->bipPidChannelNum;
+    }
 
     rc = BXPT_Rave_SetRecordConfig(r->rave_rec, &rec_cfg);
     if (rc) {return BERR_TRACE(rc);}

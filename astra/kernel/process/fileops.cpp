@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,13 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * fileops.cpp
- *
- *  Created on: Feb 23, 2015
- *      Author: gambhire
- */
 
 #include "tzfcntl.h"
 #include "arm/arm.h"
@@ -102,10 +95,10 @@ void TzTask::initFileTable() {
 
 
     // Initialize the std file descriptors
-    files[0] = {File, Console::stdin, 0, true, false, false};
-    files[1] = {File, Console::stdout, 0, false, true, false};
-    files[2] = {File, Console::stderr, 0, false, true, false};
-    files[3] = {File, Console::stdlog, 0, false, true, false};
+    files[0] = {File, 0, Console::stdin, 0, true, false, false};
+    files[1] = {File, 0, Console::stdout, 0, false, true, false};
+    files[2] = {File, 0, Console::stderr, 0, false, true, false};
+    files[3] = {File, 0, Console::stdlog, 0, false, true, false};
 
     // Clear the rest of file descriptors
     for (int i=4; i<MAX_FD; i++) {
@@ -335,6 +328,7 @@ int TzTask::open(char *filePath, int flags, int mode) {
     files[fd].read = readFile;
     files[fd].write = writeFile;
     files[fd].closeOnExec = closeOnExec;
+    files[fd].iNo++;
 
     RamFS::File::open((RamFS::File *)file);
     return fd;
@@ -663,6 +657,7 @@ int TzTask::fstat(int fd, struct stat *statBuf) {
         statBuf->mtimeNanoSec = tm.lastModifiedAt.tv_nsec;
         statBuf->ctime = tm.lastStatusChangeAt.tv_sec;
         statBuf->ctimeNanoSec = tm.lastStatusChangeAt.tv_nsec;
+        statBuf->st_ino = (uint64_t) files[fd].iNo;
     }
 
     if (files[fd].type == File) {
@@ -683,6 +678,7 @@ int TzTask::fstat(int fd, struct stat *statBuf) {
         statBuf->size = file->size();
         statBuf->blockSize = PAGE_SIZE_4K_BYTES;
         statBuf->blocks = file->numBlocks();
+        statBuf->st_ino = (uint64_t) files[fd].iNo;
     }
 
     return 0;
@@ -703,8 +699,8 @@ int TzTask::mmap(TzMem::VirtAddr addr, TzMem::VirtAddr *allocated, size_t len, i
     if (offset > file->size())
         return -EINVAL;
 
-    if ((offset + len) > file->size())
-        return -EINVAL;
+    //if ((offset + len) > file->size())
+        //return -EINVAL;
 
     uint8_t *desired = (uint8_t *)addr;
     int pageOffset = desired - (uint8_t *)PAGE_START_4K(desired);
@@ -717,12 +713,16 @@ int TzTask::mmap(TzMem::VirtAddr addr, TzMem::VirtAddr *allocated, size_t len, i
 
     // Check if the VA space is available
     if (!pageTable->isAddrRangeUnMapped(va, numPages*PAGE_SIZE_4K_BYTES)) {
-        if (flags & MAP_FIXED)
-            return -EINVAL;
-
+        // Allow MAP_FIXED type then unmap previous range and use user passed VA to map
+        if (flags & MAP_FIXED) {
+            uint8_t *lastva = (uint8_t *)va + numPages*PAGE_SIZE_4K_BYTES - 1;
+            pageTable->unmapPageRange(va, lastva);
+        } else {
+            // Not MAP_FIXED flag we can use different virtual address
         va = (uint8_t *)pageTable->reserveAddrRange(va, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
         if (va == nullptr)
             return -ENOMEM;
+        }
     }
 
     int rv = file->mmap(va, allocated, len, prot, flags, offset);

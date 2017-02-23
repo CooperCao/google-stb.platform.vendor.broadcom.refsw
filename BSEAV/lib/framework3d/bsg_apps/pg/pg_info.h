@@ -128,8 +128,7 @@ public:
 
    ChannelInfo(uint32_t number, const std::string &name, ServiceType type) :
       m_number(number),
-      m_name(name),
-      m_type(type)
+      m_name(name)
    {}
 
    void Clear()                                    { m_programs.clear();            }
@@ -143,16 +142,6 @@ public:
 private:
    uint32_t       m_number;
    std::string    m_name;
-   ServiceType    m_type;
-   uint32_t       m_onid;
-   uint32_t       m_tsid;
-   uint32_t       m_sid;
-   uint32_t       m_id;
-   std::string    m_providerName;
-   bool           m_isEncrypted;
-   bool           m_isHdtv;
-   bool           m_isVisible;
-   bool           m_isNumericSelectable;
 
    std::vector<ProgramInfo>  m_programs;
 };

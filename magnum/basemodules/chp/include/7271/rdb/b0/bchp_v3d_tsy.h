@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,23 +70,23 @@
 /***************************************************************************
  *V3D_TSY
  ***************************************************************************/
-#define BCHP_V3D_TSY_CONFIG0                     0x21200100 /* [RO] {reserved:24, TSY version number:8} */
-#define BCHP_V3D_TSY_CONFIG1                     0x21200104 /* [RO] {number of threads:16, number of TSO objects:16} */
-#define BCHP_V3D_TSY_CONTROL                     0x21200108 /* [RW] TSY control operations */
-#define BCHP_V3D_TSY_STATUS                      0x2120010c /* [RO] TSY status information */
-#define BCHP_V3D_TSY_TSO_INDEX                   0x21200110 /* [RW] Set current TSO index */
-#define BCHP_V3D_TSY_TSO_DATA                    0x21200114 /* [RW] Read/write TSO data at current index */
-#define BCHP_V3D_TSY_THREAD_INDEX                0x21200118 /* [RW] Set current thread index */
-#define BCHP_V3D_TSY_THREAD_DATA                 0x2120011c /* [RW] Read/write thread data at current index */
-#define BCHP_V3D_TSY_RELEASE                     0x21200120 /* [RW] Release thread at current index */
-#define BCHP_V3D_TSY_THR_CLEAR                   0x21200124 /* [RW] Clear thread data per core */
-#define BCHP_V3D_TSY_TSO_CLEAR                   0x21200128 /* [RW] Clear TSO objects */
-#define BCHP_V3D_TSY_TSO_COUNT_OPS               0x2120012c /* [RO] Count of thread synchronisation operations performed since reset */
-#define BCHP_V3D_TSY_TSO_COUNT_REL               0x21200130 /* [RO] Count of thread release operations performed since reset */
-#define BCHP_V3D_TSY_TSO_COUNT_DISCARD           0x21200134 /* [RO] Count of operations discarded due to core enables since reset */
-#define BCHP_V3D_TSY_TSO_ENABLE_CORE0            0x21200160 /* [RW] Enable access to TSO objects from core 0 (else operations are discarded) */
-#define BCHP_V3D_TSY_TSO_ENABLE_CORE1            0x21200164 /* [RW] Enable access to TSO objects from core 1 (else operations are discarded) */
-#define BCHP_V3D_TSY_TSO_ENABLE_CORE2            0x21200168 /* [RW] Enable access to TSO objects from core 2 (else operations are discarded) */
+#define BCHP_V3D_TSY_CONFIG0                     0x21200100 /* [RO][32] {reserved:24, TSY version number:8} */
+#define BCHP_V3D_TSY_CONFIG1                     0x21200104 /* [RO][32] {number of threads:16, number of TSO objects:16} */
+#define BCHP_V3D_TSY_CONTROL                     0x21200108 /* [RW][32] TSY control operations */
+#define BCHP_V3D_TSY_STATUS                      0x2120010c /* [RO][32] TSY status information */
+#define BCHP_V3D_TSY_TSO_INDEX                   0x21200110 /* [RW][32] Set current TSO index */
+#define BCHP_V3D_TSY_TSO_DATA                    0x21200114 /* [RW][32] Read/write TSO data at current index */
+#define BCHP_V3D_TSY_THREAD_INDEX                0x21200118 /* [RW][32] Set current thread index */
+#define BCHP_V3D_TSY_THREAD_DATA                 0x2120011c /* [RW][32] Read/write thread data at current index */
+#define BCHP_V3D_TSY_RELEASE                     0x21200120 /* [RW][32] Release thread at current index */
+#define BCHP_V3D_TSY_THR_CLEAR                   0x21200124 /* [RW][32] Clear thread data per core */
+#define BCHP_V3D_TSY_TSO_CLEAR                   0x21200128 /* [RW][32] Clear TSO objects */
+#define BCHP_V3D_TSY_TSO_COUNT_OPS               0x2120012c /* [RO][32] Count of thread synchronisation operations performed since reset */
+#define BCHP_V3D_TSY_TSO_COUNT_REL               0x21200130 /* [RO][32] Count of thread release operations performed since reset */
+#define BCHP_V3D_TSY_TSO_COUNT_DISCARD           0x21200134 /* [RO][32] Count of operations discarded due to core enables since reset */
+#define BCHP_V3D_TSY_TSO_ENABLE_CORE0            0x21200160 /* [RW][32] Enable access to TSO objects from core 0 (else operations are discarded) */
+#define BCHP_V3D_TSY_TSO_ENABLE_CORE1            0x21200164 /* [RW][32] Enable access to TSO objects from core 1 (else operations are discarded) */
+#define BCHP_V3D_TSY_TSO_ENABLE_CORE2            0x21200168 /* [RW][32] Enable access to TSO objects from core 2 (else operations are discarded) */
 
 /***************************************************************************
  *CONFIG0 - {reserved:24, TSY version number:8}

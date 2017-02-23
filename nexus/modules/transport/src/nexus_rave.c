@@ -543,11 +543,11 @@ static void nexus_rave_check_wrap(NEXUS_RaveHandle rave)
 {
     if (rave->settings.numOutputBytesEnabled) {
         BAVC_XptContextMap *pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-        uint32_t valid = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Valid);
+        BSTD_DeviceOffset valid = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Valid);
         if (valid < rave->lastValid && rave->lastValid) {
             /* every time it wraps, we read WRAP-BASE. this is the total number of bytes in the CDB for the past wrap.
             see GetStatus where we add VALID-BASE to improve the result */
-            unsigned n = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Wrap) - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
+            unsigned n = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Wrap) - BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
             rave->numOutputBytes += n;
             BDBG_MSG(("rave read %u", (unsigned)rave->numOutputBytes));
         }
@@ -1321,7 +1321,7 @@ void NEXUS_Rave_Flush_priv(NEXUS_RaveHandle rave)
     if (rave->settings.numOutputBytesEnabled) {
         BAVC_XptContextMap *pXptContextMap;
         pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-        rave->numOutputBytes += BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
+        rave->numOutputBytes += BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
     }
     rave->lastValid = 0;
     rc = BXPT_Rave_FlushContext(rave->raveHandle);
@@ -1361,7 +1361,7 @@ NEXUS_Error NEXUS_Rave_GetStatus_priv(NEXUS_RaveHandle rave, NEXUS_RaveStatus *p
     pStatus->numOutputBytes = rave->numOutputBytes;
     /* augment with VALID-BASE. this is useful for low bitrate streams that are just starting decode. */
     pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-    pStatus->numOutputBytes += BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
+    pStatus->numOutputBytes += BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Valid) - BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Base);
     pStatus->enabled = rave->enabled;
 #if NEXUS_HAS_SAGE
     /* we know if CRR is actually secure if SAGE is enabled and we're using the secure heap. For now, just test if is compiled in. */
@@ -1400,8 +1400,8 @@ void NEXUS_Rave_GetCdbBufferInfo_isr(NEXUS_RaveHandle rave, unsigned *depth, uns
 void NEXUS_Rave_GetItbBufferInfo(NEXUS_RaveHandle rave, unsigned *depth, unsigned *size)
 {
     BERR_Code rc;
-    uint32_t base;
-    uint32_t end;
+    BSTD_DeviceOffset base;
+    BSTD_DeviceOffset end;
     BXPT_Rave_ContextPtrs CtxPtrs;
     BAVC_XptContextMap * pXptContextMap;
 
@@ -1416,8 +1416,8 @@ void NEXUS_Rave_GetItbBufferInfo(NEXUS_RaveHandle rave, unsigned *depth, unsigne
     }
 
     pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-    base = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Base);
-    end = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_End);
+    base = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Base);
+    end = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_End);
     *size = end - base + 1;
 
     return;
@@ -1781,7 +1781,7 @@ NEXUS_Error NEXUS_Rave_SetCdbThreshold_priv(
     return BERR_SUCCESS;
 }
 
-void NEXUS_Rave_GetCdbPointers_isr( NEXUS_RaveHandle rave, uint32_t *validPointer, uint32_t *readPointer)
+void NEXUS_Rave_GetCdbPointers_isr( NEXUS_RaveHandle rave, uint64_t *validPointer, uint64_t *readPointer)
 {
     BAVC_XptContextMap *pXptContextMap;
 
@@ -1789,14 +1789,14 @@ void NEXUS_Rave_GetCdbPointers_isr( NEXUS_RaveHandle rave, uint32_t *validPointe
     BKNI_ASSERT_ISR_CONTEXT();
 
     pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-    *validPointer = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Valid);
-    *readPointer = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->CDB_Read);
+    *validPointer = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Valid);
+    *readPointer = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->CDB_Read);
 }
 
 NEXUS_Error NEXUS_Rave_GetPtsRange_priv( NEXUS_RaveHandle rave, uint32_t *pMostRecentPts, uint32_t *pLeastRecentPts )
 {
     BAVC_XptContextMap *pXptContextMap;
-    uint32_t valid_offset, read_offset, base_offset, end_offset;
+    uint64_t valid_offset, read_offset, base_offset, end_offset;
     uint32_t *valid, *read, *base, *end, *itb_mem;
     bool foundPts=false;
     unsigned itr = 0; /* debug stats */
@@ -1811,12 +1811,12 @@ NEXUS_Error NEXUS_Rave_GetPtsRange_priv( NEXUS_RaveHandle rave, uint32_t *pMostR
     }
 
     pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-    valid_offset = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Valid);
+    valid_offset = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Valid);
     valid_offset -= valid_offset % NEXUS_RAVE_P_ITB_SIZE; /* VALID points to last byte in ITB entry, move to first byte for easy algo */
-    read_offset = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Read);
+    read_offset = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Read);
     read_offset -= read_offset % NEXUS_RAVE_P_ITB_SIZE; /* READ may not be updated in ITB units */
-    base_offset = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Base);
-    end_offset = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_End);
+    base_offset = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Base);
+    end_offset = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_End);
     end_offset -= end_offset % NEXUS_RAVE_P_ITB_SIZE; /* END points to last byte in ITB entry, move to first byte for easy algo */
 
     /* validate that we're in range */
@@ -2076,11 +2076,11 @@ NEXUS_Error NEXUS_PidChannel_ReadItbEvents( NEXUS_PidChannelHandle pidChannel, N
     else if ((uint8_t *)rave->readItbEvents.DataPtr > validPtr) {
         const NEXUS_Rave_P_ItbEntry *basePtr = (const NEXUS_Rave_P_ItbEntry *)rave->itb.ptr; /* ITB Base */
         BAVC_XptContextMap *pXptContextMap = NEXUS_RAVE_CONTEXT_MAP(rave);
-        uint32_t wrapOffset = BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Wrap);
+        uint64_t wrapOffset = BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Wrap);
         if (wrapOffset) {
             const NEXUS_Rave_P_ItbEntry *wrapPtr;
-            wrapPtr = (const NEXUS_Rave_P_ItbEntry *)((uint8_t*)rave->itb.ptr + (wrapOffset - BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Base) + 1));
-            BDBG_MSG(("ReadItbEvents: wrap %p %x %x %p", (void*)rave->itb.ptr, BREG_Read32(g_pCoreHandles->reg, pXptContextMap->ITB_Base), wrapOffset, (void*)wrapPtr));
+            wrapPtr = (const NEXUS_Rave_P_ItbEntry *)((uint8_t*)rave->itb.ptr + (wrapOffset - BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Base) + 1));
+            BDBG_MSG(("ReadItbEvents: wrap %p "BDBG_UINT64_FMT" "BDBG_UINT64_FMT" %p", (void*)rave->itb.ptr, BDBG_UINT64_ARG(BREG_ReadAddr(g_pCoreHandles->reg, pXptContextMap->ITB_Base)), BDBG_UINT64_ARG(wrapOffset), (void*)wrapPtr));
             nexus_rave_process_itb_events(rave->readItbEvents.DataPtr, wrapPtr, &nextPtr, pEvents, numEvents, &total);
             if (nextPtr >= wrapPtr) {
                 /* make sure we are positioned at the base if we have reached the wrap and the user buffer is full */

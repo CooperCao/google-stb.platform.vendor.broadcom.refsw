@@ -38,7 +38,6 @@
 
 #include "bstd.h"
 #include "bkni.h"          /* For malloc */
-#include "bmem.h"
 #include "bxvd.h"
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"
@@ -101,13 +100,21 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg[BXVD_VideoProtocol_eMax][BXV
    },
 
    /* BXVD_VideoProtocol_eMPEG2 */
+#if BXVD_P_CORE_REVISION_NUM >= 19
+   {
+      {154944, (1024*1024), 0, 2097152, 131072, BXVD_P_VideoAtomIndex_eM, 6}, /* MPEG2 HD w/ BTP */
+      {154944,  (150*1024), 0, 1048576,  65536, BXVD_P_VideoAtomIndex_eB, 6}, /* MPEG2 SD w/ BTP */
+      {154944,   (52*1024), 0,  312448,  16384, BXVD_P_VideoAtomIndex_eC, 5}, /* MPEG2 CIF */
+      {154944,   (16*1024), 0,   54656,  16384, BXVD_P_VideoAtomIndex_eD, 2}  /* MPEG2 QCIF */
+   },
+#else
    {
       {154944, 65536, 0, 2097152, 131072, BXVD_P_VideoAtomIndex_eM, 6}, /* MPEG2 HD w/ BTP */
       {154944, 65536, 0, 1048576,  65536, BXVD_P_VideoAtomIndex_eB, 6}, /* MPEG2 SD w/ BTP */
       {154944, 16384, 0,  312448,  16384, BXVD_P_VideoAtomIndex_eC, 5}, /* MPEG2 CIF */
       {154944, 16384, 0,   54656,  16384, BXVD_P_VideoAtomIndex_eD, 2}  /* MPEG2 QCIF */
    },
-
+#endif
    /* BXVD_VideoProtocol_eVC1 */
    {
       {154944,  917504, 103680, 3906176, 131072, BXVD_P_VideoAtomIndex_eM, 5}, /* VC1 HD */
@@ -146,8 +153,12 @@ static const BXVD_P_FWMemConfig_V2 sChannelStillFWMemCfg[BXVD_VideoProtocol_eMax
 
    /* BXVD_VideoProtocol_eAVC */
    {
-      { 261440, 131072, 0, 921600, 8192, BXVD_P_VideoAtomIndex_eA, 1}, /* AVC HD Still */
-      { 261440,  32768, 0, 409600, 8192, BXVD_P_VideoAtomIndex_eB, 1}  /* AVC SD Still */
+#if BXVD_P_CORE_REVISION_NUM >= 19
+      { 261440, 131072, 0, 921600, 10240,  BXVD_P_VideoAtomIndex_eA, 1}, /* AVC HD Still */
+#else
+      { 261440, 131072, 0, 921600,  8192,  BXVD_P_VideoAtomIndex_eA, 1}, /* AVC HD Still */
+#endif
+      { 261440,  32768, 0, 409600,  8192,  BXVD_P_VideoAtomIndex_eB, 1}  /* AVC SD Still */
    },
 
    /* BXVD_VideoProtocol_eMPEG2 */
@@ -361,7 +372,10 @@ bool BXVD_P_IsDecodeProtocolSupported(BXVD_Handle               hXvd,
 
 #if BXVD_P_NO_LEGACY_PROTOCOL_SUPPORT
    /* Only MPEG2 and AVC are supported by default on Rev S.1 and later cores */
-   else if ((eVideoCmprStd == BAVC_VideoCompressionStd_eH264) || (eVideoCmprStd == BAVC_VideoCompressionStd_eMPEG2))
+   if ((eVideoCmprStd == BAVC_VideoCompressionStd_eH264) ||
+       (eVideoCmprStd == BAVC_VideoCompressionStd_eMPEG2) ||
+       (eVideoCmprStd == BAVC_VideoCompressionStd_eMPEG2DTV) ||
+       (eVideoCmprStd == BAVC_VideoCompressionStd_eMPEG2_DSS_PES))
    {
       rc = true;
    }
@@ -473,7 +487,7 @@ BERR_Code BXVD_P_SetupFWSubHeap(BXVD_Handle hXvd)
 {
    BERR_Code rc = BERR_SUCCESS;
 
-   unsigned long ulTmp;
+   BMMA_DeviceOffset PATmp;
 
    hXvd->SubGenMem = 0;
    hXvd->SubSecureMem = 0;
@@ -481,14 +495,14 @@ BERR_Code BXVD_P_SetupFWSubHeap(BXVD_Handle hXvd)
 
    if (hXvd->uiFWGenMemSize != 0)
    {
-      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Gen VA: 0x%0*lx, PA: %0lx, Size:%0x",
-                          BXVD_P_DIGITS_IN_LONG, hXvd->uiFWGenMemBaseVirtAddr,
-                          hXvd->uiFWGenMemBasePhyAddr, hXvd->uiFWGenMemSize));
+      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Gen VA: 0x%0lx, PA: " BDBG_UINT64_FMT ", Size:%0x",
+                          hXvd->uiFWGenMemBaseVirtAddr,
+                          BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvd->FWGenMemBasePhyAddr), hXvd->uiFWGenMemSize));
 
-      ulTmp = (unsigned long)(hXvd->uiFWGenMemBasePhyAddr);
+      PATmp = (hXvd->FWGenMemBasePhyAddr);
 
       rc = BERR_TRACE(BXVD_P_Memory_Open(hXvd, &hXvd->SubGenMem, /* (void *) hXvd->uiFWGenMemBaseVirtAddr,  */
-                                         (void *)ulTmp,  hXvd->uiFWGenMemSize,
+                                         (BMMA_DeviceOffset)PATmp,  hXvd->uiFWGenMemSize,
                                          BXVD_P_Memory_Protection_eDontProtect));
       if (rc != BERR_SUCCESS)
       {
@@ -498,12 +512,13 @@ BERR_Code BXVD_P_SetupFWSubHeap(BXVD_Handle hXvd)
 
    if (hXvd->uiFWCabacMemSize != 0)
    {
-      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Secure PA: %0lx, Size:%08x",
-                              hXvd->uiFWCabacMemBasePhyAddr, hXvd->uiFWCabacMemSize));
+      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Secure PA: " BDBG_UINT64_FMT ", Size:%08x",
+                          BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvd->FWCabacMemBasePhyAddr), hXvd->uiFWCabacMemSize));
 
-      ulTmp = (unsigned long)(hXvd->uiFWCabacMemBasePhyAddr);
+      PATmp = hXvd->FWCabacMemBasePhyAddr;
+
       rc = BERR_TRACE(BXVD_P_Memory_Open(hXvd, &hXvd->SubSecureMem,
-                                         (void *)ulTmp,  hXvd->uiFWCabacMemSize,
+                                        (BMMA_DeviceOffset)PATmp,  hXvd->uiFWCabacMemSize,
                                          BXVD_P_Memory_Protection_eDontProtect));
       if (rc != BERR_SUCCESS)
       {
@@ -517,12 +532,12 @@ BERR_Code BXVD_P_SetupFWSubHeap(BXVD_Handle hXvd)
 
    if (hXvd->uiFWPicMemSize != 0)
    {
-      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Pic PA: %0lx, Size:%08x",
-                               hXvd->uiFWPicMemBasePhyAddr, hXvd->uiFWPicMemSize));
+      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Pic PA: " BDBG_UINT64_FMT ", Size:%08x",
+                          BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvd->FWPicMemBasePhyAddr), hXvd->uiFWPicMemSize));
 
-      ulTmp = (unsigned long)(hXvd->uiFWPicMemBasePhyAddr);
+      PATmp = hXvd->FWPicMemBasePhyAddr;
       rc = BERR_TRACE(BXVD_P_Memory_Open(hXvd, &hXvd->SubPicMem,
-                                         (void *)ulTmp,  hXvd->uiFWPicMemSize,
+                                         (BMMA_DeviceOffset)PATmp,  hXvd->uiFWPicMemSize,
                                          BXVD_P_Memory_Protection_eDontProtect));
       if (rc != BERR_SUCCESS)
       {
@@ -532,12 +547,12 @@ BERR_Code BXVD_P_SetupFWSubHeap(BXVD_Handle hXvd)
 
    if (hXvd->uiFWPicMem1Size != 0)
    {
-      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Pic1 PA: %0lx, Size:%08x",
-                               hXvd->uiFWPicMem1BasePhyAddr, hXvd->uiFWPicMem1Size));
+      BXVD_DBG_MSG(hXvd, ("Creating BXVD_Memory sub-heaps: Pic1 PA:" BDBG_UINT64_FMT ", Size:%08x",
+                          BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvd->FWPicMem1BasePhyAddr), hXvd->uiFWPicMem1Size));
 
-      ulTmp = (unsigned long)(hXvd->uiFWPicMem1BasePhyAddr);
+      PATmp = hXvd->FWPicMem1BasePhyAddr;
       rc = BERR_TRACE(BXVD_P_Memory_Open(hXvd, &hXvd->SubPicMem1,
-                                         (void *)ulTmp,  hXvd->uiFWPicMem1Size,
+                                         (BMMA_DeviceOffset)PATmp,  hXvd->uiFWPicMem1Size,
                                          BXVD_P_Memory_Protection_eDontProtect));
       if (rc != BERR_SUCCESS)
       {
@@ -1384,15 +1399,17 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
    uint32_t uiFWCabacMemSize;  /* This is FW used size, must be smaller than actual */
    uint32_t uiFWCabacMemSizeAllocated; /* This is actual size that is allocated */
 
-   unsigned long ulMemBlockAddr;
+   BXVD_P_PHY_ADDR MemBlockAddr;
+
+   unsigned long MemBlockVirtAddr;
 
    BERR_Code rc = BERR_SUCCESS;
 
-   pstDecodeFWBaseAddrs->uiFWContextBase = 0;
-   pstDecodeFWBaseAddrs->uiFWPicBase = 0;
-   pstDecodeFWBaseAddrs->uiFWPicBase1 = 0;
-   pstDecodeFWBaseAddrs->uiFWCabacBase = 0;
-   pstDecodeFWBaseAddrs->uiFWCabacWorklistBase = 0;
+   pstDecodeFWBaseAddrs->FWContextBase = 0;
+   pstDecodeFWBaseAddrs->FWPicBase = 0;
+   pstDecodeFWBaseAddrs->FWPicBase1 = 0;
+   pstDecodeFWBaseAddrs->FWCabacBase = 0;
+   pstDecodeFWBaseAddrs->FWCabacWorklistBase = 0;
    pstDecodeFWBaseAddrs->uiFWInterLayerPicBase = 0;
    pstDecodeFWBaseAddrs->uiFWInterLayerMVBase = 0;
 
@@ -1442,9 +1459,9 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       }
 
       pstDecodeFWBaseAddrs->hFWPicBlock = hXvdCh->sChSettings.hChannelPictureBlock;
-      pstDecodeFWBaseAddrs->uiFWPicBase = (uint32_t) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWPicBlock);
+      pstDecodeFWBaseAddrs->FWPicBase = (BXVD_P_PHY_ADDR) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWPicBlock);
 
-      if (pstDecodeFWBaseAddrs->uiFWPicBase == (uint32_t)0)
+      if (pstDecodeFWBaseAddrs->FWPicBase == (BXVD_P_PHY_ADDR)0)
       {
          BXVD_DBG_ERR(hXvd, ("Insufficient device memory, picture memory can not be locked!"));
          return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1453,29 +1470,29 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       hXvdCh->hFWPicMemBlock = hXvdCh->sChSettings.hChannelPictureBlock;
       hXvdCh->uiFWPicOffset = hXvdCh->sChSettings.uiChannelPictureBlockOffset;
 
-      hXvdCh->uiFWPicMemBasePhyAddr =  pstDecodeFWBaseAddrs->uiFWPicBase;
+      hXvdCh->FWPicMemBasePhyAddr =  pstDecodeFWBaseAddrs->FWPicBase;
 
       if ((hXvdCh->sChSettings.hChannelPictureBlock1 != 0) && (hXvdCh->sChSettings.uiChannelPictureBlockSize1 != 0))
       {
          BXVD_DBG_MSG(hXvdCh, ("Allocating %d bytes of Chroma picture memory from CHANNEL picture heap", uiFWPicChromaMemSize));
          pstDecodeFWBaseAddrs->hFWPicBlock1 = hXvdCh->sChSettings.hChannelPictureBlock1;
-         pstDecodeFWBaseAddrs->uiFWPicBase1 = (uint32_t) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWPicBlock1);
+         pstDecodeFWBaseAddrs->FWPicBase1 = (BXVD_P_PHY_ADDR) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWPicBlock1);
 
-         if (pstDecodeFWBaseAddrs->uiFWPicBase1 == (uint32_t)0)
+         if (pstDecodeFWBaseAddrs->FWPicBase1 == (uint32_t)0)
          {
             BXVD_DBG_ERR(hXvd, ("Insufficient device memory, picture memory 1 can not be locked!"));
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
          }
 
-         hXvdCh->uiFWPicMem1BasePhyAddr = pstDecodeFWBaseAddrs->uiFWPicBase1;
+         hXvdCh->FWPicMem1BasePhyAddr = pstDecodeFWBaseAddrs->FWPicBase1;
          hXvdCh->uiFWPicOffset1 = hXvdCh->sChSettings.uiChannelPictureBlockOffset1;
          hXvdCh->hFWPicMem1Block = pstDecodeFWBaseAddrs->hFWPicBlock1;
       }
       else
       {
          pstDecodeFWBaseAddrs->hFWPicBlock1 = 0;
-         pstDecodeFWBaseAddrs->uiFWPicBase1 = (uint32_t) 0;
-         hXvdCh->uiFWPicMem1BasePhyAddr =  pstDecodeFWBaseAddrs->uiFWPicBase;
+         pstDecodeFWBaseAddrs->FWPicBase1 = (BXVD_P_PHY_ADDR) 0;
+         hXvdCh->FWPicMem1BasePhyAddr =  pstDecodeFWBaseAddrs->FWPicBase;
          hXvdCh->hFWPicMem1Block = hXvdCh->hFWPicMemBlock;
       }
 
@@ -1485,7 +1502,7 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
       if (pstDecodeFWMemSize->uiFWInterLayerPicSize != 0)
       {
-         pstDecodeFWBaseAddrs->uiFWInterLayerPicBase = hXvdCh->uiFWPicMemBasePhyAddr + uiFWPicLumaMemSize;
+         pstDecodeFWBaseAddrs->uiFWInterLayerPicBase = hXvdCh->FWPicMemBasePhyAddr + uiFWPicLumaMemSize;
       }
    }
    else if (hXvd->SubPicMem != 0)
@@ -1494,9 +1511,9 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       {
          BXVD_DBG_MSG(hXvdCh, ("Allocating %d bytes of picture Chroma memory from DEVICE picture heap", uiFWPicChromaMemSize));
 
-         pstDecodeFWBaseAddrs->uiFWPicBase1 = (unsigned long)BXVD_P_Memory_Allocate(hXvd->SubPicMem1, uiFWPicChromaMemSize, 12, 0);
+         pstDecodeFWBaseAddrs->FWPicBase1 = (BXVD_P_PHY_ADDR)BXVD_P_Memory_Allocate(hXvd->SubPicMem1, uiFWPicChromaMemSize, 12, 0);
 
-         if (pstDecodeFWBaseAddrs->uiFWPicBase1 == (uint32_t)0)
+         if (pstDecodeFWBaseAddrs->FWPicBase1 == (BXVD_P_PHY_ADDR)0)
          {
             BXVD_DBG_ERR(hXvdCh, ("Picture memory allocation failure!"));
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1506,15 +1523,15 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       }
       else
       {
-         pstDecodeFWBaseAddrs->uiFWPicBase1 =  0;
+         pstDecodeFWBaseAddrs->FWPicBase1 =  0;
          uiFWPicMemSize = uiFWPicLumaMemSize + uiFWPicChromaMemSize;
       }
 
       BXVD_DBG_MSG(hXvdCh, ("Allocating %d bytes of picture memory from DEVICE picture heap", uiFWPicMemSize));
 
-      pstDecodeFWBaseAddrs->uiFWPicBase = (unsigned long)BXVD_P_Memory_Allocate(hXvd->SubPicMem, uiFWPicMemSize, 12, 0);
+      pstDecodeFWBaseAddrs->FWPicBase = (BXVD_P_PHY_ADDR)BXVD_P_Memory_Allocate(hXvd->SubPicMem, uiFWPicMemSize, 12, 0);
 
-      if (pstDecodeFWBaseAddrs->uiFWPicBase == 0)
+      if (pstDecodeFWBaseAddrs->FWPicBase == 0)
       {
          BXVD_DBG_ERR(hXvdCh, ("Picture memory allocation failure!"));
          return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1536,7 +1553,7 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
       hXvdCh->hPictureHeap = hXvd->hPictureHeap;
       hXvdCh->hFWPicMemBlock = hXvd->hFWPicMemBlock;
-      hXvdCh->uiFWPicMemBasePhyAddr = hXvd->uiFWPicMemBasePhyAddr;  /* This is physical address of base of block, */
+      hXvdCh->FWPicMemBasePhyAddr = hXvd->FWPicMemBasePhyAddr;  /* This is physical address of base of block, */
 
       /* No offset, Pic base addresses point to beginning of buffers */
       hXvdCh->uiFWPicOffset = 0;
@@ -1545,12 +1562,12 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       if (hXvd->hFWPicMem1Block == (BMMA_Block_Handle) 0)
       {
          hXvdCh->hFWPicMem1Block = hXvd->hFWPicMemBlock;
-         hXvdCh->uiFWPicMem1BasePhyAddr = hXvd->uiFWPicMemBasePhyAddr;
+         hXvdCh->FWPicMem1BasePhyAddr = hXvd->FWPicMemBasePhyAddr;
       }
       else
       {
          hXvdCh->hFWPicMem1Block = hXvd->hFWPicMem1Block;
-         hXvdCh->uiFWPicMem1BasePhyAddr = hXvd->uiFWPicMem1BasePhyAddr;
+         hXvdCh->FWPicMem1BasePhyAddr = hXvd->FWPicMem1BasePhyAddr;
       }
 
       hXvdCh->hPictureHeap1 = hXvd->hPictureHeap1;
@@ -1582,26 +1599,26 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
          pstDecodeFWBaseAddrs->hFWCabacBlock = hXvdCh->sChSettings.hChannelCabacBlock;
 
-         pstDecodeFWBaseAddrs->uiFWCabacBase = (uint32_t) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWCabacBlock);
+         pstDecodeFWBaseAddrs->FWCabacBase = (BXVD_P_PHY_ADDR) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWCabacBlock);
 
-         if (pstDecodeFWBaseAddrs->uiFWCabacBase == (uint32_t)0)
+         if (pstDecodeFWBaseAddrs->FWCabacBase == (BXVD_P_PHY_ADDR)0)
          {
             BXVD_DBG_ERR(hXvd, ("Insufficient device memory, CABAC memory can not be locked!"));
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
          }
 
-         pstDecodeFWBaseAddrs->uiFWCabacBase += hXvdCh->sChSettings.uiChannelCabacBlockOffset;
+         pstDecodeFWBaseAddrs->FWCabacBase += hXvdCh->sChSettings.uiChannelCabacBlockOffset;
 
          /* Assign Direct mode buffer */
          if (pstDecodeFWMemSize->uiFWDirectModeSize != 0)
          {
-            pstDecodeFWBaseAddrs->uiFWDirectModeBase = pstDecodeFWBaseAddrs->uiFWCabacBase + pstDecodeFWMemSize->uiFWCabacSize;
+            pstDecodeFWBaseAddrs->FWDirectModeBase = pstDecodeFWBaseAddrs->FWCabacBase + pstDecodeFWMemSize->uiFWCabacSize;
          }
 
          if ( pstDecodeFWMemSize->uiFWCabacWorklistSize != 0)
          {
             /* Assign CABAC worklist base at end of CABAC buffer */
-            pstDecodeFWBaseAddrs->uiFWCabacWorklistBase = pstDecodeFWBaseAddrs->uiFWCabacBase + pstDecodeFWMemSize->uiFWCabacSize +
+            pstDecodeFWBaseAddrs->FWCabacWorklistBase = pstDecodeFWBaseAddrs->FWCabacBase + pstDecodeFWMemSize->uiFWCabacSize +
                                                           pstDecodeFWMemSize->uiFWDirectModeSize;
          }
 
@@ -1609,9 +1626,9 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
          /* Pre rev K cores CABAC must be in memory lower than 768 MB */
 #if !BXVD_P_AVD_ARC600
-         if ((pstDecodeFWBaseAddrs->uiFWCabacBase + uiFWCabacMemSize) >= BXVD_P_ARC300_RAM_LIMIT)
+         if ((pstDecodeFWBaseAddrs->FWCabacBase + uiFWCabacMemSize) >= BXVD_P_ARC300_RAM_LIMIT)
          {
-            BXVD_DBG_ERR(hXvdCh, ("Cabac buffer (%0x) allocated in memory greater than 768MB!", pstDecodeFWBaseAddrs->uiFWCabacBase));
+            BXVD_DBG_ERR(hXvdCh, ("Cabac buffer (%0x) allocated in memory greater than 768MB!", pstDecodeFWBaseAddrs->FWCabacBase));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
          }
 #endif
@@ -1620,22 +1637,22 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       {
          BXVD_DBG_MSG(hXvdCh, ("Allocating %d bytes of cabac memory from DEVICE cabac heap", uiFWCabacMemSizeAllocated));
 
-         pstDecodeFWBaseAddrs->uiFWCabacBase  = (unsigned long)BXVD_P_Memory_Allocate(hXvd->SubSecureMem, uiFWCabacMemSizeAllocated, 8, 0);
+         pstDecodeFWBaseAddrs->FWCabacBase  = (BXVD_P_PHY_ADDR)BXVD_P_Memory_Allocate(hXvd->SubSecureMem, uiFWCabacMemSizeAllocated, 8, 0);
 
          /* Assign Direct mode buffer */
          if (pstDecodeFWMemSize->uiFWDirectModeSize != 0)
          {
-            pstDecodeFWBaseAddrs->uiFWDirectModeBase = pstDecodeFWBaseAddrs->uiFWCabacBase + pstDecodeFWMemSize->uiFWCabacSize;
+            pstDecodeFWBaseAddrs->FWDirectModeBase = pstDecodeFWBaseAddrs->FWCabacBase + pstDecodeFWMemSize->uiFWCabacSize;
          }
 
          if ( pstDecodeFWMemSize->uiFWCabacWorklistSize != 0)
          {
-            pstDecodeFWBaseAddrs->uiFWCabacWorklistBase = pstDecodeFWBaseAddrs->uiFWCabacBase + pstDecodeFWMemSize->uiFWCabacSize +
-                                                          pstDecodeFWMemSize->uiFWDirectModeSize;
+            pstDecodeFWBaseAddrs->FWCabacWorklistBase = pstDecodeFWBaseAddrs->FWCabacBase + pstDecodeFWMemSize->uiFWCabacSize +
+                                                        pstDecodeFWMemSize->uiFWDirectModeSize;
          }
       }
 
-      if (pstDecodeFWBaseAddrs->uiFWCabacBase == 0)
+      if (pstDecodeFWBaseAddrs->FWCabacBase == 0)
       {
          BXVD_DBG_ERR(hXvdCh, ("Cabac memory allocation failure!"));
          return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1643,7 +1660,7 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
       /* Pre rev K cores CABAC must be in memory lower than 768 MB */
 #if !BXVD_P_AVD_ARC600
-      if ((pstDecodeFWBaseAddrs->uiFWCabacBase + uiFWCabacMemSize) > BXVD_P_ARC300_RAM_LIMIT)
+      if ((pstDecodeFWBaseAddrs->FWCabacBase + uiFWCabacMemSize) > BXVD_P_ARC300_RAM_LIMIT)
       {
          BXVD_DBG_ERR(hXvdCh, ("Cabac buffer allocated in memory greater than 768MB!"));
          return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -1652,7 +1669,7 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       hXvdCh->hCabacHeap = hXvd->hCabacHeap;
 
       hXvdCh->hFWCabacMemBlock = hXvd->hFWCabacMemBlock;
-      hXvdCh->uiFWCabacMemBasePhyAddr = hXvd->uiFWCabacMemBasePhyAddr;
+      hXvdCh->FWCabacMemBasePhyAddr = hXvd->FWCabacMemBasePhyAddr;
    }
 
    /* Allocate general heap */
@@ -1666,27 +1683,27 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
       hXvdCh->hFWGenMemBlock = pstDecodeFWBaseAddrs->hFWContextBlock;
       hXvdCh->hGeneralHeap = 0;
 
-      ulMemBlockAddr = (unsigned long) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWContextBlock);
+      MemBlockAddr = (BXVD_P_PHY_ADDR) BMMA_LockOffset(pstDecodeFWBaseAddrs->hFWContextBlock);
 
-      if (ulMemBlockAddr == (uint32_t)0)
+      if (MemBlockAddr == (BXVD_P_PHY_ADDR)0)
       {
          BXVD_DBG_ERR(hXvd, ("Insufficient device memory, general memory can not be locked!"));
          return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
       }
 
-      ulMemBlockAddr += hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
+      MemBlockAddr += hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
 
-      hXvdCh->uiFWGenMemBasePhyAddr = ulMemBlockAddr;
+      hXvdCh->FWGenMemBasePhyAddr = MemBlockAddr;
 
-      ulMemBlockAddr = (unsigned long) BMMA_Lock(pstDecodeFWBaseAddrs->hFWContextBlock) + hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
+      MemBlockVirtAddr = (unsigned long) BMMA_Lock(pstDecodeFWBaseAddrs->hFWContextBlock) + hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
 
-      if (ulMemBlockAddr == (uint32_t)0)
+      if (MemBlockVirtAddr == (unsigned long)0)
       {
          BXVD_DBG_ERR(hXvd, ("Insufficient device memory, AVD FW context memory can not be locked!"));
          return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
       }
 
-      hXvdCh->uiFWGenMemBaseVirtAddr = ulMemBlockAddr;
+      hXvdCh->uiFWGenMemBaseVirtAddr = MemBlockVirtAddr;
 
 #if !BXVD_P_FW_HIM_API
       hXvdCh->uiFWGenMemBaseUncachedVirtAddr = (uint32_t)BMMA_GetUncached(pstDecodeFWBaseAddrs->hFWContextBlock) + hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
@@ -1696,9 +1713,9 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
    {
       BXVD_DBG_MSG(hXvdCh, ("Allocating %d bytes of system memory from DEVICE system heap", uiFWGenMemSize));
 
-      ulMemBlockAddr = (unsigned long)BXVD_P_Memory_Allocate(hXvd->SubGenMem, uiFWGenMemSize, 12, 0);
+      MemBlockAddr = (BXVD_P_PHY_ADDR) BXVD_P_Memory_Allocate(hXvd->SubGenMem, uiFWGenMemSize, 12, 0);
 
-      if (ulMemBlockAddr == 0)
+      if (MemBlockAddr == 0)
       {
          BXVD_DBG_ERR(hXvdCh, ("General memory allocation failure!"));
          return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -1706,16 +1723,16 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
 
       /* Pre rev K core general memory must be in region lower than 768 MB */
 #if !BXVD_P_AVD_ARC600
-      if ((ulMemBlockAddr + uiFWGenMemSize) >= BXVD_P_ARC300_RAM_LIMIT)
+      if ((MemBlockAddr + uiFWGenMemSize) >= BXVD_P_ARC300_RAM_LIMIT)
       {
-         BXVD_DBG_ERR(hXvdCh, ("General AVD Firmware memory (%0lx) allocated in region greater than 768MB!", ulMemBlockAddr));
+         BXVD_DBG_ERR(hXvdCh, ("General AVD Firmware memory (%0lx) allocated in region greater than 768MB!", MemBlockAddr));
          return BERR_TRACE(BERR_INVALID_PARAMETER);
       }
 #endif
 
       hXvdCh->hGeneralHeap = hXvd->hGeneralHeap;
       hXvdCh->hFWGenMemBlock = hXvd->hFWGenMemBlock;
-      hXvdCh->uiFWGenMemBasePhyAddr = hXvd->uiFWGenMemBasePhyAddr;
+      hXvdCh->FWGenMemBasePhyAddr = hXvd->FWGenMemBasePhyAddr;
       hXvdCh->uiFWGenMemBaseVirtAddr = hXvd->uiFWGenMemBaseVirtAddr;
 
 #if !BXVD_P_FW_HIM_API
@@ -1724,10 +1741,10 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
    }
 
    /* Assign context buffer */
-   if ((pstDecodeFWMemSize->uiFWContextSize != 0) && (pstDecodeFWBaseAddrs->uiFWContextBase == 0))
+   if ((pstDecodeFWMemSize->uiFWContextSize != 0) && (pstDecodeFWBaseAddrs->FWContextBase == 0))
    {
-      pstDecodeFWBaseAddrs->uiFWContextBase = ulMemBlockAddr;
-      ulMemBlockAddr += pstDecodeFWMemSize->uiFWContextSize;
+      pstDecodeFWBaseAddrs->FWContextBase = MemBlockAddr;
+      MemBlockAddr += pstDecodeFWMemSize->uiFWContextSize;
 
       if (rc != BERR_SUCCESS)
       {
@@ -1738,21 +1755,33 @@ BERR_Code BXVD_P_AllocateFWMem(BXVD_Handle hXvd,
    /* Assign inner loop work list buffer address */
    if (pstDecodeFWMemSize->uiFWInnerLoopWorklistSize != 0)
    {
-      pstDecodeFWBaseAddrs->uiFWInnerLoopWorklistBase = ulMemBlockAddr;
-      ulMemBlockAddr += pstDecodeFWMemSize->uiFWInnerLoopWorklistSize;
+      pstDecodeFWBaseAddrs->FWInnerLoopWorklistBase = MemBlockAddr;
+      MemBlockAddr += pstDecodeFWMemSize->uiFWInnerLoopWorklistSize;
    }
 
    if ( pstDecodeFWMemSize->uiFWInterLayerMVSize != 0)
    {
-      pstDecodeFWBaseAddrs->uiFWInterLayerMVBase = ulMemBlockAddr;
+      pstDecodeFWBaseAddrs->uiFWInterLayerMVBase = MemBlockAddr;
    }
 
-   BXVD_DBG_MSG(hXvdCh, ("FWContextBase PA: %08x", pstDecodeFWBaseAddrs->uiFWContextBase));
-   BXVD_DBG_MSG(hXvdCh, ("FWPicBase PA: %08x", pstDecodeFWBaseAddrs->uiFWPicBase));
-   BXVD_DBG_MSG(hXvdCh, ("FWPicBase1 PA: %08x", pstDecodeFWBaseAddrs->uiFWPicBase1));
-   BXVD_DBG_MSG(hXvdCh, ("FWCabacBase PA: %08x", pstDecodeFWBaseAddrs->uiFWCabacBase));
-   BXVD_DBG_MSG(hXvdCh, ("FWDirectModeBase PA: %08x", pstDecodeFWBaseAddrs->uiFWDirectModeBase));
-   BXVD_DBG_MSG(hXvdCh, ("FWInnerLoopWorklistBase PA: %08x", pstDecodeFWBaseAddrs->uiFWInnerLoopWorklistBase));
+   BXVD_DBG_MSG(hXvdCh, ("FWContextBase PA: " BDBG_UINT64_FMT,
+                         BDBG_UINT64_ARG((BMMA_DeviceOffset)pstDecodeFWBaseAddrs->FWContextBase)));
+
+   BXVD_DBG_MSG(hXvdCh, ("FWPicBase PA: " BDBG_UINT64_FMT,
+                         BDBG_UINT64_ARG((BMMA_DeviceOffset)pstDecodeFWBaseAddrs->FWPicBase)));
+
+   BXVD_DBG_MSG(hXvdCh, ("FWPicBase1 PA: " BDBG_UINT64_FMT,
+                         BDBG_UINT64_ARG((BMMA_DeviceOffset)pstDecodeFWBaseAddrs->FWPicBase1)));
+
+   BXVD_DBG_MSG(hXvdCh, ("FWCabacBase PA: " BDBG_UINT64_FMT,
+                         BDBG_UINT64_ARG((BMMA_DeviceOffset)pstDecodeFWBaseAddrs->FWCabacBase)));
+
+   BXVD_DBG_MSG(hXvdCh, ("FWDirectModeBase PA: " BDBG_UINT64_FMT,
+                         BDBG_UINT64_ARG((BMMA_DeviceOffset)pstDecodeFWBaseAddrs->FWDirectModeBase)));
+
+   BXVD_DBG_MSG(hXvdCh, ("FWInnerLoopWorklistBase PA: "BDBG_UINT64_FMT,
+                         BDBG_UINT64_ARG((BMMA_DeviceOffset)pstDecodeFWBaseAddrs->FWInnerLoopWorklistBase)));
+
    BXVD_DBG_MSG(hXvdCh, ("FWInterLayerPicBase PA: %08x", pstDecodeFWBaseAddrs->uiFWInterLayerPicBase));
    BXVD_DBG_MSG(hXvdCh, ("FWInterLayerMVBase PA: %08x", pstDecodeFWBaseAddrs->uiFWInterLayerMVBase));
 
@@ -1766,14 +1795,14 @@ void BXVD_P_DetermineChromaBufferBase(BXVD_ChannelHandle hXvdCh,
 
    if (((eProtocol == BXVD_P_PPB_Protocol_eH265) || (eProtocol == BXVD_P_PPB_Protocol_eVP9)) &&
        (pChSettings->bSplitPictureBuffersEnable == true) &&
-       (hXvdCh->stDecodeFWBaseAddrs.uiFWPicBase1 != (uint32_t) 0))
+       (hXvdCh->stDecodeFWBaseAddrs.FWPicBase1 != (BXVD_P_PHY_ADDR) 0))
    {
-      hXvdCh->uiFWPicChromaBasePhyAddr = hXvdCh->uiFWPicMem1BasePhyAddr;
+      hXvdCh->FWPicChromaBasePhyAddr = hXvdCh->FWPicMem1BasePhyAddr;
       hXvdCh->hFWPicChromaMemBlock = hXvdCh->hFWPicMem1Block;
    }
    else
    {
-      hXvdCh->uiFWPicChromaBasePhyAddr = hXvdCh->uiFWPicMemBasePhyAddr;
+      hXvdCh->FWPicChromaBasePhyAddr = hXvdCh->FWPicMemBasePhyAddr;
       hXvdCh->hFWPicChromaMemBlock = hXvdCh->hFWPicMemBlock;
    }
 }
@@ -1785,32 +1814,34 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
    unsigned long uiMemBlockAddr;
    unsigned long uiPtr;
 
+   BXVD_P_PHY_ADDR PAPtr;
+
    BERR_Code rc = BERR_SUCCESS;
 
    BXVD_DBG_MSG(hXvdCh, ("SubGenMem : 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)hXvd->SubGenMem));
    BXVD_DBG_MSG(hXvdCh, ("SubSecureMem : 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)hXvd->SubSecureMem));
    BXVD_DBG_MSG(hXvdCh, ("SubPicMem : 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)hXvd->SubPicMem));
 
-   if (pstDecodeFWBaseAddrs->uiFWPicBase)
+   if (pstDecodeFWBaseAddrs->FWPicBase)
    {
       BXVD_DBG_MSG(hXvdCh, ("Picture buffers in specified heap, Free sub-allocation"));
 
       if (hXvdCh->sChSettings.hChannelPictureBlock != 0)
       {
          /* Free picture buffer sub-allocated block */
-         BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWPicBlock, pstDecodeFWBaseAddrs->uiFWPicBase);
+         BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWPicBlock, pstDecodeFWBaseAddrs->FWPicBase);
 
          if ((hXvdCh->sChSettings.hChannelPictureBlock1 != 0) && (hXvdCh->sChSettings.uiChannelPictureBlockSize1 != 0))
          {
             /* Free picture buffer sub-allocated block */
-            BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWPicBlock1, pstDecodeFWBaseAddrs->uiFWPicBase1);
+            BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWPicBlock1, pstDecodeFWBaseAddrs->FWPicBase1);
          }
       }
       else if (hXvd->SubPicMem != 0)
       {
-         uiPtr = (pstDecodeFWBaseAddrs->uiFWPicBase);
+         PAPtr = (pstDecodeFWBaseAddrs->FWPicBase);
          /* Free picture buffer sub-allocated block */
-         rc = BXVD_P_Memory_Free(hXvd->SubPicMem, (void *)uiPtr);
+         rc = BXVD_P_Memory_Free(hXvd->SubPicMem, (BMMA_DeviceOffset)PAPtr);
 
          if ( rc != BERR_SUCCESS)
          {
@@ -1818,13 +1849,13 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
             return BERR_TRACE(BERR_LEAKED_RESOURCE);
          }
 
-         if ((hXvd->SubPicMem1 != 0) && (pstDecodeFWBaseAddrs->uiFWPicBase1 != (uint32_t)0))
+         if ((hXvd->SubPicMem1 != 0) && (pstDecodeFWBaseAddrs->FWPicBase1 != (BXVD_P_PHY_ADDR)0))
          {
             /* Free picture buffer sub-allocated block */
 
-            uiPtr = pstDecodeFWBaseAddrs->uiFWPicBase1;
+            PAPtr = pstDecodeFWBaseAddrs->FWPicBase1;
 
-            rc = BXVD_P_Memory_Free(hXvd->SubPicMem1, (void *)uiPtr);
+            rc = BXVD_P_Memory_Free(hXvd->SubPicMem1, (BMMA_DeviceOffset)PAPtr);
 
             if ( rc != BERR_SUCCESS)
             {
@@ -1839,7 +1870,7 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
             /* Free inter layer picture buffer sub-allocated block */
             uiPtr = pstDecodeFWBaseAddrs->uiFWInterLayerPicBase;
 
-            rc = BXVD_P_Memory_Free(hXvd->SubPicMem, (void *)uiPtr);
+            rc = BXVD_P_Memory_Free(hXvd->SubPicMem, (BMMA_DeviceOffset)uiPtr);
 
             if ( rc != BERR_SUCCESS)
             {
@@ -1850,18 +1881,18 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
       }
    }
 
-   if (pstDecodeFWBaseAddrs->uiFWCabacBase)
+   if (pstDecodeFWBaseAddrs->FWCabacBase)
    {
       BXVD_DBG_MSG(hXvdCh, ("Cabac in Secure memory, Free sub-allocation "));
 
       if (hXvdCh->sChSettings.hChannelCabacBlock != 0)
       {
-         BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWCabacBlock, (pstDecodeFWBaseAddrs->uiFWCabacBase - hXvdCh->sChSettings.uiChannelCabacBlockOffset));
+         BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWCabacBlock, (pstDecodeFWBaseAddrs->FWCabacBase - hXvdCh->sChSettings.uiChannelCabacBlockOffset));
       }
       else if (hXvd->SubSecureMem != 0)
       {
-         uiPtr = pstDecodeFWBaseAddrs->uiFWCabacBase;
-         rc = BXVD_P_Memory_Free(hXvd->SubSecureMem, (void *)uiPtr);
+         PAPtr = pstDecodeFWBaseAddrs->FWCabacBase;
+         rc = BXVD_P_Memory_Free(hXvd->SubSecureMem, (BMMA_DeviceOffset)PAPtr);
 
          if ( rc != BERR_SUCCESS)
          {
@@ -1873,22 +1904,22 @@ BERR_Code BXVD_P_FreeFWMem(BXVD_Handle hXvd,
 
    BXVD_DBG_MSG(hXvdCh, ("Free Context sub-allocation"));
 
-   uiMemBlockAddr = pstDecodeFWBaseAddrs->uiFWContextBase;
+   PAPtr = pstDecodeFWBaseAddrs->FWContextBase;
 
-   if (pstDecodeFWBaseAddrs->uiFWContextBase)
+   if (pstDecodeFWBaseAddrs->FWContextBase)
    {
       /* Free context memory, this also could contain the picture and
        * cabac memory if not in their own heaps */
       if (hXvdCh->sChSettings.hChannelGeneralBlock != 0)
       {
-         uiMemBlockAddr = pstDecodeFWBaseAddrs->uiFWContextBase - hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
+         uiMemBlockAddr = pstDecodeFWBaseAddrs->FWContextBase - hXvdCh->sChSettings.uiChannelGeneralBlockOffset;
 
          BMMA_Unlock(pstDecodeFWBaseAddrs->hFWContextBlock, (void *)uiMemBlockAddr);
-         BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWContextBlock, (hXvdCh->uiFWGenMemBasePhyAddr - hXvdCh->sChSettings.uiChannelGeneralBlockOffset));
+         BMMA_UnlockOffset(pstDecodeFWBaseAddrs->hFWContextBlock, (hXvdCh->FWGenMemBasePhyAddr - hXvdCh->sChSettings.uiChannelGeneralBlockOffset));
       }
       else
       {
-         rc = BXVD_P_Memory_Free(hXvd->SubGenMem, (void *)uiMemBlockAddr);
+         rc = BXVD_P_Memory_Free(hXvd->SubGenMem, (BMMA_DeviceOffset)PAPtr);
 
          if (rc != BERR_SUCCESS)
          {
@@ -1926,7 +1957,7 @@ BERR_Code BXVD_P_ChipInit(BXVD_Handle hXvd, uint32_t uDecoderInstance)
       return BERR_TRACE(rc);
    }
 
-   BXVD_DBG_MSG(hXvd, ("Shared memory start addr: 0x%lx", hXvd->uiFWGenMemBasePhyAddr));
+   BXVD_DBG_MSG(hXvd, ("Shared memory start addr: " BDBG_UINT64_FMT, BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvd->FWGenMemBasePhyAddr)));
 
 #if FW_INIT
    rc = BXVD_P_HostCmdSendInit(hXvd,

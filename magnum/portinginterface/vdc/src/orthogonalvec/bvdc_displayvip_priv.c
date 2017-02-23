@@ -416,21 +416,6 @@ BERR_Code BVDC_P_Vip_AllocBuffer
     uint32_t ulBlockOffset = 0;
     BVDC_VipMemConfigSettings *pVipMemSettings = &hDisplay->stNewInfo.stVipMemSettings;
 
-    /* acquire VIP power first */
-#ifdef BCHP_PWR_RESOURCE_VIP
-    BDBG_MSG(("Disp[%u]: Acquire BCHP_PWR_RESOURCE_VIP", hDisplay->eId));
-    rc = BCHP_PWR_AcquireResource(hDisplay->hVdc->hChip, BCHP_PWR_RESOURCE_VIP);
-    if(BERR_SUCCESS != rc) {
-        return BERR_TRACE(rc);
-    }
-#ifdef BCHP_PWR_RESOURCE_VIP_SRAM
-    rc = BCHP_PWR_AcquireResource(hDisplay->hVdc->hChip, BCHP_PWR_RESOURCE_VIP_SRAM);
-    if(BERR_SUCCESS != rc) {
-        return BERR_TRACE(rc);
-    }
-#endif
-#endif
-
     /* compute the memory allocation */
     hVip->stMemSettings.DcxvEnable = false;
     hVip->stMemSettings.bInterlaced            = pVipMemSettings->bSupportInterlaced;
@@ -511,20 +496,6 @@ BERR_Code BVDC_P_Vip_FreeBuffer
     BERR_Code rc = BERR_SUCCESS;
 
     BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] frees buffers", hVip->eId));
-    /* release VIP power first */
-#ifdef BCHP_PWR_RESOURCE_VIP
-    BDBG_MSG(("Disp[%u]: releases BCHP_PWR_RESOURCE_VIP", hVip->eId));
-    rc = BCHP_PWR_ReleaseResource(hVip->hDisplay->hVdc->hChip, BCHP_PWR_RESOURCE_VIP);
-    if(BERR_SUCCESS != rc) {
-        return BERR_TRACE(rc);
-    }
-#ifdef BCHP_PWR_RESOURCE_VIP_SRAM
-    rc = BCHP_PWR_ReleaseResource(hVip->hDisplay->hVdc->hChip, BCHP_PWR_RESOURCE_VIP_SRAM);
-    if(BERR_SUCCESS != rc) {
-        return BERR_TRACE(rc);
-    }
-#endif
-#endif
 
     /* unlink VIP with display first */
     BKNI_EnterCriticalSection();

@@ -58,6 +58,7 @@ using namespace std;
 namespace bsg
 {
 
+#ifdef BSG_USE_ES3
 // This code should probably exist as a helper library
 typedef union {
    float    f;
@@ -71,7 +72,6 @@ static inline uint32_t FloatToUint32(float f)
    return t.i;
 }
 
-#ifdef BSG_USE_ES3
 // Note this is not a general float->half float conversion
 // But here we are only interested in values from 0.0f to 1.0f
 static uint16_t FloatToFP16(float f)

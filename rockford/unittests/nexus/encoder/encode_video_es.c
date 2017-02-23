@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2008-2014 Broadcom Corporation
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 /* Nexus unittest app: encode video from file/qam/hdmi source */
@@ -108,10 +100,10 @@ static void lock_callback(void *context, int param)
 
 	BSTD_UNUSED(param);
 
-	fprintf(stderr, "Lock callback, frontend 0x%08x\n", (unsigned)frontend);
+	fprintf(stderr, "Lock callback, frontend %p\n", (void*)frontend);
 
 	NEXUS_Frontend_GetQamStatus(frontend, &qamStatus);
-	fprintf(stderr, "QAM Lock callback, frontend 0x%08x - lock status %d, %d\n", (unsigned)frontend,
+	fprintf(stderr, "QAM Lock callback, frontend %p - lock status %d, %d\n", (void*)frontend,
 		qamStatus.fecLock, qamStatus.receiverLock);
 }
 #endif
@@ -372,7 +364,7 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 
 			NEXUS_VideoDecoder_GetStatus(videoDecoder, &vstatus);
 			fflush(fout);
-			fprintf(stderr, "written %u bytes.... decode:%u\t\r", bytes, vstatus.pts);
+			fprintf(stderr, "written "BDBG_UINT64_FMT" bytes.... decode:%u\t\r", BDBG_UINT64_ARG((uint64_t)bytes), vstatus.pts);
 			BKNI_Sleep(30);
 			continue;
 		}
@@ -384,13 +376,13 @@ int transcode_qam(EncodeSettings  *pEncodeSettings,
 					if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
 						fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
 					}
-					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x "BDBG_UINT64_FMT"\n", desc[j][i].flags, desc[j][i].originalPts,
 						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
-						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
+						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, BDBG_UINT64_ARG((uint64_t)desc[j][i].length));
 					bytes+= desc[j][i].length;
 					if(desc[j][i].length > 0x100000)
 					{
-						BDBG_ERR(("++++ desc[%d][%d] length = 0x%x, offset=0x%x", j,i, desc[j][i].length, desc[j][i].offset));
+						BDBG_ERR(("++++ desc[%d][%d] length = "BDBG_UINT64_FMT", offset=0x%x", j,i, BDBG_UINT64_ARG((uint64_t)desc[j][i].length), desc[j][i].offset));
 					}
 
 				}
@@ -582,7 +574,7 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 		NEXUS_VideoEncoder_GetBuffer(videoEncoder, &desc[0], &size[0], &desc[1], &size[1]);
 		if(size[0]==0 && size[1]==0) {
 			fflush(fout);
-			fprintf(stderr, "written %u bytes.... \t\r", bytes);
+			fprintf(stderr, "written "BDBG_UINT64_FMT" bytes.... \t\r", BDBG_UINT64_ARG((uint64_t)bytes));
 			BKNI_Sleep(30);
 			continue;
 		}
@@ -594,13 +586,13 @@ int transcode_hdmi(EncodeSettings* pEncodeSettings)
 					if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
 						fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
 					}
-					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x "BDBG_UINT64_FMT"\n", desc[j][i].flags, desc[j][i].originalPts,
 						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
-						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
+						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, BDBG_UINT64_ARG((uint64_t)desc[j][i].length));
 					bytes+= desc[j][i].length;
 					if(desc[j][i].length > 0x100000)
 					{
-						BDBG_ERR(("++++ desc[%d][%d] length = 0x%x, offset=0x%x", j,i, desc[j][i].length, desc[j][i].offset));
+						BDBG_ERR(("++++ desc[%d][%d] length = "BDBG_UINT64_FMT", offset=0x%x", j,i, BDBG_UINT64_ARG((uint64_t)desc[j][i].length), desc[j][i].offset));
 					}
 
 				}
@@ -911,7 +903,7 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 
 			NEXUS_VideoDecoder_GetStatus(videoDecoder, &vstatus);
 			fflush(fout);
-			fprintf(stderr, "written %u bytes.... decode:%u\t\r", bytes, vstatus.pts);
+			fprintf(stderr, "written "BDBG_UINT64_FMT" bytes.... decode:%u\t\r", BDBG_UINT64_ARG((uint64_t)bytes), vstatus.pts);
 			BKNI_Sleep(30);
 			continue;
 		}
@@ -923,13 +915,13 @@ int transcode_file(EncodeSettings* pEncodeSettings,
 					if((desc[j][i].flags & NEXUS_VIDEOENCODERDESCRIPTOR_FLAG_METADATA) ==0) {/* ignore metadata descriptor in es capture */
 						fwrite((const uint8_t *)pDataBuffer + desc[j][i].offset, desc[j][i].length, 1, fout);
 					}
-					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x %8x\n", desc[j][i].flags, desc[j][i].originalPts,
+					fprintf(fdesc, "%8x %8x   %x%08x %08x	  %5u	%5d   %8x "BDBG_UINT64_FMT"\n", desc[j][i].flags, desc[j][i].originalPts,
 						(uint32_t)(desc[j][i].pts>>32), (uint32_t)(desc[j][i].pts & 0xffffffff), desc[j][i].escr,
-						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, desc[j][i].length);
+						desc[j][i].ticksPerBit, desc[j][i].shr, desc[j][i].offset, BDBG_UINT64_ARG((uint64_t)desc[j][i].length));
 					bytes+= desc[j][i].length;
 					if(desc[j][i].length > 0x100000)
 					{
-						BDBG_ERR(("++++ desc[%d][%d] length = 0x%x, offset=0x%x", j,i, desc[j][i].length, desc[j][i].offset));
+						BDBG_ERR(("++++ desc[%d][%d] length = "BDBG_UINT64_FMT", offset=0x%x", j,i, BDBG_UINT64_ARG((uint64_t)desc[j][i].length), desc[j][i].offset));
 					}
 
 				}
@@ -1195,4 +1187,3 @@ int main(void)  {
 }
 
 #endif
-

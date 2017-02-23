@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,19 +43,16 @@
 #include <new>
 
 #include "config.h"
+#include "arm.h"
 #include "tzmemory.h"
-
 #include "arm/spinlock.h"
-
-extern "C" void *sys_page_table;
 
 class PageTable {
 public:
     enum SwAttribs {
         None = 0,
         AllocOnWrite = 1,
-        WriteAlloced = 2,
-        SharedMem = 3
+        SharedMem = 2
     };
 
     struct EntryAttribs {
@@ -68,7 +65,7 @@ public:
 
     static PageTable *kernelPageTable();
 
-    PageTable() { l1Dir = nullptr; asid = KERNEL_ASID; spinlock_init("PageTable::lock", &lock);}
+    PageTable() { topLevelDir = nullptr; asid = KERNEL_ASID; spinLockInit(&lock);}
     ~PageTable();
 
     PageTable(const PageTable& rhs, uint8_t asid, bool fork = false);
@@ -104,43 +101,12 @@ public:
     void copyOnWrite(const TzMem::VirtAddr va);
 
     inline void activate() {
-
-        register TzMem::PhysAddr pageTablePA = TzMem::virtToPhys(l1Dir);
-        // printf("%s: switching to page table %p base %p (%p)\n", __FUNCTION__, this, l1Dir, pageTablePA);
-
-        /* Invalidate TLB, ICache and branch predictor */
-        register unsigned int zero = 0;
-        asm volatile(
-                "mcr p15, 0, %[val], c8, c7, 0\r\n" //TLBIALL
-                "mcr p15, 0, %[val], c8, c3, 0\r\n" //TLBIALLIS
-                "mcr p15, 0, %[val], c7, c5, 0\r\n"
-                "mcr p15, 0, %[val], c7, c5, 6\r\n"
-                "dmb\r\n"
-                "isb\r\n"
-                : : [val] "r" (zero));
-
-        /* Point TTBR0 to the page table */
-        register unsigned int ttbr0Low = (unsigned int)pageTablePA;
-        register unsigned int ttbr0High = 0; //(asid << 16);
-        asm volatile("mcrr p15, 0, %[low], %[high], c2" : : [low] "r" (ttbr0Low), [high] "r" (ttbr0High));
-        asm volatile("isb":::);
-
-        /* Invalidate TLB, ICache and branch predictor */
-        asm volatile(
-                "mcr p15, 0, %[val], c8, c7, 0\r\n" //TLBIALL
-                "mcr p15, 0, %[val], c8, c3, 0\r\n" //TLBIALLIS
-                "mcr p15, 0, %[val], c7, c5, 0\r\n"
-                "mcr p15, 0, %[val], c7, c5, 6\r\n"
-                "dmb\r\n"
-                "isb\r\n"
-                : : [val] "r" (zero));
-
+        ARCH_SPECIFIC_ACTIVATE(topLevelDir);
         // unsigned long entry = 0x9fffec00;
         // unsigned long translation = TzMem::addressTranslateCPR(entry);
         // printf("%p:  0x%lx ---> 0x%lx\n", pageTablePA, entry, translation);
     }
 
-    // Only works on kernel page table
     void unmapBootstrap(const void *devTree);
 
     void dump();
@@ -155,9 +121,9 @@ private:
     void DumpPageTableInfo(void * mem);
 
 private:
-    uint64_t *l1Dir;
+    uint64_t *topLevelDir;
     uint8_t asid;
-    mutable spinlock_t lock;
+    mutable SpinLock lock;
 
     static PageTable *kernPageTable;
 
@@ -165,7 +131,7 @@ private:
     static uint8_t *freeBlockStack[MAX_NUM_PAGE_TABLE_BLOCKS + NUM_BOOTSTRAP_BLOCKS];
     static int stackTop;
 
-    static spinlock_t allocLock;
+    static SpinLock allocLock;
 
 private:
 

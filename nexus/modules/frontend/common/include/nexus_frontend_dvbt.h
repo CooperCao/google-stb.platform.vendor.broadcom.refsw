@@ -116,7 +116,7 @@ typedef struct NEXUS_FrontendDvbtStatus
 {
     NEXUS_FrontendDvbtStatusType type;
 
-    union
+    struct
     {
         NEXUS_FrontendDvbtBasicStatus basic;
     } status;

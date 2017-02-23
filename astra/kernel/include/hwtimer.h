@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,6 +41,10 @@
 #include <cstdint>
 #include <cstddef>
 
+#ifdef __arm__
+#include <arm.h>
+#endif
+
 #include "utils/priorityqueue.h"
 
 #include "objalloc.h"
@@ -53,24 +57,8 @@ typedef uint64_t Timer;
 
 class TzHwCounter {
 public:
-    static inline unsigned long frequency() {
-        register unsigned long rv;
-        asm volatile("MRC p15, 0, %[rt], c14, c0, 0": [rt] "=r" (rv) : :);
-        return rv;
-    }
-
-    static inline uint64_t timeNow() {
-        register unsigned long timeLow, timeHigh;
-        asm volatile("MRRC p15, 0, %[low], %[high], c14": [low] "=r" (timeLow), [high] "=r" (timeHigh) : : );
-        uint64_t rv = ((uint64_t)timeHigh << 32) | timeLow;
-
-#if 0
-        rv += System::cpuBootedAt[arm::smpCpuNum()];
-#endif
-
-        return rv;
-    }
-
+    static unsigned long frequency();
+    static uint64_t timeNow();
     static void delay(unsigned long ticks) {
         uint64_t target = timeNow() + ticks;
         while (timeNow() < target);
@@ -90,10 +78,10 @@ public:
     typedef void (*OnExpiry)(Timer th, void *ctx);
 
 public:
-    static void init();
+    static void init(void *deviceTree);
     static void secondaryCpuInit();
 
-    static Timer create(unsigned long countDownDelta, OnExpiry handler, void *handlerCtx);
+    static Timer create(uint32_t countDownDelta, OnExpiry handler, void *handlerCtx);
     static Timer create(uint64_t fireAt, OnExpiry handler, void *handlerCtx);
     static Timer create(uint64_t fireAt, uint64_t period, OnExpiry handler, void *handlerCtx);
 
@@ -137,7 +125,7 @@ private:
     typedef tzutils::PriorityQueue<TimerEntry> Timers;
 
     static PerCPU<Timers> timers;
-    static spinlock_t lock;
+    static SpinLock lock;
 };
 
 

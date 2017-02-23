@@ -318,6 +318,28 @@ BERR_Code BVDC_Test_Source_GetGfdScratchRegisters
       uint32_t                        *pulScratchReg1,
       uint32_t                        *pulScratchReg2 );
 
+/***************************************************************************
+Summary:
+    Check matrix computation accuracy
+
+Description:
+    This fuction checks matrix computation accuracy.
+    It should typically be turned off
+
+Input:
+
+Output:
+
+Returns:
+
+See Also:
+
+**************************************************************************/
+/*#define BVDC_CFC_CHECK_MATRIX_ACCURACY 1*/
+#if BVDC_CFC_CHECK_MATRIX_ACCURACY
+void BVDC_Cfc_CheckMatrixAccuracy(void);
+#endif
+
 #ifdef __cplusplus
 }
 #endif

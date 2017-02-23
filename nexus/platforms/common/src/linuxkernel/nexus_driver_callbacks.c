@@ -318,11 +318,13 @@ nexus_driver_run_scheduler(NEXUS_ModulePriority priority, unsigned timeout, bool
 
 /* this function is non-blocking and returns available callbacks. */
 unsigned
-nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave)
+nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave, bool compat)
 {
     struct nexus_driver_callback_scheduler *scheduler;
     unsigned count;
     struct nexus_driver_callback_entry *entry;
+
+    BSTD_UNUSED(compat);
     
     if (priority >= NEXUS_ModulePriority_eMax) {
         return 0;
@@ -341,10 +343,22 @@ nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callb
             entry->stopped = false;
             continue;
         }
-        desc[count].desc.callback = entry->now.callback;
-        desc[count].desc.context = entry->now.context;
+        desc[count].desc.callback = (unsigned long)entry->now.callback;
+        desc[count].desc.context = (unsigned long)entry->now.context;
         desc[count].desc.param = entry->callback_param;
-        desc[count].interfaceHandle = (void *)entry->key.object;
+#if NEXUS_COMPAT_32ABI
+        if(compat) {
+            NEXUS_BaseObjectId id;
+            NEXUS_Error rc = NEXUS_BaseObject_GetId(entry->key.object, &id);
+            desc[count].interfaceHandle = id;
+            if(rc!=NEXUS_SUCCESS) {
+                (void)BERR_TRACE(rc);
+            }
+        } else
+#endif
+        {
+            desc[count].interfaceHandle = (unsigned long)(void *)entry->key.object;
+        }
         count++;
         BDBG_MSG_TRACE(("nexus_driver_scheduler_dequeue:%#lx(%u) callback:%#lx context:%#lx param:%d", (unsigned long)scheduler, (unsigned)priority, (unsigned long)entry->now.callback, (unsigned long)entry->now.context, entry->callback_param));
     }
@@ -561,6 +575,8 @@ nexus_driver_p_callback_get_entry_locked(const struct nexus_driver_module_header
         BDBG_OBJECT_INIT(entry, nexus_driver_callback_entry);
         entry->key.type = id;
         entry->key.object = handle;
+
+
         entry->now.callback = NULL;
         entry->prev.callback = NULL;
         entry->now.context = NULL;

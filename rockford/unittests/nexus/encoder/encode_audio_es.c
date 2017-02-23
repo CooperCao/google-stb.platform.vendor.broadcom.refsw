@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2008-2014 Broadcom Corporation
+* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 *****************************************************************************/
 /* Nexus unittest app: encode audio */
 
@@ -54,9 +46,9 @@
 #include "nexus_display.h"
 #include "nexus_video_window.h"
 #include "nexus_video_input.h"
-#include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO_MUX_OUTPUT && NEXUS_HAS_AUDIO
+#include "nexus_spdif_output.h"
 #include "nexus_playback.h"
 #include "nexus_record.h"
 #include "nexus_file.h"
@@ -99,7 +91,7 @@ typedef struct InputSettings{
 BDBG_MODULE(encode_audio_es);
 
 int main(void)  {
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO_MUX_OUTPUT && NEXUS_HAS_AUDIO
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel, stcChannelTranscode;
@@ -386,5 +378,3 @@ int main(void)  {
 #endif
     return 0;
 }
-
-

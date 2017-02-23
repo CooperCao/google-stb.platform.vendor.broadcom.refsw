@@ -83,7 +83,7 @@ extern struct nexus_driver_state nexus_driver_state;
 BERR_Code nexus_driver_scheduler_init(void);
 void nexus_driver_scheduler_uninit(void);
 int nexus_driver_run_scheduler(NEXUS_ModulePriority priority, unsigned timeout, bool *p_has_callbacks, struct nexus_driver_slave_scheduler *slave);
-unsigned nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave);
+unsigned nexus_driver_scheduler_dequeue(NEXUS_ModulePriority priority, nexus_driver_callback_desc *desc, unsigned nentries, struct nexus_driver_slave_scheduler *slave, bool compat);
 void nexus_driver_deactivate_callbacks(void *context, void *object, const struct b_objdb_client *client);
 void nexus_driver_scheduler_lock(void *client, NEXUS_ModulePriority priority, bool lock);
 void nexus_driver_unlock_schedulers(void *client);
@@ -113,6 +113,8 @@ void nexus_driver_server_preuninit(void);
 
 void NEXUS_P_Proxy_StopCallbacks( void *interfaceHandle );
 void NEXUS_P_Proxy_StartCallbacks( void *interfaceHandle );
+
+void NEXUS_Platform_P_TerminateProcess(unsigned pid);
 
 #endif /* NEXUS_GENERIC_DRIVER_IMPL_H__ */
 

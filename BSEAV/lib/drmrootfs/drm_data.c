@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
+
 #include "drm_data.h"
 
 #include "config_inc/drm_playready.inc"
@@ -77,6 +79,9 @@ char * bdrm_get_ta_wv_dev_bin_file_path(void) {return ta_wv_dev_bin_file_rootfs_
 
 char * bdrm_get_ta_adobe_bin_file_path(void) {return ta_adobe_bin_file_rootfs_path;}
 char * bdrm_get_ta_adobe_dev_bin_file_path(void) {return ta_adobe_dev_bin_file_rootfs_path;}
+
+char * bdrm_get_ta_mediaroom_bin_file_path(void) {return ta_mediaroom_bin_file_rootfs_path;}
+char * bdrm_get_ta_mediaroom_dev_bin_file_path(void) {return ta_mediaroom_dev_bin_file_rootfs_path;}
 
 /************************** PLAYREADY DEFINITIONS BELOW **********************************/
 

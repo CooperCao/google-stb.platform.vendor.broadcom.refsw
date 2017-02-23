@@ -262,7 +262,9 @@ static const BINT_P_IntMap bint_75845[] =
     BINT_MAP_STD(1, SID, SID_L2_CPU),
 
     BINT_MAP_STD(1, SOFT_MODEM, SM_L2_CPU),
+#if !defined(NEXUS_GISB_ARB)
     BINT_MAP_STD(1, SYS, SUN_L2_CPU),
+#endif
     BINT_MAP_STD(1, SYS_AON, AON_L2_CPU),
     /*BINT_MAP(1, SYS_PM, "" , AON_PM_L2_CPU_STATUS, STANDARD, ALL, 0),*/
 

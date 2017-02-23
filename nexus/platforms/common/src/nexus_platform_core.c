@@ -105,7 +105,11 @@ static void NEXUS_Platform_P_MemcEventHandler(void * context)
 {
     BSTD_UNUSED(context);
 #if NEXUS_HAS_SECURITY
-    if(g_NEXUS_platformHandles.security) { /* if NEXUS_Platform_P_MemcEventHandler called when there is no secure module */
+    if(g_NEXUS_platformHandles.security /* if NEXUS_Platform_P_MemcEventHandler called when there is no secure module */
+#if NEXUS_POWER_MANAGEMENT
+            && g_standbyState.settings.mode == NEXUS_PlatformStandbyMode_eOn
+#endif
+      ) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.security);
         NEXUS_Security_PrintArchViolation_priv();
         NEXUS_Module_Unlock(g_NEXUS_platformHandles.security);
@@ -331,26 +335,33 @@ static NEXUS_Error NEXUS_Platform_P_GetPictureBufferForAdjacent(const NEXUS_Plat
     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 }
 
-/* bmem algo doesn't see NEXUS_HEAP_TYPE_SECURE_GRAPHICS or NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT heaps */
+/* bmem algo doesn't see NEXUS_HEAP_TYPE_SECURE_GRAPHICS or NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT or NEXUS_HEAP_TYPE_DTU heaps */
 static NEXUS_PlatformSettings *NEXUS_Platform_P_AllocSettingsForAdjacentHeaps(const NEXUS_PlatformSettings *pSettings)
 {
     unsigned i;
     NEXUS_PlatformSettings *pBmemSettings = NULL;
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) && pSettings->heap[i].size) {
-            int rc;
-            unsigned picbufHeap;
+        if (!pSettings->heap[i].size) continue;
+        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT|NEXUS_HEAP_TYPE_DTU)) {
             if (!pBmemSettings) {
                 pBmemSettings = BKNI_Malloc(sizeof(*pBmemSettings));
                 if (!pBmemSettings) {BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);return NULL;}
                 *pBmemSettings = *pSettings;
             }
+        }
+        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)) {
+            int rc;
+            unsigned picbufHeap;
             rc = NEXUS_Platform_P_GetPictureBufferForAdjacent(pSettings, i, &picbufHeap);
             if (rc) {BERR_TRACE(rc); return NULL;}
-            if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS) {
+            if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS && pBmemSettings) {
                 /* additional memory */
                 pBmemSettings->heap[picbufHeap].size += pBmemSettings->heap[i].size;
             }
+            pBmemSettings->heap[i].size = 0;
+        }
+        if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_DTU && pBmemSettings) {
+            pBmemSettings->heap[i].offset = 0;
             pBmemSettings->heap[i].size = 0;
         }
     }
@@ -364,7 +375,8 @@ static NEXUS_Error NEXUS_Platform_P_BuildAdjacentHeaps(const NEXUS_PlatformSetti
 {
     unsigned i;
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) && pSettings->heap[i].size) {
+        if (!pSettings->heap[i].size) continue;
+        if (pSettings->heap[i].heapType & (NEXUS_HEAP_TYPE_SECURE_GRAPHICS|NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)) {
             unsigned picbufHeap;
             int rc;
             rc = NEXUS_Platform_P_GetPictureBufferForAdjacent(pSettings, i, &picbufHeap);
@@ -384,9 +396,26 @@ static NEXUS_Error NEXUS_Platform_P_BuildAdjacentHeaps(const NEXUS_PlatformSetti
             pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
             pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
         }
+        if (pSettings->heap[i].heapType & NEXUS_HEAP_TYPE_DTU) {
+            pCoreSettings->heapRegion[i].offset = pSettings->heap[i].offset;
+            pCoreSettings->heapRegion[i].length = pSettings->heap[i].size;
+            pCoreSettings->heapRegion[i].heapType = pSettings->heap[i].heapType;
+            pCoreSettings->heapRegion[i].memoryType = pSettings->heap[i].memoryType;
+        }
     }
     return NEXUS_SUCCESS;
 }
+
+#if NEXUS_USE_CMA
+static NEXUS_Addr NEXUS_Platform_P_AllocDeviceMemory(unsigned memcIndex, unsigned numBytes, unsigned alignment)
+{
+    return NEXUS_Platform_P_AllocCma(&g_platformMemory, memcIndex, 0, numBytes, alignment);
+}
+static void NEXUS_Platform_P_FreeDeviceMemory(unsigned memcIndex, NEXUS_Addr addr, unsigned numBytes)
+{
+    NEXUS_Platform_P_FreeCma(&g_platformMemory, memcIndex, 0, addr, numBytes);
+}
+#endif
 
 NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings)
 {
@@ -464,6 +493,10 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
     g_coreSettings.interruptInterface.pConnectInterrupt = NEXUS_Platform_P_ConnectInterrupt;
     g_coreSettings.interruptInterface.pEnableInterrupt_isr = NEXUS_Platform_P_EnableInterrupt_isr;
     g_coreSettings.interruptInterface.pDisableInterrupt_isr = NEXUS_Platform_P_DisableInterrupt_isr;
+#if NEXUS_USE_CMA
+    g_coreSettings.cma.alloc = NEXUS_Platform_P_AllocDeviceMemory;
+    g_coreSettings.cma.free = NEXUS_Platform_P_FreeDeviceMemory;
+#endif
 #if NEXUS_CONFIG_IMAGE
     g_coreSettings.imgInterface.create = Nexus_IMG_Driver_Create;
     g_coreSettings.imgInterface.destroy = Nexus_IMG_Driver_Destroy;
@@ -495,7 +528,9 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
         goto err_core;
     }
 
-    NEXUS_Platform_P_ConfigureGisbTimeout();
+    if (NEXUS_Platform_P_IsGisbTimeoutAvailable())
+        NEXUS_Platform_P_ConfigureGisbTimeout();
+
     errCode = NEXUS_Platform_P_MemcBspInterrupt_Init(&g_NEXUS_Platform_P_MemcBspInterrupts);
     if(errCode!=NEXUS_SUCCESS) {errCode=BERR_TRACE(errCode);goto err_memc_intr;}
 
@@ -552,7 +587,7 @@ void NEXUS_Platform_P_UninitCore(void)
 
 static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryRegion *region)
 {
-    NEXUS_MemoryMapType uncachedMapType=NEXUS_MemoryMapType_eFake, cachedMapType=NEXUS_MemoryMapType_eFake;
+    NEXUS_AddrType uncachedMapType=NEXUS_AddrType_eFake, cachedMapType=NEXUS_AddrType_eFake;
 
     BSTD_UNUSED(index); /* index included for debug */
     if (!region->length) return 0;
@@ -577,11 +612,11 @@ static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryR
         }
 
         if(cachedMapOnly) {
-            uncachedMapType = NEXUS_MemoryMapType_eFake;
+            uncachedMapType = NEXUS_AddrType_eFake;
         } else {
-            uncachedMapType = (region->memoryType & NEXUS_MEMORY_TYPE_DRIVER_UNCACHED) ? NEXUS_MemoryMapType_eUncached : NEXUS_MemoryMapType_eFake;
+            uncachedMapType = (region->memoryType & NEXUS_MEMORY_TYPE_DRIVER_UNCACHED) ? NEXUS_AddrType_eUncached : NEXUS_AddrType_eFake;
         }
-        BDBG_MSG(("using %s mapping for heap[%d] " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "(%u), memoryType=%x", uncachedMapType==NEXUS_MemoryMapType_eFake?"cache-only":"cache and uncache", index, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), (unsigned)region->length, region->memoryType));
+        BDBG_MSG(("using %s mapping for heap[%d] " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "(%u), memoryType=%x", uncachedMapType==NEXUS_AddrType_eFake?"cache-only":"cache and uncache", index, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), (unsigned)region->length, region->memoryType));
         region->pvAddr = nexus_p_map_memory(region->offset, region->length, uncachedMapType);
         if (!region->pvAddr) return BERR_TRACE(NEXUS_UNKNOWN);
     }
@@ -593,13 +628,13 @@ static NEXUS_Error NEXUS_Platform_P_MapRegion(unsigned index, NEXUS_Core_MemoryR
     if (!region->pvAddrCached) {
         if (g_mipsKernelMode) {
         /* do driver mapping, don't do application mapping */
-        cachedMapType = (region->memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) ? NEXUS_MemoryMapType_eCached : NEXUS_MemoryMapType_eFake;
+        cachedMapType = (region->memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) ? NEXUS_AddrType_eCached : NEXUS_AddrType_eFake;
         }
         else {
         /* in user mode, do driver or application mapping */
-        cachedMapType = (region->memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED || region->memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) ? NEXUS_MemoryMapType_eCached : NEXUS_MemoryMapType_eFake;
+        cachedMapType = (region->memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED || region->memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) ? NEXUS_AddrType_eCached : NEXUS_AddrType_eFake;
         }
-        if (cachedMapType == uncachedMapType && uncachedMapType == NEXUS_MemoryMapType_eFake) {
+        if (cachedMapType == uncachedMapType && uncachedMapType == NEXUS_AddrType_eFake) {
             /* reuse the fake mapping so we don't exhaust fake addressing */
             region->pvAddrCached = region->pvAddr;
         }
@@ -764,7 +799,7 @@ NEXUS_HeapHandle NEXUS_Platform_CreateHeap( const NEXUS_PlatformCreateHeapSettin
     }
 
     NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
-    heap = NEXUS_Heap_Create_priv(i, region);
+    heap = NEXUS_Heap_Create_priv(i, NULL, region);
     NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
     if (!heap) {
         NEXUS_Platform_P_UnmapRegion(region);

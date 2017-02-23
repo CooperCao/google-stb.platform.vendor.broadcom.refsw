@@ -223,6 +223,8 @@ NEXUS_Error NEXUS_Security_ReadDataSect(
                  (void *)dataSectParm.aucDataSectData,
                  BHSM_READ_DATA_SECTION_DATA_LEN );
 
+    pReadDataSectIO->isShaOfData = dataSectParm.isReadProtected;
+
     pReadDataSectIO->dataSectSize = BHSM_READ_DATA_SECTION_DATA_LEN;
 
     return NEXUS_SUCCESS;

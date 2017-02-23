@@ -60,6 +60,7 @@
 #ifdef HAS_MD5
 #include "md5.h"
 #endif
+#include <random>
 
 #include <iostream>
 #include <istream>
@@ -638,25 +639,38 @@ void SpyToolReplay::FrameDone(uint32_t frameNum)
 #ifndef BSG_STAND_ALONE
    if (sSavePng)
    {
-      uint8_t result[16] = {0};
       const uint32_t width  = m_platform.GetWindowWidth();
       const uint32_t height = m_platform.GetWindowHeight();
 
       ImagePNG pngImage(width, height, Image::eRGBA8888);
       glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, (GLvoid*)pngImage.GetData());
 
+      std::random_device rd;
+      std::uniform_int_distribution<> dist(0, 255);
+      static uint8_t tag[4] = { (uint8_t)dist(rd), (uint8_t)dist(rd), (uint8_t)dist(rd), (uint8_t)dist(rd) };
+      static unsigned seq = 0;
+
       // get a unique file name
 #ifdef HAS_MD5
+      uint8_t result[16] = { 0 };
       md5((uint8_t *)pngImage.GetData(), pngImage.GetSize(), result);
-#endif
-
       char file[1024];
-      sprintf(file, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x.png",
+      sprintf(file, "%02x%02x%02x%02x_%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x_seq%8.8d.png",
+         tag[0], tag[1], tag[2], tag[3],
          result[ 0], result[ 1], result[ 2], result[ 3],
          result[ 4], result[ 5], result[ 6], result[ 7],
          result[ 8], result[ 9], result[10], result[11],
-         result[12], result[13], result[14], result[15]
+         result[12], result[13], result[14], result[15],
+         seq++
          );
+#else
+      char file[1024];
+      sprintf(file, "%02x%02x%02x%02x_seq%8.8d.png",
+         tag[0], tag[1], tag[2], tag[3],
+         seq++
+      );
+#endif
+
       printf("Saving file - %s\n", file);
 
       pngImage.Save(file);

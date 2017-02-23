@@ -38,7 +38,6 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "brdc.h"
-#include "bsur.h"
 #include "bmma.h"
 #include "bvdc.h"
 #include "bvdc_priv.h"
@@ -113,7 +112,7 @@ static const BVDC_P_Feeder_VideoFormatMode s_hwOrientation[] =
     (pFeeder)->ulVfd0RegOffset = 0;                                                    \
     (pFeeder)->ulResetMask = BCHP_FMISC_SW_INIT_MFD_##id##_MASK;                       \
     (pFeeder)->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;                     \
-	(pFeeder)->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT_MFD_##id##_MASK;    \
+    (pFeeder)->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT_MFD_##id##_MASK;    \
 }
 
 #define BVDC_P_MAKE_VFEEDER(pFeeder, id)                                               \
@@ -461,7 +460,9 @@ void BVDC_P_Feeder_Init
         BVDC_P_CLEAN_ALL_DIRTY(&pPicture->stVnetMode);
         pPicture->stVnetMode.stBits.bInvalid  = BVDC_P_ON;
         pPicture->eFrameRateCode       = BAVC_FrameRateCode_e29_97;
-        pPicture->eMatrixCoefficients  = BAVC_MatrixCoefficients_eSmpte_170M;
+
+        BVDC_P_Cfc_InitAvcColorSpace(&pPicture->astMosaicColorSpace[0]);
+
         pPicture->eDisplayPolarity     = BAVC_Polarity_eTopField;
         pPicture->eSrcPolarity         = BAVC_Polarity_eTopField;
         pPicture->PicComRulInfo.eSrcOrigPolarity = BAVC_Polarity_eTopField;

@@ -3976,7 +3976,7 @@ static BERR_Code BHDM_EDID_P_ParseHDRStaticMetadataDB(
 	hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSDR] = EotfByte & 0x01 ;
 	hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHDR] = EotfByte & 0x02 ;
 	hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSMPTESt2084] = EotfByte & 0x04 ;
-	hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eFuture] = EotfByte & 0x08 ;
+	hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHLG] = EotfByte & 0x08 ;
 
 	EotfByte =
 		hHDMI->AttachedEDID.Block[DataBlockIndex + 3] ;
@@ -4023,8 +4023,8 @@ static BERR_Code BHDM_EDID_P_ParseHDRStaticMetadataDB(
 		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHDR] ? 1 : 0])) ;
 	BDBG_MSG(("   SMPTE ST 2084: %s",
 		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eSMPTESt2084] ? 1 : 0])) ;
-	BDBG_MSG(("   Future EOTF: %s",
-		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eFuture] ? 1 : 0])) ;
+	BDBG_MSG(("   Hybrid Log-Gamma: %s",
+		g_status[hHDMI->AttachedEDID.HdrDB.bEotfSupport[BHDM_EDID_HdrDbEotfSupport_eHLG] ? 1 : 0])) ;
 
 	BDBG_MSG(("   META Data Type 1: %s",
 		g_status[hHDMI->AttachedEDID.HdrDB.bMetadataSupport[BHDM_EDID_HdrDbStaticMetadataSupport_eType1] ? 1 : 0])) ;
@@ -5000,7 +5000,7 @@ BERR_Code BHDM_EDID_GetSupportedColorimetry(
 
 	BDBG_WRN(("********************************************")) ;
 	BDBG_WRN(("BHDM_EDID_GetSupportedColorimetry has been deprecated")) ;
-	BDBG_WRN(("Use BHDM_EDID_GetPreferred Colorimetry instead")) ;
+	BDBG_WRN(("Use BHDM_EDID_GetPreferredColorimetry instead")) ;
 	BDBG_WRN(("********************************************")) ;
 
 	if (hHDMI->DeviceSettings.BypassEDIDChecking)

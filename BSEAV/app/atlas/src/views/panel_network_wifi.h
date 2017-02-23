@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,6 +48,9 @@ class CWidgetLabel;
 class CWidgetGrid;
 class CPanelKeyboard;
 class CNetworkWifi;
+#ifdef WPA_SUPPLICANT_SUPPORT
+class CPanelWps;
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,6 +59,7 @@ extern "C" {
 #if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
 #define PERCENT_TO_UINT16(percent)  ((percent) * 65535 / 100)
 
+#ifdef NETAPP_SUPPORT
 typedef enum eWifiMode
 {
     eWifiMode_A,
@@ -65,6 +69,7 @@ typedef enum eWifiMode
     eWifiMode_AC,
     eWifiMode_Max
 } eWifiMode;
+#endif
 
 /* CPanelNetworkWifiProp is the tag/value button used to display each network wifi property
  * in the list widget. */
@@ -90,8 +95,10 @@ public:
     CWidgetButton * getSsidButton(void) { return(_pSsid); }
     void            setChannel(const char * pText);
     int             getChannel(void) { return(MString(_pChannel->getText()).toInt()); }
+#ifdef NETAPP_SUPPORT
     void            setMode(eWifiMode mode);
     eWifiMode       getMode(void) { return(_mode); }
+#endif
     void            setSignalLevel(uint8_t percent);
     void            setSecurity(bool bSecurity);
     bool            isSecure(void) { return(_pSecurity->isVisible()); }
@@ -116,15 +123,19 @@ protected:
     MString                    _strBssid;
     CWidgetButton *            _pSsid;
     CWidgetLabel *             _pChannel;
+#ifdef NETAPP_SUPPORT
     CWidgetLabel *             _pModeA;
     CWidgetLabel *             _pModeB;
     CWidgetLabel *             _pModeG;
     CWidgetLabel *             _pModeN;
     CWidgetLabel *             _pModeAC;
+#endif
     CWidgetProgress *          _pSignalLevel;
     CWidgetLabel *             _pSecurity;
+#ifdef NETAPP_SUPPORT
     CWidgetLabel *             _pModeToLabel[eWifiMode_Max + 1];
     eWifiMode                  _mode;
+#endif
     bool _bConnected;
 };
 
@@ -141,16 +152,26 @@ public:
             uint8_t       labelPercentage = 50
             )
     {
-        eRet ret = eRet_Ok;
+        uint32_t colorText       = COLOR_EGGSHELL;
+        uint32_t colorBackground = 0xCC222222;
+        eRet     ret             = eRet_Ok;
 
         BDBG_ASSERT(NULL != pPanel);
-        ret = pPanel->addDualLabelButton(pMenu, strName, &_pContainer, &_pTag, &_pValue, font, labelPercentage);
+        ret = pMenu->addDualLabelButton(pPanel, strName, &_pContainer, &_pTag, &_pValue, font, labelPercentage, fill_eSolid);
         if (eRet_Ok != ret)
         {
             fprintf(stderr, "unable to allocate double label button");
             goto error;
         }
         _pContainer->setFocusable(false);
+
+        _pTag->setTextColor(colorText);
+        _pValue->setTextColor(colorText);
+
+        _pTag->setBackgroundColor(colorBackground);
+        _pValue->setBackgroundColor(colorBackground);
+        _pContainer->setBackgroundColor(colorBackground);
+
 
 error:
         return;
@@ -246,12 +267,19 @@ public:
 protected:
     CWidgetMenu *        _pNetworkWifiMenu;
     CWidgetMenu *        _pPropertiesMenu;
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CWidgetButton *      _pWpsButton;
+    CWidgetLabel *       _pWpsLabel;
+#endif
     CWidgetMenu *        _pStatusMenu;
     bool                 _bExpandPanel;
     CWidgetButton *      _pExpand;
+#ifdef NETAPP_SUPPORT
     CWidgetLabel *       _pHeadingProperties;
-    CWidgetLabel *       _pGridTitle;
-    CWidgetGrid *        _pGrid;
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+    CPanelWps *          _pPanelWps;
+#endif
     CTimer               _timerCloseMsgBox;
     CTimer               _timerUpdate;
     CTimer               _timerScan;

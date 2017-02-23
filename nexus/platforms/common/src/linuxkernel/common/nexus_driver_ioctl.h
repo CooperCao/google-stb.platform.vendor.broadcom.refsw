@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+* Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform (private)
 *    This file enumerates linuxkernel driver supported on the given platform
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef __NEXUS_DRIVER_IOCTL_H_
@@ -58,16 +50,19 @@
 #ifdef NEXUS_CONFIG_IMAGE
 #include "nexus_img_ioctl.h"
 #endif
-#include "priv/nexus_core_driver.h"
 
 #define PROXY_NEXUS_CALLBACK_PACKET 4
 
 typedef struct nexus_driver_callback_desc {
-    NEXUS_CallbackDesc desc;
-    void *interfaceHandle; /* interface handle that is used in NEXUS_Start/StopCallbacks */
+    uint64_t interfaceHandle; /* interface handle that is used in NEXUS_Start/StopCallbacks */
+    struct {
+        uint64_t callback;
+        uint64_t context;
+        int param;
+    } desc; /* NEXUS_CallbackDesc */
 } nexus_driver_callback_desc;
 
-#define NEXUS_PROXY_IOCTL(NUM, NAME) NEXUS_IOCTL(101, (NEXUS_IOCTL_PROXY_MODULE*NEXUS_IOCTL_PER_MODULE)+(NUM), (NAME))
+#define NEXUS_PROXY_IOCTL(NUM, NAME) NEXUS_IOCTL(101, (NEXUS_IOCTL_PROXY_MODULE*NEXUS_IOCTL_PER_MODULE)+(NUM), NAME)
 
 /* PROXY_NEXUS_Scheduler is used to dequeue, not run */
 typedef struct PROXY_NEXUS_Scheduler {
@@ -80,11 +75,6 @@ typedef struct PROXY_NEXUS_Scheduler {
     } out;
 } PROXY_NEXUS_Scheduler;
 #define IOCTL_PROXY_NEXUS_Scheduler NEXUS_PROXY_IOCTL(1, PROXY_NEXUS_Scheduler)
-
-typedef struct PROXY_NEXUS_GetMemory {
-    NEXUS_MemoryDescriptor region[NEXUS_MAX_HEAPS];
-} PROXY_NEXUS_GetMemory;
-#define IOCTL_PROXY_NEXUS_GetMemory NEXUS_PROXY_IOCTL(2, PROXY_NEXUS_GetMemory)
 
 typedef struct PROXY_NEXUS_SchedulerLock {
     unsigned priority;
@@ -112,8 +102,8 @@ typedef struct PROXY_NEXUS_Log_Activate {
 typedef struct PROXY_NEXUS_Log_Dequeue {
     PROXY_NEXUS_Log_Instance instance;
     unsigned timeout;
-    void *buffer;
-    size_t buffer_size;
+    uint64_t buffer;
+    unsigned buffer_size;
 } PROXY_NEXUS_Log_Dequeue;
 
 
@@ -144,8 +134,8 @@ typedef struct PROXY_NEXUS_RunScheduler {
 
 #if NEXUS_CPU_ARM
 typedef struct PROXY_NEXUS_CacheFlush {
-    void * address;     /* Virtual memory address */
-    size_t length;       /* Length of range (in bytes) */
+    uint64_t address;     /* Virtual memory address */
+    unsigned length;       /* Length of range (in bytes) */
 } PROXY_NEXUS_CacheFlush;
 
 #define IOCTL_PROXY_NEXUS_CacheFlush      NEXUS_PROXY_IOCTL(21, PROXY_NEXUS_CacheFlush)

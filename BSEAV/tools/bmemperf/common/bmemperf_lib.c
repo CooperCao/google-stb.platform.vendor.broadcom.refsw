@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bmemperf_types64.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -2004,6 +2002,13 @@ int get_governor_control ( int cpu )
 
     sprintf( filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", cpu );
     contents = GetFileContents( filename );
+
+    /* Hosahalli - The following command will list all the available governors. We do not want to list
+       the "userspace" in your tool. First reason is we have not defined what that should be. Linux
+       kernel CPUfreq framework makes this available as standard offering.
+          cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors
+          conservative ondemand userspace powersave performance
+    */
     if ( contents )
     {
         /*printf("for filename (%s); contents (%s)\n", filename, contents );*/
@@ -2018,6 +2023,10 @@ int get_governor_control ( int cpu )
         else if ( strstr(contents, "powersave" ) )
         {
             value = DVFS_GOVERNOR_POWERSAVE;
+        }
+        else if ( strstr(contents, "ondemand" ) )
+        {
+            value = DVFS_GOVERNOR_ONDEMAND;
         }
         Bsysperf_Free( contents );
     }
@@ -2055,6 +2064,11 @@ int set_governor_control ( int cpu, DVFS_GOVERNOR_TYPES GovernorSetting )
         case DVFS_GOVERNOR_POWERSAVE:
         {
             strncpy( new_setting, "powersave", sizeof(new_setting) - 1 );
+            break;
+        }
+        case DVFS_GOVERNOR_ONDEMAND:
+        {
+            strncpy( new_setting, "ondemand", sizeof(new_setting) - 1 );
             break;
         }
     }
@@ -2102,7 +2116,7 @@ int output_file_size_in_human( const char *sFilename )
     {
         if (lstat( sFilename, &statbuf ) == -1)
         {
-            printf( "Could not stat (%s)\n", sFilename );
+            /*printf( "Could not stat (%s)\n", sFilename );*/
         }
         else
         {
@@ -2201,7 +2215,7 @@ int sendFileToBrowser(
 
     if (lstat( tempFilename, &statbuf ) == -1)
     {
-        printf( "%s: Could not stat (%s)\n", __FUNCTION__, tempFilename ); fflush( stdout ); fflush( stderr );
+        /*printf( "%s: Could not stat (%s)\n", __FUNCTION__, tempFilename ); fflush( stdout ); fflush( stderr );*/
         return( -1 );
     }
     /* remove the tempdir part from beginning of the file */
@@ -2440,3 +2454,151 @@ char *getFileContents(
     }
     return( contents );
 } /* getFileContents */
+
+/**
+ *  Function: This function will find the last occurance of the string in the buffer.
+ **/
+char *Bsysperf_FindLastStr ( const char * buffer, const char * searchStr )
+{
+    char *pos = (char*) buffer;
+    char *posPrev = NULL;
+
+    if ( buffer == NULL ) return posPrev;
+
+    do
+    {
+        posPrev = pos;
+
+        pos = strstr( (posPrev+1), searchStr ); /* start searching for next string 1 char after previous find */
+        /*printf( "%s:%u buffer %p;  pos %p (off %d); prev (%p) search (%s) \n", __FILENAME__, __LINE__, buffer, pos, (pos-buffer), posPrev, searchStr );*/
+    } while ( pos );
+
+    return posPrev;
+}
+/**
+ *  Function: This function will work like the printf statement but will send the
+ *            output to a temporary log file instead of STDOUT.
+ **/
+void printflog(const char * szFormat, ... )
+{
+    char str[256];
+    unsigned long int nLen = sizeof(str);
+    static char sLogFile[128];
+    static unsigned char LogFileNameSet = 0;
+    int fd=0;
+
+    memset(str, 0, sizeof str);
+    if ( LogFileNameSet == 0 ) {
+        memset(sLogFile, 0, sizeof sLogFile );
+        sprintf ( sLogFile, "/tmp/bsysperf.log" );
+        fprintf ( stderr, "%s: log file is (%s)\n", __FUNCTION__, sLogFile );
+        LogFileNameSet=1;
+    }
+
+    va_list arg_ptr;
+    va_start(arg_ptr, szFormat );
+    #ifdef _WINDOWS_
+    _vsnprintf(str, nLen-1, szFormat, arg_ptr );
+    #else
+    vsnprintf(str, nLen-1, szFormat, arg_ptr );
+    #endif
+    va_end(arg_ptr);
+
+    if ( strlen( sLogFile ) ) {
+        fd = open ( sLogFile, (O_CREAT | O_WRONLY | O_APPEND) );
+        if ( fd ) {
+            write ( fd, str, strlen(str) );
+            close ( fd );
+            chmod ( sLogFile, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH );
+
+            /* output the string to terminal */
+            /*fprintf ( stderr, "%s", str );*/
+        } else {
+            fprintf ( stderr, "%s: Could not open (%s)\n", __FUNCTION__, sLogFile );
+        }
+    } else {
+        fprintf ( stderr, "%s: log file (%s) is invalid\n", __FUNCTION__, sLogFile );
+        fprintf ( stderr, "%s", str );
+    }
+
+    return;
+}
+
+/**
+ *  Function: This function will create the DVFS Control HTML table using the tag DvfsControl.
+ **/
+int Bsysperf_DvfsCreateHtml( bool bIncludeFrequencies )
+{
+    int       cpu           = 0;
+    int       numCpusConf   = 0;
+    long int  cpu_freq_int  = 0;
+    char     *contents      = NULL;
+    char      cpu_frequencies_supported[128];
+
+    numCpusConf = sysconf( _SC_NPROCESSORS_CONF );
+    if (numCpusConf > BMEMPERF_MAX_NUM_CPUS)
+    {
+        numCpusConf = BMEMPERF_MAX_NUM_CPUS;
+    }
+
+    contents = GetFileContents( "/sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors" );
+
+    printf( "~DvfsControl~" );
+    printf( "<table cols=9 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
+    printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "DVFS Controls" );
+
+    printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Power Saving Techniques" );
+    printf( "<tr style=\"outline: thin solid\" ><td colspan=9><table border=0 style=\"border-collapse:collapse;\" ><tr>");
+    if ( contents && strstr(contents, "conservative") )
+    {
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >Conservative</td>",
+                DVFS_GOVERNOR_CONSERVATIVE, DVFS_GOVERNOR_CONSERVATIVE );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+    }
+    if ( contents && strstr(contents, "performance") )
+    {
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >Performance</td>",
+                DVFS_GOVERNOR_PERFORMANCE, DVFS_GOVERNOR_PERFORMANCE );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+    }
+    if ( contents && strstr(contents, "powersave") )
+    {
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >Power Save</td>",
+                DVFS_GOVERNOR_POWERSAVE, DVFS_GOVERNOR_POWERSAVE );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+    }
+    if ( contents && strstr(contents, "ondemand") )
+    {
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor%d value=%d onclick=\"MyClick(event);\" >On Demand</td>",
+                DVFS_GOVERNOR_ONDEMAND, DVFS_GOVERNOR_ONDEMAND);
+        printf( "</tr></table></td></tr>" );
+    }
+
+    if ( bIncludeFrequencies )
+    {
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Frequencies Supported" );
+        printf( "<tr bgcolor=lightgray style=\"outline: thin solid\" >");
+        printf( "<td align=center style=\"border-right: 1px black solid;\" >CPU</td>");
+        printf( "<td align=left style=\"border-right: 1px black solid;\" >Frequencies Supported</td>" );
+        printf( "<td align=center > Current</td></tr>" );
+        for (cpu = 0; cpu < numCpusConf; cpu++)
+        {
+            cpu_freq_int = get_cpu_frequency(cpu) * 1000;
+            memset( cpu_frequencies_supported, 0, sizeof(cpu_frequencies_supported) );
+
+            get_cpu_frequencies_supported( cpu, cpu_frequencies_supported, sizeof(cpu_frequencies_supported) );
+
+            printf("<tr><td class=black_allborders align=center >%d</td><td class=black_allborders >%s</td>",
+                    cpu, cpu_frequencies_supported );
+            printf("<td class=black_allborders align=center >%ld</td></tr>", cpu_freq_int );
+        }
+    }
+
+    printf( "</table>~" ); /* end DvfsControl */
+
+    printf( "~GovernorSetting~%d~", get_governor_control( 0 ) );
+
+    Bsysperf_Free( contents );
+
+    return ( 0 );
+}

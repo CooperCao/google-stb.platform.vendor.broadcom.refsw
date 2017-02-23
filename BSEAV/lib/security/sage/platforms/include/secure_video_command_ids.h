@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,7 +47,7 @@ extern "C" {
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 #define SECURE_VIDEO_VER_ID 0x00010000
 #else
-#define SECURE_VIDEO_VER_ID 0x00020006
+#define SECURE_VIDEO_VER_ID 0x00020007
 #endif
 #define SECURE_VIDEO_V3D_ALIGNMENT 4096
 #define SECURE_VIDEO_V3D_SIZE 0x4000

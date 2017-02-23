@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,11 +66,13 @@ class CModel;
 class CWifiCommand
 {
 public:
-    CWifiCommand() {}
+    CWifiCommand() :
+        _bWps(false) {}
     virtual ~CWifiCommand() {}
 public:
     MString _strSSID;
     MString _strPassword;
+    bool    _bWps;
 };
 
 class CWifiResponse
@@ -143,24 +145,26 @@ public:
             );
     virtual ~CWifi(void);
 
-    eRet open(CWidgetEngine * _pWidgetEngine);
-    void close(void);
-    eRet start(void);
-    void stop(void);
+    eRet                      open(CWidgetEngine * _pWidgetEngine);
+    void                      close(void);
+    eRet                      start(void);
+    void                      stop(void);
     void                      processWpaResponse(const char * strCallback);
     eRet                      readInterface(void);
+    eRet                      connectWps(void);
     eRet                      connectWifi(const char * strSSID, const char * strPassword);
+    eRet                      disconnectWps(void);
     eRet                      disconnectWifi(void);
     eRet                      startScanWifi(void);
     eRet                      stopScanWifi(void);
     eRet                      retrieveScanResults(void);
+    eRet                      requestStatus(void);
     eRet                      updateNetworks(void);
     eRet                      updateNetworksParse(MString * pStrResponse);
     eRet                      scanResultsParse(MString * pStrResponse);
     eRet                      connectedNetworkParse(MString * pStrResponse);
     eRet                      bssNoiseLevelParse(MString * pStrResponse);
     eRet                      disconnectedNetworkParse(MString * pStrResponse);
-    MAutoList<CNetworkWifi> * getScannedNetworkList(void) { return(&_scannedNetworksList); }
     eRet                      sendRequest(MString strCommand, MString * pStrResponse = NULL, CWifiWpaCallback replyCallback = NULL);
     eRet                      trigger(CWifiResponse * pResponse);
     CWidgetEngine *           getWidgetEngine(void) { return(_pWidgetEngine); }
@@ -173,18 +177,21 @@ public:
     eRet                      trigger(CAction * pAction);
     void                      setConnectedState(const char * strConnectedState);
     void                      setConnectedState(eConnectedState connectedState);
-    eConnectedState             getConnectedState(void);
-    eRet dhcpStart(void);
-    eRet dhcpStop(void);
+    eConnectedState           getConnectedState(void);
+    eRet                      dhcpStart(void);
+    eRet                      dhcpStop(void);
     void                      setModel(CModel * pModel)    { _pModel = pModel;  }
     CModel *                  getModel(void)               { return(_pModel); }
     bool                      getStartState(void)          { return(_bThreadRun); }
     void                      setStartState(bool bStarted) { _bThreadRun = bStarted; }
-    MStringHash *             getConnectedStatus(void)     { return(&_connectedStatusHash); }
-    MString                   getConnectedBSSID(void)      { return(_connectedStatusHash.get("bssid")); }
-    void                      clearConnectedStatus(void)   { _connectedStatusHash.clear(); }
+    void                      getConnectedStatus(MStringHash * pStringHash);
+    MString                   getConnectedBSSID(void);
+    void                      clearConnectedStatus(void);
+    void                      addConnectedStatus(const char * strToken, const char * strValue);
     bool                      isNetworkListEmpty(void)     { return(0 < _networksList.total() ? false : true); }
     bool                      isScanEnabled(void)          { return(_bScanEnabled); }
+
+    CNetworkWifi *            getScannedNetwork(int index);
 
     STRING_TO_ENUM_DECLARE(stringToConnectedState, eConnectedState)
 
@@ -201,14 +208,16 @@ protected:
     eRet                    _scanStatus;
     bool                    _bScanStarted;
     bool                    _bScanEnabled;
-    eConnectedState           _connectedState;
+    eConnectedState         _connectedState;
     MAutoList<CNetworkWifi> _networksList;
     B_MutexHandle           _networksListMutex;
     MAutoList<CNetworkWifi> _scannedNetworksList;
+    B_MutexHandle           _scannedNetworksListMutex;
     MString                 _strInterfacePath;
     MString                 _strInterfaceName;
     MString                 _strConnectedState;
     MStringHash             _connectedStatusHash;
+    B_MutexHandle           _connectedStatusMutex;
     int32_t                 _noiseLevel;
 
     B_ThreadHandle        _threadWorker;

@@ -56,8 +56,10 @@ void NEXUS_SimpleAudioPlayback_GetDefaultServerSettings( NEXUS_SimpleAudioPlayba
 
 static void NEXUS_SimpleAudioPlayback_P_GetDefaultSettings(NEXUS_SimpleAudioPlaybackSettings *pSettings)
 {
+#if NEXUS_HAS_AUDIO
     BDBG_CASSERT(sizeof(NEXUS_SimpleAudioPlaybackSettings) == sizeof(NEXUS_AudioPlaybackSettings));
     NEXUS_AudioPlayback_GetDefaultSettings((NEXUS_AudioPlaybackSettings *)pSettings);
+#endif
 }
 
 NEXUS_SimpleAudioPlaybackHandle NEXUS_SimpleAudioPlayback_Create( NEXUS_SimpleAudioDecoderServerHandle server, unsigned index, const NEXUS_SimpleAudioPlaybackServerSettings *pSettings )
@@ -172,6 +174,7 @@ void NEXUS_SimpleAudioPlayback_GetDefaultStartSettings( NEXUS_SimpleAudioPlaybac
     pSettings->loopAround = start.loopAround;
     pSettings->timebase = start.timebase;
     pSettings->endian = start.endian;
+    NEXUS_CallbackDesc_Init(&pSettings->dataCallback);
 #else
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 #endif
@@ -392,6 +395,7 @@ NEXUS_Error NEXUS_SimpleAudioPlayback_SetServerSettings( NEXUS_SimpleAudioDecode
 /* return 0 if a suspend was done */
 NEXUS_Error nexus_simpleaudioplayback_p_suspend(NEXUS_SimpleAudioPlaybackHandle handle)
 {
+#if NEXUS_HAS_AUDIO
     BDBG_MSG(("nexus_simpleaudioplayback_p_suspend %p: %d %d", (void*)handle, handle->started, handle->suspended));
     if (handle->started && !handle->suspended) {
         handle->suspended = !NEXUS_AudioPlayback_Suspend(handle->serverSettings.playback);
@@ -405,10 +409,14 @@ NEXUS_Error nexus_simpleaudioplayback_p_suspend(NEXUS_SimpleAudioPlaybackHandle 
         /* no suspend */
         return -1;
     }
+#else
+    return 0;
+#endif
 }
 
 void nexus_simpleaudioplayback_p_resume(NEXUS_SimpleAudioPlaybackHandle handle)
 {
+#if NEXUS_HAS_AUDIO
     BDBG_MSG(("nexus_simpleaudioplayback_p_resume %p: %d %d", (void*)handle, handle->started, handle->suspended));
     if (handle->suspended) {
         handle->suspended = false;
@@ -418,4 +426,5 @@ void nexus_simpleaudioplayback_p_resume(NEXUS_SimpleAudioPlaybackHandle handle)
         }
         NEXUS_AudioPlayback_Resume(handle->serverSettings.playback);
     }
+#endif
 }

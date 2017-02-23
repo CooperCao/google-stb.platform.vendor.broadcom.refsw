@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,7 @@
 * ANY LIMITED REMEDY.
 ******************************************************************************/
 #include "nexus_platform.h"
-#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT
+#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_AUDIO
 #include "nexus_core_utils.h"
 
 #include "nexus_display.h"
@@ -755,7 +755,6 @@ void shutdownGraphics(void)
 
 int main(int argc, char **argv)
 {
-#if NEXUS_HAS_HDMI_INPUT
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_VideoWindowHandle window;
@@ -1261,33 +1260,13 @@ shutdown :
     NEXUS_HdmiInput_Close(hdmiInput) ;
 
     NEXUS_Platform_Uninit();
-
-#else
-    BSTD_UNUSED(argc);
-    printf("%s not supported on this platform", argv[0]) ;
-#endif
-
     return 0;
 }
 #else
-#include "bstd.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#ifndef NEXUS_NUM_HDMI_INPUTS
-#define NEXUS_NUM_HDMI_INPUTS 0
-#endif
-
-#ifndef NEXUS_NUM_HDMI_OUTPUTS
-#define NEXUS_NUM_HDMI_OUTPUTS 0
-#endif
-
-int main(int argc, char **argv)
+int main(void)
 {
-    BSTD_UNUSED(argc);
-
-    printf("%s not supported on the %d platform.\n", argv[0], BCHP_CHIP) ;
-    return 0 ;
+    printf("This application is not supported on this platform\n");
+    return 0;
 }
 #endif

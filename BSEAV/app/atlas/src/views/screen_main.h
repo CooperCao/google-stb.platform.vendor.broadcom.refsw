@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,6 +80,9 @@ extern "C" {
 #endif
 
 class CChannel;
+#ifdef CPUTEST_SUPPORT
+class CCpuTest;
+#endif
 
 typedef enum eMenu
 {
@@ -161,6 +164,9 @@ public:
     eRet    updatePip(void);
     void    showMenu(eMenu menu);
     MString showKeyboardModal(const char * strTitle, const char * strEntryTitle);
+#ifdef CPUTEST_SUPPORT
+    void updateCpuTestUtilization(void);
+#endif
 #if DVR_LIB_SUPPORT
     void setTsbStatus(CTsb * pTsb);
     eRet updateTsbProgress(void);
@@ -205,13 +211,19 @@ protected:
     MRect                _rectChText;
     MRect                _rectChType;
     CWidgetCheckButton * _Buffers;
-    CWidgetButton *      _Back;
-    CPanelDecode *       _pDecodeMenu;
-    CPanelDisplay *      _pDisplayMenu;
-    CPanelAudio *        _pAudioMenu;
-    CPanelPlayback *     _pPlaybackMenu;
-    CPanelRecord *       _pRecordMenu;
-    CPanelBuffers *      _pBuffersMenu;
+#ifdef CPUTEST_SUPPORT
+    CWidgetButton *    _CpuTest;
+    CWidgetLabel *     _CpuTestLabel;
+    CWidgetPopupList * _CpuTestPopup;
+    CCpuTest *         _pCpuTest;
+#endif /* ifdef CPUTEST_SUPPORT */
+    CWidgetButton *  _Back;
+    CPanelDecode *   _pDecodeMenu;
+    CPanelDisplay *  _pDisplayMenu;
+    CPanelAudio *    _pAudioMenu;
+    CPanelPlayback * _pPlaybackMenu;
+    CPanelRecord *   _pRecordMenu;
+    CPanelBuffers *  _pBuffersMenu;
 #if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
     CPanelNetworkWifi * _pNetworkMenu;
 #endif
@@ -228,12 +240,15 @@ protected:
     CTimer                    _timerVolume;
     CTimer                    _timerChannel;
     CTimer                    _timerBuffersUpdate;
-    uint16_t                  _channelsFound;
-    CWidgetModalMsgBox *      _MsgBox;
-    CPanelPower *             _pPowerMenu;
-    CPanelKeyboard *          _pKeyboard;
-    CPanelVbi *               _pVbiMenu;
-    CTimer                    _timerMsgBox;
+#ifdef CPUTEST_SUPPORT
+    CTimer _timerCpuTest;
+#endif
+    uint16_t             _channelsFound;
+    CWidgetModalMsgBox * _MsgBox;
+    CPanelPower *        _pPowerMenu;
+    CPanelKeyboard *     _pKeyboard;
+    CPanelVbi *          _pVbiMenu;
+    CTimer               _timerMsgBox;
 #if NEXUS_HAS_FRONTEND
     CWidgetButton *  _Tuner;
     CWidgetButton *  _ScanQam;

@@ -225,6 +225,9 @@ typedef struct BHSM_GenerateRouteKeyIO {
     /* In: if true, apply key contribution vector */
     bool                            applyKeyContribution;
 
+    /* In: if true, CW protection key and IVs from internal storage */
+    bool                            protectionKeyIvSource;
+
     /* In: 0 - decryption, 1- encryption */
     bool                            bIsKeyLadder3DESEncrypt;
 

@@ -50,16 +50,10 @@ endif
 endif
 
 NEXUS_OBJ_SUFFIX := o
-MAGNUM_LIB := $(NEXUS_OBJ_DIR)/libmagnum.a
-ifeq ($(B_REFSW_SHAREABLE),n)
-NEXUS_STATIC_LIB := $(NEXUS_OBJ_DIR)/libnexus_driver.a
 ifeq ($(NEXUS_MODE),driver)
 NEXUS_DRIVER := $(NEXUS_OBJ_DIR)/nexus.ko
 endif
-else
-NEXUS_STATIC_LIB := $(NEXUS_OBJ_DIR)/libnexus.a
-NEXUS_DRIVER := $(NEXUS_OBJ_DIR)/nexus.ko
-endif
+NEXUS_STATIC_LIB := $(NEXUS_OBJ_DIR)/libnexus_driver.a
 NEXUS_CFLAGS += -DKBUILD_MODNAME=\"nexus\"
 
 NEXUS_MAGNUM_PRECOMPILED_HEADER_H := $(NEXUS_OBJ_DIR)/MAGNUM/$(notdir $(NEXUS_MAGNUM_PRECOMPILED_HEADER))

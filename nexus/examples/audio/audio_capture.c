@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -141,9 +141,41 @@ int main(int argc, char **argv)
     NEXUS_AudioCaptureStartSettings captureStartSettings;
     NEXUS_AudioCaptureOpenSettings captureOpenSettings;
     captureCallbackParameters captureCBParams;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&config);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 ||
+#if CAPTURE_I2S_INPUT
+        audioCapabilities.numInputs.i2s == 0 ||
+#endif
+        audioCapabilities.numOutputs.capture == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]);
+    }
+    #endif
 
     if ( argc > 1 )
     {
@@ -259,17 +291,21 @@ int main(int argc, char **argv)
                                NEXUS_I2sInput_GetConnector(i2sInput));
     #else
     /* Connect outputs to decoder */
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
+    if (audioDacHandle) {
+    NEXUS_AudioOutput_AddInput(audioDacHandle,
                                NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
+    }
+    if (audioSpdifHandle) {
+    NEXUS_AudioOutput_AddInput(audioSpdifHandle,
                                NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    #endif
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
     /* Connect capture to decoder */
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(capture),
-                               NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(capture),
+                                   NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #endif
     #endif
 
     /* Start the capture -- no data will be received until the decoder starts */

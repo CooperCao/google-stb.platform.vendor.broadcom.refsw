@@ -1,5 +1,5 @@
 /*******************************************************************************
-* Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its
 * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -40,7 +40,7 @@
 ******************************************************************************/
 
 
-/* Commit ID of Astra : bd36be41c00e2fcd7e186fcc554c2f75a8730188 */
+/* Commit ID of Astra : 293917673b35e4a2385fa0930f7354d11a6a32cb */
 #define BDSP_ARM_MAJOR_VERSION       1
 #define BDSP_ARM_MINOR_VERSION       1
 #define BDSP_ARM_BUILD_VERSION       0

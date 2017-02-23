@@ -59,25 +59,118 @@ uint8_t
 unsigned
 );
 foreach (
-    'unsigned short',
     'unsigned char',
+    'unsigned int',
+    'unsigned short',
 ) {
     $plain_types{$_}=1;
 }
 
 my %special_types = (
-'NEXUS_CallbackDesc'=> { 'FORMAT' => '%p' , 'CONVERT' => ''},
-'NEXUS_P_MemoryUserAddr' => { 'FORMAT' => '%p', 'CONVERT' => ''},
-'NEXUS_KeySlotTag' => {'FORMAT' => '%p', 'CONVERT' => ''},
-'NEXUS_AnyObject' => {'FORMAT' => '%p', 'CONVERT' => ''},
-'size_t'    => {'FORMAT' => '%u', 'CONVERT' => '(unsigned)'},
-'unsigned long' => {'FORMAT' => '%lu', 'CONVERT' => ''}
+'NEXUS_CallbackDesc'=> { 'FORMAT' => '%p' , 'FORMAT_CONVERT' => ''},
+'NEXUS_P_MemoryUserAddr' => { 'FORMAT' => '%p', 'FORMAT_CONVERT' => ''},
+'NEXUS_KeySlotTag' => {'FORMAT' => '%p', 'FORMAT_CONVERT' => ''},
+'size_t'    => {'FORMAT' => '%u', 'FORMAT_CONVERT' => '(unsigned)'},
+'unsigned long' => {'FORMAT' => '%lu', 'FORMAT_CONVERT' => ''}
 );
+
+my $tab = '    ';
+
 
 sub filter_array {
     my $field = shift;
     $field =~ s/\[[^\]]+\]/[1]/g;
     return $field;
+}
+
+sub get_compat_type
+{
+    my ($type,$kind) = @_;
+    $type =~ s/ /_/g if $kind eq 'SPECIAL';
+    $type;
+}
+
+sub get_compat_type_decl
+{
+    my ($type, $kind) = @_;
+    my $compat_type = get_compat_type($type, $kind);
+    if($kind eq 'STRUCT') {
+        $compat_type = "struct B_NEXUS_COMPAT_TYPE($type)";
+    } elsif($kind eq 'SPECIAL') {
+        $type = "B_NEXUS_COMPAT_TYPE_MISC($type,$compat_type)";
+    } elsif($kind ne 'PLAIN' and $kind ne 'GENERIC') {
+        $compat_type = "B_NEXUS_COMPAT_TYPE_$kind($type)";
+    }
+    $compat_type;
+}
+
+my %enum_handles = map {$_ => 1} qw ( NEXUS_ParserBand NEXUS_Timebase NEXUS_InputBand );
+
+sub is_class_handle {
+    my $type = shift;
+    my $class_handles = shift;
+    foreach (@$class_handles) {
+        return 1 if $type eq $_;
+    }
+    return 0;
+}
+
+sub is_handle {
+    my $type = shift;
+    my $class_handles = shift;
+    if(exists $enum_handles{$type}) {
+        return 1;
+    } elsif(is_class_handle($type, $class_handles)) {
+        return 1;
+    } elsif( $type =~ /Handle$/) {
+        return 1;
+    }
+    return 0;
+}
+
+sub is_special_handle {
+    my $type = shift;
+    exists $enum_handles{$type};
+}
+
+sub get_type_kind
+{
+    my ($type, $attr, $structs, $class_handles) = @_;
+    my $kind;
+    if((exists $plain_types{$type})) {
+        $kind = 'PLAIN';
+    } elsif(exists $special_types{$type}) {
+        $kind = 'SPECIAL';
+    } elsif(exists $structs->{$type}) {
+        $kind = 'STRUCT';
+    } elsif(exists $structs->{$type}) {
+        $kind = 'STRUCT';
+    } elsif(exists $attr->{memory}) {
+        $kind = 'MEMORY';
+    } elsif(exists $attr->{kind} && $attr->{kind} eq 'null_ptr') {
+        $kind = 'NULL_POINTER';
+    } elsif(is_special_handle($type)) {
+        $kind = 'ENUM_HANDLE';
+    } elsif( is_class_handle($type, $class_handles) or ($type eq 'NEXUS_AnyObject')) {
+        $kind = 'HANDLE';
+    } elsif( $type =~ /Handle$/) {
+        $kind = 'FAKE_HANDLE';
+    } else {
+        $kind = 'GENERIC';
+    }
+    $kind;
+}
+
+sub get_field_kind
+{
+    my ($field, $structs, $class_handles) = @_;
+    my $kind;
+    if(exists $field->{COMPAT}{POINTER}) {
+        $kind = 'POINTER';
+    } else {
+        $kind = get_type_kind($field->{TYPE}, $field->{ATTR}, $structs, $class_handles);
+    }
+    $kind;
 }
 
 sub verify_one_struct {
@@ -87,20 +180,20 @@ sub verify_one_struct {
         my $type = $field->{TYPE};
         my $field_name = filter_array($field->{NAME});
         if(exists $structs->{$type}) {
-            print $fout, "    /* $field->{NAME} $type */\n";
+            print $fout  "    /* $field->{NAME} $type */\n";
             verify_one_struct ($class_handles, $structs, $name, $path . " $field->{NAME} .", $structs->{$type});
         }
         print $fout "    VERIFY_FIELD($name,  $path $field_name, $type )\n";
         next if(exists $plain_types{$type});
         next if(exists $special_types{$type});
-        next if(bapi_util::is_special_handle($type) || bapi_util::is_class_handle($type, $class_handles));
+        next if(is_special_handle($type) || is_class_handle($type, $class_handles));
         if( (exists $field->{ATTR}{memory} && $field->{ATTR}{memory} eq 'cached') ||
              (exists $field->{ATTR}->{kind} && $field->{ATTR}->{kind} eq 'null_ptr')) {
             print $fout "    VERIFY_POINTER($name, $path $field_name, $type)\n";
-        } elsif(bapi_util::is_handle($type, $class_handles)) {
-            print $fout "    VERIFY_FAKE_HANDLE($name, $path $field_name, $type)\n";
         } else {
-            print $fout "    VERIFY_PLAIN_TYPE($name, $path $field_name, $type)\n";
+            my $kind = get_field_kind($field, $structs, $class_handles);
+            $kind = 'FIELD_STRUCT' if($kind eq 'STRUCT');
+            print $fout "    VERIFY_${kind}($name, $path $field_name, $type)\n";
         }
     }
 }
@@ -118,9 +211,9 @@ sub verify_struct
 {
     my ($fout, $struct,$class_handles,$_name) = @_;
     my $name;
-    my $fields;
     print $fout "\nVERIFY_BEGIN($_name)\n\n";
-    while (($name, $fields) = each %$struct) {
+    for my $name (sort keys %$struct) {
+        my $fields = $struct->{$name};
         verify_one_struct ($fout, $class_handles, $struct, $name, '', $fields);
         print $fout "    VERIFY_STRUCT($name)\n";
         print $fout "\n\n";
@@ -128,82 +221,118 @@ sub verify_struct
     print $fout "VERIFY_END($_name)\n";
 }
 
-sub print_struct
-{
-    my ($fout, $structs,$class_handles,$translate) = @_;
-    my $struct_name;
-    my $fields;
-    while (($struct_name, $fields) = each %$structs) {
-        my $cur_substruct=[];
-        print Dumper($struct_name,$fields) if 0;
-        my $kind = $fields->[0]{KIND}[0];
-        if($translate) {
-            print $fout "\n\ntypedef $kind B_NEXUS_COMPAT_TYPE($struct_name) {\n";
-        } else {
-            print $fout "\n\ntypedef $kind $struct_name {\n";
-        }
-        for my $field (@$fields) {
-            print Dumper($field) if 0;
-            my $substruct = [split(/\./,$field->{NAME})];
-            print Dumper($field->{NAME},$substruct) if 0;
-            my $name = $substruct->[$#$substruct];
-            my $n;
-            my $match;
-            for $n (0...($#$cur_substruct-1)) {
-                if(exists $substruct->[$n] and $substruct->[$n] eq $cur_substruct->[$n]) {
-                    $match = $n;
-                } else {
-                   last;
-                }
-            }
-            print Dumper($match,$#$cur_substruct, $cur_substruct,$substruct) if 0;
-            if(defined $match) {
-                $match++;
-            } else {
-                $match = 0;
-            }
-            for (reverse $match..($#$cur_substruct-1)) {
-              print $fout "  " x ($_+1);
-              print $fout "} $cur_substruct->[$_];\n";
-            }
-            for ($match..($#$substruct-1)) {
-                print $fout "  " x ($_+1); print  $fout "$field->{KIND}[$_+1] {\n";
-            }
-            my $type = $field->{TYPE};
-            if($translate) {
-                if(exists $structs->{$field->{TYPE}}) {
-                    $type = "struct B_NEXUS_COMPAT_TYPE($type})";
-                } elsif(exists $field->{ATTR}->{memory}) {
-                    $type = "B_NEXUS_COMPAT_TYPE_MEMORY($type)";
-                } elsif(exists $field->{ATTR}->{kind} && $field->{ATTR}->{kind} eq 'null_ptr') {
-                    $type = "B_NEXUS_COMPAT_TYPE_POINTER($type)";
-                } elsif(bapi_util::is_handle($field->{TYPE}, $class_handles)) {
-                    $type = "B_NEXUS_COMPAT_TYPE_HANDLE($type)";
-                } elsif(exists $special_types{$type}) {
-                    my $compat = $type;
-                    $compat =~ s/ /_/g;
-                    $type = "B_NEXUS_COMPAT_TYPE_MISC($type,$compat)";
-                }
-            }
-            my $comment = "/* $field->{NAME} */";
-            if(exists $field->{COMMENT}) {
-                $comment = "/* $field->{COMMENT} */ $comment";
-            }
-            print $fout "  " x ($#$substruct+1);
-            print $fout "$type $name; $comment\n";
+sub visit_struct {
+    my ($structs,$visitor,@context) = @_;
+    my %dependency;
+    my %visited;
+    my $round=0;
 
-            $cur_substruct = $substruct;
-        }
-        for (reverse 0..($#$cur_substruct-1)) {
-          print $fout "  " x ($_+1);
-          print $fout "} $cur_substruct->[$_];\n";
-        }
-        if($translate) {
-            print $fout "} B_NEXUS_COMPAT_TYPE($struct_name);\n";
-        } else {
-            print $fout "} $struct_name;\n";
+    # Structures have to be visited in the order of their dependencies
+    while ( my ($struct_name, $fields) = each %$structs) {
+        for my $field (@$fields) {
+            if(exists $structs->{$field->{TYPE}}) {
+                $dependency{$struct_name}{$field->{TYPE}} = 1;
+            }
         }
     }
+
+    while(1) {
+        my $continue=0;
+        for (sort keys %$structs) {
+            my $struct_name = $_;
+            my $fields = $structs->{$_};
+            next if exists $visited{$struct_name};
+            if(exists $dependency{$struct_name}) {
+                if (grep  {not exists $visited{$_}} (keys %{$dependency{$struct_name}})) {
+                    #print "[$round] postpone $struct_name\n";
+                    $continue = 1;
+                    next;
+                }
+            }
+            $visited{$struct_name}=1;
+            $visitor->($struct_name,$fields, @context);
+        }
+        last unless $continue;
+        $round++;
+    }
+}
+
+sub print_one_struct
+{
+    my ($struct_name, $fields, $fout,$structs,$class_handles,$translate) = @_;
+    my $cur_substruct=[];
+
+    print Dumper($struct_name,$fields) if 0;
+    my $kind = $fields->[0]{KIND}[0];
+    if($translate) {
+        print $fout "\n\ntypedef $kind B_NEXUS_COMPAT_TYPE($struct_name) {\n";
+    } else {
+        print $fout "\n\ntypedef $kind $struct_name {\n";
+    }
+    for my $field (@$fields) {
+        print Dumper($field) if 0;
+        my $substruct = [split(/\./,$field->{NAME})];
+        print Dumper($field->{NAME},$substruct) if 0;
+        my $name = $substruct->[$#$substruct];
+        my $n;
+        my $match;
+        for $n (0...($#$cur_substruct-1)) {
+            if(exists $substruct->[$n] and $substruct->[$n] eq $cur_substruct->[$n]) {
+                $match = $n;
+            } else {
+                last;
+            }
+        }
+        print Dumper($match,$#$cur_substruct, $cur_substruct,$substruct) if 0;
+        if(defined $match) {
+            $match++;
+        } else {
+            $match = 0;
+        }
+        for (reverse $match..($#$cur_substruct-1)) {
+            print $fout "  " x ($_+1);
+            print $fout "} $cur_substruct->[$_];\n";
+        }
+        for ($match..($#$substruct-1)) {
+            print $fout "  " x ($_+1); print  $fout "$field->{KIND}[$_+1] {\n";
+        }
+        my $type = $field->{TYPE};
+        if($translate) {
+            my $kind = get_field_kind($field, $structs, $class_handles);
+            if($kind eq 'STRUCT') {
+                $type = "struct B_NEXUS_COMPAT_TYPE($type)";
+            } elsif($kind eq 'SPECIAL') {
+                my $compat = get_compat_type($type, $kind);
+                $type = "B_NEXUS_COMPAT_TYPE_MISC($type,$compat)";
+            } elsif($kind ne 'PLAIN' and $kind ne 'GENERIC') {
+                $type = "B_NEXUS_COMPAT_TYPE_$kind($type)";
+            }
+        }
+        my $comment = "/* $field->{NAME} */";
+        if(exists $field->{COMMENT}) {
+            $comment = "/* $field->{COMMENT} */ $comment";
+        }
+        print $fout "  " x ($#$substruct+1);
+        print $fout "$type $name; $comment\n";
+
+        $cur_substruct = $substruct;
+    }
+    for (reverse 0..($#$cur_substruct-1)) {
+        print $fout "  " x ($_+1);
+        print $fout "} $cur_substruct->[$_];\n";
+    }
+    if($translate) {
+        print $fout "} B_NEXUS_COMPAT_TYPE($struct_name);\n";
+    } else {
+        print $fout "} $struct_name;\n";
+    }
+}
+
+
+sub print_struct
+{
+    my ($fout,$structs,$class_handles,$translate) = @_;
+    visit_struct($structs, \&print_one_struct, $fout, $structs, $class_handles, $translate);
 }
 
 sub add_substruct {
@@ -224,13 +353,57 @@ sub flat_name {
     "_${field}_$name";
 }
 
+# set referenced found in a type
+sub get_referenced_structs
+{
+    my ($struct, $structs, $opts) = @_;
+    my %references;
+
+    for my $field (@$struct) {
+        if(exists $structs->{$field->{TYPE}}) {
+            if( exists $opts->{WITH_UNION} or not grep {$_ eq 'union'} @{$field->{KIND}}) {
+                $references{$field->{TYPE}}=$structs->{$field->{TYPE}};
+            }
+        }
+    }
+    # Do it recursively
+    while(1) {
+        my %new_references;
+        while (my ($name, $fields) = each %references) {
+            for my $field (@$fields) {
+                if(exists $structs->{$field->{TYPE}}) {
+                    if( exists $opts->{WITH_UNION} or not grep {$_ eq 'union'} @{$field->{KIND}}) {
+                        if(not exists $references{$field->{TYPE}}) {
+                            $new_references{$field->{TYPE}}=$structs->{$field->{TYPE}};
+                        }
+                    }
+                }
+            }
+        }
+        my $done=1;
+        while (my ($name, $fields) = each %new_references) {
+            $references{$name} = $fields;
+            $done=0;
+        }
+        last if $done;
+    }
+    [keys %references];
+}
+
+
+
 sub process_functions {
-    my ($fout, $module, $functions, $class_handles, $structs) = @_;
+    my ($fout, $module, $functions, $class_handles, $structs, $original_structs) = @_;
     my @fields_func_in;
     my @fields_func_out;
     my @ioctls;
-    my @args;
-    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
+    my %api_structs;
+    my @api_ids;
+    my %compat_info;
+    my %compat_types;
+    my @varargs_data_in;
+    my @varargs_data_out;
+    for my $func (@$functions) {
         next if(exists $func->{ATTR}{'local'});
 
         my $funcname = $func->{FUNCNAME};
@@ -239,6 +412,8 @@ sub process_functions {
         my @fields_out;
         my @fields_varargs_in;
         my @fields_varargs_out;
+        my @fields_varargs_data_in;
+        my @fields_varargs_data_out;
         my @fields_pointer_in;
         my @fields_pointer_out;
         my @fields_pointer_in_null;
@@ -273,25 +448,39 @@ sub process_functions {
             if(exists $param->{ATTR}) {
                 if(exists $param->{ATTR}{nelem}) {
                     my $null = {KIND => ['struct'], NAME => $param->{NAME}, TYPE => 'bool'};
+                    my $reserved = 1;
+                    if(exists $param->{ATTR}{reserved}) {
+                        $reserved = $param->{ATTR}{reserved};
+                    }
+                    my $type = $param->{BASETYPE};
+                    $type = 'uint8_t' if $type eq 'void';
+                    my $data = {KIND => ['struct'], NAME => $param->{NAME} . "[$reserved]" , TYPE => $type};
                     $field->{TYPE} = 'int';
+                    $ioctl_field->{COMPAT}{POINTER}=1;
                     push @ioctl_pointers, $ioctl_field;
                     if ($param->{INPARAM}) {
-                        push @fields_pointer_in_null, $null;
+                        push @fields_pointer_in_null, $null; # Used in generic pointer validation
                         push @fields_varargs_in, $field;
+                        push @fields_varargs_data_in, $data;
                     } else {
-                        push @fields_pointer_out_null, $null;
+                        push @fields_pointer_out_null, $null; # Used in generic pointer validation
                         push @fields_varargs_out, $field;
+                        push @fields_varargs_data_out, $data;
                     }
                     if(exists $structs->{$param->{BASETYPE}}) {
                         foreach (@{$structs->{$param->{BASETYPE}}}) {
                             if(exists $_->{ATTR}{memory} && $_->{ATTR}{memory} eq 'cached') {
                                 my $memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})), TYPE => 'int', COMMENT => 'array of NEXUS_Addr'};
-                                my $ioctl_memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})), TYPE => 'NEXUS_Addr *', COMMENT => 'array of NEXUS_Addr'};
+                                my $ioctl_memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})), TYPE => 'NEXUS_Addr *', COMMENT => 'array of NEXUS_Addr', COMPAT => {POINTER => 1}};
+                                my $data_memory = {KIND => ['struct'], NAME => (flat_name ($param->{NAME} , $_->{NAME})) . "[$reserved]" , TYPE => 'NEXUS_Addr'};
+                                my $reserved;
                                 push @ioctl_pointers, $ioctl_memory;
                                 if ($param->{INPARAM}) {
                                     push @fields_varargs_in, $memory;
+                                    push @fields_varargs_data_in, $data_memory;
                                 } else {
                                     push @fields_varargs_out, $memory;
+                                    push @fields_varargs_data_out, $data_memory;
                                 }
                             }
                         }
@@ -301,6 +490,7 @@ sub process_functions {
                 if(exists $param->{ATTR}{memory} && $param->{ATTR}{memory} eq 'cached') {
                     my $null = {KIND => ['struct'], NAME => $param->{NAME}, TYPE => 'bool'};
                     $field->{TYPE} = 'NEXUS_Addr';
+                    $ioctl_field->{COMPAT}{POINTER}=1;
                     push @ioctl_pointers, $ioctl_field;
                     if ($param->{INPARAM}) {
                         push @fields_pointer_in_null, $null;
@@ -327,6 +517,7 @@ sub process_functions {
                         }
                     }
                 }
+                $ioctl_field->{COMPAT}{POINTER}=1;
                 push @ioctl_pointers, $ioctl_field;
                 if ($param->{INPARAM}) {
                     push @fields_pointer_in, $field;
@@ -344,7 +535,7 @@ sub process_functions {
         my @ioctl_in;
         if(scalar @fields_in) {
             my $name = "\U$module\E_${funcname}_in_args";
-            push @args, {$name => \@fields_in};
+            $api_structs{$name} =  \@fields_in;
             push @in, {KIND => ['struct'], NAME => 'args' , TYPE => $name};
             push @ioctl_in, {KIND => ['struct'], NAME => 'args' , TYPE => $name};
         }
@@ -357,13 +548,14 @@ sub process_functions {
             my $unused = {KIND => ['struct'], NAME => '__unused' , TYPE => 'unsigned'};
             push @in, $unused;
         }
+        add_substruct(\@varargs_data_in, "_${funcname}", 'union', \@fields_varargs_data_in);
         add_substruct(\@ioctl_in, 'pointer', 'struct', \@ioctl_pointers);
         add_substruct(\@ioctl_in, 'memory', 'struct', \@fields_memory_in);
 
         my @out;
         if(scalar @fields_out) {
-            my $name = "b_${funcname}_out_args";
-            push @args, {$name => \@fields_out};
+            my $name = "\U$module\E_${funcname}_out_args";
+            $api_structs{$name} =  \@fields_out;
         }
         add_substruct(\@out, 'ret', 'struct', \@fields_out);
         add_substruct(\@out, 'pointer', 'struct', \@fields_pointer_out);
@@ -373,12 +565,17 @@ sub process_functions {
             my $unused = {KIND => ['struct'], NAME => '__unused' , TYPE => 'unsigned'};
             push @out, $unused;
         }
+        add_substruct(\@varargs_data_out, "_${funcname}", 'union', \@fields_varargs_data_out);
+
         my @ioctl_out;
         add_substruct(\@ioctl_out, 'ret', 'struct', \@fields_out);
         add_substruct(\@ioctl_out, 'memory', 'struct', \@fields_memory_out);
 
-        add_substruct(\@fields_func_in, "_${funcname}", 'union', \@in);
-        add_substruct(\@fields_func_out, "_${funcname}", 'union', \@out);
+        $api_structs{"B_${funcname}_ipc_in"} = \@in;
+        $api_structs{"B_${funcname}_ipc_out"} = \@out;
+
+        push @fields_func_in, {KIND => ['union'], NAME => "_${funcname}", TYPE => "B_${funcname}_ipc_in"};
+        push @fields_func_out, {KIND => ['union'], NAME => "_${funcname}", TYPE => "B_${funcname}_ipc_out"};
 
         add_substruct(\@ioctl_func, 'in', 'union', \@ioctl_in);
         add_substruct(\@ioctl_func, 'out', 'union', \@ioctl_out);
@@ -386,16 +583,48 @@ sub process_functions {
             my $unused = {KIND => ['struct'], NAME => '__unused' , TYPE => 'unsigned'};
             push @ioctl_func, $unused;
         }
-        push @ioctls, {"\U$module\E_${funcname}_data" => \@ioctl_func};
-    }
-    my $struct_in = { "b_${module}_module_ipc_in" => \@fields_func_in};
-    my $struct_out = { "b_${module}_module_ipc_out" => \@fields_func_out};
-    my $struct = [
-        {KIND => ['union'], NAME => 'in' , TYPE => "b_${module}_module_ipc_in"},
-        {KIND => ['union'], NAME => 'out' , TYPE => "b_${module}_module_ipc_out"}
-    ];
+        my $ioctl_name = "\U$module\E_${funcname}_ioctl_data";
+        push @ioctls, { $ioctl_name => \@ioctl_func };
+        $api_structs{$ioctl_name} = \@ioctl_func;
 
-    return [$struct_in, $struct_out, \@ioctls, \@args];
+        push @api_ids, [$funcname,"NEXUS_P_API_${module}_${funcname}_id"];
+    }
+    my $api_in = "b_${module}_module_ipc_in";
+    my $api_out = "b_${module}_module_ipc_out";
+    $api_structs{$api_in} = \@fields_func_in;
+    $api_structs{$api_out} = \@fields_func_out;
+    if(scalar @varargs_data_in == 0) {
+        my $unused = {KIND => ['struct'], NAME => '__unused' , TYPE => 'unsigned'};
+        push @varargs_data_in , $unused;
+    }
+    if(scalar @varargs_data_out == 0) {
+        my $unused = {KIND => ['struct'], NAME => '__unused' , TYPE => 'unsigned'};
+        push @varargs_data_out , $unused;
+    }
+
+    $api_structs{"b_${module}_vararg_data_in"} = \@varargs_data_in;
+    $api_structs{"b_${module}_vararg_data_out"} = \@varargs_data_out;
+
+
+    $compat_info{API}{IN} = $api_in;
+    $compat_info{API}{OUT} = $api_in;
+
+    my $struct = [
+        {KIND => ['union'], NAME => 'in' , TYPE => $api_in},
+        {KIND => ['union'], NAME => 'out' , TYPE => $api_out}
+    ];
+    # find all types that are referenced in the API
+    my %references;
+    while ( my ($name, $fields) = each %api_structs) {
+        my $struct_reference = get_referenced_structs($fields, $original_structs, {'WITH_UNION'=>1});
+        $references{$name} = $fields;
+        for (@$struct_reference) {
+            $references{$_}=$original_structs->{$_};
+        }
+    }
+    my $varargs_info = {'IN' => \@varargs_data_in, 'OUT' => \@varargs_data_out};
+
+    return [\@ioctls, \%api_structs, \%references, \@api_ids, \%compat_info, $varargs_info];
 }
 
 sub process_arguments {
@@ -411,19 +640,19 @@ sub process_arguments {
         $arg_no++;
         my $callback_kind='_UNKNOWN';
         push @trace_names,$param->{NAME};
-        if($param->{ISREF} || bapi_util::is_handle($param->{TYPE}, $class_handles)) {
+        if($param->{ISREF} || is_handle($param->{TYPE}, $class_handles) || $param->{TYPE} eq 'NEXUS_AnyObject' ) {
             push @trace_format, "%p";
             push @trace_args, "(void *)$param->{NAME}";
         } elsif (exists $special_types{$param->{TYPE}}) {
             push @trace_format, $special_types{$param->{TYPE}}->{FORMAT};
-            push @trace_args,$special_types{$param->{TYPE}}->{CONVERT} . $param->{NAME};
+            push @trace_args,$special_types{$param->{TYPE}}->{FORMAT_CONVERT} . $param->{NAME};
         } else {
             push @trace_format, "%u";
             push @trace_args, "(unsigned)$param->{NAME}";
         }
-        if (bapi_util::is_handle($func->{RETTYPE}, $class_handles)) {
+        if (is_handle($func->{RETTYPE}, $class_handles)) {
             $callback_kind='_CONSTRUCTOR';
-        } elsif (bapi_util::is_handle($func->{PARAMS}[0]{TYPE}, $class_handles)) {
+        } elsif (is_handle($func->{PARAMS}[0]{TYPE}, $class_handles)) {
             $callback_kind= '';
         } elsif ($func->{PARAMS}[0]{ISREF}) {
             if($arg_no == 1 && (scalar @{$func->{PARAMS}} == 1)) {
@@ -444,67 +673,81 @@ sub process_arguments {
             }
         }
         if(exists $param->{ATTR}{nelem}) {
+            my $type = $param->{BASETYPE};
+            $type = 'uint8_t' if $type eq 'void';
+            my $kind = get_type_kind($type, $param->{ATTR}, $structs, $class_handles);
+            my $compat_type = get_compat_type_decl($type, $kind);
             if ($param->{INPARAM}) {
-                my $type = $param->{BASETYPE};
-                $type = 'uint8_t' if $type eq 'void';
+
+                push @{$code->{COMPAT}{VARARG_IN_DECLARE}}, "NEXUS_P_COMPAT_VARARG_IN_DECLARE($api, $param->{NAME}, $type,$compat_type)";
                 if(exists $param->{ATTR}{nelem_convert}) {
                     my $convert = $param->{ATTR}{nelem_convert};
                     push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG_NELEM_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
                     push @{$code->{SERVER}{RECV_VARARG}}, "B_IPC_SERVER_RECV_VARARG_NELEM_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
                     push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG_NELEM_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
+                    push @{$code->{COMPAT}{VARARG_IN_PLACE}}, "NEXUS_P_COMPAT_VARARG_IN_PLACE_WITH_CONVERT($api, $param->{NAME}, $type, $compat_type, $convert, $param->{ATTR}{nelem})";
+                    push @{$code->{COMPAT}{VARARG_IN_CONVERT}}, "NEXUS_P_COMPAT_VARARG_IN_CONVERT_WITH_CONVERT($api, $param->{NAME}, $type, $convert, $param->{ATTR}{nelem})";
                 } else {
                     push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
                     push @{$code->{SERVER}{RECV_VARARG}}, "B_IPC_SERVER_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
-                    push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                    push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG($api, $param->{NAME}, B_IPC_COMPAT_SELECT($type, $compat_type), $param->{ATTR}{nelem})";
+                    push @{$code->{COMPAT}{VARARG_IN_PLACE}}, "NEXUS_P_COMPAT_VARARG_IN_PLACE($api, $param->{NAME}, $type, $compat_type, $param->{ATTR}{nelem})";
+                    push @{$code->{COMPAT}{VARARG_IN_CONVERT}}, "NEXUS_P_COMPAT_VARARG_IN_CONVERT($api, $param->{NAME}, $kind, $type, $param->{ATTR}{nelem})";
                 }
             }
             if($param->{BASETYPE} eq 'NEXUS_CallbackDesc') {
                 push @{$code->{SERVER}{CALLBACK_PRE}}, 'B_IPC_NOT_SUPPORTED("NEXUS_CallbackDesc as varags")';
             }
             if(exists $structs->{$param->{BASETYPE}}) {
+                if(exists $param->{ATTR}{nelem_convert} || exists $special_types{$param->{BASETYPE}}) {
+                    push @{$code->{SERVER}{RECV_VARARG}}, 'B_IPC_NOT_SUPPORTED("nelem_convert in complex varags")';
+                }
                 foreach (@{$structs->{$param->{BASETYPE}}}) {
                     if($_->{TYPE} eq 'NEXUS_CallbackDesc') {
                         push @{$code->{SERVER}{CALLBACK_PRE}}, 'B_IPC_NOT_SUPPORTED("NEXUS_CallbackDesc in varags")';
                     }
                     if(exists $_->{ATTR}{memory} && $_->{ATTR}{memory} eq 'cached') {
-                        if(exists $param->{ATTR}{nelem_convert}) {
-                            push @{$code->{SERVER}{RECV_VARARG}}, 'B_IPC_NOT_SUPPORTED("nelem_convert in complex varags")';
-                        }
                         my $name = flat_name ($param->{NAME} , $_->{NAME});
                         if ($param->{INPARAM}) {
                             push @{$code->{CLIENT}{SEND_VARARG}}, "B_IPC_CLIENT_SEND_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
                             push @{$code->{SERVER}{RECV_VARARG}}, "B_IPC_SERVER_RECV_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
                             push @{$code->{DRIVER}{RECV_VARARG}}, "B_IPC_DRIVER_RECV_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
+                            push @{$code->{COMPAT}{VARARG_IN_CONVERT}}, "NEXUS_P_COMPAT_VARARG_IN_ADDR_CONVERT($api, $param->{NAME}, $param->{TYPE}, $name, $param->{ATTR}{nelem})";
                         } else {
-                            push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
-                            push @{$code->{CLIENT}{RECV_VARARG}}, "B_IPC_CLIENT_RECV_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
-                            push @{$code->{SERVER}{OUT_VARARGS}{PLACE}}, "B_IPC_PLACE_PLACE_OUT_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
-                            push @{$code->{SERVER}{OUT_VARARGS}{SIZE}}, "B_IPC_SERVER_SIZE_OUT_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
-                            push @{$code->{SERVER}{PROCESS}}, "B_IPC_SERVER_PROCESS_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
-                            push @{$code->{DRIVER}{SEND_VARARG}}, "B_IPC_SERVER_SEND_VARARG_ADDR($api, $param->{NAME}, $param->{TYPE}, $_->{NAME}, $name, $param->{ATTR}{nelem})";
+                            push @{$code->{SERVER}{PROCESS}}, "BDBG_CASSERT(0); /* memory pointers in out varargs are not supported */";
                         }
                     }
                 }
             }
             if (not $param->{INPARAM}) {
-                my $type = $param->{BASETYPE};
-                $type = 'uint8_t' if $type eq 'void';
-                my $nelem = exists $param->{ATTR}{nelem_out} ? "* $param->{ATTR}{nelem_out}" : $param->{ATTR}{nelem};
                 if(exists $param->{ATTR}{nelem_convert}) {
                     push @{$code->{SERVER}{OUT_VARARGS}{SIZE}}, 'B_IPC_NOT_SUPPORTED("nelem_convert in out varags")';
                 }
                 push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
-                push @{$code->{CLIENT}{RECV_VARARG}}, "B_IPC_CLIENT_RECV_VARARG($api, $param->{NAME}, $type, $nelem)";
+                if(exists $param->{ATTR}{nelem_out}) {
+                    push @{$code->{CLIENT}{RECV_VARARG}}, "B_IPC_CLIENT_RECV_VARARG($api, $param->{NAME}, $type, * $param->{ATTR}{nelem_out})";
+                } else {
+                    push @{$code->{CLIENT}{RECV_VARARG}}, "B_IPC_CLIENT_RECV_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                }
                 push @{$code->{SERVER}{OUT_VARARGS}{PLACE}}, "B_IPC_SERVER_PLACE_OUT_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
                 push @{$code->{SERVER}{OUT_VARARGS}{SIZE}}, "B_IPC_SERVER_SIZE_OUT_VARARG($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
-                push @{$code->{DRIVER}{DECLARE}}, "B_IPC_DRIVER_DATA($param->{TYPE}, $param->{NAME})";
+                push @{$code->{DRIVER}{DECLARE}}, "B_IPC_DRIVER_DATA( B_IPC_COMPAT_SELECT($param->{TYPE}, B_NEXUS_COMPAT_TYPE_POINTER($param->{BASETYPE})), $param->{NAME})";
                 push @{$code->{DRIVER}{ASSIGN}}, "B_IPC_DRIVER_ASSIGN_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{RECV}}, "B_IPC_DRIVER_SET_OUT_PTR($api, $param->{NAME})";
                 if(exists $param->{ATTR}{nelem_out}) {
-                    push @{$code->{DRIVER}{SEND_VARARG}}, "B_IPC_DRIVER_SEND_VARARG_NELEM_OUT($api, $param->{NAME}, $type, $param->{ATTR}{nelem_out})";
+                    push @{$code->{DRIVER}{SEND_VARARG}}, "B_IPC_DRIVER_SEND_VARARG_NELEM_OUT($api, $param->{NAME}, B_IPC_COMPAT_SELECT($type, $compat_type), $param->{ATTR}{nelem_out})";
                 } else {
-                    push @{$code->{DRIVER}{SEND_VARARG}}, "B_IPC_DRIVER_SEND_VARARG_NELEM($api, $param->{NAME}, $type, $param->{ATTR}{nelem})";
+                    push @{$code->{DRIVER}{SEND_VARARG}}, "B_IPC_DRIVER_SEND_VARARG_NELEM($api, $param->{NAME}, B_IPC_COMPAT_SELECT($type, $compat_type), $param->{ATTR}{nelem})";
                 }
+                push @{$code->{COMPAT}{VARARG_OUT_DECLARE}}, "NEXUS_P_COMPAT_VARARG_OUT_DECLARE($api, $param->{NAME}, $type,$compat_type)";
+                push @{$code->{COMPAT}{VARARG_OUT_DECLARE}}, "NEXUS_P_COMPAT_VARARG_OUT_DECLARE_NELEM($api, $param->{NAME}, $param->{ATTR}{nelem})";
+                push @{$code->{COMPAT}{VARARG_OUT_SIZE}}, "NEXUS_P_COMPAT_VARARG_OUT_SIZE($api, $param->{NAME}, $type, $compat_type, $param->{ATTR}{nelem})";
+                push @{$code->{COMPAT}{VARARG_OUT_PLACE}}, "NEXUS_P_COMPAT_VARARG_OUT_PLACE($api, $param->{NAME}, $type, $compat_type, $param->{ATTR}{nelem})";
+                if(exists $param->{ATTR}{nelem_out}) {
+                    push @{$code->{COMPAT}{VARARG_OUT_PROCESS}}, "NEXUS_P_COMPAT_VARARG_OUT_UPDATE_NELEM($api, $param->{NAME}, $param->{ATTR}{nelem}, $param->{ATTR}{nelem_out})";
+                }
+                push @{$code->{COMPAT}{VARARG_OUT_CONVERT}}, "NEXUS_P_COMPAT_VARARG_OUT_CONVERT($api, $param->{NAME}, $kind, $type, $param->{ATTR}{nelem})";
+
             }
         } elsif(exists $param->{ATTR}{memory} && $param->{ATTR}{memory} eq 'cached') {
             if ($param->{INPARAM}) {
@@ -526,10 +769,13 @@ sub process_arguments {
                 push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_RECV_IN_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{RECV_PTR}}, "B_IPC_DRIVER_RECV_IN_PTR($api, $param->{NAME})";
             } else {
+                my $type = $param->{BASETYPE};
+                my $kind = get_type_kind($type, $param->{ATTR}, $structs, $class_handles);
+                my $compat_type = get_compat_type_decl($type, $kind);
                 push @{$code->{CLIENT}{SEND}}, "B_IPC_CLIENT_SEND_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{CLIENT}{RECV}}, "B_IPC_CLIENT_RECV_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{SERVER}{SET_OUT_PTR}}, "B_IPC_SERVER_SET_OUT_PTR($api, $param->{NAME})";
-                push @{$code->{DRIVER}{DECLARE}}, "B_IPC_DRIVER_DATA($param->{TYPE}, $param->{NAME})";
+                push @{$code->{DRIVER}{DECLARE}}, "B_IPC_DRIVER_DATA( B_IPC_COMPAT_SELECT($param->{TYPE}, B_NEXUS_COMPAT_TYPE_POINTER($param->{BASETYPE})), $param->{NAME})";
                 push @{$code->{DRIVER}{ASSIGN}}, "B_IPC_DRIVER_ASSIGN_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{RECV}}, "B_IPC_DRIVER_SET_OUT_PTR($api, $param->{NAME})";
                 push @{$code->{DRIVER}{SEND}}, "B_IPC_DRIVER_COPY_OUT_PTR($api, $param->{NAME})";
@@ -574,7 +820,7 @@ sub process_arguments {
     my $result_format='';
     my $result_args='';
     if($func->{RETTYPE} ne 'void') {
-        if(bapi_util::is_handle($func->{RETTYPE}, $class_handles)) {
+        if(is_handle($func->{RETTYPE}, $class_handles)) {
             $result_format=' result:%p';
             $result_args=',(void *)__result';
         } else {
@@ -602,8 +848,8 @@ sub generate_ipc_client {
     print $fout $autogenerated;
     print $fout "
 #define NEXUS_PROXY_THUNK_LAYER\n
-#include \"client/nexus_client_prologue.h\"
 #include \"nexus_${module}_module.h\"
+#include \"client/nexus_client_prologue.h\"
 #include \"nexus_core_utils.h\"
 #include \"client/nexus_client_units.h\"
 #include \"nexus_${module}_abiverify_api.h\"
@@ -640,80 +886,27 @@ BDBG_MODULE(nexus_${module}_proxy);
 }
 
 sub generate_ioctl {
-    my ($fout, $module, $functions, $class_handles, $structs, $module_number, $ioctls) = @_;
+    my ($fout, $fout_compat, $module, $functions, $class_handles, $structs, $ioctls) = @_;
     my $id = 101;
     print $fout $autogenerated;
-    print $fout "
-#include \"nexus_${module}_api.h\"
-/* ioctl dispatch is faster if ioctl number doesn't include size of the structure */
-#define NEXUS_IOCTL_\U${module}\E_ID  $module_number
-";
+    print $fout_compat $autogenerated;
+    print $fout "#include \"nexus_${module}_api.h\"\n";
+    print $fout_compat "#include \"nexus_${module}_api_compat.h\"\n";
+    print $fout "#define NEXUS_IOCTL_\U${module}\E_ID  PROXY_NEXUS_ModuleIoctl_e${module}\n";
 
-    for (@$ioctls) {
-        print_struct($fout, $_, $class_handles, 0);
-    }
     print $fout "#define IOCTL_\U${module}\E_NEXUS_INIT NEXUS_IOCTL($id, NEXUS_IOCTL_\U${module}\E_ID*NEXUS_IOCTL_PER_MODULE+0, PROXY_NEXUS_ModuleInit)\n";
-    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
+    for my $func (@$functions) {
         next if(exists $func->{ATTR}{'local'});
         my $funcname = $func->{FUNCNAME};
-        print $fout "#define IOCTL_\U${module}\E_${funcname} NEXUS_IOCTL($id, NEXUS_IOCTL_\U${module}\E_ID*NEXUS_IOCTL_PER_MODULE+NEXUS_P_API_${module}_${funcname}_id+1, b_${funcname}_data)\n";
+        print $fout "#define IOCTL_\U${module}\E_${funcname} NEXUS_IOCTL($id, NEXUS_IOCTL_\U${module}\E_ID*NEXUS_IOCTL_PER_MODULE+NEXUS_P_API_${module}_${funcname}_id+1, \U${module}\E_${funcname}_ioctl_data)\n";
+        print $fout_compat "#define IOCTL_\U${module}\E_${funcname}_compat NEXUS_IOCTL($id, NEXUS_IOCTL_\U${module}\E_ID*NEXUS_IOCTL_PER_MODULE+NEXUS_P_API_${module}_${funcname}_id+1, B_NEXUS_COMPAT_TYPE(\U${module}\E_${funcname}_ioctl_data))\n";
     }
 }
 
-my $tab = '    ';
-
-sub generate_driver {
-    my ($fout, $module, $functions, $class_handles, $structs) = @_;
+sub generate_driver_process_ioctls {
+    my ($fout, $module, $functions, $class_handles, $structs, $varargs_info) = @_;
     print $fout $autogenerated;
-    print $fout "
-#define NEXUS_DRIVER_MODULE_NAME \"\U${module}\E\"
-#include \"nexus_${module}_module.h\"
-BDBG_MODULE(nexus_${module}_driver);
-BDBG_FILE_MODULE(nexus_trace_${module});
-#if NEXUS_P_TRACE
-#define NEXUS_P_TRACE_MSG(x) BDBG_MODULE_MSG(nexus_trace_${module}, x)
-#else
-#define NEXUS_P_TRACE_MSG(x)
-#endif
-#include \"nexus_core_utils.h\"
-
-/* defines to make all module symbols uniques */
-#define nexus_driver_module_ioctl nexus_driver_${module}_ioctl
-#define nexus_driver_module_open nexus_driver_${module}_open
-#define nexus_driver_module_close nexus_driver_${module}_close
-#define nexus_driver_module_state nexus_driver_${module}_state
-#define nexus_driver_module_args nexus_driver_${module}_args
-#define nexus_driver_module_data struct { b_${module}_module_ipc_in in; b_${module}_module_ipc_out out;} data;
-
-#define NEXUS_IOCTL_MODULE_INIT      IOCTL_\U${module}\E_NEXUS_INIT
-#define NEXUS_IOCTL_MODULE_VERSION   NEXUS_${module}_MODULE_VERSION
-
-
-#include \"driver/nexus_driver_prologue.h\"
-#include \"nexus_${module}_abiverify_ioctl.h\"
-#include \"../common/ipc/nexus_ipc_server_api.h\"
-#include \"driver/nexus_driver_units.h\"
-
-#define NEXUS_DRIVER_MODULE_CLASS_TABLE    nexus_server_${module}_class_table
-extern  const struct b_objdb_class  NEXUS_DRIVER_MODULE_CLASS_TABLE[];
-B_IPC_SERVER_DECLARE(${module})
-
-union nexus_driver_module_args {
-  PROXY_NEXUS_ModuleInit init;
-";
-
-    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
-        next if(exists $func->{ATTR}{'local'});
-        my $funcname = $func->{FUNCNAME};
-        print $fout "  struct {\n";
-        print $fout "    \U${module}\E_${funcname}_data ioctl;\n";
-        print $fout "  } _${funcname};\n";
-    }
-    print $fout "};\n";
-    print $fout "#include \"driver/nexus_driver_body.h\"\n";
-
-    print $fout "B_IPC_DRIVER_MODULE_BEGIN($module, \U$module\E)\n";
-    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
+    for my $func (@$functions) {
         next if(exists $func->{ATTR}{'local'});
         my $funcname = $func->{FUNCNAME};
         my $api = "_${funcname}";
@@ -744,16 +937,150 @@ union nexus_driver_module_args {
         print $fout "B_IPC_DRIVER_END($module, $funcname)\n";
         print $fout "\n";
     }
-    print $fout "B_IPC_DRIVER_MODULE_END($module, \U$module\E)\n";
+}
 
-    print $fout "#include \"driver/nexus_driver_epilogue.h\"\n";
+sub generate_driver {
+    my ($fout, $module, $functions, $class_handles, $structs, $varargs_info) = @_;
+    print $fout $autogenerated;
+    print $fout "
+#define NEXUS_DRIVER_MODULE_NAME \"\U${module}\E\"
+#include \"nexus_${module}_module.h\"
+BDBG_MODULE(nexus_${module}_driver);
+BDBG_FILE_MODULE(nexus_trace_${module});
+#if NEXUS_P_TRACE
+#define NEXUS_P_TRACE_MSG(x) BDBG_MODULE_MSG(nexus_trace_${module}, x)
+#else
+#define NEXUS_P_TRACE_MSG(x)
+#endif
+#include \"nexus_core_utils.h\"
+
+/* defines to make all module symbols uniques */
+#define nexus_driver_module_ioctl nexus_driver_${module}_ioctl
+#define nexus_driver_module_open nexus_driver_${module}_open
+#define nexus_driver_module_close nexus_driver_${module}_close
+#define nexus_driver_module_state nexus_driver_${module}_state
+#define nexus_driver_module_args nexus_driver_${module}_args
+
+#define NEXUS_IOCTL_MODULE_INIT      IOCTL_\U${module}\E_NEXUS_INIT
+#define NEXUS_IOCTL_MODULE_VERSION   NEXUS_${module}_MODULE_VERSION
+
+#include \"nexus_${module}_abiverify_ioctl.h\"
+#if NEXUS_COMPAT_32ABI
+#include \"nexus_base_compat.h\"
+#include \"nexus_${module}_abiverify_ioctl_compat.h\"
+typedef B_NEXUS_COMPAT_TYPE(b_${module}_module_ipc_in) b_${module}_module_ipc_in_compat;
+typedef B_NEXUS_COMPAT_TYPE(b_${module}_module_ipc_out) b_${module}_module_ipc_out_compat;
+#endif
+typedef b_${module}_module_ipc_in b_${module}_module_ipc_in_native;
+typedef b_${module}_module_ipc_out b_${module}_module_ipc_out_native;
+
+struct nexus_${module}_driver_module_data {
+    union {
+        struct {
+            b_${module}_module_ipc_in ipc;
+            b_${module}_vararg_data_in varargs;
+        } native;
+#if NEXUS_COMPAT_32ABI
+        struct {
+            B_NEXUS_COMPAT_TYPE(b_${module}_module_ipc_in) ipc;
+            B_NEXUS_COMPAT_TYPE(b_${module}_vararg_data_in) varargs;
+        } compat;
+#endif
+    } in;
+    union {
+        struct {
+            b_${module}_module_ipc_out ipc;
+            b_${module}_vararg_data_out varargs;
+        } native;
+#if NEXUS_COMPAT_32ABI
+        struct {
+            B_NEXUS_COMPAT_TYPE(b_${module}_module_ipc_out) ipc;
+            B_NEXUS_COMPAT_TYPE(b_${module}_vararg_data_out) varargs;
+        } compat;
+#endif
+    } out;
+};
+
+#define nexus_driver_module_data struct nexus_${module}_driver_module_data data;
+
+
+#include \"driver/nexus_driver_prologue.h\"
+#include \"driver/nexus_driver_units.h\"
+
+#define NEXUS_DRIVER_MODULE_CLASS_TABLE    nexus_server_${module}_class_table
+extern  const struct b_objdb_class  NEXUS_DRIVER_MODULE_CLASS_TABLE[];
+B_IPC_DRIVER_CALL_HELPER(, ${module})
+#if NEXUS_COMPAT_32ABI
+B_IPC_DRIVER_CALL_HELPER(_compat, ${module})
+#endif
+";
+
+
+    for my $mode ('native','compat') {
+        if($mode eq 'compat') {
+            print $fout "#if NEXUS_COMPAT_32ABI\n";
+        }
+        print $fout "union nexus_driver_${module}_args_${mode} {\n";
+        print $fout "${tab}PROXY_NEXUS_ModuleInit init;\n";
+
+        for my $func (@$functions) {
+            next if(exists $func->{ATTR}{'local'});
+            my $funcname = $func->{FUNCNAME};
+            print $fout "${tab}struct {\n";
+            if($mode eq 'compat') {
+                print $fout "$tab${tab}B_NEXUS_COMPAT_TYPE(\U${module}\E_${funcname}_ioctl_data) ioctl;\n";
+            } else {
+                print $fout "$tab$tab\U${module}\E_${funcname}_ioctl_data ioctl;\n";
+            }
+            print $fout "$tab} _${funcname};\n";
+        }
+        print $fout "};\n";
+        if($mode eq 'compat') {
+            print $fout "#endif\n";
+        }
+    }
+
+    print $fout "
+union nexus_driver_${module}_args {
+    union nexus_driver_${module}_args_native native;
+#if NEXUS_COMPAT_32ABI
+    union nexus_driver_${module}_args_compat compat;
+#endif
+};
+#include \"driver/nexus_driver_body.h\"
+#if NEXUS_COMPAT_32ABI
+    if(compat) {
+        B_IPC_DRIVER_MODULE_BEGIN($module, \U$module\E, compat)
+#define B_IPC_COMPAT_SELECT(native, compat) compat
+#define B_IPC_COMPAT_POINTER(arg) (void *)(unsigned long)(arg)
+#define B_IPC_COMPAT_NAME(x) x##_compat
+#include \"nexus_${module}_abiverify_process_ioctl.h\"
+#undef B_IPC_COMPAT_SELECT
+#undef B_IPC_COMPAT_POINTER
+#undef B_IPC_COMPAT_NAME
+        B_IPC_DRIVER_MODULE_END($module, \U$module\E)
+    } else
+#endif
+    {
+        B_IPC_DRIVER_MODULE_BEGIN($module, \U$module\E, native)
+#define B_IPC_COMPAT_SELECT(native, compat) native
+#define B_IPC_COMPAT_POINTER(arg) arg
+#define B_IPC_COMPAT_NAME(x) x
+#include \"nexus_${module}_abiverify_process_ioctl.h\"
+#undef B_IPC_COMPAT_SELECT
+#undef B_IPC_COMPAT_POINTER
+#undef B_IPC_COMPAT_NAME
+        B_IPC_DRIVER_MODULE_END($module, \U$module\E)
+    }
+#include \"driver/nexus_driver_epilogue.h\"\n
+";
 }
 
 sub generate_client {
     my ($fout, $module, $functions, $class_handles, $structs, $destructors, $classes) = @_;
     print $fout $autogenerated;
     print $fout "B_IPC_CLIENT_MODULE_BEGIN($module, \U$module\E)\n";
-    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
+    for my $func (@$functions) {
         next if(exists $func->{ATTR}{'local'});
         my $is_destructor = 0;
         for my $d (values %$destructors) {
@@ -796,7 +1123,7 @@ sub generate_client {
             print $fout "B_IPC_CLIENT_END_DESTRUCTOR($api, $func->{PARAMS}[0]{NAME})\n";
         } elsif($func->{RETTYPE} eq 'void') {
             print $fout "B_IPC_CLIENT_END_VOID($api)\n";
-        } elsif (bapi_util::is_handle($func->{RETTYPE}, $class_handles)) {
+        } elsif (is_handle($func->{RETTYPE}, $class_handles)) {
             print $fout "B_IPC_CLIENT_END_HANDLE($func->{RETTYPE}, $api)\n";
         } else {
             print $fout "B_IPC_CLIENT_END($api)\n";
@@ -828,8 +1155,9 @@ sub generate_meta
     my %declared_objects;
     my $in_arg_type = "b_${module}_module_ipc_in";
     my $out_arg_type = "b_${module}_module_ipc_out";
+    my %class_dict = map {$_ => 1} @$class_handles;
 
-    for $func (sort @$funcs) {
+    for my $func (@$funcs) {
         next if(exists $func->{ATTR}{'local'});
         my $in_args_count = 0;
         my $out_args_count = 0;
@@ -842,6 +1170,8 @@ sub generate_meta
         my $isnull_prefix;
         my @function;
         my @objects;
+        my @array_objects;
+        my @vararg_objects;
         my @pointers;
         my %referenced_objects;
 
@@ -857,9 +1187,9 @@ sub generate_meta
 
             # find arguments that are pointers
             if ($param->{ISREF}) {
+                my @pointer;
                 if (!exists $param->{ATTR}->{'nelem'}) {
-                    my @pointer;
-                    push @pointer, "\"$param->{NAME}\" ,";
+                    push @pointer, "BDBG_STRING(\"$param->{NAME}\") ,";
                     if(exists $param->{ATTR}{memory} && $param->{ATTR}{memory} eq 'cached') {
                         push @pointer, "NEXUS_OFFSETOF($arg_type, $args . memory . $param->{NAME}), /* offset */";
                     } else {
@@ -872,10 +1202,8 @@ sub generate_meta
                     }
                     push @pointer, ($param->{INPARAM} ? "true":"false") . ', /* inparam */';
                     push @pointer, ($param->{ATTR}->{'null_allowed'} ? "true":"false") . '/* null_allowed */';
-                    push @pointers, \@pointer;
                 } else {
-                    my @pointer;
-                    push @pointer, "\"$param->{NAME}\" ,";
+                    push @pointer, "BDBG_STRING(\"$param->{NAME}\") ,";
                     push @pointer, "NEXUS_OFFSETOF($arg_type, $args . vararg. $param->{NAME}), /* offset */";
                     if($param->{INPARAM}) {
                         push @pointer, "NEXUS_OFFSETOF($arg_type, $args . pointer . is_null . $param->{NAME}), /* null_offset */";
@@ -884,56 +1212,148 @@ sub generate_meta
                     }
                     push @pointer, ($param->{INPARAM} ? "true":"false") . ', /* inparam */';
                     push @pointer, ($param->{ATTR}->{'null_allowed'} ? "true":"false") . '/* null_allowed */';
-                    push @pointers, \@pointer;
                 }
+                push @pointers, \@pointer;
             }
 
             # find arguments that are pointers to structures and scan them
             if ($param->{ISREF} && exists $structs->{$param->{BASETYPE}}) {
-                next if (exists $param->{ATTR}->{'nelem'}); # TODO Currently we can't process objects in variable size arrays
-                foreach (@$class_handles) {
-                    # first, check if param is a struct which has a class handle field
-                    my $handletype = $_;
-                    my $struct_field;
-                    for $struct_field (@{$structs->{$param->{BASETYPE}}}) {
-                        next if index($struct_field->{NAME}, '[') != -1; # For now skip arrays, we don't verify data inside arrays
-                        if ($struct_field->{TYPE} eq $handletype ) {
-                            my $class_name = bapi_classes::get_class_name($handletype);
-                            my @object;
-
-                            push @object, '"' . $param->{NAME} . '->' . $struct_field->{NAME} . '",';
-                            push @object, "NEXUS_OFFSETOF($arg_type, $args . pointer . $param->{NAME}.$struct_field->{NAME} ), /* offset */";
+                my $vararg = 0;
+                if (exists $param->{ATTR}{'nelem'}) {
+                    $vararg = 1;
+                }
+                # check if param is a struct which has a class handle field
+                my $struct_field;
+                for $struct_field (@{$structs->{$param->{BASETYPE}}}) {
+                    my $field_name = $struct_field->{NAME};
+                    my @array_size;
+                    my @array_offset;
+                    my $current_pos=0;
+                    while(1) {
+                        my $offset = index($field_name, '[', $current_pos);
+                        last if($offset==-1);
+                        $offset++;
+                        my $array_end = index($field_name, ']', $offset);
+                        last if($array_end==-1);
+                        push @array_size, substr($field_name, $offset, $array_end-$offset, '');
+                        push @array_offset, $offset;
+                        $current_pos = $offset;
+                    }
+                    if (exists $class_dict{$struct_field->{TYPE}}) {
+                        my @object;
+                        my $handletype = $struct_field->{TYPE};
+                        if($vararg) {
                             if($param->{INPARAM}) {
-                                push @object, "NEXUS_OFFSETOF($arg_type, $args . pointer . is_null . $param->{NAME}), /* null_offset */";
+                                my @object;
+                                push @object, "'NOT SUPPORTED input parameter $param->{TYPE} $param->{NAME} field $struct_field->{NAME} $struct_field->{TYPE}'";
                             } else {
-                                push @object, "NEXUS_OFFSETOF($in_arg_type, $in_args . pointer . out_is_null . $param->{NAME}), /* null_offset */";
+                                if(is_special_handle($struct_field->{TYPE})) {
+                                    push @object, "'NOT SUPPORTED output parameter $param->{TYPE} $param->{NAME} field $struct_field->{NAME} $struct_field->{TYPE}'";
+                                } else {
+                                    print $file "/* Ignored output parameter $param->{TYPE} $param->{NAME} field $struct_field->{NAME} $struct_field->{TYPE} */\n";
+                                }
                             }
-                            push @object, ($param->{INPARAM} ? "true":"false") . ', /* inparam */';
-                            push @object, "true, /* null allowed */";
-                            $referenced_objects{$class_name} = 1;
-                            push @object, "&NEXUS_OBJECT_DESCRIPTOR($class_name) /* descriptor */";
-                            push @objects, \@object;
+                        } else {
+                            if ($struct_field->{TYPE} eq $handletype) {
+                                my $class_name = bapi_classes::get_class_name($handletype);
+                                my $depth;
+                                push @object, 'BDBG_STRING("' . $param->{NAME} . '->' . $field_name . '"),';
+                                push @object, "NEXUS_OFFSETOF($arg_type, $args . pointer . $param->{NAME}.$field_name), /* offset */";
+                                if($param->{INPARAM}) {
+                                    push @object, "NEXUS_OFFSETOF($arg_type, $args . pointer . is_null . $param->{NAME}), /* null_offset */";
+                                } else {
+                                    if(is_special_handle($struct_field->{TYPE})) {
+                                        push @object, "NEXUS_OFFSETOF($in_arg_type, $in_args . pointer . out_is_null . $param->{NAME}), /* null_offset */";
+                                    } else {
+                                        print $file "/* Ignored output parameter $param->{TYPE} $param->{NAME} field $struct_field->{NAME} $struct_field->{TYPE} */\n";
+                                        next;
+                                    }
+                                }
+                                push @object, ($param->{INPARAM} ? "true":"false") . ', /* inparam */';
+                                push @object, "true, /* null allowed */";
+                                $referenced_objects{$class_name} = 1;
+                                push @object, "&NEXUS_OBJECT_DESCRIPTOR($class_name) /* descriptor */";
+                                if(scalar @array_size) {
+                                    my @field_array_objects;
+                                    my $depth = scalar @array_size - 1;
+                                    my $max_length = 48;
+                                    my @indicies;
+                                    for(0..$depth) {
+                                        $indicies[$_]=0;
+                                    }
+                                    while(1) {
+                                        my $field_name_array = $field_name;
+                                        for(reverse 0..$depth) {
+                                            substr($field_name_array, $array_offset[$_], 0, $indicies[$_]);
+                                        }
+                                        $object[1] = "NEXUS_OFFSETOF($arg_type, $args . pointer . $param->{NAME}.$field_name_array), /* offset */";
+                                        my @test;
+                                        for(0..$depth) {
+                                            push @test, "$array_size[$_] > $indicies[$_]";
+                                        }
+                                        push @field_array_objects, {DATA=>[@object],TEST=>join(" && ", @test)};
+                                        my $last_index=0;
+                                        for(reverse 0..$depth) {
+                                            $indicies[$_]++;
+                                            last if($indicies[$_]<$max_length);
+                                            $indicies[$_]=0;
+                                            $last_index = $_-1;
+                                        }
+                                        last if($last_index<0);
+                                    }
+                                    for(@array_size) {
+                                        push @field_array_objects,{DATA=>["'not supported'"],TEST=>"(!defined($_)) || $_==0"};
+                                        push @field_array_objects,{DATA=>["'not supported'"],TEST=>"$_>$max_length"};
+                                    }
+                                    push @array_objects, {SIZE=>join('*', map {"($_)"} @array_size),DATA=>\@field_array_objects};
+                                    @object = ();
+                                }
+                            }
                         }
+                        push @objects, \@object if scalar @object;
                     }
                 }
             }
 
             # find arguments that are objects
-            foreach (@$class_handles) {
-                my $handletype = $_;
+            if(exists $class_dict{$param->{TYPE}}) {
+                my $handletype = $param->{TYPE};
 
                 if ($param->{TYPE} eq $handletype) {
                     my @object;
                     my $class_name = bapi_classes::get_class_name($handletype);
-                    push @object, "\"$param->{NAME}\" ,";
+                    push @object, "BDBG_STRING(\"$param->{NAME}\") ,";
                     push @object, "NEXUS_OFFSETOF($arg_type, $args . args . $param->{NAME} ),  /*  offset */";
                     push @object, "-1 , /* null_offset */";
                     push @object, ($param->{INPARAM} ? "true":"false") . ', /* inparam */';
                     push @object, ($param->{ATTR}->{'null_allowed'} ? "true":"false") . ", /* null_allowed */";
                     push @object, "&NEXUS_OBJECT_DESCRIPTOR($class_name) /* descriptor */";
-                    push @objects, \@object;
-                    $referenced_objects{$class_name} = 1;
+                    if($param->{INPARAM} || is_special_handle($param->{TYPE})) {
+                        push @objects, \@object;
+                        $referenced_objects{$class_name} = 1;
+                    } else {
+                        print $file "/* Ignored output parameter $param->{TYPE} $param->{NAME} */\n";
+                    }
                 }
+            }
+            if(exists $param->{BASETYPE} and exists $class_dict{$param->{BASETYPE}}) {
+                my $handletype = $param->{BASETYPE};
+                my $class_name = bapi_classes::get_class_name($handletype);
+                my @object;
+                if($param->{INPARAM}) {
+                    if(exists $param->{ATTR}{handle_verify} && $param->{ATTR}{handle_verify} eq 'no') {
+                        print $file "/* don't verify input parameter '$param->{TYPE} $param->{NAME}' */\n";
+                    } else {
+                        push @object, "'NOT SUPPORTED input parameter $param->{TYPE} $param->{NAME}'";
+                    }
+                } else {
+                    if(is_special_handle($param->{BASETYPE})) {
+                        push @object, "'NOT SUPPORTED output parameter $param->{TYPE} $param->{NAME}'";
+                    } else {
+                        print $file "/* Ignored output parameter '$param->{TYPE} $param->{NAME}' */\n";
+                    }
+                }
+                push @objects, \@object if(scalar @object);
             }
         }
         for (sort keys %referenced_objects) {
@@ -943,7 +1363,7 @@ sub generate_meta
             }
         }
         my $nobjects = scalar @objects;
-        if ($nobjects) {
+        if (scalar @objects or scalar @array_objects) {
             my $n=0;
             print $file "static const struct api_object_descriptor _objects_$func->{FUNCNAME} [] = {\n";
             for (@objects) {
@@ -952,6 +1372,19 @@ sub generate_meta
                 print $file " {\n";
                 bapi_util::print_code $file, $_, "   ";
                 print $file " }";
+            }
+            for (@array_objects) {
+                $nobjects = $nobjects . "+ $_->{SIZE}";
+                my $data = $_->{DATA};
+                for(@$data) {
+                    print $file "\n#if $_->{TEST}\n";
+                    print $file ",\n" if $n;
+                    $n++;
+                    print $file " {\n";
+                    bapi_util::print_code $file, $_->{DATA}, "   ";
+                    print $file " }";
+                    print $file "\n#endif\n";
+                }
             }
             print $file "\n};\n";
         }
@@ -969,7 +1402,7 @@ sub generate_meta
             print $file "\n};\n";
         }
 
-        push @function, "\"$func->{FUNCNAME}\",";
+        push @function, "BDBG_STRING(\"$func->{FUNCNAME}\"),";
         if($in_args_count) {
             push @function, "sizeof( (($in_arg_type *)NULL)->$in_args),"
         } else {
@@ -983,7 +1416,7 @@ sub generate_meta
         push @function, $func->{CALLABLE_BY_UNTRUSTED} ? "false," : "true,";
         push @function, "$nobjects,";
         push @function, "$npointers,"; # npointers
-        push @function, $nobjects==0 ? "NULL,": "_objects_$func->{FUNCNAME},";
+        push @function, $nobjects eq '0' ? "NULL,": "_objects_$func->{FUNCNAME},";
         push @function, $npointers==0 ? "NULL,": "_pointers_$func->{FUNCNAME},";
         print $file "static const struct api_function_descriptor _api_$func->{FUNCNAME} = {\n";
         bapi_util::print_code $file, \@function, "   ";
@@ -1023,7 +1456,7 @@ BDBG_FILE_MODULE(nexus_trace_${module});
 
     print $fout "B_IPC_SERVER_PROLOGUE($module)\n";
     print $fout "B_IPC_SERVER_DISPATCH($module)\n";
-    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$functions) {
+    for my $func (@$functions) {
         next if(exists $func->{ATTR}{'local'});
         my @postprocess;
         my $funcname = $func->{FUNCNAME};
@@ -1061,10 +1494,10 @@ BDBG_FILE_MODULE(nexus_trace_${module});
             for my $c (@$classes) {
                 if($c->{DESTRUCTOR}{FUNCNAME} eq $funcname) {
 
-                    if(bapi_util::is_special_handle($func->{PARAMS}[0]{TYPE})) {
-                        print $fout "    B_IPC_SERVER_DESTROY_ENUM($api, $c->{CLASS_NAME}, $handle)\n";
+                    if(is_special_handle($func->{PARAMS}[0]{TYPE})) {
+                        print $fout "    B_IPC_SERVER_DESTROY_ENUM($module, $api, $c->{CLASS_NAME}, $handle)\n";
                     } else {
-                        print $fout "    B_IPC_SERVER_DESTROY($api, $c->{CLASS_NAME}, $handle)\n";
+                        print $fout "    B_IPC_SERVER_DESTROY($module, $api, $c->{CLASS_NAME}, $handle)\n";
                     }
                     if(exists $c->{SHUTDOWN}) {
                         push @postprocess, "B_IPC_SERVER_SHUTDOWN($api, $c->{CLASS_TYPE}, $handle)";
@@ -1073,7 +1506,7 @@ BDBG_FILE_MODULE(nexus_trace_${module});
                     last;
                 }
                 if(exists $c->{RELEASE}{FUNCNAME} and $c->{RELEASE}{FUNCNAME} eq $funcname) {
-                    print $fout "    B_IPC_SERVER_RELEASE($api, $c->{CLASS_NAME}, $handle)\n";
+                    print $fout "    B_IPC_SERVER_RELEASE($module, $api, $c->{CLASS_NAME}, $handle)\n";
                 }
             }
         }
@@ -1083,23 +1516,23 @@ BDBG_FILE_MODULE(nexus_trace_${module});
             my $args = join(',', map  { $_->{NAME} } @{$func->{PARAMS}});
             if($func->{RETTYPE} eq 'void') {
                 print $fout "    B_IPC_SERVER_CALL_VOID($api, $funcname, ($args))\n";
-            } elsif(bapi_util::is_handle($func->{RETTYPE}, $class_handles)) {
+            } elsif(is_handle($func->{RETTYPE}, $class_handles)) {
                 my $class_constructor;
                 my $class_acquire;
                 print $fout "    B_IPC_SERVER_CALL_HANDLE($api, $funcname, ($args))\n";
                 for my $c (@$classes) {
                     if($c->{DESTRUCTOR_TYPE} eq 'destructor') {
                         if( scalar( grep {$funcname eq $_->{FUNCNAME}} @{$c->{CONSTRUCTORS}} )) {
-                            if(bapi_util::is_special_handle($func->{RETTYPE})) {
-                                print $fout "    B_IPC_SERVER_CONSTRUCTOR_ENUM($api, $c->{CLASS_NAME}, $funcname)\n";
+                            if(is_special_handle($func->{RETTYPE})) {
+                                print $fout "    B_IPC_SERVER_CONSTRUCTOR_ENUM($module, $api, $c->{CLASS_NAME}, $funcname)\n";
                             } else {
-                                print $fout "    B_IPC_SERVER_CONSTRUCTOR($api, $c->{CLASS_NAME}, $funcname)\n";
+                                print $fout "    B_IPC_SERVER_CONSTRUCTOR($module, $api, $c->{CLASS_NAME}, $funcname)\n";
                             }
                             last;
                         }
                     }
                     if(exists $c->{ACQUIRE} and $c->{ACQUIRE}{FUNCNAME} eq $funcname) {
-                        print $fout "    B_IPC_SERVER_ACQUIRE($api, $c->{CLASS_NAME}, $funcname)\n";
+                        print $fout "    B_IPC_SERVER_ACQUIRE($module, $api, $c->{CLASS_NAME}, $funcname)\n";
                         last;
                     }
                 }
@@ -1129,7 +1562,6 @@ sub generate_server {
 #include \"nexus_${module}_module.h\"
 BDBG_MODULE(nexus_${module}_ipc_server);
 BDBG_FILE_MODULE(nexus_trace_${module});
-#define NEXUS_P_ABIVERIFY_SERVER  1
 #if NEXUS_P_TRACE
 #define NEXUS_P_TRACE_MSG(x) BDBG_MODULE_MSG(nexus_trace_${module}, x)
 #else
@@ -1159,10 +1591,329 @@ extern  const struct b_objdb_class  NEXUS_DRIVER_MODULE_CLASS_TABLE[];
     print $fout "#include \"server/nexus_server_epilogue.h\"\n";
 };
 
+sub parse_array_field {
+    my ($field)=@_;
+    my @elements;
+    my @parts = split(/\[|\]/, $field);
+    print STDERR Dumper($field,scalar @parts, \@parts) if 0;
+    for(my $i=0; $i < scalar @parts; ) {
+        my $part = $parts[$i];
+        if($i>0) {
+            $part = substr $part, 1; # drop leading '.'
+        }
+        if($i+1 == scalar @parts) {
+            push @elements, {FIELD => $part};
+            last;
+        } else {
+            my @size;
+            for($i++;$i< scalar @parts;) {
+                push @size, $parts[$i];
+                $i++;
+                if($i< scalar @parts) {
+                    last unless $parts[$i] eq '';
+                    $i++;
+                }
+            }
+            push @elements, {FIELD => $part, SIZE => \@size};
+        }
+    }
+    return \@elements;
+}
+
+if(0) {
+    print STDERR Dumper(parse_array_field("fileName[64]"));
+    print STDERR Dumper(parse_array_field("fileName[64].x[32]"));
+    print STDERR Dumper(parse_array_field("fileName"));
+    print STDERR Dumper(parse_array_field("_NEXUS_Platform_GetDefaultSettings_tagged.pointer.pSettings.displayModuleSettings.videoWindowHeapIndex[NEXUS_MAX_DISPLAYS][NEXUS_MAX_VIDEO_WINDOWS]"));
+    print STDERR Dumper(parse_array_field("pointer.pSettings.customSettings.preambleA[4].value"));
+    print STDERR Dumper(parse_array_field("scan.mode[NEXUS_FrontendQamAnnex_eMax][NEXUS_FrontendQamMode_eMax]"));
+    exit(1);
+}
+
+# Recursively (!) visit fields in a structure
+sub visit_field
+{
+    my ($fields, $structs, $visitor, @context) = @_;
+    for my $field (@$fields) {
+        my $type = $field->{TYPE};
+        if(exists $structs->{$type}) {
+            my $struct_fields = $structs->{$type};
+            visit_field($struct_fields, $structs,
+                sub {
+                    my ($v_field,$path,$p_name, @p_context) = @_;
+                    $visitor->($v_field, [$p_name, @$path], @p_context);
+                }, $field->{NAME}, @context);
+        } else {
+            $visitor->($field, [], @context);
+        }
+    }
+    1;
+}
+
+sub parse_union_field {
+    my ($field)=@_;
+    my @parts = split(/\./, $field->{NAME});
+    my @union;
+    for (0..$#parts) {
+        push @union, {'NAME' => $parts[$_], 'KIND' => $field->{KIND}[$_]};
+    }
+    return \@union;
+}
+
+sub convert_one_struct {
+    my ($struct_name, $fields, $fout, $module, $structs, $class_handles, $struct_kind, $structs_attr) = @_;
+    my @from;
+    my @to;
+    my $cur_array=[];
+    my $tab='    ';
+    my $prev_union_fields=[];
+    my $prev_union_pos;
+
+
+    if($struct_name eq "b_${module}_module_ipc_in"  or $struct_name eq "b_${module}_module_ipc_out") {
+        return;
+    }
+    if( exists $structs_attr->{$struct_name} && exists $structs_attr->{$struct_name}{'local'} && $structs_attr->{$struct_name}{'local'} eq 'true') {
+        print $fout "NEXUS_P_COMPAT_LOCAL_STRUCT($struct_name)\n\n";
+    }
+    for my $field (@$fields) {
+        my $type = $field->{TYPE};
+        my $array = parse_array_field($field->{NAME});
+        print STDERR Dumper($field->{NAME}, $array) if 0;
+        my $n;
+        my $match;
+        for $n (0...$#$cur_array-1) {
+            if(exists $array->[$n] and $cur_array->[$n]{FIELD} eq $array->[$n]{FIELD}) {
+                $match = $n;
+            } else {
+                last;
+            }
+        }
+        print STDERR Dumper($field->{NAME}, $match,$#$cur_array, $cur_array,$array) if 0;
+        if(defined $match) {
+            $match++;
+        } else {
+            $match = 0;
+        }
+        for (reverse $match..($#$cur_array-1)) {
+            next unless exists $cur_array->[$_]{SIZE};
+            my $size =$cur_array->[$_]{SIZE};
+            my $dim = scalar @$size;
+            my $sizes = join(',', @$size);
+            my $indent = $tab x $_;
+            push @from, "${indent}NEXUS_P_COMPAT_END_LOOP_$dim($_,$sizes)";
+            push @to, "${indent}NEXUS_P_COMPAT_END_LOOP_$dim($_,$sizes)";
+        }
+        for ($match..($#$array-1)) {
+            next unless exists $array->[$_]{SIZE};
+            my $size =$array->[$_]{SIZE};
+            my $dim = scalar @$size;
+            my $sizes = join(',', @$size);
+            my $indent = $tab x $_;
+            push @from, "${indent}NEXUS_P_COMPAT_BEGIN_LOOP_$dim($_,$sizes) /* $field->{NAME} */";
+            push @to, "${indent}NEXUS_P_COMPAT_BEGIN_LOOP_$dim($_,$sizes) /* $field->{NAME} */";
+        }
+
+        my $top = $#$array;
+        my @names = map {
+            my $n = $_;
+            if(exists $array->[$n]{SIZE}) {
+                $array->[$n]{FIELD} . (join('',(map {"[_n_${n}_${_}]"} (0..$#{$array->[$n]{SIZE}}))))
+            } else {
+                $array->[$n]{FIELD};
+            }
+        }  (0..($top-1));
+        my $name = join('.', (@names,$array->[$top]{FIELD}));
+        my $kind;
+        my $args='';
+        my $indent = $tab x $top;
+        my $union_pos;
+        my $union_fields = parse_union_field($field);
+        for (0..$#$union_fields) {
+            if($union_fields->[$_]{KIND} eq 'union') {
+                $union_pos = $_-1;
+                last;
+            }
+        }
+        print STDERR Dumper($prev_union_pos,$union_pos, $union_fields) if 0;
+        if(defined $union_pos) {
+            if(not defined $prev_union_pos or $union_pos != $prev_union_pos or $union_fields->[$union_pos]{NAME} ne $prev_union_fields->[$prev_union_pos]{NAME}) {
+                my $union = join('.', @{$field->{KIND}});
+                my $union_field = join('.', map {$_->{NAME}} @$union_fields[0..$union_pos]);
+                push @from, "${indent}NEXUS_P_COMPAT_COPY_UNION($union_field); /* UNION $field->{NAME} $union */";
+                push @to, "${indent}NEXUS_P_COMPAT_COPY_UNION($union_field); /* UNION $field->{NAME} $union */";
+                if(index($union_field,'[')!=-1) {
+                    push @to, "${indent}NEXUS_P_COMPAT_ARRAY_UNION($union_field); /* not supported */";
+                    push @from, "${indent}NEXUS_P_COMPAT_ARRAY_UNION($union_field); /* not supported */";
+                }
+            }
+        } else {
+            $kind = get_field_kind($field, $structs, $class_handles);
+            $type = get_compat_type($type, $kind);
+            print STDERR Dumper($field->{NAME},$type,$kind) if 0;
+            if(not exists $array->[$top]{SIZE}) {
+                push @from, "${indent}NEXUS_P_COMPAT_FIELD(IN, __rc, __src, __dst, $type, $name$args, $kind)";
+                push @to, "${indent}NEXUS_P_COMPAT_FIELD(OUT, __rc, __src, __dst, $type, $name$args, $kind)";
+            } else {
+                my $size =$array->[$top]{SIZE};
+                my $dim = scalar @$size;
+                my $sizes = join(',', @$size);
+                push @from, "${indent}NEXUS_P_COMPAT_FIELD_ARRAY_$dim(IN, __rc, __src, __dst, $type, $name$args, $sizes, $kind)";
+                push @to, "${indent}NEXUS_P_COMPAT_FIELD_ARRAY_$dim(OUT, __rc, __src, __dst, $type, $name$args, $sizes, $kind)";
+            }
+        }
+        $cur_array = $array;
+        $prev_union_pos = $union_pos;
+        $prev_union_fields = $union_fields;
+    }
+    for (reverse 0..($#$cur_array-1)) {
+        next unless exists $cur_array->[$_]{SIZE};
+        my $size =$cur_array->[$_]{SIZE};
+        my $dim = scalar @$size;
+        my $sizes = join(',', @$size);
+        my $indent = $tab x $_;
+        push @from, "${indent}NEXUS_P_COMPAT_END_LOOP_$dim($_,$sizes)";
+        push @to, "${indent}NEXUS_P_COMPAT_END_LOOP_$dim($_,$sizes)";
+    }
+
+    if($struct_kind eq 'out') {
+        print $fout "NEXUS_P_COMPAT_OUT_BEGIN($struct_name)\n";
+        bapi_util::print_code $fout, \@to, "   ";
+        print $fout "NEXUS_P_COMPAT_OUT_END($struct_name)\n";
+        print $fout "\n\n";
+    } elsif($struct_kind eq 'in') {
+        print $fout "NEXUS_P_COMPAT_IN_BEGIN($struct_name)\n";
+        bapi_util::print_code $fout, \@from, "   ";
+        print $fout "NEXUS_P_COMPAT_IN_END($struct_name)\n";
+        print $fout "\n\n";
+    }
+}
+
+sub verify_one_union
+{
+    my ($fout, $class_handles, $structs, $name, $fields) = @_;
+    my $field;
+    for $field (@$fields) {
+        my $type = $field->{TYPE};
+        my $field_name = $field->{NAME};
+        my $union_pos;
+        my $union_fields = parse_union_field($field);
+        for (0..$#$union_fields) {
+            if($union_fields->[$_]{KIND} eq 'union') {
+                $union_pos = $_-1;
+                last;
+            }
+        }
+        if(defined $union_pos) {
+            my @base_parts;
+            my @union_parts;
+            for(0..$#$union_fields) {
+                if($_>$union_pos) {
+                    push @union_parts, $union_fields->[$_]{NAME};
+                } else {
+                    push @base_parts, $union_fields->[$_]{NAME};
+                }
+            }
+            my $base = join('.', @base_parts);
+            my $union = join('.', @union_parts);
+            my $kind = get_type_kind($field->{TYPE}, $field->{ATTR}, $structs, $class_handles);
+            print $fout "    NEXUS_P_COMPAT_UNION_VERIFY_$kind($name, $base, $union, $type)\n";
+        }
+    }
+}
+
+sub generate_compat {
+    my ($fout, $module, $functions, $referenced_structs, $structs, $class_handles, $api_ids, $varargs_info, $structs_attr) = @_;
+    print $fout $autogenerated;
+    print $fout "
+#include \"nexus_${module}_module.h\"
+BDBG_MODULE(nexus_${module}_compat);
+#include \"nexus_${module}_api.h\"
+#include \"abiverify/nexus_abiverify_compat.h\"
+#include \"nexus_${module}_api_compat.h\"
+
+";
+
+    print $fout "NEXUS_P_COMPAT_UNION_BEGIN($module)\n\n";
+    for my $name (sort keys %$structs) {
+        my $fields = $structs->{$name};
+        if(exists $structs_attr->{$name} && exists $structs_attr->{$name}{'local'} && $structs_attr->{$name}{'local'} eq 'true') {
+            print $fout "    NEXUS_P_COMPAT_UNION_STRUCT_LOCAL($name)\n";
+        } else {
+            print $fout "    NEXUS_P_COMPAT_UNION_STRUCT($name)\n";
+            verify_one_union ($fout, $class_handles, $structs, $name, $fields);
+        }
+        print $fout "\n\n";
+    }
+    print $fout "NEXUS_P_COMPAT_UNION_END($module)\n\n\n";
+
+    for my $kind ('in','out') {
+        my %references;
+        my @api_structs = @{$referenced_structs->{"b_${module}_module_ipc_$kind"}};
+        if(exists $referenced_structs->{"b_${module}_vararg_data_$kind"}) {
+            push @api_structs, (grep {exists $structs->{$_->{TYPE}}} @{$referenced_structs->{"b_${module}_vararg_data_$kind"}});
+        }
+        for (map {$_->{TYPE}} @api_structs ) {
+            $references{$_} = $referenced_structs->{$_};
+            my $struct_reference = get_referenced_structs($referenced_structs->{$_}, $referenced_structs);
+            for (@$struct_reference) {
+                $references{$_}=$referenced_structs->{$_};
+            }
+        }
+        visit_struct(\%references, \&convert_one_struct, $fout, $module, $referenced_structs, $class_handles, $kind, $structs_attr);
+    }
+    print $fout "NEXUS_P_COMPAT_DECLARE($module)\n";
+    print $fout "NEXUS_P_COMPAT_PROLOGUE($module)\n";
+    print $fout "NEXUS_P_COMPAT_DISPATCH($module)\n";
+    my %func_map = map {$_->{FUNCNAME}, $_} @$functions;
+    for (@$api_ids) {
+        my $funcname=$_->[0];
+        my $code = process_arguments($functions, $func_map{$funcname}, $class_handles, $structs);
+        my @declare;
+        my @vararg_convert_in;
+        my $api = "_${funcname}";
+        print $fout "NEXUS_P_COMPAT_BEGIN($module,$api)\n";
+        bapi_util::print_code($fout, $code->{COMPAT}{VARARG_IN_DECLARE}, $tab);
+        print $fout "    NEXUS_P_COMPAT_CONVERT_IN($module,$api)\n";
+        bapi_util::print_code($fout, $code->{COMPAT}{VARARG_IN_PLACE}, $tab);
+        bapi_util::print_code($fout, $code->{COMPAT}{VARARG_IN_CONVERT}, $tab);
+        print $fout "    NEXUS_P_COMPAT_PROCESS($module,$api)\n";
+        print $fout "    NEXUS_P_COMPAT_CONVERT_OUT($module,$api)\n";
+        if(exists $code->{COMPAT}{VARARG_OUT_DECLARE}) {
+            bapi_util::print_code($fout, ["NEXUS_P_COMPAT_VARARG_OUT_BEGIN($api)"],$tab);
+            bapi_util::print_code($fout, $code->{COMPAT}{VARARG_OUT_DECLARE}, "$tab$tab");
+            bapi_util::print_code($fout, $code->{COMPAT}{VARARG_OUT_PROCESS}, "$tab$tab");
+            bapi_util::print_code($fout, $code->{COMPAT}{VARARG_OUT_SIZE}, "$tab$tab");
+            bapi_util::print_code($fout, ["NEXUS_P_COMPAT_VARARG_OUT_ALLOCATE($api)"],"$tab$tab");
+            bapi_util::print_code($fout, $code->{COMPAT}{VARARG_OUT_PLACE}, "$tab$tab");
+            bapi_util::print_code($fout, $code->{COMPAT}{VARARG_OUT_CONVERT}, "$tab$tab");
+            bapi_util::print_code($fout, ["NEXUS_P_COMPAT_VARARG_OUT_END($api)"],$tab);
+        }
+        print $fout "NEXUS_P_COMPAT_END($module,$api)\n";
+        print $fout "\n\n";
+    }
+    print $fout "NEXUS_P_COMPAT_EPILOGUE($module)\n";
+};
+
+sub generate_compat_api {
+    my ($fout, $referenced_structs, $structs, $class_handles) = @_;
+    print $fout $autogenerated;
+    my %extra_structs;
+
+    print_struct($fout, $referenced_structs, $class_handles, 1);
+    for(keys %$structs) {
+        $extra_structs{$_} = $structs->{$_} unless exists $referenced_structs->{$_};
+    }
+    print_struct($fout, \%extra_structs, $class_handles, 1);
+}
+
+
 sub generate {
-    my ($destdir, $module, $functions, $class_handles, $structs, $version, $module_number, $ioctls) = @_;
+    my ($destdir, $module, $functions, $class_handles, $structs, $version, $ioctls, $referenced_structs, $api_ids, $compat_info, $varargs_info, $structs_attr) = @_;
     my $fout;
     my $file;
+    my $fout_compat;
+    my $file_compat;
     my $destructors = bapi_classes::get_destructors $functions;
     my $classes = bapi_classes::get_classes $functions, $destructors, $structs;
 
@@ -1183,8 +1934,11 @@ sub generate {
 
     $file = "$destdir/nexus_${module}_abiverify_ioctl.h",
     open ($fout, '>', $file) or die "Can't open '$file'";
-    generate_ioctl($fout, $module, $functions, $class_handles, $structs, $module_number, $ioctls);
+    $file_compat = "$destdir/nexus_${module}_abiverify_ioctl_compat.h",
+    open ($fout_compat, '>', $file_compat) or die "Can't open '$file_compat'";
+    generate_ioctl($fout, $fout_compat, $module, $functions, $class_handles, $structs, $ioctls);
     close ($fout);
+    close ($fout_compat);
 
     $file = "$destdir/nexus_${module}_abiverify_proxy.c",
     open ($fout, '>', $file) or die "Can't open '$file'";
@@ -1203,10 +1957,26 @@ sub generate {
     generate_server($fout, $module, $functions, $class_handles, $structs, $destructors, $classes);
     close ($fout);
 
-    $file = "$destdir/nexus_${module}_abiverify_driver.c",
-    open ($fout, '>', $file) or die "Can't open '$file'";
-    generate_driver($fout, $module, $functions, $class_handles, $structs, $destructors);
+    $file = "$destdir/nexus_${module}_abiverify_process_ioctl.h",
+    open ($fout, '>', $file) or die "can't open '$file'";
+    generate_driver_process_ioctls($fout, $module, $functions, $class_handles, $structs, $varargs_info);
     close ($fout);
+
+    $file = "$destdir/nexus_${module}_abiverify_driver.c",
+    open ($fout, '>', $file) or die "can't open '$file'";
+    generate_driver($fout, $module, $functions, $class_handles, $structs, $varargs_info);
+    close ($fout);
+
+    $file = "$destdir/nexus_${module}_api_compat.h",
+    open ($fout, '>', $file) or die "Can't open '$file'";
+    generate_compat_api($fout, $referenced_structs, $structs, $class_handles);
+    close ($fout);
+
+    $file = "$destdir/nexus_${module}_api_compat.c",
+    open ($fout, '>', $file) or die "Can't open '$file'";
+    generate_compat($fout, $module, $functions, $referenced_structs, $structs, $class_handles, $api_ids, $varargs_info, $structs_attr);
+    close ($fout);
+
 }
 
 1;

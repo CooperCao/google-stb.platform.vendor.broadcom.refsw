@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,8 +43,8 @@
 #include "lib_printf.h"
 
 // Static non-const data from TzIocMsg class
-spinlock_t TzIoc::TzIocMsg::sndLock;
-spinlock_t TzIoc::TzIocMsg::rcvLock;
+SpinLock TzIoc::TzIocMsg::sndLock;
+SpinLock TzIoc::TzIocMsg::rcvLock;
 struct tzioc_msg_cb TzIoc::TzIocMsg::msgCB;
 
 // Exported msg control block to common code
@@ -134,8 +134,8 @@ void TzIoc::TzIocMsg::init(void *devTree)
            (unsigned int)n2tOffset, (unsigned int)n2tSize);
 
     // Init spinlocks
-    spinlock_init("TzIocMsg.sndLock", &sndLock);
-    spinlock_init("TzIocMsg.rcvLock", &rcvLock);
+    spinLockInit(&sndLock);
+    spinLockInit(&rcvLock);
 
     // Init shared memory
     __tzioc_ring_init(
@@ -167,9 +167,9 @@ int TzIoc::TzIocMsg::send(
     struct tzioc_msg_hdr *pHdr,
     uint8_t *pPayload)
 {
-    spin_lock(&sndLock);
+    spinLockAcquire(&sndLock);
     int err = __tzioc_msg_send(pHdr, pPayload);
-    spin_unlock(&sndLock);
+    spinLockRelease(&sndLock);
 
     if (err) {
         printf("TzIoc msg send failed, client %d\n", pClient->id);
@@ -184,9 +184,9 @@ int TzIoc::TzIocMsg::receive(
     uint8_t *pPayload,
     uint32_t ulSize)
 {
-    spin_lock(&rcvLock);
+    spinLockAcquire(&rcvLock);
     int err = __tzioc_msg_receive(pHdr, pPayload, ulSize);
-    spin_unlock(&rcvLock);
+    spinLockRelease(&rcvLock);
 
     if (err &&
         err != -ENOMSG &&

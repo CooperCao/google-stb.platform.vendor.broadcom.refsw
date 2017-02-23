@@ -45,7 +45,7 @@ endif
 
 .PHONY: b_dtcp_ip_vendor_lib_target_dummy b_dtcp_ip_vendor_lib_target_build b_dtcp_ip_vendor_lib_target_clean
 
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 B_DTCP_IP_VENDOR_OTHER_BUILDS += b_openssl_target_build
 B_DTCP_IP_VENDOR_OTHER_CLEANS += b_openssl_target_clean
 B_DTCP_IP_VENDOR_OTHER_CLEAN_ALL += b_openssl_target_clean_all

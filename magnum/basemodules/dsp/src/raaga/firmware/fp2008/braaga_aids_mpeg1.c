@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -167,8 +167,8 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0x07a47f27,
 	0x74020603,
 	0x3d840003,
-	0xa75f0dd7,
-	0x001fdfda,
+	0xa70389d7,
+	0x001fdfdb,
 	0x740e1907,
 	0x741c0fcf,
 	0x7404050f,
@@ -2267,7 +2267,7 @@ const uint32_t BDSP_IMG_mpeg1_ids_array1[] = {
 	0xa73f89d7,
 	0x001fffe1,
 	0x07bffe03,
-	0xa73b89d7,
+	0xa75f8dd7,
 	0x001fdfd5,
 	0x72014547,
 	0x73550117,

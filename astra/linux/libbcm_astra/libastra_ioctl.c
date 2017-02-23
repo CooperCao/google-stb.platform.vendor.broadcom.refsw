@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -161,13 +161,13 @@ int _astra_ioctl_status_get(
 
 int _astra_ioctl_call_smc(
     astra_kclient_handle hKClient,
-    uint8_t ucMode)
+    uint32_t ucMode)
 {
     struct astra_ioctl_call_smc_data callSmcData;
     int err = 0;
 
     callSmcData.hClient = hKClient;
-    callSmcData.mode = (uint32_t)ucMode;
+    callSmcData.mode = ucMode;
 
     err = ioctl(
         pAstra->fd,

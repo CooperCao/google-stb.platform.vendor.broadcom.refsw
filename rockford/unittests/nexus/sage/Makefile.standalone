@@ -48,7 +48,6 @@ endif
 
 APPS = \
     cdb_maxres_test \
-    crrurr_glrglr_decode \
     heap_create
 
 APPS_DEP = $(APPS:%=%.d)

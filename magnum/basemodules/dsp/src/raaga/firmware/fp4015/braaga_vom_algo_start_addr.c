@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -48,538 +48,344 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 {
 	{
 		/* BDSP_AF_P_AlgoId_eMpegDecode */
-		0x10011800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAc3Decode */
-		0x1001e800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAacDecode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAacHeLpSbrDecode */
-		0x100c2000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDdpDecode */
-		0x1005e800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDdLosslessDecode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eLpcmCustomDecode */
-		0x10266800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eBdLpcmDecode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDvdLpcmDecode */
-		0x10266800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eHdDvdLpcmDecode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMpegMcDecode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eWmaStdDecode */
-		0x10101834,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eWmaProStdDecode */
-		0x1016b1c8,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMlpDecode */
-		0x10459000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDdp71Decode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDtsDecode */
-		0x1013a000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsLbrDecode */
-		0x10114000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsHdDecode */
-		0x1013a000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_ePcmWavDecode */
-		0x10165800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAmrDecode */
-		0x102ff800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDraDecode */
-		0x101c6000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eRealAudioLbrDecode */
-		0x1026c800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDolbyPulseDecode */
-		0x101d0000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMs10DdpDecode */
-		0x1009e800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAdpcmDecode */
-		0x10288800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG711G726Decode */
-		0x1037d800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG729Decode */
-		0x10382800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eVorbisDecode */
-		0x103ba000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG723_1Decode */
-		0x103ca000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eFlacDecode */
-		0x1044b530,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMacDecode */
-		0x10452800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAmrWbDecode */
-		0x10473000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eiLBCDecode */
-		0x104d8dc0,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eiSACDecode */
-		0x104f3844,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eUdcDecode */
-		0x10528800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDolbyAacheDecode */
-		0x105f4800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eOpusDecode */
-		0x106a9fc8,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x106cc480,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
-		0x106d0e7c,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
 		0x00000000,
-
 		/* BDSP_VF_P_AlgoId_eRealVideo9Decode */
 		0x00000000,
-
 		/* BDSP_VF_P_AlgoId_eVP6Decode */
-		0x1029a800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfDecodeAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMpegFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMpegMcFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAdtsFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eLoasFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eWmaStdFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eWmaProFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAc3FrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDdpFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDdp71FrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDtsFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsLbrFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsHdFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsHdFrameSync_1 */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDtsHdHdDvdFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDdLosslessFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMlpFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMlpHdDvdFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_ePesFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eBdLpcmFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eHdDvdLpcmFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDvdLpcmFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDvdLpcmFrameSync_1 */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_ePcmWavFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eAmrFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDraFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eRealAudioLbrFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMs10DdpFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eAdpcmFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eG711G726FrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eG729FrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eVorbisFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eG723_1FrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eFlacFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMacFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eAmrWbFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eiLBCFrameSync */
-		0x10000004,
-
-		/* BDSP_AF_P_AlgoId_eiSACFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eUdcFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAC4FrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eALSFrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecFsAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eRealVideo9FrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eVP6FrameSync */
-		0x10000004,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfDecFsAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAc3Encode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMpegL2Encode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMpegL3Encode */
-		0x1036f000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAacLcEncode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAacHeEncode */
-		0x102b708c,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsEncode */
-		0x10254000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsBroadcastEncode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eSbcEncode */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMs10DDTranscode */
-		0x10236000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG711G726Encode */
-		0x1038e000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG729Encode */
-		0x10393800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG723_1Encode */
-		0x103d5800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eG722Encode */
-		0x1046e800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAmrEncode */
-		0x10485000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eAmrwbEncode */
-		0x104a6800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eiLBCEncode */
-		0x104c3800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eiSACEncode */
-		0x104e4800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eLpcmEncode */
-		0x10524800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eOpusEncode */
-		0x10568800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDDPEncode */
-		0x105a7000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfAudioEncodeAlgos */
 		0x00000000,
-
 		/* BDSP_VF_P_AlgoId_eH264Encode */
-		0x103fa000,
-
+		0x00000000,
 		/* BDSP_VF_P_AlgoId_eX264Encode */
-		0x10423000,
-
+		0x00000000,
 		/* BDSP_VF_P_AlgoId_eXVP8Encode */
-		0x10432000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfEncodeAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAc3EncFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMpegL3EncFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMpegL2EncFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAacLcEncFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAacHeEncFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDtsEncFrameSync */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eEndOfEncFsAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_ePassThru */
-		0x100f5d24,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMlpPassThru */
-		0x10471000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfAuxAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eSrsTruSurroundPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eSrcPostProc */
-		0x1022f000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDdbmPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDownmixPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eCustomSurroundPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eCustomBassPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eKaraokeCapablePostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eCustomVoicePostProc */
-		0x101bd000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_ePeqPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAvlPostProc */
-		0x1028c800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_ePl2PostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eXenPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eBbePostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDsolaPostProc */
-		0x10264000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDtsNeoPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDDConvert */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAudioDescriptorFadePostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAudioDescriptorPanPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_ePCMRouterPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eWMAPassThrough */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eSrsTruSurroundHDPostProc */
-		0x1027f800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eSrsTruVolumePostProc */
-		0x10276000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDolbyVolumePostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eBrcm3DSurroundPostProc */
-		0x10291800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eFWMixerPostProc */
-		0x10246000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMonoDownMixPostProc */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMs10DDConvert */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eDdrePostProc */
-		0x1030f000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDv258PostProc */
-		0x1031d000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
-		0x1032fc30,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */
-		0x10295000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eBtscEncoderPostProc */
-		0x103b2854,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eSpeexAECPostProc */
-		0x103e4bd8,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eKaraokePostProc */
-		0x10526000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMixerDapv2PostProc */
-		0x10637800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eOutputFormatterPostProc */
-		0x106c1800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eVocalPostProc */
-		0x106c3800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eFadeCtrlPostProc */
-		0x106c5000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfPpAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eMixerFrameSync */
-		0x1036d800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eMixerDapv2FrameSync */
-		0x10630800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfPpFsAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eSysLib */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eAlgoLib */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eIdsCommon */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eVidIdsCommon */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eEndOfLibAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eScm1 */
-		0x104fd800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eScm2 */
-		0x104fe000,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eScm3 */
-		0x00001484,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfScmAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eScmTask */
-		0x1051e800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eVideoDecodeTask */
-		0x10520800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eVideoEncodeTask */
-		0x10522800,
-
+		0x00000000,
 		/* BDSP_AF_P_AlgoId_eEndOfTaskAlgos */
 		0x00000000,
-
 		/* BDSP_AF_P_AlgoId_eEndOfAlgos */
 		0x00000000,
-
 	},
 };

@@ -51,9 +51,8 @@
 * $brcm_Log: $
 *
 ***************************************************************************/
-#include "nexus_types.h"
+#include "nexus_platform_module.h"
 #include "nexus_platform_priv.h"
-#include "nexus_platform.h"
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
 #include "nexus_base.h"
@@ -119,6 +118,23 @@ static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
 static void ConfigureIntGpioPin(int intGpio);
 
 #if NEXUS_HAS_FRONTEND
+#include "priv/nexus_frontend_standby_priv.h"
+/* Example function to power down or power up SPI or I2C pads on the backend when transitioning to standby. */
+NEXUS_Error NEXUS_Platform_FrontendStandby(NEXUS_FrontendDeviceHandle handle, void *context, const NEXUS_FrontendStandbySettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BDBG_ERR(("NEXUS_Platform_FrontendStandby"));
+
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(pSettings);
+
+    /* Platform specific SPI and GPIO code goes here */
+
+    return rc;
+}
+
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
@@ -386,6 +402,12 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                         BDBG_MSG(("PIN_CTRL_PIN_MUX_CTRL_3: %08x",reg));
                     }
                 }
+            if (probeResults.chip.familyId == 0x3158) {
+                NEXUS_FrontendStandbyCallback callback;
+                callback.platformStandby = NEXUS_Platform_FrontendStandby;
+                /* Set platform specific context data */
+                NEXUS_Frontend_SetStandbyCallback_priv(device, &callback);
+            }
             } else {
                 BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
             }

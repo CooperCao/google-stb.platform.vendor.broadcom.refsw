@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,7 +46,7 @@ TzTask *currentTask[MAX_NUM_CPUS];
 unsigned long Scheduler::TimeSliceDuration;
 unsigned int Scheduler::sumRunnablePriorities;
 tzutils::PriorityQueue<TzTask> Scheduler::runQueue;
-spinlock_t Scheduler::schedLock;
+SpinLock Scheduler::schedLock;
 
 PerCPU<Timer> Scheduler::preemptionTimer;
 PerCPU<uint64_t> Scheduler::startWorldRunTime;
@@ -89,7 +89,7 @@ extern "C" void edfPreemptionTimerFired(Timer t, void *ctx) {
 }
 
 void Scheduler::init() {
-    spinlock_init("sched.lock", &schedLock);
+    spinLockInit(&schedLock);
 
     TimeSliceDuration = (TzHwCounter::frequency() / 1000 )* TIME_SLICE_DURATION_MS;
     EDFTimeSlice      = (TimeSliceDuration / 100) * EDF_SLICE_PERCENT;
@@ -164,8 +164,10 @@ void Scheduler::removeTask(TzTask *task) {
 void Scheduler::currTaskStopped() {
 
     Timer timer = preemptionTimer.cpuLocal();
-    // printf("to destroy timer: 0x%x%x\n", (int)(timer >> 32), (int)(timer & 0xffffffff));
-    TzTimers::destroy(timer);
+    if(timer!=INVALID_TIMER) {
+        //printf("to destroy timer: 0x%x%x\n", (int)(timer >> 32), (int)(timer & 0xffffffff));
+        TzTimers::destroy(timer);
+    }
     preemptionTimer.cpuLocal() = INVALID_TIMER;
 }
 
@@ -400,7 +402,7 @@ void schedule() {
         Scheduler::startWorldRunTime.cpuLocal() = TzHwCounter::timeNow();
 
     do {
-        // printf("Schedule Class %d 0x%x%x \n", Scheduler::scheduleClassType(), (int)(TzHwCounter::timeNow() >> 32), (int)(TzHwCounter::timeNow() & 0xffffffff));
+        //printf("Schedule Class %d 0x%x%x \n", Scheduler::scheduleClassType(), (int)(TzHwCounter::timeNow() >> 32), (int)(TzHwCounter::timeNow() & 0xffffffff));
 
         if (Scheduler::scheduleClassType() == Scheduler::Class::EDF_Class) {
             do{

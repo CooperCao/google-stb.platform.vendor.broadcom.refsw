@@ -122,7 +122,7 @@ options are:
 ==================================
 # Setting up a simple RTSP Server:
 ==================================
-Build testOnDemandRTSPServer from the BSEAV/lib/livemedia/live/testProgs directory for another MIPS platform or Linux PC (using gcc)
+Build testOnDemandRTSPServer from the BSEAV/opensource/livemedia/live/testProgs directory for another MIPS platform or Linux PC (using gcc)
 Create a soft-link test.ts to the media file that you want to stream and run testOnDemandRTSPServer. 
     ln -s /data/vidoes/AbcMpeg2HD.mpg test.ts
     ./testOnDemandRTSPServer -v

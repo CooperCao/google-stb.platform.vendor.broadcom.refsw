@@ -88,7 +88,6 @@ void NEXUS_MemoryBlock_GetProperties(
     NEXUS_MemoryBlockProperties *pProperties
     );
 
-typedef void *NEXUS_P_MemoryUserAddr;
 typedef struct NEXUS_MemoryBlockUserState {
     NEXUS_P_MemoryUserAddr state;
 } NEXUS_MemoryBlockUserState;

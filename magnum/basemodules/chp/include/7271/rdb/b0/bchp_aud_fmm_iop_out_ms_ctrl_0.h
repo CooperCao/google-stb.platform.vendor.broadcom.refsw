@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,29 +70,29 @@
 /***************************************************************************
  *AUD_FMM_IOP_OUT_MS_CTRL_0 - FMM-MS Control
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_STRM_ENA  0x20cb6000 /* [RW] Stream enable */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_BYPASS 0x20cb6004 /* [RW] Microsequencer bypass control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_CTRL 0x20cb6008 /* [RW] Microsequencer execution control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_STATUS 0x20cb600c /* [RO] Microsequencer processor status */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_MSG  0x20cb6010 /* [RO] Microsequencer Message */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_MSG_SET 0x20cb6014 /* [WO] Message Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_MSG_CLEAR 0x20cb6018 /* [WO] Message Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_FLAGS 0x20cb601c /* [RO] Microsequencer Flags */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_SPDIF_CFG_0 0x20cb6020 /* [RW] Stream 0 hardware SPDIF configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_LO_0 0x20cb6024 /* [RW] Stream 0 hardware channel status bits lower */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_HI_0 0x20cb6028 /* [RW] Stream 0 hardware channel status bits upper */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_SPDIF_CFG_1 0x20cb6030 /* [RW] Stream 1 hardware SPDIF configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_LO_1 0x20cb6034 /* [RW] Stream 1 hardware channel status bits lower */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_HI_1 0x20cb6038 /* [RW] Stream 1 hardware channel status bits upper */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_STREAM_CTRL_0 0x20cb6800 /* [RW] Stream Control 0 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_RAMP_AMOUNT_0 0x20cb6804 /* [RW] Underflow Ramp Amount 0 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_CBIT_CTRL_0 0x20cb6808 /* [RW] Stream 0 channel status control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_BURST_0 0x20cb680c /* [RW] Stream 0 pause/null burst control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_STREAM_CTRL_1 0x20cb6848 /* [RW] Stream Control 1 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_RAMP_AMOUNT_1 0x20cb684c /* [RW] Underflow Ramp Amount 1 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_CBIT_CTRL_1 0x20cb6850 /* [RW] Stream 1 channel status control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_BURST_1 0x20cb6854 /* [RW] Stream 1 pause/null burst control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_VERSION 0x20cb6920 /* [RW] Microsequencer firmware version */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_STRM_ENA  0x20cb6000 /* [RW][32] Stream enable */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_BYPASS 0x20cb6004 /* [RW][32] Microsequencer bypass control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_CTRL 0x20cb6008 /* [RW][32] Microsequencer execution control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_STATUS 0x20cb600c /* [RO][32] Microsequencer processor status */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_MSG  0x20cb6010 /* [RO][32] Microsequencer Message */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_MSG_SET 0x20cb6014 /* [WO][32] Message Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_MSG_CLEAR 0x20cb6018 /* [WO][32] Message Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_USEQ_FLAGS 0x20cb601c /* [RO][32] Microsequencer Flags */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_SPDIF_CFG_0 0x20cb6020 /* [RW][32] Stream 0 hardware SPDIF configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_LO_0 0x20cb6024 /* [RW][32] Stream 0 hardware channel status bits lower */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_HI_0 0x20cb6028 /* [RW][32] Stream 0 hardware channel status bits upper */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_SPDIF_CFG_1 0x20cb6030 /* [RW][32] Stream 1 hardware SPDIF configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_LO_1 0x20cb6034 /* [RW][32] Stream 1 hardware channel status bits lower */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_HW_CHANSTAT_HI_1 0x20cb6038 /* [RW][32] Stream 1 hardware channel status bits upper */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_STREAM_CTRL_0 0x20cb6800 /* [RW][32] Stream Control 0 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_RAMP_AMOUNT_0 0x20cb6804 /* [RW][32] Underflow Ramp Amount 0 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_CBIT_CTRL_0 0x20cb6808 /* [RW][32] Stream 0 channel status control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_BURST_0 0x20cb680c /* [RW][32] Stream 0 pause/null burst control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_STREAM_CTRL_1 0x20cb6848 /* [RW][32] Stream Control 1 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_RAMP_AMOUNT_1 0x20cb684c /* [RW][32] Underflow Ramp Amount 1 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_CBIT_CTRL_1 0x20cb6850 /* [RW][32] Stream 1 channel status control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_BURST_1 0x20cb6854 /* [RW][32] Stream 1 pause/null burst control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_CTRL_0_FW_VERSION 0x20cb6920 /* [RW][32] Microsequencer firmware version */
 
 /***************************************************************************
  *STRM_ENA - Stream enable

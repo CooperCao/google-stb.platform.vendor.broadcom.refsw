@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,11 +43,14 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_MAX_DSP_MIXERS
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_mixer_dsp);
 BDBG_FILE_MODULE(bape_mixer_lb);
 
+#if BAPE_CHIP_MAX_DSP_MIXERS
 /* Mixer Interface */
 static const BAPE_MixerInterface  g_dspMixerInterface;
 
@@ -704,6 +707,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     BAPE_PathConnection *pInputConnection;
     BAPE_PathNode *pNode;
     unsigned numFound, i;
+    uint32_t sampleRate = 0;
 
     BDBG_ASSERT(false == handle->taskStarted);
 
@@ -769,8 +773,6 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
 
     if ( BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->pathNode.connectors[0].format) )
     {
-        uint32_t sampleRate = 0;
-
         /* IF DDRE is present downstream, output samplerate must be fixed to 48000 */
         if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) )
         {
@@ -833,7 +835,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     }
 
     BKNI_EnterCriticalSection();
-    BAPE_Connector_P_SetSampleRate_isr(&handle->pathNode.connectors[0], (handle->master) ? (handle->master->format.sampleRate) : 0);
+    BAPE_DspMixer_P_SetSampleRate_isr(handle, sampleRate);
     BKNI_LeaveCriticalSection();
 
     errCode = BAPE_DSP_P_DeriveTaskStartSettings(&handle->pathNode, &taskStartSettings);
@@ -2188,7 +2190,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
         {
             /* scale percentage to Q1.31 format for production usage case.
                BDSP will convert to dB from there, for the range -96 dB to 0 dB */
-            unsigned levelQ131 = (unsigned) (((int64_t)handle->inputVolume[index].fade.level)<<31) / 100;
+            unsigned levelQ131 = (unsigned) ((((int64_t)handle->inputVolume[index].fade.level)<<31) / 100);
 
             if ( levelQ131 > 0x7FFFFFFF )
             {
@@ -2501,6 +2503,30 @@ static BERR_Code BAPE_DspMixer_P_GetInputStatus(
     if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
+        BAPE_PathConnection * pConnection;
+        unsigned taskInputIndex;
+
+        /* Find Connection */
+        pConnection = BAPE_Connector_P_GetConnectionToSink(input, &handle->pathNode);
+        if ( NULL == pConnection )
+        {
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+
+        taskInputIndex = pConnection->dspInputIndex;
+
+        /* Input may not be running yet, check that. */
+        if ( taskInputIndex == BAPE_DSPMIXER_INPUT_INVALID )
+        {
+            return BERR_SUCCESS;
+        }
+
+        if ( taskInputIndex >= BDSP_AF_P_MAX_IP_FORKS )
+        {
+            BDBG_ASSERT(taskInputIndex < BDSP_AF_P_MAX_IP_FORKS);
+            return BERR_TRACE(BERR_INVALID_PARAMETER);
+        }
+
         if (!handle->taskStarted)
         {
             BDSP_Stage_SetAlgorithm(handle->hMixerStage, BDSP_Algorithm_eMixerDapv2);
@@ -2511,11 +2537,12 @@ static BERR_Code BAPE_DspMixer_P_GetInputStatus(
             return BERR_TRACE(errCode);
         }
 
-        if ( dspStatus.FadeCtrl_Info[i].ui32StatusValid )
+        if ( dspStatus.FadeCtrl_Info[taskInputIndex].ui32StatusValid == 0 )
         {
-            pStatus->fade.active = (dspStatus.FadeCtrl_Info[i].ui32FadeActiveStatus == 1);
-            pStatus->fade.remaining = dspStatus.FadeCtrl_Info[i].ui32RemainingDuration;
-            pStatus->fade.level = dspStatus.FadeCtrl_Info[i].ui32CurrentVolumeLevel;
+            pStatus->fade.active = (dspStatus.FadeCtrl_Info[taskInputIndex].ui32FadeActiveStatus == 1);
+            pStatus->fade.remaining = dspStatus.FadeCtrl_Info[taskInputIndex].ui32RemainingDuration;
+            pStatus->fade.level = dspStatus.FadeCtrl_Info[taskInputIndex].ui32CurrentVolumeLevel;
+            BDBG_MSG(("status for fade ctrl idx %d, active %d, remaining %d, level %d", taskInputIndex, pStatus->fade.active, pStatus->fade.remaining, pStatus->fade.level));
             return BERR_SUCCESS;
         }
         return BERR_NOT_AVAILABLE;
@@ -2602,3 +2629,4 @@ static const BAPE_MixerInterface g_dspMixerInterface = {
     BAPE_DspMixer_P_GetInputStatus,
     BAPE_DspMixer_P_GetStatus
 };
+#endif

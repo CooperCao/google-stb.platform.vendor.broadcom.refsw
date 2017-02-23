@@ -28,6 +28,11 @@ function MyLoad()
     var local = new Date();
     localdatetime = (local.getUTCMonth()+1).padZero() + local.getUTCDate().padZero() + local.getUTCHours().padZero() + local.getUTCMinutes().padZero() + local.getUTCFullYear() + "." + local.getUTCSeconds().padZero();
     userAgent = navigator.userAgent;
+
+    processDebugOutputBox( document.getElementById("debugoutputbox") ); // hide or show the debugoutputbox
+
+    brcmAlertConfig();
+
     GetNexusMemoryConfig();
 }
 
@@ -158,6 +163,14 @@ function setRowStyle(fieldBeginning, newValue)
     }
 }
 
+function processDebugOutputBox( debugobj )
+{
+    if (MasterDebug==1) {
+        if (debugobj) { debugobj.style.visibility = ""; debugobj.style.display= ""; }
+    } else {
+        if (debugobj) { debugobj.style.visibility = "hidden"; debugobj.style.display= "none"; }
+    }
+}
 function setVariable(fieldName)
 {
     var debug=0;
@@ -212,13 +225,8 @@ function setVariable(fieldName)
         }
         //alert("variable is " + fieldName + "; type " + obj.type + "; array " + arrayname + "; idx " + which_entry + "; subidx " + sub_index + "; field is " + field + "; value " + fieldValue );
         if (fieldName == "h2broadcom") {
-            var debugobj=document.getElementById("debugoutputbox");
             MasterDebug = 1-MasterDebug;
-            if (MasterDebug==1) {
-                if (debugobj) { debugobj.style.visibility = ""; }
-            } else {
-                if (debugobj) { debugobj.style.visibility = "hidden"; }
-            }
+            processDebugOutputBox( document.getElementById("debugoutputbox") );
         } else if (fieldName == "h2memory") {
             MasterSending = 1-MasterSending;
         } else if ( fieldName == "brcmlogo" ) {
@@ -253,7 +261,7 @@ function MyClick(event)
             getCumulativeOffset(obj);
         }
         setVariable(id);
-        ShowPage(id);
+        if ( id != "brcmlogo" ) ShowPage(id);
     }
 }
 
@@ -506,7 +514,7 @@ var response = request.responseText.split("|");
                     i++;
                 } else if (entry == "FATAL") {
                     if (debugobj) {debugobj.innerHTML += entry + "; " + oResponses[i+1] + eol; }
-                    alert("FATAL ... " + oResponses[i+1]);
+                    brcmAlert( "FATAL ... " + oResponses[i+1] );
                     CurrentPage = 8;
                     CurrentPageId = "pageGenerateCode";
                     HighlightCurrentPage(CurrentPageId);

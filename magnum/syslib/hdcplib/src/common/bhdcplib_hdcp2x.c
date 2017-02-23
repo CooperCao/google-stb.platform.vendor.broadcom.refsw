@@ -1,40 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its licensors,
-* and may only be used, duplicated, modified or distributed pursuant to the terms and
-* conditions of a separate, written license agreement executed between you and Broadcom
-* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-* no license (express or implied), right to use, or waiver of any kind with respect to the
-* Software, and Broadcom expressly reserves all rights in and to the Software and all
-* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-* and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-* USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-* ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
 #include "bhdcplib.h"
 #include "bhdcplib_priv.h"
 #include "bhdcplib_hdcp22_priv.h"
@@ -124,7 +125,8 @@ static const BHDCPlib_Hdcp2x_StateText  hdcp2xStateTextTable[] =
 	{BHDCPlib_Hdcp2xState_eUnauthenticated, 	BDBG_STRING("Unauthenticated")},
 	{BHDCPlib_Hdcp2xState_eAuthenticating,		BDBG_STRING("Authenticating")},
 	{BHDCPlib_Hdcp2xState_eSessionKeyLoaded,	BDBG_STRING("SessionKeyLoaded")},
-	{BHDCPlib_Hdcp2xState_eAuthenticated,	BDBG_STRING("Authenticated")},
+	{BHDCPlib_Hdcp2xState_eAuthenticated,	BDBG_STRING("Authenticated")},		/* For Rx HDCPlib handle, this means ReceiverAuthenticated */
+	{BHDCPlib_Hdcp2xState_eRepeaterAuthenticated,	BDBG_STRING("RepeaterAuthenticated")},
 	{BHDCPlib_Hdcp2xState_eSystemCannotInitialize,	BDBG_STRING("SAGESystemCannotInitialize")}
 };
 
@@ -346,6 +348,34 @@ static const char * BHDCPlib_Hdcp2x_P_AuthenticationErrorToStr(
 	return BDBG_STRING("Invalid Hdcp2x Authentication Error");
 }
 
+typedef struct
+{
+	Hdcp22_SecurityViolationError eSecurityViolationError;
+	const char *hdcp2xSecViolErrorText ;
+}  BHDCPlib_Hdcp2x_SecurityViolationErrorText ;
+
+static const BHDCPlib_Hdcp2x_SecurityViolationErrorText hdcp2xSecurityViolationErrorTextTable[] =
+{
+	{Hdcp22_SecurityViolationError_eNone, 		BDBG_STRING("No security violation")},
+	{Hdcp22_SecurityViolationError_eHdcpLevel, 		BDBG_STRING("Insufficient HDCP output level for current HDCP input level")},
+	{Hdcp22_SecurityViolationError_eSvpTA,			BDBG_STRING("SVP TA not present or not configured")},
+};
+
+static const char * BHDCPlib_Hdcp2x_P_SecurityViolationErrorToStr(
+	Hdcp22_SecurityViolationError eSecurityViolationError
+)
+{
+	uint8_t i=0;
+
+	for (i=0; i<sizeof(hdcp2xSecurityViolationErrorTextTable)/sizeof(BHDCPlib_Hdcp2x_SecurityViolationErrorText); i++) {
+		if (hdcp2xSecurityViolationErrorTextTable[i].eSecurityViolationError != eSecurityViolationError)
+			continue;
+
+		return hdcp2xSecurityViolationErrorTextTable[i].hdcp2xSecViolErrorText;
+	}
+
+	return BDBG_STRING("Invalid Hdcp2x Security Violation Error");
+}
 
 static void BHDCPlib_P_Hdcp2x_CleanSageContainer(BHDCPlib_Handle hHDCPlib)
 {
@@ -579,6 +609,10 @@ static void BHDCPlib_P_Hdcp2x_DisconnectNotifyCallback(
 
 	if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eRx)
 	{
+		/* clear the stored ReceiverId List on hotplug */
+		BKNI_Memset(&hHDCPlib->stReceiverIdListData,0, sizeof(BHDCPlib_ReceiverIdListData));
+
+		/* update internal state */
 		nextState = BHDCPlib_Hdcp2xState_eUnauthenticated;
 		BDBG_LOG(("%s: HPD signal pulled LOW - current state [%s] - next state [%s]", __FUNCTION__,
 			BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
@@ -964,6 +998,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_Open(BHDCPlib_Handle *hHDCPlib, const BHDCPlib_Depen
 
 	/* Set initial state */
 	hHandle->currentHdcp2xState = BHDCPlib_Hdcp2xState_eSagePlatformOpen;
+	hHandle->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
 
 	/* open platform */
 	rc = BSAGElib_Rai_Platform_Open(pstDependencies->hSagelibClientHandle, BSAGE_PLATFORM_ID_HDCP22,
@@ -1332,15 +1367,41 @@ done:
 BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 {
 	BERR_Code rc = BERR_SUCCESS;
+	bool bReauthReqPending = false;
 
 	BDBG_ENTER(BHDCPlib_P_Hdcp2x_StartAuthentication);
 	BDBG_OBJECT_ASSERT(hHDCPlib, HDCPLIB);
+
+
+	rc = BHDM_HDCP_IsReauthRequestPending(hHDCPlib->stDependencies.hHdm, &bReauthReqPending);
+	if (rc != BERR_SUCCESS)
+	{
+		rc = BERR_TRACE(rc);
+		goto done;
+	}
 
 
 	/* Make sure system is ready for the request */
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
+	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
+		/* If there's a REAUTH_REQ pending, restart HDCP authentication */
+		if (bReauthReqPending == false)
+		{
+			/* if authenticated but encryption not yet enabled, this means we are in the 200ms window waiting for
+			encryption to be enabled. Block authentication request attempt */
+			if (hHDCPlib->currentHdcp2xEncryptionState == BHDCPlib_Hdcp2xEncryptionState_eEncrypting)
+			{
+				/* block authentication attempt */
+				BDBG_WRN(("%s: Current State [%s] - waiting for encryption to be enabled. Drop StartAuthentication request", __FUNCTION__,
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+				rc = BERR_SUCCESS;
+				goto done;
+			}
+		}
+		break;
+
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 		break;
 
@@ -1353,23 +1414,13 @@ BERR_Code BHDCPlib_P_Hdcp2x_StartAuthentication(const BHDCPlib_Handle hHDCPlib)
 
 	case BHDCPlib_Hdcp2xState_eAuthenticating:
 	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
+		if (bReauthReqPending == false)
 		{
-			bool bReauthReqPending = false;
-			rc = BHDM_HDCP_IsReauthRequestPending(hHDCPlib->stDependencies.hHdm, &bReauthReqPending);
-			if (rc != BERR_SUCCESS)
-			{
-				rc = BERR_TRACE(rc);
-				goto done;
-			}
-
-			if (bReauthReqPending == false)
-			{
-				/* block authentication attempt */
-				BDBG_WRN(("%s: Current State [%s], drop StartAuthentication request", __FUNCTION__,
-					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
-				rc = BERR_SUCCESS;
-				goto done;
-			}
+			/* block authentication attempt */
+			BDBG_WRN(("%s: Current State [%s], drop StartAuthentication request", __FUNCTION__,
+				BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+			rc = BERR_SUCCESS;
+			goto done;
 		}
 		break;
 
@@ -1436,6 +1487,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
+	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eAuthenticating:
 	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
@@ -1481,6 +1533,7 @@ BERR_Code BHDCPlib_P_Hdcp2x_StopAuthentication(const BHDCPlib_Handle hHDCPlib)
 		rc = BERR_TRACE(rc);
 		goto done;
 	}
+	hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
 
 	/* Reset HDCP error - HDCP link status will be updated after UNAUTHENTICATE indication received */
 	hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
@@ -1588,6 +1641,13 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 	case BHDCPlib_P_Hdcp2xRequest_eSage_ProcessIndication:
 		switch(hHDCPlib->stIndicationData.indication_id)
 		{
+		case Hdcp22_IndicationType_eSecurityViolation:
+			BDBG_ERR(("**********************************************"));
+			BDBG_ERR(("Hdcp22 SAGE module security violation"));
+			BDBG_ERR(("- Code (0x%04x):  %s", hHDCPlib->stIndicationData.value,
+				BHDCPlib_Hdcp2x_P_SecurityViolationErrorToStr(hHDCPlib->stIndicationData.value)));
+			BDBG_ERR(("**********************************************"));
+			break;
 		case Hdcp22_IndicationType_eAuthenticationError:
 			if (hHDCPlib->stIndicationData.value == Hdcp22_AuthenticationError_eSuccess){
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
@@ -1690,6 +1750,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 
 				/* update state */
 				nextState = BHDCPlib_Hdcp2xState_eSessionKeyLoaded;
+				hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eEncrypting;
 
 				BDBG_LOG(("Indication Received [%s] - current state [%s] - next state [%s] ",
 					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
@@ -1780,7 +1841,17 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 					BDBG_ERR(("Rx: Indication Received [%s] (INVALID for Hdcp_Tx core) - current state [%s] - next state [%s]",
 						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
 						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+					BERR_TRACE(BERR_INVALID_PARAMETER);
+					goto done;
 				}
+
+				nextState = BHDCPlib_Hdcp2xState_eAuthenticated;
+				hHDCPlib->hdcp2xLinkAuthenticated = true;
+				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
+
+				BDBG_LOG(("Rx: Indication Received [%s] - current state [%s] - next state [%s] - ",
+					BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+					BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
 
 				if (hHDCPlib->stReceiverIdListData.deviceCount != 0)
 				{
@@ -1791,10 +1862,35 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 						goto done;
 					}
 				}
-				/* intentionally fall through */
+
+				/* Stop authentication timer */
+				if (hHDCPlib->hAuthenticationTimer) {
+					BTMR_StopTimer(hHDCPlib->hAuthenticationTimer);
+				}
+
+				/* fire event informing HDCP authentication result */
+				BKNI_SetEvent(hHDCPlib->hdcp2xIndicationEvent);
+				break;
 
 			case Hdcp22_AuthenticationStatus_eRepeaterAuthenticated:
-				nextState = BHDCPlib_Hdcp2xState_eAuthenticated;
+				if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx)
+				{
+					BDBG_ERR(("Rx: Indication Received [%s] (INVALID for Hdcp_Tx core) - current state [%s] - next state [%s]",
+						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(nextState)));
+					BERR_TRACE(BERR_INVALID_PARAMETER);
+					goto done;
+				}
+
+				if (hHDCPlib->currentHdcp2xState != BHDCPlib_Hdcp2xState_eAuthenticated) {
+					/* No state change */
+					BDBG_WRN(("Indication Received [%s](Invalid) - currentState[%s] - next state [%s]",
+						BHDCPlib_Hdcp2x_AuthenticationStatusToStr(hHDCPlib->stIndicationData.value),
+						BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState), BHDCPlib_Hdcp2x_StateToStr_isrsafe(hHDCPlib->currentHdcp2xState)));
+					break;
+				}
+
+				nextState = BHDCPlib_Hdcp2xState_eRepeaterAuthenticated;
 				hHDCPlib->hdcp2xLinkAuthenticated = true;
 				hHDCPlib->lastAuthenticationError = BHDCPlib_HdcpError_eSuccess;
 
@@ -1900,6 +1996,7 @@ static BERR_Code BHDCPlib_P_Hdcp2x_ProcessRequest(
 			case BHDCPlib_Hdcp2xState_eUnauthenticating:
 			case BHDCPlib_Hdcp2xState_eUnauthenticated:
 			case BHDCPlib_Hdcp2xState_eAuthenticated:
+			case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 			case BHDCPlib_Hdcp2xState_eAuthenticating:
 			case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 			case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
@@ -2000,6 +2097,7 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
+	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
@@ -2024,6 +2122,17 @@ void BHDCPlib_Hdcp2x_EnableEncryption(const BHDCPlib_Handle hHDCPlib, const bool
 
 
 	rc = BHDM_HDCP_EnableHdcp2xEncryption(hHDCPlib->stDependencies.hHdm, enable);
+	if (rc != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error %s HDCP 2.x encryption", enable?"enable":"disable"));
+		rc = BERR_TRACE(rc);
+	}
+
+	if (enable) {
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eEncrypted;
+	} else {
+		hHDCPlib->currentHdcp2xEncryptionState = BHDCPlib_Hdcp2xEncryptionState_eUnencrypted;
+	}
 
 done:
 
@@ -2069,6 +2178,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eUnauthenticating:
 		case BHDCPlib_Hdcp2xState_eUnauthenticated:
 		case BHDCPlib_Hdcp2xState_eAuthenticated:
+		case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 		case BHDCPlib_Hdcp2xState_eAuthenticating:
 		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 
@@ -2224,6 +2334,7 @@ BERR_Code BHDCPlib_Hdcp2x_ReceiveSageResponse(
 		case BHDCPlib_Hdcp2xState_eUnauthenticating:
 		case BHDCPlib_Hdcp2xState_eUnauthenticated:
 		case BHDCPlib_Hdcp2xState_eAuthenticated:
+		case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 		case BHDCPlib_Hdcp2xState_eAuthenticating:
 		case BHDCPlib_Hdcp2xState_eSessionKeyLoaded:
 		case BHDCPlib_Hdcp2xState_eSystemCannotInitialize:
@@ -2344,22 +2455,17 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 
 	switch (hHDCPlib->currentHdcp2xState)
 	{
-		case BHDCPlib_Hdcp2xState_eAuthenticated:
+		case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 			{
+#if BHDCPLIB_HDR_SUPPORT
 				bool bEncrypted = false;
 
-				if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx) {
-					rc = BHDM_HDCP_GetHdcp2xEncryptionStatus(hHDCPlib->stDependencies.hHdm, &bEncrypted);
-				}
-#if BHDCPLIB_HDR_SUPPORT
-				else {
-					rc = BHDR_HDCP_GetHdcp2xEncryptionStatus(hHDCPlib->stDependencies.hHdr, &bEncrypted);
-				}
-#endif
+				rc = BHDR_HDCP_GetHdcp2xEncryptionStatus(hHDCPlib->stDependencies.hHdr, &bEncrypted);
 				if (rc != BERR_SUCCESS)
 				{
 					BDBG_ERR(("Error checking HDCP2.x encryption status"));
 					rc = BERR_TRACE(rc);
+					bEncrypted = false;
 				}
 
 				if (bEncrypted) {
@@ -2368,6 +2474,36 @@ BERR_Code BHDCPlib_Hdcp2x_GetAuthenticationStatus(
 				else {
 					pAuthenticationStatus->eHdcpState = BHDCPlib_State_eLinkAuthenticated;
 				}
+#else
+				BDBG_ERR(("%s: Invalid hdcp2x State %d", __FUNCTION__, hHDCPlib->currentHdcp2xState));
+#endif
+				break ;
+			}
+
+		case BHDCPlib_Hdcp2xState_eAuthenticated:
+			{
+				bool bEncrypted = false;
+
+				if (hHDCPlib->stDependencies.eCoreType == BHDCPlib_CoreType_eTx) {
+					rc = BHDM_HDCP_GetHdcp2xEncryptionStatus(hHDCPlib->stDependencies.hHdm, &bEncrypted);
+					if (rc != BERR_SUCCESS)
+					{
+						BDBG_ERR(("Error checking HDCP2.x encryption status"));
+						rc = BERR_TRACE(rc);
+						bEncrypted = false;
+					}
+
+					if (bEncrypted) {
+						pAuthenticationStatus->eHdcpState = BHDCPlib_State_eEncryptionEnabled;
+					}
+					else {
+						pAuthenticationStatus->eHdcpState = BHDCPlib_State_eLinkAuthenticated;
+					}
+				}
+				else {
+					pAuthenticationStatus->eHdcpState = BHDCPlib_State_eReceiverAuthenticated;
+				}
+
 			}
 			break;
 
@@ -2453,6 +2589,7 @@ BERR_Code BHDCPlib_Hdcp2x_SetBinKeys(
 		switch (hHDCPlib->currentHdcp2xState)
 		{
 		case BHDCPlib_Hdcp2xState_eAuthenticated:
+		case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 		case BHDCPlib_Hdcp2xState_eUnauthenticating:
 		case BHDCPlib_Hdcp2xState_eUnauthenticated:
 		case BHDCPlib_Hdcp2xState_eAuthenticating:
@@ -2541,6 +2678,7 @@ BERR_Code BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(
 	switch (hHDCPlib->currentHdcp2xState)
 	{
 	case BHDCPlib_Hdcp2xState_eAuthenticated:
+	case BHDCPlib_Hdcp2xState_eRepeaterAuthenticated:
 	case BHDCPlib_Hdcp2xState_eUnauthenticating:
 	case BHDCPlib_Hdcp2xState_eUnauthenticated:
 	case BHDCPlib_Hdcp2xState_eAuthenticating:

@@ -40,7 +40,6 @@
 #define BAVC_H__
 
 #include "bchp.h"
-#include "bmem.h"
 #include "bmma.h"
 #include "bfmt.h"
 #include "bavc_types.h"

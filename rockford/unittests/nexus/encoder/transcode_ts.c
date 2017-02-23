@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1127,11 +1127,17 @@ vidSrcStreamChangedCallback(void *context, int param)
         streamInfo.streamProgressive? 'p' : 'i'));
 }
 
+typedef struct GenericCallbackContext
+{
+   void *context;
+   void *handle;
+} GenericCallbackContext;
+
 static void hotplug_callback(void *pParam, int iParam)
 {
     NEXUS_HdmiOutputStatus status;
-    NEXUS_HdmiOutputHandle hdmi = pParam;
-    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)iParam;
+    NEXUS_HdmiOutputHandle hdmi = (NEXUS_HdmiOutputHandle)((GenericCallbackContext*)pParam)->context;
+    NEXUS_DisplayHandle display = (NEXUS_DisplayHandle)((GenericCallbackContext*)pParam)->handle;
 
     NEXUS_HdmiOutput_GetStatus(hdmi, &status);
     fprintf(stderr, "HDMI hotplug event: %s\n", status.connected?"connected":"not connected");
@@ -1153,6 +1159,7 @@ static void hotplug_callback(void *pParam, int iParam)
 void xcode_loopback_setup( TranscodeContext  *pContext )
 {
     NEXUS_HdmiOutputSettings hdmiOutputSettings;
+    GenericCallbackContext hotplugCallbackContext;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_VideoDecoderSettings vidDecodeSettings;
@@ -1301,9 +1308,10 @@ void xcode_loopback_setup( TranscodeContext  *pContext )
 #endif
         /* Install hotplug callback -- video only for now */
         NEXUS_HdmiOutput_GetSettings(g_platformConfig.outputs.hdmi[0], &hdmiOutputSettings);
+        hotplugCallbackContext.context = g_platformConfig.outputs.hdmi[0];
+        hotplugCallbackContext.handle = pContext->displayLoopback;
         hdmiOutputSettings.hotplugCallback.callback = hotplug_callback;
-        hdmiOutputSettings.hotplugCallback.context = g_platformConfig.outputs.hdmi[0];
-        hdmiOutputSettings.hotplugCallback.param = (int)pContext->displayLoopback;
+        hdmiOutputSettings.hotplugCallback.context = &hotplugCallbackContext;
         NEXUS_HdmiOutput_SetSettings(g_platformConfig.outputs.hdmi[0], &hdmiOutputSettings);
 
         pContext->windowLoopback = NEXUS_VideoWindow_Open(pContext->displayLoopback, 0);
@@ -2097,8 +2105,8 @@ static void printStatus( TranscodeContext *pContext )
       NEXUS_VideoEncoder_GetStatus(pContext->videoEncoder, &videoEncodeStatus);
       printf("Video Encoder[%d] Status:\n", pContext->contextId);
       printf("----------------------\n");
-      printf("output data buffer depth     = %u\n", videoEncodeStatus.data.fifoDepth);
-      printf("output data buffer size      = %u\n", videoEncodeStatus.data.fifoSize);
+      printf("output data buffer depth     = "BDBG_UINT64_FMT"\n", BDBG_UINT64_ARG((uint64_t)videoEncodeStatus.data.fifoDepth));
+      printf("output data buffer size      = "BDBG_UINT64_FMT"\n", BDBG_UINT64_ARG((uint64_t)videoEncodeStatus.data.fifoSize));
       printf("error flags                  = 0x%x\n", videoEncodeStatus.errorFlags);
       printf("error count                  = %u\n", videoEncodeStatus.errorCount);
       printf("picture drops due to error   = %u\n", videoEncodeStatus.picturesDroppedErrors);
@@ -2116,8 +2124,8 @@ static void printStatus( TranscodeContext *pContext )
       NEXUS_Recpump_GetStatus(pContext->recpump, &recpumpStatus);
       printf("Recpump[%d] Status:\n", pContext->contextId);
       printf("----------------------\n");
-      printf("output data buffer depth     = %u\n", recpumpStatus.data.fifoDepth);
-      printf("output data buffer size      = %u\n", recpumpStatus.data.fifoSize);
+      printf("output data buffer depth     = "BDBG_UINT64_FMT"\n", BDBG_UINT64_ARG((uint64_t)recpumpStatus.data.fifoDepth));
+      printf("output data buffer size      = "BDBG_UINT64_FMT"\n", BDBG_UINT64_ARG((uint64_t)recpumpStatus.data.fifoSize));
       printf("bytesRecorded                = 0x%x%08x\n", (uint32_t)(recpumpStatus.data.bytesRecorded>>32), (uint32_t)recpumpStatus.data.bytesRecorded);
       printf("----------------------\n\n");
    }
@@ -2945,7 +2953,7 @@ static void getUserDataPsiFromPmt(void *context)
         /* We should always get whole PAT's because maxContiguousMessageSize is 4K */
         message_length = TS_PSI_GET_SECTION_LENGTH(buffer) + 3;
         BDBG_ASSERT(size >= (size_t)message_length);
-        BDBG_MSG(("message[%u] size = %d, table ID = %u", count, size, buffer[0]));
+        BDBG_MSG(("message[%u] size = "BDBG_UINT64_FMT", table ID = %u", count, BDBG_UINT64_ARG((uint64_t)size), buffer[0]));
 
         if (buffer[0] == 0) {
             /* 1) Program Association Table */
@@ -3039,7 +3047,7 @@ static void getUserDataPsiFromPmt(void *context)
             }
             if(pContext->inputSettings.numUserDataPids == BTST_TS_USER_DATA_ALL) {
                 pContext->inputSettings.numUserDataPids = num+1;/* found num of user data streams */
-                BDBG_MSG(("Context%d found %d user data PIDs to pass through.", pContext->contextId, pContext->inputSettings.numUserDataPids));
+                BDBG_MSG(("Context%d found "BDBG_UINT64_FMT" user data PIDs to pass through.", pContext->contextId, BDBG_UINT64_ARG((uint64_t)pContext->inputSettings.numUserDataPids)));
             }
 
         }
@@ -3685,8 +3693,8 @@ static void xcode_setup_mux_record( TranscodeContext  *pContext )
      */
     BDBG_MSG(("To open recpump with dataReadyThreshold = %d indexReadyThreshold=%d",
         recpumpOpenSettings.data.dataReadyThreshold, recpumpOpenSettings.index.dataReadyThreshold));
-    BDBG_MSG(("        recpump with data fifo size     = %d index fifo size    =%d",
-        recpumpOpenSettings.data.bufferSize, recpumpOpenSettings.index.bufferSize));
+    BDBG_MSG(("        recpump with data fifo size     = "BDBG_UINT64_FMT" index fifo size    ="BDBG_UINT64_FMT,
+        BDBG_UINT64_ARG((uint64_t)recpumpOpenSettings.data.bufferSize), BDBG_UINT64_ARG((uint64_t)recpumpOpenSettings.index.bufferSize)));
     pContext->recpump = NEXUS_Recpump_Open(pContext->contextId, &recpumpOpenSettings);
     assert(pContext->recpump);
     BDBG_MSG(("Transcoder%d opened TS mux recpump%d [%p].", pContext->contextId, pContext->contextId, (void*)pContext->recpump));
@@ -5346,7 +5354,7 @@ static void stop_transcode(
                size += size2;
                if ( size > 0 )
                {
-                   BDBG_WRN(("Flushing %u outstanding audio descriptors", size));
+                   BDBG_WRN(("Flushing "BDBG_UINT64_FMT" outstanding audio descriptors", BDBG_UINT64_ARG((uint64_t)size)));
                    NEXUS_AudioMuxOutput_ReadComplete(pContext->audioMuxOutput, size);
                }
            }

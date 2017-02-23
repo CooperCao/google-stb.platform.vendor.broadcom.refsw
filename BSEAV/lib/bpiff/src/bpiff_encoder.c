@@ -1,53 +1,41 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Example to encode mpeg2 TS to PIFF using PIFF Creation Module's APIs.
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bpiff_encoder.h"
 #include <pthread.h>
 #include <stdio.h>
@@ -68,7 +56,7 @@
 #include "bbase64.h"
 #include "drm_prdy.h"
 
-BDBG_MODULE(bpiff);
+BDBG_MODULE(bpiff_encoder);
 
 #define BACKWARDS_V1_1
 
@@ -694,14 +682,14 @@ int init_license( bpiff_encoder_context * piff_cx, PIFF_Encoder_Settings * pSett
     if( DRM_Prdy_LocalLicense_GetKID( piff_cx->phLicense,&KIDCheck) !=  DRM_Prdy_ok)
     {
         BDBG_ERR(("%s - Sanity check failed, can't get the KID from the created license.", __FUNCTION__));
-        DRM_Prdy_LocalLicense_Release(piff_cx->phLicense);  
+        DRM_Prdy_LocalLicense_Release(&piff_cx->phLicense);
         return -1;
     }  
 
     if( memcmp( &pSettings->keyId.data[0],&KIDCheck.data[0],16) != 0)
     {
         BDBG_ERR(("%s - Sanity check failed, the KIDs did not match.", __FUNCTION__));
-        DRM_Prdy_LocalLicense_Release(piff_cx->phLicense);  
+        DRM_Prdy_LocalLicense_Release(&piff_cx->phLicense);
         return -1;
     }
 
@@ -710,7 +698,7 @@ int init_license( bpiff_encoder_context * piff_cx, PIFF_Encoder_Settings * pSett
                                             eDRM_Prdy_elocal_license_xmr_store) != DRM_Prdy_ok)
     {
         BDBG_ERR(("%s - failed to Store license.", __FUNCTION__));
-        DRM_Prdy_LocalLicense_Release(piff_cx->phLicense);  
+        DRM_Prdy_LocalLicense_Release(&piff_cx->phLicense);
         return -1;
     } 
 
@@ -2782,6 +2770,7 @@ int process_audio_frame(piff_media_context              *media_cx,
     bool frame_started = false;
     unsigned frame_size = 0;
     struct frame_state frame;
+    void *pDataBuffer;
 
     BDBG_MSG(("%s - Entered function", __FUNCTION__));
 
@@ -2821,7 +2810,8 @@ int process_audio_frame(piff_media_context              *media_cx,
                     BDBG_ASSERT(media_cx->fragment_in_progress);
                     frame_size += d->rawDataLength;
                     /* assuming each audio sample is small enough to fit in memory */
-                    audio_add_data(((const uint8_t *)media_cx->audio.outputStatus.pBufferBase)+d->rawDataOffset, d->rawDataLength,&run->nals[0]);
+                    NEXUS_MemoryBlock_Lock(media_cx->audio.outputStatus.bufferBlock, &pDataBuffer);
+                    audio_add_data(((const uint8_t *)pDataBuffer)+d->rawDataOffset, d->rawDataLength,&run->nals[0]);
                 }
             }
         } /* end for */
@@ -3213,6 +3203,7 @@ void * encode_audio( void * context)
     piff_media_context         *media_ctx; 
     size_t                      bytes;
     unsigned                    descs;
+    void *pMetadataBuffer;
      
     BDBG_MSG(("%s - Entering function", __FUNCTION__));
 
@@ -3268,7 +3259,8 @@ void * encode_audio( void * context)
             d = &desc[j][i];
             i++;
             if(!media_ctx->codec.aac.aac_config_valid  && d->flags & NEXUS_AUDIOMUXOUTPUTFRAME_FLAG_METADATA) {
-                const NEXUS_AudioMetadataDescriptor *meta = (void *)(((const uint8_t *)media_ctx->audio.outputStatus.pMetadataBufferBase)+d->offset);
+                NEXUS_MemoryBlock_Lock(media_ctx->audio.outputStatus.metadataBufferBlock, &pMetadataBuffer);
+                const NEXUS_AudioMetadataDescriptor *meta = (void *)(((const uint8_t *)pMetadataBuffer)+d->offset);
                 BDBG_ASSERT(meta->protocolData.aac.ascLengthBytes < sizeof(media_ctx->codec.aac.aac_config.data));
                 BKNI_Memcpy(media_ctx->codec.aac.aac_config.data, meta->protocolData.aac.asc, meta->protocolData.aac.ascLengthBytes);
                 media_ctx->codec.aac.aac_config.size = meta->protocolData.aac.ascLengthBytes;
@@ -3393,10 +3385,10 @@ void piff_GetDefaultSettings( PIFF_Encoder_Settings *pSettings)    /* [out] defa
 
     if( DRM_Prdy_LocalLicense_InitializePolicyDescriptor( &pSettings->licPolicyDescriptor) != DRM_Prdy_ok)
     {
-        BDBG_MSG(("%s - Failed to initialize License Policy Descriptor. ", __FUNCTION__));
+        BDBG_WRN(("%s - Failed to initialize License Policy Descriptor. ", __FUNCTION__));
     }
 
-    pSettings->licPolicyDescriptor.wSecurityLevel = 150;
+    pSettings->licPolicyDescriptor.wSecurityLevel = 2000;
     pSettings->licPolicyDescriptor.fCannotPersist = 0;
     pSettings->licPolicyDescriptor.cPlayEnablers = 2;
     BKNI_Memcpy(&pSettings->licPolicyDescriptor.rgoPlayEnablers[0], 
@@ -3413,6 +3405,7 @@ void piff_destroy_encoder_handle(PIFF_encoder_handle handle)
 {
     BDBG_MSG(("%s - Entering function", __FUNCTION__));
     if( handle != NULL) { 
+        DRM_Prdy_LocalLicense_Release(&handle->phLicense);
         if( handle->licAcqXMLStrLength > 0) {
             if( handle->pLicAcqXMLStr != NULL) NEXUS_Memory_Free(handle->pLicAcqXMLStr);
         }
@@ -3487,10 +3480,10 @@ PIFF_encoder_handle piff_create_encoder_handle(PIFF_Encoder_Settings *pSettings,
         handle->licAcqXMLStrLength = pSettings->licAcqXMLStrLength;
     }
     */
-   
-         
+
     /* randomly generate the first IV */
     if( gen_random_num(16, handle->next_iv) != 0) {
+        BDBG_ERR(("%s - Failed to generate next iv.", __FUNCTION__));
         goto ErrorExit;
     }
     
@@ -3501,6 +3494,7 @@ PIFF_encoder_handle piff_create_encoder_handle(PIFF_Encoder_Settings *pSettings,
     }
 
     if( init_license(handle,pSettings) != 0) {
+        BDBG_ERR(("%s - init_license FAILED", __FUNCTION__));
         goto ErrorExit;
     }
      
@@ -3511,8 +3505,8 @@ PIFF_encoder_handle piff_create_encoder_handle(PIFF_Encoder_Settings *pSettings,
      */
     build_lic_acq_xml_string(handle,pSettings);
     /*printf("license XML string: %s\n",handle->pLicAcqXMLStr);*/
+    BDBG_MSG(("license XML string: %s\n",handle->pLicAcqXMLStr));
 
-    
     if( BKNI_CreateMutex(&handle->lock) != BERR_SUCCESS) {
         BDBG_ERR(("failed to create mutex.", __FUNCTION__));
         goto ErrorExit;

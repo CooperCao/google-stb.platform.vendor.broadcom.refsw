@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2001-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************/
 #include <stdio.h>
 #include <sys/types.h>
@@ -31,6 +51,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
+#include "bchp_common.h"
 
 #define DBGMSG
 
@@ -100,46 +121,22 @@ static char *curValueStr() {
 // filedescriptor for device used to map memory
 int fd = -1;
 
-int get_hardware_address(const char *machine, unsigned long *address, unsigned long *size) {
-	int result = 0;
-	int chip = atoi(machine);
+#define REGISTER_BASE   (BCHP_PHYSICAL_OFFSET + (BCHP_REGISTER_START & ~0xFFF))
+#define REGISTER_SIZE   (BCHP_REGISTER_END - (BCHP_REGISTER_START & ~0xFFF))
 
-	switch (chip) {
-	case 7320:
-	case 7319:
-	case 7328:
-		*address = 0x1AE00000;
-		*size = 0x1AFFFFFF+ 1 - *address;
-		break;
-	case 7115:
-	case 7112:
-	case 7314:
-	case 7315:
-	case 7317:
-	case 7318:
-	case 7110:
-	case 7111:
-		*address = 0xffe00000;
-		*size = 0xFFFFFFFF + 1 - *address;
-		break;
-	case 7038:
-	case 3560:
-		*address = 0x10000000;
-		*size = 0x500908; /* where did this number came from ??? */
-		break;
-	default:
-		*address = 0x10000000;
-		*size = 0xffff00;
-		break;
-	}
-	return result;
+static void get_hardware_address(const char *machine, unsigned long *address, unsigned long *size, unsigned long *address_offset)
+{
+    *address = REGISTER_BASE;
+    *size = REGISTER_SIZE;
+    *address_offset = BCHP_REGISTER_START;
 }
 
 int main(int argc, char *argv[])
 {
 	char buffer[256];
 	char *cptr = NULL;
-	unsigned long base_address, base_address_size;
+	unsigned long base_address, base_address_size, base_address_offset = 0;
+	void *base_ptr;
 	unsigned long address,i,cnt, value, val32;
 	int loop = 0;
 	unsigned long delay;
@@ -170,23 +167,21 @@ int main(int argc, char *argv[])
 		printf("Hardware base address: %#lx, size: %#lx\n", base_address, base_address_size);
 	}
 	else {
-		if (get_hardware_address(buf.machine, &base_address, &base_address_size))
-		{
-			printf("Unknown address range\n");
-			printUsage();
-			return -1;
-		}
+		get_hardware_address(buf.machine, &base_address, &base_address_size, &base_address_offset);
 	}
 
 	fd = open("/dev/mem",O_RDWR|O_SYNC);/* O_SYNC is for non cached access. */
-	if (fd < 0)
-		return printf("Open /dev/mem failed: %d.\nYou probably need to have root access.\n", errno);
+	if (fd < 0) {
+		fprintf(stderr, "Open /dev/mem failed: %d.\nYou probably need to have root access.\n", errno);
+		return -1;
+	}
 
 	/* mmap page aligned reg base */
-	base_address &= ~0xfff;
-	base_address = (unsigned long) mmap(0, base_address_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, base_address);
-	if (base_address == -1)
-		return printf("mmap failed\n");
+	base_ptr = mmap(0, base_address_size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, base_address);
+	if (base_ptr == (void*)-1) {
+		fprintf(stderr, "mmap failed\n");
+		return -1;
+	}
 
 	/* Now we're ready to start interactive mode */
 	if (!script)
@@ -364,15 +359,16 @@ int main(int argc, char *argv[])
 					for(;loop;loop--)
 					{
 						while (address <= toaddress) {
-							if (address >= base_address_size) {
-								printf("Address out of range. Use should be using an offset from the base.\n");
+							if (address-base_address_offset >= base_address_size) {
+								fprintf(stderr, "Address %#x out of range. Use should be using an offset from base %#x.\n", address, base_address-base_address_offset);
 								break;
 							}
 
+#define REG_PTR(BASEPTR,ADDR) (&((unsigned char *)(BASEPTR))[ADDR])
 							if (byteread)
-								val32 = (unsigned long)(*(volatile unsigned char *)(base_address+address));
+								val32 = *(volatile unsigned char *)REG_PTR(base_ptr,address-base_address_offset);
 							else
-								val32 = (unsigned long)(*(volatile unsigned long *)(base_address+address));
+								val32 = *(volatile unsigned *)REG_PTR(base_ptr,address-base_address_offset);
 							curValue = val32;
 							curAddress = address;
 							if (byteread)
@@ -415,15 +411,15 @@ int main(int argc, char *argv[])
 						address = curAddress;
 				}
 
-				if (address >= base_address_size) {
+				if (address-base_address_offset >= base_address_size) {
 					printf("Address out of range. Use should be using an offset from the base.\n");
 					break;
 				}
 				
 				if (bytewrite)
-					*(volatile unsigned char *) (base_address+address) = value;
+					*(volatile unsigned char *)REG_PTR(base_ptr,address-base_address_offset) = value;
 				else
-					*(volatile unsigned long *) (base_address+address) = value;
+					*(volatile unsigned *)REG_PTR(base_ptr,address-base_address_offset) = value;
 
 				printf("write address %08X with %08X\n", address, value);
 				curValue = value;
@@ -452,9 +448,9 @@ int main(int argc, char *argv[])
 						break;
 					}
 					cnt = 0;
-					for (i = address; i <= eaddress; i += 4)
+					for (i = address-base_address_offset; i <= eaddress-base_address_offset; i += 4)
 					{
-						val32 = (unsigned long)(*(volatile unsigned long *)(base_address+i));
+						val32 = *(volatile unsigned *)REG_PTR(base_ptr,i);
 						fprintf(tf,"\n0x%08X(0x%08x):  %08X", i, ((i - 0x4000)/4),val32);
 					}
 					fclose(tf);

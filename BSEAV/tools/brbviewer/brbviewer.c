@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bmemperf_types64.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,6 +48,7 @@
 #include <fcntl.h>
 #include <ctype.h>
 #include <arpa/inet.h>
+#include <sys/utsname.h>
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -70,66 +69,6 @@ bmemperf_info g_bmemperf_info;
 
 #define PRINTFLOG noprintf
 #define BCHP_ACQUIRE_BVN 0
-
-/* ******************************************************************************************************
-*                                                                                                       *
-* Function - printflog                                                                                  *
-*                                                                                                       *
-********************************************************************************************************/
-void printflog(
-    const char *szFormat,
-    ...
-    )
-{
-    char                 str[256];
-    unsigned long int    nLen = sizeof( str );
-    static char          sLogFile[128];
-    static unsigned char LogFileNameSet = 0;
-    int                  fd             = 0;
-    va_list              arg_ptr;
-
-    memset( str, 0, sizeof str );
-    if (LogFileNameSet == 0)
-    {
-        memset( sLogFile, 0, sizeof sLogFile );
-        sprintf( sLogFile, "brbviewer.log" );
-        /*fprintf( stderr, "%s: log file is (%s)\n", __FUNCTION__, sLogFile );*/
-        LogFileNameSet = 1;
-    }
-
-    va_start( arg_ptr, szFormat );
-    #ifdef _WINDOWS_
-    _vsnprintf( str, nLen-1, szFormat, arg_ptr );
-    #else
-    vsnprintf( str, nLen-1, szFormat, arg_ptr );
-    #endif
-    va_end( arg_ptr );
-
-    if (strlen( sLogFile ))
-    {
-        fd = open( sLogFile, ( O_CREAT | O_WRONLY | O_APPEND ));
-        if (fd)
-        {
-            write( fd, str, strlen( str ));
-            close( fd );
-            chmod( sLogFile, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH );
-
-            /* output the string to terminal */
-            /*fprintf( stderr, "%s", str );*/
-        }
-        else
-        {
-            fprintf( stderr, "%s: Could not open (%s)\n", __FUNCTION__, sLogFile );
-        }
-    }
-    else
-    {
-        fprintf( stderr, "%s: log file (%s) is invalid\n", __FUNCTION__, sLogFile );
-        fprintf( stderr, "%s", str );
-    }
-
-    return;
-} /* printflog */
 
 static int get_bvn_register_values(
     unsigned int *regValues,
@@ -260,12 +199,28 @@ int main(
         else
         {
             {
+                char          *boltVersion  = NULL;
+                struct utsname uname_info;
+                memset( &uname_info, 0, sizeof(uname_info));
+
+                boltVersion = getFileContents( "/proc/device-tree/bolt/tag" );
+                uname(&uname_info);
+
                 printf( "<?xml version=\"1.0\" encoding=\"utf-8\"?><s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" " );
                 printf( "s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\">" );
                 printf( "<s:Body><u:GetRegisterCollectionWithElmErrsResponse xmlns:u=\"urn:schemas-upnp-org:service:RegSvc:1\">" );
 
-                printf( "<PlatformType>%s</PlatformType>", getProductIdStr());
+                printf( "<PlatformType>%s</PlatformType>", getPlatform());
                 printf( "<PlatformVersion>%s</PlatformVersion>", getPlatformVersion());
+                printf( "<PlatformVariant>(Variant: %s)</PlatformVariant>", getProductIdStr() );
+                printf( "<PlatformUname>Kernel: %d-bit %s %s</PlatformUname>", (sizeof(char*) == 8)?64:32, uname_info.machine , uname_info.release );
+                if ( boltVersion )
+                {
+                    printf( "<PlatformBoltVer>Bolt: %s</PlatformBoltVer>", boltVersion );
+                    Bsysperf_Free( boltVersion );
+                }
+                printf( "<StbTime>%s</StbTime>", DayMonDateYear( 0 ));
+
 
                 printf( "<RegisterValues>" );
                 printf( "%s", regValuesBase64Encoded );

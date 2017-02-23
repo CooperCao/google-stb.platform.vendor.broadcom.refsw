@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -95,6 +95,7 @@ static const uint8_t privilegedClients[] = {
 #if BMRC_ALLOW_M2M_TO_ACCESS_KERNEL
     BMRC_Monitor_HwBlock_eM2M,
 #endif
+    BMRC_Monitor_HwBlock_e3D,
 
     /* Decoder/Encoder Predicted Fetch Request - reading outside of programmed range */
     BMRC_Monitor_HwBlock_ePREFETCH,
@@ -127,7 +128,6 @@ static const uint8_t controlledClients[] = {
 #if !BMRC_ALLOW_M2M_TO_ACCESS_KERNEL
     BMRC_Monitor_HwBlock_eM2M,
 #endif
-    BMRC_Monitor_HwBlock_e3D,
     BMRC_Monitor_HwBlock_eSID,
     BMRC_Monitor_HwBlock_eTPCAP,
 #if !BMRC_ALLOW_XPT_TO_ACCESS_KERNEL
@@ -143,16 +143,18 @@ static const uint8_t controlledClients[] = {
  */
 
 typedef struct BMRC_P_Monitor_FileInfo  {
-    char swModule[8];
+    char swModule[12];
     uint8_t hwBlocks[8];
 } BMRC_P_Monitor_FileInfo;
 
 
 static const BMRC_P_Monitor_FileInfo fileMap[] = {
-    {"baud", {
+    {"bxpt_rave", {
+        BMRC_Monitor_HwBlock_eAVD,
         BMRC_Monitor_HwBlock_eAUD,
+        BMRC_Monitor_HwBlock_eXPT,
         BMRC_Monitor_HwBlock_eInvalid }},
-    {"bxpt_ra", {
+    {"nexus_rave", {
         BMRC_Monitor_HwBlock_eAVD,
         BMRC_Monitor_HwBlock_eAUD,
         BMRC_Monitor_HwBlock_eXPT,
@@ -160,17 +162,26 @@ static const BMRC_P_Monitor_FileInfo fileMap[] = {
     {"bxvd", {
         BMRC_Monitor_HwBlock_eAVD,
         BMRC_Monitor_HwBlock_eInvalid }},
-    {"brap", {
-        BMRC_Monitor_HwBlock_eAUD,
-        BMRC_Monitor_HwBlock_eInvalid }},
     {"bvdc", {
         BMRC_Monitor_HwBlock_eBVN,
         BMRC_Monitor_HwBlock_eVEC,
+        BMRC_Monitor_HwBlock_eInvalid }},
+    {"brdc", {
+        BMRC_Monitor_HwBlock_eBVN,
         BMRC_Monitor_HwBlock_eInvalid }},
     {"bvbi", {
         BMRC_Monitor_HwBlock_eVEC_VBI,
         BMRC_Monitor_HwBlock_eInvalid }},
     {"bxpt", {
+        BMRC_Monitor_HwBlock_eXPT,
+        BMRC_Monitor_HwBlock_eInvalid }},
+    {"bpvrlib", {
+        BMRC_Monitor_HwBlock_eXPT,
+        BMRC_Monitor_HwBlock_eInvalid }},
+    {"nexus_playp", {
+        BMRC_Monitor_HwBlock_eXPT,
+        BMRC_Monitor_HwBlock_eInvalid }},
+    {"nexus_recp", {
         BMRC_Monitor_HwBlock_eXPT,
         BMRC_Monitor_HwBlock_eInvalid }},
     {"bvce", {
@@ -339,7 +350,7 @@ BMRC_Monitor_P_GetFileInfo(const char *fname)
     }
     fname = ptr;
 
-    for(i=0;i<sizeof(fileMap)/sizeof(fileMap);i++) {
+    for(i=0;i<sizeof(fileMap)/sizeof(*fileMap);i++) {
         unsigned j;
         for(j=0;B_TOUPPER(fileMap[i].swModule[j]) == B_TOUPPER(fname[j]);) { /* do strncmp type of stuff */
             j++;

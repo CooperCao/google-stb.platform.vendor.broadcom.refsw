@@ -43,13 +43,12 @@ BSEAV_TOP := $(shell cd ../../../BSEAV; pwd)
 
 # Include nexus definitions
 
-
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
 include $(NEXUS_TOP)/build/os/linuxuser/os_tools.inc
 
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 
 # Sanity check that we received a valid platform
 ifndef BCHP_CHIP

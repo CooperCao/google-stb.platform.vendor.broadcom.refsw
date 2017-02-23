@@ -205,7 +205,6 @@ typedef struct BVDC_P_BufferHeapContext
     /* Handed down by created */
     BVDC_Handle                      hVdc;          /* Created from this Vdc */
     BMMA_Heap_Handle                 hMem;          /* corresponding heap. */
-    BMMA_Block_Handle                hMosaicDrainBlock; /* capture drain buffer for mosaic mode 16 bytes*/
     BMMA_DeviceOffset                ullMosaicDrainOffset; /* drain buffer offset */
 
     /* Heap Settings */

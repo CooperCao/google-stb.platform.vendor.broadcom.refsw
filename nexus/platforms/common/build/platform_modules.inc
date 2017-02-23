@@ -204,9 +204,6 @@ endif
 ifeq ($(NSK2_EMM_SUPPORT),y)
 include ${NEXUS_TOP}/extensions/nsk2/nsk2hdx/emm_ext/nsk2emm_ext.inc
 endif
-ifeq ($(NSK2_ECM_SUPPORT),y)
-include ${NEXUS_TOP}/extensions/nsk2/nsk2hdx/ecm_ext/nsk2ecm_ext.inc
-endif
 ifeq ($(NSK2_SMARTCARD_SUPPORT),y)
 include ${NEXUS_TOP}/extensions/nsk2/nsk2hdx/smartcard_ext/nsk2smartcard_ext.inc
 endif

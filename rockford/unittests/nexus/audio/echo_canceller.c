@@ -39,7 +39,7 @@
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band */
-
+#if NEXUS_HAS_AUDIO
 #include "bstd.h"
 #include "nexus_platform.h"
 #if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
@@ -525,3 +525,11 @@ static void *mux_thread(void *pParam)
     NEXUS_MemoryBlock_Unlock(audioMuxStatus.bufferBlock);
     return NULL;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

@@ -1,22 +1,42 @@
 /***************************************************************************
- *    Copyright (c) 2004-2013, Broadcom Corporation
- *    All Rights Reserved
- *    Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *	 This module contains the code for the XVD memory sub-manager.
- *
- * Revision History:
- *
- * $brcm_Log: $
+ *   This module contains the code for the XVD memory sub-manager.
  *
  ****************************************************************************/
 #include "bxvd_memory_priv.h"
@@ -38,7 +58,7 @@ BXVD_P_Memory_Open: Opens and initializes an XVD memory instance
 ********************************************************/
 BERR_Code BXVD_P_Memory_Open(BXVD_Handle hXvd,
                              BXVD_P_MemoryHandle *phXvdMem,
-                             void *pvAddr,
+                             BMMA_DeviceOffset pvAddr,
                              uint32_t uiSize,
                              BXVD_P_Memory_Protection eProtect)
 {
@@ -77,7 +97,7 @@ BERR_Code BXVD_P_Memory_Open(BXVD_Handle hXvd,
    pMem->hXvd = hXvd;
    pMem->uiBlockSize = uiSize;
    pMem->uiRegionCount = 0;
-   pMem->uiBlockBaseAddr = pvAddr;
+   pMem->BlockBaseAddr = pvAddr;
 
    /* Set the free flag to true for all the new, unallocated regions */
    for (region = 0; region < BXVD_P_MEMORY_MAX_ALLOCATIONS; region++)
@@ -89,7 +109,7 @@ BERR_Code BXVD_P_Memory_Open(BXVD_Handle hXvd,
 
    BMMA_RangeAllocator_GetDefaultCreateSettings(&RangeAllocatorSettings);
 
-   RangeAllocatorSettings.base = (unsigned long) pvAddr;
+   RangeAllocatorSettings.base = pvAddr;
    RangeAllocatorSettings.size = uiSize;
 
    if ((rc = BMMA_RangeAllocator_Create(&(pMem->hBMMA_RangeAllocator), &RangeAllocatorSettings )) != BERR_SUCCESS)
@@ -135,14 +155,14 @@ BERR_Code BXVD_P_Memory_Close(BXVD_P_MemoryHandle hXvdMem)
 /***************************************************************************
 BXVD_P_Memory_Allocate: Allocate a region of sub-managed memory
 **************************************************************************/
-void *BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
-                             uint32_t uiAllocationSize,
-                             uint32_t uiAlignment,
-                             uint32_t uiRegionTag)
+BMMA_DeviceOffset BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
+                                         uint32_t uiAllocationSize,
+                                         uint32_t uiAlignment,
+                                         uint32_t uiRegionTag)
 {
    bool bAlloc, bRegionFound;
 
-   unsigned long ulAddr;
+   BMMA_DeviceOffset PAddr;
    int32_t iIndex;
 
    BXVD_P_AllocatedRegion stAllocReg;
@@ -165,7 +185,7 @@ void *BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
    {
       BDBG_ERR(("No more available regions. Maximum is %d",
                 BXVD_P_MEMORY_MAX_ALLOCATIONS));
-      return NULL;
+      return 0;
    }
 
    BMMA_RangeAllocator_GetDefaultAllocationSettings( &stRA_BlockSettings );
@@ -176,10 +196,10 @@ void *BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
                                    uiAllocationSize, &stRA_BlockSettings ) !=  BERR_SUCCESS )
    {
       BDBG_ERR(("Could not allocate requested memory block"));
-      return NULL;
+      return 0;
    }
 
-   ulAddr = BMMA_RangeAllocator_GetAllocationBase( stAllocReg.hBMMA_RangeAllocBlock );
+   PAddr = BMMA_RangeAllocator_GetAllocationBase( stAllocReg.hBMMA_RangeAllocBlock );
 
    /*
     * Store bookkeeping information in the allocated regions array.
@@ -195,8 +215,8 @@ void *BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
       BXVD_P_Memory_IsRegionAllocated(hXvdMem, iIndex, &bAlloc);
       if (bAlloc == false)
       {
-	 BDBG_MSG(("<<<< found a free allocation slot at %d >>>>", iIndex));
-	 bRegionFound = true;
+     BDBG_MSG(("<<<< found a free allocation slot at %d >>>>", iIndex));
+     bRegionFound = true;
          break;
       }
    }
@@ -205,13 +225,13 @@ void *BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
    if (bRegionFound == false)
    {
       BDBG_ERR(("No allocation region slots available"));
-      return NULL;
+      return 0;
    }
 
    /* Initialize allocation region members before copy */
    stAllocReg.iRegionIndex = (BXVD_P_Memory_RegionIndex)iIndex;
    stAllocReg.uiRegionAlignment = uiAlignment;
-   stAllocReg.pvRegionAddr = (void *)ulAddr;
+   stAllocReg.RegionAddr = PAddr;
    stAllocReg.uiRegionSize = uiAllocationSize;
    stAllocReg.uiRegionTag = uiRegionTag;
 
@@ -226,21 +246,21 @@ void *BXVD_P_Memory_Allocate(BXVD_P_MemoryHandle hXvdMem,
 
    BDBG_LEAVE(BXVD_P_Memory_Allocate);
 
-   return (void *) ulAddr;
+   return PAddr;
 }
 
 /***************************************************************************
 BXVD_P_Memory_Free: Free a region of memory by address
 **************************************************************************/
 BERR_Code BXVD_P_Memory_Free(BXVD_P_MemoryHandle hXvdMem,
-                             void *pvAddr)
+                             BMMA_DeviceOffset PAddr)
 {
    BERR_Code rc = BERR_INVALID_PARAMETER;
    BXVD_P_Memory_RegionIndex region;
 
    BDBG_ENTER(BXVD_P_Memory_Free);
    BDBG_ASSERT(hXvdMem);
-   BDBG_ASSERT(pvAddr);
+   BDBG_ASSERT(PAddr);
 
 
    /*
@@ -248,13 +268,13 @@ BERR_Code BXVD_P_Memory_Free(BXVD_P_MemoryHandle hXvdMem,
     */
    for (region = 0; region < BXVD_P_MEMORY_MAX_ALLOCATIONS; region++)
    {
-      if (hXvdMem->aAllocatedRegions[region].pvRegionAddr == pvAddr)
+      if (hXvdMem->aAllocatedRegions[region].RegionAddr == PAddr)
       {
          hXvdMem->uiFreeSpace += hXvdMem->aAllocatedRegions[region].uiRegionSize;
 
          hXvdMem->aAllocatedRegions[region].bRegionFree = true;
          hXvdMem->aAllocatedRegions[region].iRegionIndex = BXVD_P_MEMORY_FREE_REGION_INDEX;
-         hXvdMem->aAllocatedRegions[region].pvRegionAddr = NULL;
+         hXvdMem->aAllocatedRegions[region].RegionAddr = 0;
          hXvdMem->aAllocatedRegions[region].uiRegionSize = 0;
          BMMA_RangeAllocator_Free(hXvdMem->hBMMA_RangeAllocator, hXvdMem->aAllocatedRegions[region].hBMMA_RangeAllocBlock);
          (hXvdMem->uiRegionCount)--;
@@ -333,8 +353,8 @@ void BXVD_P_Memory_Dump(BXVD_P_MemoryHandle hXvdMem,
       BKNI_Printf("   Region alignment: %d\n",
                   hXvdMem->aAllocatedRegions[region].uiRegionAlignment);
 
-      BKNI_Printf("   Region address: 0x%0*lx\n",
-                  BXVD_P_DIGITS_IN_LONG, (long)hXvdMem->aAllocatedRegions[region].pvRegionAddr);
+      BKNI_Printf("   Region address: 0x%016x\n",
+                  hXvdMem->aAllocatedRegions[region].RegionAddr);
 
       BKNI_Printf("        Region size: 0x%x (%d)\n",
                   hXvdMem->aAllocatedRegions[region].uiRegionSize,

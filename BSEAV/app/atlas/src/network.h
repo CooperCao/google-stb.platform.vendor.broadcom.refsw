@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,9 +65,11 @@ class CNetworkWifiConnectData
 {
 public:
     CNetworkWifiConnectData() :
+        _bWps(false),
         _bConnected(false) {}
     virtual ~CNetworkWifiConnectData() {}
 
+    bool          isWps(void) { return(_bWps); }
     void          dump(bool bForce = false);
     bool operator ==(CNetworkWifiConnectData &other)
     {
@@ -77,6 +79,7 @@ public:
 public:
     MString _strSsid;
     MString _strPassword;
+    bool    _bWps;
     bool    _bConnected;
 };
 

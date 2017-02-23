@@ -52,7 +52,6 @@ typedef struct Scenario
     unsigned streamIndex;
     unsigned imageIndex;
     unsigned bgIndex;
-    bool forceSdr;
     bool pig;
     bool osd;
     bool details;
@@ -63,6 +62,7 @@ typedef struct Scenario
         unsigned gfxIndex;
     } plm;
     PlatformColorimetry gamut;
+    PlatformDynamicRange eotf;
 } Scenario;
 
 typedef void (*ScenarioChangedCallback)(void * context, const Scenario * pScenario);

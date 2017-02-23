@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,10 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "priv/nexus_hdmi_output_priv.h"
 #endif
+#if NEXUS_COMPAT_32ABI
+#include "nexus_base_compat.h"
+#include "nexus_platform_api_compat.h"
+#endif
 
 BDBG_MODULE(nexus_platform_settings);
 
@@ -55,7 +59,12 @@ void NEXUS_Platform_GetDefaultSettings_tagged( NEXUS_PlatformSettings *pSettings
     const NEXUS_Core_PreInitState *preInitState;
     preInitState = NEXUS_Platform_P_PreInit();
     if (!preInitState) return; /* no BERR_TRACE */
-    if(size==sizeof(*pSettings)) {
+    if(
+       size==sizeof(*pSettings)
+#if NEXUS_COMPAT_32ABI
+       || size==sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformSettings))
+#endif
+       ) {
         NEXUS_Platform_Priv_GetDefaultSettings(preInitState, pSettings);
     } else {
         BDBG_ERR(("NEXUS_Platform_GetDefaultSettings:size mismatch %u != %u", (unsigned)sizeof(*pSettings), (unsigned)size));
@@ -75,41 +84,23 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #if NEXUS_PLATFORM_DEFAULT_HEAP != 0
 #error NEXUS_PLATFORM_DEFAULT_HEAP is deprecated. we should keep main heap as 0
 #endif
-#ifdef NEXUS_MEMC0_GRAPHICS_HEAP
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memcIndex = 0;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#ifdef NEXUS_MEMC1_GRAPHICS_HEAP
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memcIndex = 1;
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#ifdef NEXUS_MEMC2_GRAPHICS_HEAP
     pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memcIndex = 2;
     pSettings->heap[NEXUS_MEMC2_GRAPHICS_HEAP].memoryType |= NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#ifdef NEXUS_MEMC0_DRIVER_HEAP
     pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memcIndex = 0;
     pSettings->heap[NEXUS_MEMC0_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#ifdef NEXUS_MEMC1_DRIVER_HEAP
     pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memcIndex = 1;
     pSettings->heap[NEXUS_MEMC1_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#ifdef NEXUS_MEMC2_DRIVER_HEAP
     pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memcIndex = 2;
     pSettings->heap[NEXUS_MEMC2_DRIVER_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#if defined(NEXUS_MEMC0_MAIN_HEAP)
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].heapType |= NEXUS_HEAP_TYPE_MAIN;
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memcIndex = 0;
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType |= NEXUS_MEMORY_TYPE_DRIVER_UNCACHED|NEXUS_MEMORY_TYPE_DRIVER_CACHED|NEXUS_MEMORY_TYPE_APPLICATION_CACHED;
-#endif
-#if defined(NEXUS_VIDEO_SECURE_HEAP)
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION;
-#endif
-#if defined(NEXUS_EXPORT_HEAP)
     pSettings->heap[NEXUS_EXPORT_HEAP].heapType |= NEXUS_HEAP_TYPE_EXPORT_REGION;
-#endif
 #if NEXUS_HAS_SAGE
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.sage = true;
 #if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
@@ -121,10 +112,8 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #endif
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
-#if defined(NEXUS_EXPORT_HEAP)
     pSettings->heap[NEXUS_EXPORT_HEAP].alignment = 1 * 1024 * 1024;
     pSettings->heap[NEXUS_EXPORT_HEAP].memoryType = NEXUS_MemoryType_eSecure;
-#endif
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size =  32*1024*1024; /*Sage Secure heap */
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
@@ -220,6 +209,7 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
         pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eUartMessage].enabled = true;
         pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eDramMessage].enabled = true;
         pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled = true;
+        pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].enabled = true;
     }
     else
     {
@@ -234,6 +224,10 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
         if ( NEXUS_GetEnv("audio_core_file") )
         {
             pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled = true;
+        }
+        if ( NEXUS_GetEnv("audio_target_print_file") )
+        {
+            pSettings->audioModuleSettings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eTargetPrint].enabled = true;
         }
     }
     #endif
@@ -311,7 +305,7 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_Platform_P_AdjustBmemRegions(pMemory);
     NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &rtsSettings);
     NEXUS_Platform_P_GetDefaultHeapSettings(pSettings, preInitState->boxMode);
-    errCode = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfigSettings, &rtsSettings, pSettings);
+    errCode = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfigSettings, &rtsSettings, pSettings, g_NEXUS_platformModule==NULL? &g_NEXUS_platformInternalSettings : NULL); /* update g_NEXUS_platformInternalSettings if nexus was not initialized */
     if (errCode) {
         /* we can't fail the function, but we can make sure we don't squeak by */
         BERR_TRACE(errCode);
@@ -368,6 +362,7 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
     return;
 #endif
 
+    /* coverity[unreachable: FALSE] */
     /* determine MEMC index/subIndex for each bmem region */
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         bool done = false;
@@ -604,24 +599,18 @@ static NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayInde
 
     *pHeapIndex = NEXUS_MAX_HEAPS; /* invalid */
     if (displayIndex == NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE) {
-#if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
         if (g_NEXUS_platformSettings.heap[NEXUS_MEMC2_SECURE_GRAPHICS_HEAP].size) {
             *pHeapIndex = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
             return 0;
         }
-#endif
-#if defined NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
         if (g_NEXUS_platformSettings.heap[NEXUS_MEMC1_SECURE_GRAPHICS_HEAP].size) {
             *pHeapIndex = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
             return 0;
         }
-#endif
-#if defined NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
         if (g_NEXUS_platformSettings.heap[NEXUS_MEMC0_SECURE_GRAPHICS_HEAP].size) {
             *pHeapIndex = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
             return 0;
         }
-#endif
         return NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
     }
 
@@ -657,48 +646,36 @@ static NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayInde
     }
     switch (memcIndex) {
     case 0:
-#ifdef NEXUS_MEMC0_GRAPHICS_HEAP
         if (g_pCoreHandles->heap[NEXUS_MEMC0_GRAPHICS_HEAP].nexus) {
             *pHeapIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
             break;
         }
-#endif
-#ifdef NEXUS_MEMC0_MAIN_HEAP
         if (g_pCoreHandles->heap[NEXUS_MEMC0_MAIN_HEAP].nexus) {
             *pHeapIndex = NEXUS_MEMC0_MAIN_HEAP;
             break;
         }
-#endif
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         break;
     case 1:
-#ifdef NEXUS_MEMC1_GRAPHICS_HEAP
         if (g_pCoreHandles->heap[NEXUS_MEMC1_GRAPHICS_HEAP].nexus) {
             *pHeapIndex = NEXUS_MEMC1_GRAPHICS_HEAP;
             break;
         }
-#endif
-#ifdef NEXUS_MEMC1_DRIVER_HEAP
         if (g_pCoreHandles->heap[NEXUS_MEMC1_DRIVER_HEAP].nexus) {
             *pHeapIndex = NEXUS_MEMC1_DRIVER_HEAP;
             break;
         }
-#endif
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         break;
     case 2:
-#ifdef NEXUS_MEMC2_GRAPHICS_HEAP
         if (g_pCoreHandles->heap[NEXUS_MEMC2_GRAPHICS_HEAP].nexus) {
             *pHeapIndex = NEXUS_MEMC2_GRAPHICS_HEAP;
             break;
         }
-#endif
-#ifdef NEXUS_MEMC2_DRIVER_HEAP
         if (g_pCoreHandles->heap[NEXUS_MEMC2_DRIVER_HEAP].nexus) {
             *pHeapIndex = NEXUS_MEMC2_DRIVER_HEAP;
             break;
         }
-#endif
         rc = BERR_TRACE(NEXUS_UNKNOWN);
         break;
     default:
@@ -848,17 +825,12 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSett
     /* secure graphics must be GFD0-accessible */
     memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[0].aulGfdWinMemcIndex[0];
     switch (memcIndex) {
-#if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
     case 2: heapIndex = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP; break;
-#endif
-#if defined NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
     case 1: heapIndex = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP; break;
-#endif
-#if defined NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
     case 0: heapIndex = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP; break;
-#endif
     default: heapIndex = NEXUS_MAX_HEAPS; break;
     }
+    /* coverity[dead_error_line: FALSE] */
     if (heapIndex < NEXUS_MAX_HEAPS && nexus_p_has_secure_decoder_on_memc(preInitState, &state->rtsSettings, pMemConfig, memcIndex)) {
         pCap->secureGraphics[0].valid = true;
         pCap->secureGraphics[0].heapIndex = heapIndex;

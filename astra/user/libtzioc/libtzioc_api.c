@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -160,9 +160,9 @@ void tzioc_mem_free(
     UNUSED(pBuff);
 }
 
-uint32_t tzioc_offset2vaddr(
+uintptr_t tzioc_offset2vaddr(
     tzioc_client_handle hClient,
-    uint32_t ulOffset)
+    uintptr_t ulOffset)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
 
@@ -176,9 +176,9 @@ uint32_t tzioc_offset2vaddr(
         ulOffset);
 }
 
-uint32_t tzioc_vaddr2offset(
+uintptr_t tzioc_vaddr2offset(
     tzioc_client_handle hClient,
-    uint32_t ulVaddr)
+    uintptr_t ulVaddr)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;
 
@@ -194,7 +194,7 @@ uint32_t tzioc_vaddr2offset(
 
 void *tzioc_map_paddr(
     tzioc_client_handle hClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize,
     uint32_t ulFlags)
 {
@@ -214,7 +214,7 @@ void *tzioc_map_paddr(
 
 void tzioc_unmap_paddr(
     tzioc_client_handle hClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize)
 {
     struct tzioc_client *pClient = (struct tzioc_client *)hClient;

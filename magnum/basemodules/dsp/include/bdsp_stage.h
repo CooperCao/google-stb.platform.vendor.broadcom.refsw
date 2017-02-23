@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -98,11 +95,11 @@ typedef struct BDSP_StageSrcDstDetails
     BDSP_StageHandle connectionHandle;
 
     /*populated during stage creation, the content itself populated in node configuration */
-    void *pIoBuffDesc;
-    void *pIoGenBuffDesc;
+	BDSP_MMA_Memory IoBuffDesc;
+	BDSP_MMA_Memory IoGenBuffDesc;
 
-    dramaddr_t ui32StageIOBuffCfgAddr; /* These are offsets to the structure BDSP_AF_P_sIO_BUFFER*/
-    dramaddr_t ui32StageIOGenericDataBuffCfgAddr; /* These are offsets to the structure BDSP_AF_P_sIO_GENERIC_BUFFER */
+	dramaddr_t StageIOBuffDescAddr; /* These are offsets to the structure BDSP_AF_P_sIO_BUFFER*/
+	dramaddr_t StageIOGenericBuffDescAddr; /* These are offsets to the structure BDSP_AF_P_sIO_GENERIC_BUFFER */
 
 }BDSP_StageSrcDstDetails;
 
@@ -121,7 +118,8 @@ typedef struct BDSP_AudioCaptureCreateSettings
 {
     unsigned maxChannels;       /* Maximum number of channels to capture.  1 = mono/compressed.  2 = stereo.  6 = 5.1.  Default = 2. */
     size_t channelBufferSize;   /* Channel buffer size in bytes.  Default is 1536kB. */
-    BMEM_Heap_Handle hHeap;     /* Memory Heap to use for allocating buffers.  If NULL, the default heap will be used. */
+	BMMA_Heap_Handle hHeap;     /* Memory Heap to use for allocating buffers.  If NULL, the default heap will be used. */
+	BDSP_MMA_Memory Outputbuffer[BDSP_AF_P_MAX_CHANNELS]; /* Memory Allocated for the output buffer*/
 } BDSP_AudioCaptureCreateSettings;
 
 /***************************************************************************
@@ -135,7 +133,7 @@ typedef struct BDSP_QueueCreateSettings
     struct
     {
         unsigned bufferSize;              /* Buffer length in bytes (must be a multiple of 4) */
-        uint32_t bufferAddress;           /* Physical address of the buffer base */
+		BDSP_MMA_Memory buffer;
     } bufferInfo[BDSP_AF_P_MAX_CHANNELS];
     bool input;                           /* True if the host will write to the queue instead of reading output */
 } BDSP_QueueCreateSettings;
@@ -152,8 +150,8 @@ typedef struct BDSP_BufferDescriptor
                                        non-interleaved stereo, it's 2.  For non-interleaved 7.1 it's 8. */
     struct
     {
-        void *pBuffer;              /* Buffer base address prior to wraparound */
-        void *pWrapBuffer;          /* Buffer address after wraparound (NULL if no wrap has occurred) */
+        BDSP_MMA_Memory buffer;     /* Buffer base address prior to wraparound */
+        BDSP_MMA_Memory wrapBuffer; /* Buffer address after wraparound (NULL if no wrap has occurred) */
     } buffers[BDSP_AF_P_MAX_CHANNELS];
 
     unsigned bufferSize;            /* Buffer size before wraparound in bytes */
@@ -542,11 +540,19 @@ void BDSP_AudioCapture_Destroy(
 Summary:
 Settings to add a capture handle to a task
 ***************************************************************************/
+typedef struct BDSP_StageChannelPairInfo{
+	unsigned  bufferSize; /*Size of the channel Pair */
+	BDSP_MMA_Memory outputBuffer; /* Memory Allocated for the channel Pair*/
+} BDSP_StageChannelPairInfo;
+
 typedef struct BDSP_StageAudioCaptureSettings
 {
     bool updateRead; /* This flag is enabled when there is no consumer for the output buffer
                        and the capture thread is expected to update the buffer read pointers */
+	unsigned  numChannelPair; /*Num of channel Pair */
+	BDSP_StageChannelPairInfo channelPairInfo[BDSP_AF_P_MAX_CHANNEL_PAIR]; /* Memory Info of the channel Pair */
 } BDSP_StageAudioCaptureSettings;
+
 
 /***************************************************************************
 Summary:

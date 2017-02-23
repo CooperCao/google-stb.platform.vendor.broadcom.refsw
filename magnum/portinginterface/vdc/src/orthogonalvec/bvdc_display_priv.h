@@ -68,10 +68,12 @@ extern "C" {
 #include "bchp_video_enc_decim_0.h"
 #include "bchp_timer.h"
 #include "bvdc_resource_priv.h"
+#include "bvdc_cfc_priv.h"
 
 #include "bchp_hdmi.h"
 #include "bchp_hdmi_rm.h"
 #include "bchp_hdmi_tx_phy.h"
+#include "bvdc_cfc_priv.h"
 #include "bchp_dvi_dtg_0.h"
 #include "bchp_dvi_dvf_0.h"
 #ifdef BCHP_DVI_CSC_0_REG_START
@@ -758,7 +760,7 @@ typedef struct
     bool                        bWidthTrimmed;
     bool                        bFullRate;
     bool                        bBypassDviCsc;
-    BVDC_P_MatrixCoeffs         eCmpMatrixCoeffs;
+    BAVC_P_Colorimetry          eCmpColorimetry;
 } BVDC_P_Display_SrcInfo;
 
 typedef struct
@@ -825,7 +827,7 @@ typedef struct
 
 typedef struct
 {
-    BVDC_P_MatrixCoeffs         eCmpMatrixCoeffs;
+    BAVC_P_Colorimetry          eCmpColorimetry;
     BVDC_P_Output               eAnlg_0_OutputColorSpace;
     BVDC_P_Output               eAnlg_1_OutputColorSpace;
     uint32_t                    ulAnlgChan0Mask;
@@ -1086,13 +1088,17 @@ typedef struct BVDC_P_DisplayContext
     BVDC_P_DisplayCscMatrix     stDvoCscMatrix;
     BVDC_P_DisplayCscMatrix     st656CscMatrix;
 
+    BVDC_P_ColorSpace           stOutColorSpace;
+    BVDC_P_CfcContext           stCfc;
+    BVDC_P_CscClamp             stCscClamp;
+
     /* Event to nofify that changes has been applied to hardware. */
     BKNI_EventHandle            hAppliedDoneEvent;
     bool                        bSetEventPending;
 
     bool                        bRateManagerUpdated;
 
-    const BFMT_VideoInfo         *pStgFmtInfo;          /* STG fmt setting, possibly buffer delay */
+    const BFMT_VideoInfo       *pStgFmtInfo;  /* STG fmt setting, possibly buffer delay */
     /* MPAA decimation supported interface port mask */
     uint32_t                    aulMpaaDeciIfPortMask[BVDC_MpaaDeciIf_eUnused];
     BVDC_P_DisplayMpaa          stMpaaHdmi; /* mpaa state in hdmi chan */
@@ -1170,6 +1176,7 @@ typedef struct BVDC_P_DisplayContext
     uint32_t                     ulHdmiPwrRelease;
     uint32_t                     ulHdmiPwrId;
 #endif
+    /* manage STG/VIP power together */
 #ifdef BCHP_PWR_RESOURCE_VDC_STG0
     uint32_t                     ulStgPwrAcquire;
     uint32_t                     ulStgPwrRelease;
@@ -1434,6 +1441,18 @@ BERR_Code BVDC_P_GetVfFilterSumOfTapsBits_isr
       BVDC_DisplayOutput               eDisplayOutput,
       uint32_t                        *pulSumOfTapsBits,
       bool                            *pbOverride);
+
+/* init hdmi-out VEC CFC
+ */
+void BVDC_P_Display_InitDviCfc
+    ( BVDC_Display_Handle              hDisplay );
+
+/* Build RUL for cfc inside DVI output
+ */
+void BVDC_P_Display_BuildCfcRul_isr
+    ( BVDC_Display_Handle              hDisplay,
+      uint32_t                         ulStartReg,
+      BVDC_P_ListInfo                 *pList);
 
 #ifdef __cplusplus
 }

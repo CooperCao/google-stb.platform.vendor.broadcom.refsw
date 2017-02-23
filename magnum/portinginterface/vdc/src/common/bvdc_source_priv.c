@@ -2927,6 +2927,7 @@ void BVDC_P_Source_MfdGfxCallback_isr
 
     hSource->stNewPic[BAVC_MOSAIC_MAX-1].eInterruptPolarity =
         (NULL!=hSource->hSyncLockCompositor)? eNextFieldId : (BAVC_Polarity) iField;
+
     if (hMpegFeeder->stGfxSurface.stCurSurInfo.ullAddress)
     {
         hSource->stNewPic[BAVC_MOSAIC_MAX-1].eSourcePolarity = BAVC_Polarity_eFrame;/* frame only */
@@ -2972,6 +2973,10 @@ void BVDC_P_Source_MfdGfxCallback_isr
         /* mark this MpegDataReady call as from BVDC_P_Source_MfdGfxCallback_isr */
 
         hSource->stNewPic[BAVC_MOSAIC_MAX-1].ePxlFmt = hMpegFeeder->stGfxSurface.stCurSurInfo.eInputPxlFmt;
+        /* SWSTB-3417/SWSTB-3427: init default bitDepth due to feed hw capability and pxel fmt */
+        hSource->stNewPic[BAVC_MOSAIC_MAX-1].eBitDepth = hSource->stNewPic[BAVC_MOSAIC_MAX-1].eChromaBitDepth
+            = (hSource->bIs10BitCore && (hSource->stNewPic[BAVC_MOSAIC_MAX-1].ePxlFmt == BPXL_eY10))?
+            BAVC_VideoBitDepth_e10Bit:BAVC_VideoBitDepth_e8Bit;
         hSource->stNewPic[BAVC_MOSAIC_MAX-1].eOrientation = hMpegFeeder->stGfxSurface.stCurSurInfo.stAvcPic.eInOrientation;
         hSource->stNewPic[BAVC_MOSAIC_MAX-1].ulOrigPTS = hMpegFeeder->stGfxSurface.stCurSurInfo.stAvcPic.ulOrigPTS;
 

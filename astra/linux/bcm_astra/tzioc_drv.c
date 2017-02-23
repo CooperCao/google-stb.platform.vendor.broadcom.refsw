@@ -1,18 +1,40 @@
-/***************************************************************************
- * Copyright (c)2016 Broadcom
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2, as
- * published by the Free Software Foundation (the "GPL").
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License version 2 (GPLv2) for more details.
+ * Except as expressly set forth in the Authorized License,
  *
- * You should have received a copy of the GNU General Public License
- * version 2 (GPLv2) along with this source code.
- ***************************************************************************/
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #include <linux/version.h>
 #include <linux/kconfig.h>
@@ -226,10 +248,10 @@ static int __init tzioc_module_init(void)
 
     smemStart64 = of_translate_address(node, smem_params);
 
-    tdev->smemStart = (uint32_t)smemStart64;
-    tdev->smemSize  = (uint32_t)smemSize64;
-    LOGI("TZIOC shared memory at 0x%x, size 0x%x",
-         tdev->smemStart, tdev->smemSize);
+    tdev->smemStart = (uintptr_t)smemStart64;
+    tdev->smemSize  = (uintptr_t)smemSize64;
+    LOGI("TZIOC shared memory at 0x%zx, size 0x%zx",
+         (size_t)tdev->smemStart, (size_t)tdev->smemSize);
 
     /* map shared memory */
 #if IOREMAP_SHARED_MEM
@@ -364,7 +386,7 @@ static int __init tzioc_module_init(void)
     }
 
     /* immediately switch to TZOS */
-    _tzioc_call_smc(0x7);
+    _tzioc_call_smc(0x83000007);
     return 0;
 
  ERR_EXIT:
@@ -403,7 +425,7 @@ static int tzioc_module_deinit(void)
         }
 
         /* immediately switch to TZOS */
-        _tzioc_call_smc(0x7);
+        _tzioc_call_smc(0x83000007);
     }
 
     /* exit tracelog */
@@ -626,7 +648,15 @@ static int tzioc_echo_msg_proc(struct tzioc_msg_hdr *pHdr)
 
 int _tzioc_call_smc(uint32_t callnum)
 {
-    callnum &= 0x7;
+#ifdef __aarch64__
+    asm volatile(
+        "mov x0, %[cn] \r\n"
+        "smc #0\r\n"
+        : /* No output registers */
+        : [cn] "r" (callnum)
+        : "x0" /* x0 is clobbered. */
+    );
+#else
     asm volatile(
         "mov r0, %[cn] \r\n"
         __SMC(0)
@@ -634,38 +664,39 @@ int _tzioc_call_smc(uint32_t callnum)
         : [cn] "r" (callnum)
         : "r0" /* r0 is clobbered. */
     );
+#endif
     return 0;
 }
 
-uint32_t _tzioc_offset2addr(uint32_t ulOffset)
+uintptr_t _tzioc_offset2addr(uintptr_t ulOffset)
 {
     if (ulOffset < tdev->smemSize)
-        return ulOffset + (uint32_t)tdev->psmem;
+        return ulOffset + (uintptr_t)tdev->psmem;
     else
-        return (uint32_t)-1;
+        return (uintptr_t)-1;
 }
 
-uint32_t _tzioc_addr2offset(uint32_t ulAddr)
+uintptr_t _tzioc_addr2offset(uintptr_t ulAddr)
 {
-    if (ulAddr >= (uint32_t)tdev->psmem &&
-        ulAddr <  (uint32_t)tdev->psmem + tdev->smemSize)
-        return ulAddr - (uint32_t)tdev->psmem;
+    if (ulAddr >= (uintptr_t)tdev->psmem &&
+        ulAddr <  (uintptr_t)tdev->psmem + tdev->smemSize)
+        return ulAddr - (uintptr_t)tdev->psmem;
     else
-        return (uint32_t)-1;
+        return (uintptr_t)-1;
 }
 
-uint32_t _tzioc_vaddr2paddr(uint32_t ulVaddr)
+uintptr_t _tzioc_vaddr2paddr(uintptr_t ulVaddr)
 {
-    uint32_t ulOffset = _tzioc_addr2offset(ulVaddr);
+    uintptr_t ulOffset = _tzioc_addr2offset(ulVaddr);
     if (ulOffset != -1)
         return tdev->smemStart + ulOffset;
     else
-        return (uint32_t)-1;
+        return (uintptr_t)-1;
 }
 
-uint32_t _tzioc_paddr2vaddr(uint32_t ulPaddr)
+uintptr_t _tzioc_paddr2vaddr(uintptr_t ulPaddr)
 {
-    uint32_t ulOffset = ulPaddr - tdev->smemStart;
+    uintptr_t ulOffset = ulPaddr - tdev->smemStart;
     return _tzioc_offset2addr(ulOffset);
 }
 

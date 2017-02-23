@@ -134,7 +134,8 @@ APP_DEPENDENCIES = \
 	pwl.c \
 	scenario_player.c \
 	stream_player.c \
-	util.c
+	util.c \
+	nl2l.c
 
 APP_OBJS = $(APP_DEPENDENCIES:c=o)
 

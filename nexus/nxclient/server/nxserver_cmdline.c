@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -248,6 +248,22 @@ static NEXUS_SecureVideo nxserver_p_svpstr(const char *svpstr)
     }
 }
 
+static void set_dynamic_picture_buffers(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_VIDEO_DECODERS;i++) {
+        pMemConfigSettings->videoDecoder[i].dynamicPictureBuffers = true;
+    }
+    for (i=0;i<NEXUS_MAX_STILL_DECODERS;i++) {
+        pMemConfigSettings->stillDecoder[i].dynamicPictureBuffers = true;
+    }
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (pPlatformSettings->heap[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) {
+            pPlatformSettings->heap[i].memoryType = NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
+        }
+    }
+}
+
 static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings, const char * const *memconfig_str, unsigned memconfig_str_total)
 {
     unsigned i;
@@ -278,15 +294,7 @@ static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSett
             pMemConfigSettings->videoDecoder[index].mosaic.maxHeight = maxHeight;
         }
         else if (!strcmp(memconfig_str[i], "videoDecoder,dynamic")) {
-            unsigned d;
-            for (d=0;d<NEXUS_MAX_VIDEO_DECODERS;d++) {
-                pMemConfigSettings->videoDecoder[d].dynamicPictureBuffers = true;
-            }
-            for (d=0;d<NEXUS_MAX_HEAPS;d++) {
-                if (pPlatformSettings->heap[d].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) {
-                    pPlatformSettings->heap[d].memoryType = NEXUS_MEMORY_TYPE_MANAGED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED;
-                }
-            }
+            set_dynamic_picture_buffers(pPlatformSettings, pMemConfigSettings);
         }
 #endif
 #if NEXUS_HAS_DISPLAY && NEXUS_NUM_VIDEO_WINDOWS
@@ -446,7 +454,7 @@ int nxserver_heap_by_type(const NEXUS_PlatformSettings *pPlatformSettings, unsig
 static int find_unused_heap(const NEXUS_PlatformSettings *pPlatformSettings)
 {
     unsigned i;
-    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+    for (i=NEXUS_MAX_HEAPS-1;i<NEXUS_MAX_HEAPS;i--) {
         if (!pPlatformSettings->heap[i].size && !pPlatformSettings->heap[i].heapType) return i;
     }
     return -1;
@@ -1022,6 +1030,9 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         } else if(!strcmp(argv[curarg], "-pixelFormat") && curarg+1<argc) {
             settings->pixelFormat = lookup(g_pixelFormatStrs, argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg],"-dtu")) {
+            cmdline_settings->dtu = true;
+        }
         else {
             fprintf(stderr,"invalid argument %s\n", argv[curarg]);
             print_usage();
@@ -1083,7 +1094,7 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     {
         if ( pMemConfigSettings->audio.dolbyCodecVersion != NEXUS_AudioDolbyCodecVersion_eMS12 )
         {
-            BDBG_ERR(("Dolby MS12 must be enabled by environment settings (export BDSP_MS12_SUPPORT=y) and associated DSP FW binaries must be present."));
+            BDBG_ERR(("Dolby MS12 must be enabled by environment settings (export BDSP_MS12_SUPPORT=y/a/b/c/d) and associated DSP FW binaries must be present."));
             return BERR_TRACE(NEXUS_NOT_SUPPORTED);
         }
     }
@@ -1107,7 +1118,8 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     if (settings->session[0].dolbyMs == nxserverlib_dolby_ms_type_ms11
         || settings->session[0].dolbyMs == nxserverlib_dolby_ms_type_ms12
         || settings->session[0].avl
-        || settings->session[0].truVolume)
+        || settings->session[0].truVolume
+        || settings->audioDecoder.audioDescription)
     {
         pPlatformSettings->audioModuleSettings.numPcmBuffers += 1;
     }
@@ -1182,6 +1194,19 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     pPlatformSettings->permissions.userId = cmdline_settings->permissions.userId;
     pPlatformSettings->permissions.groupId = cmdline_settings->permissions.groupId;
 
+    if (cmdline_settings->dtu) {
+        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].offset = (uint64_t)2*1024*1024*1024; /* BA space above DRAM */
+        pPlatformSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+        pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+        pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
+        pPlatformSettings->heap[NEXUS_MEMC1_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+        pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].heapType |= NEXUS_HEAP_TYPE_DTU;
+        pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].offset = 0; /* TODO */
+        pPlatformSettings->heap[NEXUS_MEMC2_PICTURE_BUFFER_HEAP].alignment = 2*1024*1024;
+        set_dynamic_picture_buffers(pPlatformSettings, pMemConfigSettings);
+    }
+
     return 0;
 }
 
@@ -1228,4 +1253,17 @@ void nxserver_set_client_heaps(struct nxserver_settings *settings, const NEXUS_P
 
     /* clients only need a single secure graphics heap. prefer highest MEMC where there's usually more room. */
     settings->client.heap[NXCLIENT_SECURE_GRAPHICS_HEAP] = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE);
+
+    /* ensure the client has access to GFD0 recommended heap */
+    {
+        NEXUS_HeapHandle heap = NEXUS_Platform_GetFramebufferHeap(0);
+        unsigned i;
+        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+            if (settings->client.heap[i] == heap) break;
+        }
+        if (i == NEXUS_MAX_HEAPS) {
+            /* likely fix is that platform code must set NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS to graphics heap on another MEMC */
+            BDBG_ERR(("NEXUS_Platform_GetFramebufferHeap(0) not mapped to clients."));
+        }
+    }
 }

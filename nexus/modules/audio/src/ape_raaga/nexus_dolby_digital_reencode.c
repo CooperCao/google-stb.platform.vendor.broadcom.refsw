@@ -63,6 +63,7 @@ void NEXUS_DolbyDigitalReencode_GetDefaultSettings(
 {
     BAPE_DolbyDigitalReencodeSettings piSettings;
     BDBG_ASSERT(NULL != pSettings);
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     BAPE_DolbyDigitalReencode_GetDefaultSettings(&piSettings);
     pSettings->encodeSettings.spdifHeaderEnabled = piSettings.encodeSettings.spdifHeaderEnabled;
     pSettings->encodeSettings.certificationMode = piSettings.encodeSettings.certificationMode;

@@ -52,6 +52,7 @@
 #if NEXUS_HAS_VIDEO_ENCODER
 #include "bxudlib.h"
 #endif
+#include "bvdc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,11 +103,11 @@ typedef struct NEXUS_DisplayEncoderSettings {
 #else
     NEXUS_Error (*enqueueCb_isr)(void *context, NEXUS_DisplayCapturedImage *image);
     NEXUS_Error (*dequeueCb_isr)(void *context, NEXUS_DisplayCapturedImage *image);
+    uint32_t extIntAddress;
+    uint32_t extIntBitNum;
 #endif
     void *context;
     NEXUS_VideoFrameRate encodeRate;
-    uint32_t extIntAddress;
-    uint32_t extIntBitNum;
 #if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     uint32_t stcSnapshotLoAddr; /* for new soft transcoder STC snapshot */
     uint32_t stcSnapshotHiAddr;
@@ -157,6 +158,8 @@ void        NEXUS_DisplayModule_RemoveRequiredOutput_priv(NEXUS_VideoOutput outp
 
 /* returns non-zero without BERR_TRACE is window is unused */
 NEXUS_Error NEXUS_Display_P_GetWindowMemc_isrsafe(unsigned displayIndex, unsigned windowIndex, unsigned *pMemcIndex);
+
+void NEXUS_Display_P_SetVdcMemConfig(const BVDC_MemConfigSettings *pVdcMemConfig);
 
 #ifdef __cplusplus
 }

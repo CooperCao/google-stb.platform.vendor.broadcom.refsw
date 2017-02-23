@@ -180,9 +180,15 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 	i = 0 ;
 	items = sizeof(scdcManufacturerDataMap) / sizeof(BHDM_SCDC_DataMap) ;
 
+	/* Disable Auto I2C while reading SCDC registers */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+	BKNI_LeaveCriticalSection() ;
+
 	for ( i = 0 ; i < items ; i++)
 	{
-		rc = BHDM_P_BREG_I2C_Read(hHDMI, BHDM_SCDC_I2C_ADDR, scdcManufacturerDataMap[i].offset,
+		rc = BREG_I2C_Read(hHDMI->hI2cRegHandle, BHDM_SCDC_I2C_ADDR,
+			scdcManufacturerDataMap[i].offset,
 			((uint8_t *) &manufacturerData + scdcManufacturerDataMap[i].structOffset),
 			scdcManufacturerDataMap[i].length) ;
 
@@ -225,6 +231,10 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 	BKNI_Memcpy(pManufacturerData, &manufacturerData, sizeof(BHDM_SCDC_ManufacturerData)) ;
 
 done:
+	/* ReEnable  Auto I2C after reading SCDC registers */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+	BKNI_LeaveCriticalSection() ;
 	return rc ;
 }
 
@@ -303,13 +313,17 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 		goto done ;
 	}
 
-
 	items = sizeof(scdcStatusControlDataMap) / sizeof(BHDM_SCDC_DataMap) ;
 	i2cHandle = hHDMI->hI2cRegHandle ;
 
+	/* Disable Auto I2C while reading SCDC registers */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 0) ;
+	BKNI_LeaveCriticalSection() ;
+
 	for ( i = 0 ; i < items ; i++)
 	{
-		rc = BHDM_P_BREG_I2C_Read(hHDMI, BHDM_SCDC_I2C_ADDR, scdcStatusControlDataMap[i].offset,
+		rc = BREG_I2C_Read(hHDMI->hI2cRegHandle, BHDM_SCDC_I2C_ADDR, scdcStatusControlDataMap[i].offset,
 			((uint8_t *) &statusControlData + scdcStatusControlDataMap[i].structOffset), scdcStatusControlDataMap[i].length) ;
 		if (rc)
 		{
@@ -402,6 +416,11 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	}
 
 done:
+	/* ReEnable  Auto I2C after reading SCDC registers */
+	BKNI_EnterCriticalSection() ;
+		BHDM_AUTO_I2C_SetChannels_isr(hHDMI, 1) ;
+	BKNI_LeaveCriticalSection() ;
+
 	return rc ;
 }
 
@@ -805,7 +824,7 @@ BERR_Code BHDM_SCDC_ConfigureScrambling(const BHDM_Handle hHDMI)
 	if ((!hHDMI->AttachedEDID.RxHdmiForumVsdb.exists)
 	|| (hHDMI->AttachedEDID.RxHdmiForumVsdb.SCDCSupport == 0))
 	{
-		BDBG_WRN(("Rx <%s> does not support SCDC; Scrambling cannot be configured",
+		BDBG_MSG(("Rx <%s> does not support SCDC; Scrambling cannot be configured",
 			hHDMI->AttachedEDID.MonitorName)) ;
 
 		goto done ;

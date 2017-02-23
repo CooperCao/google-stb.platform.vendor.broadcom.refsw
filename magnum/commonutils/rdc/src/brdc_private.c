@@ -621,7 +621,7 @@ void BRDC_P_DumpSlot_isr
     /* read and display address register */
     ulAddr = BREG_ReadAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset);
     BDBG_MSG(("RDC_desc_%d_addr", eSlotId));
-    #if BRDC_P_64BIT_SUPPORT
+    #if BRDC_64BIT_SUPPORT
     BDBG_MSG(("    addr: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulAddr)));
     #else
     BDBG_MSG(("    addr: 0x%08x", (uint32_t)ulAddr));

@@ -225,10 +225,16 @@
 
 #include "bchp_pwr.h"
 
+#if NEXUS_COMPAT_32ABI
+#include "nexus_base_compat.h"
+#include "nexus_platform_api_compat.h"
+#endif
+
 BDBG_MODULE(nexus_platform);
 
 NEXUS_PlatformHandles g_NEXUS_platformHandles;
 NEXUS_PlatformSettings g_NEXUS_platformSettings;   /* saved platform settings */
+NEXUS_P_PlatformInternalSettings g_NEXUS_platformInternalSettings; /* saved platform internal settings */
 NEXUS_ModuleHandle g_NEXUS_platformModule = NULL;
 
 #if defined(NEXUS_BASE_OS_linuxuser) && !B_HAS_BPROFILE
@@ -290,11 +296,7 @@ static void NEXUS_Platform_P_InitVideoDecoder(void *context)
     videoDecoderSettings.transport = g_NEXUS_platformHandles.transport;
     videoDecoderSettings.core = g_NEXUS_platformHandles.core;
     videoDecoderSettings.security = g_NEXUS_platformHandles.security;
-#ifdef NEXUS_VIDEO_SECURE_HEAP
     videoDecoderSettings.secureHeap = g_pCoreHandles->heap[NEXUS_VIDEO_SECURE_HEAP].nexus;
-#else
-    videoDecoderSettings.secureHeap = NULL;
-#endif
 #if NEXUS_NUM_ZSP_VIDEO_DECODERS || NEXUS_NUM_DSP_VIDEO_DECODERS
     BDBG_ASSERT(g_NEXUS_platformHandles.audio);
     videoDecoderSettings.audio = g_NEXUS_platformHandles.audio;
@@ -311,65 +313,7 @@ static void NEXUS_Platform_P_InitVideoDecoder(void *context)
 #endif
 
 #if NEXUS_HAS_AUDIO
-#if NEXUS_HAS_SOFT_AUDIO
-static uint32_t NEXUS_Platform_P_AudioReadReserved(
-    void *pUnused1,
-    int unused2,
-    uint32_t physicalAddress)
-{
-    BSTD_UNUSED(pUnused1);
-    BSTD_UNUSED(unused2);
-    return NEXUS_Platform_P_ReadReserved(physicalAddress);
-}
-static void NEXUS_Platform_P_AudioWriteReserved(
-    void *pUnused1,
-    int unused2,
-    uint32_t physicalAddress,
-    uint32_t value)
-{
-    BSTD_UNUSED(pUnused1);
-    BSTD_UNUSED(unused2);
-    NEXUS_Platform_P_WriteReserved(physicalAddress, value);
-}
-static uint32_t NEXUS_Platform_P_AudioReadCoreReg(
-    void *pUnused1,
-    int unused2,
-    uint32_t physicalAddress)
-{
-    BSTD_UNUSED(pUnused1);
-    BSTD_UNUSED(unused2);
-    return NEXUS_Platform_P_ReadCoreReg(physicalAddress);
-}
-static void NEXUS_Platform_P_AudioWriteCoreReg(
-    void *pUnused1,
-    int unused2,
-    uint32_t physicalAddress,
-    uint32_t value)
-{
-    BSTD_UNUSED(pUnused1);
-    BSTD_UNUSED(unused2);
-    NEXUS_Platform_P_WriteCoreReg(physicalAddress, value);
-}
-static uint32_t NEXUS_Platform_P_AudioReadCmtControl(
-    void *pUnused1,
-    int unused2)
-{
-    BSTD_UNUSED(pUnused1);
-    BSTD_UNUSED(unused2);
-    return NEXUS_Platform_P_ReadCmtControl();
-}
-static void NEXUS_Platform_P_AudioWriteCmtControl(
-    void *pUnused1,
-    int unused2,
-    uint32_t value)
-{
-    BSTD_UNUSED(pUnused1);
-    BSTD_UNUSED(unused2);
-    NEXUS_Platform_P_WriteCmtControl(value);
-}
-#endif
-
-void NEXUS_Platform_P_InitAudio(void *context)
+static void NEXUS_Platform_P_InitAudio(void *context)
 {
     NEXUS_AudioModuleInternalSettings internalAudioSettings;
     NEXUS_AudioModuleSettings audioSettings;
@@ -443,7 +387,7 @@ static void NEXUS_Platform_P_UninitDvbci(void)
 }
 #endif
 
-void NEXUS_Platform_P_Print(void)
+static void NEXUS_Platform_P_Print(void)
 {
 #if BCHP_PWR_SUPPORT
     BCHP_PWR_DebugPrint(g_NEXUS_pCoreHandles->chp);
@@ -457,10 +401,39 @@ static NEXUS_Error nexus_platform_p_apply_memconfig(const NEXUS_Core_PreInitStat
     int rc;
     NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &g_NEXUS_platformHandles.rtsSettings);
     if (pMemConfig) {
-        rc = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfig, &g_NEXUS_platformHandles.rtsSettings, &g_NEXUS_platformSettings);
+        rc = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfig, &g_NEXUS_platformHandles.rtsSettings, &g_NEXUS_platformSettings, &g_NEXUS_platformInternalSettings);
         if (rc) return BERR_TRACE(rc);
     }
     return 0;
+}
+
+static void  NEXUS_Platform_P_StartServer(void)
+{
+    unsigned i;
+    NEXUS_Platform_P_InitServer();
+    /* add heap handles into the database */
+    for(i=0;i<sizeof(g_pCoreHandles->heap)/sizeof(g_pCoreHandles->heap[0]);i++) {
+        NEXUS_HeapHandle heap = g_pCoreHandles->heap[i].nexus;
+        if(heap) {
+            NEXUS_OBJECT_REGISTER(NEXUS_Heap, heap, Open);
+        }
+    }
+    return;
+}
+
+static void  NEXUS_Platform_P_StopServer(void)
+{
+    unsigned i;
+
+    /* remove heap handles from the database */
+    for(i=0;i<sizeof(g_pCoreHandles->heap)/sizeof(g_pCoreHandles->heap[0]);i++) {
+        NEXUS_HeapHandle heap = g_pCoreHandles->heap[i].nexus;
+        if(heap) {
+            NEXUS_OBJECT_UNREGISTER(NEXUS_Heap, heap, Close);
+        }
+    }
+    NEXUS_Platform_P_UninitServer();
+    return;
 }
 
 /***************************************************************************
@@ -580,6 +553,9 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #if NEXUS_HAS_SMARTCARD
         NEXUS_SmartcardModuleInternalSettings smartcardSettings;
 #endif
+#if NEXUS_HAS_VIDEO_ENCODER
+        NEXUS_VideoEncoderModuleInternalSettings videoEncoderSettings;
+#endif
         NEXUS_ModuleSettings moduleSettings;
     } *state = NULL;
     NEXUS_ModuleHandle handle;
@@ -607,7 +583,11 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
 
-    if (structSizeCheck != NEXUS_P_GET_STRUCT_SIZES()) {
+    if (structSizeCheck != NEXUS_P_GET_STRUCT_SIZES()
+#if NEXUS_COMPAT_32ABI
+        && (structSizeCheck != sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformSettings)) + sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformConfiguration)))
+#endif
+        ) {
         BDBG_ERR(("NEXUS_Platform failed with struct size mismatch (nexus=%u, caller=%u). Please recompile application and/or nexus.",
             (unsigned)NEXUS_P_GET_STRUCT_SIZES(), structSizeCheck));
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -700,6 +680,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
         static const char nexus_scm_id_string[]="NEXUS_SCM_ID_STRING:" NEXUS_SCM_ID_STRING;
         BDBG_LOG(("%s", nexus_scm_id_string));
     }
+    NEXUS_P_PrintEnv(BDBG_STRING(""));
 
     if(NEXUS_GetEnv("profile_init")) {
         NEXUS_Profile_Start();
@@ -770,11 +751,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
     NEXUS_TransportModule_GetDefaultInternalSettings(&state->transportSettings);
     state->transportSettings.dma = g_NEXUS_platformHandles.dma;
     state->transportSettings.core = g_NEXUS_platformHandles.core;
-#ifdef NEXUS_VIDEO_SECURE_HEAP
     state->transportSettings.secureHeap = g_pCoreHandles->heap[NEXUS_VIDEO_SECURE_HEAP].nexus;
-#else
-    state->transportSettings.secureHeap = NULL;
-#endif
     g_NEXUS_platformSettings.transportModuleSettings.common.enabledDuringActiveStandby = true;
     state->transportSettings.mainHeapIndex = g_pCoreHandles->defaultHeapIndex;
 #if !NEXUS_TRANSPORT_BEFORE_SECURITY && NEXUS_HAS_SECURITY
@@ -1343,12 +1320,14 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 
 #if NEXUS_HAS_VIDEO_ENCODER
     BDBG_MSG((">VIDEO_ENCODER"));
-    g_NEXUS_platformSettings.videoEncoderSettings.display = g_NEXUS_platformHandles.display;
-    g_NEXUS_platformSettings.videoEncoderSettings.transport = g_NEXUS_platformHandles.transport;
-    g_NEXUS_platformSettings.videoEncoderSettings.audio = g_NEXUS_platformHandles.audio;
-    g_NEXUS_platformSettings.videoEncoderSettings.core = g_NEXUS_platformHandles.core;
-    g_NEXUS_platformSettings.videoEncoderSettings.security = g_NEXUS_platformHandles.security;
-    g_NEXUS_platformHandles.videoEncoder = NEXUS_VideoEncoderModule_Init(&g_NEXUS_platformSettings.videoEncoderSettings);
+    state->videoEncoderSettings = g_NEXUS_platformInternalSettings.videoEncoderSettings;
+
+    state->videoEncoderSettings.display = g_NEXUS_platformHandles.display;
+    state->videoEncoderSettings.transport = g_NEXUS_platformHandles.transport;
+    state->videoEncoderSettings.audio = g_NEXUS_platformHandles.audio;
+    state->videoEncoderSettings.core = g_NEXUS_platformHandles.core;
+    state->videoEncoderSettings.security = g_NEXUS_platformHandles.security;
+    g_NEXUS_platformHandles.videoEncoder = NEXUS_VideoEncoderModule_Init(&state->videoEncoderSettings, &g_NEXUS_platformSettings.videoEncoderSettings);
     if(!g_NEXUS_platformHandles.videoEncoder) {
         BDBG_ERR(("NEXUS_VideoEncoderModule_Init failed"));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -1472,7 +1451,7 @@ NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings,
 #endif
 
     /* all modules are up, so we can bring up IPC server before opening interfaces. */
-    NEXUS_Platform_P_InitServer();
+    NEXUS_Platform_P_StartServer();
 
     BDBG_MSG((">CONFIG"));
     errCode = NEXUS_Platform_P_Config(&g_NEXUS_platformSettings);
@@ -1520,7 +1499,7 @@ base_only_init:
     return NEXUS_SUCCESS;
 
 err_config:
-    NEXUS_Platform_P_UninitServer();
+    NEXUS_Platform_P_StopServer();
 err:
     NEXUS_Platform_P_UninitModules();
     NEXUS_Platform_P_UninitInterrupts();
@@ -1592,7 +1571,7 @@ void NEXUS_Platform_Uninit(void)
     NEXUS_Platform_P_Shutdown();
 
     /* close clients, close handles in objdb */
-    NEXUS_Platform_P_UninitServer();
+    NEXUS_Platform_P_StopServer();
 
     NEXUS_UnlockModule();
     NEXUS_Base_Stop();
@@ -1713,38 +1692,6 @@ void NEXUS_Platform_UninitInterrupts(void)
     NEXUS_Platform_P_UninitInterrupts();
 }
 
-#if B_REFSW_FIRMWARE
-/* The following mappings simplify the rev jump */
-NEXUS_Error
-NEXUS_Platform_P_EnableInterrupt( unsigned irqNum)
-{
-    NEXUS_Error rc;
-    BKNI_EnterCriticalSection();
-    rc = NEXUS_Platform_P_EnableInterrupt_isr(irqNum);
-    BKNI_LeaveCriticalSection();
-    return rc;
-}
-void
-NEXUS_Platform_P_DisableInterrupt( unsigned irqNum)
-{
-    BKNI_EnterCriticalSection();
-    NEXUS_Platform_P_DisableInterrupt_isr(irqNum);
-    BKNI_LeaveCriticalSection();
-    return;
-}
-NEXUS_Error
-NEXUS_Platform_P_Magnum_Init(void)
-{
-    /* nothing to do here, magnum already initialized when driver loaded */
-    return BERR_SUCCESS;
-}
-void
-NEXUS_Platform_P_Magnum_Uninit(void)
-{
-    return;
-}
-#endif
-
 #include "b_objdb.h"
 /* implementation of attr{shutdown=NEXUS_VideoInput_Shutdown} */
 void nexus_driver_shutdown_NEXUS_VideoInput_Shutdown(void *object)
@@ -1822,9 +1769,11 @@ void NEXUS_Platform_GetDefaultInterfaceName(NEXUS_InterfaceName *type)
     return;
 }
 
-NEXUS_Error NEXUS_Platform_P_AcquireObject(const struct b_objdb_client *client, const NEXUS_InterfaceName *type, void *object)
+NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle clientHandle, const NEXUS_InterfaceName *type, void *object)
 {
     const NEXUS_Platform_P_ModuleInfo *module_info;
+    const struct b_objdb_client *client = nexus_p_platform_objdb_client(clientHandle);
+
     for (module_info = BLST_Q_FIRST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_NEXT(module_info, link)) {
         NEXUS_BaseObject  *base_object = b_objdb_find_object_and_acquire(client, type->name, object);
         if(base_object) {
@@ -1834,7 +1783,7 @@ NEXUS_Error NEXUS_Platform_P_AcquireObject(const struct b_objdb_client *client, 
     return BERR_TRACE(NEXUS_INVALID_PARAMETER);
 }
 
-void NEXUS_Platform_P_ReleaseObject(const NEXUS_InterfaceName *type, void *object)
+void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *type, void *object)
 {
     const NEXUS_Platform_P_ModuleInfo *module_info;
     for (module_info = BLST_Q_FIRST(&g_NEXUS_platformHandles.handles); module_info; module_info = BLST_Q_NEXT(module_info, link)) {
@@ -2351,5 +2300,28 @@ EXIT:
     }
 #endif
 
+    return rc;
+}
+
+NEXUS_Error NEXUS_Platform_GetObjectFromId(NEXUS_BaseObjectId id, NEXUS_AnyObject *object)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_BaseObject *baseObject = NULL;
+
+    if(id) {
+        rc = NEXUS_BaseObject_FromId(id, &baseObject);
+    }
+    *object = baseObject;
+    return rc;
+}
+
+NEXUS_Error NEXUS_Platform_GetIdFromObject( NEXUS_AnyObject object, NEXUS_BaseObjectId *id)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    *id = 0;
+    if(object) {
+        rc = NEXUS_BaseObject_GetId(object, id);
+    }
     return rc;
 }

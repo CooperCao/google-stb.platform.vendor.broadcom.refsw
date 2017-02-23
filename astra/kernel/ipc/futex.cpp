@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,7 +59,7 @@ void Futex::init() {
 
 Futex::Futex(int *physAddr) : ctrAddr(physAddr){
     waitQueue.init();
-    spinlock_init("futex::lock", &lock);
+    spinLockInit(&lock);
 
     PageTable *kernelPageTable = PageTable::kernelPageTable();
     TzMem::VirtAddr va = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanDirection::ScanForward);
@@ -83,10 +83,10 @@ Futex::~Futex() {
 }
 
 int Futex::wait(int val, uint64_t timeout) {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     if (val != *ctrVA) {
-        spin_unlock(&lock);
+        spinLockRelease(&lock);
         return -EWOULDBLOCK;
     }
 
@@ -95,35 +95,35 @@ int Futex::wait(int val, uint64_t timeout) {
 }
 
 int Futex::wake(int numTasks) {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     int rc = waitQueue.signalSome(numTasks);
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
     return rc;
 }
 
 int Futex::requeue(int numTasks, Futex *other) {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     int rc = waitQueue.signalSome(numTasks);
     waitQueue.migrateTasks(&other->waitQueue);
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
     return rc;
 }
 
 int Futex::cmpRequeue(int val, int numTasks, Futex *other) {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     if (val != *ctrVA) {
-        spin_unlock(&lock);
+        spinLockRelease(&lock);
         return -EWOULDBLOCK;
     }
 
     int rc = waitQueue.signalSome(numTasks);
     waitQueue.migrateTasks(&other->waitQueue);
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
     return rc;
 }
 

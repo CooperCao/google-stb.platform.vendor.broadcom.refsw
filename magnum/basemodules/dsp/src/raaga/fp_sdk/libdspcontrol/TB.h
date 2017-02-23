@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /**
  * @file
@@ -97,6 +94,7 @@
  * The following table provides an overview of the available API:
  @verbatim
             | TB with circular buffer | TB with custom data transfer
+            | (DSP-ful scenarios only)| (or DSP-less scenarios)
  -----------+-------------------------+-----------------------------
             |  TB_init                |
             |  TB_attach              |
@@ -133,9 +131,9 @@
  *       any warning.
  */
 
-#include "fp_sdk_config.h"
-
 #include "libdspcontrol/CHIP.h"
+
+#include "fp_sdk_config.h"
 
 #if !FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
 #  include <stdbool.h>
@@ -227,7 +225,7 @@ typedef struct
 #if FEATURE_IS(TB_VARIANT, CIRCULAR)
     TB_data_region    buffers[2];               /**< 2 buffers are enough to cover the data wrapping-around case */
 #endif
-#if FEATURE_IS(TB_VARIANT, MULTIBUFFER)
+#if FEATURE_IS(TB_VARIANT, MULTIBUFFER) || IS_HOST(DSP_LESS)
     TB_data_region   *buffers;                  /**< array of buffers, user provided */
 #endif
     unsigned          buffers_count;            /**< number of valid items in @p buffers, 0 is not a valid value */
@@ -372,11 +370,11 @@ size_t TB_discard(TB *tb, size_t amount);
  * Fetch data from a given Target Buffer.
  * Reads as much data as is currently available or until the provided buffer is full.
  *
- * @param[in] tb                 the TB structure to access
- * @param[in] buff               buffer for returned data
- * @param[in] size               maximum number of bytes to read
- * @param[in] discard_after_read after reading, discard read bytes from the shared buffer, freeing space
- * @return                       number of read bytes
+ * @param[in]  tb                 the TB structure to access
+ * @param[out] buff               buffer for returned data
+ * @param[in]  size               maximum number of bytes to read
+ * @param[in]  discard_after_read after reading, discard read bytes from the shared buffer, freeing space
+ * @return                        number of read bytes
  */
 __attribute__((nonnull))
 size_t TB_readCircular(TB *tb, void *buff, size_t size, bool discard_after_read);
@@ -418,7 +416,7 @@ size_t TB_peek(TB *tb, TB_data_descriptor *data_descriptor);
 #endif  /* FEATURE_IS(TB_VARIANT, CIRCULAR) */
 
 
-#if FEATURE_IS(TB_VARIANT, MULTIBUFFER)
+#if FEATURE_IS(TB_VARIANT, MULTIBUFFER) || IS_HOST(DSP_LESS)
 
 /**
  * Initialises a TB_data_descriptor instance based on the provided
@@ -515,15 +513,21 @@ typedef struct
  */
 typedef struct
 {
-    TB_id_unzipped  tb_id;                  /**< TB identifier */
-    bool            discardable : 1;        /**< if the frame was marked as discardable or not */
-    bool            has_trailer_info : 1;   /**< true if trailer_info is valid (the frame contained a trailer) */
-    TB_trailer_info trailer_info;           /**< information extracted from the frame trailer,
-                                                 valid only if has_trailer_info is true */
-    size_t          payload_offset;         /**< payload data read position inside a source TB_data_descriptor */
-    uint8_t        *payload_address;        /**< address of extracted payload data; valid only when copying frames
-                                                 payload to a different buffer (see TB_readAllFrames), NULL otherwise */
-    uint32_t        payload_length;         /**< length of payload data */
+    TB_id_unzipped            tb_id;                /**< TB identifier */
+    bool                      discardable : 1;      /**< if the frame was marked as discardable or not */
+#if !IS_HOST(DSP_LESS)
+    bool                      indirect : 1;         /**< if the frame was marked as indirect or not */
+#endif
+    bool                      has_trailer_info : 1; /**< true if trailer_info is valid (the frame contained a trailer) */
+    TB_trailer_info           trailer_info;         /**< information extracted from the frame trailer,
+                                                         valid only if has_trailer_info is true */
+    size_t                    payload_offset;       /**< payload data read position inside a source TB_data_descriptor */
+    uint8_t                  *payload_address;      /**< address of extracted payload data; valid only when copying frames
+                                                         payload to a different buffer (see TB_readAllFrames), NULL otherwise */
+    uint32_t                  payload_length;       /**< length of payload data */
+#if !IS_HOST(DSP_LESS)
+    TB_indirect_frame_payload indirect_payload;     /**< frame indirect payload information, valid only if indirect is true */
+#endif
 } TB_frame_info;
 
 

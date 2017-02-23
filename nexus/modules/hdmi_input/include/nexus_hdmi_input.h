@@ -293,7 +293,7 @@ Use this function to load HDMI Rx EDID Data to on-chip EDID RAM
 **/
 NEXUS_Error NEXUS_HdmiInput_LoadEdidData(
     NEXUS_HdmiInputHandle handle,
-    const uint8_t *dataBytes, /* attr{nelem=numBytes} */
+    const uint8_t *dataBytes, /* attr{null_allowed=y;nelem=numBytes} */
     uint16_t numBytes
     );
 

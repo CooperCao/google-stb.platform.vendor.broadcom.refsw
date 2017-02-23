@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -77,12 +77,13 @@ public:
     eRet                      getChannelInfo(CHANNEL_INFO_T * pChanInfo, bool bScanning);
     uint32_t                  getFrequency(void) { return(_settings.frequency); }
     void                      setFrequency(uint32_t frequency);
-    NEXUS_FrontendQamMode     getMode(void)                                   { return(_settings.mode); }
-    void                      setMode(NEXUS_FrontendQamMode mode)             { _settings.mode = mode; }
-    NEXUS_FrontendQamAnnex    getAnnex(void)                                  { return(_settings.annex); }
-    void                      setAnnex(NEXUS_FrontendQamAnnex annex)          { _settings.annex = annex; }
-    NEXUS_FrontendQamSettings getSettings(void)                               { return(_settings); }
-    void                      setSettings(NEXUS_FrontendQamSettings settings) { _settings = settings; }
+    NEXUS_FrontendQamMode     getMode(void)                          { return(_settings.mode); }
+    void                      setMode(NEXUS_FrontendQamMode mode)    { _settings.mode = mode; }
+    NEXUS_FrontendQamAnnex    getAnnex(void)                         { return(_settings.annex); }
+    void                      setAnnex(NEXUS_FrontendQamAnnex annex) { _settings.annex = annex; }
+    NEXUS_FrontendQamSettings getSettings(void)                      { return(_settings); }
+    /* coverity[pass_by_value] */
+    void setSettings(NEXUS_FrontendQamSettings settings) { _settings = settings; }
 
     STRING_TO_ENUM_DECLARE(stringToNexusQamMode, NEXUS_FrontendQamMode)
     ENUM_TO_MSTRING_DECLARE(nexusQamModeToString, NEXUS_FrontendQamMode)

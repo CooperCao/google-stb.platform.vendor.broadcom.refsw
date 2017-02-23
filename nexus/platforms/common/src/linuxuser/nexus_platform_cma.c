@@ -115,7 +115,7 @@ static int cma_dev_get_phys_info(struct cma_dev *cma_dev, struct nexus_linux_cma
 }
 #else /* defined(CONFIG_CMA) */
 
-struct cma_dev *cma_dev_get_cma_dev(unsigned region)
+static struct cma_dev *cma_dev_get_cma_dev(unsigned region)
 {
     BSTD_UNUSED(region);
     return NULL;

@@ -84,7 +84,6 @@ typedef enum NEXUS_Object_P_RegisterUnregister {
 } NEXUS_Object_P_RegisterUnregister;
 
 BDBG_OBJECT_ID_DECLARE(NEXUS_BaseObject);
-typedef unsigned NEXUS_BaseObjectId;
 
 typedef struct NEXUS_BaseObject {
     BDBG_OBJECT(NEXUS_BaseObject)
@@ -248,7 +247,12 @@ Description:
 NEXUS_Error NEXUS_BaseObject_P_RegisterUnregister(void *object, const NEXUS_BaseClassDescriptor *descriptor, NEXUS_Object_P_RegisterUnregister operation, NEXUS_ModuleHandle origin, NEXUS_ModuleHandle destination);
 #define NEXUS_OBJECT_REGISTER(type, object, operation) type##_BaseObject_P_RegisterUnregister(object, NEXUS_Object_P_RegisterUnregister_eRegister##operation, NEXUS_MODULE_SELF)
 #define NEXUS_OBJECT_UNREGISTER(type, object, operation) type##_BaseObject_P_RegisterUnregister(object, NEXUS_Object_P_RegisterUnregister_eUnregister##operation, NEXUS_MODULE_SELF)
-NEXUS_BaseObject *NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id);
+NEXUS_Error NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id, NEXUS_BaseObject **object );
+NEXUS_Error NEXUS_BaseObject_GetId(const NEXUS_BaseObject *base_object,NEXUS_BaseObjectId *id);
+
+/* ID's below this are reserved for the legacy 'enum' pseudo objects */
+#define NEXUS_BASEOBJECT_MIN_ID 0x100
+
 
 #endif /* !defined NEXUS_BASE_OBJECT_H */
 

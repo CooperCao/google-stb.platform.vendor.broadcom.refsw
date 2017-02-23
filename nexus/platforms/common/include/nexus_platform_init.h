@@ -116,7 +116,7 @@ typedef void *NEXUS_FrontendHandle; /* stub */
 #include "nexus_pwm_init.h"
 #endif
 
-#include "nexus_platform_compat.h"
+#include "nexus_core_compat.h"
 
 /* The following macros are for internal use, but are included in this public header file so that
 we can provide a tagged NEXUS_Platform_Init to ensure binary compatibility because the nexus binary

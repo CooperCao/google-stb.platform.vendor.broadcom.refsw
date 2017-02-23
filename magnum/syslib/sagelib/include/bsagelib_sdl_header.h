@@ -40,6 +40,9 @@
 #ifndef BSAGELIB_SDL_HEADER_H__
 #define BSAGELIB_SDL_HEADER_H__
 
+/* Macro definitions for triple and single signed SDL images */
+#define BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_SINGLE (0x00)
+#define BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_TRIPLE (0x01)
 
 /***********************************************************
  * SAGE Dynamic Loader header
@@ -70,10 +73,16 @@ typedef struct
 
 typedef struct
 {
-    uint8_t ucHeaderIndex[4];                 /* [0-1] is used for header type (SAGE Bootloader or SAGE SW) */
+    uint8_t ucHeaderIndex[2];                 /* [0-1] should be 0x44 0x4C, is used for header type (SAGE Bootloader or SAGE SW) */
+    uint8_t ucReserved;
+    uint8_t ucSageImageSigningScheme;         /* 0x00: single signed   0x01: triple signed */
     uint8_t ucSecurityType;                   /* security type: signature, encryption or both */
+                                              /* 0x03: single Signed Encryption Fully Bounded */
+                                              /* 0x04: signed and rncrypted with All-in-One Signature */
     uint8_t ucImageType;                      /* data type: SAGE bootloader or SAGE SW or SDL */
+	                                          /* 0x04: SDL image */
     uint8_t ucHeaderVersion[2];               /* version of the structure used for the header */
+                                              /* [0-1]: 0x00 0x01 for SAGE 3.1.x */
     uint8_t ucSdlVersion[4];                  /* SDL version */
     uint8_t ucSageSecureBootToolVersion[4];   /* Version of the secure boot tool used to signed the binary */
     uint8_t ucSdlAntiRollbackVersion[4];      /* SDL (antirollback) epoch */
@@ -81,7 +90,8 @@ typedef struct
     uint8_t ucSsfThlShortSig[4];              /* 32 firsts bits of the SAGE Software Framework Thin-Layer signature*/
     uint8_t ucGlobalKeyOwnerIdSelect;         /* Can be 0 (MSP0), 1 (MSP1) or 3 (Use1) */
     uint8_t ucKeyZeroSelect;                  /* Select Key0 (value=0x43) or Key0Prime (value=0x49) */
-    uint8_t ucReserved3[2];
+    uint8_t ucReserved3;
+    uint8_t ucSecureLogType;                  /* Indicates the secure log type of the SDL (dictates if and how the secure logging is realized) */
     /* 32 bytes above */
 
     uint8_t ucProcIn1[16];                    /* Proc In 1 */

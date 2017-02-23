@@ -87,6 +87,21 @@ ifeq ($(SAGE_SUPPORT),y)
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/platforms/include
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/srai/include
     SAGE_CFLAGS += -DPLAYREADY_HOST_IMPL
+
+    # set default Unified value
+    #    Sage 2.x : always NO
+    #    Sage 3.x : if common_drm ta binary is found, default to YES
+    #               else default to NO
+    ifeq ($(SAGE_VERSION), 2x)
+      USE_UNIFIED_COMMON_DRM = y
+    else
+      CMNDRM_TA_BIN_RESULTS=$(wildcard $(BSEAV)/lib/security/sage/bin/$(BCHP_CHIP)$(BCHP_VER)/dev/sage_ta_common_drm*)
+      ifeq (${CMNDRM_TA_BIN_RESULTS}, )
+        USE_UNIFIED_COMMON_DRM ?= n
+      else
+        USE_UNIFIED_COMMON_DRM ?= y
+      endif
+    endif
 endif
 
 
@@ -99,15 +114,11 @@ CFLAGS += -std=c99
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 CFLAGS += $(COMMON_DRM_CFLAGS)
 
-# set default value first, needs to change to ?n? after 3.2
-USE_UNIFIED_COMMON_DRM ?= y
-
-ifeq ($(SAGE_VERSION), 2x)
-    USE_UNIFIED_COMMON_DRM = y
-endif
-
 ifeq ($(USE_UNIFIED_COMMON_DRM), y)
+    $(warning Using a Unified Common DRM implementation)
     CFLAGS += -DUSE_UNIFIED_COMMON_DRM
+else
+    $(warning Using a non-Unified Common DRM implementation)
 endif
 
 ifeq ($(ANDROID_BUILD),y)
@@ -457,7 +468,7 @@ ifeq ($(SAGE_SUPPORT),y)
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}
 endif
 
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 ifeq ($(B_BUILD_DEPS),n)
  prep_openssl:
 else

@@ -43,12 +43,15 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_processor);
 
 BDBG_OBJECT_ID(BAPE_Processor);
 
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_Processor
 {
     BDBG_OBJECT(BAPE_Processor)
@@ -564,3 +567,102 @@ static void BAPE_Processor_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNo
 
     /* error checking?? */
 }
+#else
+typedef struct BAPE_Processor
+{
+    BDBG_OBJECT(BAPE_Processor)
+} BAPE_Processor;
+
+void BAPE_Processor_GetDefaultCreateSettings(
+    BAPE_ProcessorCreateSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Processor_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_ProcessorCreateSettings *pSettings,
+    BAPE_ProcessorHandle *pHandle
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Processor_Destroy(
+    BAPE_ProcessorHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_Processor_GetSettings(
+    BAPE_ProcessorHandle handle,
+    BAPE_ProcessorSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Processor_SetSettings(
+    BAPE_ProcessorHandle handle,
+    const BAPE_ProcessorSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Processor_GetStatus(
+    BAPE_ProcessorHandle handle,
+    BAPE_ProcessorStatus *pStatus    /* [out] Status */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+}
+
+void BAPE_Processor_GetConnector(
+    BAPE_ProcessorHandle handle,
+    BAPE_Connector *pConnector
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+}
+
+BERR_Code BAPE_Processor_AddInput(
+    BAPE_ProcessorHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_Processor_RemoveInput(
+    BAPE_ProcessorHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_Processor_RemoveAllInputs(
+    BAPE_ProcessorHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

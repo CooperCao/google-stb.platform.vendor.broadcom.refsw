@@ -43,6 +43,7 @@
 #define __BSG_EXCEPTION_H__
 
 #include "bsg_common.h"
+#include "bsg_compiler_quirks.h"
 
 #include <sstream>
 #include <string>
@@ -70,7 +71,7 @@ private:
    std::string m_message;
 };
 
-void Oops(Exception x);
+void Oops(Exception x) BSG_NO_RETURN;
 void GLOops(const char *file, uint32_t line);
 
 #define BSG_THROW(MESSAGE) bsg::Oops(bsg::Exception(((std::stringstream &)(std::stringstream() <<  \
@@ -83,4 +84,3 @@ void GLOops(const char *file, uint32_t line);
 
 }
 #endif
-

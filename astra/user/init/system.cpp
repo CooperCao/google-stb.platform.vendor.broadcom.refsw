@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,14 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * system.cpp
- *
- *  Created on: Feb 18, 2015
- *      Author: gambhire
- */
-
 #include <stdint.h>
 
 #include "arm/arm.h"
@@ -104,7 +96,7 @@ void System::init(const void *devTree) {
     TzMem::init(tzDevTree);
     GIC::init(tzDevTree);
     Interrupt::init();
-    TzTimers::init();
+    TzTimers::init(tzDevTree);
     Scheduler::init();
     TzTask::init();
     ElfImage::init();
@@ -115,7 +107,11 @@ void System::init(const void *devTree) {
     Futex::init();
     TzIoc::init(tzDevTree);
     TraceLog::init();
+#ifdef __aarch64__
+    Console::init(false);
+#else
     Console::init(!Platform::hasUart());
+#endif
 
     /* Load initramfs and release its memory */
     rootDir = RamFS::load(&_initramfs_start, &_initramfs_end);
@@ -128,10 +124,29 @@ void System::init(const void *devTree) {
     /* Unmap the bootstrap part of the kernel */
     PageTable::kernelPageTable()->unmapBootstrap(devTree);
 
+    // Create /dev/random and /dev/urandom
+    IDirectory *devDir = RamFS::Directory::create(System::UID, System::GID, rootDir,
+        MAKE_PERMS(PERMS_READ_WRITE_EXECUTE, PERMS_READ_ONLY_EXECUTE, PERMS_READ_ONLY_EXECUTE));
+    if (devDir == nullptr) {
+        err_msg("Could not create devfs\n");
+        System::halt();
+    }
+    rootDir->addDir("dev", devDir);
+
+    IFile *devRand = (IFile *)RamFS::RandNumGen::create();
+    if (devRand == nullptr) {
+        err_msg("Could not create devfs random\n");
+        System::halt();
+    }
+    devDir->addFile("random", devRand);
+    devDir->addFile("urandom", devRand);
+
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");
 
+#ifndef __aarch64__
     Platform::setUart();
+#endif
 }
 
 void System::initSecondaryCpu() {

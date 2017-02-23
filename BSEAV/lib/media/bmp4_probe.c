@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * BMedia library, stream probe module
- * 
- * Revision History:
  *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bmp4_probe.h"
@@ -532,6 +552,7 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                         unsigned i;
                         const bmp4_audiosampleentry *audio=NULL;
                         const bmp4_visualsampleentry *visual=NULL;
+                        const bmpeg4_es_descriptor *audio_mpeg4=NULL;
                         bmp4_sampleentry *sample = sample_info.entries[0];
                         track->encrypted = sample->encrypted;
                         track->protection_scheme_information_size = sample->protection_scheme_information_size;
@@ -569,7 +590,11 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                             track->media.type = bmedia_track_type_audio;
                             track->media.info.audio.channel_count = sample->codec.mp4a.audio.channelcount;
                             track->media.info.audio.sample_size = sample->codec.mp4a.audio.samplesize;
-                            track->media.info.audio.sample_rate = bmedia_info_aac_sampling_frequency_from_index(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequencyIndex);
+                            if(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequencyIndex!=0x0F) {
+                                track->media.info.audio.sample_rate = bmedia_info_aac_sampling_frequency_from_index(sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequencyIndex);
+                            } else {
+                                track->media.info.audio.sample_rate = sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequency;
+                            }
                             track->media.info.audio.codec = (sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType == 5 ? baudio_format_aac_plus_adts: baudio_format_aac);
                             BDBG_CASSERT(sizeof(bmedia_probe_aac_audio) <= sizeof(track->media.info.audio.codec_specific));
                             if (sample->codec.mp4a.mpeg4.decoder.iso_14496_3.audioObjectType <= 5)
@@ -586,10 +611,12 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                         case bmp4_sample_type_mpg:
                             track->media.info.audio.codec = baudio_format_mpeg;
                             audio = &sample->codec.mp4a.audio;
+                            audio_mpeg4 =&sample->codec.mp4a.mpeg4;
                             break;
                         case bmp4_sample_type_als:
                             track->media.info.audio.codec = baudio_format_als;
                             audio = &sample->codec.mp4a.audio;
+                            audio_mpeg4 =&sample->codec.mp4a.mpeg4;
                             break;
                         case bmp4_sample_type_ac3:
                         case bmp4_sample_type_eac3:
@@ -655,8 +682,10 @@ b_mp4_probe_sampletable(bmp4_parser_handler *handler, uint32_t type, batom_t box
                             track->media.info.audio.channel_count = audio->channelcount;
                             track->media.info.audio.sample_size = audio->samplesize;
                             track->media.info.audio.sample_rate = audio->samplerate>>16;
+                            if(track->media.info.audio.sample_rate==0 && audio_mpeg4 && audio_mpeg4->decoder.iso_14496_3.samplingFrequencyIndex==0x0F) {
+                                track->media.info.audio.sample_rate = sample->codec.mp4a.mpeg4.decoder.iso_14496_3.samplingFrequency;
+                            }
                         }
-
                     } else {
                         BDBG_WRN(("b_mp4_probe_media: %#lx track:%u Sample Description invalid number of entries", (unsigned long)probe, track->media.number));
                         probe->sample_valid = false;
@@ -755,7 +784,7 @@ b_mp4_probe_destroy(bmedia_probe_base_t probe_)
 	return;
 }
 
-const bmedia_probe_stream *
+static const bmedia_probe_stream *
 b_mp4_probe_parse(bmedia_probe_base_t probe_, bfile_buffer_t buf, batom_pipe_t pipe, const bmedia_probe_parser_config *config)
 {
 	bmp4_probe_t probe = (bmp4_probe_t)probe_;

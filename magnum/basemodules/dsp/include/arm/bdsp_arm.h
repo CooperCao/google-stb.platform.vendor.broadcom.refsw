@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -59,9 +59,6 @@ typedef struct BDSP_ArmSettings
 
 #ifdef SR_REMOVE  /*SR_TBD */
     BDSP_Arm_DebugTypeSettings debugSettings[BDSP_Arm_DebugType_eLast]; /* Debug information for the different types of debug logs */
-    BMEM_Heap_Handle firmwareHeap;  /* Optional, this is the heap handle the firmware itself will be loaded into if
-                                       specified otherwise the heap specified in the open call will be used */
-
 #endif
 } BDSP_ArmSettings;
 
@@ -127,7 +124,7 @@ BERR_Code BDSP_Arm_Open(
     BDSP_Handle *pDsp,                      /* [out] */
     BCHP_Handle chpHandle,
     BREG_Handle regHandle,
-    BMEM_Handle memHandle,
+	BMMA_Heap_Handle memHandle,
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
     const BDSP_ArmSettings *pSettings

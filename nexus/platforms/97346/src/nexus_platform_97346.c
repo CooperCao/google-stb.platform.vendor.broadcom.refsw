@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bchp_common.h"
@@ -91,13 +82,22 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+    const NEXUS_PlatformMemory *pMemory = &g_platformMemory; /* g_platformMemory is completely initialized already */
     BSTD_UNUSED(boxMode);
     /* kernel suggested boot options bmem=192M@64M bmem=512M@512M for boards with >750M memory
        bmem=192M@64M bmem=256M@512M for the boards with 512 Mbytes of memory */
 
+    /* nexus default heap, also used for SD2 FB */
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = -1;
+    /* if there is no bmem in lower 256MB, heap[0] must move to upper memory. we must also shrink NEXUS_MEMC0_GRAPHICS_HEAP */
+    if (pMemory->osRegion[0].base >= 512*1024*1024) {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 1;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 192 * 1024 * 1024;
+    }
+    else {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 0;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = -1;
+    }
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType = NEXUS_MemoryType_eFull;
 
     pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].memcIndex = 0;

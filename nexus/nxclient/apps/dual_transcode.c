@@ -139,7 +139,10 @@ static void print_usage(void)
         );
     printf(
         "  -video         output video pid (0 for no video)\n"
-        "  -video_type    output video codec\n"
+        );
+    print_list_option(
+        "  -video_type    output video type",g_videoCodecStrs);
+    printf(
         "  -video_bitrate RATE   output video bitrate in Mbps\n"
         "  -video_size    WIDTH,HEIGHT (default is 1280,720)\n"
         "  -video_framerate HZ    video encode frame rate (for example 29.97, 30, 59.94, 60)\n"
@@ -148,7 +151,10 @@ static void print_usage(void)
         );
     printf(
         "  -audio         output audio pid (0 for no audio)\n"
-        "  -audio_type    output audio codec\n"
+        );
+    print_list_option(
+        "  -audio_type    output audio type",g_audioCodecStrs);
+    printf(
         "  -audio_samplerate     audio output sample rate in HZ\n"
         "  -loop          loop playback\n"
         "  -timeout SECONDS\n"

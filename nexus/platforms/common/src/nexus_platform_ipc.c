@@ -114,18 +114,28 @@ NEXUS_Error NEXUS_P_ServerCall_OutVarArg_Allocate(NEXUS_P_ServerOutVarArg_State 
     return NEXUS_SUCCESS;
 }
 
-void *NEXUS_P_ServerCall_OutVarArg_Place(NEXUS_P_ServerOutVarArg_State *state, unsigned data_size)
+void *NEXUS_P_ServerCall_OutVarArg_Place(NEXUS_P_ServerOutVarArg_State *state, unsigned data_size, int *field_offset)
 {
     unsigned aligned_data_size = B_IPC_DATA_ALIGN(data_size);
     unsigned new_size = state->header + state->varargs_begin + state->varargs_offset + aligned_data_size;
     void *data;
+    *field_offset = -1;
     if(new_size > state->size) {
         (void)BERR_TRACE(NEXUS_UNKNOWN);
         return NULL;
     }
-    data = (uint8_t *)state->data + state->varargs_begin + state->varargs_offset + state->header;
+    *field_offset = state->varargs_offset +  state->varargs_begin;
+    data = (uint8_t *)state->data + state->header + state->varargs_begin + state->varargs_offset;
     state->varargs_offset += aligned_data_size;
     return data;
+}
+
+void NEXUS_P_ServerCall_OutVarArg_Shutdown(NEXUS_P_ServerOutVarArg_State *state)
+{
+    if(state->data != state->original_data) {
+        BKNI_Free(state->data);
+    }
+    return;
 }
 
 NEXUS_Error NEXUS_Platform_GetHeapStatus_driver(NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus)

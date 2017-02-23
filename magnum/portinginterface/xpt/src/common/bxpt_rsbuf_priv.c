@@ -53,13 +53,50 @@
 #endif
 #endif
 
-#define INPUT_BAND_BUF_SIZE         (200* 1024)
-#ifdef BXPT_P_TSIO_USE_LARGER_BUFFERS
-    #define PLAYBACK_BUF_SIZE           (58 * 25 * 256)
+#define INPUT_BAND_BUF_SIZE_IN_PACKETS (800)
+#ifdef BXPT_P_HAS_224B_SLOT_SIZE
+   #define SLOT_SIZE (224)
+   #define RS_BUFFER_WRAP_THRESHOLD 4
+   #define RS_OVERFLOW_THRESHOLD (3 + RS_BUFFER_WRAP_THRESHOLD)
+   #define RS_CARD_BUFFER_WRAP_THRESHOLD 1
 #else
-    #define PLAYBACK_BUF_SIZE           (8 * 1024)
+   #define SLOT_SIZE (256)
+   #if BXPT_NUM_TSIO
+      #define RS_OVERFLOW_THRESHOLD 0x3F
+      #define RS_BUFFER_WRAP_THRESHOLD 4
+      #define RS_CARD_BUFFER_WRAP_THRESHOLD 1
+   #else
+      #define RS_OVERFLOW_THRESHOLD 3
+      #define RS_BUFFER_WRAP_THRESHOLD 4
+   #endif
 #endif
-#define MINIMUM_BUF_SIZE            (256)
+
+#define INPUT_BAND_BUF_SIZE         (INPUT_BAND_BUF_SIZE_IN_PACKETS * SLOT_SIZE)
+
+#ifdef BXPT_P_HAS_224B_SLOT_SIZE
+#if INPUT_BAND_BUF_SIZE % (4 * SLOT_SIZE)
+   #error "INPUT_BAND_BUF_SIZE must be a multiple of 4 * the slot size"
+#endif
+#endif
+
+/* PLAYBACK_BUF_SIZE_IN_PACKETS comes from the hw architects, SLOT_SIZE from the SW_GUIDE_TO_XPTv4.4.doc */
+#ifdef BXPT_P_TSIO_USE_LARGER_BUFFERS
+    #define PLAYBACK_BUF_SIZE_IN_PACKETS           (58 * 25)
+    #define PLAYBACK_BUF_SIZE                      (PLAYBACK_BUF_SIZE_IN_PACKETS * SLOT_SIZE)
+#else
+    #define PLAYBACK_BUF_SIZE_IN_PACKETS           (32)
+    #define PLAYBACK_BUF_SIZE                      (PLAYBACK_BUF_SIZE_IN_PACKETS * SLOT_SIZE)
+#endif
+
+#ifdef BXPT_P_HAS_224B_SLOT_SIZE
+   #define SIZE_MULTIPLE   (4 * SLOT_SIZE)
+   #define BUFFER_ALIGNMENT   64
+#else
+   #define SIZE_MULTIPLE   SLOT_SIZE
+   #define BUFFER_ALIGNMENT   256
+#endif
+
+#define MINIMUM_BUF_SIZE            SIZE_MULTIPLE
 #define BUFFER_PTR_REG_STEPSIZE     RS_BUFFER_PTR_REG_STEPSIZE
 #define MAX_BITRATE                 ( 108000000 )
 #define BLOCKOUT_REG_STEPSIZE       (BCHP_XPT_RSBUFF_BO_IBP1 - BCHP_XPT_RSBUFF_BO_IBP0)
@@ -87,6 +124,8 @@ static void SetupBufferRegs(
     /* Change the WRITE, VALID, and READ init values per SW7445-102 */
     uint32_t InitVal = Offset ? -1 : 0xFF;
 
+    BDBG_MSG(("%s: BaseRegAddr %u, WhichInstance %u, Size %lu, Offset " BDBG_UINT64_FMT " ",
+              __FUNCTION__, BaseRegAddr, WhichInstance, (unsigned long) Size, BDBG_UINT64_ARG(Offset) ));
     BaseRegAddr = BaseRegAddr + WhichInstance * BUFFER_PTR_REG_STEPSIZE;
 
     addrValue = BCHP_FIELD_DATA(XPT_RSBUFF_BASE_POINTER_IBP0, BASE, Offset);
@@ -141,13 +180,15 @@ static BERR_Code AllocateBuffer(
     /* If there is a secure heap defined, use it. */
     BMMA_Heap_Handle mmaHeap = hXpt->mmaRHeap ? hXpt->mmaRHeap : hXpt->mmaHeap;
 
-    /* Size must be a multiple of 256. */
-    Size = Size - ( Size % 256 );
+    BDBG_MSG(("%s: BaseRegAddr %u, WhichInstance %u, Size %lu, SIZE_MULTIPLE %u", __FUNCTION__, BaseRegAddr, WhichInstance, Size, SIZE_MULTIPLE));
+
+    /* Size must be a multiple of the slot size. */
+    Size = Size - ( Size % SIZE_MULTIPLE );
 
     index = GetBufferIndex(BaseRegAddr, WhichInstance);
     BDBG_ASSERT(index >= 0); /* this is internal, so do a hard assert */
 
-    block = BMMA_Alloc(mmaHeap, Size, 256, 0);
+    block = BMMA_Alloc(mmaHeap, Size, BUFFER_ALIGNMENT, NULL);
     if (!block) {
         BDBG_ERR(("RS buffer alloc failed!"));
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -168,9 +209,16 @@ static BERR_Code DeleteBuffer(
     )
 {
     int index;
+    BMMA_DeviceOffset Offset;
 
     index = GetBufferIndex(BaseRegAddr, WhichInstance);
     BDBG_ASSERT(index >= 0);
+
+    BaseRegAddr = BaseRegAddr + WhichInstance * BUFFER_PTR_REG_STEPSIZE;
+    Offset = BREG_ReadAddr(hXpt->hRegister, BaseRegAddr);
+    if (Offset==hXpt->sharedRsXcBuff.offset) {
+        return BERR_SUCCESS;
+    }
 
     BMMA_UnlockOffset(hXpt->rsbuff[index].block, hXpt->rsbuff[index].offset);
     BMMA_Free(hXpt->rsbuff[index].block);
@@ -220,7 +268,8 @@ static bool IsBufferEnabled(
 
 static unsigned long ComputeBlockOut(
     unsigned long PeakRate,         /* [in] Max data rate (in bps) the band will handle. */
-    unsigned PacketLen              /* [in] Packet size ,130 for dss and 188 for mpeg */
+    unsigned PacketLen,             /* [in] Packet size ,130 for dss and 188 for mpeg */
+    unsigned maxReadSize            /* Number of packets that the rbus will read at each access. */
     )
 {
     if( PeakRate < BXPT_MIN_PARSER_RATE )
@@ -234,7 +283,7 @@ static unsigned long ComputeBlockOut(
         PeakRate = BXPT_MAX_PARSER_RATE;
     }
 
-    return (10800 * PacketLen * 8) / ( PeakRate / 10000 );
+    return ((10800 * PacketLen * 8) / ( PeakRate / 10000 )) * maxReadSize;
 }
 
 static BERR_Code SetBlockout(
@@ -270,6 +319,8 @@ BERR_Code BXPT_P_RsBuf_Init(
     )
 {
     unsigned ii;
+    unsigned maxReadSize = 1;
+    uint32_t Reg;
 
     BERR_Code ExitCode = BERR_SUCCESS;
     unsigned totalAllocated = 0;
@@ -277,10 +328,15 @@ BERR_Code BXPT_P_RsBuf_Init(
     BDBG_ASSERT( hXpt );
     BDBG_ASSERT( BandwidthConfig );
 
+#ifdef BCHP_XPT_RSBUFF_MISC_CTRL_MAX_READ_SIZE_DEFAULT
+    {
+        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_MISC_CTRL );
+        maxReadSize = BCHP_GET_FIELD_DATA(Reg, XPT_RSBUFF_MISC_CTRL, MAX_READ_SIZE) ? 2 : 1;
+    }
+#endif
+
 #ifdef BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS_EN
     {
-        uint32_t Reg;
-
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS_EN );
         BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS_EN, BAND_RD_IN_PROGRESS_EN, 0xFFFFFFFF );
         BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS_EN, Reg );
@@ -288,8 +344,6 @@ BERR_Code BXPT_P_RsBuf_Init(
 #endif
 #ifdef BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS_EN
     {
-        uint32_t Reg;
-
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS_EN );
         BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS_EN, BAND_RD_IN_PROGRESS_EN, 0xFFFFFFFF );
         BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS_EN, Reg );
@@ -297,8 +351,6 @@ BERR_Code BXPT_P_RsBuf_Init(
 #endif
 #ifdef BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS_EN
     {
-        uint32_t Reg;
-
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS_EN );
         BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS_EN, BAND_RD_IN_PROGRESS_EN, 0xFFFFFFFF );
         BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS_EN, Reg );
@@ -306,8 +358,6 @@ BERR_Code BXPT_P_RsBuf_Init(
 #endif
 #ifdef BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS_EN
     {
-        uint32_t Reg;
-
         Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS_EN );
         BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS_EN, BAND_RD_IN_PROGRESS_EN, 0xFFFFFFFF );
         BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS_EN, Reg );
@@ -315,17 +365,27 @@ BERR_Code BXPT_P_RsBuf_Init(
 #endif
 
 #if BXPT_NUM_TSIO
-    {
-        uint32_t Reg;
+   Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_PACKET_LENGTH );
+   BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_PACKET_LENGTH, PACKET_LENGTH, 192 );
+   BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_PACKET_LENGTH, Reg );
+#endif
 
-        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_PACKET_LENGTH );
-        BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_PACKET_LENGTH, PACKET_LENGTH, 192 );
-        BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_PACKET_LENGTH, Reg );
+#ifdef BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD
+   Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD );
+   BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_OVERFLOW_THRESHOLD, OVERFLOW_THRESHOLD, RS_OVERFLOW_THRESHOLD );
+   BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD, Reg );
+#endif
 
-        Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD );
-        BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_OVERFLOW_THRESHOLD, OVERFLOW_THRESHOLD, 0x3F );
-        BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD, Reg );
-    }
+#ifdef BCHP_XPT_RSBUFF_XPT_RS_BUFFER_WRAP_THRESHOLD
+   Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_XPT_RS_BUFFER_WRAP_THRESHOLD );
+   BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_XPT_RS_BUFFER_WRAP_THRESHOLD, WRAP_THRESHOLD, RS_BUFFER_WRAP_THRESHOLD );
+   BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_XPT_RS_BUFFER_WRAP_THRESHOLD, Reg );
+#endif
+
+#ifdef BCHP_XPT_RSBUFF_XPT_CARD_BUFFER_WRAP_THRESHOLD
+   Reg = BREG_Read32( hXpt->hRegister, BCHP_XPT_RSBUFF_XPT_CARD_BUFFER_WRAP_THRESHOLD );
+   BCHP_SET_FIELD_DATA( Reg, XPT_RSBUFF_XPT_CARD_BUFFER_WRAP_THRESHOLD, WRAP_THRESHOLD, RS_CARD_BUFFER_WRAP_THRESHOLD );
+   BREG_Write32( hXpt->hRegister, BCHP_XPT_RSBUFF_XPT_CARD_BUFFER_WRAP_THRESHOLD, Reg );
 #endif
 
     #if BXPT_HAS_IB_PID_PARSERS
@@ -337,7 +397,7 @@ BERR_Code BXPT_P_RsBuf_Init(
             BDBG_MSG(( "Alloc RS for IB parser %u, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
             AllocateBuffer( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_IBP0, ii, INPUT_BAND_BUF_SIZE );
             SetBlockout( hXpt, BCHP_XPT_RSBUFF_BO_IBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_LEN ) );
+               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_LEN, maxReadSize ) );
             SetBufferEnable( hXpt, BCHP_XPT_RSBUFF_IBP_BUFFER_ENABLE, ii, true );
             totalAllocated += INPUT_BAND_BUF_SIZE;
         }
@@ -348,6 +408,7 @@ BERR_Code BXPT_P_RsBuf_Init(
                 BXPT_P_AllocSharedXcRsBuffer( hXpt );
                 totalAllocated += BXPT_P_MINIMUM_BUF_SIZE;
             }
+            BDBG_MSG(( "Alloc shared RS for IB parser %u, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
             SetupBufferRegs( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_IBP0, ii, BXPT_P_MINIMUM_BUF_SIZE, hXpt->sharedRsXcBuff.offset );
             SetBlockout(hXpt, BCHP_XPT_RSBUFF_BO_IBP0, ii, PWR_BO_COUNT);
         }
@@ -363,7 +424,7 @@ BERR_Code BXPT_P_RsBuf_Init(
             BDBG_MSG(( "Alloc RS for PB parser %u, %u bps", ii, BandwidthConfig->MaxPlaybackRate[ ii ] ));
             AllocateBuffer( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_PBP0, ii, PLAYBACK_BUF_SIZE );
             SetBlockout( hXpt, BCHP_XPT_RSBUFF_BO_PBP0, ii,
-               ComputeBlockOut( 2 * BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_LEN ) );
+               ComputeBlockOut( 2 * BandwidthConfig->MaxPlaybackRate[ ii ], DEFAULT_PACKET_LEN, maxReadSize ) );
             SetBufferEnable( hXpt, BCHP_XPT_RSBUFF_PBP_BUFFER_ENABLE, ii, true );
             totalAllocated += PLAYBACK_BUF_SIZE;
         }
@@ -389,7 +450,7 @@ BERR_Code BXPT_P_RsBuf_Init(
             BDBG_MSG(( "Alloc RS for IB MPOD parser %u, %u bps", ii, BandwidthConfig->MaxInputRate[ ii ] ));
             AllocateBuffer( hXpt, BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0, ii, INPUT_BAND_BUF_SIZE );
             SetBlockout( hXpt, BCHP_XPT_RSBUFF_BO_MPOD_IBP0, ii,
-               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_LEN ) );
+               ComputeBlockOut( BandwidthConfig->MaxInputRate[ ii ], DEFAULT_PACKET_LEN, maxReadSize ) );
             SetBufferEnable( hXpt, BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_ENABLE, ii, true );
             totalAllocated += INPUT_BAND_BUF_SIZE;
         }

@@ -265,12 +265,16 @@ $(BWL_OBJ_DIR)/bwl_linux.o: $(BWL_SRC_DIR)/bwl_linux.c $(BWL_SRC_DIR)/../include
 	@echo [Compiling ... bwl_linux.c]
 	@(cd $(BWL_OBJ_DIR) && $(CC) $(BWL_CFLAGS) -c $(BWL_SRC_DIR)/bwl_linux.c)
 
-bwl_build_objs: $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o
+$(BWL_OBJ_DIR)/bwl_wlu_subcounters.o: $(BWL_SRC_DIR)/bwl_wlu_subcounters.c $(BWL_SRC_DIR)/../include/bwl.h
+	@echo [Compiling ... bwl_wlu_subcounters.c]
+	@(cd $(BWL_OBJ_DIR) && $(CC) $(BWL_CFLAGS) -c $(BWL_SRC_DIR)/bwl_wlu_subcounters.c)
+
+bwl_build_objs: $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bwl_wlu_subcounters.o
 	@echo [TARGET ... bwl_build_objs] > /dev/null
 
-$(BWL_OBJ_DIR)/libbwl.a: $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bcmwifi_channels.o
+$(BWL_OBJ_DIR)/libbwl.a: $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl_wlu_subcounters.o
 	@echo [Building ... $(notdir $@)]
-	@$(AR) rcs $(BWL_OBJ_DIR)/libbwl.a $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bcmwifi_channels.o
+	@$(AR) rcs $(BWL_OBJ_DIR)/libbwl.a $(BWL_OBJ_DIR)/bwl.o $(BWL_OBJ_DIR)/bwl_utils.o $(BWL_OBJ_DIR)/bwl_linux.o $(BWL_OBJ_DIR)/bcmwifi_channels.o $(BWL_OBJ_DIR)/bwl_wlu_subcounters.o
 ###	@cp -f $(BWL_OBJ_DIR)/libbwl.a ${NEXUS_BIN_DIR}
 
 -include *.d

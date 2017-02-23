@@ -206,6 +206,7 @@ struct platform {
 
 
 #define BCHP_REGISTER_END   0
+#define BCHP_REGISTER_START 0
 
 #define vmalloc_size(a,b,c)     0
 
@@ -866,6 +867,7 @@ int main(int argc, const char *argv[])
         BDBG_SetModuleLevel("heap_allocator", BDBG_eMsg);
         if(0) BDBG_SetModuleLevel("BMMA_Range", BDBG_eMsg);
     }
+    BSTD_UNUSED(rc);
 
     BDBG_LOG(("Testing %u custom tests", sizeof(custom_tests)/sizeof(custom_tests[0]) ));
     for(i=0;i<sizeof(custom_tests)/sizeof(custom_tests[0]);i++) {

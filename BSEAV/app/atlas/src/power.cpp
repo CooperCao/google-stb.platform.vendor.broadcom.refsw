@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,10 +58,8 @@ void CMountData::dump(bool bForce)
         BDBG_SetModuleLevel("atlas_power", BDBG_eMsg);
     }
 
-    BDBG_MSG(("partition:%s%d mount point:%s type:%s", _strDrive, _nPartition, _strMountPoint, _strMountType));
-    BDBG_MSG(("drive serial:%s", _strDriveSerial));
-    BDBG_MSG(("drive model :%s", _strDriveModel));
-    BDBG_MSG(("drive wwn   :%s", _strDriveWWN));
+    BDBG_MSG(("drive:%s partition:%d mount point:%s type:%s", _strDrive, _nPartition, _strMountPoint, _strMountType));
+    BDBG_MSG(("drive GUID  :%s", _strDriveGUID.s()));
 
     if (true == bForce)
     {
@@ -72,101 +70,64 @@ void CMountData::dump(bool bForce)
 /* read drive data for given device */
 eRet CMountData::initializeDriveData(const char * str)
 {
-    eRet              ret = eRet_NotAvailable;
-    int               fd  = 0;
-    struct hd_driveid driveId;
+    eRet              ret            = eRet_NotAvailable;
+    int               fd             = -1;
+    char              strTmpName[32] = "/tmp/AtlasXXXXXX";
+    MString           cmd;
 
     BDBG_ASSERT(NULL != str);
 
-    BDBG_MSG(("%s opening %s", __FUNCTION__, str));
-    fd = open(str, O_RDONLY|O_NONBLOCK);
-    if (fd)
+    fd = mkstemp(strTmpName);
+
+    /* we will use fdisk -l to retrieve the GUID of the given drive */
+    cmd = MString("fdisk -l ") + str;
+    cmd += " > ";
+    cmd += strTmpName;
+    system(cmd);
+
+    if (0 > fd)
     {
-        struct sg_io_hdr io_hdr;
-        unsigned char    buf[64];
-        unsigned char    sense[32];
-        unsigned char    inq_cmd_serial[] = { INQUIRY, 1, 0x80, 0, sizeof(buf), 0 };
-
-        memset(&io_hdr, 0, sizeof(io_hdr));
-        io_hdr.interface_id    = 'S';
-        io_hdr.cmdp            = inq_cmd_serial;
-        io_hdr.cmd_len         = sizeof(inq_cmd_serial);
-        io_hdr.dxferp          = buf;
-        io_hdr.dxfer_len       = sizeof(buf) - 1;
-        io_hdr.dxfer_direction = SG_DXFER_FROM_DEV;
-        io_hdr.sbp             = sense;
-        io_hdr.mx_sb_len       = sizeof(sense);
-        io_hdr.timeout         = 5000;
-
-        /* try get sata drive info */
-        if (0 == ioctl(fd, HDIO_GET_IDENTITY, &driveId))
-        {
-            strncpy(_strDriveSerial, (char *)driveId.serial_no, sizeof(_strDriveSerial));
-            strncpy(_strDriveModel, (char *)driveId.model, sizeof(_strDriveModel));
-            snprintf(_strDriveWWN, sizeof(_strDriveWWN) - 1, "0x%04x%04x%04x%04x", driveId.words104_125[4], driveId.words104_125[5], driveId.words104_125[6], driveId.words104_125[7]);
-            ret = eRet_Ok;
-        }
-        else /* try usb drive info */
-        if (0 == ioctl(fd, SG_IO, &io_hdr))
-        {
-            if ((io_hdr.info & SG_INFO_OK_MASK) != SG_INFO_OK)
-            {
-                /* usb drive does NOT support serial number */
-                CHECK_ERROR_GOTO("USB drive does not have serial number support", ret, error);
-            }
-
-            /* usb drive supports serial number */
-            buf[4 + buf[3]] = '\0';
-            memset(&_strDriveSerial, 0, sizeof(_strDriveSerial));
-            strncpy(_strDriveSerial, (char *)buf + 4, sizeof(_strDriveSerial) - 1);
-            memset(&_strDriveWWN, 0, sizeof(_strDriveWWN));
-            strncpy(_strDriveWWN, (char *)buf + 4, sizeof(_strDriveWWN) - 1);
-            ret = eRet_Ok;
-
-            /* get model number */
-            {
-                unsigned char inq_cmd[] = { INQUIRY, 0, 0, 0, sizeof(buf), 0 };
-                io_hdr.cmdp    = inq_cmd;
-                io_hdr.cmd_len = sizeof(inq_cmd);
-
-                if (0 == ioctl(fd, SG_IO, &io_hdr))
-                {
-                    /* parse model number */
-                    strncpy(_strDriveModel, (char *)buf + 8, 7);
-                    strncat(_strDriveModel, " - ", 3);
-                    strncat(_strDriveModel, (char *)buf + 16, 15);
-
-                    /*
-                     * revision level
-                     * strncat(_strDriveModel, " - ", 3);
-                     * strncat(_strDriveModel, (char * )buf + 32, 3);
-                     */
-
-                    /*
-                     * vendor specific (sometimes serial)
-                     * strncat(_strDriveModel, " - ", 3);
-                     * strncat(_strDriveModel, (char * )buf + 36, 19);
-                     */
-                }
-            }
-            ret = eRet_Ok;
-        }
-        else
-        {
-            BDBG_WRN(("unable to get drive identity"));
-        }
+        BDBG_ERR(("%s - unable to create unique temp file", __FUNCTION__));
+        goto error;
     }
-    else
+
     {
-        BDBG_WRN(("unable to open %s", str));
+        MString strBuf;
+        char buf[1024];
+        int  bufSize = 0;
+        int  index;
+
+        /* read results of fdisk */
+        bufSize = read(fd, buf, sizeof(buf) - 1);
+        buf[bufSize - 1] = '\0';
+
+        if (0 == bufSize)
+        {
+            BDBG_ERR(("unable to read fdisk info"));
+            goto error;
+        }
+
+        /* put buf data in mstring to make parsing easier */
+        strBuf = buf;
+        BDBG_MSG(("read drive data:%s", strBuf.s()));
+
+        /* extract GUID */
+        index = strBuf.find("GUID");
+        if (-1 != index)
+        {
+            index += strlen("Guid): ");
+            _strDriveGUID = strBuf.mid(index, strlen("XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX"));
+            ret = eRet_Ok;
+        }
     }
 
 error:
     if (0 <= fd)
     {
         close(fd);
-        fd = 0;
+        fd = -1;
     }
+
     return(ret);
 } /* initializeDriveData */
 
@@ -202,18 +163,18 @@ eRet CMountData::initializePartitionData(const char * str)
     char strPartition[16] = "/dev/";
 
     BDBG_ASSERT(NULL != str);
-    /* coverity[secure_coding] */
-    sscanf(str, "%16d %16d %32d %10s", &nMajor, &nMinor, &nSize, strPartition + 5);
 
-    if (4 > strlen(strPartition))
+    /* coverity[secure_coding] */
+    sscanf(str, "%16d %16d %32d %10s", &nMajor, &nMinor, &nSize, strPartition + strlen("/dev/"));
+
+    if (strlen("/dev/sdXn") > strlen(strPartition))
     {
         ret = eRet_NotAvailable;
         goto error;
     }
 
-    _nPartition = atoi(strPartition + 8);
-    strncpy(_strDrive, strPartition, 8);
-    _strDrive[8] = '\0';
+    _nPartition = atoi(strPartition + strlen("/dev/sdX"));
+    strncpy(_strDrive, strPartition, strlen("/dev/sdX"));
 
     memset(_strMountPoint, 0, sizeof(_strMountPoint));
     memset(_strMountType, 0, sizeof(_strMountType));
@@ -260,9 +221,10 @@ eRet CMountData::mount(bool bMount)
             BDBG_WRN(("unmount failed:"));
             dump(true);
             ret = eRet_ExternalError;
+            goto error;
         }
 
-        BDBG_WRN(("unmount:"));
+        BDBG_WRN(("unmount success:"));
         dump(true);
     }
     else
@@ -278,15 +240,16 @@ eRet CMountData::mount(bool bMount)
         strCmd += " ";
         strCmd += _strMountPoint;
         retSys  = system(strCmd.s());
-        BDBG_MSG(("system command:%s", strCmd.s()));
+        BDBG_WRN(("system command:%s", strCmd.s()));
         if (0 != retSys)
         {
             BDBG_WRN(("mount failed:"));
             dump(true);
             ret = eRet_ExternalError;
+            goto error;
         }
 
-        BDBG_WRN(("mount:"));
+        BDBG_WRN(("mount success:"));
         dump(true);
     }
 
@@ -298,9 +261,9 @@ error:
  * uniquely identify a given partition on a drive anyways */
 bool CMountData::operator ==(CMountData &other)
 {
-    if (0 == strncmp(other._strDriveWWN, _strDriveWWN, sizeof(_strDriveWWN)))
+    if (other._strDriveGUID == _strDriveGUID)
     {
-        /* world wide name matches */
+        /* GUID matches */
         if (other._nPartition == _nPartition)
         {
             /* partition number matches */
@@ -385,7 +348,10 @@ eRet CPower::enableEthernet(bool bEnable)
     return(ret);
 } /* enableEthernet */
 
-eRet CPower::mountDrives(bool bMount)
+eRet CPower::mountDrives(
+        bool     bMount,
+        uint32_t nRetries
+        )
 {
     eRet   ret     = eRet_Ok;
     FILE * fMounts = NULL;
@@ -419,24 +385,30 @@ eRet CPower::mountDrives(bool bMount)
             ret = pMount->initializeMountData(strLine);
             if (eRet_Ok != ret)
             {
+                BDBG_WRN(("unable to init mount data:%s", strLine));
                 DEL(pMount);
-            }
-            CHECK_WARN_GOTO("unable to init mount data", ret, error);
 
+                /* there may be old mount points that correspond to disks that are no longer
+                   connected.  so we will skip over these and continue - it is not a error
+                   unmounting the disk.  it is just that the disk corresponding to the mount
+                   point is no longer connected. */
+                ret = eRet_Ok;
+                continue;
+            }
+
+            /* unmount mount point */
+            ret = pMount->mount(false);
+            if (ret == eRet_Ok)
             {
-                /* unmount mount point */
-                ret = pMount->mount(false);
-                if (ret == eRet_Ok)
-                {
-                    /* save mount point information so we can remount later */
-                    BDBG_MSG(("saving mount point:"));
-                    pMount->dump(false);
-                    _mountList.add(pMount);
-                }
-                else
-                {
-                    DEL(pMount);
-                }
+                /* save mount point information so we can remount later */
+                BDBG_WRN(("saving mount point:"));
+                pMount->dump(true);
+                _mountList.add(pMount);
+                continue;
+            }
+            else
+            {
+                BDBG_ERR(("umount failed"));
             }
         }
     }
@@ -457,45 +429,61 @@ eRet CPower::mountDrives(bool bMount)
         fMounts = fopen("/proc/partitions", "r");
         CHECK_PTR_ERROR_GOTO("unable to find partitions", fMounts, ret, eRet_NotAvailable, error);
 
-        while (NULL != fgets(strLine, sizeof(strLine), fMounts))
+        for (uint32_t i = 0; i < nRetries; i++)
         {
-            CMountData mountData;
-
-            if ((NULL == strstr(strLine, "sd")) &&
-                (NULL == strstr(strLine, "hd")))
+            while (NULL != fgets(strLine, sizeof(strLine), fMounts))
             {
-                /* only mount ide/sata/usb drives */
-                BDBG_MSG(("skip partition: %s", strLine));
-                continue;
-            }
+                CMountData mountData;
 
-            if (eRet_Ok == mountData.initializePartitionData(strLine))
-            {
-                /* look for matching drive and mount point in our saved list */
-                for (pMount = _mountList.first(); pMount; pMount = _mountList.next())
+                if ((NULL == strstr(strLine, "sd")) &&
+                    (NULL == strstr(strLine, "hd")))
                 {
-                    /* we rely on the drive WWN number to determine which drive is
-                     * mapped to which set of partitions.  the "==" operator compares
-                     * WWN number and partition number. */
-                    if (mountData == *pMount)
+                    /* only mount ide/sata/usb drives */
+                    BDBG_MSG(("skip partition: %s", strLine));
+                    continue;
+                }
+
+                if (eRet_Ok == mountData.initializePartitionData(strLine))
+                {
+                    /* look for matching drive and mount point in our saved list */
+                    for (pMount = _mountList.first(); pMount; pMount = _mountList.next())
                     {
-                        /* partition name may have changed after powering down/up,
-                         * so update it before mounting. */
-                        pMount->setDriveName(mountData.getDriveName());
+                        /* we rely on the drive GUID number to determine which drive is
+                         * mapped to which set of partitions.  the "==" operator compares
+                         * GUID number and partition number. */
+                        if (mountData == *pMount)
+                        {
+                            /* partition name may have changed after powering down/up,
+                             * so update it before mounting. */
+                            pMount->setDriveName(mountData.getDriveName());
 
-                        /* mount partition */
-                        ret = pMount->mount(true);
-                        CHECK_ERROR_GOTO("unable to mount drive", ret, error);
+                            /* mount partition */
+                            ret = pMount->mount(true);
+                            if (eRet_Ok != ret)
+                            {
+                                BDBG_WRN(("unable to mount drive:%s", pMount->getDriveName()));
+                                continue;
+                            }
 
-                        _mountList.remove(pMount);
-                        DEL(pMount);
+                            _mountList.remove(pMount);
+                            DEL(pMount);
+                        }
                     }
                 }
             }
-        }
 
-        /* only success if our mountlist is empty */
-        ret = (0 == _mountList.total()) ? eRet_Ok : eRet_NotAvailable;
+            /* only success if our mountlist is empty */
+            ret = (0 == _mountList.total()) ? eRet_Ok : eRet_NotAvailable;
+
+            if (eRet_Ok == ret)
+            {
+                break;
+            }
+
+            BDBG_WRN(("retrying mounts %d of %d", i + 1, nRetries));
+            BKNI_Sleep(1000);
+            rewind(fMounts);
+        }
     }
 
 error:
@@ -505,36 +493,6 @@ done:
         fclose(fMounts);
         fMounts = NULL;
     }
-    return(ret);
-} /* mountDrives */
-
-eRet CPower::mountDrives(
-        bool     bMount,
-        uint32_t nRetries
-        )
-{
-    uint32_t nAttempts = nRetries;
-    eRet     ret       = eRet_Ok;
-
-    /* make multiple attempts to mount/unmount drives.  it may take an indeterminate
-     * amount of time for the drives to power back up and become available so
-     * we will poll for a little while based on current power state */
-    do
-    {
-        ret = mountDrives(bMount);
-        if (eRet_Ok == ret)
-        {
-            /* successfully mounted/unmounted drives */
-            BDBG_WRN(("Drive partitions %s successfully", (bMount ? "mounted" : "UNmounted")));
-            break;
-        }
-
-        nAttempts--;
-        BDBG_WRN(("Unable to %s drives - retries left:%d", (bMount ? "mounted" : "UNmounted"), nAttempts));
-        BKNI_Sleep(1000);
-    }
-    while (0 < nAttempts);
-
     return(ret);
 } /* mountDrives */
 

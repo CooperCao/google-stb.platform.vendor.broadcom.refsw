@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,34 +38,39 @@
 
 # build environment
 TZ_DIR ?= ../..
-TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
-TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
-
-# platform and target
-PLATFORM ?= brcmstb
+include $(TZ_DIR)/kernel/default.inc
 
 # directories and files
 USER_APP := uappd
 
 SRC_DIRS := .
 INC_DIRS := .
-BIN_DIRS := bin
+BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/user/uappd
+BIN_DIRS := $(BASE_OBJ_DIR)/bin
+LIB_DIRS := $(B_REFSW_OBJ_ROOT)/user/lib
 
-SOURCES_ASM := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S)))
-OBJS        := $(patsubst %.S,bin/%.o,$(SOURCES_ASM))
-DEPS        := $(patsubst %.S,bin/%.d,$(SOURCES_ASM))
+
+SOURCES_ASM-$(CFG_ARM32_core) := $(notdir(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S)))
+SOURCES_ASM-$(CFG_ARM64_core) := $(notdir(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S)))
+OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM-y))
+DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM-y))
 
 SOURCES_C   := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c)))
-OBJS        += $(patsubst %.c,bin/%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,bin/%.d,$(SOURCES_C))
+OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
+DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
 
 SOURCES_CPP := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp)))
-OBJS        += $(patsubst %.cpp,bin/%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
+OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
+DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
+
+# Create out of build (OOB) objects
+OOB_OBJS			:= $(patsubst %.o, $(BASE_OBJ_DIR)/bin/%.o,$(OBJS))
+OOB_DEPS			:= $(patsubst %.d, $(BASE_OBJ_DIR)/bin/%.d,$(DEPS))
 
 # dependent libs
-DEP_LIBS += libtzioc
-INC_DIRS += libtzioc
+LIBS += libtzioc
+INC_DIRS += ../libtzioc
+LIB_DIRS += $(B_REFSW_OBJ_ROOT)/user/libtzioc/lib
 
 # build flags
 DEPENDFLAGS := -MD -MP
@@ -73,9 +78,6 @@ DEPENDFLAGS := -MD -MP
 INCLUDES    := $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -I$(TZ_DIR)/common/include
 INCLUDES    += -I$(TZ_DIR)/kernel/api
-
-# funcationally and alphabetically ordered
-ARCHFLAGS   := -mcpu=cortex-a15
 
 BASEFLAGS   := -O2 -g
 
@@ -88,16 +90,16 @@ ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
 CFLAGS      += -std=gnu99
 CFLAGS      += -D_POSIX_SOURCE
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11
 CPPFLAGS    += -D_POSIX_SOURCE
 
-LDFLAGS     :=
+LDFLAGS     := $(addprefix -L,$(LIB_DIRS))
 
 vpath %.S   $(SRC_DIRS)
 vpath %.c   $(SRC_DIRS)
@@ -113,35 +115,43 @@ $1/%.o: %.cpp
 endef
 
 # build rules
-.PHONY: checkplatform checkdirs $(USER_APP)
+.PHONY: checkplatform checkdirs
 
-all: checkplatform checkdirs $(USER_APP)
+all: checkplatform checkdirs $(BIN_DIRS)/$(USER_APP).elf $(BIN_DIRS)/$(USER_APP).elf.lst
 
--include $(DEPS)
+-include $(OOB_DEPS)
+
+kernel:
+	$(MAKE) -C $(TZ_KERNEL_DIR)
 
 checkplatform:
-	@echo Building for PLATFORM=$(PLATFORM)...
+	@echo Building for PLATFORM=$(TZ_PLATFORM)...
 
 checkdirs: $(BIN_DIRS)
 
 $(BIN_DIRS):
 	mkdir -p $@
 
-$(USER_APP): $(USER_APP).elf
 
-$(USER_APP).elf: $(DEP_LIBS) $(OBJS)
-	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) $(foreach dlib,$(DEP_LIBS),$(dlib)/$(dlib).a) -o $@
+$(BIN_DIRS)/$(USER_APP).elf.lst: $(BIN_DIRS)/$(USER_APP).elf
+	@echo generating listing: $@
+	$(TZ_ARMGNU)-objdump -d $< | $(TZ_ARMGNU)-c++filt > $@
 
-.PHONY: $(DEP_LIBS)
+$(BIN_DIRS)/$(USER_APP).elf: $(LIBS) $(OOB_OBJS)
+	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(patsubst lib%,-l%,$(LIBS)) $(OOB_OBJS) -o $@
 
-$(DEP_LIBS):
-	$(MAKE) -C $@
+
+.PHONY: $(LIBS)
+
+$(LIBS):
+	$(MAKE) -C ../$@
 
 clean:
-	$(RM) -r bin
-	$(RM) $(USER_APP).elf
-	@for dlib in $(DEP_LIBS); do \
-		$(MAKE) -C $$dlib clean; \
+	$(RM) -r $(BASE_OBJ_DIR)
+
+distclean: clean
+	@for lib in $(LIBS); do \
+		$(MAKE) -C ../$$lib clean; \
 	done
 
 $(foreach bdir,$(BIN_DIRS),$(eval $(call make-goal,$(bdir))))

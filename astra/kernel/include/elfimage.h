@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,95 +47,111 @@
 #include "elf.h"
 
 #define DEFAULT_STACK_ADDR 0x40000000
+#define LINKER_LOAD_ADDR 0x80000
+#define MAX_PATH 4096
+#define MUSL_LINKER_NAME "/lib/libc.so"
 
 class ElfImage {
 public:
     static void init();
+	~ElfImage();
 
+	unsigned long entry() { return (unsigned long) entryAddr; }
+	unsigned int phOffset() { return phOff;}
+	unsigned long stackBase() { return (unsigned long) stackAddr; }
+
+	TzMem::VirtAddr stackTopPageVA() { return stackTopPage; }
+	void unmapStackFromKernel();
+
+	TzMem::VirtAddr paramsPageVA() { return paramsStart; }
+	TzMem::VirtAddr paramsPageUser() { return paramsStartUser; }
+	void unmapParamsFromKernel();
+
+	void *operator new (size_t sz);
+	void operator delete (void *task);
+
+	int numProgramHeaders() { return programHeaders.numElements(); }
+	void programHeader(int idx, Elf_Phdr *hdr);
+
+	TzMem::VirtAddr dataSegmentBrk() const { return dataSegmentEnd; }
+	int addMmapSection(TzMem::VirtAddr va, int numPages, int accessPerms, bool noExec, bool shared, uint16_t tid);
+	void removeMmapSection(TzMem::VirtAddr va);
+
+    static ElfImage * loadElf(int pid, IFile *exeFile, IDirectory *exeDir);
+    static ElfImage * loadElf(int pid, const ElfImage* parent);
+    const char *ldNamePtr(void) { return loaderName32bit; };
+
+public:
+	static const int NumParamsPages=4;
+	static const int ParamsBlockSize = NumParamsPages*PAGE_SIZE_4K_BYTES;
+
+	bool LinkFlag = false;
+
+	int status;
+	PageTable userPageTable;
+
+	class ElfSection {
+	public:
+		TzMem::VirtAddr vaddr;
+		int numPages;
+		uint32_t refCount;
+
+		void *operator new(size_t sz);
+
+		void operator delete(void *es);
+
+	public:
+		~ElfSection() {}
+	};
+
+private:
+	TzMem::VirtAddr entryAddr;
+	TzMem::VirtAddr stackAddr;
+	TzMem::VirtAddr stackTopPage;
+	TzMem::VirtAddr paramsStart;
+	TzMem::VirtAddr paramsStartUser;
+	int pid;
+	unsigned int phOff;
+
+	tzutils::Vector<ElfSection *> sections;
+	TzMem::VirtAddr dataSegmentEnd;
+
+	tzutils::Vector<Elf_Phdr> programHeaders;
+    const static char loaderName32bit[MAX_PATH];
+
+private:
     ElfImage(int pid,  IFile *file);
+    ElfImage(int pid,  IFile *file, const char *name);
     ElfImage(int pid, const ElfImage* parent);
-    ~ElfImage();
 
-    unsigned long entry() { return (unsigned long) entryAddr; }
-    unsigned long stackBase() { return (unsigned long) stackAddr; }
+	void parseImage(int procId, IFile *file, const char *name);
+	bool validateElfHeader(const Elf_Ehdr& ehdr);
+	bool parseProgramHeader(const Elf_Ehdr& ehdr, IFile *file, const char *name);
+	bool parseLinkerPath(const Elf_Phdr& phdr, IFile *file);
+	bool staticLinkedElf(const Elf_Phdr& phdr, IFile *file, const char *name);
 
-    TzMem::VirtAddr stackTopPageVA() { return stackTopPage; }
-    void unmapStackFromKernel();
+	bool createStack(const Elf_Ehdr& ehdr,  IFile *file);
+	bool locateStackAddr(const Elf_Ehdr& ehdr,  IFile *file);
 
-    TzMem::VirtAddr paramsPageVA() { return paramsStart; }
-    TzMem::VirtAddr paramsPageUser() { return paramsStartUser; }
-    void unmapParamsFromKernel();
+	bool createParamsPages();
 
-    void *operator new (size_t sz);
-    void operator delete (void *task);
-
-    int numProgramHeaders() { return programHeaders.numElements(); }
-    void programHeader(int idx, Elf32_Phdr *hdr);
-
-    TzMem::VirtAddr dataSegmentBrk() const { return dataSegmentEnd; }
-    int addMmapSection(TzMem::VirtAddr va, int numPages, int accessPerms, bool noExec, bool shared, uint16_t tid);
-    void removeMmapSection(TzMem::VirtAddr va);
+	TzMem::VirtAddr allocAndMap(TzMem::VirtAddr userVA, const int numPages, int perms);
+	void kernelUnmap(TzMem::VirtAddr virtAddr, int numPages);
 
 public:
-    static const int NumParamsPages=4;
-    static const int ParamsBlockSize = NumParamsPages*PAGE_SIZE_4K_BYTES;
-
-    int status;
-    PageTable userPageTable;
-
-    class ElfSection {
-    public:
-        TzMem::VirtAddr vaddr;
-        int numPages;
-        int refCount;
-
-        void *operator new(size_t sz);
-
-        void operator delete(void *es);
-
-    public:
-        ~ElfSection() {}
-    };
-
-private:
-    TzMem::VirtAddr entryAddr;
-    TzMem::VirtAddr stackAddr;
-    TzMem::VirtAddr stackTopPage;
-    TzMem::VirtAddr paramsStart;
-    TzMem::VirtAddr paramsStartUser;
-    int pid;
-
-    tzutils::Vector<ElfSection *> sections;
-    TzMem::VirtAddr dataSegmentEnd;
-
-    tzutils::Vector<Elf32_Phdr> programHeaders;
-
-private:
-    bool validateElfHeader(const Elf32_Ehdr& ehdr);
-    bool parseProgramHeader(const Elf32_Ehdr& ehdr, IFile *file);
-
-    bool createStack(const Elf32_Ehdr& ehdr,  IFile *file);
-    bool locateStackAddr(const Elf32_Ehdr& ehdr,  IFile *file);
-
-    bool createParamsPages();
-
-    TzMem::VirtAddr allocAndMap(TzMem::VirtAddr userVA, const int numPages, int perms);
-    void kernelUnmap(TzMem::VirtAddr virtAddr, int numPages);
-
-public:
-    static const int Valid = 0;
-    static const int NoElfHeader = -1;
-    static const int BadElfMagicNumber = -2;
-    static const int UnsupportedBitArch = -3;
-    static const int UnsupportedEndianNess = -4;
-    static const int NotAnExecutable = -5;
-    static const int UnsupportedCpuArch = -6;
-    static const int UnsupportedElfVersion = -7;
-    static const int UnsupportedProgramHeader = -8;
-    static const int IncompleteProgramHeader = -9;
-    static const int OutOfMemory = -10;
-    static const int OutOfAddressSpace = -11;
-    static const int IncompleteFile = -12;
+	static const int Valid = 0;
+	static const int NoElfHeader = -1;
+	static const int BadElfMagicNumber = -2;
+	static const int UnsupportedBitArch = -3;
+	static const int UnsupportedEndianNess = -4;
+	static const int NotAnExecutable = -5;
+	static const int UnsupportedCpuArch = -6;
+	static const int UnsupportedElfVersion = -7;
+	static const int UnsupportedProgramHeader = -8;
+	static const int IncompleteProgramHeader = -9;
+	static const int OutOfMemory = -10;
+	static const int OutOfAddressSpace = -11;
+	static const int IncompleteFile = -12;
 
 };
 

@@ -1293,13 +1293,6 @@ NEXUS_Error NEXUS_Frontend_ReadRegister(NEXUS_FrontendHandle handle, unsigned ad
     }
 }
 
-NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_OpenStub( unsigned index )
-{
-    BSTD_UNUSED(index);
-    BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    return NULL;
-}
-
 NEXUS_FrontendHandle NEXUS_Frontend_OpenStub( unsigned index )
 {
     BSTD_UNUSED(index);
@@ -1617,6 +1610,11 @@ void NEXUS_FrontendDevice_GetCapabilities(NEXUS_FrontendDeviceHandle handle, NEX
     BDBG_ASSERT(NULL != handle);
 
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
+
+#if NEXUS_FRONTEND_PASSTHROUGH
+    pCapabilities->numTuners = NEXUS_MAX_FRONTENDS;
+    return;
+#endif
 
     if (!handle->nonblocking.getCapabilities) {
         if(NEXUS_FrontendDevice_P_CheckOpen(handle)){
@@ -1965,6 +1963,11 @@ NEXUS_Error NEXUS_FrontendDevice_Probe(const NEXUS_FrontendDeviceOpenSettings *p
     unsigned chipId=0;
     NEXUS_GpioHandle gpioHandle = NULL;
 
+#if NEXUS_FRONTEND_PASSTHROUGH
+    pResults->chip.familyId = 0x9999;
+    return rc;
+#endif
+
     if (pSettings->reset.enable) {
         NEXUS_GpioSettings gpioSettings;
         BDBG_MSG(("Setting GPIO %d high",pSettings->reset.pin));
@@ -2086,6 +2089,11 @@ void NEXUS_FrontendDevice_GetDefaultOpenSettings(NEXUS_FrontendDeviceOpenSetting
 
 NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS_FrontendDeviceOpenSettings *pSettings)
 {
+#if NEXUS_FRONTEND_PASSTHROUGH
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    return NEXUS_FrontendDevice_P_OpenPassthrough();
+#else
     unsigned i;
     NEXUS_FrontendProbeResults probe;
 
@@ -2105,6 +2113,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS
     }
     BERR_TRACE(NEXUS_NOT_SUPPORTED);
     return NULL;
+#endif
 }
 
 void NEXUS_FrontendDevice_GetDefaultSettings(
@@ -2185,6 +2194,10 @@ void NEXUS_Frontend_GetDefaultOpenSettings(NEXUS_FrontendChannelSettings *pSetti
 
 NEXUS_FrontendHandle NEXUS_Frontend_Open(const NEXUS_FrontendChannelSettings *pSettings)
 {
+#if NEXUS_FRONTEND_PASSTHROUGH
+    BSTD_UNUSED(g_frontends);
+    return NEXUS_Frontend_P_OpenPassthrough(pSettings->device);
+#else
     unsigned i;
 
     if (pSettings->device->familyId) {
@@ -2197,6 +2210,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open(const NEXUS_FrontendChannelSettings *pS
     }
     BERR_TRACE(NEXUS_NOT_SUPPORTED);
     return NULL;
+#endif
 }
 
 

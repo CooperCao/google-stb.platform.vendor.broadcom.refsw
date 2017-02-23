@@ -376,6 +376,8 @@ static NEXUS_Error secureFirmwareRave( void )
 NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalSettings *pModuleSettings, const NEXUS_SecurityModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
+    NEXUS_SecurityRegionModuleSettings regVerSettings;
+    int i;
     BERR_Code rc;
 
     BDBG_ENTER(NEXUS_SecurityModule_Init);
@@ -404,7 +406,13 @@ NEXUS_ModuleHandle NEXUS_SecurityModule_Init(const NEXUS_SecurityModuleInternalS
 
     BLST_S_INIT( &g_security.keyslotList );
 
-    rc = NEXUS_Security_RegionVerification_Init_priv( ); /* region verification private interface. */
+    NEXUS_Security_GetDefaultRegionVerificationModuleSettings( &regVerSettings );
+
+    for( i = 0; i < NEXUS_SecurityFirmwareType_eMax; i++ ) {
+        regVerSettings.enforceAuthentication[i] = pSettings->enforceAuthentication[i];
+    }
+
+    rc = NEXUS_Security_RegionVerification_Init_priv( &regVerSettings ); /* region verification private interface. */
     if (rc) { rc = BERR_TRACE(rc); goto err_init; }
 
     rc = NEXUS_RegionVerify_Init( );                     /* region verification public interface. */
@@ -996,7 +1004,7 @@ BCMD_XptSecKeySlot_e NEXUS_Security_P_mapNexus2Hsm_KeyslotType( NEXUS_SecurityKe
     return BCMD_XptSecKeySlot_eType0;  /* default to Type0 */
 }
 
-NEXUS_Error NEXUS_Security_AllocateM2mKeySlot(NEXUS_KeySlotHandle * pKeyHandle,const NEXUS_SecurityKeySlotSettings *pSettings, BCMD_XptSecKeySlot_e type)
+static NEXUS_Error NEXUS_Security_AllocateM2mKeySlot(NEXUS_KeySlotHandle * pKeyHandle,const NEXUS_SecurityKeySlotSettings *pSettings, BCMD_XptSecKeySlot_e type)
 {
     BERR_Code rc;
     NEXUS_KeySlotHandle pHandle;
@@ -2271,6 +2279,8 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv(bool enabled, const NEXUS_StandbyS
 {
 #if NEXUS_POWER_MANAGEMENT
     BERR_Code rc;
+    NEXUS_SecurityRegionModuleSettings regVerSettings;
+    int i;
 
     BDBG_ENTER(NEXUS_SecurityModule_Standby_priv);
 
@@ -2313,8 +2323,12 @@ NEXUS_Error NEXUS_SecurityModule_Standby_priv(bool enabled, const NEXUS_StandbyS
             rc = NEXUS_Security_P_InitHsm( &g_security.settings );
             if (rc) { return BERR_TRACE(NEXUS_NOT_SUPPORTED); }
 
+            NEXUS_Security_GetDefaultRegionVerificationModuleSettings( &regVerSettings );
+            for( i = 0; i < NEXUS_SecurityFirmwareType_eMax; i++ ) {
+                regVerSettings.enforceAuthentication[i] = g_security.settings.enforceAuthentication[i];
+            }
             /* Reinitialise Region Verification module. */
-            rc = NEXUS_Security_RegionVerification_Init_priv( );
+            rc = NEXUS_Security_RegionVerification_Init_priv( &regVerSettings );
             if (rc) { return BERR_TRACE(rc); }
 
             rc = NEXUS_RegionVerify_Init( );

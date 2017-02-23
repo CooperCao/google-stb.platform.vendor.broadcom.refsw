@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. , WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "bhsm.h"
 #include "bhsm_datatypes.h"
@@ -390,8 +388,24 @@ BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm )
 {
     BERR_Code rc = BERR_SUCCESS;
     BHSM_InvalidateKeyIO_t invalidateKeySlot;
+    BHSM_KeySlotOwnership_t  keyslotOwnership;
 
     BDBG_ENTER( BHSM_InitialiseBypassKeyslots );
+
+    BKNI_Memset( &keyslotOwnership, 0, sizeof(keyslotOwnership) );
+    keyslotOwnership.keySlotNumber = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+    keyslotOwnership.keySlotType   = BHSM_BYPASS_KEYSLOT_TYPE;
+    if( (rc = BHSM_GetKeySlotOwnership(hHsm, &keyslotOwnership) ) != BERR_SUCCESS )
+    {
+        return BERR_TRACE( rc );
+    }
+
+    if(keyslotOwnership.owner == BHSM_KeySlotOwner_eSAGE)
+    {
+        /*Sage has configured, leave the bypass keyslots alone*/
+        rc = BERR_SUCCESS;
+        goto BHSM_P_DONE_LABEL;
+    }
 
     /* Configure first bypass keyslot ... g2gr */
     BKNI_Memset( &invalidateKeySlot, 0, sizeof(invalidateKeySlot) );
@@ -428,8 +442,127 @@ BHSM_P_DONE_LABEL:
     BDBG_LEAVE( BHSM_InitialiseBypassKeyslots );
     return rc;
 }
-#endif
 
+/* Configure both the g2gr and gr2r bypass keyslots. */
+BERR_Code BHSM_InitialiseBypassKeyslots_sage( BHSM_Handle hHsm )
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BHSM_InvalidateKeyIO_t  resetKeySlot;
+    BHSM_ConfigAlgorithmIO_t algorithmConfig;
+    BHSM_LoadRouteUserKeyIO_t userKey;
+    BHSM_KeySlotGlobalCntrlWord_t keySlotControlWord;
+
+    BDBG_ENTER( BHSM_InitialiseBypassKeyslots_sage );
+
+    if( hHsm->currentSettings.clientType != BHSM_ClientType_eSAGE )
+    {
+        return BERR_TRACE( BHSM_STATUS_FAILED ); /* Function can only be called from SAGE context. */
+    }
+
+    /* Invalidate both bypass filters keyslot. */
+    BKNI_Memset( &resetKeySlot, 0, sizeof(resetKeySlot) );
+    resetKeySlot.caKeySlotType      = BHSM_BYPASS_KEYSLOT_TYPE;
+    resetKeySlot.unKeySlotNum       = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+    resetKeySlot.keyDestBlckType    = BCMD_KeyDestBlockType_eCPScrambler;
+    resetKeySlot.invalidKeyType     = BCMD_InvalidateKey_Flag_eDestKeyOnly;
+    resetKeySlot.keyDestEntryType   = BCMD_KeyDestEntryType_eOddKey;
+    resetKeySlot.virtualKeyLadderID = 0; /* Not used ... BCMD_InvalidateKey_Flag_eDestKeyOnly */
+    resetKeySlot.bInvalidateAllEntries = true;
+    if( ( rc = BHSM_InvalidateKey( hHsm, &resetKeySlot ) ) != BERR_SUCCESS )
+    {
+        BDBG_ERR(("%s BHSM_InvalidateKey for GRG keyslot failed\n", __FUNCTION__ ));
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    resetKeySlot.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
+    if( ( rc = BHSM_InvalidateKey( hHsm, &resetKeySlot ) ) != BERR_SUCCESS )
+    {
+        BDBG_ERR(("%s BHSM_InvalidateKey for RG2R keyslot failed\n", __FUNCTION__ ));
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    /* Set G2RG keyslot globals */
+    BKNI_Memset( &keySlotControlWord, 0, sizeof(keySlotControlWord) );
+    keySlotControlWord.caKeySlotType     = BHSM_BYPASS_KEYSLOT_TYPE;
+    keySlotControlWord.unKeySlotNum      = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+    keySlotControlWord.encryptBeforeRAVE = 0;
+    keySlotControlWord.inputRegion   = BHSM_REGION_GLR;
+    keySlotControlWord.RpipeOutput   = BHSM_REGION_GLR | BHSM_REGION_CRR;
+    keySlotControlWord.GpipeOutput   = BHSM_REGION_GLR | BHSM_REGION_CRR;
+
+    if( ( rc = BHSM_ConfigKeySlotGlobalCntrlWord( hHsm, &keySlotControlWord ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    keySlotControlWord.inputRegion       = BHSM_REGION_CRR | BHSM_REGION_GLR;
+    keySlotControlWord.RpipeOutput       = BHSM_REGION_CRR;
+    keySlotControlWord.GpipeOutput       = BHSM_REGION_CRR;
+    keySlotControlWord.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
+    if( ( rc = BHSM_ConfigKeySlotGlobalCntrlWord( hHsm, &keySlotControlWord ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    /* Configure G2GR keyslot */
+    BKNI_Memset( &algorithmConfig, 0, sizeof (algorithmConfig) );
+    algorithmConfig.keyDestBlckType     = BHSM_BYPASS_KEYSLOT_BLOCK;
+    algorithmConfig.keyDestEntryType    = BHSM_BYPASS_KEYSLOT_POLARITY;
+    algorithmConfig.caKeySlotType       = BHSM_BYPASS_KEYSLOT_TYPE;
+    algorithmConfig.unKeySlotNum        = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+    algorithmConfig.cryptoAlg.cryptoOp  = BHSM_M2mAuthCtrl_ePassThrough;
+    algorithmConfig.cryptoAlg.xptSecAlg          = BCMD_XptM2MSecCryptoAlg_eAes128;
+    algorithmConfig.cryptoAlg.cipherDVBCSA2Mode  = BCMD_CipherModeSelect_eECB;
+    algorithmConfig.cryptoAlg.termCounterMode    = BCMD_TerminationMode_eCLEAR;
+    algorithmConfig.cryptoAlg.bUseExtKey   = false;
+    algorithmConfig.cryptoAlg.bUseExtIV    = false;
+    algorithmConfig.cryptoAlg.bGpipeEnable = false; /* bypass G */
+    algorithmConfig.cryptoAlg.bRpipeEnable = false; /* bypass R */
+    if( ( rc = BHSM_ConfigAlgorithm ( hHsm, &algorithmConfig ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    /* Configure RG2R keyslot  */
+    algorithmConfig.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
+    if( ( rc = BHSM_ConfigAlgorithm ( hHsm, &algorithmConfig ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    /* Route keyslot configuration G2GR */
+    BKNI_Memset( &userKey, 0, sizeof(userKey) );
+    userKey.bIsRouteKeyRequired = true;
+    userKey.keyDestBlckType     = BHSM_BYPASS_KEYSLOT_BLOCK;
+    userKey.keySize.eKeySize    = BCMD_KeySize_e128;
+    userKey.bIsRouteKeyRequired = true;
+    userKey.keyDestEntryType    = BHSM_BYPASS_KEYSLOT_POLARITY;
+    userKey.caKeySlotType       = BHSM_BYPASS_KEYSLOT_TYPE;
+    userKey.unKeySlotNum        = BHSM_BYPASS_KEYSLOT_NUMBER_g2gr;
+    userKey.keyMode             = BCMD_KeyMode_eRegular;
+    if( ( rc = BHSM_LoadRouteUserKey( hHsm, &userKey ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+    /* Route keyslot configuration GR2R */
+    userKey.unKeySlotNum = BHSM_BYPASS_KEYSLOT_NUMBER_gr2r;
+    if( ( rc = BHSM_LoadRouteUserKey( hHsm, &userKey ) ) != BERR_SUCCESS )
+    {
+        BERR_TRACE( rc );
+        goto BHSM_P_DONE_LABEL;
+    }
+
+BHSM_P_DONE_LABEL:
+
+    BDBG_LEAVE( BHSM_InitialiseBypassKeyslots_sage );
+    return rc;
+}
+#endif
 
 /* initialise internal keyslot data structure. */
 BERR_Code BHSM_P_KeySlotsInitialise( BHSM_Handle hHsm, BHSM_KeyslotTypes_t *pKeyslots )
@@ -689,7 +822,6 @@ BERR_Code BHSM_InitKeySlot( BHSM_Handle hHsm, BHSM_InitKeySlotIO_t *pInitKeySlot
     }
 
     #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,1)
-
     if( ( errCode = AllocateByPassKeyslots( hHsm )  ) != BERR_SUCCESS )
     {
         (void)BERR_TRACE( errCode );

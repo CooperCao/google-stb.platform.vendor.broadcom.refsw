@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2012-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #include "bstd.h"
 #include "bmma_bmem.h"
@@ -297,7 +317,7 @@ BERR_Code BMEM_Heap_ConvertOffsetToAddress(BMEM_Heap_Handle  h, uint32_t ulOffse
     return BERR_TRACE(BERR_INVALID_PARAMETER);
 }
 
-BERR_Code BMEM_Heap_P_ConvertAddressToOffset( BMEM_Heap_Handle  h, void *pvAddress, uint32_t  *pulOffset)
+static BERR_Code BMEM_Heap_P_ConvertAddressToOffset( BMEM_Heap_Handle  h, void *pvAddress, uint32_t  *pulOffset)
 {
     BDBG_MSG(("BMEM_Heap_P_ConvertAddressToOffset:%p %p (%p..%p)", (void *)h, pvAddress, h->settings.uncached, (void *)((uint8_t *)h->settings.uncached + h->settings.length)));
     if(h->settings.uncached && (uint8_t *)pvAddress >=  (uint8_t *)h->settings.uncached && (uint8_t *)pvAddress < (uint8_t *)h->settings.uncached + h->settings.length) {
@@ -345,7 +365,7 @@ BERR_Code BMEM_Heap_ConvertAddressToOffset_isrsafe( BMEM_Heap_Handle  h, void *p
     return BERR_TRACE(BERR_INVALID_PARAMETER);
 }
 
-BERR_Code BMEM_Heap_P_ConvertAddressToCached( BMEM_Heap_Handle  h, void *pvAddress,void **ppvCachedAddress)
+static BERR_Code BMEM_Heap_P_ConvertAddressToCached( BMEM_Heap_Handle  h, void *pvAddress,void **ppvCachedAddress)
 {
     BDBG_MSG(("BMEM_Heap_P_ConvertAddressToCached:%p %p (%p..%p)", (void *)h, pvAddress, h->settings.uncached, (uint8_t *)h->settings.uncached + h->settings.length));
     if((uint8_t *)pvAddress >=  (uint8_t *)h->settings.uncached && (uint8_t *)pvAddress < (uint8_t *)h->settings.uncached + h->settings.length) {
@@ -444,14 +464,14 @@ BERR_Code BMEM_Heap_GetDefaultSettings ( BMEM_Heap_Settings *pHeapSettings)
     return BERR_SUCCESS;
 }
 
-static void BMMA_Bmem_P_TraceAlloc(void *cnxt, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
+static BERR_Code BMMA_Bmem_P_TraceAlloc(void *cnxt, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
 {
     BMEM_Heap_Handle h = cnxt;
     BDBG_OBJECT_ASSERT(h, BMEM_Heap);
     if(h->monitorInterface.alloc) {
         h->monitorInterface.alloc(h->monitorInterface.cnxt, base, size, fname, line);
     }
-    return;
+    return BERR_SUCCESS;
 }
 
 static void BMMA_Bmem_P_TraceFree(void *cnxt, BMMA_DeviceOffset base, size_t size)

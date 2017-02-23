@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -92,7 +92,6 @@
 #include "nexus_simple_playpump.h"
 #endif
 #if NEXUS_HAS_NSK2HDX
-#include "nexus_nsk2ecm.h"
 #include "nexus_nsk2emm.h"
 #endif
 #if NEXUS_TRANSPORT_EXTRA_STATUS
@@ -141,6 +140,8 @@ B_REFSW_DSS_SUPPORT means the SW supports it and is set by env variable. */
 #endif
 
 #include "nexus_tsmf.h"
+#include "nexus_parser_band_channelbonding.h"
+#include "nexus_gcb_sw_priv.h"
 
 #if NEXUS_TRANSPORT_EXTENSION_ATS
 #include "nexus_ats.h"
@@ -357,7 +358,7 @@ struct NEXUS_Rave {
     bool enabled;
     NEXUS_P_HwPidChannel *pidChannel; /* master */
     NEXUS_TimerHandle timer;
-    uint32_t lastValid; /* CDB_VALID monitoring */
+    BSTD_DeviceOffset lastValid; /* CDB_VALID monitoring */
     uint64_t numOutputBytes;
     bool useSecureHeap;
 #if NEXUS_SW_RAVE_SUPPORT
@@ -646,6 +647,7 @@ struct NEXUS_ParserBand
     NEXUS_IsrCallbackHandle lengthErrorCallback;
     unsigned lengthErrorCount;
     bool mpodBand; /* true if used as virtual band for mpod */
+    void *gcbSwHandle;
 };
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_ParserBand);
@@ -798,6 +800,7 @@ void NEXUS_Timebase_P_GetSettings(NEXUS_TimebaseHandle timebase, NEXUS_TimebaseS
 
 void NEXUS_ParserBand_P_UninitAll(void);
 void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand);
+void NEXUS_ParserBand_P_ResetOverflowCounts(NEXUS_ParserBandHandle parserBand);
 void NEXUS_ParserBand_P_CountCcErrors_isr(void);
 void NEXUS_ParserBand_P_GetSettings(NEXUS_ParserBandHandle band, NEXUS_ParserBandSettings *pSettings);
 NEXUS_Error NEXUS_ParserBand_P_SetSettings(NEXUS_ParserBandHandle band, const NEXUS_ParserBandSettings *pSettings);

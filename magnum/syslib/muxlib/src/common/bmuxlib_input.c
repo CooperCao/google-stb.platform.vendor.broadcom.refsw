@@ -106,6 +106,8 @@ typedef struct BMUXlib_Input_P_Context
          bool bModified;
          size_t uiFrameSize;
          size_t uiBurstSize;
+         size_t uiDataUnitSize;
+         uint32_t uiFrameDuration90kHz;
       } astQueue[BMUXLIB_INPUT_P_MAX_DESCRIPTORS];
 
       size_t uiReadOffset; /* Keeps track of # of input descriptors that have been fully consumed since ProcessNewDescriptors was called.
@@ -172,9 +174,10 @@ typedef struct BMUXlib_InputGroup_P_Context
    Prototypes
 *****************/
 static void BMUXlib_Input_P_PeekAtDescriptor(BMUXlib_Input_Handle hInput, unsigned int uiDescNum, BMUXlib_Input_Descriptor *pstDescriptor);
+static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, size_t uiStartingOffset);
 static void BMUXlib_InputGroup_P_SortInputs(BMUXlib_InputGroup_P_InputEntry *aData[], uint32_t uiCount, BMUXlib_InputGroup_DescriptorSelector fSelect);
 #if BMUXLIB_INPUT_P_DUMP_DESC
-static void BMuxlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsigned int uiNumOldDescriptors);
+static void BMUXlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsigned int uiNumOldDescriptors);
 #endif
 
 /*****************
@@ -224,12 +227,25 @@ BMUXlib_Input_Create(
    /* verify the settings (as a minimum, we need a type and an interface) ...
       NOTE: it is valid for pMetadata to not be set */
    if (((pstSettings->eType != BMUXlib_Input_Type_eVideo) && (pstSettings->eType != BMUXlib_Input_Type_eAudio))
-      || ((pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDescriptor) && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrame))
+      || ((pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDescriptor)
+         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrame)
+         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eDataUnit)
+         && (pstSettings->eBurstMode != BMUXlib_Input_BurstMode_eFrameDataUnit))
       )
    {
       BDBG_LEAVE( BMUXlib_Input_Create );
       return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
+
+   if (((pstSettings->eBurstMode == BMUXlib_Input_BurstMode_eDataUnit)
+        || (pstSettings->eBurstMode == BMUXlib_Input_BurstMode_eFrameDataUnit))
+      && (pstSettings->eType != BMUXlib_Input_Type_eVideo))
+   {
+      BDBG_LEAVE( BMUXlib_Input_Create );
+      BDBG_ERR(("Data-Unit Burst Mode is currently only applicable to video input type"));
+      return BERR_TRACE( BERR_INVALID_PARAMETER );
+   }
+
    /* verify the interface settings ... */
    switch (pstSettings->eType)
    {
@@ -966,19 +982,24 @@ BMUXlib_Input_ProcessNewDescriptors(
    if ( BERR_SUCCESS == rc )
    {
       /* See if we need to filter descriptors based on the burst mode */
-      if ( BMUXlib_Input_BurstMode_eFrame == hInput->stCreateSettings.eBurstMode )
+      if ( (BMUXlib_Input_BurstMode_eFrame == hInput->stCreateSettings.eBurstMode)
+         || (BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode) )
       {
+         /* Frame Burst ... */
          size_t i;
          size_t uiNumNewDescriptors = 0;
          size_t uiNumDescriptorsInCurrentFrame = 0;
          BMUXlib_Input_Descriptor stDescriptor;
          size_t uiCurrentFrameStartIndex = uiPreviousWriteOffset;
          size_t uiCurrentFrameSize = 0;
+         uint64_t uiCurrentFrameStartDTS = 0;
 
          /* Do not include new descriptors until all descriptors for the frame are available.
           * This means that there needs to be a subsequent descriptor with a FRAME_START or EOS.
           */
-
+         /* NOTE: if a frame is not complete, then this will always return to the first
+            descriptor with a FRAME_START next time we enter here with new descriptors
+            hence the duration calc will start from the correct location */
          for ( i = uiPreviousWriteOffset; i != hInput->stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS )
          {
             BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
@@ -987,22 +1008,36 @@ BMUXlib_Input_ProcessNewDescriptors(
 
             if ( BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART( &stDescriptor ) )
             {
+               if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+                  && !BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(&stDescriptor))
+               {
+                  BDBG_WRN(("INPUT[%02d][%02d]: DU Burst: Expecting DU Start indicator on Frame Start Descriptor",
+                      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+               }
+               /* end the current frame ... */
                uiNumNewDescriptors += uiNumDescriptorsInCurrentFrame;
                uiNumDescriptorsInCurrentFrame = 0;
                hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
+               /* calculate the duration of this frame (assumes any duration is less than ~13 hours!)... */
+               hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameDuration90kHz = (uint32_t)(BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor) - uiCurrentFrameStartDTS);
+
+               /* start the new frame ... */
                uiCurrentFrameSize = BMUXLIB_INPUT_DESCRIPTOR_LENGTH ( &stDescriptor );
+               uiCurrentFrameStartDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS(&stDescriptor);
                uiCurrentFrameStartIndex = i;
 
                if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EOS( &stDescriptor )
                     || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND( &stDescriptor )
                   )
                {
+                  /* If this descriptor is also an EOS or FRAME_END, then this frame is complete */
                   hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
-                  uiNumNewDescriptors++; /* If this descriptor is also an EOS or FRAME_END, then this frame is complete */
+                  uiNumNewDescriptors++;
                }
                else
                {
-                  uiNumDescriptorsInCurrentFrame++; /* Include this descriptor as the beginning of the next frame */
+                  /* Include this descriptor as the beginning of the next frame */
+                  uiNumDescriptorsInCurrentFrame++;
                }
             }
             else if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EOS( &stDescriptor )
@@ -1010,6 +1045,7 @@ BMUXlib_Input_ProcessNewDescriptors(
                       || BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA( &stDescriptor )
                     )
             {
+               /* end the current frame ... */
                if ( BMUXLIB_INPUT_DESCRIPTOR_IS_EOS( &stDescriptor )
                     || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND( &stDescriptor )
                   )
@@ -1020,23 +1056,35 @@ BMUXlib_Input_ProcessNewDescriptors(
                uiNumNewDescriptors += uiNumDescriptorsInCurrentFrame;
                uiNumDescriptorsInCurrentFrame = 0;
                hInput->stDescriptorInfo.astQueue[uiCurrentFrameStartIndex].uiFrameSize = uiCurrentFrameSize;
-               uiNumNewDescriptors++; /* Include this descriptor as part of this new frame */
+               /* Include this descriptor as part of this new frame */
+               uiNumNewDescriptors++;
             }
             else
             {
+               /* Include this descriptor as part of the current frame */
                uiCurrentFrameSize += BMUXLIB_INPUT_DESCRIPTOR_LENGTH ( &stDescriptor );
-               uiNumDescriptorsInCurrentFrame++;  /* Include this descriptor as part of the next frame */
+               uiNumDescriptorsInCurrentFrame++;
             }
-         }
+         } /* end: for each incoming descriptor */
 
          /* Adjust num descriptors to ignore incomplete frames */
          BMUXlib_Input_P_RewindDescriptors( hInput, ( BMUXLIB_INPUT_P_QUEUE_DEPTH( uiPreviousWriteOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) - uiNumNewDescriptors ) );
 
-         if ( BMUXlib_Input_Type_eAudio == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) )
+         /* if there were descriptors processed for new frames ... */
+         if (0 != uiNumNewDescriptors)
          {
-            /* Calculate bursts for multiple frames in a single PES */
-            if ( 0 != uiNumNewDescriptors )
+            if (BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
             {
+               /* locate and calculate the sizes of every DU within the frame */
+               if (BMUXlib_Input_P_ProcessDUBurstMode(hInput, uiPreviousWriteOffset) != uiNumNewDescriptors)
+                  /* should not happen! */
+                  BDBG_WRN(("INPUT[%02d][%02d]: DU Burst: Not all descriptors in the Frame were processed as DUs",
+                      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+            }
+
+            if ( BMUXlib_Input_Type_eAudio == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) )
+            {
+               /* Calculate bursts for multiple frames in a single PES */
                size_t uiCurrentBurstStartIndex = 0;
                bool bCurrentBurstStartIndexValid = false;
                size_t uiCurrentStartDTS = 0;
@@ -1074,11 +1122,19 @@ BMUXlib_Input_ProcessNewDescriptors(
                   hInput->stDescriptorInfo.astQueue[uiCurrentBurstStartIndex].uiBurstSize = uiCurrentBurstSize;
                }
             }
-         }
-      }
+         } /* end: if new descriptors processed */
+      } /* end: frame burst mode */
+      else if (BMUXlib_Input_BurstMode_eDataUnit == hInput->stCreateSettings.eBurstMode)
+      {
+         /* Data Unit Burst */
+         unsigned uiNumNewDescriptors = BMUXlib_Input_P_ProcessDUBurstMode(hInput, uiPreviousWriteOffset);
+
+         /* adjust new descriptor queue to ignore incomplete DUs ... */
+         BMUXlib_Input_P_RewindDescriptors( hInput, ( BMUXLIB_INPUT_P_QUEUE_DEPTH( uiPreviousWriteOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) - uiNumNewDescriptors ) );
+      } /* end: burst mode handling */
 
 #if BMUXLIB_INPUT_P_DUMP_DESC
-      BMuxlib_Input_P_DumpNewDescriptors(hInput, uiNumOldDescriptors);
+      BMUXlib_Input_P_DumpNewDescriptors(hInput, uiNumOldDescriptors);
 #endif
 
       if ( ( true == hInput->stCreateSettings.bFilterUntilMetadataSeen )
@@ -1917,8 +1973,124 @@ BMUXlib_Input_P_PeekAtDescriptor(
 
    pstDescriptor->uiFrameSize = hInput->stDescriptorInfo.astQueue[uiDescNum].uiFrameSize;
    pstDescriptor->uiBurstSize = hInput->stDescriptorInfo.astQueue[uiDescNum].uiBurstSize;
+   pstDescriptor->uiDataUnitSize = hInput->stDescriptorInfo.astQueue[uiDescNum].uiDataUnitSize;
+   pstDescriptor->uiFrameDuration90kHz = hInput->stDescriptorInfo.astQueue[uiDescNum].uiFrameDuration90kHz;
 
    BDBG_LEAVE( BMUXlib_Input_P_PeekAtDescriptor );
+}
+
+/* process the internal queue of new descriptors to locate complete data units
+   and mark the starting descriptor of each data unit with the data unit length
+   Returns the number of descriptors that represent complete data units */
+static size_t BMUXlib_Input_P_ProcessDUBurstMode(BMUXlib_Input_Handle hInput, size_t uiStartingOffset)
+{
+   size_t uiNewDescCount = 0;
+   size_t uiCurrentDUDescCount = 0;
+   size_t uiCurrentDUStartOffset = uiStartingOffset;
+   size_t uiCurrentDUSize = 0;
+   size_t uiEndOffset = (hInput->stDescriptorInfo.uiWriteOffset==0)?(BMUXLIB_INPUT_P_MAX_DESCRIPTORS-1):(hInput->stDescriptorInfo.uiWriteOffset-1);
+   BMUXlib_Input_Descriptor stDescriptor;
+   unsigned i;
+
+   /* Do not include new descriptors until all descriptors for the DU are available.
+      This means that there needs to be a subsequent descriptor with a DATA_UNIT_START or EOS
+      or a METADATA descriptor (NOTE: FRAME_START is implied to also be a DATA_UNIT_START)
+      Once the end of the DU has been found, the DULength field in the DU starting descriptor
+      is updated with the DU total length.
+    */
+   for (i = uiStartingOffset; i != hInput->stDescriptorInfo.uiWriteOffset; i = (i + 1) % BMUXLIB_INPUT_P_MAX_DESCRIPTORS)
+   {
+      BMUXlib_Input_P_PeekAtDescriptor( hInput, i, &stDescriptor );
+      /* the following should not happen */
+      BDBG_ASSERT(stDescriptor.descriptor.pstCommon != NULL);
+
+      /* NOTE: a frame start also indicates a DU start;
+         therefore a frame start descriptor MUST also have a DU Start flag */
+      if (BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART(&stDescriptor)
+         && !BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(&stDescriptor))
+      {
+         BDBG_WRN(("INPUT[%02d][%02d]: DU Burst: Expecting DU start indicator on frame start descriptor",
+                      hInput->stCreateSettings.eType, hInput->stCreateSettings.uiTypeInstance));
+      }
+
+      if (BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(&stDescriptor)
+         || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMESTART(&stDescriptor))
+      {
+         /* end the current DU ... */
+         uiNewDescCount += uiCurrentDUDescCount;
+         uiCurrentDUDescCount = 0;
+         hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+
+         /* start the next DU ... */
+         uiCurrentDUSize = BMUXLIB_INPUT_DESCRIPTOR_LENGTH(&stDescriptor);
+         uiCurrentDUStartOffset = i;
+
+         /* if this descriptor is also an EOS or FRAME_END, then this DU is complete */
+         if (BMUXLIB_INPUT_DESCRIPTOR_IS_EOS(&stDescriptor)
+             || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND(&stDescriptor))
+         {
+            /* If this descriptor is also an EOS or FRAME_END, then this DU is complete */
+            hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+            uiNewDescCount++;
+         }
+         else
+         {
+            /* include this descriptor as the beginning of the next DU */
+            uiCurrentDUDescCount++;
+            /* if we are in frame mode and this is the last descriptor of the frame
+               then it also ENDS the current DU */
+            if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+              && (i == uiEndOffset))
+            {
+               uiNewDescCount += uiCurrentDUDescCount;
+               uiCurrentDUDescCount = 0;
+               hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+            }
+         }
+      }
+      else if (BMUXLIB_INPUT_DESCRIPTOR_IS_EOS(&stDescriptor)
+               || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND(&stDescriptor)
+               || BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA(&stDescriptor))
+      {
+         /* NOTE: frame end is currently not used by video,
+            but included for future compatibility
+            Metadata ends the DU and is output independently;
+            - it does not contribute to the current DU length
+            EOS can occur anywhere and therefore the EOS ends the DU
+            but its length DOES contribute to the current DU length */
+
+         /* end the current DU ... */
+         uiNewDescCount += uiCurrentDUDescCount;
+         uiCurrentDUDescCount = 0;
+
+         if (BMUXLIB_INPUT_DESCRIPTOR_IS_EOS(&stDescriptor)
+             || BMUXLIB_INPUT_DESCRIPTOR_IS_FRAMEEND(&stDescriptor))
+         {
+            uiCurrentDUSize += BMUXLIB_INPUT_DESCRIPTOR_LENGTH(&stDescriptor);
+            /* NOTE: for isolated EOS (not on a descriptor with data), length MUST be zero */
+         }
+
+         hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+         /* Include this descriptor as part of this new DU */
+         uiNewDescCount++;
+      }
+      else
+      {
+         /* add this descriptor to the current DU ...*/
+         uiCurrentDUSize +=  BMUXLIB_INPUT_DESCRIPTOR_LENGTH(&stDescriptor);
+         uiCurrentDUDescCount++;
+         if ((BMUXlib_Input_BurstMode_eFrameDataUnit == hInput->stCreateSettings.eBurstMode)
+            && (i == uiEndOffset))
+         {
+            /* NOTE: if we are in frame mode, the _last_ descriptor ALSO ends the current DU (since it
+               is known to be the end of the current frame) */
+            uiNewDescCount += uiCurrentDUDescCount;
+            hInput->stDescriptorInfo.astQueue[uiCurrentDUStartOffset].uiDataUnitSize = uiCurrentDUSize;
+            uiCurrentDUDescCount = 0;
+         }
+      }
+   } /* end: for each incoming descriptor */
+   return uiNewDescCount;
 }
 
 /* rudimentary shell sort using gaps of n/2
@@ -1940,8 +2112,9 @@ static void BMUXlib_InputGroup_P_SortInputs(BMUXlib_InputGroup_P_InputEntry *aDa
          }
 }
 
+
 #if BMUXLIB_INPUT_P_DUMP_DESC
-static void BMuxlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsigned int uiNumOldDescriptors)
+static void BMUXlib_Input_P_DumpNewDescriptors(BMUXlib_Input_Handle hInput, unsigned int uiNumOldDescriptors)
 {
    if ( NULL != hInput->hDescDumpFile )
    {

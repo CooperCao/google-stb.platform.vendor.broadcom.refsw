@@ -43,13 +43,15 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_ddre);
 
 BDBG_OBJECT_ID(BAPE_DolbyDigitalReencode);
 
-
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_DolbyDigitalReencode
 {
     BDBG_OBJECT(BAPE_DolbyDigitalReencode)
@@ -119,6 +121,7 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->multichannelFormat = BAPE_MultichannelFormat_e5_1;
     #if BDSP_MS12_SUPPORT
     BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDpcmr, (void *)&rendererStageSettings, sizeof(rendererStageSettings));
+    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDDPEncode, (void *)&encodeStageSettings, sizeof(encodeStageSettings));
     pSettings->externalPcmMode = false; /* not supported in MS12 */
     pSettings->profile = (BAPE_DolbyDigitalReencodeProfile)rendererStageSettings.ui32CompressorProfile;
     pSettings->centerMixLevel = (BAPE_Ac3CenterMixLevel)encodeStageSettings.ui32CenterMixLevel;
@@ -131,14 +134,19 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     {
         pSettings->multichannelFormat = BAPE_MultichannelFormat_e7_1;
     }
+    pSettings->encodeSettings.certificationMode = (encodeStageSettings.ui32DolbyCertificationFlag)?false:true;
+    pSettings->encodeSettings.spdifHeaderEnabled = true;
     #else
     BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDdre, (void *)&rendererStageSettings, sizeof(rendererStageSettings));
+    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAc3Encode, (void *)&encodeStageSettings, sizeof(encodeStageSettings));
     pSettings->externalPcmMode = (rendererStageSettings.ui32ExternalPcmEnabled)?true:false;
     pSettings->profile = (BAPE_DolbyDigitalReencodeProfile)rendererStageSettings.ui32CompProfile;
     pSettings->centerMixLevel = (BAPE_Ac3CenterMixLevel)rendererStageSettings.ui32CmixLev;
     pSettings->surroundMixLevel = (BAPE_Ac3SurroundMixLevel)rendererStageSettings.ui32SurmixLev;
     pSettings->dolbySurround = (BAPE_Ac3DolbySurround)rendererStageSettings.ui32DsurMod;
     pSettings->dialogLevel = rendererStageSettings.ui32DialNorm;
+    pSettings->encodeSettings.certificationMode = (encodeStageSettings.eTranscodeEnable)?false:true;
+    pSettings->encodeSettings.spdifHeaderEnabled = (encodeStageSettings.eSpdifHeaderEnable)?true:false;
     #endif
 
     pSettings->drcMode = BAPE_DolbyDigitalReencodeDrcMode_eLine;
@@ -151,15 +159,6 @@ void BAPE_DolbyDigitalReencode_GetDefaultSettings(
     pSettings->stereoMode = BAPE_DolbyDigitalReencodeStereoMode_eLtRt;
     pSettings->dualMonoMode = BAPE_DualMonoMode_eStereo;
 
-    #if BDSP_MS12_SUPPORT
-    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eDDPEncode, (void *)&encodeStageSettings, sizeof(encodeStageSettings));
-    pSettings->encodeSettings.certificationMode = (encodeStageSettings.ui32DolbyCertificationFlag)?false:true;
-    pSettings->encodeSettings.spdifHeaderEnabled = true;
-    #else
-    BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eAc3Encode, (void *)&encodeStageSettings, sizeof(encodeStageSettings));
-    pSettings->encodeSettings.certificationMode = (encodeStageSettings.eTranscodeEnable)?false:true;
-    pSettings->encodeSettings.spdifHeaderEnabled = (encodeStageSettings.eSpdifHeaderEnable)?true:false;
-    #endif
 }
 
 /***************************************************************************
@@ -621,7 +620,7 @@ static BERR_Code BAPE_DolbyDigitalReencode_P_InputFormatChange(struct BAPE_PathN
     {
         outputFormat = *pNewFormat;
         outputFormat.type = BAPE_DataType_eIec61937x4;
-        outputFormat.sampleRate = 48000;              /* DDRE output is fixed @ 48k */
+        outputFormat.sampleRate = 192000;         /* DDRE 4x output is fixed @ 192k */
         BAPE_FMT_P_SetAudioCompressionStd_isrsafe(&outputFormat, BAVC_AudioCompressionStd_eAc3Plus);
         errCode = BAPE_Connector_P_SetFormat(&pNode->connectors[BAPE_ConnectorFormat_eCompressed4x], &outputFormat);
         if ( errCode )
@@ -1508,3 +1507,109 @@ unsigned BAPE_DolbyDigitalReencode_P_GetDeviceIndex(
 {
     return handle->encoderDeviceIndex;
 }
+#else
+typedef struct BAPE_DolbyDigitalReencode
+{
+    BDBG_OBJECT(BAPE_DolbyDigitalReencode)
+} BAPE_DolbyDigitalReencode;
+
+void BAPE_DolbyDigitalReencode_GetDefaultSettings(
+    BAPE_DolbyDigitalReencodeSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+/***************************************************************************
+Summary:
+    Open an SRS DolbyDigitalReencode stage
+***************************************************************************/
+BERR_Code BAPE_DolbyDigitalReencode_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_DolbyDigitalReencodeSettings *pSettings,
+    BAPE_DolbyDigitalReencodeHandle *pHandle
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_DolbyDigitalReencode_Destroy(
+    BAPE_DolbyDigitalReencodeHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_DolbyDigitalReencode_GetSettings(
+    BAPE_DolbyDigitalReencodeHandle handle,
+    BAPE_DolbyDigitalReencodeSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_DolbyDigitalReencode_SetSettings(
+    BAPE_DolbyDigitalReencodeHandle handle,
+    const BAPE_DolbyDigitalReencodeSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+void BAPE_DolbyDigitalReencode_GetConnector(
+    BAPE_DolbyDigitalReencodeHandle handle,
+    BAPE_ConnectorFormat format,
+    BAPE_Connector *pConnector
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(format);
+    BSTD_UNUSED(pConnector);
+}
+
+
+BERR_Code BAPE_DolbyDigitalReencode_AddInput(
+    BAPE_DolbyDigitalReencodeHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_DolbyDigitalReencode_RemoveInput(
+    BAPE_DolbyDigitalReencodeHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_DolbyDigitalReencode_RemoveAllInputs(
+    BAPE_DolbyDigitalReencodeHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+unsigned BAPE_DolbyDigitalReencode_P_GetDeviceIndex(
+    BAPE_DolbyDigitalReencodeHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return -1;
+}
+#endif

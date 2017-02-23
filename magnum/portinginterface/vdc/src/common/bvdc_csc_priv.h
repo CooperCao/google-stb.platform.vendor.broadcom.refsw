@@ -93,11 +93,16 @@ extern "C" {
 #define BVDC_P_CSC_CMP_LR_SLP_E_I_BITS       (4)
 #define BVDC_P_CSC_CMP_LR_SLP_E_F_BITS       (0)
 
-#if (BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2)
+#if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
 #define BVDC_P_CSC_CMP_LR_X_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_X_SHIFT
 #define BVDC_P_CSC_CMP_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_NL_LR_XY_0i_LRA_Y_SHIFT
 #define BVDC_P_CSC_CMP_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_M_SHIFT
 #define BVDC_P_CSC_CMP_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_NL_LR_SLOPEi_SLOPE_E_SHIFT
+#elif (BVDC_P_CMP_CFC_VER > BVDC_P_CFC_VER_2)
+#define BVDC_P_CSC_CMP_LR_X_SHIFT           BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_LRA_X_SHIFT
+#define BVDC_P_CSC_CMP_LR_Y_SHIFT           BCHP_HDR_CMP_0_V0_R0_LR_XY_0i_LRA_Y_SHIFT
+#define BVDC_P_CSC_CMP_LR_SLP_M_SHIFT       BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_SLOPE_M_SHIFT
+#define BVDC_P_CSC_CMP_LR_SLP_E_SHIFT       BCHP_HDR_CMP_0_V0_R0_LR_SLOPEi_SLOPE_E_SHIFT
 #else /* TODO: add support */
 #define BVDC_P_CSC_CMP_LR_X_SHIFT           0
 #define BVDC_P_CSC_CMP_LR_Y_SHIFT           0
@@ -398,125 +403,6 @@ extern "C" {
     csc_coeff                                                       \
 }
 
-/************************************
- * MACRO for nonlinear HDR conversion
- */
-
-#define BVDC_P_MAKE_CSC_AB_CX(cx, i_bits, f_bits)                                           \
-    (uint32_t)BMTH_FIX_SIGNED_FTOFIX(cx, i_bits, f_bits)
-
-#define BVDC_P_MAKE_CSC_AB_CO(co, i_bits, f_bits, co_vid_bits, co_vid_tbl_bits)             \
-    (uint32_t)BMTH_FIX_SIGNED_FTOFIX((co_vid_tbl_bits > co_vid_bits) ?                   \
-                                     ((co) / (1 << (co_vid_tbl_bits - co_vid_bits))) :   \
-                                     ((co) * (1 << (co_vid_bits - co_vid_tbl_bits))),    \
-                                     i_bits, f_bits)
-
-/* An entry */
-#define BVDC_P_MAKE_CSC_AB(Y0, Y1, Y2, YAlpha, YOffset,                \
-                           Cb0, Cb1, Cb2, CbAlpha, CbOffset,           \
-                           Cr0, Cr1, Cr2, CrAlpha, CrOffset,           \
-                           cx_i_bits, cx_f_bits, co_i_bits, co_f_bits, \
-                           co_vid_bits, co_vid_tbl_bits)               \
-{                                                                      \
-    BVDC_P_MAKE_CSC_AB_CX(Y0,       cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(Y1,       cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(Y2,       cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(YAlpha,   cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CO(YOffset,  co_i_bits, co_f_bits,              \
-                          co_vid_bits, co_vid_tbl_bits),               \
-                                                                       \
-    BVDC_P_MAKE_CSC_AB_CX(Cb0,      cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(Cb1,      cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(Cb2,      cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(CbAlpha,  cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CO(CbOffset, co_i_bits, co_f_bits,              \
-                          co_vid_bits, co_vid_tbl_bits),               \
-                                                                       \
-    BVDC_P_MAKE_CSC_AB_CX(Cr0,      cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(Cr1,      cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(Cr2,      cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CX(CrAlpha,  cx_i_bits, cx_f_bits),             \
-    BVDC_P_MAKE_CSC_AB_CO(CrOffset, co_i_bits, co_f_bits,              \
-                          co_vid_bits, co_vid_tbl_bits),               \
-                                                                       \
-    cx_i_bits,                                                         \
-    cx_f_bits,                                                         \
-    co_i_bits,                                                         \
-    co_f_bits,                                                         \
-    co_vid_bits                                                        \
-}
-
-/* CMP's Csc */
-#define BVDC_P_MAKE_CMP_CSC_AB(Y0, Y1, Y2, YOffset,                    \
-                               Cb0, Cb1, Cb2, CbOffset,                \
-                               Cr0, Cr1, Cr2, CrOffset)                \
-    BVDC_P_MAKE_CSC_AB(                                                \
-    Y0, Y1, Y2, 0, YOffset,                                            \
-    Cb0, Cb1, Cb2, 0, CbOffset,                                        \
-    Cr0, Cr1, Cr2, 0, CrOffset,                                        \
-    BVDC_P_CSC_CMP_AB_CX_I_BITS,                                       \
-    BVDC_P_CSC_CMP_AB_CX_F_BITS,                                       \
-    BVDC_P_CSC_CMP_AB_CO_I_BITS,                                       \
-    BVDC_P_CSC_CMP_AB_CO_F_BITS,                                       \
-    BVDC_P_CSC_CMP_AB_CO_VID_BITS,                                     \
-    BVDC_P_CSC_CMP_AB_CO_VID_TBL_BITS)
-
-/* GFD's Csc */
-#define BVDC_P_MAKE_GFD_CSC_AB(Y0, Y1, Y2, YAlpha, YOffset,                     \
-                               Cb0, Cb1, Cb2, CbAlpha, CbOffset,                \
-                               Cr0, Cr1, Cr2, CrAlpha, CrOffset)                \
-    BVDC_P_MAKE_CSC_AB(                                                         \
-    Y0, Y1, Y2, (YAlpha / (1 << BVDC_P_CSC_GFD_MA_CO_VID_BITS)), YOffset,       \
-    Cb0, Cb1, Cb2, (CbAlpha / (1 << BVDC_P_CSC_GFD_MA_CO_VID_BITS)), CbOffset,  \
-    Cr0, Cr1, Cr2, (CrAlpha / (1 << BVDC_P_CSC_GFD_MA_CO_VID_BITS)), CrOffset,  \
-    BVDC_P_CSC_GFD_MA_CX_I_BITS,                                                \
-    BVDC_P_CSC_GFD_MA_CX_F_BITS,                                                \
-    BVDC_P_CSC_GFD_MA_CO_I_BITS,                                                \
-    BVDC_P_CSC_GFD_MA_CO_F_BITS,                                                \
-    BVDC_P_CSC_GFD_MA_CO_VID_BITS,                                              \
-    BVDC_P_CSC_GFD_MA_CO_VID_TBL_BITS)
-
-#define BVDC_P_MAKE_CMP_NL_LR_XY(x, y) \
-    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(x, BVDC_P_CSC_CMP_LR_XY_I_BITS, BVDC_P_CSC_CMP_LR_XY_F_BITS)) << BVDC_P_CSC_CMP_LR_X_SHIFT) | \
-    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(y, BVDC_P_CSC_CMP_LR_XY_I_BITS, BVDC_P_CSC_CMP_LR_XY_F_BITS)) << BVDC_P_CSC_CMP_LR_Y_SHIFT)
-
-#define BVDC_P_MAKE_CMP_NL_LR_SLOPE(m,e) \
-    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(m, BVDC_P_CSC_CMP_LR_SLP_M_I_BITS, BVDC_P_CSC_CMP_LR_SLP_M_F_BITS)) << BVDC_P_CSC_CMP_LR_SLP_M_SHIFT) | \
-    (((uint16_t)BMTH_FIX_SIGNED_FTOFIX(e, BVDC_P_CSC_CMP_LR_SLP_E_I_BITS, BVDC_P_CSC_CMP_LR_SLP_E_F_BITS)) << BVDC_P_CSC_CMP_LR_SLP_E_SHIFT)
-
-#define BVDC_P_MAKE_CMP_NL_LR_ADJ(num_pts,                                      \
-                                  x0, y0, mantissa0, exp0,                      \
-                                  x1, y1, mantissa1, exp1,                      \
-                                  x2, y2, mantissa2, exp2,                      \
-                                  x3, y3, mantissa3, exp3,                      \
-                                  x4, y4, mantissa4, exp4,                      \
-                                  x5, y5, mantissa5, exp5,                      \
-                                  x6, y6, mantissa6, exp6,                      \
-                                  x7, y7, mantissa7, exp7)                      \
-{                                                                               \
-    num_pts,                                                                    \
-    {                                                                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa0, exp0),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa1, exp1),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa2, exp2),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa3, exp3),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa4, exp4),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa5, exp5),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa6, exp6),                           \
-        BVDC_P_MAKE_CMP_NL_LR_SLOPE(mantissa7, exp7)                            \
-    },                                                                          \
-    {                                                                           \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x0, y0),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x1, y1),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x2, y2),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x3, y3),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x4, y4),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x5, y5),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x6, y6),                                       \
-        BVDC_P_MAKE_CMP_NL_LR_XY(x7, y7)                                        \
-    }                                                                           \
-}
-
 #define BVDC_P_CSC_VIDEO_DATA_BITS      (pCscCoeffs->usCoVideoBits)
 
 /* Color adjustment values */
@@ -718,17 +604,6 @@ extern "C" {
     matrix4x4_mth.ulFractBits = cscmatrix->usCxFractBits;        \
     BVDC_P_CSC_MAKE4X4(matrix4x4_mth.data, cscmatrix)
 
-#define BVDC_P_IS_SDR(eotf) \
-    ((eotf)==BAVC_HDMI_DRM_EOTF_eSDR || (eotf)==BAVC_HDMI_DRM_EOTF_eFuture)
-
-#if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC==0) || (BVDC_P_CMP_NON_LINEAR_CSC_VER <= BVDC_P_NL_CSC_VER_1))
-#define BVDC_P_BYPASS_COLOR_CONV(eInEotf, eOutEotf) \
-    (BVDC_P_IS_SDR(eInEotf) != BVDC_P_IS_SDR(eOutEotf))
-#endif
-
-#define BVDC_P_IS_BT2020(mc) \
-    (((mc) == BVDC_P_MatrixCoeffs_eBt2020_NCL) || ((mc) == BVDC_P_MatrixCoeffs_eBt2020_CL))
-
 void BVDC_P_Csc_GetHdDviTable_isr
     ( BVDC_P_CscCoeffs                *pCsc,
       BAVC_CscMode                     eCscMode );
@@ -807,10 +682,6 @@ void BVDC_P_Csc_ApplyYCbCrColor_isr
       uint32_t                         ulColor2 );
 void BVDC_P_Csc_Print_isr
     ( const BVDC_P_CscCoeffs          *pCsc );
-
-BVDC_P_MatrixCoeffs BVDC_P_MatrixCoeffs_BAVC_to_BVDC_P_isr
-    ( BAVC_MatrixCoefficients          eMatrixCoeffs,
-      bool                             bXvYcc);
 
 #ifdef __cplusplus
 }

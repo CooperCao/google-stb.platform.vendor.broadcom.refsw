@@ -35,18 +35,12 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-#if NEXUS_HAS_SIMPLE_DECODER
+#if NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_AUDIO
 #include "nxclient.h"
 #include "nexus_platform.h"
 #include "nexus_simple_audio_decoder.h"
-#include "nexus_audio_decoder.h"
-#include "nexus_audio_processing_types.h"
+#include "nexus_i2s_input.h"
 #include "nexus_playback.h"
-#include "nexus_stc_channel.h"
-#include "nexus_video_input.h"
-#if NEXUS_HAS_HDMI_OUTPUT
-#include "nexus_hdmi_output.h"
-#endif
 #include "media_probe.h"
 
 #include <stdio.h>

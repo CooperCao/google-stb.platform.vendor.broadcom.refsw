@@ -287,11 +287,11 @@ BVC5_BinBlockHandle BVC5_P_BinPoolAllocAtLeast(
    if (uiMinBytes < 2 * 1024 * 1024)
       uiMinBytes += uiMinBytes;
 
+   *uiPhysOffset = 0;
+
    /* If a regular pool block is big enough, just use one */
    if (uiMinBytes <= BVC5_BIN_MEM_MIN_POOL_BYTES)
       return BVC5_P_BinPoolAlloc(hBinPool, uiPhysOffset);
-
-   *uiPhysOffset = 0;
 
    /* Otherwise, allocate a new block and put in the over-sized list */
    pBlock = BVC5_P_BinPoolBlockAlloc(hBinPool, uiMinBytes);

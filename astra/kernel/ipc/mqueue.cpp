@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,28 +36,22 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * mqueue.c
- *
- *  Created on: Apr 6, 2015
- *      Author: gambhire
- */
-
 #include "tzmqueue.h"
 #include "tztask.h"
 
 #include "lib_string.h"
 #include "arm/spinlock.h"
+#include "atomic.h"
 
 tzutils::Vector<MsgQueue::Entry> MsgQueue::msgQueues;
-spinlock_t MsgQueue::creationLock;
+SpinLock MsgQueue::creationLock;
 ObjCacheAllocator<MsgQueue> MsgQueue::mqAllocator;
 
 void MsgQueue::init() {
     msgQueues.init();
     mqAllocator.init();
 
-    spinlock_init("MsgQueue::creation::lock", &creationLock);
+    spinLockInit(&creationLock);
 }
 
 void *MsgQueue::operator new(size_t sz) {
@@ -71,7 +65,7 @@ void MsgQueue::operator delete(void *mq) {
 
 MsgQueue::MsgQueue(size_t msgPoolSize, mq_attr *attr, uint16_t ownr, uint16_t grp, int mod) : pool(KERNEL_PID, msgPoolSize) {
     waitQueue.init();
-    spinlock_init("MsgQueue::lock", &lock);
+    spinLockInit(&lock);
     listener.task = nullptr;
 
     nonBlock = (attr->mq_flags == O_NONBLOCK);
@@ -106,7 +100,7 @@ MsgQueue *MsgQueue::open(const char *mqName, int mode, mq_attr *attr, uint16_t o
         mq = new MsgQueue(poolSize, attr, owner, group, mode);
 
         Entry entry;
-        strcpy(entry.mqName,mqName);
+        lib_strcpy(entry.mqName,mqName);
         entry.mq = mq;
         entry.refCount = 1;
         entry.linkCount = 1;
@@ -142,9 +136,9 @@ bool MsgQueue::close(MsgQueue *mq) {
 
         atomic_decr(&msgQueues[i].refCount);
 
-        Entry entry = msgQueues[i];
-        if ((entry.linkCount == 0) && (entry.refCount == 0)) {
-            delete entry.mq;
+        //Entry entry = msgQueues[i];
+        if ((msgQueues[i].linkCount == 0) && (msgQueues[i].refCount == 0)) {
+            delete msgQueues[i].mq;
 
             msgQueues[i] = msgQueues[numQueues - 1];
             msgQueues.popBack(nullptr);
@@ -166,9 +160,9 @@ bool MsgQueue::unlink(const char *mqName) {
 
         atomic_decr(&msgQueues[i].linkCount);
 
-        Entry entry = msgQueues[i];
-        if ((entry.linkCount == 0) && (entry.refCount == 0)) {
-            delete entry.mq;
+        //Entry entry = msgQueues[i];
+        if ((msgQueues[i].linkCount == 0) && (msgQueues[i].refCount == 0)) {
+            delete msgQueues[i].mq;
 
             msgQueues[i] = msgQueues[numQueues - 1];
             msgQueues.popBack(nullptr);
@@ -252,12 +246,12 @@ bool MsgQueue::send(const char *msgPtr, size_t msgLen, unsigned int priority) {
 
 long MsgQueue::recv(char *msgPtr, size_t msgLen, unsigned int *priority, uint64_t timeout) {
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     int numElements = mqueue.numElements();
     if (numElements == 0) {
         if (nonBlock) {
-            spin_unlock(&lock);
+            spinLockRelease(&lock);
             return -EAGAIN;
         }
 
@@ -266,7 +260,7 @@ long MsgQueue::recv(char *msgPtr, size_t msgLen, unsigned int *priority, uint64_
         // Update numElements
         numElements = mqueue.numElements();
         if (numElements == 0) {
-            spin_unlock(&lock);
+            spinLockRelease(&lock);
             return (timeout != -1) ? -ETIMEDOUT : -EINTR;
         }
     }
@@ -277,7 +271,7 @@ long MsgQueue::recv(char *msgPtr, size_t msgLen, unsigned int *priority, uint64_
     msg.priority = mqueue[0].priority;
 
     if (msgLen < msg.size) {
-        spin_unlock(&lock);
+        spinLockRelease(&lock);
         return -EMSGSIZE;
     }
 
@@ -293,7 +287,7 @@ long MsgQueue::recv(char *msgPtr, size_t msgLen, unsigned int *priority, uint64_
     }
     mqueue.popBack(nullptr);
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     currAttr.mq_curmsgs--;
 

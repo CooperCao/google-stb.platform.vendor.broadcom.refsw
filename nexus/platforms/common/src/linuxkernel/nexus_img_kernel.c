@@ -254,7 +254,7 @@ nexus_img_ioctl(unsigned int cmd, unsigned long arg)
         if(b_interfaces.ioctl.ack.result == BERR_SUCCESS) { /* copy data to the private buffer while in the right context */
             unsigned length = b_interfaces.ioctl.req.data.next.length;
             if(length <= sizeof(b_interfaces.data)) {
-                result = copy_from_user_small(b_interfaces.data, b_interfaces.ioctl.ack.data.next.data, length);
+                result = copy_from_user_small(b_interfaces.data, (void *)(unsigned long)b_interfaces.ioctl.ack.data.next.data, length);
                 if (result == length) {
                     /* If you ask copy_from_user to copy more data than is available it will */
                     /* return the number of bytes uncopied. */
@@ -348,7 +348,7 @@ Nexus_IMG_Driver_Open(void *context, void **image, unsigned image_id)
             return BERR_TRACE(rc);
         }
     }
-    iface->image = b_interfaces.ioctl.ack.data.open.image;
+    iface->image = (void *)(unsigned long)b_interfaces.ioctl.ack.data.open.image;
     b_interfaces.busy = true;
     BKNI_ReleaseMutex(b_interfaces.lock);
     BDBG_MSG(("open< context %p'%s' id %u image %p", (void *)iface, iface->name, image_id, iface->image));
@@ -372,14 +372,14 @@ Nexus_IMG_Driver_Next(void *image, unsigned chunk, const void **data, uint16_t l
     BDBG_MSG(("next> image %p'%s' chunk %u length %u", (void *)iface, iface->name, chunk, (unsigned)length));
     b_interfaces.ioctl.req.data.next.chunk = chunk;
     b_interfaces.ioctl.req.data.next.length = length;
-    b_interfaces.ioctl.req.data.next.image = iface->image;
+    b_interfaces.ioctl.req.data.next.image = (unsigned long)iface->image;
 
     rc = b_send_req(iface, BIMG_Ioctl_Req_Type_Next);
     if (rc!=BERR_SUCCESS) {
         return BERR_TRACE(rc);
     }
 
-    BDBG_MSG(("next< image %p'%s' chunk %u length %u data %p", (void *)iface, iface->name, chunk, (unsigned)length, b_interfaces.ioctl.ack.data.next.data));
+    BDBG_MSG(("next< image %p'%s' chunk %u length %u data %p", (void *)iface, iface->name, chunk, (unsigned)length, (void *)(unsigned long)b_interfaces.ioctl.ack.data.next.data));
     /* data was already copied in the ioctl handler */
     *data = b_interfaces.data;
     return BERR_SUCCESS;

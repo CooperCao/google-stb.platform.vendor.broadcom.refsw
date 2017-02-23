@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,11 +64,11 @@ static uint8_t vuartFileMem[sizeof(VuartFile)];
 
 static int ring_force_poke(
         struct tzioc_ring_buf *pRing,
-        uint32_t ulWrOffset,
+        uintptr_t ulWrOffset,
         uint8_t *pData,
-        uint32_t ulSize);
+        uintptr_t ulSize);
 
-uint32_t __offset2addr1(uint32_t ulOffset) {
+uintptr_t __offset2addr1(uintptr_t ulOffset) {
     return (ulOffset);
 }
 
@@ -99,12 +99,12 @@ int VuartFops::init(bool isVuartChosen) {
     }
 
     /* Configure tzioc ring tx and rx ring buffers*/
-    txBuf->ulBuffOffset = (uint32_t)txBuf + sizeof(struct tzioc_ring_buf);
+    txBuf->ulBuffOffset = (uintptr_t)txBuf + sizeof(struct tzioc_ring_buf);
     txBuf->ulBuffSize = VIRTUAL_TXMEM_SIZE - sizeof(struct tzioc_ring_buf);
     txBuf->ulWrOffset = txBuf->ulRdOffset = txBuf->ulBuffOffset;
     txBuf->pWrOffset2Addr = __offset2addr1;
 
-    rxBuf->ulBuffOffset = (uint32_t)rxBuf + sizeof(struct tzioc_ring_buf);
+    rxBuf->ulBuffOffset = (uintptr_t)rxBuf + sizeof(struct tzioc_ring_buf);
     rxBuf->ulBuffSize = VIRTUAL_RXMEM_SIZE - sizeof(struct tzioc_ring_buf);
     rxBuf->ulWrOffset = rxBuf->ulRdOffset = rxBuf->ulBuffOffset;
     rxBuf->pRdOffset2Addr = __offset2addr1;
@@ -147,9 +147,9 @@ int VuartFops::peerUp(void) {
     hdr.ulLen = sizeof(payload);
 
     /* Shared mem could be mapped to a different address */
-    payload.rxFifoPaddr = TzIoc::vaddr2paddr((uint32_t)rxBuf);
+    payload.rxFifoPaddr = TzIoc::vaddr2paddr((uintptr_t)rxBuf);
     payload.rxFifoSize = VIRTUAL_RXMEM_SIZE;
-    payload.txFifoPaddr = TzIoc::vaddr2paddr((uint32_t)txBuf);
+    payload.txFifoPaddr = TzIoc::vaddr2paddr((uintptr_t)txBuf);
     payload.txFifoSize = VIRTUAL_TXMEM_SIZE;
 
     err = TzIoc::TzIocMsg::send(
@@ -186,7 +186,7 @@ void VuartFile::init() {
 }
 
 size_t VuartFile::write(const void *data, const size_t numBytes, const uint64_t offset) {
-    uint32_t ulWrOffset;
+    uintptr_t ulWrOffset;
     int err = 0;
     UNUSED(offset);
     UNUSED(data);
@@ -230,7 +230,7 @@ void VuartFile::addWatcher(short pollEvent, short *pollResult, EventQueue *eq) {
 size_t VuartFile::read(const void *data, const size_t numBytes, const uint64_t offset) {
     UNUSED(offset);
     int readCount = 0;
-    uint32_t ulRdOffset;
+    uintptr_t ulRdOffset;
     int err = 0;
 
     readCount = numBytes;
@@ -258,11 +258,11 @@ ssize_t VuartFile::readv(const iovec *iov, int iovcnt, const uint64_t offset) {
 
 static int ring_force_poke(
     struct tzioc_ring_buf *pRing,
-    uint32_t ulWrOffset,
+    uintptr_t ulWrOffset,
     uint8_t *pData,
-    uint32_t ulSize)
+    uintptr_t ulSize)
 {
-    uint32_t ulFreeSpace = 0;
+    uintptr_t ulFreeSpace = 0;
     int err = 0;
 
     ulFreeSpace = ring_space(

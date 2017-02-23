@@ -1551,7 +1551,7 @@ BERR_Code BHAB_3466_P_DecodeInterrupt(BHAB_Handle handle)
                 BHAB_CHK_RETCODE(BHAB_3466_WriteRegister(handle, BCHP_LEAP_CTRL_MISC_MBOX_FIFO_POP_DATA, &mbox_data));
 
                 if ((mbox_data >> 24) == BHAB_EventId_eHabDone) {
-                    BKNI_SetEvent_isr(p3466->hHabDoneEvent);
+                    BKNI_SetEvent(p3466->hHabDoneEvent);
                     continue;
                 }
 

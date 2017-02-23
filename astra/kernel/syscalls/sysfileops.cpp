@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,12 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * sysfileops.cpp
- *
- *  Created on: Feb 23, 2015
- *      Author: gambhire
- */
 
 #include <cstdint>
 #include "tzerrno.h"
@@ -56,7 +50,7 @@
 //TODO: Make this per-cpu and remove the fopsLock
 static const int MaxFilePathSize=1024;
 static char filePath[MaxFilePathSize];
-spinlock_t SysCalls::fopsLock;
+SpinLock SysCalls::fopsLock;
 
 static const char *extractEndPoint(char *path) {
     // First remove any trailing slashes from the path.
@@ -80,6 +74,35 @@ void SysCalls::doOpen(TzTask *currTask) {
     unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
     unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
     unsigned long arg2 = currTask->userReg(TzTask::UserRegs::r2);
+
+    const char *uFilePath = (const char *)arg0;
+    bool truncated = false;
+    bool rc = strFromUser(uFilePath, filePath, MaxFilePathSize, &truncated);
+    if (!rc) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        return;
+    }
+    if (truncated) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENAMETOOLONG);
+        return;
+    }
+
+    int rv = currTask->open(filePath, (int)arg1, (int)arg2);
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
+void SysCalls::doOpenat(TzTask *currTask) {
+    SpinLocker locker(&fopsLock);
+
+    unsigned long fd = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r2);
+    unsigned long arg2 = currTask->userReg(TzTask::UserRegs::r3);
+
+    if(fd!=AT_FDCWD) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
+        return;
+    }
 
     const char *uFilePath = (const char *)arg0;
     bool truncated = false;
@@ -275,6 +298,10 @@ void SysCalls::doWritev(TzTask *currTask) {
             currTask->writeUserReg(TzTask::UserRegs::r0, -ENOMEM);
             return;
         }
+        /* Unused iovec from fflush standard C func, ignore here;
+            Look for length before dereference the address at respective write function handler */
+        if ((0 == kernelIovecs[i].iov_base) && (0 == len))
+            continue;
 
         rc = fromUser(kernelIovecs[i].iov_base, currPos, len);
         if (!rc) {
@@ -419,14 +446,11 @@ static int linkFile(IDirectory *newParent, IFile *file, const char *linkName) {
     return rv;
 }
 
-void SysCalls::doRename(TzTask *currTask) {
+void SysCalls::commonRename(TzTask *currTask, unsigned long arg0, unsigned long arg1) {
     static char oldFilePath[MaxFilePathSize];
     static char newFilePath[MaxFilePathSize];
 
     SpinLocker locker(&fopsLock);
-
-    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
-    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
     IDirectory *root = System::root();
     IDirectory *cwd = currTask->currDir();
 
@@ -551,6 +575,25 @@ void SysCalls::doRename(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, 0);
 }
 
+void SysCalls::doRename(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+    commonRename(currTask, arg0, arg1);
+}
+
+void SysCalls::doRenameat(TzTask *currTask) {
+    unsigned long fd = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long fd2 = currTask->userReg(TzTask::UserRegs::r2);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r3);
+    UNUSED(fd2);
+
+    if(fd==AT_FDCWD)
+        commonRename(currTask, arg0, arg1);
+    else
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
+}
+
 static int linkDir(IDirectory *newParent, IDirectory *dir, const char *linkName) {
     IDirectory *cloned = dir->clone();
     int rv = newParent->addDir(linkName, cloned);
@@ -562,11 +605,9 @@ static int linkDir(IDirectory *newParent, IDirectory *dir, const char *linkName)
 }
 
 
-void SysCalls::doLink(TzTask *currTask) {
+void SysCalls::commonLink(TzTask *currTask, unsigned long arg0, unsigned long arg1) {
     SpinLocker locker(&fopsLock);
 
-    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
-    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
     IDirectory *root = System::root();
     IDirectory *cwd = currTask->currDir();
 
@@ -637,10 +678,28 @@ void SysCalls::doLink(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }
 
-void SysCalls::doUnlink(TzTask *currTask) {
+void SysCalls::doLink(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+    commonLink(currTask, arg0, arg1);
+}
+
+void SysCalls::doLinkat(TzTask *currTask) {
+    unsigned long fd = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long fd2 = currTask->userReg(TzTask::UserRegs::r2);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r3);
+    UNUSED(fd2);
+
+    if(fd==AT_FDCWD)
+        commonLink(currTask, arg0, arg1);
+    else
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
+}
+
+void SysCalls::commonUnlink(TzTask *currTask, unsigned long arg0) {
     SpinLocker locker(&fopsLock);
 
-    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
     IDirectory *root = System::root();
     IDirectory *cwd = currTask->currDir();
 
@@ -679,6 +738,21 @@ void SysCalls::doUnlink(TzTask *currTask) {
     }
 
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
+void SysCalls::doUnlink(TzTask *currTask) {
+
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    commonUnlink(currTask, arg0);
+}
+
+void SysCalls::doUnlinkat(TzTask *currTask) {
+    unsigned long fd = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r1);
+    if(fd==AT_FDCWD)
+        commonUnlink(currTask, arg0);
+    else
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
 }
 
 void SysCalls::doChdir(TzTask *currTask) {
@@ -825,6 +899,97 @@ void SysCalls::doPoll(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, rv);
 }
 
+void SysCalls::doPPoll(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long arg2 = currTask->userReg(TzTask::UserRegs::r2);
+    unsigned long arg3 = currTask->userReg(TzTask::UserRegs::r3);
+
+    // We only support ppoll in the poll compatibility mode
+    if(arg3) {
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOTSUP);
+        return;
+    }
+
+    struct pollfd *fdsUser = (struct pollfd *)arg0;
+    nfds_t nfds = (nfds_t)arg1;
+    if ((nfds >= TzTask::MAX_FD) || ((nfds * sizeof(struct pollfd)) >= PAGE_SIZE_4K_BYTES)) {
+        err_msg("%s: too many FDs %d. Max supported per process %d.\n", __FUNCTION__, nfds, TzTask::MAX_FD);
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOMEM);
+        return;
+    }
+
+    /* Check that the nfds structure does not span page boundaries */
+    /* TODO: map multiple pages if the structure does span page boundaries */
+    //bool nfds_spans_pb =
+        //((uintptr_t)fdsUser - (uintptr_t)PAGE_START_4K(fdsUser) + (nfds * sizeof(struct pollfd))) >= PAGE_SIZE_4K_BYTES;
+    //printf("nfds structure does %s span page boundary\n", nfds_spans_pb ? "" : "not");
+
+    /* Map the user space paramater before copying it to kernel space */
+    PageTable *kpt = PageTable::kernelPageTable();
+    PageTable *upt = currTask->userPageTable();
+    TzMem::PhysAddr pa = upt->lookUp(PAGE_START_4K(fdsUser));
+    struct pollfd *fdsKernel = (struct pollfd *)paramsPage;
+    kpt->mapPage(PAGE_START_4K(fdsUser), pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
+    bool rc = fromUser(fdsUser, fdsKernel, nfds*sizeof(struct pollfd));
+    if (!rc) {
+        kpt->unmapPage(PAGE_START_4K(fdsUser));
+        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+        return;
+    }
+
+    //for (int i=0; i<nfds; i++)
+      //printf("\t%d: fd %d events 0x%x \n", i, fdsKernel[i].fd, fdsKernel[i].events);
+
+    int timeout = -1;
+    const struct timespec *timeoutUser = (const struct timespec *)arg2;
+
+    /* Check that the timespec structure does not span page boundaries */
+    /* TODO: map multiple pages if the structure does span page boundaries */
+    //bool timespec_spans_pb =
+        //((uintptr_t)timeoutUser - (uintptr_t)PAGE_START_4K(timeoutUser) + sizeof(struct timespec)) >= PAGE_SIZE_4K_BYTES;
+    //printf("timeoutUser structure does %s span page boundary\n",timespec_spans_pb ? "" : "not");
+
+    /* Map the user space paramater before copying it to kernel space */
+    pa = upt->lookUp(PAGE_START_4K(timeoutUser));
+    if(kpt->isAddrRangeUnMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
+       kpt->mapPage(PAGE_START_4K(timeoutUser), pa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
+
+    /* Skip past the nfds data in the paramsPage to map the timeout argument */
+    struct timespec *timeoutKernel = (struct timespec *)((uint8_t *)paramsPage + nfds * sizeof(struct pollfd));
+    rc = copyFromUser(timeoutUser, timeoutKernel);
+    if (!rc) {
+       if(kpt->isAddrRangeMapped(PAGE_START_4K(fdsUser),PAGE_SIZE_4K_BYTES))
+           kpt->unmapPage(PAGE_START_4K(fdsUser));
+       if(kpt->isAddrRangeMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
+           kpt->unmapPage(PAGE_START_4K(timeoutUser));
+       currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+       return;
+    }
+
+    /* Convert the timeout to milliseconds for a poll call */
+    timeout = (timeoutKernel == NULL) ? -1 :
+             (timeoutKernel->tv_sec * 1000 + timeoutKernel->tv_nsec / 1000000);
+
+    //sigset_t origmask;
+    //sigprocmask(SIG_SETMASK, &sigmask, &origmask);
+    int rv = currTask->poll(fdsKernel, nfds, timeout);
+    //sigprocmask(SIG_SETMASK, &origmask, NULL);
+
+    //for (int i=0; i<nfds; i++)
+      //printf("\t%d: fd %d events 0x%x revents 0x%x\n", i, fdsKernel[i].fd, fdsKernel[i].events, fdsKernel[i].revents);
+
+    toUser(fdsUser, fdsKernel, nfds*sizeof(struct pollfd));
+
+    /* Defer the unmaps as they may be the same page */
+    if(kpt->isAddrRangeMapped(PAGE_START_4K(timeoutUser),PAGE_SIZE_4K_BYTES))
+       kpt->unmapPage(PAGE_START_4K(timeoutUser));
+    if(kpt->isAddrRangeMapped(PAGE_START_4K(fdsUser),PAGE_SIZE_4K_BYTES))
+        kpt->unmapPage(PAGE_START_4K(fdsUser));
+
+    currTask->writeUserReg(TzTask::UserRegs::r0, rv);
+}
+
 void SysCalls::doSync(TzTask *currTask) {
     //
     // We only support a RAMFS. Its always in
@@ -841,11 +1006,8 @@ void SysCalls::doFSync(TzTask *currTask) {
     currTask->writeUserReg(TzTask::UserRegs::r0, 0);
 }
 
-void SysCalls::doMkdir(TzTask *currTask) {
+void SysCalls::commonMkdir(TzTask *currTask, unsigned long arg0, unsigned long arg1) {
     SpinLocker locker(&fopsLock);
-
-    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
-    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
 
     const char *uFilePath = (const char *)arg0;
     bool truncated = false;
@@ -901,6 +1063,24 @@ void SysCalls::doMkdir(TzTask *currTask) {
 
 }
 
+void SysCalls::doMkdir(TzTask *currTask) {
+
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+    commonMkdir(currTask, arg0, arg1);
+}
+
+void SysCalls::doMkdirat(TzTask *currTask) {
+
+    unsigned long fd = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r2);
+    if(fd==AT_FDCWD)
+        commonMkdir(currTask, arg0, arg1);
+    else
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
+}
+
 void SysCalls::doRmdir(TzTask *currTask) {
     SpinLocker locker(&fopsLock);
 
@@ -954,11 +1134,8 @@ void SysCalls::doRmdir(TzTask *currTask) {
 
 }
 
-void SysCalls::doStat64(TzTask *currTask) {
+void SysCalls::commonStat(TzTask *currTask, unsigned long arg0, unsigned long arg1) {
     SpinLocker locker(&fopsLock);
-
-    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
-    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
 
     const char *uFilePath = (const char *)arg0;
     bool truncated = false;
@@ -1036,6 +1213,24 @@ void SysCalls::doStat64(TzTask *currTask) {
 
 }
 
+void SysCalls::doFstatat(TzTask *currTask) {
+    unsigned long fd = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+    unsigned long arg2 = currTask->userReg(TzTask::UserRegs::r2);
+
+    if(fd==AT_FDCWD)
+        commonStat(currTask, arg1, arg2);
+    else
+        currTask->writeUserReg(TzTask::UserRegs::r0, -ENOSYS);
+}
+
+void SysCalls::doStat64(TzTask *currTask) {
+    unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
+    unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
+
+    commonStat(currTask, arg0, arg1);
+}
+
 void SysCalls::doFStat64(TzTask *currTask) {
     unsigned long arg0 = currTask->userReg(TzTask::UserRegs::r0);
     unsigned long arg1 = currTask->userReg(TzTask::UserRegs::r1);
@@ -1084,7 +1279,11 @@ void SysCalls::doMmap(TzTask *currTask) {
     int rv;
     if (!(flags & MAP_ANONYMOUS)) {
         int fd = (int)arg4;
+#ifdef __aarch64__
+        uint64_t offset = (uint64_t)arg5;
+#else
         uint64_t offset = (uint64_t)arg5 * 4096;
+#endif
         rv = currTask->mmap(va, &result, length, prot, flags, fd, offset);
     }
     else {

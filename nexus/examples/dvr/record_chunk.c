@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,37 +34,34 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 
+#if NEXUS_HAS_RECORD
 #include "nexus_platform.h"
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_recpump.h"
-#if NEXUS_HAS_RECORD
 #include "nexus_record.h"
 #include "nexus_file_chunk.h"
-#endif
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include "bstd.h"
 #include "bkni.h"
 #include "bkni_multi.h"
 
+BDBG_MODULE(record_chunk);
+
+#define FILE_NAME "videos/chunk_stream.mpg"
+#define INDEX_NAME "videos/chunk_stream.nav"
+#define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
+#define AUDIO_CODEC NEXUS_AudioCodec_eAc3
+#define VIDEO_PID 0x31
+#define AUDIO_PID 0x34
+
 
 int main(void) {
-#if NEXUS_HAS_RECORD
     NEXUS_InputBand inputBand;
     NEXUS_FileRecordHandle file;
     NEXUS_RecpumpHandle recpump;
@@ -74,8 +71,9 @@ int main(void) {
     NEXUS_RecordPidChannelSettings pidSettings;
     NEXUS_RecordSettings recordSettings;
     NEXUS_PidChannelHandle pidChannel[2];
-    const char *fname = "videos/chunk_stream.mpg";
-    const char *index = "videos/chunk_stream.nav";
+    const char *fname = FILE_NAME;
+    const char *index = INDEX_NAME;
+    NEXUS_ChunkedFileRecordOpenSettings chunkedFileRecordOpenSettings;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_Init(NULL);
@@ -96,26 +94,28 @@ int main(void) {
     recordSettings.recpump = recpump;
     NEXUS_Record_SetSettings(record, &recordSettings);
 
-    mkdir(fname, 0777); /* directory must already exist */
-    file = NEXUS_ChunkedFileRecord_Open(fname, index, NULL);
+    NEXUS_ChunkedFileRecord_GetDefaultOpenSettings(&chunkedFileRecordOpenSettings);
+    chunkedFileRecordOpenSettings.chunkSize = 16*1024*1024;
+    /* NOTE: if chunkTemplate contains a subdir, app is responsible to mkdir first. */
+    strcpy(chunkedFileRecordOpenSettings.chunkTemplate, "%s_%04u");
+    file = NEXUS_ChunkedFileRecord_Open(fname, index, &chunkedFileRecordOpenSettings);
 
     /* configure the video pid for indexing */
     NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
     pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
     pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-    pidSettings.recpumpSettings.pidTypeSettings.video.codec = NEXUS_VideoCodec_eMpeg2;
-    pidChannel[0] = NEXUS_PidChannel_Open(parserBand, 0x21, NULL);
+    pidSettings.recpumpSettings.pidTypeSettings.video.codec = VIDEO_CODEC;
+    pidChannel[0] = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
     NEXUS_Record_AddPidChannel(record, pidChannel[0], &pidSettings);
 
     /* the audio pid requires no special configuration */
-    pidChannel[1] = NEXUS_PidChannel_Open(parserBand, 0x24, NULL);
+    pidChannel[1] = NEXUS_PidChannel_Open(parserBand, AUDIO_PID, NULL);
     NEXUS_Record_AddPidChannel(record, pidChannel[1], NULL);
 
     NEXUS_Record_Start(record, file);
 
-    /* Nexus is now recording to disk */
-
-    printf("press ENTER to stop record\n");
+    BDBG_WRN(("Recording %s and %s", fname, index));
+    BDBG_WRN(("press ENTER to stop record"));
     getchar();
 
     NEXUS_Record_Stop(record);
@@ -127,6 +127,13 @@ int main(void) {
     NEXUS_Recpump_Close(recpump);
     NEXUS_Platform_Uninit();
 
-#endif
     return 0;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

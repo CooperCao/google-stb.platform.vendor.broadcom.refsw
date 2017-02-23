@@ -52,6 +52,7 @@
 
 #define BMP4_ISML BMP4_TYPE('i','s','m','l')
 #define BMP4_DASH BMP4_TYPE('d','a','s','h')
+#define BMP4_PIFF BMP4_TYPE('p','i','f','f')
 
 BDBG_MODULE(media_parser);
 #include "dump_hex.h"
@@ -118,14 +119,27 @@ bool MediaParser::InitParser()
     }
 
     struct mp4_parser_context* parser_context = (struct mp4_parser_context *)m_handle;
-    if(BMP4_ISML == parser_context->filetype.major_brand){
+    if (BMP4_ISML == parser_context->filetype.major_brand){
         m_mediaType = media_type_ePiff;
         LOGD(("PIFF(isml) file type is detected"));
-    }else if (BMP4_DASH == parser_context->filetype.major_brand){
+    } else if(BMP4_PIFF == parser_context->filetype.major_brand) {
+        m_mediaType = media_type_ePiff;
+        LOGD(("PIFF(isml) file type is detected"));
+    } else if (BMP4_DASH == parser_context->filetype.major_brand) {
         m_mediaType = media_type_eCenc;
         LOGD(("CENC(dash) detected in major brand"));
-    }else{
+    } else {
         for (unsigned i = 0; i < parser_context->filetype.ncompatible_brands; i++) {
+            if (BMP4_ISML == parser_context->filetype.compatible_brands[i]) {
+                m_mediaType = media_type_ePiff;
+                LOGD(("PIFF(isml) detected in compatible brands"));
+                break;
+            }
+            if (BMP4_PIFF == parser_context->filetype.compatible_brands[i]) {
+                m_mediaType = media_type_ePiff;
+                LOGD(("PIFF(isml) detected in compatible brands"));
+                break;
+            }
             if (BMP4_DASH == parser_context->filetype.compatible_brands[i]) {
                 m_mediaType = media_type_eCenc;
                 LOGD(("CENC(dash) detected in compatible brands"));

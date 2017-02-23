@@ -1301,7 +1301,7 @@ BERR_Code BAPE_EqualizerStage_Create(
 {
     BSTD_UNUSED(deviceHandle);
     BSTD_UNUSED(pSettings);
-    BSTD_UNUSED(pHandle);    
+    BSTD_UNUSED(pHandle);
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 

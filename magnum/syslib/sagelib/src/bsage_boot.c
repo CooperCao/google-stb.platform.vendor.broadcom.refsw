@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 
 
@@ -63,6 +64,7 @@
 
 #include "bchp_common.h"
 #include "bchp_bsp_glb_control.h"
+#include "bchp_sun_top_ctrl.h"
 
 BDBG_MODULE(BSAGE);
 
@@ -71,6 +73,7 @@ BDBG_MODULE(BSAGE);
 /* Types */
 #define SAGE_HEADER_TYPE_BL      (0x5357)
 #define SAGE_HEADER_TYPE_FRAMEWORK  (0x424C)
+#define SAGE_HEADER_TYPE_FRAMEWORK_COMBINED  (0x4349)
 #define SAGE_BINARY_TYPE_ZB      (0x3E3F)
 #define SAGE_BINARY_TYPE_ZS      (0x0202)
 #define SAGE_BINARY_TYPE_CUST1   (0x0303)
@@ -96,9 +99,11 @@ typedef struct {
     uint32_t otp_system_epoch0;
     uint32_t otp_system_epoch3;
     uint32_t otp_market_id;
+    uint32_t otp_market_id1;
 
     bool sageBlTripleSigning;  /* triple-signing scheme or single-signing scheme */
     bool sageFrameworkTripleSigning;  /* triple-signing scheme or single-signing scheme */
+    bool sageProductionKey;  /* triple-signing's 2ndTierKey can be development key or production key. True for prodction key */
     /* Secure Image version */
     uint8_t sageBlSecureVersion;
     uint8_t sageFrameworkSecureVersion;
@@ -116,10 +121,10 @@ typedef struct
     uint8_t     ucMarketID[4];
     uint8_t     ucMarketIDMask[4];
 #if (BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2))
-    unsigned char ucReserved2;
-    unsigned char ucEpochSelect;
-    unsigned char ucEpochMask;
     unsigned char ucEpoch;
+    unsigned char ucEpochMask;
+    unsigned char ucEpochSelect;
+    unsigned char ucMarketIDSelect;
     unsigned char ucSignatureVersion;
     unsigned char ucSignatureType;
     unsigned char ucReserved3[2];
@@ -195,6 +200,122 @@ typedef struct
     unsigned char ucHeaderSignature[256];              /* Header signature */
 } BSAGElib_SageSecureHeader;
 
+typedef struct /* SAGE 3.2 framework image device info section */
+{
+    unsigned char ucChipType[4];           /* chip type, as 7425B0,7445D0,etc */
+    unsigned char ucChipVariant[2];           /* chip Variant, as ZD,ZB/ZS,etc */
+    unsigned char ucReserved[2];           /* reserved */
+    unsigned char ucDeviceTreeSize[4];            /* the size of device tree */
+} BSAGElib_DeviceInfo;
+
+typedef struct /* SAGE 3.2 framework Header */
+{
+    unsigned char ucHeaderIndex[2];             /* header magic number */
+    unsigned char ucHeaderVersion;            /* version of the secure header structure */
+    unsigned char ucImageSigningScheme;        /* indicates single-signing or triple signing scheme */
+    unsigned char ucSecurityType;               /* indicates whether the image is signed, encrypted or both */
+    unsigned char ucImageType;                  /* Image type: SAGE BL or framework */
+    unsigned char ucGlobalOwnerId[2];           /* GlobalOwner ID */
+    unsigned char ucSageImageVersion[4];        /* SAGE BL or framework version - for Host-side logs */
+    unsigned char ucSageSecurebootToolVersion[4];      /* SAGE secureboot tool version - for Host-side logs */
+    unsigned char ucSageImageBinaryType;      /* Only used for Framework: 0:Generic, 1: manufacturing tool, 2: custom, 3: special */
+    unsigned char ucEpochVersion;             /* EPOCH version (For bootloader from 0x0 to 0x8, for framework from 0x0 to 0x14) */
+    unsigned char ucCaVendorId[4];        /* CA vendor ID */
+    unsigned char ucStbOwnerIdSelect;    /* STB Owner ID */
+    unsigned char ucSwizzle0aVariant;    /* Swizzle0a Variant */
+    unsigned char ucSwizzle0aVersion;    /* Swizzle0a Version */
+    unsigned char ucCustKeyVar;          /* Cust Key Var */
+    unsigned char ucKeyVarHi;            /* Key Var Hi */
+    unsigned char ucKeyVarlo;            /* Key Var Low */
+    unsigned char ucModuleId;            /* Module ID */
+    unsigned char ucKey0Type;            /* Signature Root Key type: key0Prime or Key0 */
+    unsigned char ucScmType;            /* SCM type, UNUSED for SAGE BL or framework */
+    unsigned char ucScmVersion;         /* SCM version, UNUSED for SAGE BL or framework */
+    unsigned char ucProcIn1[16];         /* Proc In 1 */
+    unsigned char ucProcIn2[16];         /* Proc In 2 */
+    unsigned char ucProcIn3[16];         /* Proc In 3 */
+    unsigned char ucSize[4];                           /* size of the encrypted data */
+    unsigned char ucInstrSectionSize[4];               /* size of the instruction section of the SAGE SW, UNUSED for SAGE BL */
+    unsigned char ucDataSectionSize[4];                /* size of the data section of the SAGE SW, UNUSED for SAGE BL */
+    unsigned char ucReserved[4];                       /* Reserved */
+    unsigned char ucSignatureInstrSectionShort[128];   /* first 128 bits of SAGE framework instruction section signature */
+    unsigned char ucSignatureDataSectionShort[128];    /* first 128 bits of SAGE framework data section signature */
+    unsigned char ucSageVersionString[2048];           /* SAGE Framework version info string */
+    unsigned char ucThLShortSig[4];                    /* first 4 bytes of Thin-Layer signature */
+    unsigned char ucReserved1[28];                     /* Reserved for future usage */
+    BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
+    unsigned char ucHeaderSignature[256];              /* Header signature */
+    BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
+    BSAGElib_DeviceInfo deviceInfo;
+} BSAGElib_FrameworkHeader; /* SAGE 3.2 framework Header */
+
+typedef struct /* SAGE 3.2 framework Bottom, after device tree section, it's chip specific */
+{
+    BSAGElib_ControllingParams ucDevicetreeControllingParameters;/* DeviceTree controlling Parameters */
+    uint8_t     ucDeviceTreeSignature[256];        /* DeviceTree signature */
+    BSAGElib_ControllingParams ucBinaryControllingParameters;/* binary(instruction+RO data, RW data controlling Parameters */
+    uint8_t     ucInstructionSignature[256];        /* Binary instruction + RO data signature */
+    uint8_t     ucDataSignature[256];        /* RW data signature */
+    BSAGElib_ControllingParams ucFullImageControllingParameters;/* full Image controlling Parameters */
+    uint8_t     ucFullImageSignature[256];        /* recontructed framework image signature
+                                              recontructed framework image: BSAGElib_FrameworkHeader + DeviceTree + ucControllingParameters + ucDeviceTreeSignature + framework Binary (Data+code)*/
+} BSAGElib_DeviceBottom; /* SAGE 3.2 framework Bottom, after device tree section, it's chip specific */
+
+typedef struct /* SAGE 3.2 framework device section, after header, and before binary, it's chip specific */
+{
+    BSAGElib_FrameworkHeader *pHeader;
+    uint8_t     *pDeviceTree;
+    BSAGElib_DeviceBottom *pBottom;
+} BSAGElib_DeviceSection;
+
+typedef struct
+{
+    unsigned char ucHeaderIndex[2];             /* header magic number */
+    unsigned char ucHeaderVersion[2];            /* version of the secure header structure */
+    unsigned char ucCombinedImageSize[4];        /* Size of total image */
+    unsigned char ucSectionNumber[4];            /* number of sections in the blob */
+} BSAGElib_CombineImageHeader; /* SAGE 3.2 framework combine header, it's before framework header */
+
+typedef struct /* SAGE 3.2 bootloader header */
+{
+    unsigned char ucHeaderIndex[2];             /* header magic number */
+    unsigned char ucHeaderVersion;            /* version of the secure header structure */
+    unsigned char ucImageSigningScheme;        /* indicates single-signing or triple signing scheme */
+    unsigned char ucSecurityType;               /* indicates whether the image is signed, encrypted or both */
+    unsigned char ucImageType;                  /* Image type: SAGE BL or framework */
+    unsigned char ucGlobalOwnerId[2];           /* GlobalOwner ID */
+    unsigned char ucSageImageVersion[4];        /* SAGE BL or framework version - for Host-side logs */
+    unsigned char ucSageSecurebootToolVersion[4];      /* SAGE secureboot tool version - for Host-side logs */
+    unsigned char ucSageImageBinaryType;      /* Only used for Framework: 0:Generic, 1: manufacturing tool, 2: custom, 3: special */
+    unsigned char ucEpochVersion;             /* EPOCH version (For bootloader from 0x0 to 0x8, for framework from 0x0 to 0x14) */
+    unsigned char ucCaVendorId[4];        /* CA vendor ID */
+    unsigned char ucStbOwnerIdSelect;    /* STB Owner ID */
+    unsigned char ucSwizzle0aVariant;    /* Swizzle0a Variant */
+    unsigned char ucSwizzle0aVersion;    /* Swizzle0a Version */
+    unsigned char ucCustKeyVar;          /* Cust Key Var */
+    unsigned char ucKeyVarHi;            /* Key Var Hi */
+    unsigned char ucKeyVarlo;            /* Key Var Low */
+    unsigned char ucModuleId;            /* Module ID */
+    unsigned char ucKey0Type;            /* Signature Root Key type: key0Prime or Key0 */
+    unsigned char ucScmType;            /* SCM type, UNUSED for SAGE BL or framework */
+    unsigned char ucScmVersion;         /* SCM version, UNUSED for SAGE BL or framework */
+    unsigned char ucProcIn1[16];         /* Proc In 1 */
+    unsigned char ucProcIn2[16];         /* Proc In 2 */
+    unsigned char ucProcIn3[16];         /* Proc In 3 */
+    unsigned char ucSize[4];                           /* size of the encrypted data */
+    unsigned char ucInstrSectionSize[4];               /* size of the instruction section of the SAGE SW, UNUSED for SAGE BL */
+    unsigned char ucDataSectionSize[4];                /* size of the data section of the SAGE SW, UNUSED for SAGE BL */
+    unsigned char ucReserved[4];                       /* Reserved */
+    unsigned char ucSignatureInstrSectionShort[128];   /* first 128 bits of SAGE framework instruction section signature */
+    unsigned char ucSignatureDataSectionShort[128];    /* first 128 bits of SAGE framework data section signature */
+    unsigned char ucSageVersionString[2048];           /* SAGE Framework version info string */
+    unsigned char ucThLShortSig[4];                    /* first 4 bytes of Thin-Layer signature */
+    unsigned char ucReserved1[28];                     /* Reserved for future usage */
+    BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
+    unsigned char ucHeaderSignature[256];              /* Header signature */
+    BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
+} BSAGElib_BootloaderHeader;/* SAGE 3.2 bootloader header */
+
 typedef struct
 {
     unsigned char ucHeaderIndex[2];             /* header magic number */
@@ -221,9 +342,6 @@ typedef struct
     unsigned char ucProcIn1[16];         /* Proc In 1 */
     unsigned char ucProcIn2[16];         /* Proc In 2 */
     unsigned char ucProcIn3[16];         /* Proc In 3 */
-    BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
-    BCMD_SecondTierKey_t second_tier_key2;  /* triple signing scheme */
-    BCMD_SecondTierKey_t second_tier_key3;  /* triple signing scheme */
     unsigned char ucSize[4];                           /* size of the encrypted data */
     unsigned char ucInstrSectionSize[4];               /* size of the instruction section of the SAGE SW, UNUSED for SAGE BL */
     unsigned char ucDataSectionSize[4];                /* size of the data section of the SAGE SW, UNUSED for SAGE BL */
@@ -235,6 +353,10 @@ typedef struct
     unsigned char ucReserved1[28];                     /* Reserved for future usage */
     BSAGElib_ControllingParams ucControllingParameters;/* SAGE Image Header controlling Parameters */
     unsigned char ucHeaderSignature[256];              /* Header signature */
+    unsigned char ucHeaderSignatureP[256];              /* Header signature */
+    BCMD_SecondTierKey_t second_tier_key;              /* Zeus 3/4.1 - size: 528 bytes - Zeus 4.2 - total size: 532 bytes */
+    BCMD_SecondTierKey_t second_tier_key2;  /* triple signing scheme */
+    BCMD_SecondTierKey_t second_tier_key3;  /* triple signing scheme */
 } BSAGElib_SageSecureHeaderTripleSign;
 
 typedef struct /* this structure has the common parts to both previous structures */
@@ -293,6 +415,7 @@ typedef struct {
 
 
 #define _Swap16(PVAL) (((PVAL)[0] << 8) | ((PVAL)[1]))
+#define _ToDWORD(PVAL) (((PVAL)[3] << 24) | ((PVAL)[2] << 16) | ((PVAL)[1] << 8) |((PVAL)[0] << 0))
 
 #define OTP_SWIZZLE0A_MSP0_VALUE_ZS (0x02)
 #define OTP_SWIZZLE0A_MSP1_VALUE_ZS (0x02)
@@ -325,34 +448,77 @@ static BCMD_SecondTierKey_t * BSAGElib_P_Boot_GetKey(BSAGElib_P_BootContext *ctx
 static uint8_t *BSAGElib_P_Boot_GetSignature(BSAGElib_P_BootContext *ctx, BSAGElib_SageImageHolder *image);
 static void BSAGElib_P_Boot_SetImageInfo(BSAGElib_ImageInfo *pImageInfo, BSAGElib_SageImageHolder* holder, uint32_t header_version, uint32_t type, bool triple_sign);
 
+static BERR_Code BSAGElib_P_Boot_CheckMarketId(
+    BSAGElib_P_BootContext *ctx,
+    BCMD_SecondTierKey_t *pKey)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    uint32_t otp_market_id, key_market_id,key_market_id_mask;
+
+    if(pKey->ucMarketIDSelect == 0)
+    {
+        otp_market_id = ctx->otp_market_id;
+    }else if(pKey->ucMarketIDSelect == 1)
+    {
+        otp_market_id = ctx->otp_market_id1;
+    }else{
+        BDBG_WRN(("%s - Key's ucMarketIDSelect %d is wrong.", __FUNCTION__,pKey->ucMarketIDSelect));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    key_market_id = _ToDWORD(pKey->ucMarketID);
+    key_market_id_mask = _ToDWORD(pKey->ucMarketIDMask);
+
+    BDBG_MSG(("%s - marketID key-%x otp-%x (key marketID select %d, mask %x, otp_marketID 0-%x, 1-%x", __FUNCTION__,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
+
+    if(otp_market_id != key_market_id)
+    {
+        BDBG_WRN(("%s - Key's market id %x do not match with otp market id %x (key market id select %d, mask %x, otp_market id %x, otp market id1 %x", __FUNCTION__,key_market_id,otp_market_id,pKey->ucMarketIDSelect,key_market_id_mask,ctx->otp_market_id,ctx->otp_market_id1));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+end:
+    return rc;
+}
+
 static BCMD_SecondTierKey_t *
 BSAGElib_P_Boot_GetKey(
     BSAGElib_P_BootContext *ctx,
     BSAGElib_SageImageHolder *image)
 {
     BCMD_SecondTierKey_t *ret = NULL;
-    BSAGE_Handle hSAGE = hSAGE_Global;
 
-    if (ctx->sageFrameworkTripleSigning || ctx->sageBlTripleSigning) {
+    if (/*ctx->sageFrameworkTripleSigning ||*/ ctx->sageBlTripleSigning) {
         BSAGElib_SageSecureHeaderTripleSign *triple_sign_header =
             (BSAGElib_SageSecureHeaderTripleSign *)image->header;
 
-        if(hSAGE->chipInfo.chipType == BSAGElib_ChipType_eCustomer1) {
-            if(ctx->otp_market_id == SAGE_HEADER_TRIPLE_SIGNING_MARKET_ID_ZERO) {
-                ret = &triple_sign_header->second_tier_key;
-            }
-            else if(ctx->otp_market_id == SAGE_HEADER_TRIPLE_SIGNING_MARKET_ID_0xFFEE) {
-                ret = &triple_sign_header->second_tier_key2;
-            }
-            else {
-                ret = &triple_sign_header->second_tier_key3;
-            }
+        BDBG_MSG(("%s %d keys offset 0x%x 0x%x 0x%x",__FUNCTION__,__LINE__,
+            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key) - (uint8_t *)triple_sign_header),
+            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key2) - (uint8_t *)triple_sign_header),
+            (uint32_t)((uint8_t *)(&triple_sign_header->second_tier_key3) - (uint8_t *)triple_sign_header)));
+
+        ctx->sageProductionKey = false;
+
+        if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key) == BERR_SUCCESS)
+            ret = &triple_sign_header->second_tier_key;
+        else if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key2) == BERR_SUCCESS)
+            ret = &triple_sign_header->second_tier_key2;
+        else if(BSAGElib_P_Boot_CheckMarketId(ctx,&triple_sign_header->second_tier_key3) == BERR_SUCCESS)
+        {
+            ctx->sageProductionKey = true; /* this is production key */
+            ret = &triple_sign_header->second_tier_key3;
         }
         else {
-            BDBG_ERR(("%s - This chip type does not support triple signing.", __FUNCTION__));
+            BDBG_ERR(("%s - This chip type does not have valid second tier key.", __FUNCTION__));
         }
 
     }
+    else if(image->header->ucHeaderVersion == 0x0a && image->header->ucHeaderIndex[0] == 0x53 && image->header->ucHeaderIndex[1] == 0x57)
+    {    /* it's SAGE 3.2 bootloader */
+		BSAGElib_BootloaderHeader *pBootLoader = (BSAGElib_BootloaderHeader *)image->header;
+        ret = &pBootLoader->second_tier_key;
+	}
     else {
         ret = &image->header->second_tier_key;
     }
@@ -366,46 +532,11 @@ BSAGElib_P_Boot_GetSignature(
     BSAGElib_SageImageHolder *image)
 {
     uint8_t *signature = NULL;
-    uint32_t index = _Swap16(image->header->ucHeaderIndex);
-    uint32_t sig_size;
-    bool triple = false;
-    BSAGE_Handle hSAGE = hSAGE_Global;
+    signature = image->signature;
 
-    if (index == SAGE_HEADER_TYPE_BL) {
-        sig_size = _SIG_SZ;
-        if (ctx->sageBlTripleSigning) {
-            triple = true;
-        }
-    }
-    else {
-        sig_size = _SIG_SZ_SAGE_FRAMEWORK;
-        if (ctx->sageFrameworkTripleSigning) {
-            triple = true;
-        }
-    }
+    if(ctx->sageProductionKey) /* for triple signed SBL, 'signature' point to develoment Key signature, */
+        signature += _SIG_SZ;  /* production key signature is right after */
 
-    if (triple) {
-        if(hSAGE->chipInfo.chipType == BSAGElib_ChipType_eCustomer1) {
-            if(ctx->otp_market_id == SAGE_HEADER_TRIPLE_SIGNING_MARKET_ID_ZERO) {
-                /* Market ID = 0x0 - use first image signature */
-                signature = image->signature;
-            }
-            else if(ctx->otp_market_id == SAGE_HEADER_TRIPLE_SIGNING_MARKET_ID_0xFFEE) {
-                /* Market ID = 0xFFEE - use second image signature*/
-                signature = &(image->signature[sig_size]);
-            }
-            else {
-                /* Use third image signature */
-                signature = &(image->signature[2*sig_size]);
-            }
-        }
-        else {
-            BDBG_ERR(("%s - This chip type does not support triple signing.", __FUNCTION__));
-        }
-    }
-    else {
-        signature = image->signature;
-    }
     return signature;
 }
 
@@ -467,6 +598,9 @@ BSAGE_P_Boot_GetSageOtpMspParams(
     if (rc != BERR_SUCCESS) { goto end; }
 
     rc = BSAGE_P_GetOtp(hSAGE,hHsm, BCMD_Otp_CmdMsp_eMarketId, &ctx->otp_market_id, "market id");
+    if (rc != BERR_SUCCESS) { goto end; }
+
+    rc = BSAGE_P_GetOtp(hSAGE, hHsm, BCMD_Otp_CmdMsp_eMarketId1, &ctx->otp_market_id1, "market id1");
     if (rc != BERR_SUCCESS) { goto end; }
 
 #if (ZEUS_VERSION < ZEUS_4_1)
@@ -692,8 +826,18 @@ BSAGElib_P_Boot_SetImageInfo(
         }
         else {
             BSAGElib_SageSecureHeader *pHeaderSingle = (BSAGElib_SageSecureHeader *)header;
-            pImageInfo->THLShortSig = pHeaderSingle->ucThLShortSig[0] | (pHeaderSingle->ucThLShortSig[1] << 8) |
-                                      (pHeaderSingle->ucThLShortSig[2] << 16) | (pHeaderSingle->ucThLShortSig[3] << 24);
+            BSAGElib_FrameworkHeader  *pSage32Header = (BSAGElib_FrameworkHeader  *)header;
+            uint32_t header_version;
+            header_version = header->ucHeaderVersion;
+            if(header_version == 0x0a)
+            { /* SAGE 3.2 framework */
+                pImageInfo->THLShortSig = pSage32Header->ucThLShortSig[0] | (pSage32Header->ucThLShortSig[1] << 8) |
+                                          (pSage32Header->ucThLShortSig[2] << 16) | (pSage32Header->ucThLShortSig[3] << 24);
+            }else{
+              /* SAGE 3.1 framework */
+                pImageInfo->THLShortSig = pHeaderSingle->ucThLShortSig[0] | (pHeaderSingle->ucThLShortSig[1] << 8) |
+                                          (pHeaderSingle->ucThLShortSig[2] << 16) | (pHeaderSingle->ucThLShortSig[3] << 24);
+            }
         }
         BDBG_MSG(("%s - '%s' Detected [type=%s, header_version=%u, triple_sign=%u, THL Short Sig=0x%08x]",
                   __FUNCTION__, holder->name, typeStr, header_version, triple_sign, pImageInfo->THLShortSig));
@@ -730,6 +874,79 @@ BSAGElib_P_Boot_SetImageInfo(
     }
 }
 
+/* getDeviceSectionSize() scan through the SAGE 3.2 framework headers, and adds up all the device sections length
+   there could be mutiply chip specific device sections */
+static int getDeviceSectionSize(
+    BSAGE_Handle hSAGE,
+    BSAGElib_CombineImageHeader *pBlob,
+    BSAGElib_FrameworkHeader **ppFrameworkHeader
+    )
+{
+    unsigned productId,familyId,rev,chipId; /* hex id. for example 0x7252. */
+    int sectionNum;
+    int count = -1,i;
+    BSAGElib_FrameworkHeader *pFramework = NULL;
+    uint32_t ulChipId,ulDeviceTreeSize;
+    BSAGElib_ChipType_e chipType;
+
+    if(pBlob == NULL)
+    {
+        BDBG_ERR(("%s %d wrong parameter pHeader NULL",__FUNCTION__,__LINE__));
+        goto err;
+    }
+
+    *ppFrameworkHeader = NULL;
+
+    familyId = BREG_Read32(hSAGE->hReg, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
+    productId = BREG_Read32(hSAGE->hReg, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
+    if (!productId) {
+        productId = familyId;
+    }
+    rev = productId &0xff;
+
+    if (familyId & 0xF0000000) {
+        /* 4 digit + rev */
+        chipId = ((familyId & 0xffff0000) >> 8) + rev + 0xa0;
+    }
+    else {
+        /* 5 digit */
+        chipId = (familyId & 0x0fffff00) + rev + 0xa0;
+    }
+
+    sectionNum = pBlob->ucSectionNumber[0]<<24 | pBlob->ucSectionNumber[1]<<16 | pBlob->ucSectionNumber[2]<<8 |pBlob->ucSectionNumber[3];
+
+    BDBG_MSG(("%s %d Device Blob sectionNum %d chipId %x (productId %x familyId %x) chipType %d",__FUNCTION__,__LINE__,sectionNum,chipId,productId,familyId,hSAGE->chipInfo.chipType));
+
+    if(sectionNum < 0 || sectionNum > 100)
+    {
+        BDBG_ERR(("%s %d wrong parameter Device Blob sectionNum %d",__FUNCTION__,__LINE__,sectionNum));
+        goto err;
+    }
+
+    count = sizeof(BSAGElib_CombineImageHeader);
+
+    for( i = 0;i<sectionNum;i++)
+    {
+        pFramework = (BSAGElib_FrameworkHeader *)((uint8_t*)pBlob + count);
+        ulChipId = pFramework->deviceInfo.ucChipType[0]<<24 | pFramework->deviceInfo.ucChipType[1]<<16 | pFramework->deviceInfo.ucChipType[2]<<8 | pFramework->deviceInfo.ucChipType[3];
+        ulDeviceTreeSize = pFramework->deviceInfo.ucDeviceTreeSize[0]<<24 | pFramework->deviceInfo.ucDeviceTreeSize[1]<<16 | pFramework->deviceInfo.ucDeviceTreeSize[2]<<8 |pFramework->deviceInfo.ucDeviceTreeSize[3];
+        if(pFramework->deviceInfo.ucChipVariant[0] == 'Z' && pFramework->deviceInfo.ucChipVariant[1] == 'D')
+            chipType = BSAGElib_ChipType_eZS;
+        else
+            chipType = BSAGElib_ChipType_eZB;
+
+        BDBG_MSG(("%s %d i %d count %d, ulDeviceTreeSize %x ChipID %x type %d",__FUNCTION__,__LINE__,i,count,ulDeviceTreeSize,ulChipId,chipType));
+
+        if(/*ulChipId == chipId && chipType == hSAGE->chipInfo.chipType &&*/ *ppFrameworkHeader == NULL)
+        {
+            *ppFrameworkHeader = pFramework;
+        }
+        count += ulDeviceTreeSize + sizeof( BSAGElib_FrameworkHeader) + sizeof(BSAGElib_DeviceBottom);
+    }
+err:
+    return count;
+}
+
 static BERR_Code
 BSAGE_P_Boot_ParseSageImage(
     BSAGE_Handle hSAGE,
@@ -763,13 +980,77 @@ BSAGE_P_Boot_ParseSageImage(
 
        index = _Swap16(holder->header->ucHeaderIndex);
 
+       if(index == SAGE_HEADER_TYPE_FRAMEWORK_COMBINED)
+       { /* this is a SAGE 3.2 framework image */
+           int deviceBlobSize,ulDeviceTreeSize;
+           uint8_t *bin_ptr;
+           BSAGElib_FrameworkHeader *pFramework;
+           BSAGElib_DeviceBottom *pFrameworkBottom;
+           BSAGElib_CombineImageHeader *pBlob = (BSAGElib_CombineImageHeader *)raw_ptr;
+           void *dst;
+           const void *src;
+           size_t len;
+           BSAGElib_DeviceBottom  *pBottom;
+
+           /* calculate the device Blob section size, include all the chip specific blobs, and find the current chip's section */
+           deviceBlobSize = getDeviceSectionSize(hSAGE,pBlob,&pFramework);
+           BDBG_MSG(("deviceBlobSize %d pFramework %p",deviceBlobSize,(void *)pFramework));
+
+           if(pFramework == NULL)
+           {
+               BDBG_ERR(("%s - Did not find framework header", __FUNCTION__));
+               rc = BERR_NOT_SUPPORTED;
+               goto end;
+           }
+
+           /*  get current chips section info */
+           ulDeviceTreeSize = pFramework->deviceInfo.ucDeviceTreeSize[0]<<24 | pFramework->deviceInfo.ucDeviceTreeSize[1]<<16 | pFramework->deviceInfo.ucDeviceTreeSize[2]<<8 |pFramework->deviceInfo.ucDeviceTreeSize[3];
+           pFrameworkBottom = (BSAGElib_DeviceBottom *)((uint8_t *)pFramework + ulDeviceTreeSize + sizeof( BSAGElib_FrameworkHeader));
+           bin_ptr = (uint8_t *)&(pFrameworkBottom->ucBinaryControllingParameters);
+
+           raw_ptr += deviceBlobSize;
+           raw_remain -= deviceBlobSize;
+
+           /* move binary up, overwrite unused, other chips' section */
+           pBottom = BKNI_Malloc(sizeof(BSAGElib_DeviceBottom));
+           BKNI_Memcpy(pBottom,pFrameworkBottom,sizeof(BSAGElib_DeviceBottom));
+           BKNI_Memmove(bin_ptr,raw_ptr,raw_remain);
+
+           /* put signatures after binary, leave out the device tree controling parameter and device tree signature, they're infront of the binary */
+           dst = (void *)(bin_ptr+raw_remain);
+           src = &pBottom->ucBinaryControllingParameters;
+           len = sizeof(BSAGElib_DeviceBottom) - sizeof(BSAGElib_ControllingParams) - 256;
+           BKNI_Memcpy(dst,src,len);
+           BKNI_Free(pBottom);
+
+           holder->header = (BSAGElib_SageSecureHeaderCommon *)pFramework;
+
+           holder->data = bin_ptr;
+           holder->data_len = raw_remain;
+
+           holder->signature = bin_ptr + holder->data_len + sizeof(BSAGElib_ControllingParams);
+
+           index = _Swap16(holder->header->ucHeaderIndex);
+           image_type = index;
+
+           image_signing_scheme = holder->header->ucImageSigningScheme;
+           header_version = holder->header->ucHeaderVersion;
+           triple = false;
+           BSAGElib_P_Boot_SetImageInfo(&hSAGE->frameworkInfo,
+                                        holder, header_version, image_type, triple);
+           ctx->sageFrameworkSecureVersion = header_version;
+           ctx->sageFrameworkTripleSigning = triple;
+           /* Add extra sig for Framework and set image version */
+           goto end;
+       }
+
        image_type = index;
        image_signing_scheme = holder->header->ucImageSigningScheme;
        header_version = holder->header->ucHeaderVersion;
 
        if(image_signing_scheme == SAGE_HEADER_SECURE_IMAGE_TRIPLE_SIGNING_SCHEME_VALUE) {
            triple = true;
-           all_sig_size = 3*_SIG_SZ;
+           all_sig_size = 2*_SIG_SZ;
            sec_header_size = sizeof(BSAGElib_SageSecureHeaderTripleSign);
        }
        else {
@@ -782,39 +1063,50 @@ BSAGE_P_Boot_ParseSageImage(
        raw_ptr += sec_header_size;
        raw_remain -= sec_header_size;
 
-       /* get signature */
-       holder->signature = raw_ptr;
-       raw_ptr += all_sig_size;
-       raw_remain -= all_sig_size;
-
-       switch (image_type) {
-       case SAGE_HEADER_TYPE_BL:
+       if(header_version == 0x0a && image_type == SAGE_HEADER_TYPE_BL)
+       { /* SAGE 3.2 boot loader */
+           holder->data = raw_ptr;
+           holder->data_len = raw_remain - all_sig_size - 20;
+           raw_ptr += holder->data_len + 20;
+           raw_remain = all_sig_size;
+           holder->signature = raw_ptr;
            BSAGElib_P_Boot_SetImageInfo(&hSAGE->bootloaderInfo,
                                         holder, header_version, image_type, triple);
             ctx->sageBlSecureVersion = header_version;
             ctx->sageBlTripleSigning = triple;
-           break;
-       case SAGE_HEADER_TYPE_FRAMEWORK:
-           BSAGElib_P_Boot_SetImageInfo(&hSAGE->frameworkInfo,
-                                        holder, header_version, image_type, triple);
-           ctx->sageFrameworkSecureVersion = header_version;
-           ctx->sageFrameworkTripleSigning = triple;
-           /* Add extra sig for Framework and set image version */
+       }else{
+           /* get signature */
+           holder->signature = raw_ptr;
            raw_ptr += all_sig_size;
            raw_remain -= all_sig_size;
-           break;
-       default:
-           BDBG_ERR(("%s - '%s' Image: Invalid header (0x%x)", __FUNCTION__, holder->name, index));
-           rc = BERR_NOT_SUPPORTED;
-           goto end;
+
+           switch (image_type) {
+           case SAGE_HEADER_TYPE_BL:
+               BSAGElib_P_Boot_SetImageInfo(&hSAGE->bootloaderInfo,
+                                            holder, header_version, image_type, triple);
+                ctx->sageBlSecureVersion = header_version;
+                ctx->sageBlTripleSigning = triple;
+               break;
+           case SAGE_HEADER_TYPE_FRAMEWORK:
+               BSAGElib_P_Boot_SetImageInfo(&hSAGE->frameworkInfo,
+                                            holder, header_version, image_type, triple);
+               ctx->sageFrameworkSecureVersion = header_version;
+               ctx->sageFrameworkTripleSigning = triple;
+               /* Add extra sig for Framework and set image version */
+               raw_ptr += all_sig_size;
+               raw_remain -= all_sig_size;
+               break;
+           default:
+               BDBG_ERR(("%s - '%s' Image: Invalid header (0x%x)", __FUNCTION__, holder->name, index));
+               rc = BERR_NOT_SUPPORTED;
+               goto end;
+           }
+
+           /* get pointer to data, last block, i.e. whats remaining */
+           holder->data = raw_ptr;
+           holder->data_len = raw_remain;
        }
    }
-   /* else:? TBD */
-
-   /* get pointer to data, last block, i.e. whats remaining */
-   holder->data = raw_ptr;
-   holder->data_len = raw_remain;
-
    BDBG_MSG(("%s - '%s' Header@%p, Signature@%p, Data@%p, Data length=%d", __FUNCTION__,
              holder->name, (void *)holder->header, (void *)holder->signature, (void *)holder->data, holder->data_len));
 
@@ -925,7 +1217,16 @@ BSAGE_P_Boot_SetBootParams(
         else
         {
             BSAGElib_SageSecureHeader *single_sign_header = (BSAGElib_SageSecureHeader *)frameworkHolder->header;
-            data = (single_sign_header->ucInstrSectionSize[3] << 0) | (single_sign_header->ucInstrSectionSize[2] << 8) | (single_sign_header->ucInstrSectionSize[1] << 16) | (single_sign_header->ucInstrSectionSize[0] << 24);
+            BSAGElib_FrameworkHeader  *pSage32Header =      (BSAGElib_FrameworkHeader  *)frameworkHolder->header;
+            uint32_t header_version;
+            header_version = single_sign_header->ucHeaderVersion;
+            if(header_version == 0x0a)
+            { /* SAGE 3.2 framework */
+                data = (pSage32Header->ucInstrSectionSize[3] << 0) | (pSage32Header->ucInstrSectionSize[2] << 8) | (pSage32Header->ucInstrSectionSize[1] << 16) | (pSage32Header->ucInstrSectionSize[0] << 24);
+            }else{
+              /* SAGE 3.1 framework */
+                data = (single_sign_header->ucInstrSectionSize[3] << 0) | (single_sign_header->ucInstrSectionSize[2] << 8) | (single_sign_header->ucInstrSectionSize[1] << 16) | (single_sign_header->ucInstrSectionSize[0] << 24);
+            }
         }
         _BSAGElib_P_Boot_SetBootParam(TextSectionSize, data);
 
@@ -1614,9 +1915,9 @@ BSAGE_Boot_Launch(
         goto end;
     }
 
-    /* Check if both SAGE images have triple signing mode */
+    /* Check if both SAGE images have triple signing mode
     rc = BSAGE_P_Boot_CheckSigningMode(ctx);
-    if(rc != BERR_SUCCESS) { goto end; }
+    if(rc != BERR_SUCCESS) { goto end; } */
 
     /* push region map to DRAM */
     if(pBootSettings->regionMapNum != 0) {

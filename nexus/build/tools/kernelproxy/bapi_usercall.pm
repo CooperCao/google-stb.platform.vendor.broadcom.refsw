@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2004-2013 Broadcom Corporation
+#  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -126,11 +126,11 @@ sub generate
             $arg = "&st";
         }
         if (defined $stopcallbacks_handle) {
-            print FILE "    NEXUS_StopCallbacks($stopcallbacks_handle);\n";
+            print FILE "    NEXUS_StopCallbacks((void *)$stopcallbacks_handle);\n";
         }
         print FILE "    rc = ioctl( nexus_proxy_module_state.fd, $ioctl, $arg);\n";
         if (defined $stopcallbacks_handle) {
-            print FILE "    NEXUS_StartCallbacks($stopcallbacks_handle);\n";
+            print FILE "    NEXUS_StartCallbacks((void *)$stopcallbacks_handle);\n";
         }
         if ($func->{RETTYPE} eq "NEXUS_Error") {
             print FILE "    if (rc!=0) {result=BERR_TRACE(NEXUS_OS_ERROR);goto done;}\n";

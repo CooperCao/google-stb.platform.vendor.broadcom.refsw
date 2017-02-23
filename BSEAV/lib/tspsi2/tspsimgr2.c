@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2002-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bstd.h"
@@ -53,6 +49,11 @@ BDBG_MODULE(tspsimgr);
 
 #include "b_os_lib.h"
 
+#ifdef SOFTWARE_RS_MPOD
+#include "mpod_rate_smooth.h"
+#endif
+#include "nexus_message.h"
+
 #define PSI_BFR_SIZE    TS_PSI_MAX_PSI_TABLE_SIZE
 
 /* Note that the following timeouts are not 400 milliseconds.
@@ -67,11 +68,11 @@ static int tsPsi_pmtTimeout = 600;
 
 static void tsPsi_procProgDescriptors( const uint8_t *p_bfr, unsigned bfrSize, PROGRAM_INFO_T *progInfo );
 static void tsPsi_procStreamDescriptors( const uint8_t *p_bfr, unsigned bfrSize, int streamNum, EPID *ePidData );
-static BERR_Code tsPsi_getProgramMaps(NEXUS_ParserBand   band,
-                                      const void       * pPatBuffer,
-                                      unsigned           patBufferSize,
-                                      CHANNEL_INFO_T   * pChanInfo);
-static void tsPsi_p_dumpBuffer(const uint8_t *p_bfr, unsigned bfrSize);
+static BERR_Code tsPsi_getProgramMaps( NEXUS_ParserBand   band,
+                                       const void       * pPatBuffer,
+                                       unsigned           patBufferSize,
+                                       CHANNEL_INFO_T   * pChanInfo );
+static void tsPsi_p_dumpBuffer( const uint8_t *p_bfr, unsigned bfrSize );
 
 #if BDBG_DEBUG_BUILD
 #define B_ERROR(ERR) (BDBG_ERR(("%s at line %d", #ERR, __LINE__)), (ERR))
@@ -79,40 +80,72 @@ static void tsPsi_p_dumpBuffer(const uint8_t *p_bfr, unsigned bfrSize);
 #define B_ERROR(ERR) (ERR)
 #endif
 
-void message_callback(void *context, int param)
+#ifdef MPOD_SUPPORT
+static int patTimeoutCnt = 0;
+static int pmtTimeoutCnt = 0;
+#endif
+
+NEXUS_PidChannelHandle open_msg_pidchannel( NEXUS_ParserBand parseBand, unsigned int pid )
+{
+    NEXUS_PidChannelSettings pidChannelSettings;
+    NEXUS_PidChannelHandle pidchannel;
+    NEXUS_PidChannel_GetDefaultSettings(&pidChannelSettings);
+    pidChannelSettings.requireMessageBuffer = true;
+#if BCHP_CHIP == 7445
+    pidChannelSettings.pidChannelIndex= NEXUS_PID_CHANNEL_OPEN_MESSAGE_CAPABLE;
+#endif
+
+#ifdef SOFTWARE_RS_MPOD
+    pidchannel = B_Mpod_PidChannelOpen(parseBand, pid, &pidChannelSettings);
+#else
+    pidchannel = NEXUS_PidChannel_Open(parseBand, pid, &pidChannelSettings);
+#endif
+
+    return pidchannel;
+}
+
+void  close_msg_pidchannel( NEXUS_PidChannelHandle pidchannel )
+{
+#ifdef SOFTWARE_RS_MPOD
+    B_Mpod_PidChannelClose(pidchannel);
+#else
+    NEXUS_PidChannel_Close(pidchannel);
+#endif
+    return;
+}
+
+void message_callback( void *context, int param )
 {
     BSTD_UNUSED(param);
     B_Event_Set((B_EventHandle)context);
 }
 
-#include "nexus_message.h"
-int tsPsi_getPAT2(NEXUS_ParserBand band, void * pPatBuffer, unsigned patBufferSize)
+int tsPsi_getPAT( NEXUS_ParserBand band, void * pPatBuffer, unsigned patBufferSize )
 {
     NEXUS_MessageHandle           msg                 = NULL;
     NEXUS_MessageSettings         openSettings;
     NEXUS_MessageStartSettings    startSettings;
     NEXUS_PidChannelHandle        pidChannel          = NULL;
-    NEXUS_PidChannelSettings      pidChannelSettings;
     B_EventHandle                 event               = NULL;
     const uint8_t               * buffer              = NULL;
     size_t                        bufferSize          = 0;
     int                           patSize             = -1;            /* assume failure */
     NEXUS_Error                   rc                  = NEXUS_SUCCESS; /* assume success */
 
+
     BDBG_ASSERT(NULL != pPatBuffer);
 
     event = B_Event_Create(NULL);
 
-    NEXUS_PidChannel_GetDefaultSettings(&pidChannelSettings);
     /* PAT is on pid channel 0x0 */
-    pidChannel = NEXUS_PidChannel_Open(band, 0x0, &pidChannelSettings);
+    pidChannel = open_msg_pidchannel(band, 0x0);
 
     NEXUS_Message_GetDefaultSettings(&openSettings);
     openSettings.dataReady.callback       = message_callback;
     openSettings.dataReady.context        = event;
     openSettings.maxContiguousMessageSize = 4096;
-
     msg = NEXUS_Message_Open(&openSettings);
+
     BDBG_ASSERT(NULL != msg);
 
     NEXUS_Message_GetDefaultStartSettings(msg, &startSettings);
@@ -125,9 +158,12 @@ int tsPsi_getPAT2(NEXUS_ParserBand band, void * pPatBuffer, unsigned patBufferSi
         goto done;
     }
 
+    BDBG_MSG(("Looking for PAT"));
+
     do
     {
         rc = NEXUS_Message_GetBuffer(msg, (const void **)&buffer, &bufferSize);
+
         BDBG_ASSERT(!rc);
 
         if (0 == bufferSize)
@@ -136,6 +172,9 @@ int tsPsi_getPAT2(NEXUS_ParserBand band, void * pPatBuffer, unsigned patBufferSi
             if (NEXUS_SUCCESS != rc)
             {
                 BDBG_WRN(("Timeout waiting for PAT data"));
+#ifdef MPOD_SUPPORT
+                patTimeoutCnt ++;
+#endif
                 goto done;
             }
 
@@ -177,31 +216,27 @@ done:
 
     if (NULL != pidChannel)
     {
-        NEXUS_PidChannel_Close(pidChannel);
+        close_msg_pidchannel(pidChannel);
     }
-
     if (NULL != event)
     {
         B_Event_Destroy(event);
     }
-
     return patSize;
 }
 
-
-BERR_Code tsPsi_getChannelInfo2(CHANNEL_INFO_T * pChanInfo, NEXUS_ParserBand band)
+BERR_Code tsPsi_getChannelInfo( CHANNEL_INFO_T * pChanInfo, NEXUS_ParserBand band )
 {
     uint8_t       pat[PSI_BFR_SIZE];
     int           patSize;
     TS_PSI_header header;
 
     /* Blocking call to get PAT */
-    patSize = tsPsi_getPAT2(band, pat, PSI_BFR_SIZE);
+    patSize = tsPsi_getPAT(band, pat, PSI_BFR_SIZE);
     /* If there's no PAT, return but don't print an error because this can happen
     normally. */
     if (patSize <= 0)
         return berr_external_error;
-
     TS_PSI_getSectionHeader(pat, &header);
     pChanInfo->version             = header.version_number;
     pChanInfo->transport_stream_id = header.table_id_extension;
@@ -246,7 +281,7 @@ BERR_Code tsPsi_getChannelInfo2(CHANNEL_INFO_T * pChanInfo, NEXUS_ParserBand ban
     } while (0)
 
 
-void tsPsi_parsePMT2( const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_programInfo)
+void tsPsi_parsePMT( const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_programInfo )
 {
     int i;
     TS_PMT_stream pmt_stream;
@@ -303,6 +338,12 @@ void tsPsi_parsePMT2( const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_progr
         case TS_PSI_ST_23008_2_Video_brcm: /*deprecated */
             ADD_VIDEO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_VideoCodec_eH265, pmt, pmtSize, i);
             break;
+        case TS_PSI_ST_ATSC_DTS:         /* ASTC ??? DTS audio */
+            ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eDts, pmt, pmtSize, i);
+            break;
+        case TS_PSI_ST_DRA_Audio:     /* DRA */
+            ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eDra, pmt, pmtSize, i);
+            break;
         case TS_PSI_ST_AVS_Video: /* AVS */
             ADD_VIDEO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_VideoCodec_eAvs, pmt, pmtSize, i);
             break;
@@ -356,17 +397,9 @@ void tsPsi_parsePMT2( const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_progr
         case TS_PSI_ST_ATSC_EAC3:     /* ATSC Enhanced AC-3 */
             ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eAc3Plus, pmt, pmtSize, i);
             break;
-        case TS_PSI_ST_ATSC_DTS:     /* ASTC ??? DTS audio */
-            ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eDts, pmt, pmtSize, i);
-            break;
         case TS_PSI_ST_AVS_Audio:     /* AVS */
             ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eAvs, pmt, pmtSize, i);
             break;
-        case TS_PSI_ST_DRA_Audio:     /* DRA */
-            ADD_AUDIO_PID(p_programInfo, pmt_stream.elementary_PID, NEXUS_AudioCodec_eDra, pmt, pmtSize, i);
-            break;
-
-
         /* video or audio */
         case TS_PSI_ST_13818_1_PrivatePES:  /* examine descriptors to handle private data */
             for (;;) {
@@ -435,7 +468,7 @@ void tsPsi_parsePMT2( const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_progr
     } /* EFOR Program map loop */
 }
 
-static void tsPsi_p_addChanInfo(void *context, uint16_t pmt_pid, const void *pmt, unsigned size)
+static void tsPsi_p_addChanInfo( void *context, uint16_t pmt_pid, const void *pmt, unsigned size )
 {
     CHANNEL_INFO_T *p_chanInfo = (CHANNEL_INFO_T*)context;
     PROGRAM_INFO_T programInfo;
@@ -449,7 +482,7 @@ static void tsPsi_p_addChanInfo(void *context, uint16_t pmt_pid, const void *pmt
 
     /* The "if" comparision below is present to silence the Coverity from choosing the false path in the above "BDBG_ASSERT" line of code. */
     if(p_chanInfo->num_programs < MAX_PROGRAMS_PER_CHANNEL){
-        tsPsi_parsePMT2(pmt, size, &programInfo);
+        tsPsi_parsePMT(pmt, size, &programInfo);
         programInfo.map_pid = pmt_pid;
 
         /* now that we know the program_number, insert it into the array */
@@ -475,7 +508,7 @@ typedef struct tsPsi_PmtData
     TS_PAT_program         program;
 } tsPsi_PmtData;
 
-static void clearPmtData(tsPsi_PmtData * data)
+static void clearPmtData( tsPsi_PmtData * data )
 {
     if ((NULL == data) || (NULL == data->msg))
     {
@@ -485,7 +518,7 @@ static void clearPmtData(tsPsi_PmtData * data)
 
     if (NULL != data->pidChannel)
     {
-        NEXUS_PidChannel_Close(data->pidChannel);
+        close_msg_pidchannel(data->pidChannel);
     }
 
     if (NULL != data->msg)
@@ -497,19 +530,19 @@ static void clearPmtData(tsPsi_PmtData * data)
     memset(data, 0, sizeof(tsPsi_PmtData));
 }
 
-static BERR_Code tsPsi_getProgramMaps(NEXUS_ParserBand   band,
-                                      const void       * pPatBuffer,
-                                      unsigned           patBufferSize,
-                                      CHANNEL_INFO_T   * pChanInfo)
+static BERR_Code tsPsi_getProgramMaps( NEXUS_ParserBand   band,
+                                       const void       * pPatBuffer,
+                                       unsigned           patBufferSize,
+                                       CHANNEL_INFO_T   * pChanInfo )
 {
-    return tsPsi_getPMTs2(band, pPatBuffer, patBufferSize, tsPsi_p_addChanInfo, pChanInfo);
+    return tsPsi_getPMTs(band, pPatBuffer, patBufferSize, tsPsi_p_addChanInfo, pChanInfo);
 }
 
-BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
-                        const void         * pPatBuffer,
-                        unsigned             patBufferSize,
-                        tsPsi_PMT_callback   callback,
-                        void               * context)
+BERR_Code tsPsi_getPMTs( NEXUS_ParserBand     band,
+                         const void         * pPatBuffer,
+                         unsigned             patBufferSize,
+                         tsPsi_PMT_callback   callback,
+                         void               * context )
 {
     BERR_Code        result                  = BERR_SUCCESS;
     int              numProgramsTotal        = 0;
@@ -574,13 +607,11 @@ BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
             }
             else
             {
-                NEXUS_PidChannelSettings      pidChannelSettings;
                 NEXUS_MessageSettings         openSettings;
                 NEXUS_MessageStartSettings    startSettings;
                 NEXUS_Error                   nerror              = NEXUS_SUCCESS;
 
-                NEXUS_PidChannel_GetDefaultSettings(&pidChannelSettings);
-                pmtDataArray[i].pidChannel = NEXUS_PidChannel_Open(band, program.PID, &pidChannelSettings);
+                pmtDataArray[i].pidChannel = open_msg_pidchannel(band, program.PID);
 
                 NEXUS_Message_GetDefaultSettings(&openSettings);
                 openSettings.maxContiguousMessageSize = 4096;
@@ -613,11 +644,13 @@ BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
                 startSettings.pidChannel             = pmtDataArray[i].pidChannel;
                 startSettings.filter.mask[0]         = 0x0;
                 startSettings.filter.mask[2]         = 0x0;
-                /*startSettings.filter.mask[4]         = 0x0;*/
-                startSettings.filter.mask[15]        = 0xFF;
+#ifdef MPOD_SUPPORT
+                startSettings.filter.mask[3] = 0x0;
+                startSettings.filter.coefficient[3] = program.program_number & 0xFF;
+#endif
+                startSettings.filter.mask[15]		 = 0xFF;
                 startSettings.filter.coefficient[0]  = 0x02;
                 startSettings.filter.coefficient[2]  = (program.program_number & 0xFF00) >> 8;
-                /*startSettings.filter.coefficient[4] = program.program_number & 0xFF;*/
                 startSettings.filter.coefficient[15] = 0xFF;
                 nerror = NEXUS_Message_Start(pmtDataArray[i].msg, &startSettings);
                 if (NEXUS_SUCCESS != nerror)
@@ -654,12 +687,12 @@ BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
                     messageReceived = true;
                     numProgramsReceived++;
 
-                    BDBG_MSG(("PMT: %d bufferSize:%d (%02x %02x %02x)", i, bufferSize,
-                        ((unsigned char *)buffer)[0],((unsigned char *)buffer)[1],((unsigned char *)buffer)[2]));
+                    BDBG_MSG(("PMT: %d bufferSize:%zu (%02x %02x %02x)", i,bufferSize,
+                             ((unsigned char *)buffer)[0],((unsigned char *)buffer)[1],((unsigned char *)buffer)[2]));
 
                     if (false == TS_PMT_validate(buffer, bufferSize))
                     {
-                        BDBG_WRN(("Invalid PMT data detected: ch %d, bufferSize 0x%x", i, bufferSize));
+                        BDBG_WRN(("Invalid PMT data detected: ch %d, bufferSize %zd", i, bufferSize));
                         tsPsi_p_dumpBuffer(buffer, bufferSize);
                     }
                     else
@@ -677,11 +710,21 @@ BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
 
             if (false == messageReceived)
             {
+#ifdef MPOD_SUPPORT
+                BKNI_Sleep(1);
+#else
                 BKNI_Sleep(10);
+#endif
                 timeout--;
             }
         }
 
+#ifdef MPOD_SUPPORT
+        if (timeout == 0)
+        {
+            pmtTimeoutCnt ++;
+        }
+#endif
         /* all done for this loop of "programs to get" so clear out pmt data */
         for( i = 0; i < numProgramsToGet; i++ )
         {
@@ -696,22 +739,189 @@ BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
     return result;
 }
 
+#ifdef MPOD_SUPPORT
+static void tsPsi_p_addProgramInfo( void *context, uint16_t pmt_pid, const void *pmt, unsigned size )
+{
+    PROGRAM_INFO_T *programInfo = (PROGRAM_INFO_T*)context;
+    int i;
+
+    BKNI_Memset(programInfo, 0, sizeof(programInfo));
+
+    tsPsi_parsePMT(pmt, size, programInfo);
+    programInfo->map_pid = pmt_pid;
+}
+
+int  tsPsi_getProgramInfo( PROGRAM_INFO_T *p_pgInfo, unsigned pg_number, NEXUS_ParserBand parserBand,  unsigned char *pmt, unsigned int *pmt_size )
+{
+    uint8_t     pat[PSI_BFR_SIZE];
+    size_t      patSize;
+    TS_PSI_header header;
+
+    /* Blocking call to get PAT */
+    patSize = tsPsi_getPAT(parserBand, pat, PSI_BFR_SIZE);
+    /* If there's no PAT, return but don't print an error because this can happen
+    normally. */
+    if (patSize <= 0) return -1;
+    if (!TS_PAT_validate(pat, patSize)) {
+        return -1;
+    }
+    return tsPsi_getPMT(parserBand, pat, patSize, pg_number, pmt ,pmt_size, tsPsi_p_addProgramInfo, p_pgInfo );
+}
+
+int tsPsi_getPMT( NEXUS_ParserBand parserBand, const void *p_patBfr, unsigned pat_bfrSize,
+                  unsigned program_number,  unsigned char *pmt, unsigned int *pmt_size, tsPsi_PMT_callback callback,void *context )
+{
+    int             i;
+    size_t          bfrSize;
+    int             num_programs;
+    int             timeout;
+    NEXUS_MessageHandle   pmtStreamArray;
+    uint16_t        pmt_pidArray;
+    TS_PAT_program  program;
+    BERR_Code		ret;
+    NEXUS_PidChannelHandle pidChannelArray;
+    NEXUS_MessageSettings settings;
+    NEXUS_MessageStartSettings startSettings;
+
+    num_programs = TS_PAT_getNumPrograms(p_patBfr);
+    BDBG_MSG(("num_programs %d", num_programs));
+
+    for (i=0;i<num_programs;i++ )
+    {
+        ret = TS_PAT_getProgram( p_patBfr, pat_bfrSize, i, &program );
+        if (ret == BERR_SUCCESS)
+        {
+            if (program_number==0
+                || program.program_number == program_number) break;
+        }
+    }
+
+    if (ret == BERR_SUCCESS && i<num_programs)
+    {
+        NEXUS_Message_GetDefaultSettings(&settings);
+        /* use polling for PMT*/
+        settings.maxContiguousMessageSize = 4096;
+        pmtStreamArray = NEXUS_Message_Open(&settings);
+
+        pidChannelArray = open_msg_pidchannel( parserBand, program.PID);
+
+        NEXUS_Message_GetDefaultStartSettings(pmtStreamArray, &startSettings);
+        startSettings.pidChannel = pidChannelArray;
+
+        startSettings.filter.mask[0] = 0x0;
+        startSettings.filter.mask[2] = 0x0;
+        startSettings.filter.mask[3] = 0x0;
+        startSettings.filter.coefficient[0] = 0x2;
+        startSettings.filter.coefficient[2] = (program.program_number & 0xFF00) >> 8;
+        startSettings.filter.coefficient[3] = program.program_number & 0xFF;
+        startSettings.filter.coefficient[15] = 0xff;
+        BDBG_MSG(("filter pid %#x, program %#x", program.PID, program.program_number));
+
+        pmt_pidArray = program.PID;
+
+        if (NEXUS_Message_Start(pmtStreamArray, &startSettings)) {
+            close_msg_pidchannel(pidChannelArray);
+            NEXUS_PidChannel_Close(pidChannelArray);
+            NEXUS_Message_Close(pmtStreamArray);
+            return -1;
+        }
+
+        /* Now we have enabled our pid channels, so wait for each one to get some data */
+        timeout = tsPsi_pmtTimeout;
+        while( timeout != 0 )
+        {
+            /* Check each of the pid channels we are waiting for */
+            const void *buffer;
+            if (pmtStreamArray &&
+                !NEXUS_Message_GetBuffer(pmtStreamArray, &buffer, &bfrSize ) && bfrSize)
+            {
+                /* don't call NEXUS_Message_ReadComplete() because we're stopping anyway */
+                BDBG_MSG(("PMT: %d %d (%02x %02x %02x)", i, bfrSize,
+                         ((unsigned char *)buffer)[0],((unsigned char *)buffer)[1],((unsigned char *)buffer)[2]));
+
+                if (!TS_PMT_validate(buffer, bfrSize)) {
+                    BDBG_WRN(("Invalid PMT data detected: ch %d, bfrSize 0x%x", i, bfrSize));
+                    tsPsi_p_dumpBuffer(buffer, bfrSize);
+                }
+                else {
+                    if (pmt && pmt_size)
+                    {
+                        *pmt_size = bfrSize;
+                        if (bfrSize >= 4096)
+                            BDBG_ERR((" PMT size exceeds 4096 byte!"));
+                        else
+                            memcpy(pmt, buffer, bfrSize);
+                    }
+                    /* Give the PMT to the callback */
+                    (*callback)(context, pmt_pidArray, buffer, bfrSize);
+                }
+
+                break;
+
+            }
+            else {
+                BKNI_Sleep(2);
+                timeout--;
+            }
+        }
+        NEXUS_Message_Stop(pmtStreamArray);
+        NEXUS_Message_Close(pmtStreamArray);
+        close_msg_pidchannel(pidChannelArray);
+
+        return BERR_SUCCESS;
+    }
+
+    return BERR_INVALID_PARAMETER;
+}
+
+static char atsc_id[4] = "GA94";
+static char scte_id[4] = "SCTE";
+#endif
 
 void tsPsi_procProgDescriptors( const uint8_t *p_bfr, unsigned bfrSize, PROGRAM_INFO_T *progInfo )
 {
-    int i;
+    int i,j;
     TS_PSI_descriptor descriptor;
+#ifdef MPOD_SUPPORT
+    char *cc_ptr;
+#endif
 
     for( i = 0, descriptor = TS_PMT_getDescriptor( p_bfr, bfrSize, i );
-        descriptor != NULL;
-        i++, descriptor = TS_PMT_getDescriptor( p_bfr, bfrSize, i ) )
+         descriptor != NULL;
+         i++, descriptor = TS_PMT_getDescriptor( p_bfr, bfrSize, i ) )
     {
         switch (descriptor[0])
         {
         case TS_PSI_DT_CA:
             progInfo->ca_pid = ((descriptor[4] & 0x1F) << 8) + descriptor[5];
             break;
-
+#ifdef MPOD_SUPPORT
+        case TS_PSI_DT_Registration:
+           if (memcmp(atsc_id, &descriptor[2], 4) ==0)
+               BDBG_WRN((" ATSC MPEG2 registration descriptor"));
+           else if (memcmp(scte_id, &descriptor[2], 4) == 0)
+               BDBG_WRN((" SCTE MPEG2 registration descriptor"));
+           else
+               BDBG_WRN((" unknown MPEG2 registration descriptor"));
+           break;
+        case TS_PSI_DT_ATSC_RedistributionControl:
+           progInfo->broadcast_flag = true;
+           break;
+        case TS_PSI_DT_ATSC_CaptionService:
+           progInfo->num_cc = descriptor[2]&0x1f;
+           cc_ptr = (char*)&descriptor[3];
+           for (j=0;j<progInfo->num_cc;j++)
+           {
+               memcpy(progInfo->cc[j].iso639,cc_ptr,3);
+               cc_ptr +=3;
+               progInfo->cc[j].ccType = *cc_ptr>>7;
+               progInfo->cc[j].ccService = *cc_ptr&0x3f;
+               cc_ptr += 3;
+           }
+           break;
+        case TS_PSI_DT_ATSC_ContentAdvisory:
+           break;
+#endif
         default:
             break;
         }
@@ -732,26 +942,42 @@ void tsPsi_procStreamDescriptors( const uint8_t *p_bfr, unsigned bfrSize, int st
         case TS_PSI_DT_CA:
             ePidData->ca_pid = ((descriptor[4] & 0x1F) << 8) + descriptor[5];
             break;
-
+        case TS_PSI_DT_ATSC_ComponentName:
+            break;
+        case TS_PSI_DT_ATSC_AC3_Audio:
+            break;
         default:
             break;
         }
     }
 }
 
-void tsPsi_setTimeout2( int patTimeout, int pmtTimeout )
+void tsPsi_setTimeout( int patTimeout, int pmtTimeout )
 {
     tsPsi_patTimeout = patTimeout;
     tsPsi_pmtTimeout = pmtTimeout;
 }
 
-void tsPsi_getTimeout2( int *patTimeout, int *pmtTimeout )
+void tsPsi_getTimeout( int *patTimeout, int *pmtTimeout )
 {
     *patTimeout = tsPsi_patTimeout;
     *pmtTimeout = tsPsi_pmtTimeout;
 }
 
-static void tsPsi_p_dumpBuffer(const uint8_t *p_bfr, unsigned bfrSize)
+#ifdef MPOD_SUPPORT
+int tsPsi_getTimeoutCnt( int *patTimeoutCount, int *pmtTimeoutCount )
+{
+    *patTimeoutCount = patTimeoutCnt;
+    *pmtTimeoutCount = pmtTimeoutCnt;
+}
+
+void tsPsi_resetTimeoutCnt( void )
+{
+    patTimeoutCnt = 0;
+    pmtTimeoutCnt = 0;
+}
+#endif
+static void tsPsi_p_dumpBuffer( const uint8_t *p_bfr, unsigned bfrSize )
 {
     unsigned i;
     for (i=0;i<bfrSize;i++)

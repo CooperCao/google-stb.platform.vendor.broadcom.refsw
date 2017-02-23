@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,13 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * eventqueue.cpp
- *
- *  Created on: Jan 28, 2015
- *      Author: gambhire
- */
-
 #include "eventqueue.h"
 #include "tztask.h"
 #include "scheduler.h"
@@ -57,7 +50,7 @@ void timeOutHandler(Timer t, void *ctx) {
 EventQueue::EventQueue() {
     numPendingEvents = 0;
     waitingTask = nullptr;
-    spinlock_init("EventQueue::lock", &lock);
+    spinLockInit(&lock);
 }
 
 EventQueue::~EventQueue() {

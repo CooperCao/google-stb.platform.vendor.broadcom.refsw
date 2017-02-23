@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: I2sOutput
 *    Specific APIs related to I2S audio outputs.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -55,6 +47,20 @@
 BDBG_MODULE(nexus_i2s_output);
 
 #if NEXUS_NUM_I2S_OUTPUTS
+
+typedef struct NEXUS_I2sOutput
+{
+    NEXUS_OBJECT(NEXUS_I2sOutput);
+    bool opened;
+    BAPE_I2sOutputHandle handle;
+    NEXUS_I2sOutputSettings settings;
+    NEXUS_AudioOutputObject connector;
+    char name[13];   /* I2S OUTPUT %d */
+} NEXUS_I2sOutput;
+
+static NEXUS_I2sOutput g_i2sOutputs[NEXUS_NUM_I2S_OUTPUTS];
+
+static NEXUS_Error NEXUS_I2sOutput_P_SetChannelMode(void *pHandle, NEXUS_AudioChannelMode channelMode);
 
 /***************************************************************************
 Summary:
@@ -189,31 +195,9 @@ static NEXUS_Error NEXUS_I2sOutput_P_ConvertSettingsFromBape(
     return NEXUS_SUCCESS;
 }
 
-typedef struct NEXUS_I2sOutput
-{
-    NEXUS_OBJECT(NEXUS_I2sOutput);
-    bool opened;
-    BAPE_I2sOutputHandle handle;
-    NEXUS_I2sOutputSettings settings;
-    NEXUS_AudioOutputObject connector;
-    char name[13];   /* I2S OUTPUT %d */
-    
-} NEXUS_I2sOutput;
-
-#if NEXUS_NUM_I2S_OUTPUTS
-static NEXUS_I2sOutput g_i2sOutputs[NEXUS_NUM_I2S_OUTPUTS];
-#else
-#ifndef NEXUS_NUM_I2S_OUTPUTS
-#define NEXUS_NUM_I2S_OUTPUTS 0
-#endif
-static NEXUS_I2sOutput g_i2sOutputs[1];
-#endif
-
-static NEXUS_Error NEXUS_I2sOutput_P_SetChannelMode(void *pHandle, NEXUS_AudioChannelMode channelMode);
-
 /***************************************************************************
 Summary:
-	Get default settings for an I2S output
+    Get default settings for an I2S output
 See Also:
 
  ***************************************************************************/
@@ -235,7 +219,7 @@ void NEXUS_I2sOutput_GetDefaultSettings(
 
 /***************************************************************************
 Summary:
-	Open an I2S Output device
+    Open an I2S Output device
 See Also:
     NEXUS_I2sOutput_Close
  ***************************************************************************/
@@ -248,8 +232,13 @@ NEXUS_I2sOutputHandle NEXUS_I2sOutput_Open(
     BAPE_I2sOutputHandle i2sHandle;
     NEXUS_Error errCode;
     BAPE_OutputPort connector;
+    NEXUS_AudioCapabilities audioCapabilities;
 
-    if ( (int)index >= NEXUS_NUM_I2S_OUTPUTS )
+    BDBG_CASSERT((int)NEXUS_MAX_AUDIO_I2S_OUTPUTS>=(int)NEXUS_NUM_I2S_OUTPUTS);
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if ( index >= audioCapabilities.numOutputs.i2s )
     {
         BDBG_ERR(("I2sOutput %u not supported on this chipset", index));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -292,7 +281,7 @@ NEXUS_I2sOutputHandle NEXUS_I2sOutput_Open(
 
 /***************************************************************************
 Summary:
-	Close an I2S Output device
+    Close an I2S Output device
 See Also:
     NEXUS_I2sOutput_Open
  ***************************************************************************/
@@ -319,9 +308,9 @@ NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_I2sOutput, NEXUS_I2sOutput_Close);
 
 /***************************************************************************
 Summary:
-	Get settings for an I2S output
+    Get settings for an I2S output
 See Also:
-	NEXUS_I2sOutput_SetSettings
+    NEXUS_I2sOutput_SetSettings
  ***************************************************************************/
 void NEXUS_I2sOutput_GetSettings(
     NEXUS_I2sOutputHandle handle,
@@ -336,9 +325,9 @@ void NEXUS_I2sOutput_GetSettings(
 
 /***************************************************************************
 Summary:
-	Set settings for an I2S output
+    Set settings for an I2S output
 See Also:
-	NEXUS_I2sOutput_GetSettings
+    NEXUS_I2sOutput_GetSettings
  ***************************************************************************/
 NEXUS_Error NEXUS_I2sOutput_SetSettings(
     NEXUS_I2sOutputHandle handle,
@@ -434,7 +423,7 @@ typedef struct NEXUS_I2sOutput
 
 /***************************************************************************
 Summary:
-	Get default settings for an I2S output
+    Get default settings for an I2S output
 See Also:
 
  ***************************************************************************/
@@ -449,7 +438,7 @@ void NEXUS_I2sOutput_GetDefaultSettings(
 
 /***************************************************************************
 Summary:
-	Open an I2S Output device
+    Open an I2S Output device
 See Also:
     NEXUS_I2sOutput_Close
  ***************************************************************************/
@@ -467,7 +456,7 @@ NEXUS_I2sOutputHandle NEXUS_I2sOutput_Open(
 
 /***************************************************************************
 Summary:
-	Close an I2S Output device
+    Close an I2S Output device
 See Also:
     NEXUS_I2sOutput_Open
  ***************************************************************************/
@@ -484,9 +473,9 @@ NEXUS_OBJECT_CLASS_MAKE(NEXUS_I2sOutput, NEXUS_I2sOutput_Close);
 
 /***************************************************************************
 Summary:
-	Get settings for an I2S output
+    Get settings for an I2S output
 See Also:
-	NEXUS_I2sOutput_SetSettings
+    NEXUS_I2sOutput_SetSettings
  ***************************************************************************/
 void NEXUS_I2sOutput_GetSettings(
     NEXUS_I2sOutputHandle handle,
@@ -501,9 +490,9 @@ void NEXUS_I2sOutput_GetSettings(
 
 /***************************************************************************
 Summary:
-	Set settings for an I2S output
+    Set settings for an I2S output
 See Also:
-	NEXUS_I2sOutput_GetSettings
+    NEXUS_I2sOutput_GetSettings
  ***************************************************************************/
 NEXUS_Error NEXUS_I2sOutput_SetSettings(
     NEXUS_I2sOutputHandle handle,

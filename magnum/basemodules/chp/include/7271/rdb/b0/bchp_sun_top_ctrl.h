@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:49:52 2016
- *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
+ * Date:           Generated on               Tue Dec 13 10:42:03 2016
+ *                 Full Compile MD5 Checksum  3569507c301c8ecc2edaa056747f2c3c
  *                     (minus title and desc)
- *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
+ *                 MD5 Checksum               f5c451485c31535bef93cb504758197d
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1139
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -232,44 +232,33 @@
 /***************************************************************************
  *STRAP_VALUE_0 - Strapping values
  ***************************************************************************/
-/* SUN_TOP_CTRL :: STRAP_VALUE_0 :: reserved0 [31:12] */
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_reserved0_MASK             0xfffff000
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_reserved0_SHIFT            12
-
-/* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_reset_outb_def_val [11:11] */
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_reset_outb_def_val_MASK 0x00000800
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_reset_outb_def_val_SHIFT 11
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_reset_outb_def_val_DEFAULT 0x00000001
+/* SUN_TOP_CTRL :: STRAP_VALUE_0 :: reserved0 [31:11] */
+#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_reserved0_MASK             0xfffff800
+#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_reserved0_SHIFT            11
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_rc_ep [10:10] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_rc_ep_MASK           0x00000400
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_rc_ep_SHIFT          10
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_rc_ep_DEFAULT        0x00000001
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_pcie_sata [09:09] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_pcie_sata_MASK       0x00000200
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_pcie_sata_SHIFT      9
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_pcie_sata_DEFAULT    0x00000001
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_usb1_pmu_polarity [08:08] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_usb1_pmu_polarity_MASK 0x00000100
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_usb1_pmu_polarity_SHIFT 8
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_usb1_pmu_polarity_DEFAULT 0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_cpu_aarch32 [07:07] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_cpu_aarch32_MASK     0x00000080
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_cpu_aarch32_SHIFT    7
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_cpu_aarch32_DEFAULT  0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_spare [06:05] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_spare_MASK           0x00000060
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_spare_SHIFT          5
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_spare_DEFAULT        0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_0 :: strap_boot_shape [04:00] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_boot_shape_MASK      0x0000001f
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_boot_shape_SHIFT     0
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0_strap_boot_shape_DEFAULT   0x00000000
 
 /***************************************************************************
  *STRAP_VALUE_1 - Strapping values
@@ -281,27 +270,22 @@
 /* SUN_TOP_CTRL :: STRAP_VALUE_1 :: strap_mpm_runmode_0 [05:05] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_mpm_runmode_0_MASK   0x00000020
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_mpm_runmode_0_SHIFT  5
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_mpm_runmode_0_DEFAULT 0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_1 :: strap_usb_typec_enable [04:04] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_usb_typec_enable_MASK 0x00000010
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_usb_typec_enable_SHIFT 4
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_usb_typec_enable_DEFAULT 0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_1 :: strap_powerup_in_s3 [03:03] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_powerup_in_s3_MASK   0x00000008
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_powerup_in_s3_SHIFT  3
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_powerup_in_s3_DEFAULT 0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_1 :: strap_mpm_flash_boot [02:02] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_mpm_flash_boot_MASK  0x00000004
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_mpm_flash_boot_SHIFT 2
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_mpm_flash_boot_DEFAULT 0x00000000
 
 /* SUN_TOP_CTRL :: STRAP_VALUE_1 :: strap_xcore_bias_enc [01:00] */
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_xcore_bias_enc_MASK  0x00000003
 #define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_xcore_bias_enc_SHIFT 0
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1_strap_xcore_bias_enc_DEFAULT 0x00000000
 
 /***************************************************************************
  *BOND_STATUS - Bond option value register

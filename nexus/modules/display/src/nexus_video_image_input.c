@@ -189,7 +189,7 @@ static BERR_Code NEXUS_VideoImageInput_P_Picture_isr(void *pContext, int32_t unu
 
 static NEXUS_Error NEXUS_VideoImageInput_P_CleanUpSurfaces( NEXUS_VideoImageInputHandle imageInput );
 
-void
+static void
 NEXUS_Display_P_ImageInputNext_isr(void  *disp, int unused, BAVC_Polarity  polarity, BAVC_SourceState  state, void **picture)
 {
     NEXUS_VideoImageInputHandle imageInput = disp;

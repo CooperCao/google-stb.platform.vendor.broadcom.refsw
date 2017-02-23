@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Nexus example app: show graphics framebuffer with CPU drawing */
 
@@ -65,6 +54,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#undef min
+#define min(A,B) ((A)<(B)?(A):(B))
+
 int main(void)
 {
     NEXUS_SurfaceHandle surface;
@@ -76,6 +68,7 @@ int main(void)
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_DisplaySettings displaySettings;
+    NEXUS_DisplayCapabilities displayCap;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
 #endif
@@ -87,6 +80,7 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetDisplayCapabilities(&displayCap);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.format = NEXUS_VideoFormat_eNtsc;
@@ -116,8 +110,8 @@ int main(void)
     NEXUS_VideoFormat_GetInfo(displaySettings.format, &videoFormatInfo);
     NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
     createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-    createSettings.width = videoFormatInfo.width;
-    createSettings.height = videoFormatInfo.height;
+    createSettings.width = min(displayCap.display[0].graphics.width, videoFormatInfo.width);
+    createSettings.height = min(displayCap.display[0].graphics.height, videoFormatInfo.height);
     createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
     surface = NEXUS_Surface_Create(&createSettings);
     NEXUS_Surface_GetMemory(surface, &mem);

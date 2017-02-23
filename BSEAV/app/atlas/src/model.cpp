@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -84,6 +84,12 @@ CModel::CModel(const char * strName) :
     _simpleVideoDecoderServer(NULL),
     _simpleAudioDecoderServer(NULL),
     _simpleEncoderServer(NULL)
+#ifdef CPUTEST_SUPPORT
+    , _pCpuTest(NULL)
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+    , _pWifi(NULL)
+#endif
 {
     for (int i = 0; i < eWindowType_Max; i++)
     {
@@ -338,7 +344,7 @@ void CModel::setCurrentChannel(
         windowType = _fullScreenWindowType;
     }
 
-    if ((NULL != pChannel) &&
+    if ((NULL == pChannel) &&
         (NULL != _currentChannel[windowType]) &&
         (false == _currentChannel[windowType]->isStopAllowed()))
     {
@@ -348,12 +354,6 @@ void CModel::setCurrentChannel(
          * they are not a part of a channel list.  one example of a
          * stoppable channel is discovered ip channels. */
         _lastChannel[windowType] = _currentChannel[windowType];
-    }
-
-    if (pChannel == _currentChannel[windowType])
-    {
-        /* current channel is already set so we're done */
-        goto done;
     }
 
     _currentChannel[windowType] = pChannel;

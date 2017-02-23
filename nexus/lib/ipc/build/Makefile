@@ -1,7 +1,7 @@
 ############################################################################
-#     (c)2011-2013 Broadcom Corporation
+#  Copyright (C) 2011-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #  
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 #  ANY LIMITED REMEDY.
-# 
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ###########################################################################
 
@@ -58,6 +48,9 @@ MAGNUM := ${NEXUS_TOP}/../magnum
 ifdef B_REFSW_ARCH
 CUSTOM_FLAGS := 1
 endif
+
+B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
+B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 
 # include cross-compiler definitions
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
@@ -90,7 +83,7 @@ CFLAGS += $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_
 
 include $(BSEAV)/build/refsw_inc.mak
 
-ODIR = $(B_REFSW_ARCH).$(DEBUG_SUFFIX)
+ODIR = ${B_REFSW_OBJ_ROOT}/nexus/lib/ipc/build/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
 OS = ${B_REFSW_OS}
 
 include $(MAGNUM)/basemodules/kni/bkni.inc
@@ -129,7 +122,7 @@ ${ODIR}/flag:
 	@${TOUCH} $@
 
 ${SERVER_IPC} ${CLIENT_IPC}: ${INTERFACES} ${bipc_build.pl}
-	perl -I ${NEXUS_TOP}/build/tools/common bipc_build.pl ${SERVER_IPC} ${CLIENT_IPC} ${INTERFACES}
+	perl -I ${NEXUS_TOP}/build/tools/abiverify -I ${NEXUS_TOP}/build/tools/common bipc_build.pl ${SERVER_IPC} ${CLIENT_IPC} ${INTERFACES}
 
 ${SERVER}: ${SERVER_SRCS} ${SERVER_IPC}
 	@echo $(CC) -o $@

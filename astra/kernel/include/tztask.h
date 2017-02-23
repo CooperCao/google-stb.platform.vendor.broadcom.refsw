@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,25 +85,7 @@ public:
         EDF_Task = SCHED_DEADLINE
     };
 
-    enum UserRegs {
-        r0 = 0,
-        r1 = 1,
-        r2,
-        r3,
-        r4,
-        r5,
-        r6,
-        r7,
-        r8,
-        r9,
-        r10,
-        r11,
-        r12,
-        sp,
-        lr,
-        pc_unused,
-        spsr
-    };
+    ARCH_SPECIFIC_USER_REG_LIST;
 
     enum FTEType {
         File,
@@ -115,6 +97,7 @@ public:
 
     struct FileTableEntry {
         FTEType type;
+        unsigned int iNo;
         union {
             IFile *file;
             IDirectory *dir;
@@ -197,7 +180,8 @@ public:
     TzTask(TaskFunction entry, void *taskFuncCtxParam, unsigned int priority, const char *taskName = nullptr, TzTask *parent = nullptr);
 
     // Use this constructor to create a user-space process.
-    TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir = nullptr, const char *taskName = nullptr, TzTask *parent = nullptr);
+    TzTask(IFile *exeFile, unsigned int priority, IDirectory *workDir = nullptr, const char *taskName = nullptr, TzTask *parent = nullptr,
+        char **argv = nullptr, char **envp = nullptr);
 
     // Use this constructor to fork() a process.
     TzTask(TzTask& forkFromTask);
@@ -207,12 +191,12 @@ public:
 
     inline unsigned long userReg(const UserRegs regName) const {
         unsigned long *base = savedRegBase - NUM_SAVED_CPU_REGS;
-        return base[regName - r0];
+        return base[regName];
     }
 
     inline void writeUserReg(const UserRegs regName, const unsigned long value) {
         unsigned long *base = savedRegBase - NUM_SAVED_CPU_REGS;
-        base[regName - r0] = value;
+        base[regName] = value;
     }
 
     static TzTask *current();
@@ -230,6 +214,7 @@ public:
     int setCurrDir(int fd);
 
     friend unsigned long *excYieldCurrentTask(int, int);
+    friend void printReg();
     void yield();
 
     void dataAbortException();
@@ -334,7 +319,24 @@ public:
     void terminate(int termCode = 0, int termSignal = -1);
     void awaken();
     bool signalDispatch();
-
+    TzMem::VirtAddr GetThreadInfo() {return threadInfo; }
+    void SetThreadInfo(uintptr_t p) {
+        // Destroy the kernel TLS region if mapped
+        if (threadInfo != nullptr) {
+            TzMem::VirtAddr tiVa = PAGE_START_4K(threadInfo);
+            TzMem::PhysAddr tiPa = kernPageTable->lookUp(tiVa);
+            // Only if kernel TLS region is still in use (mapped)
+            if (tiPa) {
+                kernPageTable->unmapPage(tiVa);
+                pageTable->unmapPage(tiVa);
+                TzMem::freePage(tiPa);
+            }
+        }
+        threadInfo = (void *)p;
+#ifdef __aarch64__
+        savedRegs[SAVED_REG_TPIDR_EL0] = (unsigned long)threadInfo;
+#endif
+    }
     static TzTask* taskFromId(int tid);
 
     // TzTask objects should only be allocated on the heap. Never on the stack.
@@ -356,6 +358,7 @@ private:
     void destroyUContext();
     void printURegs();
     void doCoreDump();
+    void allocateStack(uint32_t size);
 
 public:
 
@@ -364,6 +367,7 @@ public:
         static const int MAX_NUM_ARGS = 32;
         static const int MAX_NUM_ENVS = 128;
         static const int MAX_NUM_PROG_HEADERS = 8;
+        static const int hwCaps = 0x51;  //"arm v7 neon vfpv3 tls tzos"
 
     public:
         TaskStartInfo(ElfImage *image, const char *progName, int numArgs, char **argv, int numEnvs, char **envp);
@@ -387,9 +391,9 @@ public:
         char *envs[MAX_NUM_ENVS];
 
         unsigned int numProgHeaders;
-        Elf32_Phdr *phdrs[MAX_NUM_PROG_HEADERS];
+        Elf_Phdr *phdrs[MAX_NUM_PROG_HEADERS];
 
-        char *features;
+        unsigned int *phwCaps;
 
         bool state;
 
@@ -406,6 +410,7 @@ private:
     PageTable *pageTable;
     PageTable *kernPageTable;
     TzMem::VirtAddr stackKernel;
+    uint32_t stackKernelSize;
     TzMem::VirtAddr threadInfo;
 
     unsigned int priority;
@@ -465,10 +470,10 @@ private:
 
     bool seccompStrict;
 
-    spinlock_t lock;
+    SpinLock lock;
 
 private:
-    static spinlock_t termLock;
+    static SpinLock termLock;
     static tzutils::Vector<TzTask *>tasks;
 
     static PerCPU<TzTask *> nwProxyTask;

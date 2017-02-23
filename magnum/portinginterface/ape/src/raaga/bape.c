@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -219,11 +219,33 @@ static unsigned BAPE_P_GetNumberOfBuffers(
     return numBuffers;
 }
 
+void BAPE_P_BufferNode_Free(BAPE_BufferNode *pNode)
+{
+    BDBG_OBJECT_ASSERT(pNode, BAPE_BufferNode);
+    if ( pNode->block )
+    {
+        if ( pNode->offset )
+        {
+            BMMA_UnlockOffset(pNode->block, pNode->offset);
+            pNode->offset = 0;
+        }
+        if ( pNode->pMemory )
+        {
+            BMMA_Unlock(pNode->block, pNode->pMemory);
+            pNode->pMemory = NULL;
+        }
+        BMMA_Free(pNode->block);
+        pNode->block = NULL;
+    }
+    BDBG_OBJECT_DESTROY(pNode, BAPE_BufferNode);
+    BKNI_Free(pNode);
+}
+
 BERR_Code BAPE_Open(
     BAPE_Handle *pHandle,   /* [out] returned handle */
     BCHP_Handle chpHandle,
     BREG_Handle regHandle,
-    BMEM_Handle memHandle,
+    BMMA_Heap_Handle memHandle,
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
     BDSP_Handle dspHandle,
@@ -344,14 +366,27 @@ BERR_Code BAPE_Open(
                 errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
                 goto err_buffer;
             }
-            pNode->pMemory = BMEM_AllocAligned(memHandle, bufferSize, 8, 0);
+            pNode->block = BMMA_Alloc(memHandle, bufferSize, 32, NULL);
+            if ( NULL == pNode->block )
+            {
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                BAPE_P_BufferNode_Free(pNode);
+                goto err_buffer;
+            }
+            pNode->pMemory = BMMA_Lock(pNode->block);
             if ( NULL == pNode->pMemory )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-                BKNI_Free(pNode);
+                BAPE_P_BufferNode_Free(pNode);
                 goto err_buffer;
             }
-            BMEM_ConvertAddressToOffset(memHandle, pNode->pMemory, &pNode->offset);
+            pNode->offset = BMMA_LockOffset(pNode->block);
+            if ( 0 == pNode->offset )
+            {
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                BAPE_P_BufferNode_Free(pNode);
+                goto err_buffer;
+            }
             BDBG_OBJECT_SET(pNode, BAPE_BufferNode);
             BDBG_MSG(("Created Buffer Node %p in pool %u", (void *)pNode, i));
             BLST_S_INSERT_HEAD(&handle->buffers[i].freeList, pNode, node);
@@ -530,10 +565,7 @@ err_buffer:
         while ( (pNode = BLST_S_FIRST(&handle->buffers[i].freeList)) )
         {
             BLST_S_REMOVE_HEAD(&handle->buffers[i].freeList, node);
-            BDBG_OBJECT_ASSERT(pNode, BAPE_BufferNode);
-            BMEM_Free(memHandle, pNode->pMemory);
-            BDBG_OBJECT_DESTROY(pNode, BAPE_BufferNode);
-            BKNI_Free(pNode);
+            BAPE_P_BufferNode_Free(pNode);
         }
     }
     BAPE_P_UninitInterrupts(handle);
@@ -840,19 +872,13 @@ void BAPE_Close(
         {
             BDBG_MSG(("Destroy Free Buffer node %p", (void *)pNode));
             BLST_S_REMOVE_HEAD(&handle->buffers[i].freeList, node);
-            BDBG_OBJECT_ASSERT(pNode, BAPE_BufferNode);
-            BMEM_Free(handle->memHandle, pNode->pMemory);
-            BDBG_OBJECT_DESTROY(pNode, BAPE_BufferNode);
-            BKNI_Free(pNode);
+            BAPE_P_BufferNode_Free(pNode);
         }
         while ( (pNode = BLST_S_FIRST(&handle->buffers[i].allocatedList)) )
         {
             BDBG_MSG(("Destroy Allocated Buffer node %p", (void *)pNode));
             BLST_S_REMOVE_HEAD(&handle->buffers[i].allocatedList, node);
-            BDBG_OBJECT_ASSERT(pNode, BAPE_BufferNode);
-            BMEM_Free(handle->memHandle, pNode->pMemory);
-            BDBG_OBJECT_DESTROY(pNode, BAPE_BufferNode);
-            BKNI_Free(pNode);
+            BAPE_P_BufferNode_Free(pNode);
         }
     }
 
@@ -1699,6 +1725,9 @@ void BAPE_GetCapabilities(
     pCaps->numOutputs.spdif = BAPE_CHIP_MAX_SPDIF_OUTPUTS;
     #endif
 
+    #ifdef BAPE_CHIP_MAX_MIXERS
+    pCaps->numMixers = BAPE_CHIP_MAX_MIXERS;
+    #endif
     #ifdef BAPE_CHIP_MAX_DECODERS
     pCaps->numDecoders = BAPE_CHIP_MAX_DECODERS;
     #endif
@@ -1863,6 +1892,15 @@ void BAPE_GetCapabilities(
 #endif
 }
 
+BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void)
+{
+#if BAPE_CHIP_MAX_DECODERS
+    return BAPE_P_GetDolbyMSVersion();
+#else
+    return BAPE_DolbyMSVersion_eMax;
+#endif
+}
+
 #if BAPE_DSP_SUPPORT
 void BAPE_P_PopulateSupportedBDSPAlgos(
     BDSP_AlgorithmType type, /* [in] */
@@ -2024,10 +2062,5 @@ bool BAPE_CodecSupportsCompressed16x (
     )
 {
     return BAPE_P_CodecSupportsCompressed16x(codec);
-}
-
-BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void)
-{
-    return BAPE_P_GetDolbyMSVersion();
 }
 #endif

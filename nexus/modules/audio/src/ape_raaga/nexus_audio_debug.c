@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -312,16 +312,20 @@ void NEXUS_AudioDebug_GetOutputStatus()
 {
 
     BAPE_DebugStatus status;
-    int i;
+    unsigned i;
+    BERR_Code errCode;
+    NEXUS_AudioCapabilities audioCapabilities;
 
-    if (
-        BAPE_Debug_GetStatus(
-        g_NEXUS_audioModuleData.debugHandle,
-        BAPE_DebugSourceType_eOutput,
-        &status) == BERR_SUCCESS)
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    errCode = BAPE_Debug_GetStatus( g_NEXUS_audioModuleData.debugHandle,
+                                    BAPE_DebugSourceType_eOutput,
+                                    &status);
+
+    if ( errCode == BERR_SUCCESS)
     {
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        for (i=0; i < NEXUS_NUM_SPDIF_OUTPUTS; i++)
+#if BAPE_CHIP_MAX_SPDIF_OUTPUTS > 0
+        for (i=0; i < audioCapabilities.numOutputs.spdif; i++)
         {
             if (status.status.outputStatus.spdif[i].enabled)
             {
@@ -330,8 +334,8 @@ void NEXUS_AudioDebug_GetOutputStatus()
         }
 #endif
 
-#if NEXUS_NUM_HDMI_OUTPUTS
-        for (i=0; i < NEXUS_NUM_HDMI_OUTPUTS; i++)
+#if BAPE_CHIP_MAX_MAI_OUTPUTS > 0
+        for (i=0; i < audioCapabilities.numOutputs.hdmi; i++)
         {
             if (status.status.outputStatus.hdmi[i].enabled)
             {
@@ -339,7 +343,6 @@ void NEXUS_AudioDebug_GetOutputStatus()
             }
         }
 #endif
-
     }
 }
 
@@ -595,11 +598,14 @@ const char * NEXUS_AudioDebug_ChannelModeToString(
 
 static void NEXUS_AudioDebug_PrintGraph(void)
 {
-    int i,j;
+    unsigned i,j;
+    NEXUS_AudioCapabilities audioCapabilities;
+
     BDBG_LOG(("Audio Filter Graph:"));
 
-#if NEXUS_NUM_AUDIO_DECODERS
-    for (i=0; i < NEXUS_NUM_AUDIO_DECODERS; i++)
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    for (i=0; i < audioCapabilities.numDecoders; i++)
     {
         BAPE_DecoderStatus decoderStatus;
         NEXUS_AudioDecoderHandle handle = g_decoders[i];
@@ -629,10 +635,8 @@ static void NEXUS_AudioDebug_PrintGraph(void)
             }
         }
     }
-#endif
 
-#if NEXUS_NUM_AUDIO_PLAYBACKS
-    for (i=0; i < NEXUS_NUM_AUDIO_PLAYBACKS; i++)
+    for (i=0; i < audioCapabilities.numPlaybacks; i++)
     {
         NEXUS_AudioPlaybackHandle playbackHandle = NEXUS_AudioPlayback_P_GetPlaybackByIndex(i);
         if (playbackHandle)
@@ -654,10 +658,8 @@ static void NEXUS_AudioDebug_PrintGraph(void)
             }
         }
     }
-#endif
 
-#if NEXUS_NUM_AUDIO_INPUT_CAPTURES
-    for (i=0; i < NEXUS_NUM_AUDIO_INPUT_CAPTURES; i++)
+    for (i=0; i < audioCapabilities.numInputCaptures; i++)
     {
         NEXUS_AudioInputCaptureHandle inputCaptureHandle = NEXUS_AudioInputCapture_P_GetInputCaptureByIndex(i);
         if (inputCaptureHandle)
@@ -681,7 +683,6 @@ static void NEXUS_AudioDebug_PrintGraph(void)
             }
         }
     }
-#endif
 }
 
 BERR_Code NEXUS_AudioDebug_Init(void)

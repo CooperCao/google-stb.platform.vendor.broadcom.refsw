@@ -47,7 +47,7 @@ NEXUS_TOP := $(B_REFSW_TOP)/nexus
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include curl.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
@@ -65,6 +65,8 @@ ifeq ($(B_REFSW_CURL_IS_EXTERNAL),y)
     $(warning B_REFSW_CURL_IS_EXTERNAL=${B_REFSW_CURL_IS_EXTERNAL} Skipping build of curl...)
 endif   #  ifeq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 
+all : ${CURL_SOURCE_PATH}/.compiled
+
 source:
 ifneq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 	@if [ ! -d "${CURL_SOURCE_PATH}" ]; then \
@@ -74,7 +76,7 @@ ifneq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 		echo "CURL_SOURCE_DIRECTORY is ${CURL_SOURCE_DIRECTORY}"; \
 		echo "$(B_REFSW_ARCH).$(DEBUG_SUFFIX)"; \
 		if [ ! -e "${CURL_TAR_PATH}/${CURL_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading OPENSSL tarball  to ${CURL_TAR_PATH}"; \
+			echo "================ Downloading CURL tarball  to ${CURL_TAR_PATH}"; \
 			mkdir -p ${CURL_TAR_PATH}; \
 			echo "${CURL_BUILD_DIR}/${CURL_NAME}"; \
 			echo "${CURL_TAR_PATH}"; \
@@ -93,11 +95,11 @@ ifneq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 	fi
 endif   #  ifeq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 
-all : source
+${CURL_SOURCE_PATH}/.compiled : | source
 	@if [ ! -d "${CURL_SOURCE_PATH}" ]; then \
 		echo "Curl source directory: $(abspath ${CURL_SOURCE_PATH}) not found, extracting from tarball..."  ${B_CURL_EXTRACT_REDIR}; \
 		if [ ! -e "${CURL_TAR_PATH}/${CURL_SOURCE_TARBALL}" ]; then \
-			echo "================ Downloading OPENSSL tarball  to ${CURL_TAR_PATH}"; \
+			echo "================ Downloading CURL tarball  to ${CURL_TAR_PATH}"; \
 			mkdir -p ${CURL_TAR_PATH}; \
 			B_REFSW_CACHE_DIR=${B_REFSW_CACHE_DIR} $(NEXUS_TOP)/../BSEAV/tools/build/fetch.sh ${CURL_BUILD_DIR}/${CURL_NAME}.info ${CURL_TAR_PATH}; \
 		fi ;\
@@ -139,7 +141,7 @@ all : source
 	fi
 
 	@echo "================ Compiling CURL==============================="
-	${MAKE} ${MAKE_OPTIONS} -C ${CURL_TAR_PATH}/${CURL_NAME} -j10 ${MAKE_SUFFIX}
+	${MAKE} ${MAKE_OPTIONS} -C ${CURL_TAR_PATH}/${CURL_NAME} ${MAKE_SUFFIX}
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
 		${STRIP} ${CURL_LIB_FOLDER}/*.so; \
 	fi
@@ -155,5 +157,5 @@ clean :
 	@echo "================ MAKE CLEAN"
 	@rm -rf curl_ver.inc
 	@rm -rf ${CURL_TAR_PATH}
-	@rm -rf all
+	@rm -rf ${CURL_SOURCE_PATH}/.compiled
 	@echo "================ Done"

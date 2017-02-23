@@ -1,6 +1,6 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*  
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
@@ -9,32 +9,32 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
+*
 * API Description:
 *   API name: Audio Module
 *    Module includes
@@ -59,7 +59,8 @@ typedef struct NEXUS_AudioInputCapture
     unsigned index;
     bool opened;
     bool running;
-    void *pMemory, *pCachedMemory;
+    BMMA_Block_Handle fifoBlock;
+    void *pMemory;
     NEXUS_AudioCaptureProcessorHandle procHandle;
     BKNI_EventHandle inputFormatChangeEvent;
     NEXUS_EventCallbackHandle inputFormatChangeEventHandler;
@@ -70,10 +71,10 @@ typedef struct NEXUS_AudioInputCapture
     unsigned numPcmChannels;
     size_t fifoSize;
     char name[16];   /* INPUT CAPTURE %d */
-    BMEM_Heap_Handle fifoMem; /* heap used for fifo */
+    BMMA_Heap_Handle fifoMem; /* heap used for fifo */
 } NEXUS_AudioInputCapture;
 
-static NEXUS_AudioInputCapture g_inputCaptures[NEXUS_NUM_AUDIO_INPUT_CAPTURES];
+static NEXUS_AudioInputCapture g_inputCaptures[NEXUS_MAX_AUDIO_INPUT_CAPTURES];
 
 static void NEXUS_AudioInputCapture_P_FlushDeviceBuffer_isr(NEXUS_AudioInputCaptureHandle handle);
 static void NEXUS_AudioInputCapture_P_DataInterrupt_isr(void *pParam, int param);
@@ -126,10 +127,14 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
     NEXUS_AudioCaptureProcessorHandle procHandle = NULL;
     BERR_Code errCode;
     unsigned i;
+    NEXUS_AudioCapabilities audioCapabilities;
 
-    if ( (int)index >= NEXUS_NUM_AUDIO_INPUT_CAPTURES )
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+
+    if ( index >= audioCapabilities.numInputCaptures )
     {
-        BDBG_ERR(("Invalid input capture index %u.  This platform only supports %u input captures.", index, NEXUS_NUM_AUDIO_INPUT_CAPTURES));
+        BDBG_ERR(("Invalid input capture index %u.  This platform only supports %u input captures.", index, audioCapabilities.numInputCaptures));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
     }
@@ -231,7 +236,7 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
             (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
             goto err_heap;
         }
-        handle->fifoMem = NEXUS_Heap_GetMemHandle(heap);
+        handle->fifoMem = NEXUS_Heap_GetMmaHandle(heap);
 
         handle->dataCallback = NEXUS_IsrCallback_Create(handle, NULL);
         if ( NULL == handle->dataCallback )
@@ -239,18 +244,18 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
             (void)BERR_TRACE(BERR_OS_ERROR);
             goto err_data_callback;
         }
-        handle->pMemory = BMEM_Heap_Alloc(handle->fifoMem, pSettings->fifoSize);
-        if ( NULL == handle->pMemory )
+        handle->fifoBlock = BMMA_Alloc(handle->fifoMem, pSettings->fifoSize, 0, NULL);
+        if ( NULL == handle->fifoBlock )
         {
             (void)BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_buffer_alloc;
         }
 
-        errCode = BMEM_Heap_ConvertAddressToCached(handle->fifoMem, handle->pMemory, &handle->pCachedMemory);
-        if ( errCode )
+        handle->pMemory = BMMA_Lock(handle->fifoBlock);
+        if ( NULL == handle->pMemory )
         {
-            (void)BERR_TRACE(errCode);
-            goto err_buffer_cache;
+            (void)BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            goto err_buffer_alloc;
         }
 
         /* save the pi buffer size and threshold */
@@ -304,7 +309,7 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
     {
         /* Set up the Capture Processor */
         procHandle->piHandle = handle->apeHandle;
-        procHandle->pBuffer = handle->pCachedMemory;
+        procHandle->pBuffer = handle->pMemory;
         procHandle->bufferSize = pSettings->fifoSize;
         procHandle->getBuffer = NEXUS_AudioCapture_P_Input_GetBuffer;
         procHandle->consumeData = NEXUS_AudioCapture_P_Input_ConsumeData;
@@ -320,9 +325,17 @@ err_source_change_callback:
 err_input_format_change_event_handler:
     BKNI_DestroyEvent(handle->inputFormatChangeEvent);
 err_input_format_change_event:
-err_buffer_cache:
-    BMEM_Heap_Free(handle->fifoMem, handle->pMemory);
 err_buffer_alloc:
+    if ( handle->pMemory )
+    {
+        BMMA_Unlock(handle->fifoBlock, handle->pMemory);
+        handle->pMemory = NULL;
+    }
+    if ( handle->fifoBlock )
+    {
+        BMMA_Free(handle->fifoBlock);
+        handle->fifoBlock = NULL;
+    }
     if ( handle->dataCallback )
     {
         NEXUS_IsrCallback_Destroy(handle->dataCallback);
@@ -359,9 +372,15 @@ static void NEXUS_AudioInputCapture_P_Finalizer(
     {
         NEXUS_IsrCallback_Destroy(handle->dataCallback);
     }
-    if ( handle->fifoMem )
+    if ( handle->pMemory )
     {
-        BMEM_Heap_Free(handle->fifoMem, handle->pMemory);
+        BMMA_Unlock(handle->fifoBlock, handle->pMemory);
+        handle->pMemory = NULL;
+    }
+    if ( handle->fifoBlock )
+    {
+        BMMA_Free(handle->fifoBlock);
+        handle->fifoBlock = NULL;
     }
     if ( handle->procHandle )
     {
@@ -790,7 +809,11 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_P_GetInputCaptureByIndex(
     unsigned index
     )
 {
-    BDBG_ASSERT(index < NEXUS_NUM_AUDIO_INPUT_CAPTURES);
+
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    BDBG_ASSERT(index < audioCapabilities.numInputCaptures);
     return g_inputCaptures[index].opened?&g_inputCaptures[index]:NULL;
 }
 

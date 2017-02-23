@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -170,8 +170,22 @@ BIP_Status acquireAndTuneFrontend(
 
     NEXUS_Frontend_GetDefaultQamSettings( &qamSettings );
     qamSettings.frequency  = pAppCtx->frequency;
-    qamSettings.mode       = pAppCtx->mode;
-    qamSettings.symbolRate = pAppCtx->symbolRate;
+
+
+    switch (pAppCtx->mode)
+    {
+    default:
+         BDBG_ERR(("Incorrect mode %d specified. Defaulting to 64(NEXUS_FrontendQamMode_e64)", pAppCtx->mode));
+    case 64:
+         qamSettings.mode = NEXUS_FrontendQamMode_e64;
+         qamSettings.symbolRate = 5056900;
+         break;
+    case 256:
+         qamSettings.mode = NEXUS_FrontendQamMode_e256;
+         qamSettings.symbolRate = 5360537;
+         break;
+    }
+
 #if 0
     qamSettings.lockCallback.callback = lock_changed_callback;
     qamSettings.lockCallback.context  = pAppStreamerCtx;

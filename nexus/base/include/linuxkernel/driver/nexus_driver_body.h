@@ -107,7 +107,7 @@ nexus_driver_module_close(void)
 }
 
 int
-nexus_driver_module_ioctl(void *context, unsigned int cmd, unsigned long arg, unsigned long type, bool unlocked)
+nexus_driver_module_ioctl(void *context, unsigned int cmd, unsigned long arg, unsigned long type, bool unlocked, bool compat)
 {
     int rc = 0;
     struct nexus_driver_module_state *module = &nexus_driver_module_state;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,12 +41,11 @@
 
 BDBG_MODULE(bdsp_ext);
 
-void BDSP_Arm_P_Analyse_CIT_Audio_GlobalTaskConfig(BMEM_Handle       hHeap,
-								  BDSP_AF_P_sGLOBAL_TASK_CONFIG          *psGblTaskCfg)
+void BDSP_Arm_P_Analyse_CIT_Audio_GlobalTaskConfig(BDSP_ArmTask      *pArmTask)
 {
-
+	BDSP_AF_P_sGLOBAL_TASK_CONFIG		   *psGblTaskCfg;
     BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG    *psTaskFmmGateOpenConfig;
-	void *pAddr = NULL;
+	psGblTaskCfg = &pArmTask->citOutput.sCit.sGlobalTaskConfig;
 
 	BDBG_MSG(("Global Task Configuration"));
 	BDBG_MSG(("-------------------------------------------- "));
@@ -62,16 +61,15 @@ void BDSP_Arm_P_Analyse_CIT_Audio_GlobalTaskConfig(BMEM_Handle       hHeap,
 	BDBG_MSG(("--"));
 
 	/* DRAM Gate Open Configuration */
-	BDSP_MEM_P_ConvertOffsetToCacheAddress(hHeap,psGblTaskCfg->ui32FmmGateOpenConfigAddr,&pAddr);
-	psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)pAddr;
+	psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)((uint8_t *)pArmTask->taskMemGrants.sTaskCfgBufInfo.Buffer.pAddr+
+	                               (psGblTaskCfg->ui32FmmGateOpenConfigAddr - pArmTask->taskMemGrants.sTaskCfgBufInfo.Buffer.offset));
 	BDBG_MSG(("Number of Ports for Gate Open = %d  ",psTaskFmmGateOpenConfig->ui32NumPorts));
 	BDBG_MSG(("Maximum Independent Delay = %dms  ",psTaskFmmGateOpenConfig->ui32MaxIndepDelay));
 	BDBG_MSG(("Gate Open Configuration address 0x%x  ",psGblTaskCfg->ui32FmmGateOpenConfigAddr));
 	BDBG_MSG(("-------------------------------------------- "));
 }
 
-void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
-								  BDSP_ARM_AF_P_sNODE_CONFIG            *psNodeCfg)
+void BDSP_Arm_P_Analyse_CIT_NodeConfig(BDSP_ARM_AF_P_sNODE_CONFIG  *psNodeCfg)
 {
 	uint32_t    ui32NumSrc, ui32NumDest;
 	BDSP_AF_P_sIO_BUFFER			sIoBuffer;
@@ -140,7 +138,8 @@ void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 		if(psNodeCfg->eNodeIpValidFlag[ui32NumSrc] == BDSP_AF_P_eValid)
 		{
 			/* IO BUFFER CONFIGURATION */
-			/*BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));*/
+			BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));
+#if 0
 			if(0 != psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc])
 			{
 				/* Getting the Virtual Address */
@@ -157,9 +156,12 @@ void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 					BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoBuffer ,BDSP_P_IO_BufferType_IO);
 				}
 			}
-
+#else
+			BSTD_UNUSED(sIoBuffer);
+#endif /* 0 */
 			/* IOGENERIC BUFFER CONFIGURATION */
-			/*BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));*/
+			BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));
+#if 0
 			if(0 != psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc])
 			{
 				BDSP_P_ReadFromOffset(hHeap,
@@ -175,6 +177,9 @@ void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 					BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoGenericBuffer ,BDSP_P_IO_BufferType_IOGen);
 				}
 			}
+#else
+			BSTD_UNUSED(sIoGenericBuffer);
+#endif /* 0 */
 		}
 	}
 
@@ -188,7 +193,8 @@ void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 		/* IO BUFFER CONFIGURATION */
 		/*-------------------------*/
 		/*Printing Output Buffer Cfg Structure Address */
-		/*BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));*/
+		BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));
+#if 0
 		if(0 != psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest])
 		{
 			/* Getting contents of the Destination IO buffer */
@@ -206,10 +212,14 @@ void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 				BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoBuffer ,BDSP_P_IO_BufferType_IO);
 			}
 		}
+#else
+		BSTD_UNUSED(sIoBuffer);
+#endif /* 0 */
 
 		/* IOGENERIC BUFFER CONFIGURATION */
 		/*--------------------------------*/
-		/*BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",	ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));*/
+		BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",	ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));
+#if 0
 		/*	Getting contents of the IO Generic buffer */
 		if(0 != psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest])
 		{
@@ -227,5 +237,8 @@ void BDSP_Arm_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 				BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoGenericBuffer ,BDSP_P_IO_BufferType_IOGen);
 			}
 		}
+#else
+		BSTD_UNUSED(sIoGenericBuffer);
+#endif /* 0 */
 	}
 }

@@ -41,7 +41,6 @@
 
 #include "bchp.h"
 #include "breg_mem.h"
-#include "bmem.h"
 #include "bmma.h"
 #include "bint.h"
 #include "bkni.h"
@@ -66,64 +65,27 @@ extern "C" {
 #define BVC5_MAX_IDENTS                4
 #define BVC5_MAX_HUB_IDENTS            4
 
-#define BVC5_SYNC_CLE_CL_READ          (1u << 0)
-#define BVC5_SYNC_CLE_SHADREC_READ     (1u << 1)
-#define BVC5_SYNC_CLE_PRIM_READ        (1u << 2)
-#define BVC5_SYNC_CLE_DRAWREC_READ     (1u << 3)
-#define BVC5_SYNC_VCD_READ             (1u << 4)
-#define BVC5_SYNC_QPU_INSTR_READ       (1u << 5)
-#define BVC5_SYNC_QPU_UNIF_READ        (1u << 6)
-#define BVC5_SYNC_TMU_CONFIG_READ      (1u << 7)
-#define BVC5_SYNC_PTB_TF_WRITE         (1u << 8)
-#define BVC5_SYNC_PTB_TILESTATE_READ   (1u << 9)
-#define BVC5_SYNC_PTB_TILESTATE_WRITE  (1u << 10)
-#define BVC5_SYNC_PTB_PCF_READ         (1u << 11)
-#define BVC5_SYNC_PTB_PCF_WRITE        (1u << 12)
-#define BVC5_SYNC_TMU_DATA_READ        (1u << 13)
-#define BVC5_SYNC_TMU_DATA_WRITE       (1u << 14)
-#define BVC5_SYNC_TLB_IMAGE_READ       (1u << 15)
-#define BVC5_SYNC_TLB_IMAGE_WRITE      (1u << 16)
-#define BVC5_SYNC_TLB_OQ_READ          (1u << 17)
-#define BVC5_SYNC_TLB_OQ_WRITE         (1u << 18)
-#define BVC5_SYNC_TFU_READ             (1u << 19)
-#define BVC5_SYNC_TFU_WRITE            (1u << 20)
-#define BVC5_SYNC_CPU_READ             (1u << 24)
-#define BVC5_SYNC_CPU_WRITE            (1u << 25)
-
-#define BVC5_SYNC_V3D_READ (\
-   BVC5_SYNC_CLE_CL_READ\
- | BVC5_SYNC_CLE_SHADREC_READ\
- | BVC5_SYNC_CLE_PRIM_READ\
- | BVC5_SYNC_CLE_DRAWREC_READ\
- | BVC5_SYNC_VCD_READ\
- | BVC5_SYNC_QPU_INSTR_READ\
- | BVC5_SYNC_QPU_UNIF_READ\
- | BVC5_SYNC_TMU_CONFIG_READ\
- | BVC5_SYNC_PTB_TILESTATE_READ\
- | BVC5_SYNC_PTB_PCF_READ\
- | BVC5_SYNC_TMU_DATA_READ\
- | BVC5_SYNC_TLB_IMAGE_READ\
- | BVC5_SYNC_TLB_OQ_READ\
- | BVC5_SYNC_TFU_READ)
-
-#define BVC5_SYNC_V3D_WRITE (\
-   BVC5_SYNC_PTB_TF_WRITE\
- | BVC5_SYNC_PTB_TILESTATE_WRITE\
- | BVC5_SYNC_PTB_PCF_WRITE\
- | BVC5_SYNC_TMU_DATA_WRITE\
- | BVC5_SYNC_TLB_IMAGE_WRITE\
- | BVC5_SYNC_TLB_OQ_WRITE\
- | BVC5_SYNC_TFU_WRITE)
-
-#define BVC5_SYNC_V3D_RW (BVC5_SYNC_V3D_READ | BVC5_SYNC_V3D_WRITE)
-#define BVC5_SYNC_CPU_RW (BVC5_SYNC_CPU_READ | BVC5_SYNC_CPU_WRITE)
-
 #define BVC5_EMPTY_TILE_MODE_NONE      0u
 #define BVC5_EMPTY_TILE_MODE_SKIP      1u
 #define BVC5_EMPTY_TILE_MODE_FILL      2u
 
 /* Workaround flags */
-#define BVC5_GFXH_1181                 1
+#define BVC5_NO_BIN_RENDER_OVERLAP     1
+#define BVC5_GFXH_1181                 2
+
+/* Cache operations */
+#define BVC5_CACHE_CLEAR_SIC  (1 << 0)
+#define BVC5_CACHE_CLEAR_SUC  (1 << 1)
+#define BVC5_CACHE_CLEAR_L1TD (1 << 2)
+#define BVC5_CACHE_CLEAR_L1TC (1 << 3)
+#define BVC5_CACHE_CLEAR_VCD  (1 << 4)
+#define BVC5_CACHE_CLEAR_L2C  (1 << 5)
+#define BVC5_CACHE_FLUSH_L2T  (1 << 6)
+#define BVC5_CACHE_CLEAN_L1TD (1 << 7)
+#define BVC5_CACHE_CLEAN_L2T  (1 << 8)
+#define BVC5_CACHE_CLEAR_GCA  (1 << 9)
+#define BVC5_CACHE_FLUSH_L3C  (1 << 10)
+#define BVC5_CACHE_CLEAN_L3C  (1 << 11)
 
 /***************************************************************************
 Summary:
@@ -176,6 +138,7 @@ typedef enum BVC5_JobType
    BVC5_JobType_eFenceWait,
    BVC5_JobType_eTest,
    BVC5_JobType_eUsermode,
+   BVC5_JobType_eBarrier,
    BVC5_JobType_eNumJobTypes
 } BVC5_JobType;
 
@@ -228,7 +191,7 @@ typedef struct BVC5_JobBase
    BVC5_SchedDependencies  sFinalizedDependencies;
    uint64_t                uiCompletion;
    uint64_t                uiData;
-   uint32_t                uiSyncFlags;
+   uint32_t                uiCacheOps;
    bool                    bSecure;
    uint64_t                uiPagetablePhysAddr;
    uint32_t                uiMmuMaxVirtAddr;
@@ -259,6 +222,11 @@ typedef struct BVC5_JobRender
    uint32_t                uiFlags;
    uint32_t                uiEmptyTileMode;
 } BVC5_JobRender;
+
+typedef struct BVC5_JobBarrier
+{
+   BVC5_JobBase            sBase;
+} BVC5_JobBarrier;
 
 typedef struct BVC5_JobUser
 {
@@ -357,7 +325,6 @@ typedef struct BVC5_OpenParameters
    bool  bResetOnStall;      /* Reset & recover when a h/w stall is detected */
    bool  bMemDumpOnStall;    /* Dump heap when a stall is detected            */
    bool  bNoBurstSplitting;  /* Disable burst splitting in the wrapper? */
-   bool  bDoDRMClientTerm;   /* Signal client termination to DRM driver */
    uint32_t uiDRMDevice;     /* DRM device to open if signalling client termination */
 } BVC5_OpenParameters;
 
@@ -405,10 +372,10 @@ BERR_Code BVC5_Open(
    BVC5_Handle         *phVC5,        /* [out] Pointer to returned VC5 handle.  */
    BCHP_Handle          hChp,         /* [in] Chip handle.                      */
    BREG_Handle          hReg,         /* [in] Register access handle.           */
-   BMEM_Heap_Handle     hHeap,        /* [in] Unsecure heap handles.            */
    BMMA_Heap_Handle     hMMAHeap,     /* [in] Unsecure heap handles.            */
-   BMEM_Heap_Handle     hSecureHeap,  /* [in] Secure heap handles.              */
    BMMA_Heap_Handle     hSecureMMAHeap, /* [in] Secure heap handles.              */
+   uint64_t             ulDbgHeapOffset,/* [in] used for debug memory dump only   */
+   unsigned             uDbgHeapSize, /* [in] used for debug memory dump only   */
    BINT_Handle          bint,         /* [in] Interrupt handle.                 */
    BVC5_OpenParameters *sOpenParams,  /* [in] Options                           */
    BVC5_Callbacks      *sCallbacks    /* [in] Callback fn pointers              */
@@ -581,6 +548,12 @@ BERR_Code BVC5_NullJob(
    const BVC5_JobNull         *pNull       /* [in]                       */
    );
 
+BERR_Code BVC5_BarrierJob(
+   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
+   uint32_t                    uiClientId, /* [in]                       */
+   const BVC5_JobBarrier      *pBarrierJobs/* [in]                       */
+   );
+
 BERR_Code BVC5_TFUJobs(
    BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
    uint32_t                    uiClientId, /* [in]                       */
@@ -605,18 +578,18 @@ BERR_Code BVC5_FenceRegisterWaitCallback(
    BVC5_Handle                 hVC5,                          /* [in]          */
    int                         iFence,                        /* [in]          */
    uint32_t                    uiClientId,                    /* [in]          */
-   void                      (*pfnCallback)(void *, void *),  /* [in]          */
+   void                      (*pfnCallback)(void *, uint64_t),/* [in]          */
    void                       *pContext,                      /* [in]          */
-   void                       *pParam                         /* [in]          */
+   uint64_t                    uiParam                        /* [in]          */
    );
 
 BERR_Code BVC5_FenceUnregisterWaitCallback(
    BVC5_Handle                 hVC5,                          /* [in]          */
    int                         iFence,                        /* [in]          */
    uint32_t                    uiClientId,                    /* [in]          */
-   void                      (*pfnCallback)(void *, void *),  /* [in]          */
+   void                      (*pfnCallback)(void *, uint64_t),/* [in]          */
    void                       *pContext,                      /* [in]          */
-   void                       *pParam,                        /* [in]          */
+   uint64_t                    uiParam,                       /* [in]          */
    bool                       *bSignalled                     /* [out]         */
    );
 

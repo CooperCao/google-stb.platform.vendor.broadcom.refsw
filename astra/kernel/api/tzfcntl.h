@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -175,7 +175,29 @@ struct flock {
 #define W_OK    2       /* Test for write permission.  */
 #define X_OK    1       /* Test for execute permission.  */
 #define F_OK    0       /* Test for existence.  */
-
+#ifdef __aarch64__
+struct stat
+{
+    uint64_t dev;
+    unsigned long st_ino;
+    uint32_t mode;
+    uint32_t nlink;
+    uint32_t uid;
+    uint32_t gid;
+    uint64_t rdev;
+    int __st_rdev_padding;
+    uint64_t size;
+    long blockSize;
+    int __bsize_padding;
+    uint64_t blocks;
+    unsigned long  atime;
+    unsigned long  atimeNanoSec;
+    unsigned long  mtime;
+    unsigned long  mtimeNanoSec;
+    unsigned long  ctime;
+    unsigned long  ctimeNanoSec;
+};
+#else
 struct stat
 {
     uint64_t dev;
@@ -198,6 +220,7 @@ struct stat
     unsigned long  ctimeNanoSec;
     uint64_t st_ino;
 };
+#endif
 
 #if 0
 struct stat {

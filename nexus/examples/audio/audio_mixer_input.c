@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -147,15 +147,49 @@ int main(int argc, char **argv)
     NEXUS_HdmiOutputSettings hdmiSettings;
     NEXUS_HdmiOutputStatus hdmiStatus;
     hotplugCallbackParameters hotPlugCbParams;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     bool done = false;
-
-
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 ||
+        audioCapabilities.numMixers == 0)
+    {
+        printf("This application is not supported on this platform (requires decoder and mixers).\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numDecoders < NUMBER_OF_DECODERS ||
+        audioCapabilities.numMixers < NUMBER_OF_MIXERS)
+    {
+        printf("This application requests more decoders or mixers then available.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     /* bring up decoders and connect to display */
     NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
@@ -261,16 +295,20 @@ int main(int argc, char **argv)
 
     /* connect audio outputs */
     /* Output PCM to DAC, SPDIF, and HDMI by default */
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                               NEXUS_AudioMixer_GetConnector(mixer[0]));
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioMixer_GetConnector(mixer[0]));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                   NEXUS_AudioMixer_GetConnector(mixer[0]));
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                   NEXUS_AudioMixer_GetConnector(mixer[1]));
+    }
     #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                               NEXUS_AudioMixer_GetConnector(mixer[0]));
-    #endif
-    NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                               NEXUS_AudioMixer_GetConnector(mixer[1]));
 
     /* bring up display */
     NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiStatus);
@@ -445,15 +483,18 @@ int main(int argc, char **argv)
     NEXUS_VideoDecoder_Stop(videoDecoder);
     NEXUS_AudioDecoder_Stop(pcmDecoder[0]);
     NEXUS_AudioDecoder_Stop(pcmDecoder[1]);
+
     #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioHdmiHandle);
+    }
     #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+    }
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
     NEXUS_AudioMixer_RemoveAllInputs(mixer[0]);
     NEXUS_AudioMixer_RemoveAllInputs(mixer[1]);
     NEXUS_AudioMixer_Close(mixer[0]);

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,7 @@
 *  ANY LIMITED REMEDY.
 *
 ***************************************************************************/
-#include "bstd.h"
+#include "nexus_platform_priv.h"
 #include "bkni.h"
 #include "nexus_base_types.h"
 #include "nexus_core_init.h"
@@ -130,7 +130,7 @@ void nexus_p_uninit_map(void)
 }
 
 
-#if !NEXUS_BASE_OS_ucos_ii && !NEXUS_BASE_OS_no_os && !NEXUS_BASE_OS_wince
+#if !NEXUS_BASE_OS_ucos_ii
 static void *nexus_p_alloc_fake(unsigned size)
 {
     struct nexus_p_alloc *node;
@@ -177,6 +177,7 @@ while we debug removal of uncached mmap. */
             if (fd == -1) goto error;
         }
         addr = mmap64(0, size, PROT_NONE, MAP_PRIVATE, fd, 0);
+        BDBG_MSG(("mmap /dev/zero %u -> %p", (unsigned)size, addr));
         if (addr == (void *)-1) goto error;
 
         /* and add an alloc entry */
@@ -190,7 +191,7 @@ while we debug removal of uncached mmap. */
         node->dynamic = true;
         BLST_D_INSERT_HEAD(&g_fake.alloc_list, node, link);
 
-        BDBG_MSG(("  result: %p", (void*)(unsigned long)node->offset));
+        BDBG_MSG(("  result: %p->%p", (void *)node, (void*)(unsigned long)node->offset));
         return (void*)(unsigned long)node->offset;
     }
 error:
@@ -207,17 +208,21 @@ static void nexus_p_free_fake(void *addr)
     for (node = BLST_D_FIRST(&g_fake.alloc_list); node; node = BLST_D_NEXT(node, link)) {
         if (node->offset == addr) {
             struct nexus_p_alloc *temp;
+            BDBG_MSG((" node %p (%p:%u) %s", (void *)node, (void *)node->offset, (unsigned)node->size, node->dynamic?"dynamic":""));
             BLST_D_REMOVE(&g_fake.alloc_list, node, link);
+#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
+            if(node->dynamic) { /* don't join dynamic entries */
+                BDBG_MSG(("/dev/zero unmap %p:%u", (void *)node->offset, (unsigned)node->size));
+                munmap(node->offset, node->size);
+                BKNI_Free(node);
+                return;
+            }
+#endif
             /* merge with an adjacent free entry */
             for (temp = BLST_D_FIRST(&g_fake.free_list); temp; temp = BLST_D_NEXT(temp, link)) {
                 if ( (uint8_t *)node->offset + node->size == (uint8_t *)temp->offset) {
                     temp->offset = (uint8_t *)temp->offset - node->size;
                     temp->size += node->size;
-#if USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
-                    if(node->dynamic) {
-                        munmap(node->offset, node->size);
-                    }
-#endif
                     BKNI_Free(node);
                     return;
                 }
@@ -237,15 +242,19 @@ static void nexus_p_free_fake(void *addr)
     BDBG_ERR(("free of bad fake addr %p within fake address space %#lx,%u", addr, (unsigned long)g_fake.settings.offset, (unsigned)g_fake.settings.size));
 }
 
-void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type)
+void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
 {
     switch (type) {
-    case NEXUS_MemoryMapType_eFake:
-        #if NEXUS_BASE_OS_ucos_ii || NEXUS_BASE_OS_no_os || NEXUS_BASE_OS_wince
+    case NEXUS_AddrType_eFake:
+        #if NEXUS_BASE_OS_ucos_ii
             /* fall through to eCached */
         #else
         {
             void *addr = nexus_p_alloc_fake(length);
+            if(addr==NULL) {
+                (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+                return NULL;
+            }
 #if !USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
             if ((unsigned long)addr < g_fake.settings.offset || (unsigned long)addr + length > g_fake.settings.offset + g_fake.settings.size) {
                 BDBG_ERR(("fake address outside of bounds: bounds %#x %#x, alloc %p %#x",
@@ -257,9 +266,9 @@ void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType t
             return addr;
         }
         #endif
-    case NEXUS_MemoryMapType_eCached:
+    case NEXUS_AddrType_eCached:
         return (g_fake.settings.mmap)(offset, length, type);
-    case NEXUS_MemoryMapType_eUncached:
+    case NEXUS_AddrType_eUncached:
         return (g_fake.settings.mmap)(offset, length, type);
     default:
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -267,9 +276,9 @@ void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType t
     }
 }
 
-void nexus_p_unmap_memory( void *pMem, size_t length, NEXUS_MemoryMapType type)
+void nexus_p_unmap_memory( void *pMem, size_t length, NEXUS_AddrType type)
 {
-    if (type == NEXUS_MemoryMapType_eFake) {
+    if (type == NEXUS_AddrType_eFake) {
         nexus_p_free_fake(pMem);
     } else {
         g_fake.settings.munmap(pMem, length, type);
@@ -312,7 +321,7 @@ int test_nexus_map(void)
             }
         }
         else {
-            allocs[i].addr = nexus_p_map_memory(allocs[i].offset, allocs[i].size, NEXUS_MemoryMapType_eFake);
+            allocs[i].addr = nexus_p_map_memory(allocs[i].offset, allocs[i].size, NEXUS_AddrType_eFake);
         }
         
         if (rand()%100 == 0) {

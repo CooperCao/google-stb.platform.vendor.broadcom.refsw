@@ -1,43 +1,41 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,6 +93,7 @@
 #include "wlu.h"
 #include "bwl_priv.h"
 #include "bwl.h"
+#include "bwl_wl.h"
 
 #if defined(linux)
 #define stricmp strcasecmp
@@ -325,6 +324,7 @@ static union
     uint32 alignme;
 } bufstruct_wlu;
 
+wifi_counters_t wifi_counters;
 static char *buf = (char*) &bufstruct_wlu.bufdata;
 
 #define FETCH_COUNTER_VALUE(entry, name)                            \
@@ -5584,15 +5584,17 @@ int32_t BWL_GetCounters
 #else
     void            *wl = hBwl->wl;
     wl_cnt_info_t   *cntinfo = NULL;
-    wl_cnt_wlc_t    *cnt = NULL;
     char            *buf = NULL;
     uint16          ver;
 #if defined(EAGLE_WIFI_DRIVER)
     uint8           cntdata[sizeof(wl_cnt_ver_11_t)];
+    wl_cnt_cbfn_info_t cbfn_info;
 #else
     uint8           cntdata[WL_CNTBUF_MAX_SIZE];
 #endif
     BWL_LOCK();
+
+    UNUSED_PARAMETER(at_start_of_line);
 
     buf = (char*)malloc(WLC_IOCTL_MAXLEN);
     if (buf == NULL)
@@ -5620,15 +5622,33 @@ int32_t BWL_GetCounters
     /* CAD 2016-05-19 - datalen is 1024 but sizeof(cntdata) is 988 ... overflow ... segfault */
     memcpy(cntdata, (cntinfo->data+BCM_XTLV_HDR_SIZE), MIN(cntinfo->datalen,sizeof(cntdata)) );
 
-    cnt = (wl_cnt_wlc_t *)cntdata;
+    memset( &wifi_counters, 0, sizeof(wifi_counters) );
 
-    pCounters->txbyte       = dtoh32(cnt->txbyte);
-    pCounters->txframe      = dtoh32(cnt->txframe);
-    pCounters->txretrans    = dtoh32(cnt->txretrans);
-    pCounters->txerror      = dtoh32(cnt->txerror);
-    pCounters->rxerror      = dtoh32(cnt->rxerror);
-    pCounters->rxbyte       = dtoh32(cnt->rxbyte);
-    pCounters->rxframe      = dtoh32(cnt->rxframe);
+    if ((err = bcm_unpack_xtlv_buf(&cbfn_info, cntdata, cntinfo->datalen, BCM_XTLV_OPTION_ALIGN32, wl_counters_cbfn))) {
+        printf("error %d\n", err);
+    }
+    /* Similar fields are set in bwl_wl_counters.c */
+    SAVPCOUNTERS(reset);
+    SAVPCOUNTERS(txbyte);
+    SAVPCOUNTERS(txframe);
+    SAVPCOUNTERS(txretrans);
+    SAVPCOUNTERS(rxerror);
+    SAVPCOUNTERS(txnobuf);
+    SAVPCOUNTERS(txserr);
+    SAVPCOUNTERS(txphyerr);
+    SAVPCOUNTERS(txerror);
+    SAVPCOUNTERS(rxbyte);
+    SAVPCOUNTERS(rxframe);
+    SAVPCOUNTERS(rxnobuf);
+    SAVPCOUNTERS(rxnondata);
+    SAVPCOUNTERS(rxbadcm);
+    SAVPCOUNTERS(rxfragerr);
+    SAVPCOUNTERS(rxtoolate);
+    SAVPCOUNTERS(rxbadfcs);
+    SAVPCOUNTERS(rxfrmtooshrt);
+    SAVPCOUNTERS(rxf0ovfl);
+    SAVPCOUNTERS(rxf1ovfl);
+    SAVPCOUNTERS(pmqovfl);
 
 BWL_EXIT:
     if (buf != NULL)
@@ -7629,7 +7649,7 @@ BWL_EXIT:
 static struct escan_bss  *g_escan_bss_head = NULL;
 int wl_escanresults( void *wl, const char *cmd, char **argv ); /* forward prototype */
 cmd_t wl_cmds[] = {
-	{ "escanresults", (cmd_func_t *) wl_escanresults, -1, WLC_SET_VAR, "Start escan and display results.\n" SCAN_USAGE }
+    { "escanresults", (cmd_func_t *) wl_escanresults, -1, WLC_SET_VAR, "Start escan and display results.\n" SCAN_USAGE }
 };
 /* CAD 2016-05-26 - copied from wlu_common.c */
 /*
@@ -7639,35 +7659,35 @@ cmd_t wl_cmds[] = {
 static uint
 wl_iovar_mkbuf(const char *name, char *data, uint datalen, char *iovar_buf, uint buflen, int *perr)
 {
-	uint iovar_len;
-	char *p;
+    uint iovar_len;
+    char *p;
 
-	iovar_len = strlen(name) + 1;
+    iovar_len = strlen(name) + 1;
 
-	/* check for overflow */
-	if ((iovar_len + datalen) > buflen) {
-		*perr = BCME_BUFTOOSHORT;
-		return 0;
-	}
+    /* check for overflow */
+    if ((iovar_len + datalen) > buflen) {
+        *perr = BCME_BUFTOOSHORT;
+        return 0;
+    }
 
-	/* copy data to the buffer past the end of the iovar name string */
-	if (datalen > 0)
-		memmove(&iovar_buf[iovar_len], data, datalen);
+    /* copy data to the buffer past the end of the iovar name string */
+    if (datalen > 0)
+        memmove(&iovar_buf[iovar_len], data, datalen);
 
-	/* copy the name to the beginning of the buffer */
-	strcpy(iovar_buf, name);
+    /* copy the name to the beginning of the buffer */
+    strcpy(iovar_buf, name);
 
-	/* wl command line automatically converts iovar names to lower case for
-	 * ease of use
-	 */
-	p = iovar_buf;
-	while (*p != '\0') {
-		*p = tolower((int)*p);
-		p++;
-	}
+    /* wl command line automatically converts iovar names to lower case for
+     * ease of use
+     */
+    p = iovar_buf;
+    while (*p != '\0') {
+        *p = tolower((int)*p);
+        p++;
+    }
 
-	*perr = 0;
-	return (iovar_len + datalen);
+    *perr = 0;
+    return (iovar_len + datalen);
 }
 
 /*
@@ -7676,16 +7696,16 @@ wl_iovar_mkbuf(const char *name, char *data, uint datalen, char *iovar_buf, uint
  */
 static int
 wlu_iovar_setbuf(void* wl, const char *iovar,
-	void *param, int paramlen, void *bufptr, int buflen)
+    void *param, int paramlen, void *bufptr, int buflen)
 {
-	int err;
-	int iolen;
+    int err;
+    int iolen;
 
-	iolen = wl_iovar_mkbuf(iovar, param, paramlen, bufptr, buflen, &err);
-	if (err)
-		return err;
+    iolen = wl_iovar_mkbuf(iovar, param, paramlen, bufptr, buflen, &err);
+    if (err)
+        return err;
 
-	return wlu_set(wl, WLC_SET_VAR, bufptr, iolen);
+    return wlu_set(wl, WLC_SET_VAR, bufptr, iolen);
 }
 
 /* CAD copied from wlu.c 2016-06-22 */
@@ -7713,38 +7733,38 @@ int wlu_var_setbuf( void *wl, const char *iovar, void *param, int param_len)
 int
 wl_parse_chanspec_list(char *list_str, chanspec_t *chanspec_list, int chanspec_num)
 {
-	int num = 0;
-	chanspec_t chanspec;
-	char *next, str[8];
-	size_t len;
+    int num = 0;
+    chanspec_t chanspec;
+    char *next, str[8];
+    size_t len;
 
-	if ((next = list_str) == NULL)
-		return BCME_ERROR;
+    if ((next = list_str) == NULL)
+        return BCME_ERROR;
 
-	while ((len = strcspn(next, " ,")) > 0) {
-		if (len >= sizeof(str)) {
-			fprintf(stderr, "string \"%s\" before ',' or ' ' is too long\n", next);
-			return BCME_ERROR;
-		}
-		strncpy(str, next, len);
-		str[len] = 0;
-		chanspec = wf_chspec_aton(str);
-		if (chanspec == 0) {
-			fprintf(stderr, "could not parse chanspec starting at "
-			        "\"%s\" in list:\n%s\n", str, list_str);
-			return BCME_ERROR;
-		}
-		if (num == chanspec_num) {
-			fprintf(stderr, "too many chanspecs (more than %d) in chanspec list:\n%s\n",
-				chanspec_num, list_str);
-			return BCME_ERROR;
-		}
-		chanspec_list[num++] = chanspec;
-		next += len;
-		next += strspn(next, " ,");
-	}
+    while ((len = strcspn(next, " ,")) > 0) {
+        if (len >= sizeof(str)) {
+            fprintf(stderr, "string \"%s\" before ',' or ' ' is too long\n", next);
+            return BCME_ERROR;
+        }
+        strncpy(str, next, len);
+        str[len] = 0;
+        chanspec = wf_chspec_aton(str);
+        if (chanspec == 0) {
+            fprintf(stderr, "could not parse chanspec starting at "
+                    "\"%s\" in list:\n%s\n", str, list_str);
+            return BCME_ERROR;
+        }
+        if (num == chanspec_num) {
+            fprintf(stderr, "too many chanspecs (more than %d) in chanspec list:\n%s\n",
+                chanspec_num, list_str);
+            return BCME_ERROR;
+        }
+        chanspec_list[num++] = chanspec;
+        next += len;
+        next += strspn(next, " ,");
+    }
 
-	return num;
+    return num;
 }
 
 /* CAD copied from wlu.c 2016-05-26 */
@@ -7752,257 +7772,257 @@ int
 wl_scan_prep(void *wl, cmd_t *cmd, char **argv, wl_scan_params_t *params, int *params_size)
 {
     #if 0
-	int val = 0;
-	char key[64];
-	int keylen;
-	char *eq, *valstr, *endptr = NULL;
-	char opt;
-	bool positional_param;
-	bool good_int;
-	bool opt_end;
+    int val = 0;
+    char key[64];
+    int keylen;
+    char *eq, *valstr, *endptr = NULL;
+    char opt;
+    bool positional_param;
+    bool good_int;
+    bool opt_end;
     #endif
-	char *p = NULL;
-	int err = 0;
-	int i;
+    char *p = NULL;
+    int err = 0;
+    int i;
 
-	int nchan = 0;
-	int nssid = 0;
-	wlc_ssid_t ssids[WL_SCAN_PARAMS_SSID_MAX];
+    int nchan = 0;
+    int nssid = 0;
+    wlc_ssid_t ssids[WL_SCAN_PARAMS_SSID_MAX];
 
-	UNUSED_PARAMETER(wl);
-	UNUSED_PARAMETER(cmd);
+    UNUSED_PARAMETER(wl);
+    UNUSED_PARAMETER(cmd);
 
-	memcpy(&params->bssid, &ether_bcast, ETHER_ADDR_LEN);
-	params->bss_type = DOT11_BSSTYPE_ANY;
-	params->scan_type = 0;
-	params->nprobes = -1;
-	params->active_time = -1;
-	params->passive_time = -1;
-	params->home_time = -1;
-	params->channel_num = 0;
-	memset(ssids, 0, WL_SCAN_PARAMS_SSID_MAX * sizeof(wlc_ssid_t));
+    memcpy(&params->bssid, &ether_bcast, ETHER_ADDR_LEN);
+    params->bss_type = DOT11_BSSTYPE_ANY;
+    params->scan_type = 0;
+    params->nprobes = -1;
+    params->active_time = -1;
+    params->passive_time = -1;
+    params->home_time = -1;
+    params->channel_num = 0;
+    memset(ssids, 0, WL_SCAN_PARAMS_SSID_MAX * sizeof(wlc_ssid_t));
 
-	/* skip the command name */
-	argv++;
+    /* skip the command name */
+    argv++;
 
 #if 0
-	opt_end = FALSE;
-	while ((p = *argv) != NULL) {
-		argv++;
-		positional_param = FALSE;
-		memset(key, 0, sizeof(key));
-		opt = '\0';
-		valstr = NULL;
-		good_int = FALSE;
+    opt_end = FALSE;
+    while ((p = *argv) != NULL) {
+        argv++;
+        positional_param = FALSE;
+        memset(key, 0, sizeof(key));
+        opt = '\0';
+        valstr = NULL;
+        good_int = FALSE;
 
-		if (opt_end) {
-			positional_param = TRUE;
-			valstr = p;
-		}
-		else if (!strcmp(p, "--")) {
-			opt_end = TRUE;
-			continue;
-		}
-		else if (!strncmp(p, "--", 2)) {
-			eq = strchr(p, '=');
-			if (eq == NULL) {
-				fprintf(stderr,
-				"wl_scan: missing \" = \" in long param \"%s\"\n", p);
-				err = BCME_USAGE_ERROR;
-				goto exit;
-			}
-			keylen = eq - (p + 2);
-			if (keylen > 63)
-				keylen = 63;
-			memcpy(key, p + 2, keylen);
+        if (opt_end) {
+            positional_param = TRUE;
+            valstr = p;
+        }
+        else if (!strcmp(p, "--")) {
+            opt_end = TRUE;
+            continue;
+        }
+        else if (!strncmp(p, "--", 2)) {
+            eq = strchr(p, '=');
+            if (eq == NULL) {
+                fprintf(stderr,
+                "wl_scan: missing \" = \" in long param \"%s\"\n", p);
+                err = BCME_USAGE_ERROR;
+                goto exit;
+            }
+            keylen = eq - (p + 2);
+            if (keylen > 63)
+                keylen = 63;
+            memcpy(key, p + 2, keylen);
 
-			valstr = eq + 1;
-			if (*valstr == '\0') {
-				fprintf(stderr,
-				"wl_scan: missing value after \" = \" in long param \"%s\"\n", p);
-				err = BCME_USAGE_ERROR;
-				goto exit;
-			}
-		}
-		else if (!strncmp(p, "-", 1)) {
-			opt = p[1];
-			if (strlen(p) > 2) {
-				fprintf(stderr,
-				"wl_scan: only single char options, error on param \"%s\"\n", p);
-				err = BCME_BADARG;
-				goto exit;
-			}
-			if (*argv == NULL) {
-				fprintf(stderr,
-				"wl_scan: missing value parameter after \"%s\"\n", p);
-				err = BCME_USAGE_ERROR;
-				goto exit;
-			}
-			valstr = *argv;
-			argv++;
-		} else {
-			positional_param = TRUE;
-			valstr = p;
-		}
+            valstr = eq + 1;
+            if (*valstr == '\0') {
+                fprintf(stderr,
+                "wl_scan: missing value after \" = \" in long param \"%s\"\n", p);
+                err = BCME_USAGE_ERROR;
+                goto exit;
+            }
+        }
+        else if (!strncmp(p, "-", 1)) {
+            opt = p[1];
+            if (strlen(p) > 2) {
+                fprintf(stderr,
+                "wl_scan: only single char options, error on param \"%s\"\n", p);
+                err = BCME_BADARG;
+                goto exit;
+            }
+            if (*argv == NULL) {
+                fprintf(stderr,
+                "wl_scan: missing value parameter after \"%s\"\n", p);
+                err = BCME_USAGE_ERROR;
+                goto exit;
+            }
+            valstr = *argv;
+            argv++;
+        } else {
+            positional_param = TRUE;
+            valstr = p;
+        }
 
-		/* parse valstr as int just in case */
-		val = (int)strtol(valstr, &endptr, 0);
-		if (*endptr == '\0') {
-			/* not all the value string was parsed by strtol */
-			good_int = TRUE;
-		}
+        /* parse valstr as int just in case */
+        val = (int)strtol(valstr, &endptr, 0);
+        if (*endptr == '\0') {
+            /* not all the value string was parsed by strtol */
+            good_int = TRUE;
+        }
 
-		if (opt == 's' || !strcmp(key, "ssid") || positional_param) {
-			nssid = wl_parse_ssid_list(valstr, ssids, nssid, WL_SCAN_PARAMS_SSID_MAX);
-			if (nssid < 0) {
-				err = BCME_BADARG;
-				goto exit;
-			}
-		}
+        if (opt == 's' || !strcmp(key, "ssid") || positional_param) {
+            nssid = wl_parse_ssid_list(valstr, ssids, nssid, WL_SCAN_PARAMS_SSID_MAX);
+            if (nssid < 0) {
+                err = BCME_BADARG;
+                goto exit;
+            }
+        }
 
-		/* scan_type is a bitmap value and can have multiple options */
-		if (opt == 't' || !strcmp(key, "scan_type")) {
-			if (!strcmp(valstr, "active")) {
-				/* do nothing - scan_type is initialized outside of while loop */
-			} else if (!strcmp(valstr, "passive")) {
-				params->scan_type |= WL_SCANFLAGS_PASSIVE;
-			} else if (!strcmp(valstr, "prohibit")) {
-				params->scan_type |= WL_SCANFLAGS_PROHIBITED;
-			} else if (!strcmp(valstr, "offchan")) {
-				params->scan_type |= WL_SCANFLAGS_OFFCHAN;
-			} else if (!strcmp(valstr, "hotspot")) {
-				params->scan_type |= WL_SCANFLAGS_HOTSPOT;
-			} else {
-				fprintf(stderr,
-				"scan_type value should be \"active\", "
-				"\"passive\", \"prohibit\", \"offchan\" "
-				"or \"hotspot\", but got \"%s\"\n", valstr);
-				err = BCME_USAGE_ERROR;
-				goto exit;
-			}
-		}
-		if (!strcmp(key, "bss_type")) {
-			if (!strcmp(valstr, "bss") || !strcmp(valstr, "infra")) {
-				params->bss_type = DOT11_BSSTYPE_INFRASTRUCTURE;
-			} else if (!strcmp(valstr, "ibss") || !strcmp(valstr, "adhoc")) {
-				params->bss_type = DOT11_BSSTYPE_INDEPENDENT;
-			} else if (!strcmp(valstr, "any")) {
-				params->bss_type = DOT11_BSSTYPE_ANY;
-			} else {
-				fprintf(stderr,
-				"bss_type value should be "
-				"\"bss\", \"ibss\", or \"any\", but got \"%s\"\n", valstr);
-				err = BCME_USAGE_ERROR;
-				goto exit;
-			}
-		}
-		if (opt == 'b' || !strcmp(key, "bssid")) {
-			if (!wl_ether_atoe(valstr, &params->bssid)) {
-				fprintf(stderr,
-				"could not parse \"%s\" as an ethernet MAC address\n", valstr);
-				err = BCME_USAGE_ERROR;
-				goto exit;
-			}
-		}
-		if (opt == 'n' || !strcmp(key, "nprobes")) {
-			if (!good_int) {
-				fprintf(stderr,
-				"could not parse \"%s\" as an int for value nprobes\n", valstr);
-				err = BCME_BADARG;
-				goto exit;
-			}
-			params->nprobes = val;
-		}
-		if (opt == 'a' || !strcmp(key, "active")) {
-			if (!good_int) {
-				fprintf(stderr,
-				"could not parse \"%s\" as an int for active dwell time\n",
-					valstr);
-				err = BCME_BADARG;
-				goto exit;
-			}
-			params->active_time = val;
-		}
-		if (opt == 'p' || !strcmp(key, "passive")) {
-			if (!good_int) {
-				fprintf(stderr,
-				"could not parse \"%s\" as an int for passive dwell time\n",
-					valstr);
-				err = BCME_BADARG;
-				goto exit;
-			}
-			params->passive_time = val;
-		}
-		if (opt == 'h' || !strcmp(key, "home")) {
-			if (!good_int) {
-				fprintf(stderr,
-				"could not parse \"%s\" as an int for home channel dwell time\n",
-					valstr);
-				err = BCME_BADARG;
-				goto exit;
-			}
-			params->home_time = val;
-		}
-		if (opt == 'c' || !strcmp(key, "chanspecs")) {
-			nchan = wl_parse_chanspec_list(valstr, params->channel_list,
-			                              WL_NUMCHANNELS);
-			if (nchan == -1) {
-				fprintf(stderr, "error parsing chanspec list arg\n");
-				err = BCME_BADARG;
-				goto exit;
-			}
-		}
-	}
+        /* scan_type is a bitmap value and can have multiple options */
+        if (opt == 't' || !strcmp(key, "scan_type")) {
+            if (!strcmp(valstr, "active")) {
+                /* do nothing - scan_type is initialized outside of while loop */
+            } else if (!strcmp(valstr, "passive")) {
+                params->scan_type |= WL_SCANFLAGS_PASSIVE;
+            } else if (!strcmp(valstr, "prohibit")) {
+                params->scan_type |= WL_SCANFLAGS_PROHIBITED;
+            } else if (!strcmp(valstr, "offchan")) {
+                params->scan_type |= WL_SCANFLAGS_OFFCHAN;
+            } else if (!strcmp(valstr, "hotspot")) {
+                params->scan_type |= WL_SCANFLAGS_HOTSPOT;
+            } else {
+                fprintf(stderr,
+                "scan_type value should be \"active\", "
+                "\"passive\", \"prohibit\", \"offchan\" "
+                "or \"hotspot\", but got \"%s\"\n", valstr);
+                err = BCME_USAGE_ERROR;
+                goto exit;
+            }
+        }
+        if (!strcmp(key, "bss_type")) {
+            if (!strcmp(valstr, "bss") || !strcmp(valstr, "infra")) {
+                params->bss_type = DOT11_BSSTYPE_INFRASTRUCTURE;
+            } else if (!strcmp(valstr, "ibss") || !strcmp(valstr, "adhoc")) {
+                params->bss_type = DOT11_BSSTYPE_INDEPENDENT;
+            } else if (!strcmp(valstr, "any")) {
+                params->bss_type = DOT11_BSSTYPE_ANY;
+            } else {
+                fprintf(stderr,
+                "bss_type value should be "
+                "\"bss\", \"ibss\", or \"any\", but got \"%s\"\n", valstr);
+                err = BCME_USAGE_ERROR;
+                goto exit;
+            }
+        }
+        if (opt == 'b' || !strcmp(key, "bssid")) {
+            if (!wl_ether_atoe(valstr, &params->bssid)) {
+                fprintf(stderr,
+                "could not parse \"%s\" as an ethernet MAC address\n", valstr);
+                err = BCME_USAGE_ERROR;
+                goto exit;
+            }
+        }
+        if (opt == 'n' || !strcmp(key, "nprobes")) {
+            if (!good_int) {
+                fprintf(stderr,
+                "could not parse \"%s\" as an int for value nprobes\n", valstr);
+                err = BCME_BADARG;
+                goto exit;
+            }
+            params->nprobes = val;
+        }
+        if (opt == 'a' || !strcmp(key, "active")) {
+            if (!good_int) {
+                fprintf(stderr,
+                "could not parse \"%s\" as an int for active dwell time\n",
+                    valstr);
+                err = BCME_BADARG;
+                goto exit;
+            }
+            params->active_time = val;
+        }
+        if (opt == 'p' || !strcmp(key, "passive")) {
+            if (!good_int) {
+                fprintf(stderr,
+                "could not parse \"%s\" as an int for passive dwell time\n",
+                    valstr);
+                err = BCME_BADARG;
+                goto exit;
+            }
+            params->passive_time = val;
+        }
+        if (opt == 'h' || !strcmp(key, "home")) {
+            if (!good_int) {
+                fprintf(stderr,
+                "could not parse \"%s\" as an int for home channel dwell time\n",
+                    valstr);
+                err = BCME_BADARG;
+                goto exit;
+            }
+            params->home_time = val;
+        }
+        if (opt == 'c' || !strcmp(key, "chanspecs")) {
+            nchan = wl_parse_chanspec_list(valstr, params->channel_list,
+                                          WL_NUMCHANNELS);
+            if (nchan == -1) {
+                fprintf(stderr, "error parsing chanspec list arg\n");
+                err = BCME_BADARG;
+                goto exit;
+            }
+        }
+    }
 #endif
 
-	if (nssid > WL_SCAN_PARAMS_SSID_MAX) {
-		fprintf(stderr, "ssid count %d exceeds max of %d\n",
-		        nssid, WL_SCAN_PARAMS_SSID_MAX);
-		err = BCME_BADARG;
-		goto exit;
-	}
+    if (nssid > WL_SCAN_PARAMS_SSID_MAX) {
+        fprintf(stderr, "ssid count %d exceeds max of %d\n",
+                nssid, WL_SCAN_PARAMS_SSID_MAX);
+        err = BCME_BADARG;
+        goto exit;
+    }
 
-	params->nprobes = htod32(params->nprobes);
-	params->active_time = htod32(params->active_time);
-	params->passive_time = htod32(params->passive_time);
-	params->home_time = htod32(params->home_time);
+    params->nprobes = htod32(params->nprobes);
+    params->active_time = htod32(params->active_time);
+    params->passive_time = htod32(params->passive_time);
+    params->home_time = htod32(params->home_time);
 
-	for (i = 0; i < nchan; i++) {
-		params->channel_list[i] = htodchanspec(params->channel_list[i]);
-	}
+    for (i = 0; i < nchan; i++) {
+        params->channel_list[i] = htodchanspec(params->channel_list[i]);
+    }
 
-	for (i = 0; i < nssid; i++) {
-		ssids[i].SSID_len = htod32(ssids[i].SSID_len);
-	}
+    for (i = 0; i < nssid; i++) {
+        ssids[i].SSID_len = htod32(ssids[i].SSID_len);
+    }
 
-	/* For a single ssid, use the single fixed field */
-	if (nssid == 1) {
-		nssid = 0;
-		memcpy(&params->ssid, &ssids[0], sizeof(ssids[0]));
-	}
+    /* For a single ssid, use the single fixed field */
+    if (nssid == 1) {
+        nssid = 0;
+        memcpy(&params->ssid, &ssids[0], sizeof(ssids[0]));
+    }
 
-	/* Copy ssid array if applicable */
-	if (nssid > 0) {
-		i = OFFSETOF(wl_scan_params_t, channel_list) + nchan * sizeof(uint16);
-		i = ROUNDUP(i, sizeof(uint32));
-		if (i + nssid * sizeof(wlc_ssid_t) > (uint)*params_size) {
-			fprintf(stderr, "additional ssids exceed params_size\n");
-			err = BCME_BADARG;
-			goto exit;
-		}
+    /* Copy ssid array if applicable */
+    if (nssid > 0) {
+        i = OFFSETOF(wl_scan_params_t, channel_list) + nchan * sizeof(uint16);
+        i = ROUNDUP(i, sizeof(uint32));
+        if (i + nssid * sizeof(wlc_ssid_t) > (uint)*params_size) {
+            fprintf(stderr, "additional ssids exceed params_size\n");
+            err = BCME_BADARG;
+            goto exit;
+        }
 
-		p = (char*)params + i;
-		memcpy(p, ssids, nssid * sizeof(wlc_ssid_t));
-		p += nssid * sizeof(wlc_ssid_t);
-	} else {
-		p = (char*)params->channel_list + nchan * sizeof(uint16);
-	}
+        p = (char*)params + i;
+        memcpy(p, ssids, nssid * sizeof(wlc_ssid_t));
+        p += nssid * sizeof(wlc_ssid_t);
+    } else {
+        p = (char*)params->channel_list + nchan * sizeof(uint16);
+    }
 
-	params->channel_num = htod32((nssid << WL_SCAN_PARAMS_NSSID_SHIFT) |
-	                             (nchan & WL_SCAN_PARAMS_COUNT_MASK));
-	*params_size = p - (char*)params + nssid * sizeof(wlc_ssid_t);
+    params->channel_num = htod32((nssid << WL_SCAN_PARAMS_NSSID_SHIFT) |
+                                 (nchan & WL_SCAN_PARAMS_COUNT_MASK));
+    *params_size = p - (char*)params + nssid * sizeof(wlc_ssid_t);
 exit:
-	return err;
+    return err;
 }
 
 /*
@@ -8533,21 +8553,21 @@ const char * BWL_GetAmpdu(
 {
     int   ret      = 0;
     void *wl       = hBwl->wl;
-	char *dump_buf = NULL;
+    char *dump_buf = NULL;
 
-	dump_buf = malloc(WL_DUMP_BUF_LEN);
-	if (dump_buf == NULL)
+    dump_buf = malloc(WL_DUMP_BUF_LEN);
+    if (dump_buf == NULL)
     {
-		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", BWL_DUMP_BUF_LEN);
-		return NULL;
-	}
-	memset(dump_buf, 0, BWL_DUMP_BUF_LEN);
+        fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", BWL_DUMP_BUF_LEN);
+        return NULL;
+    }
+    memset(dump_buf, 0, BWL_DUMP_BUF_LEN);
     strcpy(dump_buf, "ampdu ");
 
     ret = wlu_iovar_getbuf(wl, "dump", dump_buf, strlen(dump_buf), dump_buf, BWL_DUMP_BUF_LEN);
-	if (ret >= BCME_OK) {
-		ret = BCME_OK;
-	}
+    if (ret >= BCME_OK) {
+        ret = BCME_OK;
+    }
 
     return ( dump_buf );
 }
@@ -8560,9 +8580,9 @@ int BWL_ClearAmpdu(
     void *wl       = hBwl->wl;
 
     ret = wlu_iovar_setbuf(wl, "dump_clear", "ampdu", strlen("ampdu"), buf, WLC_IOCTL_MAXLEN);
-	if (ret >= BCME_OK) {
-		ret = BCME_OK;
-	}
+    if (ret >= BCME_OK) {
+        ret = BCME_OK;
+    }
 
     return ( 0 );
 }
@@ -8573,21 +8593,21 @@ const unsigned char * BWL_GetPhyRssiAnt(
 {
     int   ret      = 0;
     void *wl       = hBwl->wl;
-	char *dump_buf = NULL;
+    char *dump_buf = NULL;
 
-	dump_buf = malloc(WL_DUMP_BUF_LEN);
-	if (dump_buf == NULL)
+    dump_buf = malloc(WL_DUMP_BUF_LEN);
+    if (dump_buf == NULL)
     {
-		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", BWL_DUMP_BUF_LEN);
-		return NULL;
-	}
-	memset(dump_buf, 0, BWL_DUMP_BUF_LEN);
+        fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", BWL_DUMP_BUF_LEN);
+        return NULL;
+    }
+    memset(dump_buf, 0, BWL_DUMP_BUF_LEN);
     strcpy((char*) dump_buf, "phy_rssi_ant ");
 
     ret = wlu_iovar_getbuf(wl, "phy_rssi_ant", dump_buf, strlen(dump_buf), dump_buf, BWL_DUMP_BUF_LEN);
-	if (ret >= BCME_OK) {
-		ret = BCME_OK;
-	}
+    if (ret >= BCME_OK) {
+        ret = BCME_OK;
+    }
 
     return ( (unsigned char*) dump_buf );
 }
@@ -8597,31 +8617,73 @@ char * BWL_GetDriverVersion(
 {
     int   ret      = 0;
     void *wl       = hBwl->wl;
-	char *dump_buf = NULL;
-	char *p        = NULL;
+    char *dump_buf = NULL;
+    char *p        = NULL;
 
-	dump_buf = malloc(WLC_IOCTL_SMLEN);
-	if (dump_buf == NULL)
+    dump_buf = malloc(WLC_IOCTL_SMLEN);
+    if (dump_buf == NULL)
     {
-		fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", WLC_IOCTL_SMLEN);
-		return NULL;
-	}
-	memset(dump_buf, 0, WLC_IOCTL_SMLEN);
+        fprintf(stderr, "Failed to allocate dump buffer of %d bytes\n", WLC_IOCTL_SMLEN);
+        return NULL;
+    }
+    memset(dump_buf, 0, WLC_IOCTL_SMLEN);
 
-	/* query for 'ver' to get version info */
-	ret = wlu_iovar_get(wl, "ver", dump_buf, WLC_IOCTL_SMLEN);
+    /* query for 'ver' to get version info */
+    ret = wlu_iovar_get(wl, "ver", dump_buf, WLC_IOCTL_SMLEN);
 
-	if (ret) {
-		fprintf(stderr, "Error %d on query of driver dump\n", (int)ret);
-		free(dump_buf);
-		return NULL;
-	}
+    if (ret) {
+        fprintf(stderr, "Error %d on query of driver dump\n", (int)ret);
+        free(dump_buf);
+        return NULL;
+    }
 
-	/* keep only the first line from the dump buf output */
-	p = strchr(dump_buf, '\n');
-	if (p)
+    /* keep only the first line from the dump buf output */
+    p = strchr(dump_buf, '\n');
+    if (p)
     {
-		*p = '\0';
+        *p = '\0';
     }
     return ( dump_buf );
+}
+
+/* copied from BSEAV/connectivity/wlan/STB7271_BRANCH_15_10/linux-external-stbsoc/src/wl/exe/wlu_subcounters.c */
+int BWL_ClearCounters(
+    BWL_Handle      hBwl   /* [in] BWL Handle */
+    )
+{
+    int err  = 0;
+    int val  = 0;
+    void *wl = hBwl->wl;
+#ifdef WL_NAN
+    wl_nan_ioc_t*nanioc;
+    uint16 iocsz = sizeof(wl_nan_ioc_t) + WL_NAN_IOC_BUFSZ;
+#endif /* WL_NAN */
+
+#define RESET_CMD "reset_cnts"
+    if ((err = wlu_iovar_getint(wl, RESET_CMD, &val)))
+    {
+        fprintf(stderr, "%s: wlu_iovar_getint(%s) failed ... err %d \n", __FUNCTION__, RESET_CMD, (int)err );
+        return (err);
+    }
+
+#ifdef WL_NAN
+    /*    alloc mem for ioctl headr +  tlv data  */
+    nanioc = calloc(1, iocsz);
+    if (nanioc == NULL)
+    {
+        fprintf(stderr, "%s: calloc(%d) failed \n", __FUNCTION__, (int) iocsz );
+        return BCME_NOMEM;
+    }
+
+    /* make up nan cmd ioctl header */
+    nanioc->version = htod16(WL_NAN_IOCTL_VERSION);
+    nanioc->id = WL_NAN_CMD_CFG_CLEARCOUNT;
+    nanioc->len = WL_NAN_IOC_BUFSZ;
+
+    /*fprintf(stderr, "%s: wl_nan_do_ioctl(%d) trying; version 0x%x; id %d; len %d \n", __FUNCTION__, (int) iocsz, nanioc->version, nanioc->id, nanioc->len );*/
+    wl_nan_do_ioctl(wl, nanioc, iocsz, FALSE);
+    free(nanioc);
+#endif /* WL_NAN */
+
+    return (0);
 }

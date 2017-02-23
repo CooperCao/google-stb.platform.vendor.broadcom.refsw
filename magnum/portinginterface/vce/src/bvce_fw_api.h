@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,12 +67,12 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x050F0000
+#define VICE_API_VERSION                  0x06000000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
  */
-#define HOST_CMD_BUFFER_SIZE                      128
+#define HOST_CMD_BUFFER_SIZE                      136
 
 /*
  * ViCE to Host interrupts
@@ -199,6 +199,8 @@ extern "C"
 #define VICE_CMD_RETURN_ERR_VICE_IS_IN_CHANNEL_FLUSHING_MODE       (51)    /* ViCE can not configure/start/close a channel while it is flushing data */
 #define VICE_CMD_RETURN_ERR_VICE_IS_IN_CABAC_FLUSHING_MODE         (52)    /* ViCE can not configure/start/close a channel while it is flushing data */
 #define VICE_CMD_RETURN_ERR_VARIABLE_BITRATE_UNSUPPORTED           (53)    /* VBR unsupported in this mode */
+#define VICE_CMD_RETURN_ERR_UNSUPPORTED_INTERLACED_TYPE_VP9        (54)    /* Interlaced mode is not supported for VP9 encoding standard */
+#define VICE_CMD_RETURN_ERR_WRONG_MEMORY_SETTINGS                  (55)    /* Memory settings are wrong / not supported */
 
 /*
  * VICE Commands
@@ -221,33 +223,33 @@ extern "C"
  * Channel-specific Event codes returned by the ViCE through the Status and Event interface
  */
 /* Errors (LSBs) */
-#define VICE_ERROR_INVALID_INPUT_DIMENSION_BIT                                        (0)
-#define VICE_ERROR_USER_DATA_LATE_BIT                                                 (1)
-#define VICE_ERROR_USER_DATA_DUPLICATE_BIT                                            (2)
-#define VICE_ERROR_FW_ADJUSTS_WRONG_FRAME_RATE                                        (3)
-#define VICE_ERROR_UNSUPPORTED_BVN_FRAME_RATE                                         (4)
-#define VICE_ERROR_UNSUPPORTED_RESOLUTION                                             (5)
-#define VICE_ERROR_BVN_FRAMERATE_IS_SMALLER_THAN_THE_MINIMUM_ALLOWED                  (6)
-#define VICE_ERROR_MISMATCH_BVN_PIC_RESOLUTION                                        (7)
-#define VICE_ERROR_FW_INCREASED_BITRATE_ABOVE_MAX                                     (8)
-#define VICE_ERROR_BIN_BUFFER_IS_FULL                                                 (9)
-#define VICE_ERROR_CDB_IS_FULL                                                        (10)
-#define VICE_ERROR_PICARC_TO_CABAC_DINO_BUFFER_IS_FULL                                (11)
-#define VICE_ERROR_EBM_IS_FULL                                                        (12)
-#define VICE_ERROR_NUM_SLICES_ADJUSTED_TO_MAX_ALLOWED                                 (13)
-#define VICE_ERROR_NUM_ENTRIES_INTRACODED_ADJUSTED_TO_MAX_ALLOWED                     (14)
-#define VICE_ERROR_IBBP_NOT_SUPPORTED_FOR_THIS_RESOLUTION                             (15)
-#define VICE_ERROR_MBARC_BOOT_FAILURE                                                 (16)
-#define VICE_ERROR_MEASURED_ENCODER_DELAY_LONGER_THAN_ESTIMATED                       (17)
-#define VICE_ERROR_CRITICAL                                                           (18)
-#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE                       (19)
-#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE                       (20)
-#define VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL                              (21)
-#define VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED                          (22)
+#define VICE_ERROR_INVALID_INPUT_DIMENSION_BIT                     (0)
+#define VICE_ERROR_USER_DATA_LATE_BIT                              (1)
+#define VICE_ERROR_USER_DATA_DUPLICATE_BIT                         (2)
+#define VICE_ERROR_FW_ADJUSTS_WRONG_FRAME_RATE                     (3)
+#define VICE_ERROR_UNSUPPORTED_BVN_FRAME_RATE                      (4)
+#define VICE_ERROR_UNSUPPORTED_RESOLUTION                          (5)
+#define VICE_ERROR_BVN_FRAMERATE_IS_SMALLER_THAN_THE_MINIMUM_ALLOWED        (6)
+#define VICE_ERROR_MISMATCH_BVN_PIC_RESOLUTION                     (7)
+#define VICE_ERROR_FW_INCREASED_BITRATE_ABOVE_MAX                  (8)
+#define VICE_ERROR_BIN_BUFFER_IS_FULL                              (9)
+#define VICE_ERROR_CDB_IS_FULL                                     (10)
+#define VICE_ERROR_PICARC_TO_CABAC_DINO_BUFFER_IS_FULL             (11)
+#define VICE_ERROR_EBM_IS_FULL                                     (12)
+#define VICE_ERROR_NUM_SLICES_ADJUSTED_TO_MAX_ALLOWED              (13)
+#define VICE_ERROR_NUM_ENTRIES_INTRACODED_ADJUSTED_TO_MAX_ALLOWED  (14)
+#define VICE_ERROR_IBBP_NOT_SUPPORTED_FOR_THIS_RESOLUTION          (15)
+#define VICE_ERROR_MBARC_BOOT_FAILURE                              (16)
+#define VICE_ERROR_MEASURED_ENCODER_DELAY_LONGER_THAN_ESTIMATED    (17)
+#define VICE_ERROR_CRITICAL                                        (18)
+#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_3_CH_MODE    (19)
+#define VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE    (20)
+#define VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL           (21)
+#define VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED       (22)
 #define VICE_ERROR_UNSUPPORTED_FRAME_RATE_FOR_THIS_RESOLUTION_AND_GOP_STRUCTURE       (23)
 /* Events (MSBs) */
-#define VICE_EVENT_EOS_SENT_BIT                                                       (30)
-#define VICE_EVENT_BVN_METADATA_CHANGE_BIT                                            (31)
+#define VICE_EVENT_EOS_SENT_BIT                                    (30)
+#define VICE_EVENT_BVN_METADATA_CHANGE_BIT                         (31)
 
 
 /*
@@ -441,6 +443,7 @@ typedef struct ViceGenericCmdResponse_t
 /* ---- INIT ---- */
 #define WORD_SIZE_GWORD        0
 #define WORD_SIZE_JWORD        1
+#define WORD_SIZE_MWORD        2
 
 #define BANK_TYPE_4_BANKS      0
 #define BANK_TYPE_8_BANKS      1
@@ -461,16 +464,16 @@ typedef struct ViceGenericCmdResponse_t
 
 typedef struct ViceCmdInit_t
 {
-    uint32_t    Command;                                    /* OpCode of the command: VICE_CMD_*                                */
+    uint32_t    Command;                                    /* OpCode of the command: VICE_CMD_*                                 */
     uint32_t    API_Version;                                /* version of the API, this can remain a 32-bit number               */
-    uint32_t    DeviceEndianess;                            /* CABAC Endianness flag 0:Big-endian (HW default), 1:Little-endian  */
-    uint32_t    DeviceSG_CABACCmdBuffPtr;                   /* SG-CABAC Command Buffer Address in DRAM                           */
-    uint32_t    DeviceSG_CABACCmdBuffSize;                  /* SG-CABAC Command Buffer size in bytes                             */
+    uint32_t    DeviceEndianess;                            /* CABAC Endianness flag 0:Big-endian (HW default), 1:Little-endian (VICE v1/v2 only)  */
+    uint32_t    DeviceSG_CABACCmdBuffPtr;                   /* SG-CABAC Command Buffer Address in DRAM (VICE v1/v2 only)         */
+    uint32_t    DeviceSG_CABACCmdBuffSize;                  /* SG-CABAC Command Buffer size in bytes   (VICE v1/v2 only)         */
     uint32_t    VerificationModeFlags;                      /* Bit 0 - Verification mode Off/On. Bit 1 - A2N drop On/Off         */
     uint32_t    StripeWidth;                                /* DRAM Stripe width for the given platform                          */
     uint32_t    X;                                          /* X in Xn+Y formula which is used for NBMY calculation              */
     uint32_t    Y;                                          /* Y in Xn+Y formula which is used for NBMY calculation              */
-    uint32_t    WordSize;                                   /* 0: G-word.   1: J-word                                            */
+    uint32_t    WordSize;                                   /* 0: G-word (128 bits). 1: J-word (256 bits). 2: M-word (512 bits). */
     uint32_t    BankType;                                   /* 0: 4 Banks.  1: 8 Banks.  2: 16 Banks.                            */
     uint32_t    PageSize;                                   /* 0: 1 Kbytes. 1: 2 Kbytes. 2: 4 Kbytes. 3: 8 Kbytes. 4: 16 Kbytes. */
     uint32_t    Grouping;                                   /* 0: Disable.  1: Enable.                                           */
@@ -479,11 +482,12 @@ typedef struct ViceCmdInit_t
 
 typedef struct ViceDebugBufferInfo_t                       /* //NS : style check ignored: required for backwards compatibility   */
 {
-    uint32_t  uiReadOffset;                                 /* PI or FW will update this, depending on the mode */
-    uint32_t  uiWriteOffset;                                /* FW will update this */
+    uint32_t  uiReadOffset;                                 /* PI or FW will update this, depending on the mode (0-indexed relative to start of buffer) */
+    uint32_t  uiWriteOffset;                                /* FW will update this (0-indexed relative to start of buffer) */
     uint32_t  uiMode;                                       /* VICE_DEBUG_BUFFER_MODE_STANDARD or VICE_DEBUG_BUFFER_MODE_OVERWRITE (see below) */
     uint32_t  uiSize;                                       /* size of debug buffer in bytes (DWORD-multiple) */
-    uint32_t  uiPhysicalOffset;                             /* physical offset in DRAM of debug log. (DWORD-aligned) */
+    uint32_t  uiPhysicalOffsetLo;                           /* physical offset in DRAM of debug log. (DWORD-aligned) */
+    uint32_t  uiPhysicalOffsetHi;                           /* physical offset in DRAM of debug log. (DWORD-aligned) */
 } ViceDebugBufferInfo_t;
 
 /* Debug Buffer Mode Description */
@@ -614,7 +618,7 @@ typedef struct BVCE_FW_P_UserData_QueueEntry
                          * Bits[14:8]  - Reserved
                          * Bits[ 7:0]  - Length
                          */
-   uint32_t uiOffset; /* Absolute offset into DRAM of the user data packet descriptor. See BVCE_FW_P_UserData_PacketDescriptor */
+   uint32_t uiOffset;  /* Offset into DRAM of the user data packet descriptor relative to the base offset. See BVCE_FW_P_UserData_PacketDescriptor */
 } BVCE_FW_P_UserData_QueueEntry;
 
 #define BVCE_FW_P_USERDATA_QUEUE_LENGTH 36
@@ -624,16 +628,19 @@ typedef struct BVCE_FW_P_UserData_Queue
    uint32_t uiReadOffset;
    uint32_t uiWriteOffset; /* Offset where 0 is the first entry in the queue, and BVCE_FW_P_USERDATA_QUEUE_LENGTH-1 is the last */
    BVCE_FW_P_UserData_QueueEntry astQueue[BVCE_FW_P_USERDATA_QUEUE_LENGTH];
+   uint32_t uiBaseOffsetLo;
+   uint32_t uiBaseOffsetHi;
 } BVCE_FW_P_UserData_Queue;
 
 typedef struct ViceCmdOpenChannel_t
 {
     uint32_t            Command;                            /* OpCode of the command: VICE_CMD_* */
     uint32_t            uiChannel_id;                       /* channel number to open (0..65535) */
-    VCE_PTR(uint8_t)    pNonSecureBufferBase;               /* pointer to the location that will contain the non-secure buffer */
+    VCE_PTR(uint8_t)    pNonSecureBufferBaseLo;             /* pointer to the location that will contain the non-secure buffer */
+    VCE_PTR(uint8_t)    pNonSecureBufferBaseHi;             /* pointer to the location that will contain the non-secure buffer */
     uint32_t            uiNonSecureBufferSize;              /* size of the non-secure buffer */
-    VCE_PTR(uint8_t)    pSecureBufferBase;                  /* pointer to the location that will contain the secure buffer */
-    uint32_t            uiSecureBufferSize;                 /* size of the secure buffer */
+    VCE_PTR(uint8_t)    pSecureBufferBase;                  /* pointer to the location that will contain the secure buffer (VICE v1/v2 only) */
+    uint32_t            uiSecureBufferSize;                 /* size of the secure buffer (VICE v1/v2 only) */
     uint32_t            uiMaxNumChannels;                   /* maximum number of channels, 0: max num of ch supported on current platform */
 } ViceCmdOpenChannel_t;
 
@@ -718,6 +725,7 @@ typedef struct ViceCmdCloseChannelResponse_t
 #define ENCODING_STD_MPEG4      2
 #define ENCODING_STD_VP8        3
 #define ENCODING_STD_HEVC       4
+#define ENCODING_STD_VP9        5
 
 /* WARNING: These value correspond to values written to hardware registers
  *          DO NOT CHANGE THEM !
@@ -731,10 +739,13 @@ typedef struct ViceCmdCloseChannelResponse_t
 #define ENCODING_MPEG4_PROFILE_SIMPLE           0
 #define ENCODING_MPEG4_PROFILE_ADVANCED_SIMPLE  1
 #define ENCODING_VP8_PROFILE_STANDARD_LF        0
+#define ENCODING_VP9_PROFILE                    0
 
 typedef enum
 {
-    ENCODING_HEVC_LEVEL_4       = 120,
+    ENCODING_HEVC_LEVEL_40      = 120,  /* 4*30 */
+    ENCODING_HEVC_LEVEL_41      = 123,  /* 4.1*30 */
+    ENCODING_HEVC_LEVEL_50      = 150,  /* 5*30 */
     ENCODING_AVC_LEVEL_10       = 10,
     ENCODING_AVC_LEVEL_11       = 11,
     ENCODING_AVC_LEVEL_12       = 12,
@@ -794,16 +805,16 @@ typedef enum
        ENCODING_FRAME_RATE_CODE_5994,
        ENCODING_FRAME_RATE_CODE_6000,
        ENCODING_FRAME_RATE_CODE_1498,
-       ENCODING_FRAME_RATE_CODE_0749,
-       ENCODING_FRAME_RATE_CODE_1000,
+       ENCODING_FRAME_RATE_CODE_0749,       /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_1000,       /* Not supported for ViCEv3 */
        ENCODING_FRAME_RATE_CODE_1500,
        ENCODING_FRAME_RATE_CODE_2000,
        ENCODING_FRAME_RATE_CODE_1998,
-       ENCODING_FRAME_RATE_CODE_1250,
-       ENCODING_FRAME_RATE_CODE_0750,
-       ENCODING_FRAME_RATE_CODE_1200,
-       ENCODING_FRAME_RATE_CODE_1198,
-       ENCODING_FRAME_RATE_CODE_0999
+       ENCODING_FRAME_RATE_CODE_1250,       /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_0750,       /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_1200,       /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_1198,       /* Not supported for ViCEv3 */
+       ENCODING_FRAME_RATE_CODE_0999        /* Not supported for ViCEv3 */
 } FrameRateCode_e;
 
 
@@ -853,9 +864,11 @@ typedef struct ViceCmdConfigChannel_t
     uint32_t    Flags;                                      /* 32 flags (describe below CONFIG_FLAG_*) */
     uint32_t    StcID;                                      /* ID of the STC that this channel should use */
     uint32_t    ContextID;                                  /* ID of the ITB/CDB Context that the FW should use. */
-    uint32_t    ITBBufPtr;                                  /* pointer to the ITB buffer base */
+    uint32_t    ITBBufPtrLo;                                /* pointer to the ITB buffer base */
+    uint32_t    ITBBufPtrHi;                                /* pointer to the ITB buffer base */
     uint32_t    ITBBufSize;                                 /* size of the ITB buffer in bytes */
-    uint32_t    CDBBufPtr;                                  /* pointer to the CDB buffer base */
+    uint32_t    CDBBufPtrLo;                                /* pointer to the CDB buffer base */
+    uint32_t    CDBBufPtrHi;                                /* pointer to the CDB buffer base */
     uint32_t    CDBBufSize;                                 /* size of the CDB buffer in bytes */
     uint32_t    A2PDelay;                                   /* Desired End-to-end delay given by the Host */
 
@@ -947,10 +960,12 @@ typedef struct ViceCmdConfigChannel_t
 #define CONFIG_FORCE_INTRA_MODE_INTRA_REFRESH_FRAME_DISTANCE_SHIFT  24
 
 /* Number of Entries To refresh */
+/* Relevant only for V2.x. For V3 it is always 1 */
 #define CONFIG_FORCE_INTRA_MODE_NUMBER_OF_ENTRIES_TO_REFRESH_MASK 0x00FF0000
 #define CONFIG_FORCE_INTRA_MODE_NUMBER_OF_ENTRIES_TO_REFRESH_SHIFT  16
 
 /* Refresh Pattern Selected - see ForceIntraPattern_e definition */
+/* Relevant only for V2.x. For V3 it is always column pattern refresh */
 #define CONFIG_FORCE_INTRA_MODE_REFRESH_PATTERN_SELECTED_MASK 0x00000002
 #define CONFIG_FORCE_INTRA_MODE_REFRESH_PATTERN_SELECTED_SHIFT  1
 
@@ -1025,11 +1040,12 @@ typedef enum
 {
       BVCE_FW_P_COREVERSION_V1   = 0,
       BVCE_FW_P_COREVERSION_V2   = 1,
-      BVCE_FW_P_COREVERSION_V2_1 = 2,     /*Use this for any 2.1 core revision except 2.1.0.3, 2.1.1.2 and 2.1.2.2*/
+      BVCE_FW_P_COREVERSION_V2_1 = 2,     /* Use this for any 2.1 core revision except 2.1.0.3, 2.1.1.2 and 2.1.2.2 */
       BVCE_FW_P_COREVERSION_V2_1_0_3 = 3,
       BVCE_FW_P_COREVERSION_V2_1_1_2 = 4,
       BVCE_FW_P_COREVERSION_V2_1_2_2 = 5,
       BVCE_FW_P_COREVERSION_V2_1_3_2 = 6,
+      BVCE_FW_P_COREVERSION_V3_0_0_2 = 7,
 
       /* Add new revisions ABOVE this line */
       BVCE_FW_P_COREVERSION_MAX
@@ -1187,6 +1203,7 @@ typedef union
                 ViceCmdConfigChannel_t            ViceCmdConfigChannel;
                 ViceCmdDebugChannel_t             ViceCmdDebugChannel;
                 ViceCmdGetChannelStatus_t         ViceCmdGetChannelStatus;
+                ViceCmdGetDeviceStatus_t          ViceCmdGetDeviceStatus;
 
                 ViceCmdInitResponse_t             ViceCmdInitResponse;
                 ViceCmdOpenChannelResponse_t      ViceCmdOpenChannelResponse;
@@ -1196,6 +1213,8 @@ typedef union
                 ViceCmdConfigChannelResponse_t    ViceCmdConfigChannelResponse;
                 ViceCmdDebugChannelResponse_t     ViceCmdDebugChannelResponse;
                 ViceCmdGetChannelStatusResponse_t ViceCmdGetChannelStatusResponse;
+                ViceCmdGetDeviceStatusResponse_t  ViceCmdGetDeviceStatusResponse;
+
 } HostCommand_t;
 
 
@@ -1230,16 +1249,24 @@ typedef union
 
 /* Verify that the API structures don't get bigger than the command buffer size,
  * this will not impact the footprint. */
+COMPILE_TIME_ASSERT(sizeof(ViceCmdInit_t)                      <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdInitResponse_t)              <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdOpenChannel_t)               <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdOpenChannelResponse_t)       <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdStartChannel_t)              <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdStartChannelResponse_t)      <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdStopChannel_t)               <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdStopChannelResponse_t)       <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdCloseChannel_t)              <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdCloseChannelResponse_t)      <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdConfigChannel_t)             <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdConfigChannelResponse_t)     <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdDebugChannel_t)              <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdDebugChannelResponse_t)      <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdGetChannelStatus_t)          <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT(sizeof(ViceCmdGetChannelStatusResponse_t)  <= HOST_CMD_BUFFER_SIZE);
-COMPILE_TIME_ASSERT(sizeof(StatusInfo_t)                        <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdGetDeviceStatus_t)           <= HOST_CMD_BUFFER_SIZE);
+COMPILE_TIME_ASSERT(sizeof(ViceCmdGetDeviceStatusResponse_t)   <= HOST_CMD_BUFFER_SIZE);
 COMPILE_TIME_ASSERT((BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH & 0x3) == 0);              /* NS, make sure that it's a DWORD multiple */
 
 

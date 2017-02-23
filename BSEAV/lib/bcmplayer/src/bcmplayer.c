@@ -224,12 +224,21 @@ struct BNAV_Player_HandleImpl
 
     struct BNAV_Player_P_PtsCache ptscache;
 
-    /* used for eBpPlayDecoderGOPTrick and eBpPlayDecoderGOPIPTrick */
+    /* used for eBpPlayDecoderGOPTrick, GOPIPTrick, MDqtTrick, MDqtIPTrick */
     struct {
         int currentStart, currentEnd;
         int pictureTag;
         int gopSkip; /* how many gops to skip between advances */
         unsigned count; /* total number of pictures sent for this GOP. limited by advanceCount. */
+
+        /* mp dqt */
+        int intraGopPictureIndex; /* -1 means waiting */
+        unsigned openGopPictures;
+        enum {
+            dqt_state_ready,
+            dqt_state_started,
+            dqt_state_sent
+        } dqt_state;
     } gopTrick;
 
     struct {
@@ -639,6 +648,19 @@ int BNAV_Player_GetPositionInformation(BNAV_Player_Handle handle, long index, BN
     return 0;
 }
 
+static bool is_dqt(eBpPlayModeParam playMode)
+{
+    switch (playMode) {
+    case eBpPlayDecoderGOPTrick:
+    case eBpPlayDecoderGOPIPTrick:
+    case eBpPlayDecoderMDqtTrick:
+    case eBpPlayDecoderMDqtIPTrick:
+        return true;
+    default:
+        return false;
+    }
+}
+
 int BNAV_Player_GetNextPlayEntry(BNAV_Player_Handle handle, BNAV_Player_PlayEntry *navEntry, unsigned char *pkt)
 {
     long        startIndex;
@@ -701,6 +723,13 @@ int BNAV_Player_GetNextPlayEntry(BNAV_Player_Handle handle, BNAV_Player_PlayEntr
             if (!handle->buildRef.needDisplayPicture) {
                 if (BNAV_Player_AdvanceIndex(handle))
                     return BNAV_ADVANCE_IDX_FAIL;
+            }
+
+            if (handle->gopTrick.intraGopPictureIndex == -1 && handle->gopTrick.currentStart != -1 && handle->currentIndex == handle->gopTrick.currentEnd) {
+                /* short-circuit for MDqt and MDqtIP */
+                memset(navEntry, 0, sizeof(*navEntry));
+                navEntry->waitingForIntraGopPictureIndex = true;
+                return 0;
             }
 
             /* now add it to the fifo */
@@ -875,19 +904,18 @@ static int BNAV_Player_AddNormalPlay(BNAV_Player_Handle handle)
         
         nextOffset = BNAV_get_frameOffset(pEntry) + BNAV_get_frameSize(pEntry);
         if (handle->packetSize) {
-            nextOffset -= nextOffset % handle->packetSize;
+            nextOffset += handle->packetSize - (nextOffset % handle->packetSize);
         }
         if (nextOffset > handle->currentOffset + handle->normalPlayBufferSize) {
             curFifoEntry->endByte = handle->currentOffset + handle->normalPlayBufferSize - 1;
             break;
         }
         curFifoEntry->endByte = nextOffset - 1;
+        BNAV_Player_P_AddCurrentToPTSCache(handle);
         if (handle->currentIndex < handle->lastIndex) {
-            /* we are going to play this picture, so add to the cache */
             handle->currentIndex++;
         }
-        BNAV_Player_P_AddCurrentToPTSCache(handle);
-        if (handle->currentIndex == handle->lastIndex) {
+        else {
             break;
         }
     }
@@ -1036,6 +1064,12 @@ static int BNAV_Player_P_FindGOP(BNAV_Player_Handle handle, int num_gops)
     return handle->gopTrick.currentStart;
 }
 
+void BNAV_Player_SetMDqtInfo( BNAV_Player_Handle handle, unsigned intraGopPictureIndex, unsigned openGopPictures )
+{
+    handle->gopTrick.intraGopPictureIndex = (int)intraGopPictureIndex;
+    handle->gopTrick.openGopPictures = openGopPictures;
+}
+
 int BNAV_Player_AdvanceIndex(BNAV_Player_Handle handle)
 {
     long        startIndex;
@@ -1104,6 +1138,97 @@ int BNAV_Player_AdvanceIndex(BNAV_Player_Handle handle)
             curFifoEntry->pktdata[9] = handle->advanceCount;    /* number of pictures specified by the application */
             handle->gopTrick.count = 0;
 
+            handle->lastSeqHdrOffset64 = 0;
+
+            startIndex = handle->gopTrick.currentStart;
+
+        }
+        break;
+    case eBpPlayDecoderMDqtTrick:
+    case eBpPlayDecoderMDqtIPTrick:
+        /* now advance if we're in the middle of a GOP */
+        if (handle->gopTrick.currentStart != -1 &&
+            startIndex != handle->gopTrick.currentEnd)
+        {
+            while (1) {
+                startIndex++;
+                /* always send currentEnd picture to keep logic consistent */
+                if (startIndex == handle->gopTrick.currentEnd) break;
+
+                pStartEntry = BNAV_Player_ReadEntry(handle, startIndex);
+                if (!pStartEntry || BNAV_get_frameType(pStartEntry) != eSCTypeBFrame) {
+                    break;
+                }
+
+                if (handle->playMode == eBpPlayDecoderMDqtTrick && (handle->navVersion == BNAV_Version_AVC || handle->navVersion == BNAV_Version_HEVC || handle->gopTrick.count)) {
+                    /* in eBpPlayDecoderGOPTrick, we send B unless it's an MPEG open gop */
+                    break;
+                }
+
+                /* continue, which will skip the B */
+            };
+            handle->gopTrick.count++;
+        }
+        else
+        {
+            BNAV_PktFifoEntry  *curFifoEntry;
+
+            if (startIndex == handle->gopTrick.currentEnd) {
+                if (handle->gopTrick.dqt_state == dqt_state_started) {
+                    BDBG_MSG(("end GOP tag=%d", handle->gopTrick.pictureTag));
+                    handle->gopTrick.pictureTag++;
+                    CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
+                    curFifoEntry->insertpackettype = eBpInsertBTP;
+                    curFifoEntry->pktdata[0] = TT_MODE_INLINE_FLUSH;
+
+                    CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
+                    curFifoEntry->insertpackettype = eBpInsertBTP;
+                    curFifoEntry->pktdata[0] = TT_MODE_PICTURE_LAST;
+
+                    CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
+                    curFifoEntry->insertpackettype = eBpInsertBTP;
+                    curFifoEntry->pktdata[0] = TT_MODE_INLINE_FLUSH;
+
+                    handle->gopTrick.dqt_state = dqt_state_sent;
+                }
+
+                if (handle->gopTrick.intraGopPictureIndex == -1) {
+                    return 0;
+                }
+                handle->gopTrick.dqt_state = dqt_state_ready;
+            }
+
+            /* find a starting GOP or the next GOP.
+            if intraGopPictureIndex is non-zero, we must repeat this gop.
+            Nexus is responsible for not calling GetNextEntry after a GOP has been fed until it sets that intraGopPictureIndex. */
+            startIndex = BNAV_Player_P_FindGOP(handle, handle->gopTrick.currentStart == -1 || handle->gopTrick.intraGopPictureIndex > 0 ? 0 : 1);
+            pStartEntry = BNAV_Player_ReadEntry(handle, startIndex);
+            if (!pStartEntry) return -1;
+            BDBG_MSG(("start GOP tag=%d intraGopPictureIndex=%d openGop=%d %d..%d(%d pictures, start pts %08x)", handle->gopTrick.pictureTag, handle->gopTrick.intraGopPictureIndex,
+                handle->gopTrick.openGopPictures,
+                handle->gopTrick.currentStart, handle->gopTrick.currentEnd, handle->gopTrick.currentEnd-handle->gopTrick.currentStart, BNAV_get_framePts(pStartEntry)));
+
+            /* only add I frame to PTS cache; otherwise the reordering issues are quite difficult and probably unnecessary. */
+            BNAV_Player_P_AddToPTSCache(handle, BNAV_get_framePts(pStartEntry), startIndex);
+
+            /* Insert timing marker indicating the beginning of the next GOP */
+            CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
+            curFifoEntry->insertpackettype = eBpInsertBTP;
+            curFifoEntry->pktdata[0] = TT_MODE_PICTURE_TAG;
+            curFifoEntry->pktdata[9] = (handle->gopTrick.pictureTag << 16) | handle->gopTrick.intraGopPictureIndex;
+            handle->gopTrick.dqt_state = dqt_state_started;
+
+            if (handle->gopTrick.intraGopPictureIndex != 0) {
+                /* Picture Output "N"  marker
+                ** AVD will ouput the first 'handle->advanceCount' pictures of this GOP.
+                */
+                CHECKREAD(curFifoEntry = BNAV_Player_AddFifoEntry(handle, handle->pid));
+                curFifoEntry->insertpackettype = eBpInsertBTP;
+                curFifoEntry->pktdata[0] = TT_MODE_OUTPUT_N;
+                curFifoEntry->pktdata[9] = handle->gopTrick.intraGopPictureIndex + handle->gopTrick.openGopPictures;
+            }
+            handle->gopTrick.count = 0;
+            handle->gopTrick.intraGopPictureIndex = -1; /* consumed */
             handle->lastSeqHdrOffset64 = 0;
 
             startIndex = handle->gopTrick.currentStart;
@@ -1357,7 +1482,7 @@ int BNAV_Player_AdvanceIndex(BNAV_Player_Handle handle)
 
     handle->currentIndex = startIndex;
     handle->skipNextAdvance = 0;
-    if (handle->playMode != eBpPlayDecoderGOPTrick && handle->playMode != eBpPlayDecoderGOPIPTrick) {
+    if (!is_dqt(handle->playMode)) {
         BNAV_Player_P_AddCurrentToPTSCache(handle);
     }
     return 0;
@@ -2903,7 +3028,7 @@ int BNAV_Player_SetPlayMode(BNAV_Player_Handle handle, const BNAV_Player_PlayMod
     if (mode->playMode == eBpPlayIP || mode->playMode == eBpPlayNormal || mode->playMode == eBpPlayNormalByFrames) {
         playModeModifier = 1;
     }
-    else if (mode->playMode == eBpPlayDecoderGOPTrick || mode->playMode == eBpPlayDecoderGOPIPTrick) {
+    else if (is_dqt(mode->playMode)) {
         /* Check if DQT can be supported using the nav file */
         if (handle->navVersion == BNAV_Version_AVC || handle->navVersion == BNAV_Version_HEVC){
             long        startIndex;
@@ -2913,11 +3038,20 @@ int BNAV_Player_SetPlayMode(BNAV_Player_Handle handle, const BNAV_Player_PlayMod
                 return -1;
             }
         }
-        handle->gopTrick.gopSkip = i_abs(playModeModifier)/100;
-        playModeModifier = playModeModifier % 100;
-        if (playModeModifier == 0) {
-            BDBG_ERR(("DQT cannot have playModeModifier == 0."));
-            return -1;
+        switch (mode->playMode) {
+        case eBpPlayDecoderMDqtTrick:
+        case eBpPlayDecoderMDqtIPTrick:
+            handle->gopTrick.gopSkip = 0;
+            playModeModifier = -1;
+            break;
+        default:
+            handle->gopTrick.gopSkip = i_abs(playModeModifier)/100;
+            playModeModifier = playModeModifier % 100;
+            if (playModeModifier == 0) {
+                BDBG_ERR(("DQT cannot have playModeModifier == 0."));
+                return -1;
+            }
+            break;
         }
     }
     else if (playModeModifier == 0) {

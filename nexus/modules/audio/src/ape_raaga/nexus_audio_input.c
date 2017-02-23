@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,12 +48,10 @@
 
 BDBG_MODULE(nexus_audio_input);
 
-#if NEXUS_NUM_HDMI_INPUTS > 0
 #if NEXUS_NUM_HDMI_INPUTS > 1
 #error TODO: Support more than one HDMI Input
 #endif
 static BAPE_MaiInputHandle g_maiInput;
-#endif
 
 typedef enum NEXUS_AudioOutputTiming
 {
@@ -208,12 +206,16 @@ static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInputHandle input)
     NEXUS_AudioUpstreamNode *pNode;
     NEXUS_AudioInputData *pData;
     bool running = false;
+    bool checkUpstream = true;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
 
     BDBG_MSG(("NEXUS_AudioInput_P_IsRunning(%p)", (void *)input));
 
     pData = input->pMixerData;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     /* Can't be running if not connected */
     if ( NULL == pData )
@@ -225,47 +227,62 @@ static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInputHandle input)
 
     switch ( input->objectType )
     {
-#if NEXUS_NUM_AUDIO_DECODERS
     case NEXUS_AudioInputType_eDecoder:
-        BDBG_MSG(("Decoder type - checking run status"));
-        running = NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle);
+        if (audioCapabilities.numDecoders > 0)
+        {
+            BDBG_MSG(("Decoder type - checking run status"));
+            running = NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle);
+            checkUpstream = false;
+        }
         break;
-#endif
-#if NEXUS_NUM_AUDIO_PLAYBACKS
     case NEXUS_AudioInputType_ePlayback:
-        BDBG_MSG(("Playback type - checking run status"));
-        running = NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle);
+        if (audioCapabilities.numPlaybacks > 0)
+        {
+            BDBG_MSG(("Playback type - checking run status"));
+            running = NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle);
+            checkUpstream = false;
+        }
         break;
-#endif
-#if NEXUS_NUM_I2S_INPUTS
     case NEXUS_AudioInputType_eI2s:
-        BDBG_MSG(("I2sInput type - checking run status"));
-        running = NEXUS_I2sInput_P_IsRunning(input->pObjectHandle);
+        if (audioCapabilities.numInputs.i2s > 0)
+        {
+            BDBG_MSG(("I2sInput type - checking run status"));
+            running = NEXUS_I2sInput_P_IsRunning(input->pObjectHandle);
+            checkUpstream = false;
+        }
         break;
-#endif
 #if NEXUS_NUM_RF_AUDIO_DECODERS
     case NEXUS_AudioInputType_eRfDecoder:
         BDBG_MSG(("RF Audio Decoder type - checking run status"));
         running = NEXUS_RfAudioDecoder_P_IsRunning(input->pObjectHandle);
+        checkUpstream = false;
         break;
 #endif
 #if NEXUS_NUM_ANALOG_AUDIO_DECODERS
     case NEXUS_AudioInputType_eAnalogDecoder:
         BDBG_MSG(("Analog Decoder type - checking run status"));
         running = NEXUS_AnalogAudioDecoder_P_IsRunning(input->pObjectHandle);
+        checkUpstream = false;
         break;
 #endif
-#if NEXUS_NUM_AUDIO_INPUT_CAPTURES
     case NEXUS_AudioInputType_eInputCapture:
-        BDBG_MSG(("InputCapture type - checking run status"));
-        running = NEXUS_AudioInputCapture_P_IsRunning(input->pObjectHandle);
+        if (audioCapabilities.numInputCaptures > 0)
+        {
+            BDBG_MSG(("InputCapture type - checking run status"));
+            running = NEXUS_AudioInputCapture_P_IsRunning(input->pObjectHandle);
+            checkUpstream = false;
+        }
         break;
-#endif
     case NEXUS_AudioInputType_eDspMixer:
     case NEXUS_AudioInputType_eIntermediateMixer:
         running = NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle);
-        /* Fall through */
+        break;
     default:
+        break;
+    }
+
+    if (checkUpstream)
+    {
         /* Recurse if not a decoder type, stop if any input is running - that means we are also */
         BDBG_MSG(("other type - recursively checking run status"));
         pNode = BLST_Q_FIRST(&pData->upstreamList);
@@ -274,7 +291,6 @@ static bool NEXUS_AudioInput_P_IsRunningUpstream(NEXUS_AudioInputHandle input)
             running = running || NEXUS_AudioInput_P_IsRunningUpstream(pNode->pUpstreamObject);
             pNode = BLST_Q_NEXT(pNode, upstreamNode);
         }
-        break;
     }
 
     BDBG_MSG(("Returning running status %d", running));
@@ -286,12 +302,15 @@ static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInputHandle input)
     NEXUS_AudioDownstreamNode *pNode;
     NEXUS_AudioInputData *pData;
     bool running = false;
+    bool checkDownstream = true;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
 
     BDBG_MSG(("NEXUS_AudioInput_P_IsRunning(%p)", (void *)input));
 
     pData = input->pMixerData;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     /* Can't be running if not connected */
     if ( NULL == pData )
@@ -303,42 +322,52 @@ static bool NEXUS_AudioInput_P_IsRunningDownstream(NEXUS_AudioInputHandle input)
 
     switch ( input->objectType )
     {
-#if NEXUS_NUM_AUDIO_DECODERS
     case NEXUS_AudioInputType_eDecoder:
-        running = NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle);
-        BDBG_MSG(("Decoder type - checking run status: running %d", running));
+        if (audioCapabilities.numDecoders > 0)
+        {
+            running = NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle);
+            BDBG_MSG(("Decoder type - checking run status: running %d", running));
+            checkDownstream = false;
+        }
         break;
-#endif
-#if NEXUS_NUM_AUDIO_PLAYBACKS
     case NEXUS_AudioInputType_ePlayback:
-        running = NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle);
-        BDBG_MSG(("Playback type - checking run status: running %d", running));
+        if (audioCapabilities.numPlaybacks > 0)
+        {
+            running = NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle);
+            BDBG_MSG(("Playback type - checking run status: running %d", running));
+            checkDownstream = false;
+        }
         break;
-#endif
-#if NEXUS_NUM_I2S_INPUTS
     case NEXUS_AudioInputType_eI2s:
-        running = NEXUS_I2sInput_P_IsRunning(input->pObjectHandle);
-        BDBG_MSG(("I2sInput type - checking run status: running %d", running));
+        if (audioCapabilities.numInputs.i2s > 0)
+        {
+            running = NEXUS_I2sInput_P_IsRunning(input->pObjectHandle);
+            BDBG_MSG(("I2sInput type - checking run status: running %d", running));
+            checkDownstream = false;
+        }
         break;
-#endif
 #if NEXUS_NUM_RF_AUDIO_DECODERS
     case NEXUS_AudioInputType_eRfDecoder:
         running = NEXUS_RfAudioDecoder_P_IsRunning(input->pObjectHandle);
         BDBG_MSG(("RFAudioDecoder type - checking run status: running %d", running));
+        checkDownstream = false;
         break;
 #endif
-#if NEXUS_NUM_AUDIO_MIXERS
     case NEXUS_AudioInputType_eDspMixer:
     case NEXUS_AudioInputType_eIntermediateMixer:
-        running = NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) && !NEXUS_AudioMixer_P_IsExplicitlyStarted(input->pObjectHandle);
-        BDBG_MSG(("Dsp/IntMixer type - checking run status: running %d", running));
+        if ((input->objectType == NEXUS_AudioInputType_eDspMixer && audioCapabilities.dsp.mixer) ||
+            (input->objectType == NEXUS_AudioInputType_eIntermediateMixer && audioCapabilities.numMixers > 0))
+        {
+            running = NEXUS_AudioMixer_P_IsStarted(input->pObjectHandle) && !NEXUS_AudioMixer_P_IsExplicitlyStarted(input->pObjectHandle);
+            BDBG_MSG(("Dsp/IntMixer type - checking run status: running %d", running));
+            checkDownstream = false;
+        }
         break;
-#endif
     default:
         break;
     }
 
-    if ( !running )
+    if ( !running && checkDownstream )
     {
         /* Recurse  */
         BDBG_MSG(("recursively checking run status"));
@@ -784,92 +813,16 @@ NEXUS_Error NEXUS_AudioInput_P_GetOutputs(NEXUS_AudioInputHandle input, NEXUS_Au
     return NEXUS_AudioInput_P_IterateOutputs(input, pOutputList, &i, !directOnly);
 }
 
-NEXUS_Error NEXUS_AudioInput_P_SetConnectionData(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source, const void *pData, size_t dataSize)
-{
-    NEXUS_AudioInputData *pInputData;
-    NEXUS_AudioUpstreamNode *pUpstreamNode;
-
-    BDBG_OBJECT_ASSERT(destination, NEXUS_AudioInput);
-    BDBG_OBJECT_ASSERT(source, NEXUS_AudioInput);
-    BDBG_ASSERT(NULL != pData);
-    BDBG_ASSERT(dataSize > 0);
-
-    pInputData = destination->pMixerData;
-    BDBG_OBJECT_ASSERT(pInputData, NEXUS_AudioInputData);
-
-    pUpstreamNode = BLST_Q_FIRST(&pInputData->upstreamList);
-    while ( NULL != pUpstreamNode && pUpstreamNode->pUpstreamObject != source )
-    {
-        pUpstreamNode = BLST_Q_NEXT(pUpstreamNode, upstreamNode);
-    }
-    if ( NULL == pUpstreamNode )
-    {
-        BDBG_ASSERT(NULL != pUpstreamNode);
-        return BERR_TRACE(NEXUS_UNKNOWN);
-    }
-
-    if ( NULL != pUpstreamNode->pConnectionData && dataSize != pUpstreamNode->connectionDataSize )
-    {
-        /* Odd request.  Size has changed?  Handle it anyway */
-        BKNI_Free(pUpstreamNode->pConnectionData);
-        pUpstreamNode->connectionDataSize = 0;
-        pUpstreamNode->pConnectionData = NULL;
-    }
-
-    if ( NULL == pUpstreamNode->pConnectionData )
-    {
-        /* Malloc the data */
-        pUpstreamNode->pConnectionData = BKNI_Malloc(dataSize);
-        if ( NULL == pUpstreamNode->pConnectionData )
-        {
-            return BERR_OUT_OF_SYSTEM_MEMORY;
-        }
-        pUpstreamNode->connectionDataSize = dataSize;
-    }
-
-    BDBG_ASSERT(NULL != pUpstreamNode->pConnectionData);
-
-    /* Copy data */
-    BKNI_Memcpy(pUpstreamNode->pConnectionData, pData, dataSize);
-
-    return BERR_SUCCESS;
-}
-
-const void *NEXUS_AudioInput_P_GetConnectionData(NEXUS_AudioInputHandle destination, NEXUS_AudioInputHandle source)
-{
-    NEXUS_AudioInputData *pInputData;
-    NEXUS_AudioUpstreamNode *pUpstreamNode;
-    NEXUS_Error rc=0;
-
-    BDBG_OBJECT_ASSERT(destination, NEXUS_AudioInput);
-    BDBG_OBJECT_ASSERT(source, NEXUS_AudioInput);
-
-    pInputData = destination->pMixerData;
-    BDBG_OBJECT_ASSERT(pInputData, NEXUS_AudioInputData);
-
-    pUpstreamNode = BLST_Q_FIRST(&pInputData->upstreamList);
-    while ( NULL != pUpstreamNode && pUpstreamNode->pUpstreamObject != source )
-    {
-        pUpstreamNode = BLST_Q_NEXT(pUpstreamNode, upstreamNode);
-    }
-    if ( NULL == pUpstreamNode )
-    {
-        BDBG_ASSERT(NULL != pUpstreamNode);
-        rc=BERR_TRACE(NEXUS_UNKNOWN);
-        return NULL;
-    }
-
-    return pUpstreamNode->pConnectionData;  /* Return connection data pointer - may be NULL if never set */
-}
-
 NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInputHandle input, NEXUS_AudioOutputHandle output)
 {
     NEXUS_AudioInputData *pInputData;
     NEXUS_AudioOutputNode *pNode;
     NEXUS_Error errCode;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
     BDBG_OBJECT_ASSERT(output, NEXUS_AudioOutput);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     pInputData = input->pMixerData;
 
@@ -893,8 +846,8 @@ NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInputHandle input, NEXUS
     }
     BDBG_OBJECT_ASSERT(pInputData, NEXUS_AudioInputData);
 
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT
-    if ( output->objectType == NEXUS_AudioOutputType_eMux )
+
+    if ( audioCapabilities.dsp.muxOutput &&  output->objectType == NEXUS_AudioOutputType_eMux )
     {
         errCode = NEXUS_AudioMuxOutput_P_AddInput(output->pObjectHandle, input);
         if ( errCode )
@@ -902,7 +855,6 @@ NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInputHandle input, NEXUS
             return BERR_TRACE(errCode);
         }
     }
-#endif
 
     /* Power up, if supported */
     switch ( output->objectType )
@@ -931,12 +883,10 @@ NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(NEXUS_AudioInputHandle input, NEXUS
     return BERR_SUCCESS;
 
 err_malloc:
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT
-    if ( output->objectType == NEXUS_AudioOutputType_eMux )
+    if ( audioCapabilities.dsp.muxOutput && output->objectType == NEXUS_AudioOutputType_eMux )
     {
         NEXUS_AudioMuxOutput_P_RemoveInput(output->pObjectHandle, input);
     }
-#endif
     return errCode;
 }
 
@@ -944,9 +894,12 @@ NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(NEXUS_AudioInputHandle input, NE
 {
     NEXUS_AudioInputData *pInputData;
     NEXUS_AudioOutputNode *pNode;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
     BDBG_OBJECT_ASSERT(output, NEXUS_AudioOutput);
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     pInputData = input->pMixerData;
     BDBG_OBJECT_ASSERT(pInputData, NEXUS_AudioInputData);    /* Illegal for this to be NULL with connections */
@@ -972,14 +925,11 @@ NEXUS_Error NEXUS_AudioInput_P_DisconnectOutput(NEXUS_AudioInputHandle input, NE
        If a DAC is removed, the slave source will be re-evaluated at next start call
        (During CheckOutputMixer).  No need to check that here.
     */
-
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT
-    if ( output->objectType == NEXUS_AudioOutputType_eMux )
+    if ( audioCapabilities.dsp.muxOutput && output->objectType == NEXUS_AudioOutputType_eMux )
     {
         NEXUS_AudioMuxOutput_P_RemoveInput(output->pObjectHandle, input);
     }
     else
-#endif
     {
         NEXUS_AudioInput_P_UnlinkOutputPort(input, pNode);
     }
@@ -2075,6 +2025,20 @@ static NEXUS_Error NEXUS_AudioInput_P_CheckOutputMixers(NEXUS_AudioInputHandle i
     return BERR_SUCCESS;
 }
 
+void NEXUS_AudioInput_P_GetDefaultVolume(
+    BAPE_MixerInputVolume *pInputVolume    /* [out] */
+    )
+{
+    int i;
+
+    BDBG_ASSERT(NULL != pInputVolume);
+    BKNI_Memset(pInputVolume, 0, sizeof(*pInputVolume));
+    for ( i = 0; i < NEXUS_AudioChannel_eMax; i++ )
+    {
+        pInputVolume->coefficients[i][i] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
+    }
+}
+
 void NEXUS_AudioInput_P_GetVolume(
     NEXUS_AudioInputHandle input,
     BAPE_MixerInputVolume *pInputVolume    /* [out] */
@@ -2211,19 +2175,21 @@ BAPE_InputPort NEXUS_AudioInput_P_GetInputPort(
     NEXUS_AudioInputHandle input
     )
 {
+    NEXUS_AudioCapabilities audioCapabilities;
+
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
     switch ( input->objectType )
     {
-#if NEXUS_NUM_HDMI_INPUTS
     case NEXUS_AudioInputType_eHdmi:
+        if (audioCapabilities.numInputs.hdmi > 0)
         {
             BAPE_InputPort port;
             BAPE_MaiInput_GetInputPort(g_maiInput, &port);
             return port;
         }
-#endif
+        /* fall through */
     case NEXUS_AudioInputType_eIntermediateMixer:
-
     default:
         return (BAPE_InputPort)input->inputPort;
     }
@@ -2259,14 +2225,17 @@ NEXUS_Error NEXUS_AudioInput_P_SetFormatChangeInterrupt(
     int param2
     )
 {
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
     if ( false == NEXUS_AudioInput_P_SupportsFormatChanges(input) )
     {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
     switch ( input->objectType )
     {
-#if NEXUS_NUM_HDMI_INPUTS
     case NEXUS_AudioInputType_eHdmi:
+        if (audioCapabilities.numInputs.hdmi > 0)
         {
             BERR_Code errCode;
             BAPE_MaiInputFormatDetectionSettings detectionSettings;
@@ -2293,18 +2262,24 @@ NEXUS_Error NEXUS_AudioInput_P_SetFormatChangeInterrupt(
             {
                 return BERR_TRACE(errCode);
             }
+            return BERR_SUCCESS;
         }
-        return BERR_SUCCESS;
-#endif
-#if NEXUS_NUM_SPDIF_INPUTS
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        break;
     case NEXUS_AudioInputType_eSpdif:
-        return NEXUS_SpdifInput_P_SetFormatChangeInterrupt(input->pObjectHandle, pCallback_isr, pParam1, param2);
-#endif
+        if (audioCapabilities.numInputs.spdif > 0)
+        {
+            return NEXUS_SpdifInput_P_SetFormatChangeInterrupt(input->pObjectHandle, pCallback_isr, pParam1, param2);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        break;
     default:
-        BSTD_UNUSED(clientType);
-        BSTD_UNUSED(pCallback_isr);
-        BSTD_UNUSED(pParam1);
-        BSTD_UNUSED(param2);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 }
@@ -2318,10 +2293,13 @@ NEXUS_Error NEXUS_AudioInput_P_SetStcIndex(
     unsigned stcIndex
     )
 {
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
     switch ( input->objectType )
     {
-#if NEXUS_NUM_HDMI_INPUTS
     case NEXUS_AudioInputType_eHdmi:
+        if (audioCapabilities.numInputs.hdmi > 0)
         {
             BERR_Code errCode;
             BAPE_MaiInputSettings settings;
@@ -2332,22 +2310,34 @@ NEXUS_Error NEXUS_AudioInput_P_SetStcIndex(
             {
                 return BERR_TRACE(errCode);
             }
+            return BERR_SUCCESS;
         }
-        return BERR_SUCCESS;
-#endif
-#if NEXUS_NUM_SPDIF_INPUTS
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        break;
     case NEXUS_AudioInputType_eSpdif:
-        return NEXUS_SpdifInput_P_SetStcIndex(input->pObjectHandle, stcIndex);
-#endif
+        if (audioCapabilities.numInputs.spdif > 0)
+        {
+            return NEXUS_SpdifInput_P_SetStcIndex(input->pObjectHandle, stcIndex);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        break;
     default:
-        BSTD_UNUSED(stcIndex);
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 }
 
 NEXUS_Error NEXUS_AudioInput_P_Init(void)
 {
-#if NEXUS_NUM_HDMI_INPUTS
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numInputs.hdmi > 0)
     {
         BAPE_MaiInputSettings settings;
         BERR_Code errCode;
@@ -2358,16 +2348,16 @@ NEXUS_Error NEXUS_AudioInput_P_Init(void)
             return BERR_TRACE(errCode);
         }
     }
-#endif
     return BERR_SUCCESS;
 }
 
 void NEXUS_AudioInput_P_Uninit(void)
 {
-#if NEXUS_NUM_HDMI_INPUTS
-    BAPE_MaiInput_Close(g_maiInput);
-    g_maiInput = NULL;
-#endif
+    if (g_maiInput != NULL)
+    {
+        BAPE_MaiInput_Close(g_maiInput);
+        g_maiInput = NULL;
+    }
 }
 
 NEXUS_Error NEXUS_AudioInput_GetInputStatus(
@@ -2408,15 +2398,19 @@ NEXUS_Error NEXUS_AudioInput_P_GetInputPortStatus(
     NEXUS_AudioInputPortStatus *pStatus     /* [out] */
     )
 {
+    NEXUS_AudioCapabilities audioCapabilities;
+
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
     BDBG_ASSERT(NULL != pStatus);
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
     switch ( input->objectType )
     {
-#if NEXUS_NUM_HDMI_INPUTS
     case NEXUS_AudioInputType_eHdmi:
+        if (audioCapabilities.numInputs.hdmi > 0)
         {
             BAPE_MaiInputFormatDetectionStatus detectionStatus;
             BAPE_MaiInput_GetFormatDetectionStatus(g_maiInput, &detectionStatus);
@@ -2426,13 +2420,23 @@ NEXUS_Error NEXUS_AudioInput_P_GetInputPortStatus(
             pStatus->codec = NEXUS_Audio_P_MagnumToCodec(detectionStatus.codec);
             pStatus->sampleRate = detectionStatus.sampleRate;
             pStatus->numPcmChannels = detectionStatus.numPcmChannels;
+            return BERR_SUCCESS;
         }
-        return BERR_SUCCESS;
-#endif
-#if NEXUS_NUM_SPDIF_INPUTS
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        break;
     case NEXUS_AudioInputType_eSpdif:
-        return NEXUS_SpdifInput_P_GetInputPortStatus(input->pObjectHandle, pStatus);
-#endif
+        if (audioCapabilities.numInputs.spdif > 0)
+        {
+            return NEXUS_SpdifInput_P_GetInputPortStatus(input->pObjectHandle, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        break;
     default:
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
@@ -2468,12 +2472,15 @@ static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInputHandle input)
     /* Stop any upstream components first */
     NEXUS_AudioUpstreamNode *pUpNode;
     NEXUS_AudioInputData *pData;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
 
     BDBG_MSG(("NEXUS_AudioInput_P_ForceStopUpstream(%p)", (void *)input));
 
     pData = input->pMixerData;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     /* Can't be running if not connected */
     if ( NULL == pData )
@@ -2484,30 +2491,33 @@ static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInputHandle input)
 
     switch ( input->objectType )
     {
-#if NEXUS_NUM_AUDIO_DECODERS
     case NEXUS_AudioInputType_eDecoder:
-        if ( NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numDecoders > 0)
         {
-            NEXUS_AudioDecoder_Stop(input->pObjectHandle);
+            if (NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_AudioDecoder_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
-#if NEXUS_NUM_AUDIO_PLAYBACKS
     case NEXUS_AudioInputType_ePlayback:
-        if ( NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numPlaybacks > 0)
         {
-            NEXUS_AudioPlayback_Stop(input->pObjectHandle);
+            if (NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_AudioPlayback_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
-#if NEXUS_NUM_I2S_INPUTS
     case NEXUS_AudioInputType_eI2s:
-        if ( NEXUS_I2sInput_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numInputs.i2s > 0)
         {
-            NEXUS_I2sInput_Stop(input->pObjectHandle);
+            if (NEXUS_I2sInput_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_I2sInput_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
 #if NEXUS_NUM_RF_AUDIO_DECODERS
     case NEXUS_AudioInputType_eRfDecoder:
         if ( NEXUS_RfAudioDecoder_P_IsRunning(input->pObjectHandle) )
@@ -2524,14 +2534,15 @@ static void NEXUS_AudioInput_P_ForceStopUpstream(NEXUS_AudioInputHandle input)
         }
         break;
 #endif
-#if NEXUS_NUM_AUDIO_INPUT_CAPTURES > 0
     case NEXUS_AudioInputType_eInputCapture:
-        if ( NEXUS_AudioInputCapture_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numInputCaptures > 0)
         {
-            NEXUS_AudioInputCapture_Stop(input->pObjectHandle);
+            if (NEXUS_AudioInputCapture_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_AudioInputCapture_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
     default:
         break;
     }
@@ -2562,12 +2573,14 @@ static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInputHandle input)
     NEXUS_AudioUpstreamNode *pUpNode;
     NEXUS_AudioDownstreamNode *pDownNode;
     NEXUS_AudioInputData *pData;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BDBG_OBJECT_ASSERT(input, NEXUS_AudioInput);
 
     BDBG_MSG(("NEXUS_AudioInput_P_ForceStopUpstream(%p)", (void *)input));
 
     pData = input->pMixerData;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     /* Can't be running if not connected */
     if ( NULL == pData )
@@ -2578,30 +2591,33 @@ static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInputHandle input)
 
     switch ( input->objectType )
     {
-#if NEXUS_NUM_AUDIO_DECODERS
     case NEXUS_AudioInputType_eDecoder:
-        if ( NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numDecoders > 0)
         {
-            NEXUS_AudioDecoder_Stop(input->pObjectHandle);
+            if ( NEXUS_AudioDecoder_P_IsRunning(input->pObjectHandle) )
+            {
+                NEXUS_AudioDecoder_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
-#if NEXUS_NUM_AUDIO_PLAYBACKS
     case NEXUS_AudioInputType_ePlayback:
-        if ( NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numPlaybacks > 0)
         {
-            NEXUS_AudioPlayback_Stop(input->pObjectHandle);
+            if (NEXUS_AudioPlayback_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_AudioPlayback_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
-#if NEXUS_NUM_I2S_INPUTS
     case NEXUS_AudioInputType_eI2s:
-        if ( NEXUS_I2sInput_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numInputs.i2s > 0)
         {
-            NEXUS_I2sInput_Stop(input->pObjectHandle);
+            if (NEXUS_I2sInput_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_I2sInput_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
 #if NEXUS_NUM_RF_AUDIO_DECODERS
     case NEXUS_AudioInputType_eRfDecoder:
         if ( NEXUS_RfAudioDecoder_P_IsRunning(input->pObjectHandle) )
@@ -2618,14 +2634,15 @@ static void NEXUS_AudioInput_P_ForceStopDownstream(NEXUS_AudioInputHandle input)
         }
         break;
 #endif
-#if NEXUS_NUM_AUDIO_INPUT_CAPTURES > 0
     case NEXUS_AudioInputType_eInputCapture:
-        if ( NEXUS_AudioInputCapture_P_IsRunning(input->pObjectHandle) )
+        if (audioCapabilities.numInputCaptures > 0)
         {
-            NEXUS_AudioInputCapture_Stop(input->pObjectHandle);
+            if (NEXUS_AudioInputCapture_P_IsRunning(input->pObjectHandle))
+            {
+                NEXUS_AudioInputCapture_Stop(input->pObjectHandle);
+            }
         }
         break;
-#endif
     case NEXUS_AudioInputType_eDspMixer:
     case NEXUS_AudioInputType_eIntermediateMixer:
     case NEXUS_AudioInputType_eMixer:

@@ -157,15 +157,15 @@ static NEXUS_Error NEXUS_HdmiOutput_OverrideVideoSettings_priv(
     bool overrideSettings = false ;
 
     if ((preferred->colorSpace != requested->colorSpace)
-    && (!hdmiOutput->settings.overrideMatrixCoefficients))
+    && (!hdmiOutput->displaySettings.overrideMatrixCoefficients))
     {
         BDBG_MSG(("Override requested color space of %d with %d",
             requested->colorSpace, preferred->colorSpace)) ;
 
         /* set override flag if the override value is different than current setting */
-        if (preferred->colorSpace != hdmiOutput->settings.colorSpace)
+        if (preferred->colorSpace != hdmiOutput->displaySettings.colorSpace)
             overrideSettings = true  ;
-        hdmiOutput->settings.colorSpace = preferred->colorSpace ;
+        hdmiOutput->displaySettings.colorSpace = preferred->colorSpace ;
     }
 
     if (preferred->colorDepth != requested->colorDepth)
@@ -174,9 +174,9 @@ static NEXUS_Error NEXUS_HdmiOutput_OverrideVideoSettings_priv(
             requested->colorDepth, preferred->colorDepth)) ;
 
         /* set override flag if the override value is different than current setting */
-        if (preferred->colorDepth!= hdmiOutput->settings.colorDepth)
+        if (preferred->colorDepth!= hdmiOutput->displaySettings.colorDepth)
             overrideSettings = true ;
-        hdmiOutput->settings.colorDepth = preferred->colorDepth ;
+        hdmiOutput->displaySettings.colorDepth = preferred->colorDepth ;
     }
 
     return errCode ;
@@ -407,7 +407,7 @@ done:
 }
 
 
-NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
+static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettings4K_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
@@ -651,7 +651,7 @@ Summary:
 Check if the requested Video Settings are supported by both the TV and the STB.
 If not, reduce the settings to the best possible.
 **/
-NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
+static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
     NEXUS_HdmiOutputVideoSettings *requested,
     NEXUS_HdmiOutputVideoSettings *preferred /* [out] */
@@ -784,7 +784,7 @@ NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
     }
 
     /* validate the requested colorspace if override not specified (overrideMatrixCoefficients) */
-    if (!hdmiOutput->settings.overrideMatrixCoefficients)
+    if (!hdmiOutput->displaySettings.overrideMatrixCoefficients)
    {
         if (!edid.hdmiVsdb.valid)  /* No VSDB... DVI support only */
         {

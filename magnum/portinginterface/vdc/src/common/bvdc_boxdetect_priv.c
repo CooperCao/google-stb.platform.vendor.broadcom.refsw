@@ -614,7 +614,9 @@ static void BVDC_P_BoxDetect_BuildRul_VnetInit_isr
 
 #if (BVDC_P_SUPPORT_BOX_DETECT_VER <= 2)
     /* disable box expanding intrrupt, because sw will check every vsync */
-    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS( 2 );
+    BDBG_CASSERT(2 == (((BCHP_LBOX_0_LR_INTERRUPT_THRESHOLD - BCHP_LBOX_0_TB_INTERRUPT_THRESHOLD) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS((
+        (BCHP_LBOX_0_LR_INTERRUPT_THRESHOLD - BCHP_LBOX_0_TB_INTERRUPT_THRESHOLD) / sizeof(uint32_t)) + 1);
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_LBOX_0_TB_INTERRUPT_THRESHOLD) + ulRulOffset;
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA( LBOX_0_TB_INTERRUPT_THRESHOLD, TOP_THRESHOLD,    0) |

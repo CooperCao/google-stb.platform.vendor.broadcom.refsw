@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,13 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * waitqueue.cpp
- *
- *  Created on: Feb 8, 2015
- *      Author: gambhire
- */
-
 #include "hwtimer.h"
 #include "tztask.h"
 #include "scheduler.h"
@@ -60,11 +53,11 @@ static void timeOutHandler(Timer t, void *ctx) {
 
 void WaitQueue::init() {
     head = nullptr;
-    spinlock_init("waitqueue::lock", &lock);
+    spinLockInit(&lock);
 }
 
 void WaitQueue::addWaiter(TzTask *task, uint64_t timeout) {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     task->wqState.wq = this;
     task->wqState.task = task;
@@ -81,7 +74,7 @@ void WaitQueue::addWaiter(TzTask *task, uint64_t timeout) {
         task->wqState.timer = INVALID_TIMER;
     }
     head = task;
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 }
 
 void WaitQueue::wait(TzTask *task, uint64_t timeout) {
@@ -95,11 +88,11 @@ void WaitQueue::wait(TzTask *task, uint64_t timeout) {
     //printf("task %d done waiting\n", task->id());
 }
 
-void WaitQueue::unlockAndWait(spinlock_t *toUnlock, TzTask *task, uint64_t timeout) {
+void WaitQueue::unlockAndWait(SpinLock *toUnlock, TzTask *task, uint64_t timeout) {
 
     addWaiter(task, timeout);
 
-    spin_unlock(toUnlock);
+    spinLockRelease(toUnlock);
 
     task->yield();
 
@@ -110,7 +103,7 @@ void WaitQueue::unlockAndWait(spinlock_t *toUnlock, TzTask *task, uint64_t timeo
 
 int WaitQueue::signal() {
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     int count = 0;
     while (head != nullptr) {
@@ -135,17 +128,17 @@ int WaitQueue::signal() {
         count++;
     }
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     return count;
 }
 
 int WaitQueue::signalOne() {
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     if (head == nullptr) {
-        spin_unlock(&lock);
+        spinLockRelease(&lock);
         return 0;
     }
 
@@ -167,14 +160,14 @@ int WaitQueue::signalOne() {
 
     head = next;
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     return 1;
 }
 
 int WaitQueue::signalSome(int n) {
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     int count = 0;
     while ((count < n) && (head != nullptr)) {
@@ -200,13 +193,13 @@ int WaitQueue::signalSome(int n) {
         count++;
     }
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     return count;
 }
 
 void WaitQueue::timedOut(TzTask *task) {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
 
     TzTask *curr = task;
     TzTask *next = curr->wqState.next;
@@ -225,12 +218,12 @@ void WaitQueue::timedOut(TzTask *task) {
 
     curr->awaken();
 
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 }
 
 void WaitQueue::migrateTasks(WaitQueue *other) {
-    spin_lock(&lock);
-    spin_lock(&other->lock);
+    spinLockAcquire(&lock);
+    spinLockAcquire(&other->lock);
 
     while (head != nullptr) {
         TzTask *curr = head;
@@ -253,8 +246,8 @@ void WaitQueue::migrateTasks(WaitQueue *other) {
         head = next;
     }
 
-    spin_unlock(&other->lock);
-    spin_unlock(&lock);
+    spinLockRelease(&other->lock);
+    spinLockRelease(&lock);
 
 }
 

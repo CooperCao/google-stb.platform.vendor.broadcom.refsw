@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,7 @@ int _tzioc_ioctl_client_open(
     int err = 0;
 
     strncpy(clientOpenData.name, pClient->name, TZIOC_CLIENT_NAME_LEN_MAX);
-    clientOpenData.msgQ = (uint32_t)pClient->msgQ;
+    clientOpenData.msgQ = (uintptr_t)pClient->msgQ;
 
     err = ioctl(
         pClient->fd,
@@ -129,7 +129,7 @@ int _tzioc_ioctl_msg_send(
 
     msgSendData.hClient = pClient->hKlient;
     memcpy(&msgSendData.hdr, pHdr, sizeof(*pHdr));
-    msgSendData.payloadAddr = (uint32_t)TZIOC_MSG_PAYLOAD(pHdr);
+    msgSendData.payloadAddr = (uintptr_t)TZIOC_MSG_PAYLOAD(pHdr);
 
     err = ioctl(
         pClient->fd,
@@ -211,7 +211,7 @@ int _tzioc_ioctl_map_paddrs(
 
     mapPaddrsData.hClient = pClient->hKlient;
     mapPaddrsData.count = ucCount;
-    mapPaddrsData.regionsAddr = (uint32_t)pRegions;
+    mapPaddrsData.regionsAddr = (uintptr_t)pRegions;
 
     err = ioctl(
         pClient->fd,
@@ -237,7 +237,7 @@ int _tzioc_ioctl_unmap_paddrs(
 
     unmapPaddrsData.hClient = pClient->hKlient;
     unmapPaddrsData.count = ucCount;
-    unmapPaddrsData.regionsAddr = (uint32_t)pRegions;
+    unmapPaddrsData.regionsAddr = (uintptr_t)pRegions;
 
     err = ioctl(
         pClient->fd,

@@ -54,8 +54,8 @@
 #include "bchp_pwr.h"
 
 /* Private power resource IDs */
-#define BCHP_PWR_HW_HVD0_CORE_CLK            0xff000001
-#define BCHP_PWR_HW_HVD0_CPU_CLK             0xff000002
+#define BCHP_PWR_HW_HVD0_CPU_CLK             0xff000001
+#define BCHP_PWR_HW_HVD0_CORE_CLK            0xff000002
 #define BCHP_PWR_HW_HVD0_SCB_CLK             0xff000003
 #define BCHP_PWR_HW_HVD0_GISB_CLK            0xff000004
 #define BCHP_PWR_HW_HVD0_108_54_CLK          0xff000005
@@ -174,11 +174,11 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);
 void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set);
 void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);
 
-#define BCHP_PWR_P_NUM_NONLEAFS   75
+#define BCHP_PWR_P_NUM_NONLEAFS   78
 #define BCHP_PWR_P_NUM_NONLEAFSHW 41
 #define BCHP_PWR_P_NUM_LEAFS      55
 #define BCHP_PWR_P_NUM_MUXES      6
 #define BCHP_PWR_P_NUM_DIVS       11
-#define BCHP_PWR_P_NUM_ALLNODES   188
+#define BCHP_PWR_P_NUM_ALLNODES   191
 
 #endif

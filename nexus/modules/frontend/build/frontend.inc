@@ -106,7 +106,9 @@ NEXUS_FRONTEND_SOURCES := $(NEXUS_TOP)/modules/frontend/common/src/nexus_amplifi
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_tuner.c \
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_card.c \
                           $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_card_priv.c \
-                          $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_channelbonding.c
+                          $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_channelbonding.c \
+                          $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_passthrough.c
+NEXUS_FRONTEND_LOCAL_SOURCES := $(NEXUS_TOP)/modules/frontend/common/src/nexus_frontend_local.c
 
 #######################
 # Module Dependencies #
@@ -865,6 +867,10 @@ NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/ads/bads.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/tnr/btnr.inc
 NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/basemodules/hab/bhab.inc
 NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/3128/src/nexus_frontend_3128.c
+endif
+
+ifdef NEXUS_FRONTEND_PASSTHROUGH
+NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_PASSTHROUGH
 endif
 
 ifdef NEXUS_FRONTEND_3117

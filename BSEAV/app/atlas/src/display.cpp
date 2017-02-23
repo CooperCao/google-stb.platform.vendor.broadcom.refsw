@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -571,23 +571,49 @@ NEXUS_VideoWindowContentMode CDisplay::getContentMode(void)
     return(contentMode);
 }
 
-eRet CDisplay::setColorSpace(NEXUS_ColorSpace colorSpace)
+eRet CDisplay::setColorDepth(uint8_t * pColorDepth)
 {
-    eRet      ret     = eRet_Ok;
-    COutput * pOutput = NULL;
+    eRet          ret          = eRet_Ok;
+    COutput *     pOutput      = NULL;
+    eNotification notification = eNotify_Invalid;
 
-    BDBG_ASSERT(NEXUS_ColorSpace_eMax != colorSpace);
+    BDBG_ASSERT(NULL != pColorDepth);
+    BDBG_ASSERT((12 == *pColorDepth) || (10 == *pColorDepth) || (8 == *pColorDepth));
+
+    pOutput = getOutput(eBoardResource_outputHdmi);
+    if (NULL != pOutput)
+    {
+        /* this only applies to hdmi outputs */
+        ret = pOutput->setColorDepth(pColorDepth);
+        CHECK_ERROR_GOTO("unable to set color depth", ret, error);
+    }
+
+error:
+    notification = (ret == eRet_Ok ? eNotify_ColorDepthChanged : eNotify_ColorDepthFailure);
+    notifyObservers(notification, pColorDepth);
+
+    return(ret);
+} /* setColorDepth */
+
+eRet CDisplay::setColorSpace(NEXUS_ColorSpace * pColorSpace)
+{
+    eRet          ret          = eRet_Ok;
+    COutput *     pOutput      = NULL;
+    eNotification notification = eNotify_Invalid;
+
+    BDBG_ASSERT(NEXUS_ColorSpace_eMax != *pColorSpace);
     MListItr <COutput> itr(&_outputList);
 
     for (pOutput = itr.first(); pOutput; pOutput = itr.next())
     {
-        ret = pOutput->setColorSpace(colorSpace);
+        ret = pOutput->setColorSpace(pColorSpace);
         CHECK_ERROR_GOTO("unable to set color space", ret, error);
     }
 
-    notifyObservers(eNotify_ColorSpaceChanged, &colorSpace);
-
 error:
+    notification = (ret == eRet_Ok ? eNotify_ColorSpaceChanged : eNotify_ColorSpaceFailure);
+    notifyObservers(notification, pColorSpace);
+
     return(ret);
 } /* setColorSpace */
 
@@ -605,7 +631,7 @@ eRet CDisplay::setPreferredColorSpace(NEXUS_VideoFormat format)
         colorSpace = pOutput->getPreferredColorSpace(format);
         if (NEXUS_ColorSpace_eMax != colorSpace)
         {
-            ret = pOutput->setColorSpace(colorSpace);
+            ret = pOutput->setColorSpace(&colorSpace);
             CHECK_ERROR_GOTO("unable to set color space", ret, error);
 
             notifyObservers(eNotify_ColorSpaceChanged, &colorSpace);

@@ -43,6 +43,7 @@
 #define APP_PRIV_H__ 1
 
 #include "plm.h"
+#include "nl2l.h"
 #include "platform.h"
 #include "app.h"
 #include "args.h"
@@ -65,17 +66,21 @@ typedef struct App
     PlatformInputHandle input;
     PlatformModel model;
     bool forceSdr;
+    PlatformDynamicRange forcedOutputEotf;
+    bool outputEotfSticky;
     bool pig;
     struct
     {
         PlmHandle vid;
         PlmHandle gfx;
     } plm;
+    Nl2lHandle nl2l;
     StreamPlayerHandle streamPlayer;
     ScenarioPlayerHandle scenarioPlayer;
     ImageViewerHandle thumbnail;
     ImageViewerHandle background;
     OsdHandle osd;
+    unsigned prevStreamIndex;
 } App;
 
 void app_p_hotplug_occurred(void * context, int param);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,6 +136,9 @@ int main(int argc, char **argv)
     NEXUS_AudioCaptureOpenSettings captureOpenSettings;
     NEXUS_AudioCaptureSettings captureSettings;
     captureCallbackParameters captureCBParams;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
 #if NEXUS_AUDIO_MODULE_FAMILY != NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
     /* Newer chips have eliminated this as module init setting and moved it to NEXUS_AudioCapture_Open instead */
@@ -143,6 +146,24 @@ int main(int argc, char **argv)
 #endif
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&config);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 || audioCapabilities.numOutputs.capture == 0)
+    {
+        printf("This application is not supported on this platform (requires decoders amd capture).\n");
+        return 0;
+    }
+
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]);
+    }
 
     if ( argc > 1 )
     {
@@ -234,15 +255,17 @@ int main(int argc, char **argv)
     captureSettings.format = NEXUS_AudioCaptureFormat_e24Bit5_1;
     NEXUS_AudioCapture_SetSettings(capture, &captureSettings);
 
-#if NEXUS_NUM_AUDIO_DACS
-    /* Connect DAC to decoder */
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
-                               NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
-                               NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        /* Connect DAC to decoder */
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                   NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
+
     /* Connect capture to decoder */
     NEXUS_AudioOutput_AddInput(NEXUS_AudioCapture_GetConnector(capture),
                                NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eMultichannel));

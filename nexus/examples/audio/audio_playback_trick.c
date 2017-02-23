@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,36 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: playback_trick.c $
- * $brcm_Revision: 8 $
- * $brcm_Date: 1/26/12 3:00p $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: /nexus/examples/dvr/playback_trick.c $
- *
- * 8   1/26/12 3:00p rjlewis
- * SW7425-1136: Added HDMI Support.
- *
- * 7   6/24/09 4:55p erickson
- * PR51841: add STC trick mode
- *
- * 6   6/24/09 4:48p erickson
- * PR51841: fix audio, add printf's, add pause
- *
- * 5   2/19/09 2:00p erickson
- * PR51841: refactor
- *
- * 7   2/19/09 1:32p erickson
- * PR51841: refactor
- *
- * 6   2/19/09 11:14a erickson
- * PR51841: add NEXUS_PlaybackPidChannelSettings
- *
- * 5   2/4/09 12:49p erickson
- * PR51841: simplify example
  *
  *****************************************************************************/
 /* Nexus example app: playback and decode */
@@ -143,6 +114,10 @@ int main(void)
     NEXUS_AudioMixerSettings mixerSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
     NEXUS_PlaybackTrickModeSettings trick;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
@@ -161,6 +136,31 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 2 ||
+        audioCapabilities.numMixers == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -197,39 +197,37 @@ int main(void)
     descriptorDecoder= NEXUS_AudioDecoder_Open(1, &audioOpenSettings);
 
     NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
-#if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
 #if DSP_MIXER
     mixerSettings.mixUsingDsp = true;
 #endif
-#endif
     mixer = NEXUS_AudioMixer_Open(&mixerSettings);
 
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
+    #endif
 
     /* Add both decoders to the mixer */
     NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(descriptorDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 
-#if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
 #if DSP_MIXER
     NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
     mixerSettings.master = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
     NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
-#endif
 #endif
 
     /* Bring up video display and outputs */
@@ -250,7 +248,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 

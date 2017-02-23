@@ -534,6 +534,15 @@ uint32_t PlayreadyDecryptor::DecryptSample(
     size_t clearSize = 0;
     size_t encSize = 0;
     for (i = 0; i < pSample->nbOfEntries; i++) {
+#ifdef USE_PR_DECRYPT_OPAQUE
+        // Transfer clear data
+        // assuming clear data comes first in subsamples
+        if (pSample->entries[i].bytesOfClearData > 0)
+            output->Copy(clearSize + encSize,
+                input->GetPtr() + clearSize + encSize,
+                pSample->entries[i].bytesOfClearData);
+#endif
+
         clearSize += pSample->entries[i].bytesOfClearData;
         encSize += pSample->entries[i].bytesOfEncData;
     }
@@ -541,8 +550,14 @@ uint32_t PlayreadyDecryptor::DecryptSample(
 
     uint8_t *encrypted_buffer = NULL;
 
+#ifdef USE_PR_DECRYPT_OPAQUE
+    uint8_t *decrypted_buffer = NULL;
+    encrypted_buffer = (uint8_t*)input->GetPtr();
+    decrypted_buffer = (uint8_t*)output->GetPtr();
+#else
     output->Copy(0, input->GetPtr(), sampleSize);
     encrypted_buffer = (uint8_t*)output->GetPtr();
+#endif
 
     // IV
     uint64_t playready_iv = 0LL;
@@ -577,12 +592,20 @@ uint32_t PlayreadyDecryptor::DecryptSample(
         uint32_t num_enc = pSample->entries[i].bytesOfEncData;
 
         encrypted_buffer += num_clear;
+#ifdef USE_PR_DECRYPT_OPAQUE
+        decrypted_buffer += num_clear;
+#endif
 
         ctrContext.qwBlockOffset = qwOffset / 16;
         ctrContext.bByteOffset = qwOffset % 16;
 
+#ifdef USE_PR_DECRYPT_OPAQUE
+        rc = DRM_Prdy_Reader_DecryptOpaque(m_drmDecryptContext, &ctrContext,
+            encrypted_buffer, decrypted_buffer, num_enc);
+#else
         rc = DRM_Prdy_Reader_Decrypt(m_drmDecryptContext, &ctrContext,
             encrypted_buffer, num_enc);
+#endif
         if (rc != DRM_Prdy_ok) {
             LOGE(("%s: %d Reader_Decrypt failed: 0x%x", __FUNCTION__, __LINE__, rc));
             return bytes_processed;

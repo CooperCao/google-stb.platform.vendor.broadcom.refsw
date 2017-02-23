@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,24 +81,57 @@ endif
 ########################################################################
 # Added lines for libdspcontrol integration
 ########################################################################
-BDSP_RAAGA_FPSDK_MACH := $(shell echo $(BDSP_RAAGA_FP_VER) | tr '[:lower:]' '[:upper:]')
-BDSP_DEFINES += BFPSDK_LIBDSPCONTROL_TARGET_SOC=Raaga$(BDSP_RAAGA_FPSDK_MACH)_si_magnum
-
+BDSP_RAAGA_FPSDK_MACH := $(shell echo $(BDSP_RAAGA_FP_VER) | tr '[:lower:]' '[:upper:]' | egrep -o 'FP[0-9]+')
 BDSP_INCLUDES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/
 
 ifneq ($(BDSP_IMG_ONLY),y)
-BDSP_SOURCES += \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP.c          \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_fp2000.c    \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_si.c \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSPLOG_stubs.c \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/ENDIANESS.c    \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/TB_common.c    \
-        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/TB_circular.c
-endif
+    BDSP_SOURCES += \
+            $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP.c              \
+            $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_si.c     \
+            $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_mem_si.c \
+            $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/ENDIANESS.c        \
+            $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/TB_common.c        \
+            $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/TB_circular.c
 
+    ifeq ($(BDSP_RAAGA_FP_VER), fp4015)
+        BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_octave_maestro.c   \
+                        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_octave_atu.c
+    else
+        BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_fp2000.c
+    endif
+
+    ifeq (${SYSTEM},linuxemu)
+        ifeq (${FIREPATH_BM},y)
+            BDSP_DEFINES += FIREPATH_BM
+            APP_CFLAGS += --std=gnu99 -Wno-pointer-arith
+        endif
+
+        BDSP_DEFINES += BFPSDK_LIBDSPCONTROL_TARGET_SOC=Raaga$(BDSP_RAAGA_FPSDK_MACH)_bm _DSP_CONTROL_API_
+        BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSPLOG.c    \
+                        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/OS_file.c   \
+                        $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/OS_linux.c
+
+        ifeq ($(BDSP_RAAGA_FP_VER),fp4015)
+            BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_octave_bm.c
+        else
+            BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_bm.c
+        endif
+
+        APP_INCLUDES += $(shell /projects/firepath/tools/bin/fp-pkg-config --pkg fp_binutils --print-include)
+        APP_LDFLAGS += $(shell /projects/firepath/tools/bin/fp-pkg-config --pkg fp_binutils --print-lib --32-bit)/system-control-proxy-c.o -lrt
+    else
+        BDSP_DEFINES += BFPSDK_LIBDSPCONTROL_TARGET_SOC=Raaga$(BDSP_RAAGA_FPSDK_MACH)_si_magnum
+        BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSPLOG_stubs.c
+
+        ifeq ($(BDSP_RAAGA_FP_VER),fp4015)
+            BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_octave_si.c
+        else
+            BDSP_SOURCES += $(MAGNUM)/basemodules/dsp/src/raaga/fp_sdk/libdspcontrol/src/DSP_raaga_fp2000_si.c
+        endif
+    endif
+endif
 ########################################################################
-# Added lines for libdspcontrol integration
+# Added lines for libdspcontrol integration - end
 ########################################################################
 
 

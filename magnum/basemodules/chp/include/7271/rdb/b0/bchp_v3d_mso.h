@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,39 +70,39 @@
 /***************************************************************************
  *V3D_MSO
  ***************************************************************************/
-#define BCHP_V3D_MSO_OBSTI0                      0x21200200 /* [RW] Multicore Sync Objects 0-15 State for Interrupt */
-#define BCHP_V3D_MSO_OB00IM                      0x21200300 /* [RW] Multicore Sync Object 00 Input Mask */
-#define BCHP_V3D_MSO_OB00OCS                     0x21200304 /* [RW] Multicore Sync Object 00 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB01IM                      0x21200308 /* [RW] Multicore Sync Object 01 Input Mask */
-#define BCHP_V3D_MSO_OB01OCS                     0x2120030c /* [RW] Multicore Sync Object 01 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB02IM                      0x21200310 /* [RW] Multicore Sync Object 02 Input Mask */
-#define BCHP_V3D_MSO_OB02OCS                     0x21200314 /* [RW] Multicore Sync Object 02 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB03IM                      0x21200318 /* [RW] Multicore Sync Object 03 Input Mask */
-#define BCHP_V3D_MSO_OB03OCS                     0x2120031c /* [RW] Multicore Sync Object 03 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB04IM                      0x21200320 /* [RW] Multicore Sync Object 04 Input Mask */
-#define BCHP_V3D_MSO_OB04OCS                     0x21200324 /* [RW] Multicore Sync Object 04 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB05IM                      0x21200328 /* [RW] Multicore Sync Object 05 Input Mask */
-#define BCHP_V3D_MSO_OB05OCS                     0x2120032c /* [RW] Multicore Sync Object 05 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB06IM                      0x21200330 /* [RW] Multicore Sync Object 06 Input Mask */
-#define BCHP_V3D_MSO_OB06OCS                     0x21200334 /* [RW] Multicore Sync Object 06 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB07IM                      0x21200338 /* [RW] Multicore Sync Object 07 Input Mask */
-#define BCHP_V3D_MSO_OB07OCS                     0x2120033c /* [RW] Multicore Sync Object 07 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB08IM                      0x21200340 /* [RW] Multicore Sync Object 08 Input Mask */
-#define BCHP_V3D_MSO_OB08OCS                     0x21200344 /* [RW] Multicore Sync Object 08 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB09IM                      0x21200348 /* [RW] Multicore Sync Object 09 Input Mask */
-#define BCHP_V3D_MSO_OB09OCS                     0x2120034c /* [RW] Multicore Sync Object 09 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB10IM                      0x21200350 /* [RW] Multicore Sync Object 10 Input Mask */
-#define BCHP_V3D_MSO_OB10OCS                     0x21200354 /* [RW] Multicore Sync Object 10 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB11IM                      0x21200358 /* [RW] Multicore Sync Object 11 Input Mask */
-#define BCHP_V3D_MSO_OB11OCS                     0x2120035c /* [RW] Multicore Sync Object 11 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB12IM                      0x21200360 /* [RW] Multicore Sync Object 12 Input Mask */
-#define BCHP_V3D_MSO_OB12OCS                     0x21200364 /* [RW] Multicore Sync Object 12 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB13IM                      0x21200368 /* [RW] Multicore Sync Object 13 Input Mask */
-#define BCHP_V3D_MSO_OB13OCS                     0x2120036c /* [RW] Multicore Sync Object 13 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB14IM                      0x21200370 /* [RW] Multicore Sync Object 14 Input Mask */
-#define BCHP_V3D_MSO_OB14OCS                     0x21200374 /* [RW] Multicore Sync Object 14 Output Configuration and Status */
-#define BCHP_V3D_MSO_OB15IM                      0x21200378 /* [RW] Multicore Sync Object 15 Input Mask */
-#define BCHP_V3D_MSO_OB15OCS                     0x2120037c /* [RW] Multicore Sync Object 15 Output Configuration and Status */
+#define BCHP_V3D_MSO_OBSTI0                      0x21200200 /* [RW][32] Multicore Sync Objects 0-15 State for Interrupt */
+#define BCHP_V3D_MSO_OB00IM                      0x21200300 /* [RW][32] Multicore Sync Object 00 Input Mask */
+#define BCHP_V3D_MSO_OB00OCS                     0x21200304 /* [RW][32] Multicore Sync Object 00 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB01IM                      0x21200308 /* [RW][32] Multicore Sync Object 01 Input Mask */
+#define BCHP_V3D_MSO_OB01OCS                     0x2120030c /* [RW][32] Multicore Sync Object 01 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB02IM                      0x21200310 /* [RW][32] Multicore Sync Object 02 Input Mask */
+#define BCHP_V3D_MSO_OB02OCS                     0x21200314 /* [RW][32] Multicore Sync Object 02 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB03IM                      0x21200318 /* [RW][32] Multicore Sync Object 03 Input Mask */
+#define BCHP_V3D_MSO_OB03OCS                     0x2120031c /* [RW][32] Multicore Sync Object 03 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB04IM                      0x21200320 /* [RW][32] Multicore Sync Object 04 Input Mask */
+#define BCHP_V3D_MSO_OB04OCS                     0x21200324 /* [RW][32] Multicore Sync Object 04 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB05IM                      0x21200328 /* [RW][32] Multicore Sync Object 05 Input Mask */
+#define BCHP_V3D_MSO_OB05OCS                     0x2120032c /* [RW][32] Multicore Sync Object 05 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB06IM                      0x21200330 /* [RW][32] Multicore Sync Object 06 Input Mask */
+#define BCHP_V3D_MSO_OB06OCS                     0x21200334 /* [RW][32] Multicore Sync Object 06 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB07IM                      0x21200338 /* [RW][32] Multicore Sync Object 07 Input Mask */
+#define BCHP_V3D_MSO_OB07OCS                     0x2120033c /* [RW][32] Multicore Sync Object 07 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB08IM                      0x21200340 /* [RW][32] Multicore Sync Object 08 Input Mask */
+#define BCHP_V3D_MSO_OB08OCS                     0x21200344 /* [RW][32] Multicore Sync Object 08 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB09IM                      0x21200348 /* [RW][32] Multicore Sync Object 09 Input Mask */
+#define BCHP_V3D_MSO_OB09OCS                     0x2120034c /* [RW][32] Multicore Sync Object 09 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB10IM                      0x21200350 /* [RW][32] Multicore Sync Object 10 Input Mask */
+#define BCHP_V3D_MSO_OB10OCS                     0x21200354 /* [RW][32] Multicore Sync Object 10 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB11IM                      0x21200358 /* [RW][32] Multicore Sync Object 11 Input Mask */
+#define BCHP_V3D_MSO_OB11OCS                     0x2120035c /* [RW][32] Multicore Sync Object 11 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB12IM                      0x21200360 /* [RW][32] Multicore Sync Object 12 Input Mask */
+#define BCHP_V3D_MSO_OB12OCS                     0x21200364 /* [RW][32] Multicore Sync Object 12 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB13IM                      0x21200368 /* [RW][32] Multicore Sync Object 13 Input Mask */
+#define BCHP_V3D_MSO_OB13OCS                     0x2120036c /* [RW][32] Multicore Sync Object 13 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB14IM                      0x21200370 /* [RW][32] Multicore Sync Object 14 Input Mask */
+#define BCHP_V3D_MSO_OB14OCS                     0x21200374 /* [RW][32] Multicore Sync Object 14 Output Configuration and Status */
+#define BCHP_V3D_MSO_OB15IM                      0x21200378 /* [RW][32] Multicore Sync Object 15 Input Mask */
+#define BCHP_V3D_MSO_OB15OCS                     0x2120037c /* [RW][32] Multicore Sync Object 15 Output Configuration and Status */
 
 /***************************************************************************
  *OBSTI0 - Multicore Sync Objects 0-15 State for Interrupt

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -148,7 +148,7 @@ eRet CPanelRecord::initialize(
         MRect                rectPopup;
 
         /* Power Mode */
-        ret = addLabelPopupButton(_pRecordEncryptMenu, "Power Mode", &_pRecordMode, &_pRecordLabel, &_pRecordPopup, font12, 25);
+        ret = _pRecordEncryptMenu->addLabelPopupButton(this, "Power Mode", &_pRecordMode, &_pRecordLabel, &_pRecordPopup, font12, 25);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _pRecordMode->setFocusable(false);
         _pRecordLabel->setText("Encryption:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);

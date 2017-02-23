@@ -226,7 +226,7 @@ static NEXUS_VideoEotf NEXUS_HdmiOutput_P_ComputeEotf(
 {
     NEXUS_VideoEotf eotf = NEXUS_VideoEotf_eSdr;
 
-    if (!pHdrDataBlock->valid)
+    if (!pHdrDataBlock->valid && ((preferredEotf == NEXUS_VideoEotf_eHlg) || (preferredEotf == NEXUS_VideoEotf_eHdr10)))
     {
         BDBG_WRN(("Receiver does not support HDR data block, no DRMInfoFrame sent. Displaying all video as SDR. Content may not appear correctly."));
     }
@@ -331,12 +331,6 @@ NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle ou
 
 error:
     return rc;
-}
-
-void NEXUS_HdmiOutput_GetDefaultDrmInfoFrame_priv(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
-{
-    BKNI_Memset(pDrmInfoFrame, 0, sizeof(*pDrmInfoFrame));
-    pDrmInfoFrame->metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1;
 }
 
 void NEXUS_HdmiOutput_P_DrmInfoFrameConnectionChanged(NEXUS_HdmiOutputHandle output)

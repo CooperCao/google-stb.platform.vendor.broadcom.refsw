@@ -228,6 +228,9 @@ static struct srai_context {
     BSAGElib_MemoryAllocInterface i_memory_alloc;
     BSAGElib_SyncInterface i_sync_cache;
 
+    SRAI_PlatformHandle antirollback_platform;
+    SRAI_ModuleHandle antirollback_module;
+
     SRAI_PlatformHandle system_platform;
     SRAI_ModuleHandle system_module;
 
@@ -1772,9 +1775,10 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
 {
     BERR_Code rc;
     BSAGElib_State state;
-    BSAGElib_InOutContainer *container;
+    BSAGElib_InOutContainer *container = NULL;
     BSAGElib_SDLHeader *pHeader = NULL;
     char *platform_name = _srai_lookup_platform_name(platformId);
+    char revstr[9];
 
     BDBG_ENTER(SRAI_Platform_Install);
 
@@ -1788,27 +1792,32 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
     if (binSize < sizeof(BSAGElib_SDLHeader)) {
         BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
                   __FUNCTION__, platformId));
+        rc = BERR_INVALID_PARAMETER;
         goto end;
     }
 
     pHeader = (BSAGElib_SDLHeader *)binBuff;
 
+    BKNI_Snprintf(revstr, sizeof(revstr)-1, "%u", pHeader->ucSdlVersion[3]);
+    if ((pHeader->ucSdlVersion[2] == 0) && (pHeader->ucSdlVersion[3] != 0)) {
+        BKNI_Snprintf(revstr, sizeof(revstr)-1, "Alpha%u", pHeader->ucSdlVersion[3]);
+    }
     if (platform_name == NULL) {
-        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platformId,
-                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
-                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
-                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
-                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2], revstr,
+                  pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
     }
     else {
-        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platform_name,
-                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
-                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
-                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
-                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2], revstr,
+                  pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
     }
 
@@ -1851,6 +1860,50 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
         }
     }
 
+
+    BDBG_MSG(("%s: Anti-rollback Platform %p ", __FUNCTION__, (void *)_srai.antirollback_platform ));
+    if((platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK) && (_srai.antirollback_platform == NULL)){
+
+        /* Open the platform first */
+        rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_ANTIROLLBACK,
+                                     &state,
+                                     &_srai.antirollback_platform);
+        if (rc != BERR_SUCCESS) {
+            goto end;
+        }
+
+        BDBG_MSG(("%s: Anti-rollback Platform %p ",__FUNCTION__, (void *)_srai.antirollback_platform));
+
+        /* Check init state */
+        if (state != BSAGElib_State_eInit) {
+            /* Not yet initialized: send init command*/
+            rc = SRAI_Platform_Init(_srai.antirollback_platform, NULL);
+            /* check for BSAGE_ERR_ALREADY_INITIALIZED to handle race conditions */
+            if ((rc != BERR_SUCCESS) &&
+                (rc != BSAGE_ERR_ALREADY_INITIALIZED)) {
+                goto end;
+            }
+        }
+
+        if(_srai.antirollback_module == NULL){
+
+            rc = SRAI_Module_Init(_srai.antirollback_platform,
+                                  AntiRollback_ModuleId_eAntiRollback,
+                                  NULL,
+                                  &_srai.antirollback_module);
+            if(rc == BSAGE_ERR_ALREADY_INITIALIZED)
+            {
+                /* This error can only occurs on SAGE 3.1.x where we do not need to send the RegisterTa command.  */
+                rc = BERR_SUCCESS;
+            }
+            else if (rc != BERR_SUCCESS) {
+                goto end;
+            }
+            BDBG_MSG(("%s: antirollback Platform Module %p ", __FUNCTION__, (void *)_srai.antirollback_module ));
+        }
+    }
+
+
     if (!_srai_is_sdl_valid(pHeader)) {
         BDBG_ERR(("%s: Cannot install incompatible SDL", __FUNCTION__));
         rc = BERR_INVALID_PARAMETER;
@@ -1860,11 +1913,55 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
     container = SRAI_Container_Allocate();
     BDBG_ASSERT(container);
 
+    /* Register the TA to the Anti-rollback TA (Skip when loading AR TA (although AR TA */
+    /* is expected to be loaded with BSAGElib_Rai_Platform_Install())).                 */
+    if((platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK) &&
+       (_srai.antirollback_module != NULL))
+    {
+        container->basicIn[0] = platformId;
+
+        BDBG_MSG(("%s: Registering TA (platform ID %u) to the Anti-rollback TA\n", __FUNCTION__, platformId));
+        rc = SRAI_Module_ProcessCommand(_srai.antirollback_module,
+                                        AntiRollbackModule_CommandId_eRegisterTa,
+                                        container);
+        if(rc == BSAGE_ERR_MODULE_COMMAND_ID)
+        {
+            /* In SAGE 3.1.x, AR TA did not support RegisterTa command. Just ignore the request. */
+            BDBG_MSG(("%s: Anti-rollback TA does not support the RegisterTa command. Ignoring the error.", __FUNCTION__));
+            rc = BERR_SUCCESS;
+        }
+        else if((rc != BERR_SUCCESS) || (container->basicOut[0] != BERR_SUCCESS))
+        {
+            BDBG_ERR(("%s: Cannot register TA to the Anti-rollback TA\n", __FUNCTION__));
+            rc = BERR_UNKNOWN;
+            goto end;
+        }
+    }
+
+    /* Load TA using the System TA */
+    BKNI_Memset(container, 0, sizeof(*container));
     container->basicIn[0] = platformId;
 
     /* provide the SDL binary that's been pulled from FS */
     container->blocks[0].data.ptr = binBuff;
     container->blocks[0].len = binSize;
+
+    {
+        BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)binBuff;
+        if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_SINGLE){
+            BDBG_MSG(("%s: Single signed image detected ^^^^^", __FUNCTION__)); /* TODO: change to MSG */
+            container->basicIn[1] = 0;
+        }
+        else if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_TRIPLE){
+            BDBG_MSG(("%s: Triple signed image detected ^^^^^", __FUNCTION__)); /* TODO: change to MSG */
+            container->basicIn[1] = 1;
+        }
+        else{
+            BDBG_ERR(("%s: invalida Image Siging Scheme value (0x%02x) detected", __FUNCTION__, pHeader->ucSageImageSigningScheme));
+            rc = BERR_INVALID_PARAMETER;
+            goto end;
+        }
+    }
 
     rc = SRAI_Module_ProcessCommand(_srai.system_module,
                                     DynamicLoadModule_CommandId_eLoadSDL,
@@ -1875,12 +1972,11 @@ BERR_Code SRAI_Platform_Install(uint32_t platformId,
     if((rc == BERR_SUCCESS) || (container->basicOut[0] == BSAGE_ERR_SDL_ALREADY_LOADED))
         rc = BERR_SUCCESS;
 
+end:
     if (container) {
         SRAI_Container_Free(container);
     }
 
-
-end:
     /* Keep refcount to make sure we close the */
     /* BSAGE_PLATFORM_ID_SYSTEM when all else are closed */
     _srai.platform_refcount++;
@@ -1932,6 +2028,18 @@ leave:
       // We are done, cleanup
       SRAI_Module_Uninit(_srai.system_module);
       SRAI_Platform_Close(_srai.system_platform);
+
+      if(_srai.antirollback_module != NULL)
+      {
+          SRAI_Module_Uninit(_srai.antirollback_module);
+          _srai.antirollback_module = NULL;
+      }
+
+      if(_srai.antirollback_platform != NULL)
+      {
+          SRAI_Platform_Close(_srai.antirollback_platform);
+          _srai.antirollback_platform = NULL;
+      }
     }
     _srai_leave();
     BDBG_LEAVE(SRAI_Platform_UnInstall);

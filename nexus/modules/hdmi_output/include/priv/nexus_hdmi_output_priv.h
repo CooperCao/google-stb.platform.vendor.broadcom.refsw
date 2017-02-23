@@ -136,18 +136,6 @@ NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     NEXUS_HdmiOutputHandle handle
     );
 
-/* Audio can only start if video is connected */
-bool NEXUS_HdmiOutput_VideoIsConnected_priv(
-    NEXUS_HdmiOutputHandle handle
-    );
-
-/* Sanity checks for the audio module */
-bool NEXUS_HdmiOutput_AudioFormatSupported_priv(
-    NEXUS_HdmiOutputHandle handle,
-    BAVC_AudioFormat format,
-    unsigned numChannels    /* PCM only */
-    );
-
 /* Set audio format information */
 NEXUS_Error NEXUS_HdmiOutput_SetAudioParams_priv(
     NEXUS_HdmiOutputHandle handle,
@@ -204,8 +192,6 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalData(
 
 NEXUS_Error NEXUS_HdmiOutput_P_SetTmdsSignalClock(
     NEXUS_HdmiOutputHandle handle, bool tmdsClockEnable);
-
-void NEXUS_HdmiOutput_GetDefaultDrmInfoFrame_priv(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);
 
 NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(
     NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame);

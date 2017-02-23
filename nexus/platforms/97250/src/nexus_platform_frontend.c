@@ -35,7 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
-#include "nexus_types.h"
+#include "nexus_platform_module.h"
 #include "nexus_platform_priv.h"
 #include "nexus_platform.h"
 #include "priv/nexus_core.h"
@@ -157,7 +157,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,pConfig->frontend[i]));
             }
         } else {
-            BDBG_ERR(("No frontend found."));
+            BDBG_WRN(("No frontend found."));
         }
     }
 

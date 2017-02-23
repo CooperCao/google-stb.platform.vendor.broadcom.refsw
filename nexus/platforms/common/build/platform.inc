@@ -1,5 +1,5 @@
-############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+###############################################################################
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-############################################################
+###############################################################################
 
 #
 # NOTE: Do not add platform-specific logic here. There should be no variation of ifeq ($(NEXUS_PLATFORM),) in this file.
@@ -53,7 +53,6 @@ NEXUS_MODULES += PLATFORM
 ##########################
 # Default Module Options #
 ##########################
-
 ifeq ($(NEXUS_POWER_MANAGEMENT),)
 NEXUS_POWER_MANAGEMENT := y
 endif
@@ -112,8 +111,6 @@ NEXUS_PLATFORM_SOURCES = \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_memconfig.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_settings.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_standby.c \
-    $(NEXUS_TOP)/base/src/b_objdb.c \
-    $(NEXUS_TOP)/base/src/nexus_client_resources.c
 
 ifeq ($(filter $(B_REFSW_OS),ucos ucos_iii),$(B_REFSW_OS))
 NEXUS_PLATFORM_SOURCES += \
@@ -165,11 +162,19 @@ endif
 
 FLOATLIB=$(NEXUS_TOP)/../BSEAV/linux/driver/floatlib
 
-ifeq ($(NEXUS_POWER_MANAGEMENT),y)
-ifeq ($(findstring arm, ${B_REFSW_ARCH}),arm)
-NEXUS_PLATFORM_PRIVATE_INCLUDES += $(MAGNUM)/../BSEAV/linux/driver/wakeup
+LINUX_OUT ?= $(LINUX)
+NEXUS_GISB_ARB := $(shell if grep 'CONFIG_BRCMSTB_GISB_ARB' -q ${LINUX_OUT}/include/generated/autoconf.h ; then echo "y" ; fi)
+NEXUS_WKTMR    := $(shell if grep 'CONFIG_BRCMSTB_WKTMR' -q ${LINUX_OUT}/include/generated/autoconf.h ; then echo "y" ; fi)
+
+ifeq ($(NEXUS_GISB_ARB),y)
+NEXUS_PLATFORM_DEFINES += NEXUS_GISB_ARB
 endif
-ifeq ($(findstring aarch64, ${B_REFSW_ARCH}),aarch64)
+ifeq ($(NEXUS_WKTMR),y)
+NEXUS_PLATFORM_DEFINES += NEXUS_WKTMR
+endif
+
+ifeq ($(NEXUS_POWER_MANAGEMENT),y)
+ifeq ($(NEXUS_WKTMR),y)
 NEXUS_PLATFORM_PRIVATE_INCLUDES += $(MAGNUM)/../BSEAV/linux/driver/wakeup
 endif
 endif
@@ -418,6 +423,7 @@ ifeq ($(filter $(RAP_REALVIDEO_SUPPORT) $(RAP_VP6_SUPPORT), y), y)
 NEXUS_PLATFORM_DEFINES += NEXUS_NUM_ZSP_VIDEO_DECODERS=1
 endif
 
+ifneq ($(BAPE_DSP_SUPPORT),n)
 ifeq ($(filter $(BDSP_VP6_SUPPORT), y), y)
 NEXUS_PLATFORM_DEFINES += NEXUS_NUM_DSP_VIDEO_DECODERS=1
 NEXUS_PLATFORM_DEFINES += NEXUS_BDSP_VP6_SUPPORT=1
@@ -429,6 +435,7 @@ endif
 
 ifeq ($(filter $(BDSP_ENCODER_ACCELERATOR_SUPPORT), y), y)
 NEXUS_PLATFORM_DEFINES += NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT=1
+endif
 endif
 
 ifeq ($(filter $(BSID_MJPEG_SUPPORT), y), y)
@@ -470,10 +477,6 @@ NEXUS_PLATFORM_DEPENDENCIES = $(filter-out PLATFORM, $(NEXUS_MODULES))
 # Magnum Modules #
 ##################
 NEXUS_PLATFORM_MAGNUM_MODULES =
-
-ifeq ($(B_REFSW_OS),linuxemu)
-NEXUS_PLATFORM_MAGNUM_MODULES += $(MAGNUM)/basemodules/test/btst.inc
-endif
 
 ifneq ($(NEXUS_SYSTEM_CABLE)$(NEXUS_PLATFORM_7425_CABLE)$(NEXUS_PLATFORM_7422_CABLE)$(NEXUS_PLATFORM_7445_CABLE)$(NEXUS_PLATFORM_7449_CABLE),)
 include $(NEXUS_TOP)/extensions/platform/cable_frontend/platform_cable_frontend.inc

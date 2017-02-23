@@ -264,20 +264,26 @@ NEXUS_SurfaceHandle NEXUS_Surface_Create(const NEXUS_SurfaceCreateSettings *pCre
     surface->memoryPropertiesValid = false;
     BPXL_Plane_Init(&surface->plane, surface->createSettings.width, surface->createSettings.height, pixel_format);
 
-    /* if NULL, get the registered default heap. modify the stored createSettings for GetCreateSettings. */
-    surface->createSettings.heap = NEXUS_P_DefaultHeap(pCreateSettings->heap, BPXL_IS_PALETTE_FORMAT(pixel_format) ? NEXUS_DefaultHeapType_eFull : NEXUS_DefaultHeapType_eAny);
-    /* retain support for module-level default index, but this should not be used. */
-    if (!surface->createSettings.heap && g_NEXUS_SurfaceModuleData.settings.heapIndex < NEXUS_MAX_HEAPS) {
-        surface->createSettings.heap = g_pCoreHandles->heap[g_NEXUS_SurfaceModuleData.settings.heapIndex].nexus;
+    if ( pCreateSettings->pMemory || pCreateSettings->pixelMemory) {
+        surface->createSettings.heap = NULL;
+        heap = NULL;
     }
-    if (!surface->createSettings.heap) {
-        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        goto error;
-    }
-    heap = NEXUS_Heap_GetMmaHandle(surface->createSettings.heap);
+    else {
+        /* if NULL, get the registered default heap. modify the stored createSettings for GetCreateSettings. */
+        surface->createSettings.heap = NEXUS_P_DefaultHeap(pCreateSettings->heap, BPXL_IS_PALETTE_FORMAT(pixel_format) ? NEXUS_DefaultHeapType_eFull : NEXUS_DefaultHeapType_eAny);
+        /* retain support for module-level default index, but this should not be used. */
+        if (!surface->createSettings.heap && g_NEXUS_SurfaceModuleData.settings.heapIndex < NEXUS_MAX_HEAPS) {
+            surface->createSettings.heap = g_pCoreHandles->heap[g_NEXUS_SurfaceModuleData.settings.heapIndex].nexus;
+        }
+        if (!surface->createSettings.heap) {
+            rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            goto error;
+        }
+        heap = NEXUS_Heap_GetMmaHandle(surface->createSettings.heap);
 
-    NEXUS_Heap_GetStatus(surface->createSettings.heap, &heapStatus);
-    BMMA_GetDefaultAllocationSettings(&mmaSettings);
+        NEXUS_Heap_GetStatus(surface->createSettings.heap, &heapStatus);
+        BMMA_GetDefaultAllocationSettings(&mmaSettings);
+    }
 
     if(pCreateSettings->pitch) {
         if (pCreateSettings->pitch < surface->plane.ulPitch) {

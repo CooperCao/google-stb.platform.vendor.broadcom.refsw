@@ -384,7 +384,9 @@ static const BINT_P_IntMap bint_7435[] =
 
     /* BINT_MAP_STD(1, SYS_PM, AON_PM_L2_CPU), */
     BINT_MAP_STD(1, SYS_AON, AON_L2_CPU),
+#if !defined(NEXUS_GISB_ARB)
     BINT_MAP_STD(1, SYS, SUN_L2_CPU),
+#endif
 
     BINT_MAP_STD(1, SVD0_0, SVD_INTR2_0_CPU),
 

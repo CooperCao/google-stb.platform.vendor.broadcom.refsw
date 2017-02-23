@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /* NOTE: this file gets exported into the Raaga Magnum host library and so it
  *       must abide by a specific strict set of rules. Please use only ANSI C
@@ -67,7 +64,7 @@
 
 #include "libsyschip/src/heartbeat_internal.h"
 
-#include "DSP_raaga_internal.h"
+#include "DSP_raaga_fp2000.h"
 
 
 
@@ -79,7 +76,9 @@
 #endif
 
 
-void DSP_pollInterrupts(DSP *dsp, DSP_INTERRUPTS *interrupts)
+#if !B_REFSW_MINIMAL
+
+void DSP_pollInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interrupts)
 {
     interrupts->dsp_inth_host_status = DSP_readSharedRegister(dsp, BCHP_RAAGA_DSP_INTH_HOST_STATUS);
 #if !(defined(__FP2012_ONWARDS__) && IS_HOST(BM))  /* BM doesn't support in full the rev2000 RDB */
@@ -97,7 +96,7 @@ void DSP_pollInterrupts(DSP *dsp, DSP_INTERRUPTS *interrupts)
 
 #if !FEATURE_IS(SW_HOST, RAAGA_MAGNUM)      /* don't interfere with Magnum about interrupts handling */
 
-void DSP_clearInterrupts(DSP *dsp, DSP_INTERRUPTS *interrupts)
+void DSP_clearInterrupts(DSP *dsp, DSP_CORE core __unused, DSP_INTERRUPTS *interrupts)
 {
     DSP_writeSharedRegister(dsp, BCHP_RAAGA_DSP_INTH_HOST_CLEAR, interrupts->dsp_inth_host_status);
 #if !(defined(__FP2012_ONWARDS__) && IS_HOST(BM))  /* BM doesn't support in full the rev2000 RDB */
@@ -109,42 +108,56 @@ void DSP_clearInterrupts(DSP *dsp, DSP_INTERRUPTS *interrupts)
 }
 
 
-void DSP_clearAllInterrupts(DSP *dsp)
+void DSP_clearAllInterrupts(DSP *dsp, DSP_CORE core)
 {
     DSP_INTERRUPTS all_interrupts = { 0xffffffff, 0xffffffff, 0xffffffff };
-    DSP_clearInterrupts(dsp, &all_interrupts);
+    DSP_clearInterrupts(dsp, core, &all_interrupts);
 }
 
 #endif /* !FEATURE_IS(SW_HOST, RAAGA_MAGNUM) */
 
 
-void DSP_pollHeartbeat(DSP *dsp, DSP_HEARTBEAT *heartbeat)
+DSP_RET DSP_pollHeartbeat(DSP *dsp, DSP_CORE core, DSP_HEARTBEAT *heartbeat)
 {
-    /* Look for the ["Done", exit_code] combination and fake the heartbeat status */
-    uint32_t exit_data[2];
-    DSP_readSharedData(dsp, &exit_data, BCHP_RAAGA_DSP_MISC_SCRATCH_2, sizeof(exit_data));
-    if(exit_data[0] == 0x656e6f44)  /* "Done" */
+    if(core == DSP_CORE_0)
     {
-        heartbeat->phase = HB_PHASE_THE_END;
-        heartbeat->subphase = HB_SUBPHASE_TEST_EXIT_WAIT_FOR_THE_END;
-        heartbeat->argument = exit_data[1];
+        /* Look for the ["Done", exit_code] combination and fake the heartbeat status */
+        uint32_t exit_data[2];
+        DSP_readSharedData(dsp, &exit_data, BCHP_RAAGA_DSP_MISC_SCRATCH_2, sizeof(exit_data));
+        if(exit_data[0] == 0x656e6f44)  /* "Done" */
+        {
+            heartbeat->phase = HB_PHASE_THE_END;
+            heartbeat->subphase = HB_SUBPHASE_TEST_EXIT_WAIT_FOR_THE_END;
+            heartbeat->argument = exit_data[1];
+        }
+        else
+        {
+            /* DSP_enabledStatus is not available on Raaga Si,
+             * so let's pretend we are running. */
+            /* FIXME: implement DSP_enabledStatus */
+            heartbeat->phase = HB_PHASE_MAIN;
+            heartbeat->subphase = HB_SUBPHASE_ENTERING_MAIN;
+            heartbeat->argument = 0;
+        }
+
+        return DSP_SUCCESS;
     }
     else
-    {
-        /* DSP_enabledStatus is not available on Raaga Si,
-         * so let's pretend we are running. */
-        /* FIXME: implement DSP_enabledStatus */
-        heartbeat->phase = HB_PHASE_MAIN;
-        heartbeat->subphase = HB_SUBPHASE_ENTERING_MAIN;
-        heartbeat->argument = 0;
-    }
+        return DSP_WRONG_CORE;
 }
 
 
-void DSP_clearHeartbeat(DSP *dsp)
+DSP_RET DSP_clearHeartbeat(DSP *dsp, DSP_CORE core __unused)
 {
-    uint32_t exit_data[2] = {0, 0};
-    DSP_writeSharedData(dsp, BCHP_RAAGA_DSP_MISC_SCRATCH_2, &exit_data, sizeof(exit_data));
+    if(core == DSP_CORE_0)
+    {
+        uint32_t exit_data[2] = {0, 0};
+        DSP_writeSharedData(dsp, BCHP_RAAGA_DSP_MISC_SCRATCH_2, &exit_data, sizeof(exit_data));
+
+        return DSP_SUCCESS;
+    }
+    else
+        return DSP_WRONG_CORE;
 }
 
 
@@ -355,7 +368,7 @@ DSP_RET DSP_debugConsoleRead(DSP *dsp, DSP_CORE core __unused, uint8_t *dst)
         return DSP_DEBUG_CONSOLE_NO_DATA;
     }
 
-    DSPLOG_JUNK("DSP: debug console: read index = %d, write index = %d, buffer addr = %p, buffer size = %d\n",
+    DSPLOG_JUNK("DSP: debug console: read index = %d, write index = %d, buffer addr = 0x%08" PRIx32 ", buffer size = %d\n",
                 read_index, write_index, RAAGA_DSP_FP2012_DBG_CONSOLE_TX_BUFF,
                 RAAGA_DSP_FP2012_DBG_CONSOLE_TX_BUFF_SIZE);
 
@@ -414,7 +427,7 @@ DSP_RET DSP_debugConsoleWrite(DSP *dsp, DSP_CORE core __unused, uint8_t src)
         return DSP_DEBUG_CONSOLE_NO_SPACE;
     }
 
-    DSPLOG_JUNK("DSP: debug console: read index = %d, write index = %d, buffer addr = %p, buffer size = %d",
+    DSPLOG_JUNK("DSP: debug console: read index = %d, write index = %d, buffer addr = 0x%08" PRIx32 ", buffer size = %d",
                 read_index, write_index, RAAGA_DSP_FP2012_DBG_CONSOLE_RX_BUFF,
                 RAAGA_DSP_FP2012_DBG_CONSOLE_RX_BUFF_SIZE);
 
@@ -428,3 +441,5 @@ DSP_RET DSP_debugConsoleWrite(DSP *dsp, DSP_CORE core __unused, uint8_t src)
     return 0;
 #endif /* __FP2012__ */
 }
+
+#endif /* !B_REFSW_MINIMAL */

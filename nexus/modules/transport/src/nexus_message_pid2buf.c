@@ -363,6 +363,7 @@ void NEXUS_Message_GetDefaultStartSettings(NEXUS_MessageHandle msg, NEXUS_Messag
     pStartSettings->bufferMode = NEXUS_MessageBufferMode_eContinuous; /* deprecated */
     pStartSettings->bank = -1;
     NEXUS_Message_GetDefaultFilter(&pStartSettings->filter);
+    pStartSettings->dssMessageMptFlags = NEXUS_DssMessageMptFlags_eSaveFirst;
 }
 
 void NEXUS_Message_GetDefaultFilter(NEXUS_MessageFilter *pFilter)
@@ -556,11 +557,16 @@ NEXUS_Error NEXUS_Message_Start(NEXUS_MessageHandle msg, const NEXUS_MessageStar
 
 #if B_REFSW_DSS_SUPPORT
         if (NEXUS_IS_DSS_MODE(hwPidChannel->status.transportType)) {
+            BXPT_DirecTvMessageOptions options;
             BDBG_MSG(("StartDirecTvMessageCapture %p: pidch=%d msgbuf=%d bank=%d", (void *)msg, msg->PidChannelNum, msg->MesgBufferNum, msg->BankNum));
+            BKNI_Memset(&options, 0, sizeof(options));
+            BDBG_CASSERT(NEXUS_DssMessageMptFlags_eMax-1 == BXPT_DirecTvMessageFlags_eSaveAll);
+            options.Flags = pStartSettings->dssMessageMptFlags;
             BDBG_CASSERT(NEXUS_DssMessageType_eMax-1 == BXPT_DirecTvMessageType_eRegular_CapFilter4);
-            rc = BXPT_Mesg_StartDirecTvMessageCapture(pTransport->xpt, msg->PidChannelNum, msg->MesgBufferNum,
+            rc = BXPT_Mesg_StartDirecTvMessageCaptureWithOptions(pTransport->xpt, msg->PidChannelNum, msg->MesgBufferNum,
                 (BXPT_DirecTvMessageType)pStartSettings->dssMessageType,
-                &msg->psiMessageSettings);
+                &msg->psiMessageSettings,
+                &options);
             if (rc) { rc = BERR_TRACE(rc); goto start_error;}
         }
         else

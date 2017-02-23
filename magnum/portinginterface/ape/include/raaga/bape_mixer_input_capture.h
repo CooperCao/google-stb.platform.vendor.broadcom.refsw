@@ -73,7 +73,7 @@ typedef struct BAPE_MixerInputCaptureCreateSettings
 {
     unsigned maxChannels;       /* Maximum number of channels to capture.  1 = mono/compressed.  2 = stereo.  6 = 5.1.  Default = 2. */
     size_t channelBufferSize;   /* Channel buffer size in bytes.  Default is 1536kB. */
-    BMEM_Heap_Handle hHeap;     /* Memory Heap to use for allocating buffers.  If NULL, the default heap will be used. */
+    BMMA_Heap_Handle hHeap;     /* Memory Heap to use for allocating buffers.  If NULL, the default heap will be used. */
 } BAPE_MixerInputCaptureCreateSettings;
 
 /***************************************************************************
@@ -149,6 +149,8 @@ BERR_Code BAPE_MixerInputCapture_SetInterruptHandlers(
     const BAPE_MixerInputCaptureInterruptHandlers *pInterrupts
     );
 
+
+#if BAPE_DSP_SUPPORT
 /***************************************************************************
 Summary:
 Consume data from the capture buffers
@@ -156,5 +158,7 @@ Consume data from the capture buffers
 BERR_Code   BAPE_ProcessAudioCapture(
             BDSP_Handle device
             );
-#endif
+
+#endif /* BAPE_DSP_SUPPORT */
+#endif /* !B_REFSW_MINIMAL */
 #endif /* #ifndef BAPE_MIXER_INPUT_CAPTURE_H_ */

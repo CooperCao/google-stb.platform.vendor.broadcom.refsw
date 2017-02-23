@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 /*
     To add new fields:
  1) add html input type (checkbox, radio, text, dropdown, etc. to page_transport(), page_display(), etc
@@ -114,7 +112,8 @@ typedef enum
     MEMCONFIG_AUDIO_USAGE_TRANSCODE,
     MEMCONFIG_AUDIO_USAGE_MAX
 } Memconfig_AudioUsages;
-static char *postProcessing[NEXUS_AudioPostProcessing_eMax] = {"SampleRateConverter", "CustomVoice", "AutoVolumeLevel", "TrueSurround", "TruVolume", "Dsola", "Btsc"};
+#include "bmemconfig_nexus_audio_types.h"
+extern char*postProcessing[NEXUS_AudioPostProcessing_eMax]; /* will cause compile error if NEXUS_AudioPostProcessing_eMax ever increases in size */
 static char *dolbyCodecVersion[NEXUS_AudioDolbyCodecVersion_eMax] = {"Ac3", "Ac3Plus", "MS10", "MS11", "MS12"};
 
 #define PRINTF                        noprintf
@@ -172,6 +171,37 @@ int           g_MegaBytesDivisor[2] = {1, 8};
 char         *g_MegaBytesStr[2] = {"Mbps", "MBps"};
 char         *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
 bmemperf_info g_bmemperf_info;
+
+/**
+ *  Function: This function will parse the global variable strUrsr and try to find the
+ *            URSR version. The URSR version is the part of the string after the second
+ *            space.
+ **/
+static char strUrsr[128]; /* something similar to "97271 A0 16.3" */
+static char *getUrsrVersion( void )
+{
+    char *space = NULL;
+    /* if the string has been initialized by a call to NEXUS_Platform_GetReleaseVersion() */
+    if ( strlen(strUrsr) )
+    {
+        /* look for the first space */
+        space = strchr( strUrsr, ' ');
+        if ( space )
+        {
+            space++;
+            /* look for the second space */
+            space = strchr( space, ' ');
+            if ( space )
+            {
+                /* the URSR version starts right after the second space */
+                space++;
+                return space;
+            }
+        }
+    }
+
+    return "unk";
+}
 
 /**
  *  Function: This function creates a time string that matches the time string that is created by kernel calls.
@@ -1617,7 +1647,7 @@ static void print_heaps(
             if (isHeapMain( heapIdx ))
             {
                 /* padding column */
-                printf( "<td ><input type=text id=heap%uaddl size=2 onchange=\"MyClick(event);\" value=%5.1f %s ></td>", heapIdx,
+                printf( "<td ><input type=text id=heap%uaddl size=5 onchange=\"MyClick(event);\" value=%5.1f %s ></td>", heapIdx,
                     additionalMemory, ( additionalMemory<0 ) ? BACKGROUND_RED : BACKGROUND_WHITE );
 
                 /* usage column */
@@ -1678,7 +1708,7 @@ static void print_heaps(
             else if (isHeapDriver( heapIdx ))
             {
                 /* padding column */
-                printf( "<td ><input type=text id=heap%uaddl size=2 onchange=\"MyClick(event);\" value=%5.1f ></td>", heapIdx, additionalMemory );
+                printf( "<td ><input type=text id=heap%uaddl size=5 onchange=\"MyClick(event);\" value=%5.1f ></td>", heapIdx, additionalMemory );
 
                 /* usage column */
                 printf( "<td>" );
@@ -1714,7 +1744,7 @@ static void print_heaps(
             {
                 secureHeapTotalMb = heap_totals[heapIdx];
                 /* padding column */
-                printf( "<td ><input type=text id=heap%uaddl size=2 onchange=\"MyClick(event);\" value=%5.1f %s ></td>", heapIdx,
+                printf( "<td ><input type=text id=heap%uaddl size=5 onchange=\"MyClick(event);\" value=%5.1f %s ></td>", heapIdx,
                     additionalMemory, ( additionalMemory<0 ) ? BACKGROUND_RED : BACKGROUND_WHITE );
 
                 /* usage column */
@@ -1741,7 +1771,7 @@ static void print_heaps(
             else if (isHeapGraphics( heapIdx ))
             {
                 /* padding column */
-                printf( "<td ><input type=text id=heap%uaddl size=2 onchange=\"MyClick(event);\" value=%5.1f %s ></td>", heapIdx,
+                printf( "<td ><input type=text id=heap%uaddl size=5 onchange=\"MyClick(event);\" value=%5.1f %s ></td>", heapIdx,
                     additionalMemory, ( additionalMemory<0 ) ? BACKGROUND_RED : BACKGROUND_WHITE );
 
                 printf( "<td >" ); /* usage */
@@ -1767,7 +1797,7 @@ static void print_heaps(
             }
             else /* Sage */
             {
-                printf( "<td ><input type=text id=heap%uaddl size=2 onchange=\"MyClick(event);\" value=%5.1f ></td>", heapIdx, additionalMemory );
+                printf( "<td ><input type=text id=heap%uaddl size=5 onchange=\"MyClick(event);\" value=%5.1f ></td>", heapIdx, additionalMemory );
                 printf( "<td >" ); /* usage */
                 outputUsageBoxModes( heapIdx, pBoxModeSettings );
                 outputTotal( usageBytes );
@@ -1929,7 +1959,7 @@ static int getBoxModeDropdown(
         if (Memconfig_GetBoxModeDefaultSettings( boxmode, &settings )== -1)
         {
 #if ( NEXUS_MODE_proxy )
-            if (boxmode == 0)
+            if ( boxmode == 0 )
             {
                 written = snprintf( output, remaining, "<option value=%d %s >BoxMode %d:%s</option>", boxmode,  ( boxmode == boxmodePlatform ) ? "selected" : "",
                         boxmode, "None selected  ( via env B_REFSW_BOXMODE )" );
@@ -2024,7 +2054,7 @@ static int page_home(
 
     printf( "~" );
     printf( "PLATFORM~%s~", getPlatform());
-    printf( "PLATVER~%s~", getPlatformVersion());
+    printf( "PLATVER~%s&nbsp;&nbsp;&nbsp;%s~", getPlatformVersion(), getUrsrVersion() );
     return( 0 );
 } /* page_home */
 
@@ -5586,11 +5616,42 @@ static int notify_of_fail(
     PRINTF( "%s: name (%s); rc %d<br>\n", __FUNCTION__, functionName, rc );
     if (rc != 0)
     {
-        printf( "~FATAL~%s returned error code %d~", functionName, rc );
+        char *fileContents = NULL;
+        char  logFilename[LOG_FILE_FULL_PATH_LEN];
+        char *CgiBeginning = NULL;
+
+        PrependTempDirectory( logFilename, sizeof( logFilename ), "boa_error.log" );
+
+        fileContents = getFileContents( logFilename );
+        if (fileContents)
+        {
+            CgiBeginning = Bsysperf_FindLastStr( fileContents, "CGI BEGINNING" );
+
+            /* if we could not find the CGI BEGINNING tag, use the entire contents */
+            if ( CgiBeginning == NULL ) CgiBeginning = fileContents;
+
+            /* replace tildas with ^ to that javascript does not try to split on the tilda */
+            if ( CgiBeginning )
+            {
+                char *pos = strchr( CgiBeginning, '\n' ); /* find the end of the search line */
+
+                if ( pos ) CgiBeginning = ++pos; /* do not print the search string */
+
+                while( pos )
+                {
+                    pos = strchr( pos, '~' );
+                    if ( pos ) *pos = '^';
+                    printf( "%s:%u CgiBeginning %p;  pos %p;  \n", __FUNCTION__, __LINE__, CgiBeginning, pos );
+                }
+            }
+        }
+        printf( "~FATAL~%s returned error code %d\n\n\n%s~", functionName, rc, (CgiBeginning)?CgiBeginning:"" );
         fflush( stdout ); fflush( stderr );
 
         printf( "%s: NEXUS_Platform_Uninit\n", __FUNCTION__ );
         NEXUS_Platform_Uninit();
+
+        Bsysperf_Free( fileContents );
 
         exit( -1 );
     }
@@ -5870,6 +5931,7 @@ int main(
     }
 
     printf( "Content-type: text/html\n\n" );
+    BDBG_LOG(("%s:%u CGI BEGINNING ================================================", argv[0], __LINE__ ));
     BDBG_LOG(("%s: NEXUS_MAX_MEMC %d; NEXUS_NUM_MEMC %d ", argv[0], NEXUS_MAX_MEMC, NEXUS_NUM_MEMC ));
 
     /* determine if any apps are using Nexus at the moment */
@@ -6006,7 +6068,7 @@ int main(
 
     Memconfig_GetBoxModeDefaultSettings( boxmode, &boxModeSettings );
 
-    BDBG_ERR(("%d calling NEXUS_Platform_GetDefaultSettings() ", __LINE__ ));
+    /*BDBG_ERR(("%d calling NEXUS_Platform_GetDefaultSettings() ", __LINE__ ));*/
     /* API is void; does not return anything */
     NEXUS_Platform_GetDefaultSettings( &platformSettings );
 
@@ -6024,7 +6086,7 @@ int main(
 
     platformSettings.openFrontend = false;
 
-    BDBG_ERR(("%d calling NEXUS_GetDefaultMemoryConfigurationSettings() ", __LINE__ ));
+    /*BDBG_ERR(("%d calling NEXUS_GetDefaultMemoryConfigurationSettings() ", __LINE__ ));*/
     NEXUS_GetDefaultMemoryConfigurationSettings( &memConfigSettings );
 
     /* save the default video decoder codecs to help us NOT display codecs that are initially turned off by default */
@@ -6070,14 +6132,17 @@ int main(
     /* if all audio decoders are disabled, clear out pSettings codecs */
     update_audio_decoder_codecs( &memConfigSettings, &transInput );
 
-    BDBG_LOG(( "~%s: NEXUS_SetEnv( NEXUS_BASE_ONLY_INIT, y ); used to set baseOnlyInit ~", argv[0] ));
+    /*BDBG_LOG(( "~%s: NEXUS_SetEnv( NEXUS_BASE_ONLY_INIT, y ); used to set baseOnlyInit ~", argv[0] ));*/
     NEXUS_SetEnv( "NEXUS_BASE_ONLY_INIT", "y" );
-    BDBG_LOG(( "~%s: NEXUS_BASE_ONLY_INIT: calling NEXUS_Platform_MemConfigInit(); uses baseOnlyInit~", argv[0] ));
-    BDBG_ERR(("%d calling NEXUS_Platform_MemConfigInit() ", __LINE__ ));
+    /*BDBG_LOG(( "~%s: NEXUS_BASE_ONLY_INIT: calling NEXUS_Platform_MemConfigInit(); uses baseOnlyInit~", argv[0] ));*/
+    /*BDBG_ERR(("%d calling NEXUS_Platform_MemConfigInit() ", __LINE__ ));*/
     rc = NEXUS_Platform_MemConfigInit( &platformSettings, &memConfigSettings );
-    BDBG_LOG(( "~%s: NEXUS_BASE_ONLY_INIT: NEXUS_Platform_MemConfigInit() returned %d; uses baseOnlyInit~", argv[0], rc ));
+    /*BDBG_LOG(( "~%s: NEXUS_BASE_ONLY_INIT: NEXUS_Platform_MemConfigInit() returned %d; uses baseOnlyInit~", argv[0], rc ));*/
 
     notify_of_fail( "NEXUS_Platform_MemConfigInit", rc );
+
+    BKNI_Memset( strUrsr, 0, sizeof( strUrsr ));
+    NEXUS_Platform_GetReleaseVersion( strUrsr, sizeof(strUrsr) );
 
     /* restore the settings that will be used to write to state machine */
     memcpy( &memConfigSettings, &memConfigSettings2, sizeof( memConfigSettings ));
@@ -6101,7 +6166,7 @@ int main(
 
     Memconfig_AppUsageCalculate( &transInput, &transOutput );
 
-    BDBG_ERR(("%d calling print_heaps() ", __LINE__ ));
+    /*BDBG_ERR(("%d calling print_heaps() ", __LINE__ ));*/
     print_heaps( &transOutput, &transInput, &boxModeSettings, &memConfigSettings, &transOutputPrevious, &platformStatusPrevious,
         useNexusMemconfigDefaults );
     BDBG_ERR(("%d print_heaps() done", __LINE__ ));
@@ -6170,7 +6235,7 @@ end:
     NEXUS_SetEnv( "B_REFSW_BOXMODE", boxmodeStr );
     printf( "NEXUS_SetEnv(B_REFSW_BOXMODE=%u)\n", boxmode );
 
-    printf( "calling NEXUS_Platform_GetDefaultSettings()\n" );
+    /*printf( "calling NEXUS_Platform_GetDefaultSettings()\n" );*/
     NEXUS_Platform_GetDefaultSettings( &platformSettings );
     printf( "after NEXUS_Platform_GetDefaultSettings(), errno %d (%s)\n", errno, strerror( errno ));
 

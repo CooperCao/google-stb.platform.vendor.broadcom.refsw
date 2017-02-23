@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
-#include "nexus_platform_generic_features_priv.h"
+#include "bstd.h"
 
 /* Transport Features */
 #define NEXUS_NUM_PARSER_BANDS 16
@@ -53,24 +53,8 @@
 #define NEXUS_NUM_VIDEO_DECODERS 4
 
 /* Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 6
-#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 1 /* Number of external inputs active at a time */
-#define NEXUS_NUM_AUDIO_DACS 2
-#define NEXUS_NUM_SPDIF_INPUTS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 4
-#define NEXUS_NUM_AUDIO_MIXERS 8
-
-#define NEXUS_NUM_I2S_INPUTS 1
-#define NEXUS_NUM_I2S_OUTPUTS 2
-#define NEXUS_NUM_AUDIO_PLAYBACKS 3
-
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-
-#ifdef NEXUS_NUM_AUDIO_CRCS
-#undef NEXUS_NUM_AUDIO_CRCS
 #define NEXUS_NUM_AUDIO_CRCS 0
-#endif
+
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 2
@@ -143,21 +127,11 @@ upon the chip usage. See below */
 /* Memory features */
 #define NEXUS_NUM_MEMC 2
 
-/* default heap indices */
-#define NEXUS_MEMC0_MAIN_HEAP           0 /* Main heap must be 0 */
-#define NEXUS_SAGE_SECURE_HEAP          1 /* optional secure heaps, can be left undefined if not used */
-#define NEXUS_MEMC1_GRAPHICS_HEAP       2
-#define NEXUS_MEMC0_GRAPHICS_HEAP       3
-#define NEXUS_VIDEO_SECURE_HEAP         4
-#define NEXUS_MEMC1_DRIVER_HEAP         5
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 6
-#define NEXUS_MEMC1_PICTURE_BUFFER_HEAP 7
-#define NEXUS_MEMC0_DRIVER_HEAP         8
-
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 #define NEXUS_PLATFORM_P_READ_BOX_MODE 1
 
 #define NEXUS_AVS_MONITOR           1
 
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

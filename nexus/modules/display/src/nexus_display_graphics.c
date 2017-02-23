@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,10 @@
 
 BDBG_MODULE(nexus_display_graphics);
 
+#define pVideo (&g_NEXUS_DisplayModule_State)
 static void NEXUS_Display_P_DestroyGraphics(NEXUS_DisplayHandle display);
+static void nexus_p_compression_shutdown(struct NEXUS_DisplayGraphics *graphics);
+static NEXUS_Error NEXUS_Display_P_SetGraphicsFramebuffer3D(NEXUS_DisplayHandle display);
 
 static void
 NEXUS_Display_P_GraphicsNext_isr(void  *disp, int unused, BAVC_Polarity  polarity, BAVC_SourceState  state, void **picture)
@@ -373,6 +376,9 @@ NEXUS_Display_P_DestroyGraphicsSource(NEXUS_DisplayHandle display)
     if(video->updateMode != NEXUS_DisplayUpdateMode_eAuto) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);}
     rc = BVDC_ApplyChanges(video->vdc);
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);}
+
+    nexus_p_compression_shutdown(graphics);
+
     NEXUS_Display_P_SetSecureGraphics(graphics, false);
     graphics->source = NULL;
     graphics->windowVdc = NULL;
@@ -463,25 +469,170 @@ NEXUS_Display_SetGraphicsFramebuffer(NEXUS_DisplayHandle display, NEXUS_SurfaceH
     return rc;
 }
 
+#if NEXUS_AUTO_GRAPHICS_COMPRESSION
+static void nexus_p_compression_checkpoint(void *context)
+{
+    NEXUS_DisplayHandle display = context;
+    display->graphics.compression.checkpoint = false;
+    NEXUS_Display_P_SetGraphicsFramebuffer3D(display);
+}
+
+static NEXUS_Error nexus_p_compression_blit(NEXUS_DisplayHandle display)
+{
+    struct NEXUS_DisplayGraphics *graphics = &display->graphics;
+    unsigned i, lru_index = NEXUS_MAX_COMPRESSED_FRAMEBUFFERS, lru = 0xFFFFFFFF;
+    NEXUS_SurfaceHandle surface = graphics->frameBuffer3D.main;
+    NEXUS_Graphics2DBlitSettings blitSettings;
+    int rc;
+
+    if (!graphics->compression.warning) {
+        BDBG_WRN(("automatic compression of framebuffer on display %u", display->index));
+        graphics->compression.warning = true;
+    }
+
+    if (!graphics->compression.gfx) {
+        NEXUS_Graphics2DSettings gfxSettings;
+        NEXUS_Graphics2DOpenSettings openSettings;
+        NEXUS_Graphics2D_GetDefaultOpenSettings(&openSettings);
+        openSettings.packetFifoSize = 4096;
+        graphics->compression.gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
+        if (!graphics->compression.gfx) {
+            return BERR_TRACE(NEXUS_UNKNOWN);
+        }
+        NEXUS_CallbackHandler_Init(graphics->compression.checkpointCallback, nexus_p_compression_checkpoint, display);
+        NEXUS_Graphics2D_GetSettings(graphics->compression.gfx, &gfxSettings);
+        NEXUS_CallbackHandler_PrepareCallback(graphics->compression.checkpointCallback, gfxSettings.checkpointCallback);
+        rc = NEXUS_Graphics2D_SetSettings(graphics->compression.gfx, &gfxSettings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    /* prefer matching, then empty slot, then LRU */
+    for (i=0;i<NEXUS_MAX_COMPRESSED_FRAMEBUFFERS;i++) {
+        if (graphics->compression.cache[i].uncompressed == surface) {
+            break;
+        }
+        else if (!graphics->compression.cache[i].uncompressed && lru) {
+            lru_index = i;
+            lru = 0; /* empty slot prefered over any non-empty, non-match */
+        }
+        else if (graphics->compression.cache[i].cnt < lru) {
+            /* for non-empty, non-match, prefer least recently used */
+            lru_index = i;
+            lru = graphics->compression.cache[i].cnt;
+        }
+    }
+    if (i == NEXUS_MAX_COMPRESSED_FRAMEBUFFERS) {
+        i = lru_index;
+        if (i == NEXUS_MAX_COMPRESSED_FRAMEBUFFERS) return BERR_TRACE(NEXUS_UNKNOWN);
+    }
+
+    /* alloc matching surface */
+    if (!graphics->compression.cache[i].compressed) {
+        BM2MC_PACKET_Plane plane;
+        NEXUS_SurfaceCreateSettings createSettings;
+        NEXUS_Surface_InitPlaneAndPaletteOffset(surface, &plane, NULL);
+        NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
+        createSettings.pixelFormat = NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8;
+        createSettings.width = plane.width;
+        createSettings.height = plane.height;
+        createSettings.heap = NEXUS_Heap_LookupForOffset_isrsafe(plane.address);
+        graphics->compression.cache[i].compressed = NEXUS_Surface_Create(&createSettings);
+        if (!graphics->compression.cache[i].compressed) {
+            return BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+        }
+    }
+
+    /* this will be the framebuffer */
+    graphics->frameBuffer3D.main = graphics->compression.cache[i].compressed;
+    graphics->compression.cache[i].uncompressed = surface;
+    graphics->compression.cache[i].cnt = graphics->compression.cnt++;
+    BDBG_MSG(("compressing %p to %p[%u]", (void*)surface, (void*)graphics->frameBuffer3D.main, i));
+
+    NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
+    blitSettings.source.surface = graphics->compression.cache[i].uncompressed;
+    blitSettings.output.surface = graphics->compression.cache[i].compressed;
+    rc = NEXUS_Graphics2D_Blit(graphics->compression.gfx, &blitSettings);
+    if (rc) return BERR_TRACE(rc);
+    rc = NEXUS_Graphics2D_Checkpoint(graphics->compression.gfx, NULL);
+    if (rc == NEXUS_GRAPHICS2D_QUEUED) {
+        graphics->compression.checkpoint = true;
+        return NEXUS_SUCCESS;
+    }
+    else if (rc) {
+        return BERR_TRACE(rc);
+    }
+    else {
+        nexus_p_compression_checkpoint(display);
+        return NEXUS_SUCCESS;
+    }
+}
+
+static void nexus_p_compression_shutdown(struct NEXUS_DisplayGraphics *graphics)
+{
+    unsigned i;
+    if (graphics->compression.gfx) {
+        NEXUS_Graphics2D_Close(graphics->compression.gfx);
+        NEXUS_CallbackHandler_Shutdown(graphics->compression.checkpointCallback);
+    }
+    for (i=0;i<NEXUS_MAX_COMPRESSED_FRAMEBUFFERS;i++) {
+        if (graphics->compression.cache[i].compressed) {
+            NEXUS_Surface_Destroy(graphics->compression.cache[i].compressed);
+        }
+    }
+    BKNI_Memset(&graphics->compression, 0, sizeof(graphics->compression));
+}
+#else
+static void nexus_p_compression_shutdown(struct NEXUS_DisplayGraphics *graphics)
+{
+    BSTD_UNUSED(graphics);
+}
+#endif
 
 NEXUS_Error
 NEXUS_Display_SetGraphicsFramebuffer3D(NEXUS_DisplayHandle display, const NEXUS_GraphicsFramebuffer3D *frameBuffer3D)
 {
     struct NEXUS_DisplayGraphics *graphics = &display->graphics;
-    const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
-
-    BERR_Code rc;
     BDBG_OBJECT_ASSERT(display, NEXUS_Display);
     BDBG_ASSERT(frameBuffer3D);
 
-
     if(frameBuffer3D->main==NULL) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
 
+#if NEXUS_AUTO_GRAPHICS_COMPRESSION
+    if (display->graphics.compression.checkpoint) {
+        /* pushing faster than the vsync with automatic compression requires more work */
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
+#endif
+
     graphics->frameBuffer3D = *frameBuffer3D;
+
+#if NEXUS_AUTO_GRAPHICS_COMPRESSION
+    if (g_NEXUS_DisplayModule_State.cap.display[display->index].graphics.compression == NEXUS_GraphicsCompression_eRequired) {
+        NEXUS_SurfaceCreateSettings surfaceCfg;
+        NEXUS_Surface_GetCreateSettings(graphics->frameBuffer3D.main, &surfaceCfg);
+        if (surfaceCfg.pixelFormat != NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8) {
+            if (graphics->frameBuffer3D.right && graphics->frameBuffer3D.right != graphics->frameBuffer3D.main) {
+                return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            }
+            return nexus_p_compression_blit(display);
+        }
+    }
+#endif
+
+    return NEXUS_Display_P_SetGraphicsFramebuffer3D(display);
+}
+
+static NEXUS_Error
+NEXUS_Display_P_SetGraphicsFramebuffer3D(NEXUS_DisplayHandle display)
+{
+    struct NEXUS_DisplayGraphics *graphics = &display->graphics;
+    const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
+    BERR_Code rc;
+    BDBG_OBJECT_ASSERT(display, NEXUS_Display);
     if(graphics->windowVdc) {
         const BPXL_Plane *surface;
         NEXUS_SurfaceCreateSettings surfaceCfg;
         bool frameBufferChanged;
+        const NEXUS_GraphicsFramebuffer3D *frameBuffer3D = &graphics->frameBuffer3D;
 
         BDBG_ASSERT(graphics->source);
         NEXUS_Module_Lock(video->modules.surface);

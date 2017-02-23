@@ -136,6 +136,7 @@ void live_decode_get_default_start_settings( live_decode_start_settings *psettin
 
 static void start_audio(live_decode_channel_t channel)
 {
+#if NEXUS_HAS_AUDIO
     if (channel->audioProgram.primary.pidChannel) {
         /* for audio/video crc testing, we need video in TSM and audio in vsync */
         if (!getenv("force_audio_vsync")) {
@@ -143,14 +144,17 @@ static void start_audio(live_decode_channel_t channel)
         }
         NEXUS_SimpleAudioDecoder_Start(channel->audioDecoder, &channel->audioProgram);
     }
+#endif
 }
 
 static void stop_audio(live_decode_channel_t channel)
 {
+#if NEXUS_HAS_AUDIO
     if (channel->audioProgram.primary.pidChannel) {
         NEXUS_SimpleAudioDecoder_Stop(channel->audioDecoder);
         NEXUS_SimpleAudioDecoder_SetStcChannel(channel->audioDecoder, NULL);
     }
+#endif
 }
 
 static void first_pts_passed(void *context, int param)
@@ -275,10 +279,12 @@ int live_decode_start_channel(live_decode_channel_t channel, const live_decode_s
         }
         channel->videoProgram.smoothResolutionChange = psettings->video.smoothResolutionChange;
     }
+#if NEXUS_HAS_AUDIO
     if (psettings->audio.pid && channel->audioDecoder) {
         channel->audioProgram.primary.pidChannel = NEXUS_PidChannel_Open(psettings->parserBand, psettings->audio.pid, NULL);
         channel->audioProgram.primary.codec = psettings->audio.codec;
     }
+#endif
     if (psettings->pcr_pid) {
         channel->pcrPidChannel = NEXUS_PidChannel_Open(psettings->parserBand, psettings->pcr_pid, NULL);
     }
@@ -292,11 +298,13 @@ int live_decode_start_channel(live_decode_channel_t channel, const live_decode_s
         NEXUS_SimpleStcChannel_SetSettings(channel->stcChannel, &stcSettings);
     }
     
+#if NEXUS_HAS_AUDIO
     if (!channel->videoProgram.settings.pidChannel && !channel->audioProgram.primary.pidChannel) {
         BDBG_WRN(("no content found"));
         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto error;
     }
+#endif
     
     channel->primed = psettings->video.pid && channel->decode->create_settings.primed && channel->stcChannel;
     if (channel->primed) {
@@ -314,10 +322,12 @@ error:
         NEXUS_PidChannel_Close(channel->videoProgram.settings.pidChannel);
         channel->videoProgram.settings.pidChannel = NULL;
     }
+#if NEXUS_HAS_AUDIO
     if (channel->audioProgram.primary.pidChannel) {
         NEXUS_PidChannel_Close(channel->audioProgram.primary.pidChannel);
         channel->audioProgram.primary.pidChannel = NULL;
     }
+#endif
     if (channel->pcrPidChannel) {
         if (channel->stcChannel) {
             NEXUS_SimpleStcChannelSettings stcSettings;
@@ -354,10 +364,12 @@ void live_decode_stop_channel(live_decode_channel_t channel)
         NEXUS_PidChannel_Close(channel->videoProgram.settings.pidChannel);
         channel->videoProgram.settings.pidChannel = NULL;
     }
+#if NEXUS_HAS_AUDIO
     if (channel->audioProgram.primary.pidChannel) {
         NEXUS_PidChannel_Close(channel->audioProgram.primary.pidChannel);
         channel->audioProgram.primary.pidChannel = NULL;
     }
+#endif
     if (channel->pcrPidChannel) {
         if (channel->stcChannel) {
             NEXUS_SimpleStcChannelSettings stcSettings;

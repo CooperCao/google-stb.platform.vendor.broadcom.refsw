@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,10 +43,13 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_MAX_DECODERS
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_decoder_status);
 
+#if BAPE_CHIP_MAX_DECODERS
 static BAPE_ChannelMode BAPE_Decoder_P_ChannelModeFromDsp(uint32_t dspMode)
 {
     switch ( dspMode )
@@ -81,7 +84,7 @@ static BERR_Code BAPE_Decoder_P_GetAc3Status(
 {
     BERR_Code errCode;
 
-    pStatus->codecStatus.ac3.acmod = mode;  /* Use the value from the interrupt.  The streamInfo value is last decoded frame not last parsed. */
+    pStatus->codecStatus.ac3.acmod = (mode >= BAPE_Ac3Acmod_eMax) ? BAPE_Ac3Acmod_e2_0_L_R : mode;
     pStatus->codecStatus.ac3.channelMode = BAPE_Decoder_P_ChannelModeFromDsp(mode);
     pStatus->codecStatus.ac3.bitrate = pBitRateInfo->ui32BitRate/1024; /* FW reports in bps */
 
@@ -99,6 +102,81 @@ static BERR_Code BAPE_Decoder_P_GetAc3Status(
     {
         return errCode;
     }
+
+    switch ( BAPE_GET_AC3_STATUS(handle, ui32AcmodValue) )
+    {
+        case 0:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e1_ch1_ch2;
+            break;
+        case 1:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e1_0_C;
+            break;
+        case 2:
+        default:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_0_L_R;
+            break;
+        case 3:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_0_L_C_R;
+            break;
+        case 4:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_1_L_R_S;
+            break;
+        case 5:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_1_L_C_R_S;
+            break;
+        case 6:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_2_L_R_LS_RS;
+            break;
+        case 7:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_2_L_C_R_LS_RS;
+            break;
+        case 8:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e4_0_L_C_R_CVH;
+            break;
+        case 9:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_3_L_R_LS_RS_TS;
+            break;
+        case 10:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_3_L_R_C_LS_RS_TS;
+            break;
+        case 11:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e4_2_L_R_C_LS_RS_CVH;
+            break;
+        case 12:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e5_0_L_R_C_LC_RC;
+            break;
+        case 13:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_4_L_R_LS_RS_LW_RW;
+            break;
+        case 14:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e4_2_L_R_LS_RS_LVH_RVH;
+            break;
+        case 15:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_4_L_R_LS_RS_LSD_RSD;
+            break;
+        case 16:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e2_4_L_R_LS_RS_LRS_RRS;
+            break;
+        case 17:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e5_2_L_R_C_LS_RS_LC_RC;
+            break;
+        case 18:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_4_L_R_C_LS_RS_LW_RW;
+            break;
+        case 19:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e5_2_L_R_C_LS_RS_LVH_RVH;
+            break;
+        case 20:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_4_L_R_C_LS_RS_LSD_RSD;
+            break;
+        case 21:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e3_4_L_R_C_LS_RS_LRS_RRS;
+            break;
+        case 22:
+            pStatus->codecStatus.ac3.acmod = BAPE_Ac3Acmod_e4_3_L_R_C_LS_RS_TS_CVH;
+            break;
+    }
+
 
     switch( BAPE_GET_AC3_STATUS(handle,ui32SamplingFrequency) )
     {
@@ -1429,3 +1507,4 @@ BERR_Code BAPE_Decoder_P_GetDataSyncStatus_isr(BAPE_DecoderHandle handle, unsign
     }
     return BERR_SUCCESS;
 }
+#endif

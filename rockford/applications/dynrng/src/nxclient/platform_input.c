@@ -94,7 +94,7 @@ static const char * consoleHelp =
     "  e   - toggle osd\n"
     "  i   - toggle details\n"
     "  g   - toggle pig\n"
-    "  x   - toggle forced sdr mode\n"
+    "  x   - cycle output eotf\n"
     "  o   - cycle colorimetry\n"
     "  .   - cycle background\n"
     "  0-9 - switch to scenario 0-9\n"
@@ -155,7 +155,7 @@ bool platform_input_p_get_console_input(PlatformInputHandle input, PlatformInput
                 *pEvent = PlatformInputEvent_ePrevThumbnail;
                 break;
             case 'x':
-                *pEvent = PlatformInputEvent_eToggleForcedSdr;
+                *pEvent = PlatformInputEvent_eCycleOutputEotf;
                 break;
             case 'o':
                 *pEvent = PlatformInputEvent_eCycleColorimetry;
@@ -274,7 +274,7 @@ PlatformInputEvent platform_input_p_event_from_key(b_remote_key key)
             event = PlatformInputEvent_ePrevThumbnail;
             break;
         case b_remote_key_back:
-            event = PlatformInputEvent_eToggleForcedSdr;
+            event = PlatformInputEvent_eCycleOutputEotf;
             break;
         case b_remote_key_power:
             event = PlatformInputEvent_eQuit;

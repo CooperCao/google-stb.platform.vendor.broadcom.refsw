@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -85,7 +85,7 @@ struct astra_test_msg_mem_alloc_rpy
 
 struct astra_test_msg_map_paddr_cmd
 {
-    uint32_t paddr;
+    uintptr_t paddr;
     uint32_t size;
     uint32_t flags;
 };
@@ -98,7 +98,7 @@ struct astra_test_msg_map_paddr_rpy
 struct astra_test_msg_map_paddrs_cmd
 {
     uint32_t count;
-    uint32_t paddrs[32];
+    uintptr_t paddrs[32];
     uint32_t sizes[32];
     uint32_t flags[32];
 };

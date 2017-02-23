@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -469,13 +469,22 @@ BMMA_Block_Handle BMMA_Alloc(BMMA_Heap_Handle h, size_t size, unsigned alignment
 #endif
         if(h->settings.alloc) {
             BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
-            h->settings.alloc(h->settings.context, offset, size,
+            rc = h->settings.alloc(h->settings.context, offset, size,
 #if BDBG_DEBUG_BUILD
                                  b->fname, b->line
 #else
                                  NULL, 0
 #endif
                                       );
+            if (rc) {
+                if(h != &h->parent->dummyHeap) {
+                    BMMA_RangeAllocator_Free(h->rangeAllocator, block);
+                } else {
+                    BMMA_RangeAllocator_DestroyBlock(block);
+                    BKNI_Free(b);
+                }
+                b = NULL;
+            }
         }
         break;
     }
@@ -620,10 +629,10 @@ done:
 }
 
 #if BDBG_DEBUG_BUILD
-void BMMA_Unlock_tagged_locked(BMMA_Block_Handle b, const char *fname, unsigned line)
+static void BMMA_Unlock_tagged_locked(BMMA_Block_Handle b, const char *fname, unsigned line)
 #else
 #define BMMA_Unlock_tagged_locked(b,fname,line) BMMA_Unlock_locked(b)
-void BMMA_Unlock_locked(BMMA_Block_Handle b)
+static void BMMA_Unlock_locked(BMMA_Block_Handle b)
 #endif
 {
     BDBG_ASSERT(b->lock_cnt>0);

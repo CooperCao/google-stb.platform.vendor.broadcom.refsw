@@ -180,11 +180,11 @@ struct BPVRlib_Feed {
     struct B_PVRlib_DescrFifo descFifo;
     size_t  ncompleted;
     uint8_t *databuf_ptr;
-    BMMA_DeviceOffset databuf_offset;
+    BSTD_DeviceOffset databuf_offset;
     BMMA_Block_Handle descBlock;
     BXPT_PvrDescriptor *desc; /* cached pointer to the descriptors array */
     BXPT_PvrDescriptor *nc_desc; /* no-cached pointer to the descriptors array */
-    uint32_t off_desc; /* device offset for the descriptor */
+    BSTD_DeviceOffset off_desc; /* device offset for the descriptor */
     BPVRlib_Feed_Settings config;
     BINT_CallbackHandle hPlayInt;   /* cb Handle for playback interrupt */
     unsigned descScale;
@@ -192,9 +192,9 @@ struct BPVRlib_Feed {
 #define B_PVRLIB_BOUNCE_BUF_SIZE    256
 #define B_PVRLIB_SMALL_ADDR_TEST(a1,a2) (((a1)&0x1F) == ((a2)&0x1F) || ((a2)&0xF)==0)
     uint8_t *bounce_buffer;
-    uint32_t bounce_offset;
+    BSTD_DeviceOffset bounce_offset;
     size_t bounce_ptr;
-    uint32_t last_data_addr;
+    BSTD_DeviceOffset last_data_addr;
 #else
 #define B_PVRLIB_BOUNCE_BUF_SIZE    0
 #endif
@@ -216,9 +216,14 @@ struct BPVRlib_Feed {
 
 
 #if B_PVR_LIB_FEED_SAVE_BEFORE || B_PVR_LIB_FEED_SAVE_AFTER || B_PVR_LIB_FEED_SAVE_DESC
-static void b_pvr_feed_save_data_offset(BPVRlib_Feed_Handle feed, b_pvr_feed_save *save, uint32_t data, size_t len)
+static void b_pvr_feed_save_desc(BPVRlib_Feed_Handle feed, b_pvr_feed_save *save, const BXPT_PvrDescriptor *desc)
 {
     void *cachedAddr;
+    BSTD_DeviceOffset  data = desc->BufferStartAddr;
+    uint32_t len = desc->BufferLength;
+#if BXPT_HAS_MCPB_VER_3
+    data |= ((uint64_t)desc->BufferStartAddrHi) << 32;
+#endif
 
     if (len==0) { return; }
 
@@ -490,6 +495,34 @@ BPVRlib_Feed_Stop(BPVRlib_Feed_Handle feed)
     return;
 }
 
+static void BPVRlib_Feed_P_SetBufferStartAddr(BXPT_PvrDescriptor *desc, BSTD_DeviceOffset offset)
+{
+    uint32_t offsetHi = offset >> 32;
+#if BXPT_HAS_MCPB_VER_3
+    desc->BufferStartAddrHi = offsetHi;
+#else
+    if(offsetHi!=0) {
+        BDBG_ERR(("Truncating buffer address " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(offset)));
+    }
+#endif
+    desc->BufferStartAddr = (uint32_t)offset;
+    return;
+}
+
+static void BPVRlib_Feed_P_SetNextDescAddr(BXPT_PvrDescriptor *desc, BSTD_DeviceOffset offset)
+{
+    uint32_t offsetHi = offset >> 32;
+#if BXPT_HAS_MCPB_VER_3
+    desc->NextDescAddrHi = offsetHi;
+#else
+    if(offsetHi!=0) {
+        BDBG_ERR(("Truncating descriptor address " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(offset)));
+    }
+#endif
+    desc->NextDescAddr = (uint32_t)offset;
+    return;
+}
+
 static unsigned
 BPVRlib_Feed_Priv_AddOffsetEntries(BPVRlib_Feed_Handle feed, const BPVRlib_Feed_OffsetEntry *entries, size_t nentries, bool last, bool extended)
 {
@@ -563,10 +596,10 @@ BPVRlib_Feed_Priv_AddOffsetEntries(BPVRlib_Feed_Handle feed, const BPVRlib_Feed_
                 }
             }
 #endif
-            desc->BufferStartAddr = entries->offset;
+            BPVRlib_Feed_P_SetBufferStartAddr(desc, entries->offset);
             desc->BufferLength = entries->len;
             if(prev_desc) {
-                prev_desc->NextDescAddr = feed->off_desc + ((uint8_t *)desc - (uint8_t *)feed->desc);
+                BPVRlib_Feed_P_SetNextDescAddr(prev_desc, feed->off_desc + ((uint8_t *)desc - (uint8_t *)feed->desc));
                 if(i==0) { /* set NextDescAddr over the wrap */
                     BMMA_FlushCache(feed->descBlock, prev_desc, sizeof(*prev_desc));
                 }
@@ -588,7 +621,7 @@ BPVRlib_Feed_Priv_AddOffsetEntries(BPVRlib_Feed_Handle feed, const BPVRlib_Feed_
                     if(rc==BERR_SUCCESS) { /* XXX This path uses uncached addressses to copy contents of the descriptor to a bounce buffer */
                         for(;B_PVRLIB_SMALL_ADDR_TEST(feed->last_data_addr, feed->bounce_offset+(feed->bounce_ptr%B_PVRLIB_BOUNCE_BUF_SIZE));feed->bounce_ptr++) { }
                         feed->bounce_buffer[feed->bounce_ptr%B_PVRLIB_BOUNCE_BUF_SIZE]=*(uint8_t *)addr;
-                        desc->BufferStartAddr = feed->bounce_offset+(feed->bounce_ptr%B_PVRLIB_BOUNCE_BUF_SIZE);
+                        BPVRlib_Feed_P_SetBufferStartAddr(desc, feed->bounce_offset+(feed->bounce_ptr%B_PVRLIB_BOUNCE_BUF_SIZE));
                         feed->bounce_ptr++;
                     } else {
                         rc=BERR_TRACE(rc);
@@ -606,7 +639,7 @@ BPVRlib_Feed_Priv_AddOffsetEntries(BPVRlib_Feed_Handle feed, const BPVRlib_Feed_
             b_pvr_feed_save_data(&feed->save.desc, desc, feed->descScale*sizeof(*desc));
 #endif
 #if B_PVR_LIB_FEED_SAVE_BEFORE
-            b_pvr_feed_save_data_offset(feed, &feed->save.before, desc->BufferStartAddr, desc->BufferLength);
+            b_pvr_feed_save_desc(feed, &feed->save.before, desc);
 #endif
         }
         prev_desc->NextDescAddr = TRANS_DESC_LAST_DESCR_IND;
@@ -702,7 +735,7 @@ BPVRlib_Feed_Priv_Update(BPVRlib_Feed_Handle feed)
                 struct B_PVRlib_DescrFifo descFifo = feed->descFifo; /* do a copy, so we don't interfere with actual FIFO */
                 for(i=0; BFIFO_READ_PEEK(&descFifo)!=0;i++) {
                     const BXPT_PvrDescriptor *desc = BFIFO_READ(&descFifo);
-                    b_pvr_feed_save_data_offset(feed, &feed->save.after, desc->BufferStartAddr, desc->BufferLength);
+                    b_pvr_feed_save_desc(feed, &feed->save.after, desc);
                     BFIFO_READ_COMMIT(&descFifo, feed->descScale);
                 }
                 BDBG_ASSERT(i==hw_complete/feed->descScale);
@@ -739,7 +772,7 @@ BPVRlib_Feed_Priv_Update(BPVRlib_Feed_Handle feed)
             {
                 unsigned i;
                 for(i=0;i<nread_desc;i++) {
-                    b_pvr_feed_save_data_offset(feed, &feed->save.after, desc[i].BufferStartAddr, desc[i].BufferLength);
+                    b_pvr_feed_save_desc(feed, &feed->save.after, &desc[i]);
                 }
             }
 #endif /* B_PVR_LIB_FEED_SAVE_AFTER */
@@ -758,7 +791,7 @@ BPVRlib_Feed_Priv_Update(BPVRlib_Feed_Handle feed)
                 {
                     unsigned i;
                     for(i=0;i<hw_complete;i++) {
-                        b_pvr_feed_save_data_offset(feed, &feed->save.after, desc[i].BufferStartAddr, desc[i].BufferLength);
+                        b_pvr_feed_save_data_offset(feed, &feed->save.after, &desc[i]);
                     }
                 }
 #endif /* B_PVR_LIB_FEED_SAVE_AFTER */

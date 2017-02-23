@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if NEXUS_HAS_AUDIO && (NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA)
+#if NEXUS_HAS_AUDIO
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_stc_channel.h"
@@ -140,6 +140,9 @@ int main(int argc, char **argv)
     NEXUS_AudioCapabilities caps;
     NEXUS_AudioInputHandle stereoConnector;
     NEXUS_AudioInputHandle multichannelConnector;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_HdmiOutputSettings hdmiSettings;
@@ -211,10 +214,34 @@ int main(int argc, char **argv)
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
     NEXUS_GetAudioCapabilities(&caps);
+
+    if (caps.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform (requires decoder).\n");
+        return 0;
+    }
+
     if (!caps.dsp.dolbyDigitalReencode && ddreEnabled) {
         BDBG_WRN(("System does not support DDRE, disabling"));
         ddreEnabled = false;
     }
+
+    if (caps.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (caps.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (caps.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     if (!ddreEnabled && compressed)
     {
@@ -288,35 +315,32 @@ int main(int argc, char **argv)
     }
 
 
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                               stereoConnector);
-    #endif
-
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    if (compressed) {
-        NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                   NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
-    } else {
-        NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                   stereoConnector);
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(audioDacHandle, stereoConnector);
     }
-    #endif
+
+    if (audioSpdifHandle) {
+        if (compressed) {
+            NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+        } else {
+            NEXUS_AudioOutput_AddInput(audioSpdifHandle, stereoConnector);
+        }
+    }
 
     #if NEXUS_NUM_HDMI_OUTPUTS
-    if (multichannel) {
-        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-            multichannelConnector);
-    } else if (compressed) {
-        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
-    } else
-    {
-        NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-            stereoConnector);
+    if (audioHdmiHandle) {
+        if (multichannel) {
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle, multichannelConnector);
+        } else if (compressed) {
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+        } else
+        {
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle, stereoConnector);
+        }
     }
     #endif
-
 
     /* Bring up video display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
@@ -443,13 +467,18 @@ int main(int argc, char **argv)
 
     }
 
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+    }
     #endif
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
+    }
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+    }
 
     if (ddreEnabled)
     {

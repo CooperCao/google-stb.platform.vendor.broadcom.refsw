@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,6 @@
 #define NEXUS_PLATFORM_FEATURES_H__
 
 #include "bstd.h"
-#include "nexus_platform_generic_features_priv.h"
 
 /* Transport Features */
 #define NEXUS_NUM_PARSER_BANDS 24
@@ -52,22 +51,6 @@
 #define NEXUS_NUM_SPI_CHANNELS 3
 
 #define NEXUS_NUM_VIDEO_DECODERS 3
-
-/* Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 6
-#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 1 /* Number of external inputs active at a time */
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_INPUTS 0
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_MIXERS 8
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 2
-
-#define NEXUS_NUM_I2S_INPUTS 1
-#define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_PLAYBACKS 3
-
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 0
@@ -119,21 +102,9 @@ upon the chip usage. See below */
 /* Memory features */
 
 #define NEXUS_NUM_MEMC 2
-/* default heap indices, refer to memory map document  */
-#define NEXUS_MEMC0_MAIN_HEAP           0 /* Main Heap */
-#define NEXUS_MEMC0_GRAPHICS_HEAP       1 /* Single large graphics heap*/
-#define NEXUS_VIDEO_SECURE_HEAP         3 /* CABAC, CDB, RS and XC buffers for encoder */
-#define NEXUS_SAGE_SECURE_HEAP          4 /* SAGE HEAP - 32 MB */
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 5 /* XVD/VDC buffers for 2 decode/encode*/
-#define NEXUS_MEMC1_PICTURE_BUFFER_HEAP 6 /* XVD/VDC buffers for 2 decode/encode*/
-#define NEXUS_MEMC1_GRAPHICS_HEAP       7 /* Single large graphics heap*/
-#define NEXUS_MEMC1_DRIVER_HEAP         8
-#define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 9
-#define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP 10
-#define NEXUS_EXPORT_HEAP 11
-#define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP 12
-
 
 #define NEXUS_AVS_MONITOR           0
+
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

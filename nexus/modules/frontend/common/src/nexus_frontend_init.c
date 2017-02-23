@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -172,8 +172,18 @@ NEXUS_Error NEXUS_FrontendModule_Standby_priv(bool enabled, const NEXUS_StandbyS
     }
 
     for (tempHandle = BLST_D_FIRST(&g_frontendDeviceList.deviceList); tempHandle; tempHandle = BLST_D_NEXT(tempHandle, node)) {
+        if(tempHandle->standbyCallback.platformStandby && (tempHandle->mode >= NEXUS_StandbyMode_ePassive) && (pSettings->mode <= NEXUS_StandbyMode_ePassive)) {
+            NEXUS_FrontendStandbySettings standbySettings;
+            standbySettings.pSettings = pSettings;
+            tempHandle->standbyCallback.platformStandby(tempHandle, tempHandle->standbyCallback.context, &standbySettings);
+        }
         rc = NEXUS_FrontendDevice_P_Standby(tempHandle, pSettings);
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
+        if(tempHandle->standbyCallback.platformStandby && (tempHandle->mode <= NEXUS_StandbyMode_ePassive) && (pSettings->mode >= NEXUS_StandbyMode_ePassive)) {
+            NEXUS_FrontendStandbySettings standbySettings;
+            standbySettings.pSettings = pSettings;
+            tempHandle->standbyCallback.platformStandby(tempHandle, tempHandle->standbyCallback.context, &standbySettings);
+        }
         tempHandle->mode = pSettings->mode;
     }
 
@@ -207,4 +217,16 @@ error:
     BSTD_UNUSED(pSettings);
 #endif
     return NEXUS_SUCCESS;
+}
+
+void NEXUS_Frontend_SetStandbyCallback_priv(NEXUS_FrontendDeviceHandle handle, NEXUS_FrontendStandbyCallback *callback)
+{
+    BDBG_ASSERT(handle);
+
+    BKNI_Memset(&handle->standbyCallback, 0, sizeof(handle->standbyCallback));
+
+    if(callback) {
+        handle->standbyCallback.platformStandby = callback->platformStandby;
+        handle->standbyCallback.context = callback->context;
+    }
 }

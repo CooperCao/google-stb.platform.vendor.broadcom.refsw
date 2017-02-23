@@ -195,7 +195,7 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 			case BAVC_ColorRange_eFull :
 				if (!hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleYCC)
 				{
-					BDBG_WRN(("Attached Rx <%s> does not support selectable Ycc Quantization",
+					BDBG_MSG(("Attached Rx <%s> does not support selectable Ycc Quantization",
 						hHDMI->AttachedEDID.MonitorName)) ;
 				}
 				newAviInfoFrame.eYccQuantizationRange = BAVC_HDMI_AviInfoFrame_YccQuantizationRange_eFull;
@@ -221,7 +221,7 @@ BERR_Code BHDM_SetAVIInfoFramePacket(
 			case BAVC_ColorRange_eLimited :
 				if (!hHDMI->AttachedEDID.VideoCapabilityDB.bQuantizationSelectatbleRGB)
 				{
-					BDBG_WRN(("Attached Rx <%s> does not support selectable RGB Quantization",
+					BDBG_MSG(("Attached Rx <%s> does not support selectable RGB Quantization",
 						hHDMI->AttachedEDID.MonitorName)) ;
 				}
 				newAviInfoFrame.eRGBQuantizationRange = BAVC_HDMI_AviInfoFrame_RGBQuantizationRange_eLimitedRange ;

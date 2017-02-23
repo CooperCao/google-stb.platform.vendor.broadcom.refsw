@@ -1,5 +1,5 @@
 #############################################################################
-#    Broadcom Proprietary and Confidential. (c)2013 Broadcom.  All rights reserved.
+# Copyright (C) 2013 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,14 +48,12 @@ endif
 
 # Set up paths (use shell to generate canonical paths)
 BSEAV_DIR        := $(shell cd $(BSG_DIR)/../../..            ; pwd)
-OPENSOURCE       := $(BSEAV_DIR)/lib
 NEXUS_TOP        ?= $(shell cd $(BSEAV_DIR)/../nexus         ; pwd)
-ROCKFORD_TOP     ?= $(shell cd $(BSEAV_DIR)/../rockford      ; pwd)
 
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
-V3D_DIR          ?= $(shell cd $(ROCKFORD_TOP)/middleware/$(V3D_PREFIX)/driver ; pwd)
-V3D_PLATFORM_DIR ?= $(shell cd $(V3D_DIR)/../platform         ; pwd)
+V3D_DIR          ?= $(shell cd $(BSEAV_DIR)/lib/gpu/$(V3D_PREFIX)/driver; pwd)
+V3D_PLATFORM_DIR ?= $(shell cd $(V3D_DIR)/../platform                   ; pwd)
 
 BCHP_VER_LOWER := $(shell echo $(BCHP_VER) | tr A-Z a-z)
 

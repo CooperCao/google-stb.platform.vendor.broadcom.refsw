@@ -1129,6 +1129,16 @@ BERR_Code BVDC_Source_SetOrientation
         BVDC_P_Source_Info *pCurInfo = &hSource->stCurInfo;
         BVDC_P_Source_DirtyBits *pNewDirty = &pNewInfo->stDirty;
 
+#if (BVDC_P_DCX_3D_WORKAROUND)
+        if(eOrientation != BFMT_Orientation_e2D)
+        {
+            BDBG_WRN(("==================================================================="));
+            BDBG_WRN(("May not have enough bandwidth to support 3D source (orientation %d)",
+                eOrientation));
+            BDBG_WRN(("==================================================================="));
+        }
+#endif
+
         /* set new value */
         pNewInfo->bOrientationOverride = bOverride;
         if(pCurInfo->bOrientationOverride != bOverride)
@@ -3109,6 +3119,16 @@ void BVDC_Source_MpegDataReady_isr
             BDBG_MODULE_MSG(BVDC_WIN_BUF, ("MPEG[%d] Format change %s -> %s", hSource->eId,
                 pCurInfo->pFmtInfo->pchFormatStr, pNewFmtInfo->pchFormatStr));
 
+#if (BVDC_P_DCX_3D_WORKAROUND)
+            if(BFMT_IS_3D_MODE(pNewFmtInfo->eVideoFmt))
+            {
+                BDBG_WRN(("============================================================"));
+                BDBG_WRN(("May not have enough bandwidth to support 3D Format %s",
+                    pNewFmtInfo->pchFormatStr));
+                BDBG_WRN(("============================================================"));
+            }
+#endif
+
             /* for BVDC_Source_GetSize support: need original size  */
             hSource->stExtVideoFmtInfo.ulWidth = ulSourceHorizontalSize;
             hSource->stExtVideoFmtInfo.ulHeight = ulSourceVerticalSize;
@@ -3887,10 +3907,10 @@ void BVDC_Source_MpegDataReady_isr
         if(hSource->hSyncLockCompositor->hDisplay->stCurInfo.bStgNonRealTime) {
             /* swap immediate trigger polarity for ignore picture to REPEAT_POLARITY: Note sync-locked display RUL check this
                scratch register to decide which source slot (t/b) to trigger on the fly */
-            BREG_Write32_isr(hSource->hVdc->hRegister, hSource->ulScratchPolReg, hSource->hSyncLockCompositor->bStgIgnorePicture);
+            BRDC_WriteScratch_isrsafe(hSource->hVdc->hRegister, hSource->ulScratchPolReg, hSource->hSyncLockCompositor->bStgIgnorePicture);
             BDBG_MSG(("Src[%u] isr wrote scratch[%u], pol[%u][%u]", hSource->eId,hSource->hSyncLockCompositor->bStgIgnorePicture, ((BAVC_MVD_Field*)pvMvdField)->eInterruptPolarity, pNewPic->eInterruptPolarity));
         } else if(hSource->hSyncLockCompositor->hDisplay->stStgChan.bModeSwitch) {
-            BREG_Write32_isr(hSource->hVdc->hRegister, hSource->ulScratchPolReg, 0);/* reset scratch reg when switched to rt mode */
+            BRDC_WriteScratch_isrsafe(hSource->hVdc->hRegister, hSource->ulScratchPolReg, 0);/* reset scratch reg when switched to rt mode */
 #if BVDC_P_STG_NRT_CADENCE_WORKAROUND /* for STG hw that cannot repeat trigger polarity */
             hSource->bToggleCadence = false; /* reset the toggle stg cadence for workaround */
 #endif

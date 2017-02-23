@@ -43,7 +43,6 @@
 
 #include "bkni.h"
 #include "bkni_multi.h"
-#include "bmem.h"
 #include "bmma.h"
 #include "blst_queue.h"
 
@@ -65,6 +64,18 @@ typedef struct BVC5_P_BinPoolBlock
 
 typedef struct BVC5_P_BinPool       *BVC5_BinPoolHandle;
 typedef struct BVC5_P_BinPoolBlock  *BVC5_BinBlockHandle;
+
+typedef struct BVC5_BinPoolBlock_MemInterface
+{
+   BMMA_Block_Handle (*BinPoolBlock_Alloc)(BMMA_Heap_Handle hHeap, size_t size, uint32_t align);
+   void (*BinPoolBlock_Free)(BMMA_Block_Handle hBlock);
+   void (*BinPoolBlock_Lock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset *lockOffset, uint32_t *physOffset);
+   void (*BinPoolBlock_Unlock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset lockOffset);
+
+} BVC5_BinPoolBlock_MemInterface;
+
+/***************************************************************************/
+BVC5_BinPoolBlock_MemInterface *BVC5_P_GetBinPoolMemInterface(void);
 
 /***************************************************************************/
 BERR_Code BVC5_P_BinPoolCreate(

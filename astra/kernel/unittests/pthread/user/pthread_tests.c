@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,9 +60,9 @@
  */
 void *periodicWaker(void *arg) {
 
-    int i = 0;
+    intptr_t i = 0;
     while (i < 10) {
-        printf("%d %d: wokeup\n", getpid(), i);
+        printf("%d %zd: wokeup\n", getpid(), i);
 
         sleep(1);
         i++;
@@ -194,25 +194,25 @@ static void runProducerConsumerTest() {
  * A compute heavy thread
  */
 static void *lockerDoors(void *arg) {
-    int numDoors = (int)arg;
+    intptr_t numDoors = (intptr_t)arg;
     unsigned char *doors = malloc((numDoors+1) * sizeof(unsigned char));
     assert(doors != NULL);
 
-    for (int i=1; i<=numDoors; i++)
+    for (intptr_t i=1; i<=numDoors; i++)
         doors[i] = 0;
 
-    for (int i=1; i<=numDoors; i++) {
-        for (int j=i; j<=numDoors; j+=i) {
+    for (intptr_t i=1; i<=numDoors; i++) {
+        for (intptr_t j=i; j<=numDoors; j+=i) {
             doors[j] = doors[j] ^ 1;
         }
     }
 
-    int numClosed = 0;
-    for (int i=0; i<numDoors; i++)
+    intptr_t numClosed = 0;
+    for (intptr_t i=0; i<numDoors; i++)
         if (doors[i] == 0)
             numClosed++;
 
-    printf("%s: NumDoors %d closed %d open %d\n", __FUNCTION__, numDoors, numClosed, (numDoors-numClosed));
+    printf("%s: NumDoors %zd closed %zd open %zd\n", __FUNCTION__, numDoors, numClosed, (numDoors-numClosed));
 
     free(doors);
     return (void *)numClosed;
@@ -221,7 +221,7 @@ static void *lockerDoors(void *arg) {
 static void runLockerDoorTest() {
     pthread_t workers[4];
     for (int i=0; i<4; i++) {
-        int arg = 4096*i;
+        intptr_t arg = 4096*i;
         int rc = pthread_create(&workers[i], NULL, lockerDoors, (void *)arg);
         assert(rc == 0);
     }
@@ -231,7 +231,7 @@ static void runLockerDoorTest() {
         int rc = pthread_join(workers[i], &result);
         assert(rc == 0);
 
-        printf("Thread %d returned %d\n", i, (int)result);
+        printf("Thread %d returned %zd\n", i, (intptr_t)result);
     }
 }
 
@@ -251,7 +251,7 @@ static void runSleeperTest() {
         return;
     }
 
-    printf("Thread joined - rc %d. Now exiting\n", (int)rc);
+    printf("Thread joined - rc %zd. Now exiting\n", (intptr_t)rc);
 }
 
 static void *
@@ -399,8 +399,14 @@ static void runPriorityTest()
 }
 
 int main(int argc, char **argv) {
+    int i = 0;
+    i++;
+
+    printf("hello from pthread_tests: stackAddr %p i=%d \n", &i, i);
     runLockerDoorTest();
     runProducerConsumerTest();
     runSleeperTest();
     runPriorityTest();
+    printf("All tests completed successfully.\n");
+    return 0;
 }

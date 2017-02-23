@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -209,7 +209,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x941011cf,
 	0x941447cf,
 	0x013fffff,
-	0xa7588dd7,
+	0xa75889d7,
 	0x0003f766,
 	0x76200bcf,
 	0x7408050f,
@@ -281,8 +281,8 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x013fffff,
 	0x3d840007,
 	0x013fffff,
-	0xa7678dd7,
-	0x0001f76e,
+	0xa70889d7,
+	0x0001f76f,
 	0x7404050f,
 	0x7400030f,
 	0x3d9a4057,
@@ -299,7 +299,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x941011cf,
 	0x941447cf,
 	0x013fffff,
-	0xa7420dd7,
+	0xa74209d7,
 	0x0003f766,
 	0x7408050f,
 	0x741c01cf,
@@ -995,7 +995,7 @@ const uint32_t BDSP_IMG_mac_ids_array1[] = {
 	0x0003f779,
 	0x07bffe07,
 	0x013fffff,
-	0xa72a09d7,
+	0xa74a8dd7,
 	0x0001f76c,
 	0x72360717,
 	0x00000005,

@@ -98,7 +98,7 @@ public:
       m_pos(pos)
    {}
 
-   virtual bool OnRenderData(SemanticData &semData) const
+   virtual bool OnRenderData(SemanticData &semData)
    {
       Vec4  pos  = semData.GetModelViewProjectionMatrix() * Vec4(0.0f, 0.0f, 0.0f, 1.0f);
       Vec3  ppos = pos.Proj();

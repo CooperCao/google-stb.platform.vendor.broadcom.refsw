@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1365,6 +1365,9 @@ static void BXDM_PP_S_UpdatePublicStatus_isr(
       hXdmPP->stDMStatus.stCurrentPPBParameterInfo = *(pstPicCntxt->pstUnifiedPicture);
       hXdmPP->stDMStatus.bCurrentPPBParameterInfoValid = true;
 
+      /* SW7425-2686: copy the GOP index. */
+      pstCurPtsInfo->uiIntraGOPIndex = pstPicCntxt->pstUnifiedPicture->uiIntraGOPIndex;
+
       /* If this is a pair of pictures, save the linked picture as well,
        * otherwise set "pNextPicture" to NULL to indicated that this is a
        * single picture.
@@ -2287,12 +2290,60 @@ BXDM_PictureProvider_GetPicture_isr(
    return BERR_TRACE(BERR_SUCCESS);
 } /* end of BXDM_PictureProvider_GetPicture_isr() */
 
+/*
+ * SWSTB-3450: process the start settings.
+ */
+static void
+BXDM_PP_S_ValidateStartSettings_isr(
+   BXDM_PictureProvider_Handle hXdmPP,
+   const BXDM_PictureProvider_StartSettings * pstStartSettings
+   )
+{
+
+   BDBG_ENTER(BXDM_PP_S_ValidateStartSettings_isr);
+
+   /* SWSTB-3450: for now simply copy the color override parameters. We may want to
+    * preprocess these values to simplify the logic in the output module. */
+
+   hXdmPP->stDMConfig.stColorOverride = pstStartSettings->stColorOverride;
+
+   BDBG_LEAVE(BXDM_PP_S_ValidateStartSettings_isr);
+
+   return;
+}
+
+/*
+ * SWSTB-3450: BXDM_PictureProvider_StartDecode_isr had been deprecated.
+ * It is now a just wrapper around BXDM_PictureProvider_Start_isr.
+ */
 BERR_Code
 BXDM_PictureProvider_StartDecode_isr(
    BXDM_PictureProvider_Handle hXdmPP
    )
 {
+   BXDM_PictureProvider_StartSettings stStartSettings;
+
    BDBG_ENTER(BXDM_PictureProvider_StartDecode_isr);
+
+   BXDM_PictureProvider_GetDefaultStartSettings_isrsafe( hXdmPP, &stStartSettings );
+   BXDM_PictureProvider_Start_isr( hXdmPP, &stStartSettings );
+
+   BDBG_LEAVE(BXDM_PictureProvider_StartDecode_isr);
+
+   return BERR_TRACE(BERR_SUCCESS);
+
+} /* end of BXVD_P_DisplayManager_StartDecode() */
+
+/*
+ * SWSTB-3450: provide a mechanism for passing in BXDM_PictureProvider_StartSettings
+ */
+BERR_Code
+BXDM_PictureProvider_Start_isr(
+   BXDM_PictureProvider_Handle hXdmPP,
+   const BXDM_PictureProvider_StartSettings * pstStartSettings
+   )
+{
+   BDBG_ENTER(BXDM_PictureProvider_Start_isr);
 
 #if 0    /* SW7445-1259: reduce messages printed at start decode time */
    if (!hXdmPP->stDMState.stChannel.bDMVersionDisplayed)
@@ -2378,12 +2429,19 @@ BXDM_PictureProvider_StartDecode_isr(
 
       hXdmPP->stDMConfig.stTSMThresholdSettings.uiTooLateThreshold =
          BXDM_PictureProvider_P_VERYLATE_THRESHOLD;
-   } else {
+
+      /* SWSTB-3450: process the start settings. */
+      BXDM_PP_S_ValidateStartSettings_isr( hXdmPP, pstStartSettings );
+
+   }
+   else
+   {
       if ( true == hXdmPP->stDMState.stChannel.bSavedChannelChangeSettingsValid )
       {
          hXdmPP->stDMConfig.stChannelChangeSettings = hXdmPP->stDMState.stChannel.stSavedChannelChangeSettings;
       }
    }
+
    hXdmPP->stDMState.stChannel.bSavedChannelChangeSettingsValid = false;
 
    hXdmPP->stDMStatus.bNextPTSInfoValid = false;
@@ -2404,10 +2462,10 @@ BXDM_PictureProvider_StartDecode_isr(
 
    hXdmPP->stDMState.stChannel.eDecodeState = BXDM_PictureProvider_P_DecodeState_eStarted;
 
-   BDBG_LEAVE(BXDM_PictureProvider_StartDecode_isr);
+   BDBG_LEAVE(BXDM_PictureProvider_Start_isr);
 
    return BERR_TRACE(BERR_SUCCESS);
-} /* end of BXVD_P_DisplayManager_StartDecode() */
+} /* end of BXVD_P_DisplayManager_Start() */
 
 
 BERR_Code
@@ -2431,12 +2489,41 @@ BXDM_PictureProvider_WatchdogReset_isr(
    return BERR_TRACE( BERR_SUCCESS );
 } /* end of BXDM_PictureProvider_WatchdogReset_isr() */
 
+/*
+ * SWSTB-3450: BXDM_PictureProvider_StopDecode_isr had been deprecated.
+ * It is now a just wrapper around BXDM_PictureProvider_Stop_isr.
+ */
 BERR_Code
 BXDM_PictureProvider_StopDecode_isr(
    BXDM_PictureProvider_Handle hXdmPP
    )
 {
+   BXDM_PictureProvider_StopSettings stStopSettings;
+
    BDBG_ENTER(BXDM_PictureProvider_StopDecode_isr);
+
+   BXDM_PictureProvider_GetDefaultStopSettings_isrsafe( hXdmPP, &stStopSettings );
+   BXDM_PictureProvider_Stop_isr( hXdmPP, &stStopSettings );
+
+   BDBG_LEAVE(BXDM_PictureProvider_StopDecode_isr);
+
+   return BERR_TRACE(BERR_SUCCESS);
+
+} /* end of BXVD_P_DisplayManager_StopDecode() */
+
+
+/*
+ * SWSTB-3450: provide a mechanism for passing in BXDM_PictureProvider_StopSettings
+ */
+BERR_Code
+BXDM_PictureProvider_Stop_isr(
+   BXDM_PictureProvider_Handle hXdmPP,
+   const BXDM_PictureProvider_StopSettings * pstStopSettings
+   )
+{
+   BDBG_ENTER(BXDM_PictureProvider_Stop_isr);
+
+   BSTD_UNUSED(pstStopSettings); /* for future features. */
 
    BXDM_PPDBG_P_PrintStopDecode_isr(hXdmPP);
 
@@ -2515,11 +2602,11 @@ BXDM_PictureProvider_StopDecode_isr(
     * print any outstanding messages on the debug fifo. */
    BXDM_PictureProvider_ReadFifo_isrsafe( hXdmPP );
 
-   BDBG_LEAVE(BXDM_PictureProvider_StopDecode_isr);
+   BDBG_LEAVE(BXDM_PictureProvider_Stop_isr);
 
    return BERR_TRACE( BERR_SUCCESS );
 
-} /* end of BXDM_PictureProvider_StopDecode_isr() */
+} /* end of BXDM_PictureProvider_Stop_isr() */
 
 
 BERR_Code

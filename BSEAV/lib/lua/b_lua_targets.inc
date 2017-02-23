@@ -50,13 +50,11 @@ b_lua_target_dummy:
 	@false
 
 b_lua_target_build: $(B_LUA_OTHER_BUILDS)
-	@echo [Build..... lua]
 	$(Q_)$(MAKE) -C $(BSEAV)/lib/lua $(sort $(B_LUA_TARGET_MAKEFLAGS))
 
 b_lua_target_clean: $(B_LUA_OTHER_CLEANS)
 
 b_lua_target_clean_all: b_lua_target_clean $(B_LUA_OTHER_CLEAN_ALL)
-	@echo [Clean..... lua]
 	$(Q_)$(MAKE) -C $(BSEAV)/lib/lua clean $(sort $(B_LUA_TARGET_MAKEFLAGS))
 
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}

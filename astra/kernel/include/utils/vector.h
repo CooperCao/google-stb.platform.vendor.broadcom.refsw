@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,7 @@
 
 #include "arm/arm.h"
 #include "arm/spinlock.h"
+#include "plat_config.h"
 
 #include "pgtable.h"
 #include "tzmemory.h"
@@ -134,7 +135,7 @@ namespace tzutils {
                 TzMem::PhysAddr paddr = kernPageTable->lookUp(vaddr_old);
 
                 kernPageTable->unmapPage(vaddr_old);
-				kernPageTable->mapPage(vaddr_new, paddr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
+                kernPageTable->mapPage(vaddr_new, paddr, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true);
 
                 vaddr_old = (uint8_t *)vaddr_old + PAGE_SIZE_4K_BYTES;
                 vaddr_new = (uint8_t *)vaddr_new + PAGE_SIZE_4K_BYTES;
@@ -153,8 +154,8 @@ namespace tzutils {
                 vaddr_new = (uint8_t *)vaddr_new + PAGE_SIZE_4K_BYTES;
             }
 
-			numPages = newNumPages;
-			dynArray = (T *)vaddr;
+            numPages = newNumPages;
+            dynArray = (T *)vaddr;
         }
 
         void downsize(bool clear = false) {
@@ -177,7 +178,7 @@ namespace tzutils {
                 vaddr = (uint8_t *)vaddr + PAGE_SIZE_4K_BYTES;
             }
 
-			numPages = newNumPages;
+            numPages = newNumPages;
             if (numPages == 0)
                 dynArray = nullptr;
         }

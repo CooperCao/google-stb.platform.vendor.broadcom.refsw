@@ -45,6 +45,7 @@
 #include "bhsm_otpmsp.h"
 #include "bhsm_bsp_msg.h"
 
+#define SHA160_BYTE_SIZE (20)
 BDBG_MODULE (BHSM);
 
 BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
@@ -410,6 +411,8 @@ BERR_Code BHSM_ReadDataSect (BHSM_Handle hHsm, BHSM_ReadDataSectIO_t * pReadData
     unsigned char   status;
     unsigned        i;
     unsigned char   readData[BHSM_READ_DATA_SECTION_DATA_LEN] = { 0 };
+    uint32_t        mspValue = 0;
+    BHSM_ReadMspIO_t readMspParm;
 
     BDBG_ENTER (BHSM_ReadDataSect);
 
@@ -424,6 +427,28 @@ BERR_Code BHSM_ReadDataSect (BHSM_Handle hHsm, BHSM_ReadDataSectIO_t * pReadData
     {
         return BERR_TRACE (BHSM_STATUS_INPUT_PARM_ERR);
     }
+
+    /* Check if the data section is read protected. */
+
+    BKNI_Memset(&readMspParm, 0, sizeof(readMspParm));
+
+    /* readMspParm.readMspEnum = BCMD_Otp_CmdMsp_eReserved36; */
+    readMspParm.readMspEnum = 36;
+
+
+    rc = BHSM_ReadMSP( hHsm, &readMspParm );
+    if( rc != BERR_SUCCESS )
+    {
+        /* error, its likely that you don't have read permission on the OTP you are trying to read. */
+        rc = BHSM_STATUS_BSP_ERROR;
+        goto BHSM_P_DONE_LABEL;
+    }
+
+    for( i = 0; i < BHSM_MSP_DATA_LEN; i++ )
+    {
+        mspValue = (mspValue << 8) | (readMspParm.aucMspData[i] & readMspParm.aucLockMspData[i] );
+    }
+
 
     if ((rc = BHSM_BspMsg_Create (hHsm, &hMsg)) != BERR_SUCCESS)
     {
@@ -450,18 +475,40 @@ BERR_Code BHSM_ReadDataSect (BHSM_Handle hHsm, BHSM_ReadDataSectIO_t * pReadData
         goto BHSM_P_DONE_LABEL;
     }
 
-    BHSM_BspMsg_GetArray (hMsg, BCMD_Otp_OutCmdDataSectionRead_eArrayData, readData, sizeof (readData));
+    pReadDataSect->isReadProtected = mspValue & ( 1 << pReadDataSect->readDsEnum );
 
-    /*
-     * Convert from BSP data format to 32-byte big endian array:
-     * BSP format:    [15:0][31:16][47:32][63:48] ... [255:240][239:224]
-     * Output format: [255:240][239:224] ... [63:48][47:32][31:16][15:0]
-     */
-    for (i = 0; i < BHSM_DATA_SECTION_DATA_LEN; i += 2)
+    if (pReadDataSect->isReadProtected)
     {
-        pReadDataSect->aucDataSectData[i] = readData[BHSM_DATA_SECTION_DATA_LEN - i - 2];
-        pReadDataSect->aucDataSectData[i+1] = readData[BHSM_DATA_SECTION_DATA_LEN - i - 1];
+         BHSM_BspMsg_GetArray (hMsg, BCMD_Otp_OutCmdDataSectionRead_eArrayData, readData, SHA160_BYTE_SIZE);
+
+         /*
+         * Convert from BSP data format to 20-byte big endian array:
+		 * BSP format:                           [159:128][127:96][95:64][63:32][31:0]
+		 * Output format: [255:240][239:224] ... [159:128][127:96][95:64][63:32][31:0]
+         */
+
+         /* Clear up the high order numbers to make sure the correct output. */
+         BKNI_Memset(pReadDataSect->aucDataSectData, 0, BHSM_DATA_SECTION_DATA_LEN);
+         for (i = 0; i < SHA160_BYTE_SIZE; i++)
+         {
+             pReadDataSect->aucDataSectData[BHSM_DATA_SECTION_DATA_LEN - SHA160_BYTE_SIZE + i] = readData[i];
+         }
     }
+    else
+    {
+        BHSM_BspMsg_GetArray (hMsg, BCMD_Otp_OutCmdDataSectionRead_eArrayData, readData, sizeof (readData));
+        /*
+         * Convert from BSP data format to 32-byte big endian array:
+	     * BSP format:    [15:0][31:16][47:32][63:48] ...  [239:224][255:240]
+         * Output format: [255:240][239:224] ... [63:48][47:32][31:16][15:0]
+         */
+        for (i = 0; i < BHSM_DATA_SECTION_DATA_LEN; i += 2)
+        {
+            pReadDataSect->aucDataSectData[i] = readData[BHSM_DATA_SECTION_DATA_LEN - i - 2];
+            pReadDataSect->aucDataSectData[i+1] = readData[BHSM_DATA_SECTION_DATA_LEN - i - 1];
+        }
+    }
+
 
   BHSM_P_DONE_LABEL:
 

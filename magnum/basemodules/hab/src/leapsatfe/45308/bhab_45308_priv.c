@@ -936,7 +936,7 @@ BERR_Code BHAB_45308_P_SendHabCommand(
    BDBG_WRN(("rcvd HAB response:"));
    for (i = 0; i < (read_len*4); i++)
    {
-      BDBG_WRN(("   HAB[%d]=0x%02X", i, readBuf[i]));
+      BDBG_WRN(("   HAB[%d]=0x%02X", i, pReadBuf[i]));
    }
 #endif
 

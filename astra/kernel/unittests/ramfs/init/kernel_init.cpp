@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,6 +47,8 @@
 #include "kernel.h"
 
 #include "system.h"
+
+extern "C" void tzKernelSecondary();
 
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) { asm volatile("wfi":::);} }
 
@@ -340,15 +342,13 @@ void ramfsTests() {
     rc = dir->removeDir("init");
     assert(rc < 0);
 
-    root->resolvePath("/boot/", &dir, &file);
-    rc = dir->removeFile("cpuid.cpp");
+    root->resolvePath("/init/", &dir, &file);
+    rc = dir->removeFile("kernel_init.cpp");
     assert(rc == 0);
-    rc = dir->removeFile("monitor_init.cpp");
-    assert(rc == 0);
-    rc = dir->removeFile("data_abort.cpp");
+     rc = dir->removeFile("system.cpp");
     assert(rc == 0);
 
-    rc = root->removeDir("boot");
+    rc = root->removeDir("init");
     assert(rc == 0);
 
     ((RamFS::Directory *)root)->print();
@@ -358,6 +358,11 @@ void ramfsTests() {
 void tzKernelInit(const void *devTree) {
 
     printf("%s: Ramfs unit tests\n", __FUNCTION__);
+
+    if (arm::smpCpuNum() != 0) {
+        tzKernelSecondary();
+        return;
+    }
 
     System::init(devTree);
 
@@ -371,6 +376,15 @@ void tzKernelInit(const void *devTree) {
     fileScatterWriteTests();
 
     success_msg("All done\n");
+}
+
+void tzKernelSecondary() {
+
+    System::initSecondaryCpu();
+
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+
+    while (true) {}
 }
 
 void kernelHalt(const char *reason) {

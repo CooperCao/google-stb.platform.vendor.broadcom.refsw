@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -257,7 +257,7 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(NETWORK_DB_PATH,                         bool,   "/data/netapp",     "Location of the NetApp database (caches previous WiFi network) - do not use NFS mounted directory"),
     ATLAS_DECLARE(ATLAS_SERVER_ENABLED,                    bool,   "true",             "If true,then it enables atlas server."),
     ATLAS_DECLARE(HTTP_SERVER_LISTENING_PORT,              string, "8089",             "Port on which Http Server Listens for HTTP Requests from clients."),
-    ATLAS_DECLARE(HTTP_SERVER_INTERFACE_NAME,              string, NULL,              "Binds Media Server to this specific interface name.Defaults to none, meaning HttpServer will listen on all interfaces."),
+    ATLAS_DECLARE(HTTP_SERVER_INTERFACE_NAME,              string, "",                 "Binds Media Server to this specific interface name.Defaults to none, meaning HttpServer will listen on all interfaces."),
     ATLAS_DECLARE(HTTP_SERVER_MAX_CONCURRENT_REQUEST,      int,    "16",               "Maximum HTTP Requests HttpServer will queue & will not accept anymore new connections Request."),
     ATLAS_DECLARE(HTTP_SERVER_PERSISTENT_TIMEOUT_IN_MS,    int,    "5000",             "Non-zero timeout values enables HTTP Persistent Connection. Timeout duration is in msec after which idle connection will be timed out."),
     ATLAS_DECLARE(HTTP_SERVER_ENABLE_HW_PACING,            bool,   "true",             "If true, BIP will use File -> playpump -> recpump -> network path to enable h/w based pacing."),
@@ -272,7 +272,8 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(AUTO_DISCOVERY_SERVER_ENABLED,           bool,   "true",             "Turn on off atlas auto discovery client"),
     ATLAS_DECLARE(GENERATE_INDEXES,                        bool,   "true",             "Turn on off atlas threaded auto index generation for existing playback files"),
     ATLAS_DECLARE(UDP_URL_LIST,                            string, "udpUrl.xml",       "Name of the list of UDP/RTP URLS to stream out"),
-    ATLAS_DECLARE(WPA_SUPPLICANT_IFACE_PATH,               string, "/var/run/wpa_supplicant", "Path to the WPA Supplicant directory containing the interface to use")
+    ATLAS_DECLARE(WPA_SUPPLICANT_IFACE_PATH,               string, "/var/run/wpa_supplicant", "Path to the WPA Supplicant directory containing the interface to use"),
+    ATLAS_DECLARE(CPUTEST_MAX_DELAY,                       int,    "250",             "Maximum delay in cputest jpeg decompress loop")
 };
 
 #ifndef ATLAS_DECLARE_CONFIGSETTING_VALUES

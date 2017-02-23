@@ -107,11 +107,7 @@ static struct
 #include "bchp_vcxo_ctl_misc.h"
 #endif
 
-#ifndef NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 0
-#endif
-
-#define NEXUS_AUDIO_MAX_TIMEBASES  (NEXUS_NUM_HDMI_OUTPUTS + NEXUS_NUM_I2S_OUTPUTS + NEXUS_NUM_AUDIO_DUMMY_OUTPUTS + NEXUS_NUM_SPDIF_OUTPUTS + 1) /* [0] is not used */
+#define NEXUS_AUDIO_MAX_TIMEBASES  (NEXUS_NUM_HDMI_OUTPUTS + NEXUS_NUM_I2S_OUTPUTS + NEXUS_NUM_AUDIO_DUMMY_OUTPUTS + NEXUS_NUM_SPDIF_OUTPUTS + NEXUS_NUM_AUDIO_CAPTURES + 1) /* [0] is not used */
 #define NEXUS_AUDIO_NO_TIMEBASE  0
 
 BDBG_MODULE(nexus_audio_output);
@@ -184,6 +180,8 @@ void NEXUS_AudioOutput_GetDefaultSettings(
 {
     BAPE_MixerSettings mixerSettings;
 
+    BDBG_CASSERT(NEXUS_AudioOutputPll_eMax == (NEXUS_AudioOutputPll)BAPE_Pll_eMax);
+    BDBG_CASSERT(NEXUS_AudioOutputNco_eMax == (NEXUS_AudioOutputNco)BAPE_Nco_eMax);
     BAPE_Mixer_GetDefaultSettings(&mixerSettings);
 
     BKNI_Memset(pSettings, 0, sizeof(NEXUS_AudioOutputSettings));
@@ -234,6 +232,7 @@ NEXUS_Error NEXUS_AudioOutput_P_SetHDMISettings(
     int i;
 
     /* Check for an update HDMI (MAI) settings changes */
+    BDBG_CASSERT((int)NEXUS_MAX_AUDIO_HDMI_OUTPUTS>=(int)NEXUS_NUM_HDMI_OUTPUTS);
 
     for ( i = 0; i < NEXUS_NUM_HDMI_OUTPUTS; i++ )
     {
@@ -689,8 +688,12 @@ NEXUS_Error NEXUS_AudioOutput_P_SetSlaveSource(
     NEXUS_AudioOutputHandle slaveHandle,
     NEXUS_AudioOutputHandle sourceHandle)
 {
+    NEXUS_AudioCapabilities audioCapabilities;
+
     BDBG_OBJECT_ASSERT(slaveHandle, NEXUS_AudioOutput);
     BSTD_UNUSED(sourceHandle);  /* In case neither of the cases below are defined */
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     if ( NEXUS_AudioOutput_P_IsDacSlave(slaveHandle) )
     {
@@ -754,16 +757,15 @@ NEXUS_Error NEXUS_AudioOutput_P_SetSlaveSource(
     }
     else if ( NEXUS_AudioOutput_P_IsSpdifSlave(slaveHandle) )
     {
-        #if NEXUS_NUM_AUDIO_RETURN_CHANNEL
+        if (audioCapabilities.numOutputs.audioReturnChannel > 0)
+        {
             NEXUS_Error errCode;
-
-            errCode = NEXUS_AudioReturnChannel_P_SetMaster( slaveHandle, sourceHandle );
-
+            errCode = NEXUS_AudioReturnChannel_P_SetMaster(slaveHandle, sourceHandle);
             if ( errCode )
             {
                 return BERR_TRACE(errCode);
             }
-        #endif
+        }
     }
 
     return BERR_SUCCESS;
@@ -1258,26 +1260,11 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
      unsigned requestedHDMI = 0;
      unsigned allocatedPll = 0;
      unsigned allocatedNco = 0;
+     unsigned requestedCapture = 0;
      unsigned i;
      char outputName[32];
      NEXUS_Error errCode = BERR_SUCCESS;
      NEXUS_AudioOutputClockSource suggestions[NEXUS_AUDIO_MAX_TIMEBASES];
-
-     #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_DUMMY_OUTPUTS>=(int)NEXUS_NUM_AUDIO_DUMMY_OUTPUTS);
-     #endif
-     #if NEXUS_NUM_SPDIF_OUTPUTS
-        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_SPDIF_OUTPUTS>=(int)NEXUS_NUM_SPDIF_OUTPUTS);
-     #endif
-     #if NEXUS_NUM_DAC_OUTPUTS
-        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_DAC_OUTPUTS>=(int)NEXUS_NUM_DAC_OUTPUTS);
-     #endif
-     #if NEXUS_NUM_I2S_OUTPUTS
-        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_I2S_OUTPUTS>=(int)NEXUS_NUM_I2S_OUTPUTS);
-     #endif
-     #if NEXUS_NUM_HDMI_OUTPUTS
-        BDBG_CASSERT((int)NEXUS_MAX_AUDIO_HDMI_OUTPUTS>=(int)NEXUS_NUM_HDMI_OUTPUTS);
-     #endif
 
      NEXUS_GetAudioCapabilities(&capabilities);
 
@@ -1287,58 +1274,50 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
          suggestions[i].pll = NEXUS_AudioOutputPll_eMax;
          suggestions[i].nco = NEXUS_AudioOutputNco_eMax;
      }
-
-#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-     for(i=0;i<NEXUS_NUM_AUDIO_DUMMY_OUTPUTS;i++)
+     for(i=0; i<capabilities.numOutputs.dummy; i++)
      {
          requstedDummy += outputs->audioDummy[i]?1:0;
          config->audioDummy[i].pll=NEXUS_AudioOutputPll_eMax;
          config->audioDummy[i].nco=NEXUS_AudioOutputNco_eMax;
 
      }
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS > 0
-     for(i=0;i<NEXUS_NUM_SPDIF_OUTPUTS;i++)
+     for(i=0;i<capabilities.numOutputs.spdif;i++)
      {
          requestedSpdif += outputs->spdif[i]?1:0;
          config->spdif[i].pll=NEXUS_AudioOutputPll_eMax;
          config->spdif[i].nco=NEXUS_AudioOutputNco_eMax;
      }
-#endif
-#if NEXUS_NUM_I2S_OUTPUTS > 0
-     for(i=0;i<NEXUS_NUM_I2S_OUTPUTS;i++)
+     for(i=0;i<capabilities.numOutputs.i2s;i++)
      {
          requestedI2S += outputs->i2s[i]?1:0;         
          config->i2s[i].pll=NEXUS_AudioOutputPll_eMax;
          config->i2s[i].nco=NEXUS_AudioOutputNco_eMax;
-     }      
-#endif
-#if NEXUS_NUM_I2S_MULTI_OUTPUTS > 0
-     for(i=0;i<NEXUS_NUM_I2S_MULTI_OUTPUTS;i++)
-     {
-         requestedMultiI2S += outputs->i2sMulti[i]?1:0;             
-         config->i2sMulti[i].pll=NEXUS_AudioOutputPll_eMax;
-         config->i2sMulti[i].nco=NEXUS_AudioOutputNco_eMax;
-     }        
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS > 0
-        for(i=0;i<NEXUS_NUM_HDMI_OUTPUTS;i++)
+     }
+     for(i=0;i<capabilities.numOutputs.hdmi;i++)
      {
          requestedHDMI += outputs->hdmi[i]?1:0;
          config->hdmi[i].pll=NEXUS_AudioOutputPll_eMax;
          config->hdmi[i].nco=NEXUS_AudioOutputNco_eMax;
      }
-#endif
-        totalRequests = requestedHDMI + requestedMultiI2S + requestedI2S + requestedSpdif + requstedDummy;
-        requestedPll = requestedMultiI2S + requestedI2S + requestedSpdif;
-        BDBG_MSG(("Resources available %d", totalResources));
-        BDBG_MSG(("Requested HDMI(%d) Spdif(%d) I2S (%d) MultiI2S (%d) Dummy(%d)",
-            requestedHDMI, requestedSpdif, requestedI2S, requestedMultiI2S, requstedDummy));
+     for(i=0;i<capabilities.numOutputs.capture;i++)
+     {
+         requestedCapture += outputs->audioCapture[i]?1:0;
+         config->audioCapture[i].pll=NEXUS_AudioOutputPll_eMax;
+         config->audioCapture[i].nco=NEXUS_AudioOutputNco_eMax;
 
-#if NEXUS_NUM_SPDIF_OUTPUTS > 0
-        for(i=0;i<NEXUS_NUM_SPDIF_OUTPUTS;i++)
+     }
+
+     totalRequests = requestedHDMI + requestedMultiI2S + requestedI2S + requestedSpdif + requstedDummy + requestedCapture;
+     requestedPll = requestedMultiI2S + requestedI2S + requestedSpdif;
+     BDBG_MSG(("Resources available %d", totalResources));
+     BDBG_MSG(("Requested HDMI(%d) Spdif(%d) I2S (%d) Dummy(%d) AudioCapture(%d)",
+               requestedHDMI, requestedSpdif, requestedI2S, requstedDummy, requestedCapture));
+
+     for(i=0;i<capabilities.numOutputs.spdif;i++)
+     {
+         if (outputs->spdif[i])
         {
-            BKNI_Snprintf (outputName, sizeof(outputName), "SPDIF %u", i);
+            BKNI_Snprintf(outputName, sizeof(outputName), "SPDIF %u", i);
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
                 outputs->spdif[i],
                 &config->spdif[i],
@@ -1349,11 +1328,12 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
                 true,
                 false,
                 outputName);
+            BDBG_MSG(("%s NCO %d PLL %d", outputName, config->spdif[i].nco, config->spdif[i].pll));
         }
-#endif
-            
-#if NEXUS_NUM_I2S_OUTPUTS > 0
-        for(i=0;i<NEXUS_NUM_I2S_OUTPUTS;i++)
+    }
+    for(i=0;i<capabilities.numOutputs.i2s;i++)
+    {
+        if (outputs->i2s[i])
         {
             BKNI_Snprintf (outputName, sizeof(outputName), "I2S %u", i);
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
@@ -1366,26 +1346,12 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
                 true,
                 false,
                 outputName);
+            BDBG_MSG(("%s NCO %d PLL %d", outputName, allocatedNco, allocatedPll));
         }
-#endif
-#if NEXUS_NUM_I2S_MULTI_OUTPUTS > 0
-        for(i=0;i<NEXUS_NUM_I2S_MULTI_OUTPUTS;i++)
-        {
-            BKNI_Snprintf (outputName, sizeof(outputName), "MULTI I2S %u", i);
-            errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
-                outputs->i2sMulti[i],
-                &config->i2sMulti[i],
-                &suggestions[0],
-                &capabilities,
-                &allocatedPll,
-                &allocatedNco,
-                true,
-                false,
-                outputName);
-        }
-#endif
-#if  NEXUS_NUM_HDMI_OUTPUTS > 0
-        for(i=0;i<NEXUS_NUM_HDMI_OUTPUTS;i++)
+    }
+    for(i=0;i<capabilities.numOutputs.hdmi;i++)
+    {
+        if (outputs->hdmi[i])
         {
             BKNI_Snprintf (outputName, sizeof(outputName), "HDMI %u", i);
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
@@ -1398,11 +1364,12 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
                 true,
                 true,
                 outputName);
-
+            BDBG_MSG(("%s NCO %d PLL %d", outputName, config->hdmi[i].nco, config->hdmi[i].pll));
         }
-#endif
-#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-        for(i=0;i<NEXUS_NUM_AUDIO_DUMMY_OUTPUTS;i++)
+    }
+    for(i=0;i<capabilities.numOutputs.dummy;i++)
+    {
+        if (outputs->audioDummy[i])
         {
             BKNI_Snprintf (outputName, sizeof(outputName), "DUMMY %u", i);
             errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
@@ -1415,8 +1382,26 @@ NEXUS_Error NEXUS_AudioOutput_CreateClockConfig(
                 true,
                 true,
                 outputName);
+            BDBG_MSG(("%s NCO %d PLL %d", outputName, config->audioDummy[i].nco, config->audioDummy[i].pll));
         }
-#endif
-
+    }
+    for(i=0;i<capabilities.numOutputs.capture;i++)
+    {
+        if (outputs->audioCapture[i])
+        {
+            BKNI_Snprintf (outputName, sizeof(outputName), "AUDIO CAPTURE %u", i);
+            errCode |= NEXUS_AudioOutput_P_ValidateClockConfig(
+                outputs->audioCapture[i],
+                &config->audioCapture[i],
+                &suggestions[0],
+                &capabilities,
+                &allocatedPll,
+                &allocatedNco,
+                true,
+                true,
+                outputName);
+            BDBG_MSG(("%s NCO %d PLL %d", outputName, config->audioCapture[i].nco, config->audioCapture[i].pll));
+        }
+    }
     return errCode;
 }

@@ -46,12 +46,27 @@ NEXUS_TOP ?= nexus
 all: install
 NEXUS_ABICOMPAT_MODE?=y
 
+
+ifeq ($(NEXUS_ABICOMPAT_MODE),y)
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+NEXUS_COMPAT_32ABI?=y
+endif
+endif
+
 # Include nexus definitions
 include $(NEXUS_TOP)/build/nexus_defs.inc
 NEXUS_PLATFORM_BUILDDIR=$(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 
 ####################################################
+
+NEXUS_P_DRIVER_ARCH?=${B_REFSW_ARCH}
+ifeq ($(B_REFSW_ARCH),arm-linux)
+ifeq ($(shell grep -q CONFIG_64BIT=y ${LINUX}/config 2>/dev/null && echo y),y)
+NEXUS_P_DRIVER_ARCH:=aarch64-linux
+NEXUS_P_DRIVER_B_REFSW_ARCH=" B_REFSW_ARCH=${NEXUS_P_DRIVER_ARCH}"
+endif
+endif
 
 ifeq ($(NEXUS_P_IS_MULTIPASS),)
 ifeq ($(B_REFSW_OS),linuxuser)
@@ -60,9 +75,9 @@ ifeq ($(NEXUS_MODE),proxy)
 # OS=linuxuser MODE=proxy
 # OS=linuxkernel MODE=driver
 NEXUS_P_START_MULTIPASS=y
-NEXUS_P_FIRST_PASS_NAME="driver"
-NEXUS_P_FIRST_PASS_PARAMS=B_REFSW_OS=linuxkernel NEXUS_MODE=driver
-NEXUS_P_SECOND_PASS_NAME="proxy"
+NEXUS_P_FIRST_PASS_NAME="nexus driver${NEXUS_P_DRIVER_B_REFSW_ARCH}"
+NEXUS_P_FIRST_PASS_PARAMS=B_REFSW_OS=linuxkernel NEXUS_MODE=driver ${NEXUS_P_DRIVER_B_REFSW_ARCH}
+NEXUS_P_SECOND_PASS_NAME="nexus proxy"
 NEXUS_P_SECOND_PASS_PARAMS=
 endif
 ifeq ($(NEXUS_MODE),)
@@ -76,9 +91,9 @@ ifeq ($(NEXUS_WEBCPU),)
 # OS=linuxuser NEXUS_MODE=client
 # OS=linuxuser NEXUS_MODE=
 NEXUS_P_START_MULTIPASS=y
-NEXUS_P_FIRST_PASS_NAME="server"
+NEXUS_P_FIRST_PASS_NAME="nexus server"
 NEXUS_P_FIRST_PASS_PARAMS=NEXUS_MODE=
-NEXUS_P_SECOND_PASS_NAME="client"
+NEXUS_P_SECOND_PASS_NAME="nexus client"
 NEXUS_P_SECOND_PASS_PARAMS=NEXUS_MODE=client
 endif
 endif
@@ -169,12 +184,10 @@ endif
 
 
 ifeq ($(SAGE_SUPPORT),y)
-ifneq ($(NEXUS_MODE),client)
-ifneq ($(NEXUS_MODE),proxy)
+ifeq ($(filter $(NEXUS_MODE),client driver),)
 ifeq ($(shell test -e $(BSEAV)/lib/security/sage/bin/install.mak && echo y),y)
 EXTRA_INSTALL += install_sage
 include $(BSEAV)/lib/security/sage/bin/install.mak
-endif
 endif
 endif
 endif
@@ -194,9 +207,12 @@ endif
 
 ifneq ($(PLATFORM_CYGNUS),y)
 ifneq  (${B_REFSW_SYSTEM_MODE},CLIENT)
-ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
+ifeq ($(filter $(NEXUS_MODE),proxy client),)
+ifeq ($(NEXUS_WKTMR),y)
 EXTRA_CLEAN += wakeupdriver_clean
 EXTRA_INSTALL += wakeupdriver_install
+endif
+ifeq ($(filter ${B_REFSW_ARCH},arm-linux aarch64-linux),${B_REFSW_ARCH})
 ifeq ($(RF4CE_SUPPORT),y)
 EXTRA_CLEAN += zigbeedriver_clean zigbeeprocess_clean
 EXTRA_INSTALL += zigbeedriver_install zigbeeprocess_install
@@ -204,27 +220,45 @@ endif
 endif
 endif
 endif
+endif
+
+EXTRA_INSTALL += install_scripts
+
+# only build brcmv3d driver for VC5 MMU systems with Linux configured with DRM support
+# otherwise, VC5 will fall back on MMA
+V3DVER330:=$(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_mmu_0.h && echo y)
+V3DVER400:=$(shell test -e ${BCHP_RDB_PATH}/bchp_v3d_mmu.h && echo y)
+ifeq ($(filter y, $(V3DVER330) $(V3DVER400)),y)
+ifeq ($(shell grep -q CONFIG_DRM=y ${LINUX}/config 2>/dev/null && echo y),y)
+EXTRA_CLEAN += brcmv3d_clean
+EXTRA_INSTALL += brcmv3d_install
+ifeq ($(NEXUS_MODE),driver)
+NEXUS_DRIVER_EXTRADEPS += brcmv3d_install
+NEXUS_DRIVER_KBUILD_ARGS += KBUILD_EXTRA_SYMBOLS=$(realpath $(NEXUS_OBJ_DIR))/brcmv3d.symvers
+endif
+endif
+endif
 
 # bcmdriver rules
 .PHONY: bcmdriver
 include ${NEXUS_TOP}/platforms/common/build/platform_version.inc
-BCMDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/usermode/$(B_REFSW_ARCH)/bcmdriver.ko
+BCMDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/usermode/$(NEXUS_P_DRIVER_ARCH)/bcmdriver.ko
 bcmdriver: ${BCMDRIVER}
 ${BCMDRIVER}: ${BSEAV}/linux/driver/usermode/bcm_driver.h ${BSEAV}/linux/driver/usermode/bcm_driver.c
-	@echo "[Build.... bcmdriver]"
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG)  NEXUS_PLATFORM_VERSION_MAJOR=$(NEXUS_PLATFORM_VERSION_MAJOR) NEXUS_PLATFORM_VERSION_MINOR=$(NEXUS_PLATFORM_VERSION_MINOR) NEXUS_CACHEFLUSHALL=$(NEXUS_CACHEFLUSHALL) --no-print-directory
+	@echo "[Build.... bcmdriver${NEXUS_P_DRIVER_B_REFSW_ARCH}]"
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG) NEXUS_PLATFORM_VERSION_MAJOR=$(NEXUS_PLATFORM_VERSION_MAJOR) NEXUS_PLATFORM_VERSION_MINOR=$(NEXUS_PLATFORM_VERSION_MINOR) NEXUS_CACHEFLUSHALL=$(NEXUS_CACHEFLUSHALL) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
 
 
 .PHONY: bcmdriver_clean bcmdriver_install
 bcmdriver_install: bcmdriver
-	@echo "[Install... bcmdriver]"
+	@echo "[Install... bcmdriver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${BCMDRIVER} ${NEXUS_BIN_DIR}
 bcmdriver_clean:
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/build B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
 
 # astra rules
 .PHONY: astra astra_drv
-ASTRA_LIB:=${B_REFSW_OBJ_ROOT}/astra/linux/libbcm_astra/libbcm_astra.a
+ASTRA_LIB:=${B_REFSW_OBJ_ROOT}/astra/linux/libbcm_astra/$(B_REFSW_ARCH)/libbcm_astra.a
 ASTRA_DRV:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/bcm_astra.ko
 ASTRA_SYMVERS:=${B_REFSW_OBJ_ROOT}/astra/linux/bcm_astra/$(B_REFSW_ARCH)/Module.symvers
 
@@ -240,14 +274,14 @@ $(ASTRA_LIB):
 
 .PHONY: astra_clean astra_install astra_drv_clean astra_drv_install
 astra_install: astra
-	@echo "[Install... astra]"
+	@echo "[Install... astra to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ASTRA_LIB} ${NEXUS_BIN_DIR}
 
 astra_clean:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/platforms/common/build -f Makefile.libbcm_astra clean > /dev/null
 
 astra_drv_install: astra_drv
-	@echo "[Install... astra driver]"
+	@echo "[Install... astra driver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ASTRA_DRV} ${NEXUS_BIN_DIR}
 	${Q_}$(CP) $(ASTRA_SYMVERS) ${NEXUS_OBJ_DIR}/bcm_astra.symvers
 
@@ -256,18 +290,36 @@ astra_drv_clean:
 
 # wakeupdriver rules
 .PHONY: wakeupdriver
-WAKEUPDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/wakeup/$(B_REFSW_ARCH)/wakeup_drv.ko
+WAKEUPDRIVER:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/wakeup/$(NEXUS_P_DRIVER_ARCH)/wakeup_drv.ko
 wakeupdriver: ${WAKEUPDRIVER}
 ${WAKEUPDRIVER}: $(BSEAV)/linux/driver/wakeup/wakeup_driver.c
-	@echo "[Build.... wakeupdriver]"
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/wakeup B_REFSW_DEBUG=$(B_REFSW_DEBUG) --no-print-directory
+	@echo "[Build.... wakeupdriver${NEXUS_P_DRIVER_B_REFSW_ARCH}]"
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/wakeup B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
 
 .PHONY: wakeupdriver_clean wakeupdriver_install
 wakeupdriver_install: wakeupdriver
-	@echo "[Install... wakeupdriver]"
+	@echo "[Install... wakeupdriver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${WAKEUPDRIVER} ${NEXUS_BIN_DIR}
 wakeupdriver_clean:
-	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/wakeup B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/wakeup B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
+
+# brcmv3d DRM driver rules
+.PHONY: brcmv3d
+BRCMV3D:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/brcmv3d/$(NEXUS_P_DRIVER_ARCH)/brcmv3d.ko
+BRCMV3D_SYMVERS:=${B_REFSW_OBJ_ROOT}/BSEAV/linux/driver/brcmv3d/$(NEXUS_P_DRIVER_ARCH)/Module.symvers
+
+brcmv3d: ${BRCMV3D}
+${BRCMV3D}: $(BSEAV)/linux/driver/brcmv3d/v3d_drv.c
+	@echo "[Build.... brcmv3d DRM driver]"
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/brcmv3d B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} --no-print-directory
+
+.PHONY: brcmv3d_clean brcmv3d_install
+brcmv3d_install: brcmv3d
+	@echo "[Install... brcmv3d DRM driver]"
+	${Q_}$(CP) ${BRCMV3D} ${NEXUS_BIN_DIR}
+	${Q_}$(CP) ${BRCMV3D_SYMVERS} ${NEXUS_OBJ_DIR}/brcmv3d.symvers
+brcmv3d_clean:
+	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/brcmv3d B_REFSW_DEBUG=$(B_REFSW_DEBUG) ${NEXUS_P_DRIVER_B_REFSW_ARCH} clean --no-print-directory > /dev/null
 
 # Zigbee server process
 .PHONY: zigbeeprocess
@@ -280,7 +332,7 @@ zigbeeprocess:
 
 .PHONY: zigbeeprocess_clean zigbeeprocess_install
 zigbeeprocess_install: zigbeeprocess
-	@echo "[Install... zigbeeprocess]"
+	@echo "[Install... zigbeeprocess to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ZIGBEEPROCESS} ${NEXUS_BIN_DIR}
 zigbeeprocess_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
@@ -295,7 +347,7 @@ ${ZIGBEEDRIVER}: $(BSEAV)/linux/driver/zigbee/zigbee_driver.c
 
 .PHONY: zigbeedriver_clean zigbeedriver_install
 zigbeedriver_install: zigbeedriver
-	@echo "[Install... zigbeedriver]"
+	@echo "[Install... zigbeedriver to $(realpath ${NEXUS_BIN_DIR})]"
 	${Q_}$(CP) ${ZIGBEEDRIVER} ${NEXUS_BIN_DIR}
 zigbeedriver_clean:
 	${Q_}$(MAKE) -C $(BSEAV)/linux/driver/zigbee B_REFSW_DEBUG=$(B_REFSW_DEBUG) clean --no-print-directory > /dev/null
@@ -315,15 +367,19 @@ EXTRA_CLEAN += fw_signature_clean
 # generic install and clean rules
 ifeq ($(NEXUS_P_START_MULTIPASS),y)
 install:
+ifneq ($(NEXUS_CLIENT_ONLY),y)
 	@echo "[Build..... $(NEXUS_P_FIRST_PASS_NAME)]"
 	${Q_}$(MAKE) -f $(NEXUS_PLATFORM_BUILDDIR)/Makefile NEXUS_P_IS_MULTIPASS=y $(NEXUS_P_FIRST_PASS_PARAMS)
+endif
 	@echo "[Build..... $(NEXUS_P_SECOND_PASS_NAME)]"
 	${Q_}$(MAKE) -f $(NEXUS_PLATFORM_BUILDDIR)/Makefile NEXUS_P_IS_MULTIPASS=y $(NEXUS_P_SECOND_PASS_PARAMS)
 clean:
 	@echo "[Clean $(NEXUS_P_SECOND_PASS_NAME)]"
 	${Q_}$(MAKE) -f $(NEXUS_PLATFORM_BUILDDIR)/Makefile NEXUS_P_IS_MULTIPASS=y $(NEXUS_P_SECOND_PASS_PARAMS) clean
+ifneq ($(NEXUS_CLIENT_ONLY),y)
 	@echo "[Clean $(NEXUS_P_FIRST_PASS_NAME)]"
 	${Q_}$(MAKE) -f $(NEXUS_PLATFORM_BUILDDIR)/Makefile NEXUS_P_IS_MULTIPASS=y $(NEXUS_P_FIRST_PASS_PARAMS) clean
+endif
 else
 install: nexus_install $(EXTRA_INSTALL)
 clean: nexus_clean $(EXTRA_CLEAN)
@@ -349,7 +405,9 @@ NEXUS_FW_SIGN_FAIL_MESSAGE = "Warning: Firmware region verification signing proc
 
 ${NEXUS_SECURITY_REGVER_SIGNATURES}: $(NEXUS_FW_SIGN_SRC)
 	@echo "[Build..... fw_img_sign]"
-	${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory MAKEFLAGS= B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1 || (echo $(NEXUS_FW_SIGN_FAIL_MESSAGE); cp $(NEXUS_SECURITY_REGVER_SIGNATURES_STUB) $(NEXUS_SECURITY_REGVER_SIGNATURES); cp $(NEXUS_SECURITY_REGVER_KEY_STUB) $(NEXUS_SECURITY_REGVER_KEY))
+	${Q_}$(CP) $(NEXUS_SECURITY_REGVER_SIGNATURES_STUB) $(NEXUS_SECURITY_REGVER_SIGNATURES); $(TOUCH) $(NEXUS_SECURITY_REGVER_SIGNATURES)
+	${Q_}$(CP) $(NEXUS_SECURITY_REGVER_KEY_STUB) $(NEXUS_SECURITY_REGVER_KEY); $(TOUCH) $(NEXUS_SECURITY_REGVER_KEY)
+	${Q_}$(MAKE) -C $(BSEAV)/lib/security/fw_img_sign sign --no-print-directory B_REFSW_OBJ_ROOT=$(abspath $(B_REFSW_OBJ_ROOT)) > /dev/null 2>&1 || echo $(NEXUS_FW_SIGN_FAIL_MESSAGE)
 
 ${NEXUS_SECURITY_REGVER_KEY}: ${NEXUS_SECURITY_REGVER_SIGNATURES}
 endif
@@ -365,7 +423,7 @@ $(NEXUS_GPIO_TABLE):
 logger_clean:
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/utils/logger clean --no-print-directory
 
-logger_install:
+logger_install: ${NEXUS_OBJECTS}
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/utils/logger install --no-print-directory
 
 nexus_headers: ${NEXUS_BIN_DIR}/exists
@@ -380,4 +438,18 @@ B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 verify_module_api clean_verify_module_api:
 	${Q_}$(MAKE) -f $(NEXUS_TOP)/build/Makefile.verify $@ B_REFSW_OBJ_ROOT=${B_REFSW_OBJ_ROOT} NEXUS_TOP=$(NEXUS_TOP) NEXUS_PLATFORM=$(NEXUS_PLATFORM)
+endif
+
+install_scripts:
+ifeq ($(filter $(NEXUS_MODE),client proxy),)
+ifeq ($(NEXUS_MODE),driver)
+	${Q_}$(CP) $(NEXUS_TOP)/build/nexus.linuxkernel ${NEXUS_BIN_DIR}/nexus
+else
+	${Q_}$(CP) $(NEXUS_TOP)/build/nexus ${NEXUS_BIN_DIR}
+endif
+	${Q_}chmod +x ${NEXUS_BIN_DIR}/nexus
+else
+	${Q_}$(CP) $(NEXUS_TOP)/build/nexus.client ${NEXUS_BIN_DIR}
+	${Q_}$(CP) $(NEXUS_TOP)/build/nxclient.sh ${NEXUS_BIN_DIR}
+	${Q_}chmod +x ${NEXUS_BIN_DIR}/nexus.client ${NEXUS_BIN_DIR}/nxclient.sh
 endif

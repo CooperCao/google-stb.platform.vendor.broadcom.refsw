@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -294,6 +294,9 @@
 
 #define BXPT_ITB_SIZE 16
 
+/* Address delta (in bytes) between consecutive registers in a context. */
+#define REG_STEP  (BCHP_XPT_RAVE_CX0_AV_ITB_DEPTH - BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL)
+
 typedef enum ScdIdent
 {
     ScdIdent_A,
@@ -360,6 +363,7 @@ static void ClearDataDropOnPusiErrState(
     Reg &= ~( 1 << 13 );
     BREG_Write32( hCtx->hReg, RegAddr, Reg );
 }
+
 static void SetScdNum(
     BXPT_RaveCx_Handle hCtx,
     unsigned Scd,
@@ -456,9 +460,38 @@ static BXPT_P_ContextHandle * allocContextHandle(
 
     ThisCtx->BaseAddr = BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR + ( Index * RAVE_CONTEXT_REG_STEP );
     InitContext( ThisCtx, NULL );
-
     Done:
     return ThisCtx;
+}
+
+
+static void clearContextRegs(BREG_Handle hRegister, unsigned index)
+{
+   unsigned reg;
+   unsigned BaseAddr = BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR + ( index * RAVE_CONTEXT_REG_STEP );
+
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_WRITE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_READ_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_BASE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_END_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_VALID_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
+   BREG_Write32( hRegister, BaseAddr + AV_CDB_THRESHOLD_OFFSET, 0 );
+   BREG_Write32( hRegister, BaseAddr + CDB_DEPTH_OFFSET, 0 );
+
+   BREG_Write32( hRegister, BaseAddr + AV_THRESHOLDS_OFFSET, 0 );
+
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_WRITE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_READ_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_BASE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_END_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_VALID_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRegister, BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
+
+   for (reg = BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL; reg < BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR; reg += REG_STEP )
+   {
+      BREG_Write32(hRegister, BaseAddr + reg - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR, 0);
+   }
 }
 
 BERR_Code BXPT_Rave_OpenChannel(
@@ -546,6 +579,7 @@ BERR_Code BXPT_Rave_OpenChannel(
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
     {
         *(lhRave->ContextTbl + Index) = NULL;
+        clearContextRegs(lhRave->hReg, Index);
     }
 
     for( Index = 0; Index < BXPT_P_NUM_SPLICING_QUEUES; Index++ )
@@ -697,6 +731,13 @@ BERR_Code BXPT_Rave_OpenChannel(
 
     BXPT_Rave_P_EnableInterrupts( hXpt );
     BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eRave);
+
+#ifdef BCHP_XPT_RAVE_PUSH_TIMER_EN_CX_0_31
+    BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_EN_CX_0_31, 0xFFFFFFFF );
+    BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_EN_CX_32_47, 0xFFFF );
+    BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_LOAD, 0xD304 );
+#endif
+
     return ExitCode;
 
     Error2:
@@ -804,13 +845,13 @@ BERR_Code BXPT_Rave_AllocCx(
     {
         if( GetNextSoftRaveContext( hRave, &Index ) != BERR_SUCCESS )
         {
-            BDBG_ERR(( "No free contexts!" ));
+            BDBG_ERR(( "No free soft contexts!" ));
             return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         }
 
         if( !(ThisCtx = allocContextHandle(hRave, Index)) )
         {
-            BDBG_ERR(( "Can't allocate a context handle!" ));
+            BDBG_ERR(( "Can't allocate a soft context handle!" ));
             return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         }
         ThisCtx->externalItbAlloc = pSettings->ItbBlock!=NULL;
@@ -973,7 +1014,8 @@ BERR_Code AllocContext_Priv(
     ThisCtx->SpliceQueueIdx = 0;
     ThisCtx->InputFormat = BAVC_StreamType_eTsMpeg;
     ThisCtx->ItbFormat = BAVC_ItbEsType_eAvcVideo;
-    if( InitContext( ThisCtx, BufferCfg ) != BERR_SUCCESS )
+    ExitCode = InitContext( ThisCtx, BufferCfg );
+    if( ExitCode != BERR_SUCCESS )
     {
         ExitCode = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         goto done;
@@ -1092,6 +1134,18 @@ BERR_Code BXPT_Rave_EnableContext(
     if (!wasEnabled) {
         BCHP_PWR_AcquireResource(Context->hChp, BCHP_PWR_RESOURCE_XPT_RAVE);
     }
+#endif
+
+#ifdef BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2_PUSH_AND_RESET_WRMASK_MASK
+    /* Needs to be done BEFORE enabling the context. */
+    Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET );
+    Reg &= ~(
+        BCHP_MASK( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK )
+    );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_RAVE_CX0_AV_MISC_CONFIG2, PUSH_AND_RESET_WRMASK, 1 )
+    );
+    BREG_Write32( Context->hReg, Context->BaseAddr + AV_MISC_CFG2_OFFSET, Reg );
 #endif
 
     Reg = BREG_Read32( Context->hReg, Context->BaseAddr + AV_MISC_CFG1_OFFSET );
@@ -2574,6 +2628,11 @@ BERR_Code BXPT_Rave_GetRecordConfig(
    Reg = BREG_Read32( Ctx->hReg, Ctx->BaseAddr + AV_MISC_CFG5_OFFSET );
    Cfg->EnableSingleChannelMuxCapableIndexer = (BCHP_GET_FIELD_DATA( Reg, XPT_RAVE_CX0_AV_MISC_CONFIG5, RESERVED_FOR_FW_1 ) & 0x02) ? true : false;
 
+    /* GCB */
+    #define FW_REG_5 ( BCHP_XPT_RAVE_CX0_RAVE_Reg_5 - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
+    Reg = BREG_Read32(Ctx->hReg, Ctx->BaseAddr + FW_REG_5);
+    Cfg->bipIndexing = (Reg >> 27) & 1;
+    Cfg->bipPidChannel = Cfg->bipIndexing ? (Reg >> 16) & 0x7ff : 0;
     return( ExitCode );
 }
 
@@ -2844,6 +2903,27 @@ BERR_Code BXPT_Rave_SetRecordConfig(
     Reg &= ~(0x2 << BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG5_RESERVED_FOR_FW_1_SHIFT);
     Reg |= (Cfg->EnableSingleChannelMuxCapableIndexer ? 0x2 : 0x0) << BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG5_RESERVED_FOR_FW_1_SHIFT;
     BREG_Write32( Ctx->hReg, Ctx->BaseAddr + AV_MISC_CFG5_OFFSET, Reg );
+
+    /* GCB */
+    {
+    #define FW_REG_5 ( BCHP_XPT_RAVE_CX0_RAVE_Reg_5 - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR )
+    Reg = BREG_Read32(Ctx->hReg, Ctx->BaseAddr + FW_REG_5);
+    Reg &= ~(
+        (1 << 27) |
+        (0x7FF << 16));
+
+    if (Cfg->bipIndexing) {
+        if (Cfg->bipPidChannel > 0x3FF) {
+            BDBG_ERR(("bipPidChannel %u is out of range", Cfg->bipPidChannel));
+            goto done;
+        }
+
+        Reg |= (
+            (1 << 27) |
+            (Cfg->bipPidChannel << 16));
+    }
+    BREG_Write32(Ctx->hReg, Ctx->BaseAddr + FW_REG_5, Reg);
+    }
 
     done:
     return( ExitCode );
@@ -4642,10 +4722,8 @@ BERR_Code InitContext(
 {
     BMMA_DeviceOffset BufferOffset;
     uint32_t Reg;
-    uint32_t Offset;
 
     BERR_Code ExitCode = BERR_SUCCESS;
-    uint32_t BlockSize = RAVE_CONTEXT_REG_STEP;
     unsigned ItbSize = 0;
     unsigned ItbAlignment = 7;
     unsigned CdbAlignment = 8;
@@ -4657,8 +4735,7 @@ BERR_Code InitContext(
     }
 
     /* Clear registers / pointer memory */
-    for( Offset = 0; Offset < BlockSize; Offset += 4 )
-        BREG_Write32( ThisCtx->hReg, ThisCtx->BaseAddr + Offset, 0 );
+    clearContextRegs(ThisCtx->hReg, ThisCtx->Index);
 
     /* enable full TS packet capture using reserved register. for 28nm, unconditionally enabled */
     Reg = BREG_Read32( ThisCtx->hReg, ThisCtx->BaseAddr + AV_MISC_CFG5_OFFSET);
@@ -4779,11 +4856,11 @@ BERR_Code InitContext(
             }
         }
 
-        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, BufferOffset );
-        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_READ_PTR_OFFSET, BufferOffset );
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_BASE_PTR_OFFSET, BufferOffset );
-        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, BufferOffset + BufferCfg->Cdb.Length - 1 );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_WRITE_PTR_OFFSET, BufferOffset );
         BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_VALID_PTR_OFFSET, BufferOffset );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_READ_PTR_OFFSET, BufferOffset );
+        BREG_WriteAddr( ThisCtx->hReg, ThisCtx->BaseAddr + CDB_END_PTR_OFFSET, BufferOffset + BufferCfg->Cdb.Length - 1 );
 
 #if BXPT_HAS_HEVD_WORKAROUND
         /* Don't do anything to the CDB */
@@ -5020,6 +5097,8 @@ BERR_Code BXPT_P_RaveRamInit(
     return( ExitCode );
 }
 
+#define SCD_REG_SIZE    (BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE1 - BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE0)
+
 BERR_Code InitScd(
     StartCodeIndexer *lhScd
     )
@@ -5028,7 +5107,7 @@ BERR_Code InitScd(
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
-    for( Offset = 0; Offset < SCD_REG_STEP; Offset += 4 )
+    for( Offset = 0; Offset < SCD_REG_STEP; Offset += SCD_REG_SIZE )
         BREG_Write32( lhScd->hReg, lhScd->BaseAddr + Offset, 0 );
 
     /*
@@ -5048,6 +5127,8 @@ BERR_Code InitScd(
     return( ExitCode );
 }
 
+#define TPIT_REG_STEP   (4)
+
 BERR_Code InitTpit(
     TpitIndexer *hTpit
     )
@@ -5056,13 +5137,13 @@ BERR_Code InitTpit(
 
     BERR_Code ExitCode = BERR_SUCCESS;
 
-    for( Offset = 0; Offset < TPIT_PID_TABLE_SIZE; Offset += 4 )
+    for( Offset = 0; Offset < TPIT_PID_TABLE_SIZE; Offset += TPIT_REG_STEP )
         BREG_Write32( hTpit->hReg, hTpit->PidTableBaseAddr + Offset, 0 );
 
-    for( Offset = 0; Offset < TPIT_PARSE_TABLE_SIZE; Offset += 4 )
+    for( Offset = 0; Offset < TPIT_PARSE_TABLE_SIZE; Offset += TPIT_REG_STEP )
         BREG_Write32( hTpit->hReg, hTpit->ParseTableBaseAddr + Offset, 0 );
 
-    for( Offset = 0; Offset < TPIT_CTRL_REG_STEP; Offset += 4 )
+    for( Offset = 0; Offset < TPIT_CTRL_REG_STEP; Offset += TPIT_REG_STEP )
         BREG_Write32( hTpit->hReg, hTpit->BaseAddr + Offset, 0 );
 
     return( ExitCode );
@@ -6237,7 +6318,7 @@ BERR_Code ClearScdStates(
 
     unsigned BaseAddr = BCHP_XPT_RAVE_SCD0_SCD_MISC_CONFIG + ( ScdNum * SCD_REG_STEP );
 
-    for( ii = SCD_STATE_START_OFFSET; ii <= SCD_STATE_END_OFFSET; ii += 4 )
+    for( ii = SCD_STATE_START_OFFSET; ii <= SCD_STATE_END_OFFSET; ii += REG_STEP )
         BREG_Write32( hCtx->hReg, BaseAddr + ii, 0 );
 
     /* reset the DMEM area for this SCD */
@@ -6256,6 +6337,8 @@ BERR_Code ClearScdStates(
     return BERR_SUCCESS;
 }
 
+#define TPIT_STATE_STEP (BCHP_XPT_RAVE_TPIT0_STATE1 - BCHP_XPT_RAVE_TPIT0_STATE0)
+
 BERR_Code FlushTpit(
     BXPT_RaveCx_Handle hCtx,
     uint32_t TpitNum
@@ -6265,7 +6348,7 @@ BERR_Code FlushTpit(
 
     unsigned BaseAddr = BCHP_XPT_RAVE_TPIT0_CTRL1 + ( TpitNum * TPIT_CTRL_REG_STEP );
 
-    for( ii = TPIT_STATE_START_OFFSET; ii <= TPIT_STATE_END_OFFSET; ii += 4 )
+    for( ii = TPIT_STATE_START_OFFSET; ii <= TPIT_STATE_END_OFFSET; ii += TPIT_STATE_STEP )
         BREG_Write32( hCtx->hReg, BaseAddr + ii, 0 );
 
     return BERR_SUCCESS;
@@ -7043,6 +7126,9 @@ BERR_Code AllocSoftContext_Priv(
         ThisCtx->SoftRave.dest_itb_mem = (uint8_t*)ThisCtx->mma.itbPtr + (Base - ThisCtx->mma.itbOffset); /* convert Base -> cached ptr */
     }
 
+    /* SWSTB-3582. Default to legacy BASE opcode. AdvanceSoftContext will change that if it sees RAVE generating BASE entries with the new opcode. */
+    ThisCtx->SoftRave.BaseOpCode = brave_itb_base_address;
+
     *DestContext = ThisCtx;
 
     Done:
@@ -7137,9 +7223,9 @@ static void check_wrap(
     check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb); \
     } while (0)
 
-#define INSERT_BASE_ENTRY_ITB(base_address) \
+#define INSERT_BASE_ENTRY_ITB(base_code, base_address) \
     do { \
-    dest_itb[0] = (brave_itb_base_address<<24); \
+    dest_itb[0] = (base_code<<24); \
     dest_itb[1] = base_address; \
     dest_itb[2] = 0x0; \
     dest_itb[3] = 0x0; \
@@ -7179,7 +7265,7 @@ static uint32_t * get_next_pts_entry(
             if(wrap_happened)
             {
                 cur_src_itb = DestCtx->SoftRave.src_itb_base;
-                src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
+                src_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET );
                 wrap_happened = false;
                 continue;
             }
@@ -7211,8 +7297,8 @@ void BXPT_Rave_AdvanceSoftContext(
     BMMA_DeviceOffset src_valid,  src_wrap, src_read;
     BMMA_DeviceOffset dest_valid, dest_wrap, dest_read;
     uint32_t reg, overflow;
-
     BMMA_DeviceOffset src_valid_copy, src_wrap_copy, dest_read_copy;
+
 
     BDBG_ASSERT( DestCtx );
 
@@ -7396,6 +7482,8 @@ void BXPT_Rave_AdvanceSoftContext(
                 itb_type = (src_itb[0]>>24) & 0xFF;
                 switch (itb_type) {
                 case brave_itb_base_address: /* base address */
+                case brave_itb_base_address_40bit: /* base address, 40-bit support. */
+                    DestCtx->SoftRave.BaseOpCode = itb_type;
                     /* cache the last base_address for creating SC entries */
                     DestCtx->SoftRave.last_base_address = src_itb[1];
                     BDBG_MSG(("base_address %x", DestCtx->SoftRave.last_base_address));
@@ -7405,55 +7493,57 @@ void BXPT_Rave_AdvanceSoftContext(
                     /* transform and copy */
                     if (src_itb[1] == 0xFFFFFFFF)
                     {
-                uint32_t *next_itb = get_next_pts_entry(DestCtx, src_valid, cur_src_itb, wrap_happened);
+                      uint32_t *next_itb = get_next_pts_entry(DestCtx, src_valid, cur_src_itb, wrap_happened);
 
-                if(!next_itb){
-                    DestCtx->SoftRave.insufficient_itb_info = true;
-                    goto skip_itb_and_restart;
+                      if(!next_itb){
+                          DestCtx->SoftRave.insufficient_itb_info = true;
+                          goto skip_itb_and_restart;
+                      }
+
+                      dest_itb[0] = next_itb[0];
+                      dest_itb[1] = next_itb[1];
+                      dest_itb[2] = next_itb[2];
+                      dest_itb[3] = next_itb[3];
+
+                      dest_valid += BXPT_ITB_SIZE;
+                      dest_itb += BXPT_ITB_SIZE/4;
+                      check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
+                      DestCtx->SoftRave.adjust_pts = true;
+
+                      /* sequence SC - add base address and start code ITB's */
+                      BDBG_MSG(("sequence SC PTS %x", DestCtx->SoftRave.last_base_address));
+
+                      dest_itb[0] = 0x00000001; /* 1 Byte Extraction Entry */
+                      dest_itb[1] = 0x0F0300FF; /* 0F start code, 03 offset from base_address followed by  end of start codes */
+
+                      dest_valid += BXPT_ITB_SIZE;
+                      dest_itb += BXPT_ITB_SIZE/4;
+                      check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
+                  }
+                else if (((src_itb[0]&0x00008000)>>15) && (src_itb[2] == 0xFFFFFFFF))
+                {
+                   dest_itb[0] = 0x00000001; /* 1 Byte Extraction Entry */
+                   dest_itb[1] = 0x0A0300FF; /* 0F start code, 03 offset from base_address followed by  end of start codes */
+                   dest_valid += BXPT_ITB_SIZE;
+                   dest_itb += BXPT_ITB_SIZE/4;
+                   check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
                 }
-
-                dest_itb[0] = next_itb[0];
-                dest_itb[1] = next_itb[1];
-                dest_itb[2] = next_itb[2];
-                dest_itb[3] = next_itb[3];
-
-                dest_valid += BXPT_ITB_SIZE;
-                dest_itb += BXPT_ITB_SIZE/4;
-                check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
-                DestCtx->SoftRave.adjust_pts = true;
-
-                /* sequence SC - add base address and start code ITB's */
-                BDBG_MSG(("sequence SC PTS %x", DestCtx->SoftRave.last_base_address));
-
-                dest_itb[0] = 0x00000001; /* 1 Byte Extraction Entry */
-                dest_itb[1] = 0x0F0300FF; /* 0F start code, 03 offset from base_address followed by  end of start codes */
-
-                dest_valid += BXPT_ITB_SIZE;
-                dest_itb += BXPT_ITB_SIZE/4;
-                check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
-            }
-                    else if (((src_itb[0]&0x00008000)>>15) && (src_itb[2] == 0xFFFFFFFF)){
-                dest_itb[0] = 0x00000001; /* 1 Byte Extraction Entry */
-                dest_itb[1] = 0x0A0300FF; /* 0F start code, 03 offset from base_address followed by  end of start codes */
-                dest_valid += BXPT_ITB_SIZE;
-                dest_itb += BXPT_ITB_SIZE/4;
-                check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
-                    }
-                    else {
-                /* copy first so we get a PTS */
-                if(!DestCtx->SoftRave.adjust_pts)
-                  COPY_ITB();
                 else
-                  DestCtx->SoftRave.adjust_pts = false;
+                {
+                   /* copy first so we get a PTS */
+                   if(!DestCtx->SoftRave.adjust_pts)
+                     COPY_ITB();
+                   else
+                     DestCtx->SoftRave.adjust_pts = false;
 
-                /* frame SC - add base address and start code ITB's */
-                BDBG_MSG(("frame SC PTS %x", DestCtx->SoftRave.last_base_address));
-                dest_itb[0] = 0x00000001; /* 1 Byte Extraction Entry */
-                dest_itb[1] = 0x0D0300FF; /* 0D start code, 03 offset from base_address followed by  end of start codes */
-                dest_valid += BXPT_ITB_SIZE;
-                dest_itb += BXPT_ITB_SIZE/4;
-                check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
-                    }
+                   /* frame SC - add base address and start code ITB's */
+                   BDBG_MSG(("frame SC PTS %x", DestCtx->SoftRave.last_base_address));
+                   dest_itb[0] = 0x00000001; /* 1 Byte Extraction Entry */
+                   dest_itb[1] = 0x0D0300FF; /* 0D start code, 03 offset from base_address followed by  end of start codes */
+                   dest_valid += BXPT_ITB_SIZE;
+                   dest_itb += BXPT_ITB_SIZE/4;
+                   check_wrap(DestCtx, &dest_valid, &dest_wrap, &dest_itb);
+                }
                     break;
                 default:
                     /* ignore - don't copy */
@@ -7467,6 +7557,8 @@ void BXPT_Rave_AdvanceSoftContext(
             switch (itb_type)
               {
               case brave_itb_base_address: /* base address */
+               case brave_itb_base_address_40bit: /* base address, 40-bit support. */
+                DestCtx->SoftRave.BaseOpCode = itb_type;
 
             /* cache the last base_address for creating SC entries */
             DestCtx->SoftRave.last_base_address = src_itb[1];
@@ -7535,6 +7627,8 @@ void BXPT_Rave_AdvanceSoftContext(
 
             switch (itb_type) {
             case brave_itb_base_address:
+            case brave_itb_base_address_40bit: /* base address, 40-bit support. */
+                DestCtx->SoftRave.BaseOpCode = itb_type;
                 if(src_itb[1] >= DestCtx->SoftRave.last_base_address){
                     prev_frame_size = src_itb[1] - DestCtx->SoftRave.last_base_address;
                 } else {
@@ -7669,6 +7763,8 @@ void BXPT_Rave_AdvanceSoftContext(
 
                 switch (itb_type) {
                 case brave_itb_base_address:
+                case brave_itb_base_address_40bit: /* base address, 40-bit support. */
+                    DestCtx->SoftRave.BaseOpCode = itb_type;
                     if(src_itb[1] >= DestCtx->SoftRave.last_base_address){
                         prev_frame_size = src_itb[1] - DestCtx->SoftRave.last_base_address;
                     } else {
@@ -7843,7 +7939,7 @@ void BXPT_Rave_AdvanceSoftContext(
                                 &&(DestCtx->SoftRave.splice_state == SoftRave_SpliceState_Discard))
                         {
                         BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address 0x%08X, ", (void *) DestCtx, DestCtx->SoftRave.last_base_address));
-                        INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.last_base_address);
+                        INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.BaseOpCode, DestCtx->SoftRave.last_base_address);
                         INSERT_PCROFFSET_ITB(DestCtx->SoftRave.splice_last_pcr_offset);
                         /* Insert the start marker into the ITB only once. */
                         if( !DestCtx->SoftRave.StartMarkerInserted )
@@ -7967,7 +8063,7 @@ void BXPT_Rave_AdvanceSoftContext(
                         case brave_itb_splice_start_marker:
                             DestCtx->SoftRave.splice_state = SoftRave_SpliceState_Copy;
                         BDBG_MSG(("Inserting Base Address ITB for context %p, Base Address 0x%08X, ", (void *) DestCtx, DestCtx->SoftRave.last_base_address));
-                        INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.last_base_address);
+                        INSERT_BASE_ENTRY_ITB(DestCtx->SoftRave.BaseOpCode, DestCtx->SoftRave.last_base_address);
                         BDBG_MSG(("Got brave_itb_splice_start_marker,  Inserting Start PTS ITB & Start Marker for context %p, PTS %u", (void *) DestCtx, src_itb[3]));
                         INSERT_START_STOP_PTS_ITB( 1, src_itb[3]);
                         INSERT_START_MARKER_ITB( 0 );
@@ -8021,10 +8117,11 @@ void BXPT_Rave_AdvanceSoftContext(
                     {
                         COPY_ITB();
                     }
-                if (itb_type == brave_itb_base_address )
-                {
-                    DestCtx->SoftRave.last_base_address =  src_itb[1];
-                    }
+                   if (itb_type == brave_itb_base_address || itb_type == brave_itb_base_address_40bit)
+                   {
+                       DestCtx->SoftRave.last_base_address =  src_itb[1];
+                       DestCtx->SoftRave.BaseOpCode = itb_type;
+                   }
                     break;
 
 
@@ -8044,7 +8141,7 @@ void BXPT_Rave_AdvanceSoftContext(
             {
                 BDBG_ASSERT(cur_src_itb == src_wrap+1);
                 cur_src_itb = DestCtx->SoftRave.src_itb_base;
-                src_valid = BREG_Read32(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET ) + 1;
+                src_valid = BREG_ReadAddr(DestCtx->hReg, DestCtx->SoftRave.SrcBaseAddr + ITB_VALID_PTR_OFFSET ) + 1;
             }
 
 skip_itb_and_restart:

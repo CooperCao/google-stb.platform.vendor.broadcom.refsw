@@ -47,6 +47,7 @@
 #include "bvdc_subrul_priv.h"
 #include "bvdc_csc_priv.h"
 #include "bvdc_capture_priv.h"
+#include "bvdc_cfc_priv.h"
 
 #if BVDC_P_SUPPORT_SEC_CMP
 #include "bchp_cmp_1.h"
@@ -168,7 +169,7 @@ BDBG_OBJECT_ID_DECLARE(BVDC_BFH);
     :(BVDC_P_WindowId_eComp5_G0==(window_id)) ? 2    \
     : 2)
 
-#define BVDC_P_WIN_MOSAIC_CSC_IDX_INVALID          BVDC_P_CMP_MOSAIC_CSC_SLOTS
+#define BVDC_P_WIN_MOSAIC_CSC_IDX_INVALID          BVDC_P_CMP_0_MOSAIC_CFCS
 #define BVDC_P_WIN_MOSAIC_CSC_MAP_SIZE             BVDC_P_MatrixCoefficients_eMax
 
 /* Bandwidth equation decision oscillations! */
@@ -209,7 +210,11 @@ BDBG_OBJECT_ID_DECLARE(BVDC_BFH);
 minimum picture size for VMXVM is 72 pixels
 (i.e. 8x9, 4x18, 2x36 are okay)*/
 #define BVDC_P_WIN_DST_OUTPUT_H_MIN          (16)
+#if BVDC_P_DCXM_72PIXELS
 #define BVDC_P_WIN_DST_OUTPUT_V_MIN          (5)
+#else
+#define BVDC_P_WIN_DST_OUTPUT_V_MIN          (1)
+#endif
 
 /* Mosaic mode min */
 #define BVDC_P_WIN_MOSAIC_OUTPUT_H_MIN        (16)
@@ -687,7 +692,7 @@ typedef struct
     uint32_t                      ulChunkId;
     BFMT_Orientation              eDispOrientation;
     uint32_t                      ulChannelId;
-    BAVC_TransferCharacteristics  eTransferCharacteristics; /* transfer characteristics */
+    BAVC_P_ColorSpace             stMosaicColorSpace;
 } BVDC_P_Window_MadDelayed;
 
 typedef struct
@@ -768,12 +773,6 @@ typedef struct
 
 } BVDC_P_Window_PanScanSettings;
 
-
-#if BVDC_P_CMP_MOSAIC_CSC_SLOTS
-#define BVDC_P_CSC_SLOTS      BVDC_P_CMP_MOSAIC_CSC_SLOTS
-#else
-#define BVDC_P_CSC_SLOTS      2
-#endif
 /***************************************************************************
  * Window Context
  ***************************************************************************/
@@ -966,11 +965,6 @@ typedef struct BVDC_P_WindowContext
     bool                          bFrameCapture;
 
     /* CMP CSC */
-    BVDC_P_CscCfg                *pCscCfg;
-    BVDC_P_EotfConvCfg           *pEotfConvCfg;
-    BVDC_P_CscCfg                *pDemoCscCfg;  /* for demo mode */
-    BAVC_HDMI_DRM_EOTF            eInputEotf;
-    BVDC_P_MatrixCoeffs           eInputMatrixCoeffs;
     bool                          bBypassCmpCsc;
 
     /* there are typically 16 mosaic rects and 5 or 6 mosaic csc slots and eotf slots.
@@ -983,22 +977,12 @@ typedef struct BVDC_P_WindowContext
      * aEotfInMosaicEotfConvSlot stores the input eotf that this EotfConv slot is for,
      * astMosaicEotfConvSlotCfgList holds the EotfConv configures for each EotfConv slot.
      */
-
-    BVDC_P_MatrixCoeffs           aMosaicRectMatrixCoeffsList[BAVC_MOSAIC_MAX];
-    BVDC_P_MatrixCoeffs           aPrevMosaicRectMatrixCoeffsList[BAVC_MOSAIC_MAX];
-
-    uint8_t                       ucNumCscSlotUsed;
-    BVDC_P_CscCfg                 astMosaicCscSlotCfgList[BVDC_P_CSC_SLOTS];
-    uint8_t                       aMosaicCscSlotForMatrixCoeffs[BVDC_P_MatrixCoeffs_eMax];
-    BVDC_P_MatrixCoeffs           aMatrixCoeffsInMosaicCscSlot[BVDC_P_CSC_SLOTS];
-
-    BAVC_HDMI_DRM_EOTF            aMosaicRectEotfList[BAVC_MOSAIC_MAX];
-    BAVC_HDMI_DRM_EOTF            aPrevMosaicRectEotfList[BAVC_MOSAIC_MAX];
-
-    uint8_t                       ucNumEotfConvSlotUsed;
-    BVDC_P_EotfConvCfg            astMosaicEotfConvSlotCfgList[BVDC_P_CSC_SLOTS];
-    uint8_t                       aMosaicEotfConvSlotForEotf[BAVC_HDMI_DRM_EOTF_eMax];
-    BAVC_HDMI_DRM_EOTF            aEotfInMosaicEotfConvSlot[BVDC_P_CSC_SLOTS];
+    BVDC_P_CfcContext            *pMainCfc;
+    BVDC_P_CfcContext            *pDemoCfc;    /* for demo mode */
+    uint8_t                       ucNumMosaicRects;
+    uint8_t                       aucMosaicCfcIdxForRect[BAVC_MOSAIC_MAX]; /* cfcIdx assigned to rect */
+    BVDC_P_CfcContext             astMosaicCfc[BVDC_P_CMP_CFCS]; /* mosaic cfc array */
+    bool                          bCfcAdjust; /* cleared only after AssignMosaicCfcToRect_isr is really called */
 
     /* This flag indicate if the bandwidth equation is symmetric or not */
     bool                          bSclCapSymmetric;
@@ -1231,14 +1215,6 @@ void BVDC_P_Window_GetCurrentRectangles_isr
       const BVDC_P_Rect **             ppSclOutRect,
       const BVDC_P_Rect **             ppDstRect );
 
-void BVDC_P_Window_GetCurrentOutMatrixCoeffs_isr
-    ( const BVDC_Window_Handle         hWindow,
-      BVDC_P_MatrixCoeffs             *peOutMatrixCoeffs );
-
-void BVDC_P_Window_GetCurrentOutEotf_isr
-    ( const BVDC_Window_Handle         hWindow,
-      BAVC_HDMI_DRM_EOTF              *peOutEotf );
-
 void BVDC_P_Window_GetNewWindowAlpha
     ( const BVDC_Window_Handle         hWindow,
       uint8_t                         *pucWindowAlpha );
@@ -1305,7 +1281,6 @@ BERR_Code BVDC_P_Window_SetColorMatrix
 BERR_Code BVDC_P_Window_GetColorMatrix
     ( BVDC_Window_Handle               hWindow,
       bool                             bOverride,
-      BVDC_P_CscCoeffs                *pCscCoeffsWin,
       int32_t                          pl32_MatrixWin[BVDC_CSC_COEFF_COUNT],
       int32_t                          pl32_Matrix[BVDC_CSC_COEFF_COUNT] );
 
@@ -1372,22 +1347,40 @@ void BVDC_P_Window_GetBufSize_isr
       uint32_t                               *pulBufSize,
       BAVC_VideoBitDepth                      eBitDepth);
 
-void BVDC_P_Window_GetCscTable_isrsafe
-    ( BVDC_P_CscCfg                   *pCscCfg,
-      uint8_t                          ucSlotIdx,
-      BVDC_Window_Handle               hWindow,
-      BVDC_P_MatrixCoeffs              eInMatrixCoeffs );
+/* init mosaic colorSpace array in picture node as all invalid
+ */
+void BVDC_P_Window_InitVideoInputColorSpace_isr(
+    BVDC_P_PictureNode         *pPicture);
 
-void BVDC_P_Window_GetEotfConvTable_isrsafe
-    ( BVDC_P_EotfConvCfg              *pEotfConvCfg,
-      uint8_t                          ucSlotIdx,
-      BVDC_Window_Handle               hWindow,
-      BAVC_HDMI_DRM_EOTF               eInEotf );
+/* init mosaic cfcs in cmp
+ */
+void BVDC_P_Window_InitCfcs(
+    BVDC_Window_Handle          hWindow );
 
-void BVDC_P_Window_GetCscToApplyAttenuationRGB_isr
-    ( const BVDC_P_CscCoeffs         **ppYCbCrToRGB,
-      const BVDC_P_CscCoeffs         **ppRGBToYCbCr,
-      BVDC_P_MatrixCoeffs              eOutMatrixCoeffs);
+/* copy input color space info from BAVC_MVD_Field to mosaic colorSpace
+ * array in picture node
+ */
+void BVDC_P_Window_UpdateVideoInputColorSpace_isr(
+    BVDC_Window_Handle               hWindow,
+    const BAVC_MVD_Field            *pMvdFieldData,
+    const BAVC_VDC_HdDvi_Picture    *pXvdFieldData,
+    BAVC_MatrixCoefficients          eMatrixCoefficients, /* for analogue */
+    BAVC_P_ColorSpace               *pColorSpace );
+
+/* Assign CFC for each mosaic rectangle
+ * return true if some mosaic rect's colorSpace changed
+ */
+bool BVDC_P_Window_AssignMosaicCfcToRect_isr(
+    BVDC_Window_Handle          hWindow,
+    BVDC_P_PictureNode         *pPicture,
+    bool                        bOutColorSpaceDirty);
+
+/* Build RUL for a mosaic-rect / cfc inside a compositor.
+ */
+void BVDC_P_Window_BuildCfcRul_isr
+    ( BVDC_Window_Handle               hWindow,
+      uint32_t                         ulRectIdx, /* Mosaic rect index */
+      BVDC_P_ListInfo                 *pList);
 
 #ifdef __cplusplus
 }

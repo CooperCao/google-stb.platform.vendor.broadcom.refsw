@@ -458,7 +458,6 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
     BAPE_Mixer *pMixer;
     BAPE_Mixer *pLastMixer = NULL;
     BAPE_InputPortObject *pInputPort;
-    BAPE_InputPortObject *pLastInputPort = NULL;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_Device);
@@ -607,8 +606,6 @@ BERR_Code BAPE_P_UpdateNco_isr(BAPE_Handle handle, BAPE_Nco nco)
                 }
             }
         }
-
-        pLastInputPort = pInputPort;
     }
 
     if ( baseRate != 0 )

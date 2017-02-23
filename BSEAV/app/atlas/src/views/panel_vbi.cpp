@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -170,7 +170,7 @@ eRet CPanelVbi::initialize(
         _Gemstar->setCheck(false);
 
         /* Nielsen AMOL */
-        ret = addLabelPopupButton(_pVbiMenu, "NielsenAmol", &_NielsenAmol, &_NielsenAmolLabel, &_NielsenAmolPopup, font12, 45);
+        ret = _pVbiMenu->addLabelPopupButton(this, "NielsenAmol", &_NielsenAmol, &_NielsenAmolLabel, &_NielsenAmolPopup, font12, 45);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _NielsenAmol->setFocusable(false);
         _NielsenAmolLabel->setText("Nielsen AMOL:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -194,7 +194,7 @@ eRet CPanelVbi::initialize(
         _NielsenAmolPopup->select(NEXUS_AmolType_eMax);
 
         /* Macrovision */
-        ret = addLabelPopupButton(_pVbiMenu, "Macrovision", &_Macrovision, &_MacrovisionLabel, &_MacrovisionPopup, font12, 37);
+        ret = _pVbiMenu->addLabelPopupButton(this, "Macrovision", &_Macrovision, &_MacrovisionLabel, &_MacrovisionPopup, font12, 37);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _Macrovision->setFocusable(false);
         _MacrovisionLabel->setText("Macrovision:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -218,7 +218,7 @@ eRet CPanelVbi::initialize(
         _MacrovisionPopup->select(NEXUS_DisplayMacrovisionType_eNone);
 
         /* DCS */
-        ret = addLabelPopupButton(_pVbiMenu, "DCS", &_Dcs, &_DcsLabel, &_DcsPopup, font12, 65);
+        ret = _pVbiMenu->addLabelPopupButton(this, "DCS", &_Dcs, &_DcsLabel, &_DcsPopup, font12, 65);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _Dcs->setFocusable(false);
         _DcsLabel->setText("DCS Copy Protection:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -310,6 +310,9 @@ void CPanelVbi::onClick(bwidget_t widget)
     CDisplay *      pDisplaySD = NULL;
     CDisplayVbiData settings;
 
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
     BDBG_ASSERT(NULL != pModel);
 
     pDisplaySD = pModel->getDisplay(1);

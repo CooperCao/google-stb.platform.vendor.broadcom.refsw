@@ -43,6 +43,8 @@
 #include "nexus_platform.h"
 #include "nexus_record.h"
 #include "nexus_file_fifo.h"
+#include "nexus_file_chunk.h"
+#include "nexus_file_fifo_chunk.h"
 #include "nexus_parser_band.h"
 #include "live_decode.h"
 #include "live_source.h"
@@ -65,6 +67,7 @@ BDBG_MODULE(record);
 
 struct recordContext {
     struct {
+        NEXUS_ChunkedFifoRecordHandle chunkedFifofile;
         NEXUS_FifoRecordHandle fifofile;
         NEXUS_FileRecordHandle file;
         NEXUS_RecpumpHandle recpump;
@@ -94,6 +97,7 @@ struct recordContext {
         bool append;
         bool indexonly;
         struct btune_settings tune_settings;
+        unsigned chunkSize;
     } settings;
 
     struct {
@@ -139,10 +143,12 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -tts                     record with 4 byte timestamp\n"
         "  -timeout SECONDS\n"
         );
-    print_list_option("crypto",g_securityAlgoStrs);
+    print_list_option(
+        "  -crypto                  encrypt stream",g_securityAlgoStrs);
     printf(
         "  -psi {on|off}            inject PSI into recording. defaults on with crypto.\n"
         "  -append                  append recording to OUTPUTFILE\n"
+        "  -chunk SIZE              chunked record, SIZE in mb\n"
         );
 }
 
@@ -168,22 +174,32 @@ static void print_record_status(struct recordContext *recContext)
         (unsigned)status.picturesIndexed));
 }
 
-static int set_fifo_settings(NEXUS_FifoRecordHandle fifofile, unsigned interval, unsigned maxBitRate)
+static int set_fifo_settings(struct recordContext *recContext, unsigned interval, unsigned maxBitRate)
 {
     NEXUS_Error rc;
-    NEXUS_FifoRecordSettings fifoRecordSettings;
-    NEXUS_FifoRecord_GetSettings(fifofile, &fifoRecordSettings);
-    fifoRecordSettings.interval = interval * 60;
-    fifoRecordSettings.data.soft =(uint64_t)fifoRecordSettings.interval * (maxBitRate / 8);
-    fifoRecordSettings.data.hard = fifoRecordSettings.data.soft*2;
+    if (recContext->handles.chunkedFifofile) {
+        NEXUS_ChunkedFifoRecordSettings fifoRecordSettings;
+        NEXUS_ChunkedFifoRecord_GetSettings(recContext->handles.chunkedFifofile, &fifoRecordSettings);
+        fifoRecordSettings.interval = interval;
+        fifoRecordSettings.data.chunkSize = recContext->settings.chunkSize * 1024*1024;
+        rc = NEXUS_ChunkedFifoRecord_SetSettings(recContext->handles.chunkedFifofile, &fifoRecordSettings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    else {
+        NEXUS_FifoRecordSettings fifoRecordSettings;
+        NEXUS_FifoRecord_GetSettings(recContext->handles.fifofile, &fifoRecordSettings);
+        fifoRecordSettings.interval = interval * 60;
+        fifoRecordSettings.data.soft =(uint64_t)fifoRecordSettings.interval * (maxBitRate / 8);
+        fifoRecordSettings.data.hard = fifoRecordSettings.data.soft*2;
 #define B_DATA_ALIGN  ((188/4)*4096)
-    fifoRecordSettings.data.soft -= fifoRecordSettings.data.soft % B_DATA_ALIGN;
-    fifoRecordSettings.data.hard -= fifoRecordSettings.data.hard % B_DATA_ALIGN;
-    fifoRecordSettings.index.soft = fifoRecordSettings.data.soft / 20;
-    fifoRecordSettings.index.hard = fifoRecordSettings.index.soft*2;
-    rc = NEXUS_FifoRecord_SetSettings(fifofile, &fifoRecordSettings);
-    if (rc) return BERR_TRACE(rc);
-    BDBG_WRN(("timeshift %d minutes, %d Mbps for file limit of %d MB", interval, maxBitRate/1024/1024, (unsigned)(fifoRecordSettings.data.soft/1024/1024)));
+        fifoRecordSettings.data.soft -= fifoRecordSettings.data.soft % B_DATA_ALIGN;
+        fifoRecordSettings.data.hard -= fifoRecordSettings.data.hard % B_DATA_ALIGN;
+        fifoRecordSettings.index.soft = fifoRecordSettings.data.soft / 20;
+        fifoRecordSettings.index.hard = fifoRecordSettings.index.soft*2;
+        rc = NEXUS_FifoRecord_SetSettings(recContext->handles.fifofile, &fifoRecordSettings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    BDBG_WRN(("timeshift %d minutes, %d Mbps", interval, maxBitRate/1024/1024));
     return 0;
 }
 
@@ -260,12 +276,25 @@ static int start_record(struct recordContext *recContext)
     }
 
     if (recContext->settings.timeshift) {
-        recContext->handles.fifofile = NEXUS_FifoRecord_Create(recContext->settings.indexonly?NULL:recContext->settings.filename, recContext->settings.indexname);
-        set_fifo_settings(recContext->handles.fifofile, recContext->settings.timeshift, 20*1024*1024);
-        recContext->handles.file = NEXUS_FifoRecord_GetFile(recContext->handles.fifofile);
+        if (recContext->settings.chunkSize) {
+            recContext->handles.chunkedFifofile = NEXUS_ChunkedFifoRecord_Create(recContext->settings.filename, recContext->settings.indexname);
+            recContext->handles.file = NEXUS_ChunkedFifoRecord_GetFile(recContext->handles.chunkedFifofile);
+        }
+        else {
+            recContext->handles.fifofile = NEXUS_FifoRecord_Create(recContext->settings.indexonly?NULL:recContext->settings.filename, recContext->settings.indexname);
+            recContext->handles.file = NEXUS_FifoRecord_GetFile(recContext->handles.fifofile);
+        }
+        set_fifo_settings(recContext, recContext->settings.timeshift, 20*1024*1024);
     }
     else if (recContext->settings.append) {
         recContext->handles.file = NEXUS_FileRecord_AppendPosix(recContext->settings.filename, recContext->settings.indexname);
+    }
+    else if (recContext->settings.chunkSize) {
+        NEXUS_ChunkedFileRecordOpenSettings chunkedFileRecordOpenSettings;
+        NEXUS_ChunkedFileRecord_GetDefaultOpenSettings(&chunkedFileRecordOpenSettings);
+        chunkedFileRecordOpenSettings.chunkSize = recContext->settings.chunkSize*1024*1024;
+        strcpy(chunkedFileRecordOpenSettings.chunkTemplate, "%s_%04u");
+        recContext->handles.file = NEXUS_ChunkedFileRecord_Open(recContext->settings.filename, recContext->settings.indexname, &chunkedFileRecordOpenSettings);
     }
     else {
         recContext->handles.file = NEXUS_FileRecord_OpenPosix(recContext->settings.indexonly?NULL:recContext->settings.filename, recContext->settings.indexname);
@@ -523,6 +552,9 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-append")) {
             recContext.settings.append = true;
         }
+        else if (!strcmp(argv[curarg], "-chunk") && argc>curarg+1) {
+            recContext.settings.chunkSize = atoi(argv[++curarg]);
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -686,7 +718,16 @@ int main(int argc, const char **argv)
             fgets(buf, sizeof(buf), stdin);
             if (feof(stdin)) break;
             buf[strlen(buf)-1] = 0; /* chop off \n */
-            if (!strcmp(buf, "q")) {
+            if (!strcmp(buf, "?") || !strcmp(buf, "h")) {
+                printf(
+                "st         - status\n"
+                "play       - start timeshifting playback\n"
+                "timeshift(interval,maxBiteRate)\n"
+                "export(BEGIN,END) - export ChunkedFile from timeshifting ChunkedFileFifo, BEGIN,END in seconds\n"
+                "q - quit\n"
+                );
+            }
+            else if (!strcmp(buf, "q")) {
                 break;
             }
             else if (!strcmp(buf, "st")) {
@@ -700,7 +741,33 @@ int main(int argc, const char **argv)
                 unsigned interval, maxBitRate, n;
                 n = sscanf(buf+10, "%u,%u", &interval, &maxBitRate);
                 if (n == 2 && interval && maxBitRate) {
-                    set_fifo_settings(recContext.handles.fifofile, interval, maxBitRate*1024*1024);
+                    set_fifo_settings(&recContext, interval, maxBitRate*1024*1024);
+                }
+            }
+            else if (recContext.settings.timeshift && recContext.settings.chunkSize && strstr(buf, "export") == buf) {
+                NEXUS_ChunkedFifoRecordExportSettings settings;
+                NEXUS_ChunkedFifoRecordExportHandle exportHandle;
+                unsigned begin_time, end_time;
+                sscanf(buf+7, "%u,%u", &begin_time, &end_time);
+                NEXUS_ChunkedFifoRecord_GetDefaultExportSettings(&settings);
+                settings.filename = "videos/chunk_stream.mpg"; /* match nexus/examples/dvr/record_chunk name */
+                settings.indexname = "videos/chunk_stream.nav";
+                settings.first.timestamp = begin_time * 1000;
+                settings.last.timestamp = end_time * 1000;
+                BDBG_WRN(("exporting %u..%u to %s", begin_time, end_time, settings.filename));
+                exportHandle = NEXUS_ChunkedFifoRecord_StartExport(recContext.handles.chunkedFifofile, &settings);
+                if (exportHandle) {
+                    NEXUS_ChunkedFifoRecordExportStatus status;
+                    while (1) {
+                        NEXUS_ChunkedFifoRecord_GetExportStatus(exportHandle, &status);
+                        if (status.state >= NEXUS_ChunkedFifoRecordExportState_eFailed) break;
+                        BKNI_Sleep(250);
+                    }
+                    NEXUS_ChunkedFifoRecord_StopExport(exportHandle);
+                    if (status.state == NEXUS_ChunkedFifoRecordExportState_eFailed) {
+                        BDBG_ERR(("export failed"));
+                    }
+                    BDBG_WRN(("export done"));
                 }
             }
         }
@@ -818,10 +885,12 @@ int start_play(NEXUS_RecordHandle record, NEXUS_FifoRecordHandle fifofile, const
     NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
 
     NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
+#if NEXUS_HAS_AUDIO
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
     playbackPidSettings.pidTypeSettings.audio.simpleDecoder = audioDecoder;
     audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(playback, pscan_results->program_info[program].audio_pids[0].pid, &playbackPidSettings);
     audioProgram.primary.codec = pscan_results->program_info[program].audio_pids[0].codec;
+#endif
 
     playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eVideo;
     playbackPidSettings.pidTypeSettings.video.codec = pscan_results->program_info[program].video_pids[0].codec;
@@ -833,15 +902,19 @@ int start_play(NEXUS_RecordHandle record, NEXUS_FifoRecordHandle fifofile, const
     if (videoProgram.settings.pidChannel) {
         NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
     }
+#if NEXUS_HAS_AUDIO
     if (audioProgram.primary.pidChannel) {
         NEXUS_SimpleAudioDecoder_SetStcChannel(audioDecoder, stcChannel);
     }
+#endif
     if (videoProgram.settings.pidChannel) {
         NEXUS_SimpleVideoDecoder_Start(videoDecoder, &videoProgram);
     }
+#if NEXUS_HAS_AUDIO
     if (audioProgram.primary.pidChannel) {
         NEXUS_SimpleAudioDecoder_Start(audioDecoder, &audioProgram);
     }
+#endif
     NEXUS_Playback_Start(playback, file, NULL);
 
     return 0;

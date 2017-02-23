@@ -157,7 +157,7 @@ NEXUS_Error NEXUS_P_MemoryMap_Map(struct NEXUS_MemoryMapNode *node, NEXUS_Addr o
         node->lockedMem = sibling->lockedMem;
         node->offset = 0; /* NULL indicated that it's a slave */
     } else {
-        node->lockedMem = NEXUS_Platform_P_MapMemory(offset, size, NEXUS_MemoryMapType_eCached);
+        node->lockedMem = NEXUS_Platform_P_MapMemory(offset, size, NEXUS_AddrType_eCached);
         if(node->lockedMem==NULL) {
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
         } else {
@@ -188,7 +188,7 @@ void NEXUS_P_MemoryMap_Unmap(struct NEXUS_MemoryMapNode *node, size_t size)
         nodeInserted=BLST_AA_TREE_INSERT(NEXUS_P_MemoryMapOffsetTree,&g_NexusCoreLocal.offsetTree, sibling->offset, sibling);
         BDBG_ASSERT(nodeInserted == sibling);
     } else {
-        NEXUS_Platform_P_UnmapMemory(node->lockedMem, size, NEXUS_MemoryMapType_eCached);
+        NEXUS_Platform_P_UnmapMemory(node->lockedMem, size, NEXUS_AddrType_eCached);
     }
     node->sibling = NULL;
     node->offset = 0;

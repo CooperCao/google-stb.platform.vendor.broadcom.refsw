@@ -1606,27 +1606,3 @@ bpvr_gop_player_set_mode(bpvr_gop_player player, bpvr_gop_player_mode *mode )
 	player->mode = *mode;
 	return;
 }
-
-unsigned bpvr_gop_player_get_active_count(bpvr_gop_player player)
-{
-     unsigned count = 0;
-     struct bpvr_gop_entry *gop_entry;
-     gop_entry = BLST_SQ_FIRST(&player->active);
-     if(NULL != gop_entry){
-	  for(count = 1; NULL != (gop_entry = BLST_SQ_NEXT(gop_entry, queue)); count++);
-     }
-     return count;
-}
-
-unsigned bpvr_gop_player_get_complete_count(bpvr_gop_player player)
-{
-     unsigned count = 0;
-     struct bpvr_gop_entry *gop_entry;
-     gop_entry = BLST_SQ_FIRST(&player->complete);
-     if(NULL != gop_entry){
-	  for(count = 1; NULL != (gop_entry = BLST_SQ_NEXT(gop_entry, queue)); count++);
-     }
-     return count;
-}
-
-

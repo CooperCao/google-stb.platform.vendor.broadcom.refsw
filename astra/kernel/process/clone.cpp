@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -81,15 +81,10 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
         vmCloned = true;
     }
     else {
-        image = new ElfImage(tid, parentTask.image);
+        image = ElfImage::loadElf(tid, parentTask.image);
         if (image == nullptr) {
             state = Defunct;
             err_msg("Could not allocate elf image\n");
-            return;
-        }
-        if (image->status != ElfImage::Valid) {
-            state = Defunct;
-            err_msg("Could not load elf image. status %d\n", image->status);
             return;
         }
 
@@ -177,6 +172,7 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     }
     else {
         inheritFileTable(parentTask);
+        filesCloned = false;
     }
 
     /* Initialize the current working directory */
@@ -200,23 +196,11 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
     /*
      * Allocate the kernel mode stack
      */
-    PageTable *kernPageTable = PageTable::kernelPageTable();
-
-    TzMem::VirtAddr stackVa = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES, PageTable::ScanBackward);
-    if (stackVa == nullptr) {
-        err_msg("[stackVa 4] kernel virtual address space exhausted !\n");
-        pageTable->dump();
-        return;
-    }
-    TzMem::PhysAddr stackPa = TzMem::allocPage(KERNEL_PID);
-    if (stackPa == nullptr) {
-        err_msg("system memory exhausted !\n");
-        return;
-    }
-
-    kernPageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, false);
-    pageTable->mapPage(stackVa, stackPa, MAIR_MEMORY, MEMORY_ACCESS_RW_KERNEL, true, true);
-    stackKernel = (uint8_t *)stackVa + PAGE_SIZE_4K_BYTES;
+#ifdef __aarch64__
+    allocateStack(PAGE_SIZE_4K_BYTES * 2);
+#else
+    allocateStack(PAGE_SIZE_4K_BYTES);
+#endif
 
     quickPagesMapped = false;
     quickPages = kernPageTable->reserveAddrRange((void *)KERNEL_STACKS_START, PAGE_SIZE_4K_BYTES*2, PageTable::ScanForward);
@@ -242,7 +226,7 @@ TzTask::TzTask(TzTask& parentTask, unsigned long flags, void *stack, void *ptid,
 
     savedRegBase = &savedRegs[NUM_SAVED_CPU_REGS];
 
-    spinlock_init("task.lock", &lock);
+    spinLockInit(&lock);
 
     state = State::Ready;
     for (int i=0; i<7; i++)

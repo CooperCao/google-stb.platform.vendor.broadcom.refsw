@@ -141,7 +141,7 @@ NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSetting
     int rc;
     NEXUS_P_ClientHandle client;
     unsigned i;
-    NEXUS_ClientAuthenticationSettings defaultSettings;
+    struct nexus_connect_info info;
     uint8_t done;
 
     client = BKNI_Malloc(sizeof(*client));
@@ -176,14 +176,16 @@ NEXUS_P_ClientHandle NEXUS_P_Client_Init(const NEXUS_ClientAuthenticationSetting
     }
 
     /* send authentication and see if we're accepted */
-    if (!pSettings) {
-        NEXUS_Platform_GetDefaultClientAuthenticationSettings(&defaultSettings);
-        pSettings = &defaultSettings;
+    info.abi = NEXUS_P_NATIVE_ABI;
+    if (pSettings) {
+        info.auth = *pSettings;
+    } else {
+        NEXUS_Platform_GetDefaultClientAuthenticationSettings(&info.auth);
     }
 
     /* this is some internal, manual IPC */
-    rc = b_nexus_write(client->fd, pSettings, sizeof(*pSettings));
-    if (rc != sizeof(*pSettings)) {
+    rc = b_nexus_write(client->fd, &info, sizeof(info));
+    if (rc != sizeof(info)) {
         BDBG_ERR(("unable to send authentication: %d. check server console for error messages.", rc));
         goto error;
     }
@@ -554,6 +556,8 @@ NEXUS_Error NEXUS_P_ClientCall_InVarArg(NEXUS_P_ClientCall_State *state, unsigne
             return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         }
         /* field is the pointer into the state->data, so adjust it if data was relocated */
+        /* freed pointer only used in the pointer math, it is not dereferenced */
+        /* coverity[use_after_free: FALSE] */
         field = (void *)((uint8_t *)state->data + ((uint8_t *)field - (uint8_t *)old_data));
         *field = (uint8_t *)data - (uint8_t *)state->data - state->header;
         BKNI_Memcpy(data, src, vararg_size);

@@ -400,8 +400,9 @@ static const BINT_P_IntMap bint_7425[] =
 
     /* { HIF_CPU_INTR1_INTR_W1_STATUS_SYS_PM_CPU_INTR_SHIFT + 32,           BCHP_AON_PM_L2_CPU_STATUS,             0,                   "SYS_PM"}, */
     BINT_MAP_STD(1, SYS_AON, AON_L2_CPU),
+#if !defined(NEXUS_GISB_ARB)
     BINT_MAP_STD(1, SYS, SUN_L2_CPU),
-
+#endif
 
 #ifndef BINT_DECODER_DISABLED
     BINT_MAP_STD(1, SVD0_0, SVD_INTR2_0_CPU),

@@ -49,7 +49,7 @@
 #ifdef NEXUS_HAS_DISPLAY
 #include "nexus_display.h"
 #endif
-#include "nexus_platform_compat.h"
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C"

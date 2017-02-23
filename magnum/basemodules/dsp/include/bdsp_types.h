@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BDSP_TYPES_H_
@@ -44,7 +41,6 @@
 
 #include "bchp.h"
 #include "bint.h"
-#include "bmem.h"
 #include "breg_mem.h"
 #include "btmr.h"
 #include "bimg.h"
@@ -99,7 +95,15 @@ typedef uint32_t BDSP_TIME_45KHZ_TICKS;
 Summary:
 Type for declaring dram offset variable
 ***************************************************************************/
+#if (BCHP_CHIP != 7278)
 typedef uint32_t dramaddr_t;
+#define BDSP_MSG_FMT "0x%x"
+#define BDSP_MSG_ARG(x) (unsigned)(x)
+#else
+typedef uint64_t dramaddr_t;
+#define BDSP_MSG_FMT BDBG_UINT64_FMT
+#define BDSP_MSG_ARG(x) BDBG_UINT64_ARG(x)
+#endif
 /***************************************************************************
 Summary:
 Task Types
@@ -299,6 +303,21 @@ typedef enum BDSP_ConnectionType
     BDSP_ConnectionType_eMax
 } BDSP_ConnectionType;
 
+typedef enum BDSP_MMA_Alignment{
+    BDSP_MMA_Alignment_8bit    =   1, /*   1 -byte alignment */
+    BDSP_MMA_Alignment_16bit   =   2, /*   2 -byte alignment */
+    BDSP_MMA_Alignment_32bit   =   4, /*   4 -byte alignment */
+    BDSP_MMA_Alignment_64bit   =   8, /*   8 -byte alignment */
+    BDSP_MMA_Alignment_128bit  =  16, /*  16 -byte alignment */
+    BDSP_MMA_Alignment_256bit  =  32, /*  32 -byte alignment */
+    BDSP_MMA_Alignment_512bit  =  64, /*  64 -byte alignment */
+    BDSP_MMA_Alignment_1024bit = 128, /* 128 -byte alignment */
+    BDSP_MMA_Alignment_2048bit = 256, /* 256 -byte alignment */
+    BDSP_MMA_Alignment_4096bit = 512, /* 512 -byte alignment */
+    BDSP_MMA_Alignment_Max,
+    BDSP_MMA_Alignment_Invalid = 0x7FFFFFFF
+}BDSP_MMA_Alignment;
+
 typedef struct BDSP_StageCreateSettings
 {
     BDSP_AlgorithmType algoType;
@@ -307,6 +326,11 @@ typedef struct BDSP_StageCreateSettings
     unsigned maxOutputs;
 } BDSP_StageCreateSettings;
 
+typedef struct BDSP_MMA_Memory{
+    BMMA_Block_Handle hBlock;
+    BMMA_DeviceOffset offset;
+    void *pAddr;
+}BDSP_MMA_Memory;
 
 /* Add an output buffer to a stage */
 typedef struct BDSP_FmmBufferDescriptor

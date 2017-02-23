@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -146,6 +146,6 @@ typedef struct BDSP_ARM_CIT_P_Output
 } BDSP_ARM_CIT_P_Output;
 
 
-uint32_t BDSP_P_GenArmCit(void* pTaskHandle);
+BERR_Code BDSP_P_GenArmCit(void* pTaskHandle);
 
 #endif /* BDSP_ARM_CIT_PRIV_H__ */

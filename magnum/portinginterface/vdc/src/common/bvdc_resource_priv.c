@@ -80,11 +80,16 @@ if ( BERR_SUCCESS != BERR_TRACE(result)) \
 #define BVDC_P_NUM_SHARED_VFC          BVDC_P_SUPPORT_VFC
 #define BVDC_P_NUM_SHARED_TNTD         BVDC_P_SUPPORT_TNTD
 #define BVDC_P_NUM_SHARED_BOX          BVDC_P_SUPPORT_BOX_DETECT
-#if((BCHP_CHIP==7422) || (BCHP_CHIP==7425) || (BCHP_CHIP==7435) || \
-    (BCHP_CHIP==7439) || (BCHP_CHIP==7366) || \
-    ((BCHP_CHIP==74371) && (BCHP_VER==BCHP_VER_A0)))
+#if(BCHP_CHIP==7435)
 #define BVDC_P_NUM_SHARED_SCL          1
 #define BVDC_P_ID0_SHARED_SCL          BVDC_P_ScalerId_eScl3
+#elif((BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7445) || \
+      (BCHP_CHIP==7422) || (BCHP_CHIP==7425) || (BCHP_CHIP==7260) || \
+      (BCHP_CHIP==7439) || (BCHP_CHIP==7366) || (BCHP_CHIP==74371)|| \
+      (BCHP_CHIP==7364) || (BCHP_CHIP==7250) || (BCHP_CHIP==11360)|| \
+      (BCHP_CHIP==7278) )
+#define BVDC_P_NUM_SHARED_SCL          1
+#define BVDC_P_ID0_SHARED_SCL          BVDC_P_ScalerId_eScl1
 #else
 #define BVDC_P_NUM_SHARED_SCL          0
 #define BVDC_P_ID0_SHARED_SCL          BVDC_P_ScalerId_eUnknown
@@ -158,23 +163,6 @@ static const uint32_t s_ulMcvpAbleFlags[] =
     /* BVDC_P_McvpId_eMcvp4 */    (BVDC_P_Able_eHd | BVDC_P_Able_eMadr3),
     /* BVDC_P_McvpId_eMcvp5 */    (BVDC_P_Able_eHd | BVDC_P_Able_eMadr4),
     /* BVDC_P_McvpId_eUnknown */
-};
-#endif
-
-#if (BVDC_P_NUM_SHARED_DNR > 0)
-static const uint32_t s_ulDnrAbleFlags[] =
-{
-#if (BVDC_P_SUPPORT_DNR_VER > BVDC_P_SUPPORT_DNR_VER_7)
-    /* BVDC_P_DnrId_eDnr0 */      (BVDC_P_Able_e10bits | BVDC_P_Able_e8bits),
-#else
-    /* BVDC_P_DnrId_eDnr0 */      (BVDC_P_Able_e8bits),
-#endif
-    /* BVDC_P_DnrId_eDnr1 */      (BVDC_P_Able_e8bits),
-    /* BVDC_P_DnrId_eDnr2 */      (BVDC_P_Able_e8bits),
-    /* BVDC_P_DnrId_eDnr3 */      (BVDC_P_Able_e8bits),
-    /* BVDC_P_DnrId_eDnr4 */      (BVDC_P_Able_e8bits),
-    /* BVDC_P_DnrId_eDnr5 */      (BVDC_P_Able_e8bits),
-    /* BVDC_P_DnrId_eUnknown */
 };
 #endif
 
@@ -449,7 +437,7 @@ BERR_Code  BVDC_P_Resource_Create
                     (BVDC_P_DnrId) (s_aResInfoTbl[eType].ulFirstId + ii),
                     hVdc->hRegister, pResource);
                 BVDC_P_RSRC_END_ON_FAIL(eResult);
-                pEntry->ulCapabilities = s_ulDnrAbleFlags[ii];
+                pEntry->ulCapabilities = (((BVDC_P_Dnr_Handle)(pEntry->Id.pvHandle))->b10BitMode) ? (BVDC_P_Able_e10bits | BVDC_P_Able_e8bits) : BVDC_P_Able_e8bits;
                 break;
 #endif
 
@@ -1117,7 +1105,8 @@ void BVDC_P_Resource_GetResourceId
 
 #if (BVDC_P_SUPPORT_DNR)
         case BVDC_P_ResourceType_eDnr:
-            pulCapabilitiesTable = &s_ulDnrAbleFlags[0];
+            BDBG_ERR(("No more capability table for DNR"));
+            BDBG_ASSERT(0);
             break;
 #endif
 

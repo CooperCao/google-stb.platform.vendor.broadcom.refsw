@@ -58,6 +58,12 @@ sub filter_file {
     return 1;
 }
 
+sub parse_struct {
+    my ($include,$structs_attr) = @_;
+    my $attr;
+    bapi_parse_c::parse_struct($include, {'structs_attr'=>$structs_attr});
+}
+
 # This uses and consumes ARGV
 sub main
 {
@@ -77,6 +83,7 @@ sub main
     my $name;
     my $members;
     my $output_file;
+    my %structs_attr;
 
     if ($#ARGV == -1) {
         print "Usage: perl bapi_build.pl [--source listfile] [--module_number number] [--class_list file] module destdir file1.h file2.h ...\n";
@@ -140,7 +147,7 @@ sub main
                 if ($f =~ /\w/) {
                     #print "ipcthunk/bapi_build.pl parsing preload $dir/$file\n";
                     my $include = "$dir\/$f";
-                    my $file_structs = bapi_parse_c::parse_struct $include;
+                    my $file_structs = parse_struct($include,\%structs_attr);
                     while (($name, $members) = each %$file_structs) {
                         $preload_structs{$name} = $members;
                     }
@@ -162,7 +169,7 @@ sub main
                 if(filter_file($file)) {
                     if($file =~ m!([^/]+)$!) {
                         if(not exists $api_files{$1}) {
-                            my $file_structs = bapi_parse_c::parse_struct $file;
+                            my $file_structs = parse_struct($file,\%structs_attr);
                             while (($name, $members) = each %$file_structs) {
                                 $preload_structs{$name} = $members;
                             }
@@ -213,10 +220,15 @@ sub main
         }
         push @funcrefs, @refs;
 
-        my $file_structs = bapi_parse_c::parse_struct $file;
+        my $file_structs = parse_struct($file,\%structs_attr);
         while (($name, $members) = each %$file_structs) {
             $structs{$name} = $members;
         }
+    }
+    @funcrefs = sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @funcrefs;
+    my $original_structs = bapi_parse_c::copy_structs(\%structs);
+    while (my ($name, $fields) = each %preload_structs) {
+        $original_structs->{$name}=$fields;
     }
     bapi_parse_c::expand_structs(\%structs,\%preload_structs);
     if($mode ne 'abiverify') {
@@ -237,6 +249,8 @@ sub main
         MODULE_NUMBER => $module_number,
         OUTPUT => $output_file,
         STRUCTS => \%structs,
+        STRUCTS_ATTR => \%structs_attr,
+        ORIGINAL_STRUCTS => $original_structs,
         VERSION => $version,
     }
 }

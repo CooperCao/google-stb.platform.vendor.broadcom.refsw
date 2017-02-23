@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,7 +43,6 @@ APPS = splashgen
 
 export NEXUS_POWER_MANAGEMENT=n
 export BRDC_DISABLE_TRACK_EXECUTION=y
-export BMMA_USE_STUB=y
 export NEXUS_FILE_MUX_SUPPORT=n
 
 # These are the only supported targets
@@ -113,10 +112,10 @@ include $(REPO_TOP)/magnum/commonutils/sur/bsur.inc
 include $(REPO_TOP)/magnum/commonutils/avc/bavc.inc
 include $(REPO_TOP)/magnum/commonutils/pxl/bpxl.inc
 include $(REPO_TOP)/magnum/commonutils/mth/bmth.inc
-include $(REPO_TOP)/magnum/basemodules/mem/bmem.inc
 include $(REPO_TOP)/magnum/basemodules/mma/bmma.inc
 include $(REPO_TOP)/magnum/basemodules/int/bint.inc
 include $(REPO_TOP)/magnum/basemodules/tmr/btmr.inc
+include $(REPO_TOP)/magnum/basemodules/dtu/bdtu.inc
 include $(REPO_TOP)/magnum/portinginterface/i2c/bi2c.inc
 include $(REPO_TOP)/magnum/commonutils/mrc/bmrc.inc
 include $(REPO_TOP)/magnum/commonutils/box/bbox.inc

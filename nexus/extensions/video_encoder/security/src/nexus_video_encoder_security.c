@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,7 +59,17 @@
     #else
       #define NUM_VCE_DEVICES 1
     #endif
- #else
+#elif defined BCHP_VICE_ARCSS_ESS_CTRL_0_0_REG_START
+  #include "bchp_vice_arcss_ess_ctrl_0_0.h"
+    #define BCHP_VICE2_ARCSS_ESS_CTRL_0_0_INIT_PROC_START BCHP_VICE_ARCSS_ESS_CTRL_0_0_INIT_PROC_START
+    #if defined BCHP_VICE_ARCSS_ESS_CTRL_0_1_REG_START
+      #include "bchp_vice_arcss_ess_ctrl_0_1.h"
+      #define BCHP_VICE2_ARCSS_ESS_CTRL_0_1_INIT_PROC_START BCHP_VICE_ARCSS_ESS_CTRL_0_1_INIT_PROC_START
+      #define NUM_VCE_DEVICES 2
+    #else
+      #define NUM_VCE_DEVICES 1
+    #endif
+#else
    #error not supported
 #endif
 
@@ -85,6 +95,7 @@ static NEXUS_Error secureFirmwareVideoEncoder( void *pContext, const BAFL_BootIn
 /* retrieve function pointers to enable region verification */
 void NEXUS_VideoEncoder_P_GetSecurityCallbacks( BVCE_OpenSettings *pSettings, unsigned deviceId )
 {
+    size_t deviceIdLocal = deviceId;
     BDBG_ASSERT ( pSettings != NULL );
 
     if( deviceId >= NUM_VCE_DEVICES ) {
@@ -93,7 +104,7 @@ void NEXUS_VideoEncoder_P_GetSecurityCallbacks( BVCE_OpenSettings *pSettings, un
     }
 
     pSettings->pARCBootCallback = secureFirmwareVideoEncoder;
-    pSettings->pARCBootCallbackData = (void *)deviceId;
+    pSettings->pARCBootCallbackData = (void *)deviceIdLocal;
     return;
 }
 
@@ -131,7 +142,7 @@ static NEXUS_Error secureFirmwareVideoEncoder( void *pContext, const BAFL_BootIn
 {
     BREG_Handle hReg = g_pCoreHandles->reg;
     NEXUS_Error rc = NEXUS_SUCCESS;
-    unsigned deviceId = (unsigned)pContext;
+    size_t deviceId = (size_t)pContext;
 
     BDBG_ASSERT( pstViceBootInfo );
     BDBG_ENTER( secureFirmwareVideoEncoder );

@@ -1,53 +1,59 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
-
 
 #include "bdsp.h"
 #include "bdsp_raaga.h"
 #include "bdsp_raaga_priv.h"
 
+#include "libdspcontrol/DSP.h"
+
+#if (BCHP_CHIP == 7278)
+#include "libdspcontrol/src/DSP_raaga_octave_atu.h"
+#endif
 
 #if BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
 #endif
+
+#ifdef FIREPATH_BM
+#include "mutex.h"
+extern BEMU_Client_MutexHandle g_hSocketMutex;
+#endif /* FIREPATH_BM */
 
 BDBG_MODULE(bdsp_raaga);
 
@@ -132,7 +138,7 @@ BERR_Code BDSP_Raaga_Open(
     BDSP_Handle *pDsp,                      /* [out] */
     BCHP_Handle chpHandle,
     BREG_Handle regHandle,
-    BMEM_Handle memHandle,
+    BMMA_Heap_Handle memHandle,
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
     BBOX_Handle boxHandle,
@@ -199,13 +205,14 @@ BERR_Code BDSP_Raaga_Open(
     /* Specific to FW Ring Buffer capture required for their unit testing */
     if(Rbuf_Setting.rbuf_init != NULL && Rbuf_Setting.rbuf_uninit != NULL)
     {
-        Rbuf_Setting.rbuf_init((BREG_Handle)regHandle, (BMEM_Handle)memHandle);
+        Rbuf_Setting.rbuf_init((BREG_Handle)regHandle, memHandle);
     }
 #endif
     BDBG_OBJECT_SET(pRaaga, BDSP_Raaga);
 
     BDSP_Raaga_P_InitDeviceSettings(pRaaga->device.pDeviceHandle);
 
+    /*TODO AJ/VJ : Check if SRAM to be removed */
     BDSP_Raaga_P_EnableAllPwrResource(pRaaga->device.pDeviceHandle, true);
 
     BDSP_Raaga_P_Reset(pRaaga->device.pDeviceHandle);
@@ -304,12 +311,8 @@ BERR_Code BDSP_Raaga_GetDownloadStatus(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    /*Logical address*/
-    pStatus->pBaseAddress = (void *)(pDevice->pFwHeapMemory);
-
-    /*Physical Address */
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,(void *)(pStatus->pBaseAddress),&(pStatus->physicalAddress));
-
+    pStatus->pBaseAddress = pDevice->pFwHeapMemory;
+    pStatus->physicalAddress = pDevice->FwHeapOffset;
     /*Size of the executable download */
     pStatus->length = pDevice->fwHeapSize;
 
@@ -393,7 +396,6 @@ BERR_Code BDSP_Raaga_GetDefaultAlgorithmSettings(
 
     return BERR_SUCCESS;
 }
-
 /***************************************************************************
 Summary:
 Get Raaga Firmware Debug Data
@@ -402,7 +404,7 @@ BERR_Code BDSP_Raaga_GetDebugBuffer(
     BDSP_Handle handle,
     BDSP_Raaga_DebugType debugType, /* [in] Gives the type of debug buffer for which the Base address is required ... UART, DRAM, CoreDump ... */
     uint32_t dspIndex, /* [in] Gives the DSP Id for which the debug buffer info is required */
-    void **pBuffer, /* [out] Base address of the debug buffer data */
+    BDSP_MMA_Memory *pBuffer, /* [out] Base address of the debug buffer data */
     size_t *pSize /* [out] Contiguous length of the debug buffer data in bytes */
 )
 {
@@ -411,7 +413,10 @@ BERR_Code BDSP_Raaga_GetDebugBuffer(
 
     dramaddr_t  ui32ReadAddr,ui32WriteAddr,
                 ui32EndAddr, ui32DebugFifoOffset;
-    size_t ui32ReadSize, uiOffset;
+	dramaddr_t ui32BaseAddr;
+    uint32_t ui32ReadSize, uiOffset;
+    TB_data_descriptor DataDescriptor;
+    unsigned int ReadAmount = 0;
 
     BDBG_ENTER(BDSP_Raaga_GetDebugBuffer);
     /* Assert the function arguments*/
@@ -436,39 +441,90 @@ BERR_Code BDSP_Raaga_GetDebugBuffer(
     if(debugType != BDSP_Raaga_DebugType_eTargetPrintf)
     {
 
-        ui32ReadAddr  = BDSP_Read32(pDevice->regHandle,
+        ui32ReadAddr  = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR  + ui32DebugFifoOffset + uiOffset);
-        ui32WriteAddr = BDSP_Read32(pDevice->regHandle,
+        ui32WriteAddr = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_WRITE_ADDR + ui32DebugFifoOffset + uiOffset);
-        ui32EndAddr   = BDSP_Read32(pDevice->regHandle,
+        ui32EndAddr   = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_END_ADDR  + ui32DebugFifoOffset + uiOffset);
+		*pBuffer = pDevice->memInfo.FwDebugBuf[dspIndex][debugType].Buffer;
+		ui32BaseAddr = BDSP_ReadReg(pDevice->regHandle,
+                            BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR  + ui32DebugFifoOffset + uiOffset);
 
-        BMEM_ConvertOffsetToAddress(pDevice->memHandle, ui32ReadAddr, pBuffer);
+		pBuffer->pAddr = (void *)((uint8_t *)pDevice->memInfo.FwDebugBuf[dspIndex][debugType].Buffer.pAddr +
+                            (ui32ReadAddr - ui32BaseAddr));
 
         ui32ReadSize = ui32WriteAddr - ui32ReadAddr ;
         if( ui32ReadAddr > ui32WriteAddr )
         {
             /* Bottom Chunk only - Contiguous data*/
             ui32ReadSize  = (ui32EndAddr - ui32ReadAddr);
+            BDBG_MSG(("Got the Debug Data, update the size=%x", ui32ReadSize));
         }
 
         *pSize = ui32ReadSize;
-
     }
     else
     {
-        unsigned int ReadAmount = 0;
-        TB_data_descriptor DataDescriptor;
+#if (BCHP_CHIP !=7278)
         TB_peek(&(pDevice->memInfo.sTbTargetPrint[dspIndex]), &DataDescriptor);
         *pSize = 0;
-        while((ReadAmount = TB_read(&DataDescriptor, &(pDevice->memInfo.pTargetPrintBuffer[dspIndex][*pSize]), 1024, true)) > 0)
+        while((ReadAmount = TB_read(&DataDescriptor, (void *)((unsigned char*)pDevice->memInfo.TargetPrintBuffer[dspIndex].pAddr + *pSize), 1024, true)) > 0)
         {
             *pSize += ReadAmount;
         }
-    /*  BMEM_ConvertOffsetToAddress(pDevice->memHandle, (uint32_t)pDevice->memInfo.pTargetPrintBuffer[dspIndex], pBuffer); */
-        *pBuffer = pDevice->memInfo.pTargetPrintBuffer[dspIndex];
-    }
+        *pBuffer = pDevice->memInfo.TargetPrintBuffer[dspIndex];
 
+#else /* (BCHP_CHIP !=7278) */
+#ifdef FIREPATH_BM
+        if (0 != BEMU_Client_AcquireMutex(g_hSocketMutex))
+        {
+            BDBG_ERR(("Failed to acquire mutex in BEMU_Client_CloseSocket\n"));
+        }
+#endif /* FIREPATH_BM */
+
+        TB_peek(&(pDevice->memInfo.sTbTargetPrint[dspIndex]), &DataDescriptor);
+
+#ifdef FIREPATH_BM
+        BEMU_Client_ReleaseMutex(g_hSocketMutex);
+#endif /* FIREPATH_BM */
+        *pSize = 0;
+        /*BDBG_MSG(("hBlock :%x, pAddr:%x, offset:%llx", pDevice->memInfo.TargetPrintBuffer[dspIndex].hBlock, pDevice->memInfo.TargetPrintBuffer[dspIndex].pAddr, pDevice->memInfo.TargetPrintBuffer[dspIndex].offset));*/
+        ui32ReadSize = pDevice->memInfo.FwDebugBuf[dspIndex][BDSP_Raaga_DebugType_eTargetPrintf].ui32Size;
+        while((ReadAmount = TB_read(&DataDescriptor, (void *)((unsigned char*)pDevice->memInfo.TargetPrintBuffer[dspIndex].pAddr + *pSize), ui32ReadSize, true)) > 0)
+        {
+            *pSize += ReadAmount;
+            /*BDBG_MSG(("Got the TargetPrint Data, update the size=%d", (unsigned int)(*pSize)));*/
+            ui32ReadSize -= ReadAmount;
+            /*BDBG_MSG(("Got the TargetPrint Data, update the size=%zu", *pSize));*/
+        }
+
+        /* TODO: if our local buffer fills up, then we should get the caller to
+         * read again. For now just warn, but this risks losing some target
+         * buffer data when we wouldn't otherwise need to.. */
+        if (ui32ReadSize == 0)
+        {
+            BDBG_MSG(("TargetPrintBuffer filled up in one shot!"));
+        }
+
+        *pBuffer = pDevice->memInfo.TargetPrintBuffer[dspIndex];
+
+#ifdef FIREPATH_BM
+        if (0 != BEMU_Client_AcquireMutex(g_hSocketMutex))
+        {
+            BDBG_ERR(("Failed to acquire mutex in BEMU_Client_CloseSocket\n"));
+        }
+#endif /* FIREPATH_BM */
+
+        TB_discard(&pDevice->memInfo.sTbTargetPrint[dspIndex], *pSize);
+
+#ifdef FIREPATH_BM
+        BEMU_Client_ReleaseMutex(g_hSocketMutex);
+#endif /* FIREPATH_BM */
+
+        /*BDBG_ERR(("Target Print Data Discarded"));*/
+#endif /* (BCHP_CHIP !=7278) */
+    }
 
 end:
     BDBG_LEAVE(BDSP_Raaga_GetDebugBuffer);
@@ -507,13 +563,13 @@ BERR_Code BDSP_Raaga_ConsumeDebugData(
     if(debugType != BDSP_Raaga_DebugType_eTargetPrintf)
     {
 
-        ui32BaseAddr  = BDSP_Read32(pDevice->regHandle,
+        ui32BaseAddr  = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + ui32DebugFifoOffset + uiOffset);
-        ui32ReadAddr  = BDSP_Read32(pDevice->regHandle,
+        ui32ReadAddr  = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR  + ui32DebugFifoOffset + uiOffset);
-        ui32WriteAddr = BDSP_Read32(pDevice->regHandle,
+        ui32WriteAddr = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_WRITE_ADDR + ui32DebugFifoOffset + uiOffset);
-        ui32EndAddr   = BDSP_Read32(pDevice->regHandle,
+        ui32EndAddr   = BDSP_ReadReg(pDevice->regHandle,
                             BCHP_RAAGA_DSP_FW_CFG_FIFO_0_END_ADDR  + ui32DebugFifoOffset + uiOffset);
 
         /* Get the amount data available in the buffer*/
@@ -532,7 +588,7 @@ BERR_Code BDSP_Raaga_ConsumeDebugData(
                 ui32ReadAddr = ui32BaseAddr + (ui32ReadAddr - ui32EndAddr);
             }
 
-            BDSP_Write32(pDevice->regHandle, BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR  + ui32DebugFifoOffset +
+            BDSP_WriteReg(pDevice->regHandle, BCHP_RAAGA_DSP_FW_CFG_FIFO_0_READ_ADDR  + ui32DebugFifoOffset +
                             uiOffset, ui32ReadAddr);
         }
         else
@@ -544,7 +600,20 @@ BERR_Code BDSP_Raaga_ConsumeDebugData(
     }
     else
     {
+#ifdef FIREPATH_BM
+        if (0 != BEMU_Client_AcquireMutex(g_hSocketMutex))
+        {
+            BDBG_ERR(("Failed to acquire mutex in BEMU_Client_CloseSocket\n"));
+        }
+#endif /* FIREPATH_BM */
+
         TB_discard(&pDevice->memInfo.sTbTargetPrint[dspIndex], bytesConsumed);
+
+#ifdef FIREPATH_BM
+        BEMU_Client_ReleaseMutex(g_hSocketMutex);
+#endif /* FIREPATH_BM */
+
+        /*BDBG_ERR(("Target Print Data Discarded"));*/
     }
 
     BDBG_LEAVE(BDSP_Raaga_ConsumeDebugData);
@@ -643,3 +712,63 @@ void BDSP_Raaga_GetCodecCapabilities(BDSP_CodecCapabilities *pSetting)
             BDBG_MSG(("pSetting->dolbyMs.ddpEncode71 = %d", pSetting->dolbyMs.ddpEncode71));
             BDBG_MSG(("pSetting->dolbyMs.pcm71 = %d", pSetting->dolbyMs.pcm71));
 }
+
+#if (BCHP_CHIP ==7278)
+void dump_l2c_tags(BREG_Handle hReg)
+{
+    #define NUM_CACHE_SETS 128
+    #define NUM_CACHE_WAYS 10
+    static uint64_t dumpTagData[NUM_CACHE_SETS][NUM_CACHE_WAYS];
+    int set, way;
+
+    BDBG_MSG(("Dumping cache tags"));
+
+    /* Freeze client intefaces to L2C to minimise perturbation. */
+    BREG_Write32(hReg, BCHP_RAAGA_DSP_L2C_CTRL5, 0xf);
+
+    BDBG_MSG(("DSP L2C interface frozen"));
+
+    for (set = 0; set < NUM_CACHE_SETS; set++)
+    {
+        for (way = 0; way < NUM_CACHE_WAYS; way++)
+        {
+            int addr = (set << 4) + way;
+            BDSP_Write32(hReg, BCHP_RAAGA_DSP_L2C_PP_R2TD_ADDR, addr);
+            BDSP_Write32(hReg, BCHP_RAAGA_DSP_L2C_PP_R2TD_CMD, 0x10); /* lower nibble = 0 -> tag, upper nibble = 1 -> read */
+            while (BDSP_Read32(hReg, BCHP_RAAGA_DSP_L2C_PP_STATUS));  /* wait for the busy bits to clear up.. */
+            dumpTagData[set][way] = BDSP_Read64(hReg, BCHP_RAAGA_DSP_L2C_PP_TD2R_RDATA);
+        }
+    }
+
+    /* Unfreeze client interface. */
+    BDSP_Write32(hReg, BCHP_RAAGA_DSP_L2C_CTRL5, 0x0);
+
+    BDBG_MSG(("DSP L2C interface unfrozen"));
+
+    for (set = 0; set < NUM_CACHE_SETS; set++)
+    {
+        for (way = 0; way < NUM_CACHE_WAYS; way++)
+        {
+            uint32_t vaddr = (dumpTagData[set][way] << 16) | (set << 9);
+            unsigned state = (dumpTagData[set][way] >> 20) & 0x7f;
+            unsigned core_id = (dumpTagData[set][way] >> 28) & 0x7;
+            unsigned lock = (dumpTagData[set][way] >> 32) & 0x7;
+            unsigned lru_index = (dumpTagData[set][way] >> 36) & 0xf;
+            if (state != 0 && /* cache line is assigned */
+                (core_id & 1) == 1 /* cache line is data */
+                )
+            {
+                BDBG_MSG(("Set: %2x Way: %2x VADDR: %08x State: %x Core: %x-%s Lock: %x LRU: %x",
+                        set,
+                        way,
+                        vaddr,
+                        state,
+                        core_id >> 1,
+                        core_id & 1 ? "D" : "I",
+                        lock,
+                        lru_index));
+            }
+        }
+    }
+}
+#endif

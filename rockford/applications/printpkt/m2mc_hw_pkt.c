@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2009-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * Module Description: GRC Packet API
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #include <stdio.h>
 #include "bchp_m2mc.h"
@@ -52,6 +69,24 @@
 
 #define BGRC_M2MC(val)   BCHP_M2MC_##val
 
+/* this is copied from bgrc_packet_priv.[hc] */
+#if (!defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB) && ((BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0 - BCHP_M2MC_OUTPUT_SURFACE_ADDR_0) == 0x8))
+#define BGRC_P_64BITS_ADDR    1
+#else
+#define BGRC_P_64BITS_ADDR    0
+#endif
+#if (BGRC_P_64BITS_ADDR)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_LSB           (BCHP_M2MC_SRC_SURFACE_ADDR_0 + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_LSB   (BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_LSB           (BCHP_M2MC_SRC_SURFACE_ADDR_1 + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_LSB   (BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_2_LSB           (BCHP_M2MC_SRC_SURFACE_ADDR_2 + 4)
+#define BCHP_M2MC_DEST_SURFACE_ADDR_0_LSB          (BCHP_M2MC_DEST_SURFACE_ADDR_0 + 4)
+#define BCHP_M2MC_DEST_SURFACE_ADDR_1_LSB          (BCHP_M2MC_DEST_SURFACE_ADDR_1 + 4)
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_LSB        (BCHP_M2MC_OUTPUT_SURFACE_ADDR_0 + 4)
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_1_LSB        (BCHP_M2MC_OUTPUT_SURFACE_ADDR_1 + 4)
+#endif
+
 static char *s_SRC_FEEDER_REG[] =
 {
 #if defined(BCHP_M2MC_SRC_FEEDER_ENABLE)
@@ -63,11 +98,17 @@ static char *s_SRC_FEEDER_REG[] =
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0)
 	"SRC_SURFACE_ADDR_0",
 #endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_LSB)
+	"SRC_SURFACE_ADDR_0_LSB",
+#endif
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_MSB)
 	"SRC_SURFACE_ADDR_0_BOT_FLD_MSB",
 #endif
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD)
 	"SRC_SURFACE_ADDR_0_BOT_FLD",
+#endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_LSB)
+	"SRC_SURFACE_ADDR_0_BOT_FLD_LSB",
 #endif
 #if defined(BCHP_M2MC_SRC_SURFACE_STRIDE_0)
 	"SRC_SURFACE_STRIDE_0",
@@ -78,11 +119,17 @@ static char *s_SRC_FEEDER_REG[] =
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_1)
 	"SRC_SURFACE_ADDR_1",
 #endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_1_LSB)
+	"SRC_SURFACE_ADDR_1_LSB",
+#endif
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_MSB)
 	"SRC_SURFACE_ADDR_1_BOT_FLD_MSB",
 #endif
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD)
 	"SRC_SURFACE_ADDR_1_BOT_FLD",
+#endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_LSB)
+	"SRC_SURFACE_ADDR_1_BOT_FLD_LSB",
 #endif
 #if defined(BCHP_M2MC_SRC_SURFACE_STRIDE_1)
 	"SRC_SURFACE_STRIDE_1",
@@ -109,7 +156,16 @@ static char *s_SRC_FEEDER_REG[] =
 	"SRC_W_ALPHA",
 #endif
 #if defined(BCHP_M2MC_SRC_CONSTANT_COLOR)
-	"SRC_CONSTANT_COLOR"
+	"SRC_CONSTANT_COLOR",
+#endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB)
+	"SRC_SURFACE_ADDR_2_MSB",
+#endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0)
+	"SRC_SURFACE_ADDR_2",
+#endif
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_LSB)
+	"SRC_SURFACE_ADDR_2_LSB"
 #endif
 };
 
@@ -124,6 +180,9 @@ static char *s_DEST_FEEDER_REG[] =
 #if defined(BCHP_M2MC_DEST_SURFACE_ADDR_0)
 	"DEST_SURFACE_ADDR_0",
 #endif
+#if defined(BCHP_M2MC_DEST_SURFACE_ADDR_0_LSB)
+	"DEST_SURFACE_ADDR_0_LSB",
+#endif
 #if defined(BCHP_M2MC_DEST_SURFACE_STRIDE_0)
 	"DEST_SURFACE_STRIDE_0",
 #endif
@@ -132,6 +191,9 @@ static char *s_DEST_FEEDER_REG[] =
 #endif
 #if defined(BCHP_M2MC_DEST_SURFACE_ADDR_1)
 	"DEST_SURFACE_ADDR_1",
+#endif
+#if defined(BCHP_M2MC_DEST_SURFACE_ADDR_1_LSB)
+	"DEST_SURFACE_ADDR_1_LSB",
 #endif
 #if defined(BCHP_M2MC_DEST_SURFACE_STRIDE_1)
 	"DEST_SURFACE_STRIDE_1",
@@ -164,6 +226,9 @@ static char *s_OUTPUT_FEEDER_REG[] =
 #if defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0)
 	"OUTPUT_SURFACE_ADDR_0",
 #endif
+#if defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_LSB)
+	"OUTPUT_SURFACE_ADDR_0_LSB",
+#endif
 #if defined(BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0)
 	"OUTPUT_SURFACE_STRIDE_0",
 #endif
@@ -172,6 +237,9 @@ static char *s_OUTPUT_FEEDER_REG[] =
 #endif
 #if defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_1)
 	"OUTPUT_SURFACE_ADDR_1",
+#endif
+#if defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_1_LSB)
+	"OUTPUT_SURFACE_ADDR_1_LSB",
 #endif
 #if defined(BCHP_M2MC_OUTPUT_SURFACE_STRIDE_1)
 	"OUTPUT_SURFACE_STRIDE_1",
@@ -504,9 +572,15 @@ static uint32_t s_BGRC_PACKET_P_DeviceGroupSizes[] =
 #else
 	BGRC_M2MC(SCALER_CTRL) - BGRC_M2MC(BLIT_HEADER),
 #endif
+#if (BGRC_P_64BITS_ADDR)
+	BGRC_M2MC(BLIT_HEADER) - BGRC_M2MC(OUTPUT_FEEDER_ENABLE) - 8,
+	BGRC_M2MC(OUTPUT_FEEDER_ENABLE) - BGRC_M2MC(DEST_FEEDER_ENABLE) - 8,
+	BGRC_M2MC(DEST_FEEDER_ENABLE) - BGRC_M2MC(SRC_FEEDER_ENABLE) - 8
+#else
 	BGRC_M2MC(BLIT_HEADER) - BGRC_M2MC(OUTPUT_FEEDER_ENABLE),
 	BGRC_M2MC(OUTPUT_FEEDER_ENABLE) - BGRC_M2MC(DEST_FEEDER_ENABLE),
 	BGRC_M2MC(DEST_FEEDER_ENABLE) - BGRC_M2MC(SRC_FEEDER_ENABLE)
+#endif
 };
 
 int main(void)
@@ -519,6 +593,9 @@ int main(void)
 	bool bLocked = 0;
 	bool bTryHead2 = 0;
 	bool bFirstLine = 1;
+#if (BGRC_P_64BITS_ADDR)
+	uint32_t ulPrevAddr, ulPrevValue;
+#endif
 
 	/* assert for packet change with new chips */
 	for( ii = groups - 1; ii >= 4; --ii )
@@ -548,8 +625,16 @@ int main(void)
 					}
 					else
 					{
+#if (BGRC_P_64BITS_ADDR)
+						if (ulPrevAddr)
+							printf("0x%08x,0x%08x  ...\n", ulPrevAddr, ulPrevValue);
+						ulPrevAddr = ulAddr;
+						ulPrevValue = ulValue;
+#else
 						printf("0x%08x,0x%08x  ...\n", ulAddr, ulValue);
+#endif
 					}
+
 					bFirstLine = 0;
 					if (2!=scanf("%x,%x", &ulAddr, &ulValue))
 						return 0;
@@ -561,7 +646,12 @@ int main(void)
 						/* locked! */
 						bLocked = 1;
 						ulMask = ulValue;
+#if (BGRC_P_64BITS_ADDR)
+						printf("0x%08x,0x%08x <-- next_high\n", ulPrevAddr, ulPrevValue);
+						printf("0x%08x,0x%08x <-- next_low\n", ulAddr - 4, ulNext);
+#else
 						printf("0x%08x,0x%08x <-- next\n", ulAddr - 4, ulNext);
+#endif
 						printf("0x%08x,0x%8x     grp mask\n", ulAddr, ulMask);
 						break;
 					}
@@ -577,12 +667,21 @@ int main(void)
 			{
 				if (ulAddr == ulNext)
 				{
+#if (BGRC_P_64BITS_ADDR)
+					printf("0x%08x,0x%08x <-- next_high\n", ulAddr, ulValue);
+					if (2!=scanf("%x,%x", &ulAddr, &ulValue))
+						return;
+					printf("0x%08x,0x%08x <-- next_low\n", ulAddr, ulValue);
+#else
+					printf("0x%08x,0x%08x <-- next\n", ulAddr, ulValue);
+#endif
 					ulNext = ulValue;
-					printf("0x%08x,0x%08x <-- next\n", ulAddr, ulNext);
+
 					if (ulValue == 1)
 					{
 						bLast = 1;
 					}
+
 
 					if (2!=scanf("%x,%x", &ulAddr, &ulMask))
 						return;

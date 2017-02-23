@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,18 +47,25 @@ endif
 CP := cp -fp
 
 # arch defines
-ARCH := arm
-CROSS_COMPILE := arm-linux-
+ARCH ?= arm
+ifeq ($(ARCH),arm64)
+CROSS_COMPILE ?= aarch64-linux-
+endif
+ifeq ($(ARCH),arm)
+CROSS_COMPILE ?= arm-linux-
+endif
 
 # path defines
 TOP_DIR ?= $(CURDIR)/../..
+B_REFSW_OBJ_ROOT ?= $(TOP_DIR)/../obj$(TZ_ARCH)/astra
+ASTRA_BCM_DRV_OBJ_DIR ?= $(B_REFSW_OBJ_ROOT)/linux/bcm_astra
 ifneq ($(LINUX),)
 KDIR ?= $(LINUX)
 endif
 
 # file defines
-ASTRA_MOD := bcm_astra.ko
-ASTRA_SYMVERS := astra.symvers
+ASTRA_MOD := $(ASTRA_BCM_DRV_OBJ_DIR)/bcm_astra.ko
+ASTRA_SYMVERS := $(ASTRA_BCM_DRV_OBJ_DIR)/astra.symvers
 
 # platform, target, and target revision
 PLATFORM ?= brcmstb
@@ -77,11 +84,13 @@ NEXUS_BUILD := n
 endif
 
 # target rules
-.PHONY: all clean install
+.PHONY: all clean install objdirs
 
-all:
+all: objdirs
+	cp -f Kbuild $(ASTRA_BCM_DRV_OBJ_DIR)
 	${Q_}$(MAKE) -C $(KDIR) \
-		M=$(CURDIR) \
+		M=$(ASTRA_BCM_DRV_OBJ_DIR) \
+		src=$(CURDIR) \
 		ARCH=$(ARCH) \
 		CROSS_COMPILE=$(CROSS_COMPILE) \
 		TOP_DIR=$(TOP_DIR) \
@@ -91,16 +100,14 @@ all:
 		NEXUS_BUILD=$(NEXUS_BUILD) \
 		modules
 
+objdirs:
+	mkdir -p $(ASTRA_BCM_DRV_OBJ_DIR)
+	mkdir -p $(ASTRA_BCM_DRV_OBJ_DIR)/common
+	mkdir -p $(ASTRA_BCM_DRV_OBJ_DIR)/tracelog
+	mkdir -p $(ASTRA_BCM_DRV_OBJ_DIR)/vuart
+
 clean:
-	${Q_}$(RM) *.ko *.mod.c
-	${Q_}$(RM) *.o .*.cmd
-	${Q_}$(RM) common/*.o common/.*.cmd
-	${Q_}$(RM) tracelog/*.o tracelog/.*.cmd
-	${Q_}$(RM) vuart/*.o vuart/.*.cmd
-	${Q_}$(RM) -r .tmp_versions
-	${Q_}$(RM) Module.markers
-	${Q_}$(RM) Module.symvers
-	${Q_}$(RM) modules.order
+	${Q_}$(RM) -r $(ASTRA_BCM_DRV_OBJ_DIR)
 
 install: all
 ifeq ($(INSTALL_DIR),)

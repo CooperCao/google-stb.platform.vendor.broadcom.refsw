@@ -135,19 +135,29 @@ ${PLATFORM_APP_INC_FILE}: copy_headers
 	${Q_}echo "NEXUS_LD_LIBRARIES = $(subst $(NEXUS_BIN_DIR),\$${NEXUS_BIN_DIR},${NEXUS_LD_LIBRARIES})" >>${PLATFORM_APP_INC_FILE}
 	${Q_}echo "NEXUS_CLIENT_LD_LIBRARIES = $(subst $(NEXUS_BIN_DIR),\$${NEXUS_BIN_DIR},${NEXUS_CLIENT_LD_LIBRARIES})" >>${PLATFORM_APP_INC_FILE}
 	${Q_}echo "" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "B_REFSW_CROSS_COMPILE ?= ${B_REFSW_CROSS_COMPILE}" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "" >>${PLATFORM_APP_INC_FILE}
 	${Q_}echo "# Standard toolchain" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "AS      = \$${B_REFSW_CROSS_COMPILE}as" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "LD      = \$${B_REFSW_CROSS_COMPILE}ld" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "CC      = \$${B_REFSW_CROSS_COMPILE}gcc" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "CXX     = \$${B_REFSW_CROSS_COMPILE}c++" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "AR      = \$${B_REFSW_CROSS_COMPILE}ar" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "NM      = \$${B_REFSW_CROSS_COMPILE}nm" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "STRIP   = \$${B_REFSW_CROSS_COMPILE}strip" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "OBJCOPY = \$${B_REFSW_CROSS_COMPILE}objcopy" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "OBJDUMP = \$${B_REFSW_CROSS_COMPILE}objdump" >>${PLATFORM_APP_INC_FILE}
-	${Q_}echo "RANLIB  = \$${B_REFSW_CROSS_COMPILE}ranlib" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "ifeq (\$$(AS),as)" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "AS      = ${B_REFSW_CROSS_COMPILE}as" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "endif" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "ifeq (\$$(LD),ld)" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "LD      = ${B_REFSW_CROSS_COMPILE}ld" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "endif" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "ifeq (\$$(CC),cc)" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "CC      = ${B_REFSW_CROSS_COMPILE}gcc" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "endif" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "ifeq (\$$(CXX),g++)" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "CXX     = ${B_REFSW_CROSS_COMPILE}c++" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "endif" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "ifeq (\$$(AR),ar)" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "AR      = ${B_REFSW_CROSS_COMPILE}ar" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "endif" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "ifeq (\$$(NM),nm)" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "NM      = ${B_REFSW_CROSS_COMPILE}nm" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "endif" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "STRIP   = ${B_REFSW_CROSS_COMPILE}strip" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "OBJCOPY = ${B_REFSW_CROSS_COMPILE}objcopy" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "OBJDUMP = ${B_REFSW_CROSS_COMPILE}objdump" >>${PLATFORM_APP_INC_FILE}
+	${Q_}echo "RANLIB  = ${B_REFSW_CROSS_COMPILE}ranlib" >>${PLATFORM_APP_INC_FILE}
 	${Q_}echo "MKDIR   = mkdir -p" >>${PLATFORM_APP_INC_FILE}
 	${Q_}echo "PERL    = perl" >>${PLATFORM_APP_INC_FILE}
 	${Q_}echo "CP      = cp -f" >>${PLATFORM_APP_INC_FILE}

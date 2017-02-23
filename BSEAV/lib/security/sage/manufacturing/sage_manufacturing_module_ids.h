@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,20 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: sage_manufacturing_module_ids.h $
- * $brcm_Revision: 1 $
- * $brcm_Date: 1/14/14 12:40p $
- *
- * Module Description: Manufacturing Platform for SAGE - shared IDs
- *
- * Revision History:
- *
- * $brcm_Log: /BSEAV/lib/security/sage/manufacturing\sage_manufacturing_module_ids.h $
- *
- *
- *
- **************************************************************************/
+ ******************************************************************************/
 
 #ifndef SAGE_MANUFACTURING_MODULE_IDS_H__
 #define SAGE_MANUFACTURING_MODULE_IDS_H__
@@ -68,16 +55,11 @@ enum {
     PROVISIONING_COMMAND_ProcessBinFile   = 0x0001,
 
     /* Validation module commands start at 0x1001   */
-    VALIDATION_COMMAND_ValidateHdcp22   = 0x1001,
-
-    /* Validation module commands start at 0x1001   */
-    VALIDATION_COMMAND_ValidateEdrm   = 0x1002,
-
-     /* Validation module commands start at 0x1001   */
-    VALIDATION_COMMAND_ValidateEcc   = 0x1004,
-
-     /* Validation module commands start at 0x1001   */
-    VALIDATION_COMMAND_ValidateDtcpIp   = 0x1008
+    VALIDATION_COMMAND_ValidateHdcp22    = 0x1001,
+    VALIDATION_COMMAND_ValidateEdrm      = 0x1002,
+    VALIDATION_COMMAND_ValidateEcc       = 0x1004,
+    VALIDATION_COMMAND_ValidateDtcpIp    = 0x1008,
+    VALIDATION_COMMAND_ValidateMediaroom = 0x1010
 };
 
 

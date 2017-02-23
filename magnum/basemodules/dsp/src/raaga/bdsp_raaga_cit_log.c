@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -262,18 +262,11 @@ void BDSP_Raaga_P_Analyse_CIT(BDSP_RaagaTask  *pRaagaTask,
 
 	switch (pRaagaTask->pContext->settings.contextType){
 		case BDSP_ContextType_eAudio:
-			if(CitReconfig)
-			{
-			    psAudioTaskCfg = (BDSP_AF_P_sTASK_CONFIG *)pRaagaTask->taskMemGrants.sSpareCitStruct.pBaseAddr;
-			}
-			else
-			{
-				psAudioTaskCfg = &(pRaagaTask->citOutput.sCit);
-			}
+			psAudioTaskCfg = &(pRaagaTask->citOutput.sCit);
 			psAudioGblTaskCfg = &(psAudioTaskCfg->sGlobalTaskConfig);
 			ui32NumNodes = psAudioGblTaskCfg->ui32NumberOfNodesInTask;
 			psNodeCfg = &(psAudioTaskCfg->sNodeConfig[0]);
-			BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(pRaagaTask->pContext->pDevice->memHandle,psAudioGblTaskCfg);
+			BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(pRaagaTask);
 			break;
 		case BDSP_ContextType_eScm:
 			psScmGblTaskCfg = &(pRaagaTask->scmCitOutput.sScmCit.sGlobalTaskConfig);
@@ -307,7 +300,7 @@ void BDSP_Raaga_P_Analyse_CIT(BDSP_RaagaTask  *pRaagaTask,
     {
         BDBG_MSG(("Node index: %d ",psNodeCfg->uiNodeId));
         BDBG_MSG(("Algo Id: %s ",AlgoIdEnum2Char[psNodeCfg->eAlgoId]));
-		BDSP_Raaga_P_Analyse_CIT_NodeConfig(pRaagaTask->pContext->pDevice->memHandle,psNodeCfg);
+		BDSP_Raaga_P_Analyse_CIT_NodeConfig(psNodeCfg);
 		BDBG_MSG(("-------------------------------------------- "));
 		psNodeCfg++;
     }

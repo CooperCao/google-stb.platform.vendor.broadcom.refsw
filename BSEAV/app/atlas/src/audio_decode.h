@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -212,6 +212,9 @@ public:
     virtual bool             isTruVolumeSupported(void)       { return(NULL != _pTruVolume ? true : false); }
     virtual eRet             setAudioProcessing(eAudioProcessing audioProcessing);
     virtual eAudioProcessing getAudioProcessing(void) { return(_audioProcessing); }
+    /* SW7445-1016 : should return NULL for 14.3*/
+    virtual NEXUS_AudioDecoderHandle       getDecoder(void)       { return(_pDecoders[0]->getDecoder()); }
+    virtual NEXUS_SimpleAudioDecoderHandle getSimpleDecoder(void) { return(_simpleDecoder); }
 
     void setResources(void * id, CBoardResources * pResources);
     void setOutputHdmi(COutputHdmi * pHdmi)         { _pHdmi = pHdmi; }
@@ -219,17 +222,10 @@ public:
     void setOutputDac(COutputAudioDac * pDac)       { _pDac = pDac; }
     void setOutputRFM(COutputRFM * pRFM)            { _pRFM = pRFM; }
     void setOutputDummy(COutputAudioDummy * pDummy) { _pDummy = pDummy; }
-
     eRet getStatus(NEXUS_AudioDecoderStatus * pStatus);
-
-    /* SW7445-1016 : should return NULL for 14.3*/
-    virtual NEXUS_AudioDecoderHandle       getDecoder(void)       { return(_pDecoders[0]->getDecoder()); }
-    virtual NEXUS_SimpleAudioDecoderHandle getSimpleDecoder(void) { return(_simpleDecoder); }
     NEXUS_AudioInput                       getConnector(uint8_t num, NEXUS_AudioConnectorType type);
-
     void getSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
     eRet setSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
-
     void     connectEncodeAc3(bool bConnect);
     void     connectEncodeDts(bool bConnect);
     void     verifyEncode(NEXUS_AudioCodec codec);
@@ -237,45 +233,46 @@ public:
     CStc *   getStc(void)              { return(_pStc); }
     void     setModel(CModel * pModel) { _pModel = pModel; }
     CModel * getModel(void)            { return(_pModel); }
-
     COutputHdmi *  getOutputHdmi(void)                   { return(_pHdmi); }
     COutputSpdif * getOutputSpdif(void)                  { return(_pSpdif); }
     void           setWindowType(eWindowType windowType) { _windowType = windowType; }
     eWindowType    getWindowType(void)                   { return(_windowType); }
     void           enablePrimer(bool bPrimer)            { _bPrimer = bPrimer; }
     bool           isPrimerEnabled(void)                 { return(_bPrimer); }
+    NEXUS_SimpleAudioDecoderStartSettings * getStartSettings(void) { return(&_startSettings); }
 
 protected:
-    NEXUS_SimpleAudioDecoderHandle _simpleDecoder;
-    NEXUS_Ac3EncodeHandle          _encodeAc3;
-    NEXUS_DtsEncodeHandle          _encodeDts;
-    CAutoVolumeLevel *             _pAutoVolumeLevel;
-    CDolbyVolume *                 _pDolbyVolume;
-    CTruVolume *                   _pTruVolume;
-    CBoardResources *              _pBoardResources;
-    CAudioDecode *                 _pDecoders[2];
-    COutputSpdif *                 _pSpdif;            /* DTT TODO: should be a list? */
-    COutputHdmi *                  _pHdmi;             /* DTT TODO: should be a list? */
-    COutputAudioDac *              _pDac;              /* DTT TODO: should be a list? */
-    COutputRFM *                   _pRFM;              /* DTT TODO: should be a list? */
-    COutputAudioDummy *            _pDummy;            /* DTT TODO: should be a list? */
-    uint16_t         _numSpdif;
-    uint16_t         _numHdmi;
-    void *           _resourceId;
-    eAudioDownmix    _downmix;
-    eAudioDownmix    _downmixAc3;
-    eAudioDownmix    _downmixDts;
-    eAudioDownmix    _downmixAac;
-    eAudioDualMono   _dualMono;
-    eDolbyDRC        _dolbyDRC;
-    bool             _dolbyDialogNorm;
-    eAudioProcessing _audioProcessing;
-    NEXUS_AudioInput _stereoInput;
-    bool             _bEncodeConnectedDts;
-    bool             _bEncodeConnectedAc3;
-    bool             _bPrimer;
-    eWindowType      _windowType;
-    CModel *         _pModel;
+    NEXUS_SimpleAudioDecoderHandle        _simpleDecoder;
+    NEXUS_SimpleAudioDecoderStartSettings _startSettings;
+    NEXUS_Ac3EncodeHandle                 _encodeAc3;
+    NEXUS_DtsEncodeHandle                 _encodeDts;
+    CAutoVolumeLevel *                    _pAutoVolumeLevel;
+    CDolbyVolume *                        _pDolbyVolume;
+    CTruVolume *                          _pTruVolume;
+    CBoardResources *                     _pBoardResources;
+    CAudioDecode *                        _pDecoders[2];
+    COutputSpdif *                        _pSpdif;            /* DTT TODO: should be a list? */
+    COutputHdmi *                         _pHdmi;             /* DTT TODO: should be a list? */
+    COutputAudioDac *                     _pDac;              /* DTT TODO: should be a list? */
+    COutputRFM *                          _pRFM;              /* DTT TODO: should be a list? */
+    COutputAudioDummy *                   _pDummy;            /* DTT TODO: should be a list? */
+    uint16_t                              _numSpdif;
+    uint16_t                              _numHdmi;
+    void *                                _resourceId;
+    eAudioDownmix                         _downmix;
+    eAudioDownmix                         _downmixAc3;
+    eAudioDownmix                         _downmixDts;
+    eAudioDownmix                         _downmixAac;
+    eAudioDualMono                        _dualMono;
+    eDolbyDRC                             _dolbyDRC;
+    bool                                  _dolbyDialogNorm;
+    eAudioProcessing                      _audioProcessing;
+    NEXUS_AudioInput                      _stereoInput;
+    bool                                  _bEncodeConnectedDts;
+    bool                                  _bEncodeConnectedAc3;
+    bool                                  _bPrimer;
+    eWindowType                           _windowType;
+    CModel *                              _pModel;
 };
 
 #ifdef __cplusplus

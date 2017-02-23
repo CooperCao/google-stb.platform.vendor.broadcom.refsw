@@ -35,6 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 ############################################################
+
 ifeq ($(URSR_TOP),)
 $(warning URSR_TOP is not defined. Establising relative paths to nexus and BSEAV)
 NEXUS_TOP := $(shell cd ../../../../../nexus; pwd)
@@ -200,12 +201,12 @@ prep_cmndrmprdy:
 
 prep_nexus:
 ifeq ($(NXCLIENT_SUPPORT),y)
-	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
+	@if [ ! -e ${NEXUS_BIN_DIR}/nxserver ]; then \
 		echo [ building nxclient .... ] && \
 		$(MAKE) -C $(NEXUS_TOP)/nxclient >/dev/null; \
 	fi
 else
-	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
+	@if [ ! -e ${NEXUS_BIN_DIR}/libnexus.so ]; then \
 		echo [ building nexus .... ] && \
 		$(MAKE) -C $(NEXUS_TOP)/build >/dev/null; \
 	fi

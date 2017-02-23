@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -274,6 +274,11 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
         case BRDC_OP_VAR_TO_REG_OPCODE:
         case BRDC_OP_REG_TO_VAR_OPCODE:
         case BRDC_OP_COND_SKIP_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_REG_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_TO_REG_OPCODE64:
+        case BRDC_OP_COND_SKIP_OPCODE64:
+        #endif
             /* register only */
             if(hList->iCommandIndex == 0)
             {

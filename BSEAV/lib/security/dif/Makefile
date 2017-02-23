@@ -86,6 +86,8 @@ ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
 PREBLT_LIB_SUFFIX := 64
 endif
 
+NJOBS ?= 1
+
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
@@ -133,19 +135,21 @@ endif
 prep_nexus:
 	$(Q_)echo [DIF..... prep_nexus target ]
 ifeq ($(NXCLIENT_SUPPORT),y)
-	$(Q_)if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
+	$(Q_)if [ ! -e $(NEXUS_BIN_DIR)/nxserver ]; then \
 		echo [DIF..... building nxclient .... ]; \
-		$(MAKE) -C $(NEXUS_TOP)/nxclient > $(LOG_REDIRECT_FILE); \
+		$(MAKE) -j$(NJOBS) -C $(NEXUS_TOP)/nxclient > $(LOG_REDIRECT_FILE); \
 	fi
 else
-	if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
+	if [ ! -e $(NEXUS_BIN_DIR)/libnexus.so ]; then \
 		echo [DIF..... building nexus .... ]; \
-		$(MAKE) -C $(NEXUS_TOP)/build > $(LOG_REDIRECT_FILE); \
+		$(MAKE) -j$(NJOBS) -C $(NEXUS_TOP)/build > $(LOG_REDIRECT_FILE); \
 	fi
 endif
 
 prep_security: prep_nexus
 	$(Q_)echo [DIF..... prep_security target ];
+	$(Q_)echo [DIF..... building openssl];
+	$(Q_)$(MAKE) -j$(NJOBS) -C $(BSEAV_TOP)/opensource/openssl install > $(LOG_REDIRECT_FILE);
 	$(Q_)echo [DIF..... building bcrypt];
 	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/security/bcrypt install > $(LOG_REDIRECT_FILE);
 	$(Q_)echo [DIF..... building drmrootfs];

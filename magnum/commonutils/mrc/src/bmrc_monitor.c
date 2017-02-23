@@ -81,26 +81,70 @@ BDBG_FILE_MODULE(BMRC_MonitorRegion);
 #define BMRC_P_MONITOR_JWORD_BYTES 32
 
 /* SCB Protocol Specifications the following table was derived from are available at
-   http://www.blr.broadcom.com/projects/DVT_BLR/Memc_Arch/.  These specs are also used
-   in BMRC_P_Monitor_Dump_isr below. */
+   SCB 4.x: http://www.blr.broadcom.com/projects/DVT_BLR/Memc_Arch
+   SCB 5.0: http://www.sj.broadcom.com/projects/dvt/Chip_Architecture/Bussing/Released/28nm/SCB_Protocol.doc
+   SCB 8.0: http://www.sj.broadcom.com/projects/dvt/Chip_Architecture/Bussing/Released/64bits/SCB_Spec_80.docx
+   These specs are also used in BMRC_P_Monitor_Dump_isr below. */
+#if BCHP_40NM
+#define BMRC_MONITOR_P_SCB_PROTOCOL_VER 0x40
+#elif BCHP_CHIP==7250 || BCHP_CHIP==7364 || BCHP_CHIP==7366 || BCHP_CHIP==7439 || BCHP_CHIP==7445 || BCHP_CHIP==74371 || BCHP_CHIP==7586
+#define BMRC_MONITOR_P_SCB_PROTOCOL_VER 0x50
+#else
+/* new silicon */
+#define BMRC_MONITOR_P_SCB_PROTOCOL_VER 0x80
+#endif
+
+typedef enum
+{
+	BMRC_P_Monitor_ScbCommand_eLR = 1,
+	BMRC_P_Monitor_ScbCommand_eLW = 2,
+	BMRC_P_Monitor_ScbCommand_eREF = 3,
+	BMRC_P_Monitor_ScbCommand_eMRS = 4,
+	BMRC_P_Monitor_ScbCommand_eEMRS = 5,
+	BMRC_P_Monitor_ScbCommand_ePALL = 6,
+	BMRC_P_Monitor_ScbCommand_eDR = 7,
+	BMRC_P_Monitor_ScbCommand_eDW = 8,
+	BMRC_P_Monitor_ScbCommand_eMR = 9,
+	BMRC_P_Monitor_ScbCommand_eMW = 10,
+	BMRC_P_Monitor_ScbCommand_eCR = 11,
+#if BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50
+	BMRC_P_Monitor_ScbCommand_eLWWR = 12,
+#endif
+	BMRC_P_Monitor_ScbCommand_eUnknown = 0
+}BMRC_P_Monitor_ScbCommand;
+
+/* some clients have J-word min access length */
+#define BMRC_P_MONITOR_CHECKER_ADDR_ALIGN         ~0x000000FF
 
 /* SCB Command Table */
-static const BMRC_P_Monitor_ScbCommandInfo g_ScbCommandInfoTbl[] =
+static const struct BMRC_P_Monitor_ScbCommandInfo {
+	BMRC_P_Monitor_ScbCommand eScbCommand;
+	uint32_t ulCommand;
+	uint32_t ulMask;
+	const char *pName;
+} g_ScbCommandInfoTbl[] =
 {
-    {BMRC_P_Monitor_ScbCommand_eLR,   BMRC_P_MONITOR_SCB_COMMAND_LR,   BMRC_P_MONITOR_SCB_TRANSFER_ACCESS_MASK,   "Linear Read - LR"},
-    {BMRC_P_Monitor_ScbCommand_eLW,   BMRC_P_MONITOR_SCB_COMMAND_LW,   BMRC_P_MONITOR_SCB_TRANSFER_ACCESS_MASK,   "Linear Write - LW"},
-    {BMRC_P_Monitor_ScbCommand_eREF,  BMRC_P_MONITOR_SCB_COMMAND_REF,  BMRC_P_MONITOR_SCB_INTERNAL_MASK,          "Refresh - REF"},
-    {BMRC_P_Monitor_ScbCommand_eMRS,  BMRC_P_MONITOR_SCB_COMMAND_MRS,  BMRC_P_MONITOR_SCB_INTERNAL_MASK,          "Mode Register Set - MRS"},
-    {BMRC_P_Monitor_ScbCommand_eEMRS, BMRC_P_MONITOR_SCB_COMMAND_EMRS, BMRC_P_MONITOR_SCB_INTERNAL_MASK,          "Extended Mode Reg Set - EMRS"},
-    {BMRC_P_Monitor_ScbCommand_ePALL, BMRC_P_MONITOR_SCB_COMMAND_PALL, BMRC_P_MONITOR_SCB_INTERNAL_MASK,          "Precharge All Banks - PALL"},
-    {BMRC_P_Monitor_ScbCommand_eDR,   BMRC_P_MONITOR_SCB_COMMAND_DR,   BMRC_P_MONITOR_SCB_TRANSFER_ACCESS_MASK,   "Video Raster Read - DR"},
-    {BMRC_P_Monitor_ScbCommand_eDW,   BMRC_P_MONITOR_SCB_COMMAND_DW,   BMRC_P_MONITOR_SCB_TRANSFER_ACCESS_MASK,   "Video Raster Write - DW"},
-    {BMRC_P_Monitor_ScbCommand_eMR,   BMRC_P_MONITOR_SCB_COMMAND_MR,   BMRC_P_MONITOR_SCB_MPEG_BLOCK_ACCESS_MASK, "MPEG Block Read - MR"},
-    {BMRC_P_Monitor_ScbCommand_eMW,   BMRC_P_MONITOR_SCB_COMMAND_MW,   BMRC_P_MONITOR_SCB_MPEG_BLOCK_ACCESS_MASK, "MPEG Block Write - MW"},
-    {BMRC_P_Monitor_ScbCommand_eCR4,  BMRC_P_MONITOR_SCB_COMMAND_CR4,  BMRC_P_MONITOR_SCB_CACHE_ACCESS_MASK,      "Cache Read, 4 Jwords/128 bytes - CR4"},
-    {BMRC_P_Monitor_ScbCommand_eCR8,  BMRC_P_MONITOR_SCB_COMMAND_CR8,  BMRC_P_MONITOR_SCB_CACHE_ACCESS_MASK,      "Cache Read, 8 Jwords/256 bytes - CR8"}
+    {BMRC_P_Monitor_ScbCommand_eLR,   0x000,   0x1E0, "Linear Read - LR"},
+    {BMRC_P_Monitor_ScbCommand_eLW,   0x020,   0x1E0, "Linear Write - LW"},
+#if BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50
+    {BMRC_P_Monitor_ScbCommand_eLWWR, 0x060,   0x1E0, "Linear Write with Reply - LWWR"},
+#endif
+    {BMRC_P_Monitor_ScbCommand_eREF,  0x05C,   0x1FF, "Refresh - REF"},
+    {BMRC_P_Monitor_ScbCommand_eMRS,  0x05D,   0x1FF, "Mode Register Set - MRS"},
+    {BMRC_P_Monitor_ScbCommand_eEMRS, 0x05E,   0x1FF, "Extended Mode Reg Set - EMRS"},
+    {BMRC_P_Monitor_ScbCommand_ePALL, 0x05F,   0x1FF, "Precharge All Banks - PALL"},
+#if (BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50)
+    {BMRC_P_Monitor_ScbCommand_eDR,   0x180,   0x1C0, "Video Raster Read - DR"},
+    {BMRC_P_Monitor_ScbCommand_eDW,   0x1C0,   0x1C0, "Video Raster Write - DW"},
+#else
+    {BMRC_P_Monitor_ScbCommand_eDR,   0x180,   0x1E0, "Video Raster Read - DR"},
+    {BMRC_P_Monitor_ScbCommand_eDW,   0x1A0,   0x1E0, "Video Raster Write - DW"},
+#endif
+    {BMRC_P_Monitor_ScbCommand_eMR,   0x080,   0x180, "MPEG Block Read - MR"},
+    {BMRC_P_Monitor_ScbCommand_eMW,   0x100,   0x180, "MPEG Block Write - MW"},
+    {BMRC_P_Monitor_ScbCommand_eCR,   0x040,   0x1E0, "Cache Read"}
 };
-#define BMRC_P_MONITOR_SCB_ACCESS_TABLE_SIZE (sizeof(g_ScbCommandInfoTbl)/sizeof(BMRC_P_Monitor_ScbCommandInfo))
+#define BMRC_P_MONITOR_SCB_ACCESS_TABLE_SIZE (sizeof(g_ScbCommandInfoTbl)/sizeof(g_ScbCommandInfoTbl[0]))
 
 #define BMRC_P_MONITOR_ALIGNED_RANGE_START(start_addr, exclusive) \
     ((start_addr + (exclusive ? 0 : ~(BMRC_P_MONITOR_CHECKER_ADDR_ALIGN))) & \
@@ -162,12 +206,15 @@ static int BMRC_Monitor_P_AllocatedRegionTree_Compare(const struct BMRC_Monitor_
 BLST_AA_TREE_HEAD(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion);
 BLST_AA_TREE_GENERATE_INSERT(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare)
 BLST_AA_TREE_GENERATE_FIND(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare)
+#if BDBG_DEBUG_BUILD
 BLST_AA_TREE_GENERATE_FIND_SOME(BMRC_Monitor_P_AllocatedRegionTree, BMMA_DeviceOffset, BMRC_Monitor_P_AllocatedRegion, node, BMRC_Monitor_P_AllocatedRegionTree_Compare)
+#endif
 BLST_AA_TREE_GENERATE_FIRST(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion, node)
 BLST_AA_TREE_GENERATE_NEXT(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion, node)
+#if BDBG_DEBUG_BUILD
 BLST_AA_TREE_GENERATE_PREV(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion, node)
+#endif
 BLST_AA_TREE_GENERATE_REMOVE(BMRC_Monitor_P_AllocatedRegionTree, BMRC_Monitor_P_AllocatedRegion, node)
-
 
 struct BMRC_Monitor_P_CheckerState {
     bool active;
@@ -920,19 +967,17 @@ BMRC_Monitor_Print(BMRC_Monitor_Handle hMonitor)
 }
 
 
+#if BDBG_DEBUG_BUILD
 /* Monitor checker error messages are based on the SCB Protocol specifications at
    http://www.blr.broadcom.com/projects/DVT_BLR/Memc_Arch/. */
 static void
 BMRC_Monitor_P_PrintAllocation_isrsafe(const BMRC_Monitor_P_AllocatedRegion *region, const char *kind)
 {
-#ifdef BDBG_DEBUG_BUILD
-#else
-    BSTD_UNUSED (kind);
-#endif
     if(region) {
         BDBG_WRN(("%s " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", kind, BDBG_UINT64_ARG(region->addr), BDBG_UINT64_ARG(region->addr + region->size)));
     }
 }
+#endif
 
 const char *
 BMRC_Monitor_GetRequestTypeName_isrsafe(unsigned requestType)
@@ -949,19 +994,15 @@ BMRC_Monitor_GetRequestTypeName_isrsafe(unsigned requestType)
     return "Unknown Command Type";
 }
 
+#if BDBG_DEBUG_BUILD
 static void
 BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_CheckerInfo *pCheckerInfo)
 {
     BMMA_DeviceOffset viol_start, viol_end;
     BMMA_DeviceOffset start;
-    size_t size;
+    uint64_t size;
     BMRC_P_Monitor_ScbCommand eScbCommand = BMRC_P_Monitor_ScbCommand_eUnknown;
     unsigned i = 0;
-
-    BSTD_UNUSED(viol_end);
-
-    BSTD_UNUSED(hMonitor);
-    BSTD_UNUSED(arc_no);
 
     start = pCheckerInfo->ulStart;
     size = pCheckerInfo->ulSize;
@@ -978,8 +1019,6 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
     {
         BDBG_ERR(("violation access in prohibited range: " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", BDBG_UINT64_ARG(start), BDBG_UINT64_ARG(start+size-1)));
     }
-    BSTD_UNUSED (start);
-    BSTD_UNUSED (size);
 
     BDBG_ERR(("violation start address: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(viol_start)));
     BDBG_ERR(("violation end address:   " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(viol_end)));
@@ -1002,17 +1041,22 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
 
     case BMRC_P_Monitor_ScbCommand_eLR:
     case BMRC_P_Monitor_ScbCommand_eLW:
-        ulTransferSize = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MASK);
-        ulTransferSize = (ulTransferSize == 0)? BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MAX : ulTransferSize;
-
+#if BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50
+    case BMRC_P_Monitor_ScbCommand_eLWWR:
+#endif
+    case BMRC_P_Monitor_ScbCommand_eCR:
+        ulTransferSize = (pCheckerInfo->ulReqType & 0x01F)+1;
         BDBG_ERR(("transfer length %u bytes (%u Jwords)",
                  ulTransferSize * BMRC_P_MONITOR_JWORD_BYTES, ulTransferSize));
         break;
 
     case BMRC_P_Monitor_ScbCommand_eDR:
     case BMRC_P_Monitor_ScbCommand_eDW:
-        ulTransferSize = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MASK);
-        ulTransferSize = (ulTransferSize == 0)? BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MAX : ulTransferSize;
+#if (BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50)
+        ulTransferSize = (pCheckerInfo->ulReqType & 0x03F)+1;
+#else
+        ulTransferSize = (pCheckerInfo->ulReqType & 0x01F)+1;
+#endif
         BDBG_ERR(("transfer length %u bytes (%u Gwords) %u NMBX %d",
                  ulTransferSize * BMRC_P_MONITOR_GWORD_BYTES, ulTransferSize,
                  pCheckerInfo->ulNmbx, pCheckerInfo->ulNmbx));
@@ -1020,17 +1064,18 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
 
     case BMRC_P_Monitor_ScbCommand_eMR:
     case BMRC_P_Monitor_ScbCommand_eMW:
-        ulXSize      = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_MPEG_X_BIT)? 3: 2;
-        ulYLines     = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_MPEG_Y_MASK);
-        ulYLines     = (ulYLines == 0)? BMRC_P_MONITOR_SCB_YLINES_MAX : ulYLines;
-        bFrameAccess = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_MPEG_T_BIT);
+#if BMRC_MONITOR_P_SCB_PROTOCOL_VER >= 0x50
+        ulXSize      = (pCheckerInfo->ulReqType & 0x040)? 4: 2;
+#else
+        ulXSize      = (pCheckerInfo->ulReqType & 0x040)? 2: 1;
+#endif
+        ulYLines     = (pCheckerInfo->ulReqType & 0x03E)+1;
+        bFrameAccess = (pCheckerInfo->ulReqType & 0x001);
 
         BDBG_ERR(("X:%u bytes (%u Owords) Y:%u lines T:%s NMBX %u",
                  ulXSize * BMRC_P_MONITOR_OWORD_BYTES, ulXSize, ulYLines,
                  bFrameAccess ? "frame access" : "field access",
                  pCheckerInfo->ulNmbx));
-        BSTD_UNUSED (bFrameAccess);
-        BSTD_UNUSED (ulXSize);
         break;
 
     default:
@@ -1076,6 +1121,15 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
     }
     return;
 }
+#else
+static void
+BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_CheckerInfo *pCheckerInfo)
+{
+    BSTD_UNUSED(hMonitor);
+    BSTD_UNUSED(arc_no);
+    BSTD_UNUSED(pCheckerInfo);
+}
+#endif
 
 static void
 BMRC_P_Monitor_UpdateSingle(BMRC_Monitor_Handle hMonitor, unsigned range)
@@ -1156,7 +1210,7 @@ done:
 }
 
 BERR_Code
-BMRC_Monitor_GetMemoryInterface(BMRC_Monitor_Handle hMonitor, BMEM_MonitorInterface *pInterface)
+BMRC_Monitor_GetMemoryInterface(BMRC_Monitor_Handle hMonitor, BMRC_MonitorInterface *pInterface)
 {
     pInterface->cnxt = hMonitor;
     pInterface->alloc = BMRC_P_Monitor_Alloc;

@@ -68,7 +68,6 @@ Summary:
 Handles used by the GraphicsVC5 interface.
 **/
 typedef struct NEXUS_Graphicsv3d *NEXUS_Graphicsv3dHandle;
-typedef struct NEXUS_Graphicsv3dFenceEvent *NEXUS_Graphicsv3dFenceEventHandle;
 
 #define NEXUS_GRAPHICSV3D_MAX_BIN_SUBJOBS       8
 #define NEXUS_GRAPHICSV3D_MAX_RENDER_SUBJOBS    16
@@ -79,65 +78,30 @@ typedef struct NEXUS_Graphicsv3dFenceEvent *NEXUS_Graphicsv3dFenceEventHandle;
 #define NEXUS_GRAPHICSV3D_MAX_IDENTS            4
 #define NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS        4
 
-#define NEXUS_GRAPHICSV3D_SYNC_CLE_CL_READ         (1u << 0)
-#define NEXUS_GRAPHICSV3D_SYNC_CLE_SHADREC_READ    (1u << 1)
-#define NEXUS_GRAPHICSV3D_SYNC_CLE_PRIM_READ       (1u << 2)
-#define NEXUS_GRAPHICSV3D_SYNC_CLE_DRAWREC_READ    (1u << 3)
-#define NEXUS_GRAPHICSV3D_SYNC_VCD_READ            (1u << 4)
-#define NEXUS_GRAPHICSV3D_SYNC_QPU_INSTR_READ      (1u << 5)
-#define NEXUS_GRAPHICSV3D_SYNC_QPU_UNIF_READ       (1u << 6)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ     (1u << 7)
-#define NEXUS_GRAPHICSV3D_SYNC_PTB_TF_WRITE        (1u << 8)
-#define NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_READ  (1u << 9)
-#define NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_WRITE (1u << 10)
-#define NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_READ        (1u << 11)
-#define NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_WRITE       (1u << 12)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ       (1u << 13)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE      (1u << 14)
-#define NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_READ      (1u << 15)
-#define NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_WRITE     (1u << 16)
-#define NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_READ         (1u << 17)
-#define NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_WRITE        (1u << 18)
-#define NEXUS_GRAPHICSV3D_SYNC_TFU_READ            (1u << 19)
-#define NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE           (1u << 20)
-#define NEXUS_GRAPHICSV3D_SYNC_CPU_READ            (1u << 24)
-#define NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE           (1u << 25)
-
-#define NEXUS_GRAPHICSV3D_SYNC_V3D_READ (\
-   NEXUS_GRAPHICSV3D_SYNC_CLE_CL_READ\
- | NEXUS_GRAPHICSV3D_SYNC_CLE_SHADREC_READ\
- | NEXUS_GRAPHICSV3D_SYNC_CLE_PRIM_READ\
- | NEXUS_GRAPHICSV3D_SYNC_CLE_DRAWREC_READ\
- | NEXUS_GRAPHICSV3D_SYNC_VCD_READ\
- | NEXUS_GRAPHICSV3D_SYNC_QPU_INSTR_READ\
- | NEXUS_GRAPHICSV3D_SYNC_QPU_UNIF_READ\
- | NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ\
- | NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_READ\
- | NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_READ\
- | NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ\
- | NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_READ\
- | NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_READ\
- | NEXUS_GRAPHICSV3D_SYNC_TFU_READ)
-
-#define NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE (\
-   NEXUS_GRAPHICSV3D_SYNC_PTB_TF_WRITE\
- | NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_WRITE\
- | NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_WRITE\
- | NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE\
- | NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_WRITE\
- | NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_WRITE\
- | NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE)
-
-#define NEXUS_GRAPHICSV3D_SYNC_V3D_RW (NEXUS_GRAPHICSV3D_SYNC_V3D_READ | NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE)
-#define NEXUS_GRAPHICSV3D_SYNC_CPU_RW (NEXUS_GRAPHICSV3D_SYNC_CPU_READ | NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE)
-
 #define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE 0
 #define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP 1
 #define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL 2
 
 
 /* Workaround flags */
-#define NEXUS_GRAPHICSV3D_GFXH_1181            1
+#define NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP 1
+#define NEXUS_GRAPHICSV3D_GFXH_1181             2
+
+
+/* Cache operations */
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_SIC  (1 << 0)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_SUC  (1 << 1)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_L1TD (1 << 2)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_L1TC (1 << 3)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_VCD  (1 << 4)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_L2C  (1 << 5)
+#define NEXUS_GRAPHICSV3D_CACHE_FLUSH_L2T  (1 << 6)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAN_L1TD (1 << 7)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAN_L2T  (1 << 8)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAR_GCA  (1 << 9)
+#define NEXUS_GRAPHICSV3D_CACHE_FLUSH_L3C  (1 << 10)
+#define NEXUS_GRAPHICSV3D_CACHE_CLEAN_L3C  (1 << 11)
+
 
 /**
 Summary:
@@ -162,6 +126,7 @@ typedef enum NEXUS_Graphicsv3dJobType
    NEXUS_Graphicsv3dJobType_eFenceWait,
    NEXUS_Graphicsv3dJobType_eTest,
    NEXUS_Graphicsv3dJobType_eUsermode,
+   NEXUS_Graphicsv3dJobType_eBarrier,
    NEXUS_Graphicsv3dJobType_eNumJobTypes
 } NEXUS_Graphicsv3dJobType;
 
@@ -235,7 +200,7 @@ typedef struct NEXUS_Graphicsv3dJobBase
    NEXUS_Graphicsv3dSchedDependencies  sFinalizedDependencies;
    uint64_t                            uiCompletion;
    uint64_t                            uiCompletionData;
-   uint32_t                            uiSyncFlags;
+   uint32_t                            uiCacheOps;
    bool                                bSecure;
    uint64_t                            uiPagetablePhysAddr;
    uint32_t                            uiMmuMaxVirtAddr;
@@ -278,6 +243,15 @@ typedef struct NEXUS_Graphicsv3dJobRender
    uint32_t                            uiFlags;
    uint32_t                            uiEmptyTileMode;
 } NEXUS_Graphicsv3dJobRender;
+
+/**
+Summary:
+A barrier job.
+**/
+typedef struct NEXUS_Graphicsv3dJobBarrier
+{
+   NEXUS_Graphicsv3dJobBase            sBase;
+} NEXUS_Graphicsv3dJobBarrier;
 
 /**
 Summary:
@@ -460,10 +434,23 @@ NEXUS_Error NEXUS_Graphicsv3d_QueueRender(
 Summary:
 Queue a TFU job.
 **/
+/*
+   NOTE:
+   reserved hint is from maxBatchSize in sched_nexus.c
+*/
 NEXUS_Error NEXUS_Graphicsv3d_QueueTFU(
    NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
    uint32_t                             uiNumJobs,    /* [in]  */
-   const NEXUS_Graphicsv3dJobTFU       *pTFUJobs      /* [in]  attr{nelem=uiNumJobs;nelem_out=0} */
+   const NEXUS_Graphicsv3dJobTFU       *pTFUJobs      /* [in]  attr{nelem=uiNumJobs;nelem_out=0;reserved=16} */
+   );
+
+/**
+Summary:
+Queue a barrier job.
+**/
+NEXUS_Error NEXUS_Graphicsv3d_QueueBarrier(
+   NEXUS_Graphicsv3dHandle              hGfx,         /* [in]  */
+   const NEXUS_Graphicsv3dJobBarrier   *pBarrier      /* [in]  */
    );
 
 /**
@@ -570,7 +557,7 @@ if the fence is already in a signaled state.
 NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
    NEXUS_Graphicsv3dHandle             hGfx,           /* [in]  */
    int                                 iFence,         /* [in]  */
-   NEXUS_Graphicsv3dFenceEventHandle   hEvent          /* [in]  */
+   uint64_t                            uiEvent         /* [in]  */
    );
 
 /**
@@ -580,7 +567,7 @@ Remove a previously registered fence wait callback.
 NEXUS_Error NEXUS_Graphicsv3d_UnregisterFenceWait(
    NEXUS_Graphicsv3dHandle             hGfx,           /* [in]  */
    int                                 iFence,         /* [in]  */
-   NEXUS_Graphicsv3dFenceEventHandle   hEvent,         /* [in]  */
+   uint64_t                            uiEvent,        /* [in]  */
    bool                               *signalled       /* [out] attr{null_allowed=y} */
    );
 
@@ -603,7 +590,7 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceClose(
 
 NEXUS_Error NEXUS_Graphicsv3d_GetPendingFenceEvent(
    NEXUS_Graphicsv3dHandle              hGfx,          /* [in] */
-   NEXUS_Graphicsv3dFenceEventHandle   *phEvent        /* [out] */
+   uint64_t                            *puiEvent       /* [out] */
    );
 
 /************************************************************************/
@@ -630,14 +617,18 @@ Summary:
 Get next completion records (if any)
 Also acknowledges that previous jobId has finished its completion
 **/
+/*
+   NOTE:
+   reserved hint is from MAX_COMPLETIONS in sched_nexus.c
+*/
 NEXUS_Error NEXUS_Graphicsv3d_GetCompletions(
    NEXUS_Graphicsv3dHandle          hGfx,                 /* [in]  */
    uint32_t                         uiNumFinalizedJobs,   /* [in]  */
-   const uint64_t                   *puiFinalizedJobs,    /* [in] attr{nelem=uiNumFinalizedJobs;null_allowed=y} */
+   const uint64_t                   *puiFinalizedJobs,    /* [in] attr{nelem=uiNumFinalizedJobs;null_allowed=y;reserved=40} */
    uint32_t                         uiMaxCompletionsOut,  /* [in]  */
    NEXUS_Graphicsv3dCompletionInfo  *psCompletionInfo,    /* [out] */
    uint32_t                         *puiCompletionsOut,   /* [out] */
-   NEXUS_Graphicsv3dCompletion      *psCompletions        /* [out] attr{nelem=uiMaxCompletionsOut;nelem_out=puiCompletionsOut;null_allowed=y} */
+   NEXUS_Graphicsv3dCompletion      *psCompletions        /* [out] attr{nelem=uiMaxCompletionsOut;nelem_out=puiCompletionsOut;null_allowed=y;reserved=40} */
    );
 
 /************************************************************************/
@@ -738,6 +729,10 @@ void NEXUS_Graphicsv3d_ChoosePerfCounters(
    const NEXUS_Graphicsv3dCounterSelector *psSelector          /* [in]  */
    );
 
+/*
+   NOTE:
+   debug API, so no reserved property for nelem
+*/
 void NEXUS_Graphicsv3d_GetPerfCounterData(
    NEXUS_Graphicsv3dHandle    hGfx,                            /* [in]  */
    uint32_t                   uiMaxCounters,                   /* [in]  */
@@ -831,6 +826,10 @@ NEXUS_Error NEXUS_Graphicsv3d_SetEventCollection(
    NEXUS_Graphicsv3dEventState   eState                  /* [in]  */
    );
 
+/*
+   NOTE:
+   debug API, so no reserved property for nelem
+*/
 void NEXUS_Graphicsv3d_GetEventData(
    NEXUS_Graphicsv3dHandle    hGfx,                      /* [in]  */
    uint32_t                   uiEventBufferBytes,        /* [in]  */

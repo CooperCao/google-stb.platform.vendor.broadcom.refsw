@@ -49,11 +49,13 @@
 ################################################################################
 #
 ifeq ($(B_REFSW_ARCH),arm-linux)
-    $(warning Building for arm)
-    UCOS_CPU=arm
+    $(warning Building for arm linux toolchain)
 else
-    $(warning Building for mips)
-    UCOS_CPU=mips
+    ifeq ($(B_REFSW_ARCH),mipsel-linux)
+        $(warning Building for mips linux toolchain)
+    else
+        $(warning Building for mips sde toolchain)
+    endif
 endif
 
 #
@@ -118,41 +120,26 @@ CP=cp
 #
 # Algorithmics Tools
 #
-ifeq ($(UCOS_CPU),arm)
-    CC = arm-linux-gcc
-    AS = arm-linux-gcc
-    LD = arm-linux-ld
-else
-    CC = sde-gcc
-    AS = sde-gcc
-    LD = sde-ld
-endif
+
+CC = $(B_REFSW_ARCH)-gcc
+AS = $(B_REFSW_ARCH)-gcc
+LD = $(B_REFSW_ARCH)-ld
+AR = $(B_REFSW_ARCH)-ar
+RANLIB = $(B_REFSW_ARCH)-ranlib
 
 CFLAGS = -std=c89 -Wall -W -Wstrict-prototypes -Wno-unused-value -c -O2 -g -ffunction-sections -fdata-sections -MMD
 
-ifeq ($(UCOS_CPU),arm)
+ifeq ($(B_REFSW_ARCH),arm-linux)
     CFLAGS += -nostdlib -ffreestanding -fno-short-enums -march=armv7-a -mabi=aapcs -mthumb -MD
 #    CFLAGS += -msoft-float -mfloat-abi=softfp
     ifeq ($(BE), 1)
         CFLAGS += -mbig-endian
     endif
 else
-    CFLAGS += $(ENDIAN_FLAG) -G 0 -DMIPS_SDE -pedantic -mcpu=4kc -mips32 -msoft-float '-Afloat(soft)'
-endif
-
-ifeq ($(UCOS_CPU),mips)
-    ifneq ($(OS), Windows_NT)
-        ifeq ($(BE), 1)
-            LIBPATHS = /opt/toolchains/sde_5.03/sde/lib/mips32/sof
-        else
-            LIBPATHS = /opt/toolchains/sde_5.03/sde/lib/el/mips32/sof
-        endif
+    ifeq ($(B_REFSW_ARCH),mipsel-linux)
+        CFLAGS += $(ENDIAN_FLAG) -G 0 -DMIPS_SDE -pedantic -mips32 -msoft-float '-Afloat(soft)'
     else
-        ifeq ($(BE), 1)
-            LIBPATHS = $(LIBRARY_PATH)/mips32/sof
-        else
-            LIBPATHS = $(LIBRARY_PATH)/el/mips32/sof
-        endif
+        CFLAGS += $(ENDIAN_FLAG) -G 0 -DMIPS_SDE -pedantic -mcpu=4kc -mips32 -msoft-float '-Afloat(soft)'
     endif
 endif
 
@@ -166,7 +153,7 @@ DIAGS_VPATH += \
     $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uCOS-III/Source \
     $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uCOS-III/Cfg/Template
 
-ifeq ($(UCOS_CPU),arm)
+ifeq ($(B_REFSW_ARCH),arm-linux)
     DIAGS_VPATH += \
         $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uCOS-III/Ports/ARM-Cortex-A15/Generic/GNU \
         $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-CPU/ARM-Cortex-A15/GNU
@@ -177,7 +164,7 @@ else
 endif
 
 VPATH = $(DIAGS_VPATH)
-ifeq ($(UCOS_CPU),arm)
+ifeq ($(B_REFSW_ARCH),arm-linux)
     OBJDIR = arm.$(ENDIAN_SUFFIX).obj
 else
     OBJDIR = mips.$(ENDIAN_SUFFIX).obj
@@ -189,10 +176,14 @@ endif
 ################################################################################
 #
 
-ifeq ($(UCOS_CPU),arm)
+ifeq ($(B_REFSW_ARCH),arm-linux)
     UCOS_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/gnu/arm
 else
-    UCOS_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/sde
+    ifeq ($(B_REFSW_ARCH),mipsel-linux)
+        UCOS_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/gnu/mips
+    else
+        UCOS_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/sde
+    endif
 endif
 
 UCOS_LIB_NAME = libucos_iii_$(ENDIAN_SUFFIX).a
@@ -202,14 +193,6 @@ all : Makefile $(OBJDIR) $(UCOS_LIB)
 
 $(OBJDIR):
 	mkdir $(OBJDIR)
-
-ifeq ($(UCOS_CPU),arm)
-    AR = arm-linux-ar
-    RANLIB = arm-linux-ranlib
-else
-    AR = sde-ar
-    RANLIB = sde-ranlib
-endif
 
 #
 ################################################################################
@@ -268,7 +251,7 @@ $(OBJDIR)/%.o: %.cpp
 
 $(OBJDIR)/%.o: %.s
 	@echo '$(AS) $(notdir $<)'
-ifeq ($(UCOS_CPU),arm)
+ifeq ($(B_REFSW_ARCH),arm-linux)
 	@$(CC) $(CFLAGS) $< -o $@
 else
 	@$(CC) $(CFLAGS) $(ADDR_FLAG) -D_ASMLANGUAGE -x assembler-with-cpp $< -o $@

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -68,6 +68,7 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetHdcpVersion(NEXUS_HdmiOutputHandle handle, NEX
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
 /* Hdcp 2.2 related Private APIs */
+static void NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(NEXUS_HdmiOutputHandle handle);
 static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_Hdcp2xReAuthRequestCallback(void *pContext);
 static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext);
@@ -645,6 +646,74 @@ static void NEXUS_HdmiOutput_P_PjCallback(void *pContext)
 
 
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_SUPPORT)
+static void NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(NEXUS_HdmiOutputHandle handle)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
+    BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+
+#if NEXUS_HAS_HDMI_INPUT
+    BDBG_MSG(("%s: Upload ReceiverId List to upstream transmitter", __FUNCTION__));
+
+    /* First, get downstream info from hdcplib */
+    rc = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto done;
+    }
+
+    /* save all data */
+    stReceiverIdListData.deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
+    stReceiverIdListData.depth = (unsigned) hdcp2xReceiverIdListData.depth;
+    stReceiverIdListData.maxDevsExceeded = hdcp2xReceiverIdListData.maxDevsExceeded > 0;
+    stReceiverIdListData.maxCascadeExceeded = hdcp2xReceiverIdListData.maxCascadeExceeded > 0;
+    stReceiverIdListData.hdcp2xLegacyDeviceDownstream = hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream > 0;
+    stReceiverIdListData.hdcp1DeviceDownstream = hdcp2xReceiverIdListData.hdcp1DeviceDownstream > 0;
+
+    if (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
+    {
+        /* ignore the rest of the list, if any */
+        BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+            BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+    }
+    else
+    {
+        /*****************
+        * If downstream device is repeater device, the ReceiverIdList will
+        * contain 1 additional entry, which is the ReceiverId of the repeater device.
+        * This additional entry is not accounted in the device count
+        *******************/
+        BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+            (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+    }
+
+    /* Now upload it to the upstream transmitter */
+    NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+    rc = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(handle->hdmiInput, &stReceiverIdListData, hdcp2xReceiverIdListData.downstreamIsRepeater > 0);
+    NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+    if (rc != NEXUS_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+        goto done;
+    }
+
+#else
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(hdcp2xReceiverIdListData);
+    BSTD_UNUSED(stReceiverIdListData);
+    rc = NEXUS_NOT_SUPPORTED;
+    BERR_TRACE(rc);
+    goto done;
+
+#endif
+
+done:
+
+    return;
+}
+
+
 static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext)
 {
     NEXUS_HdmiOutputHandle output = pContext;
@@ -658,6 +727,11 @@ static void NEXUS_HdmiOutput_P_Hdcp2xEncryptionEnableCallback(void *pContext)
 
     /* Enable encryption */
     NEXUS_HdmiOutput_EnableHdcpEncryption(output);
+
+	/* get/upload downstream device list if in repeater mode */
+	if (output->hdmiInput) {
+		NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+    }
 
     /* fire success call back */
     NEXUS_TaskCallback_Fire(output->hdcpSuccessCallback);
@@ -708,8 +782,22 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
         rc = BERR_TRACE(rc);
     }
 
-    BDBG_MSG(("Hdcp2x Authentication status: %s",
-        stAuthenticationStatus.linkAuthenticated?"AUTHENTICATED":"NOT AUTHENTICATED"));
+    /**********
+    ** Upload ReceiverID List to upstream transmitter IF
+    **    + AUTHENTICATED with downstream devices
+    **  OR
+    **    + FAILED to authenticate with downstream devices due to errors in downstream ReceiverId List
+    **********/
+    if ((stAuthenticationStatus.linkAuthenticated)
+    || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterDepthExceeded)
+    || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRxDevicesExceeded)
+    || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterAuthenticationError))
+    {
+        /* get/upload downstream device list if in repeater mode */
+        if (output->hdmiInput) {
+            NEXUS_HdmiOutput_P_Hdcp2xUploadDownstreamInfo(output);
+        }
+    }
 
     if (stAuthenticationStatus.linkAuthenticated == false)
     {
@@ -906,6 +994,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
     NEXUS_Error errCode = NEXUS_SUCCESS;
     NEXUS_Hdcp2xReceiverIdListData stReceiverIdListData;
     BHDCPlib_ReceiverIdListData hdcp2xReceiverIdListData;
+    BHDCPlib_Hdcp2x_AuthenticationStatus stAuthenticationStatus;
+    bool uploadReceiverIdList = false;
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
 
 #if NEXUS_HAS_HDMI_INPUT
@@ -924,6 +1014,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 
         if (!handle->hdmiInput) {
             NEXUS_OBJECT_ACQUIRE(handle, NEXUS_HdmiInput, input);
+            uploadReceiverIdList = true;
         }
     }
     else
@@ -937,50 +1028,71 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
 
     handle->hdmiInput = input;
 
-    /* ready to do the work */
-    if (handle->hdmiInput)
+    /**********
+    ** For backward compatibility for URSR 16.2 - 16.4. API behavior:
+    **     + set rx <--> tx link
+    **     + do the work to upload the ReceiverId List
+    **               -this action is only for pre 17.1 URSR.
+    **          -starting from URSR 17.1, the upload take place when the authentication status get updated.
+    **
+    **********/
+    if (uploadReceiverIdList)
     {
-        /* First, get downstream info from hdcplib */
-        errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
+        errCode = BHDCPlib_Hdcp2x_GetAuthenticationStatus(handle->hdcpHandle, &stAuthenticationStatus);
         if (errCode != BERR_SUCCESS)
         {
+            BDBG_ERR(("Error retrieving HDCP2.x authentication status"));
             errCode = BERR_TRACE(errCode);
             goto done;
         }
 
-        /* save all data */
-        stReceiverIdListData.deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
-        stReceiverIdListData.depth = (unsigned) hdcp2xReceiverIdListData.depth;
-        stReceiverIdListData.maxDevsExceeded = hdcp2xReceiverIdListData.maxDevsExceeded > 0;
-        stReceiverIdListData.maxCascadeExceeded = hdcp2xReceiverIdListData.maxCascadeExceeded > 0;
-        stReceiverIdListData.hdcp2xLegacyDeviceDownstream = hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream > 0;
-        stReceiverIdListData.hdcp1DeviceDownstream = hdcp2xReceiverIdListData.hdcp1DeviceDownstream > 0;
+        if ((stAuthenticationStatus.linkAuthenticated)
+        || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterDepthExceeded)
+        || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRxDevicesExceeded)
+        || (stAuthenticationStatus.eAuthenticationError == BHDCPlib_HdcpError_eRepeaterAuthenticationError))
+        {
+            /* First, get downstream info from hdcplib */
+            errCode = BHDCPlib_Hdcp2x_Tx_GetReceiverIdList(handle->hdcpHandle, &hdcp2xReceiverIdListData);
+            if (errCode != BERR_SUCCESS)
+            {
+                errCode = BERR_TRACE(errCode);
+                goto done;
+            }
 
-        if (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
-        {
-            /* ignore the rest of the list, if any */
-            BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
-                        BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-        }
-        else
-        {
-            /*****************
-            * If downstream device is repeater device, the ReceiverIdList will
-            * contain 1 additional entry, which is the ReceiverId of the repeater device.
-            * This additional entry is not accounted in the device count
-            *******************/
-            BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
-                (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
-        }
+            /* save all data */
+            stReceiverIdListData.deviceCount = (unsigned) hdcp2xReceiverIdListData.deviceCount;
+            stReceiverIdListData.depth = (unsigned) hdcp2xReceiverIdListData.depth;
+            stReceiverIdListData.maxDevsExceeded = hdcp2xReceiverIdListData.maxDevsExceeded > 0;
+            stReceiverIdListData.maxCascadeExceeded = hdcp2xReceiverIdListData.maxCascadeExceeded > 0;
+            stReceiverIdListData.hdcp2xLegacyDeviceDownstream = hdcp2xReceiverIdListData.hdcp2LegacyDeviceDownstream > 0;
+            stReceiverIdListData.hdcp1DeviceDownstream = hdcp2xReceiverIdListData.hdcp1DeviceDownstream > 0;
 
-        /* Now upload it to the upstream transmitter */
-        NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        errCode = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(input, &stReceiverIdListData, hdcp2xReceiverIdListData.downstreamIsRepeater > 0);
-        NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
-        if (errCode != NEXUS_SUCCESS)
-        {
-            errCode = BERR_TRACE(errCode);
-            goto done;
+            if (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater >= BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT)
+            {
+                /* ignore the rest of the list, if any */
+                BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+                    BHDCPLIB_HDCP2X_MAX_DEVICE_COUNT * BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+            }
+            else
+            {
+                /*****************
+                * If downstream device is repeater device, the ReceiverIdList will
+                * contain 1 additional entry, which is the ReceiverId of the repeater device.
+                * This additional entry is not accounted in the device count
+                *******************/
+                BKNI_Memcpy(stReceiverIdListData.rxIdList, &hdcp2xReceiverIdListData.rxIdList,
+                    (hdcp2xReceiverIdListData.deviceCount + hdcp2xReceiverIdListData.downstreamIsRepeater)*BHDCPLIB_HDCP2X_RECEIVERID_LENGTH);
+            }
+
+            /* Now upload it to the upstream transmitter */
+            NEXUS_Module_Lock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+            errCode = NEXUS_HdmiInput_LoadHdcp2xReceiverIdList_priv(handle->hdmiInput, &stReceiverIdListData, hdcp2xReceiverIdListData.downstreamIsRepeater > 0);
+            NEXUS_Module_Unlock(g_NEXUS_hdmiOutputModuleSettings.modules.hdmiInput);
+            if (errCode != NEXUS_SUCCESS)
+            {
+                errCode = BERR_TRACE(errCode);
+                goto done;
+            }
         }
     }
 
@@ -988,6 +1100,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetRepeaterInput(
     BSTD_UNUSED(input);
     BSTD_UNUSED(hdcp2xReceiverIdListData);
     BSTD_UNUSED(stReceiverIdListData);
+    BSTD_UNUSED(stAuthenticationStatus);
+    BSTD_UNUSED(uploadReceiverIdList);
     errCode = NEXUS_NOT_SUPPORTED;
     BERR_TRACE(errCode);
     goto done;
@@ -1160,11 +1274,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
     BHDCPlib_RevokedKsvList ksvList;
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    if (IS_ALIAS(handle))
-    {
-        errCode = NEXUS_NOT_SUPPORTED ;
-        goto done ;
-    }
+    RESOLVE_ALIAS(handle);
+
 
     /* Allocate/Create new list */
     if (numKsvs == 0) {
@@ -1191,6 +1302,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetHdcpRevokedKsvs(
         }
         handle->revokedKsvsSize = numKsvs;
     }
+
     BKNI_Memset(handle->pRevokedKsvs, 0, handle->revokedKsvsSize * sizeof(NEXUS_HdmiOutputHdcpKsv));
     BKNI_Memcpy(handle->pRevokedKsvs, pRevokedKsvs, numKsvs * sizeof(NEXUS_HdmiOutputHdcpKsv));
     handle->numRevokedKsvs = numKsvs;
@@ -1366,7 +1478,6 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
             BKNI_Sleep(50);
         }
 
-        BDBG_WRN(("Starting HDCP 2.x Authentication"));
     }
     /******************/
     /**** HDCP 1.x ****/
@@ -1383,11 +1494,13 @@ NEXUS_Error NEXUS_HdmiOutput_StartHdcpAuthentication(
         }
 
         /* delay start of HDCP Authentication */
-        BDBG_MSG(("Delay HDCP Auth Start (allow DisableEncryption to complete)")) ;
+        BDBG_MSG(("Delay HDCP Auth Start (allow DisableHdcpAuthentication to complete)")) ;
         BKNI_Sleep(50);
 
-        BDBG_WRN(("Starting HDCP 1.x Authentication"));
     }
+
+    BDBG_MSG(("Starting HDCP %s Authentication",
+        handle->eHdcpVersion == BHDM_HDCP_Version_e2_2 ? "2.2" : "1.x"));
 
     handle->hdcpStarted = true;
 

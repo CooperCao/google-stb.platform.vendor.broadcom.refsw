@@ -44,7 +44,6 @@
 
 #include "bavc.h"
 #include "bfmt.h"
-#include "bmem.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -906,6 +905,7 @@ typedef struct BXDM_Picture
    BXDM_Picture_HDR stHDR;
 
    uint32_t uiSerialNumber;
+   uint32_t uiIntraGOPIndex; /* SW7425-2686: position of the picture within the GOP, "1" based. */
 
    void *pPrivateContext;  /* Private context for decoder use */
    void *hChannel;         /* SW7425-1064: handle of the channel that created the picture. */

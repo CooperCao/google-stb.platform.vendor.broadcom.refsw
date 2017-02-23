@@ -69,7 +69,7 @@ static unsigned vmalloc_size(
     const unsigned _1mb = 1024 * 1024;
     const unsigned default_vmalloc = 248 * _1mb;
     const unsigned vmalloc_offset = 8 * _1mb; /* based on VMALLOC_OFFSET */
-    const unsigned fudge = 64 * _1mb; /* some address space for core Linux use */
+    const unsigned fudge = 192 * _1mb; /* some address space for core Linux use */
 
 #if defined(CONFIG_VMSPLIT_3G)
     addrspace_lim = 0x40000000u;

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,9 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *----------------------------------------------------------------------------
- * workfile : sqa_audio_decode_test.c 
- * author : raghavendra chinnanaik 
+ *
  * Module Description: 
  * This is a nexus based test app, can be used to run audio tests in live mode(streamer input) 
  * Following are the capabilities : 
@@ -48,12 +46,10 @@
  * PCM capture of decoder output and storing into wave files.
  *-----------------------------------------------------------------------------
 *
-* $brcm_Log: $
-* 
 ******************************************************************************/
 /* Nexus Audio test app: live-decode using streamer-input */
 #include "nexus_platform.h"
-#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_NUM_AUDIO_DACS
+#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_NUM_AUDIO_DACS && NEXUS_HAS_AUDIO
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_video_decoder.h"
@@ -1835,6 +1831,6 @@ int main(int argc, char **argv)
 int main(void)
 {
     printf("This application is not supported on this platform\n");
-    return -1;
+    return 0;
 }
 #endif

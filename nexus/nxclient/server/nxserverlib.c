@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ *****************************************************************************/
 #include "nxserverlib_impl.h"
 #include "nexus_display_vbi.h"
 
@@ -72,6 +75,7 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
 static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient_HdcpVersion version_select);
 static void nxserver_hdcp_mute(struct b_session *session);
 static NEXUS_Error nxserver_load_hdcp_keys(struct b_session *session, NxClient_HdcpType hdcpType, NEXUS_MemoryBlockHandle block, unsigned blockOffset, unsigned size);
+static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_HdmiInputHandle hdmiInput);
 static void nxserverlib_p_init_hdmi_drm_settings(NxClient_DisplaySettings * pSettings);
 static void nxserverlib_p_init_hdmi_drm(struct b_session * session);
 static void nxserver_check_hdcp(struct b_session *session);
@@ -451,6 +455,12 @@ void NxClient_P_DestroyClient(nxclient_t client)
     }
     BDBG_MSG(("NxClient_P_DestroyClient %p", (void*)client));
 
+#if NEXUS_HAS_HDMI_INPUT
+    if (client == client->session->hdmi.repeater.client) {
+        NEXUS_HdmiOutput_SetRepeaterInput(client->session->hdmiOutput, NULL);
+        client->session->hdmi.repeater.client = NULL;
+    }
+#endif
 #if NEXUS_HAS_HDMI_OUTPUT
     client->hdcp = NxClient_HdcpLevel_eNone;
     nxserver_check_hdcp(client->session);
@@ -1347,231 +1357,330 @@ err_gfxsettings:
     return rc;
 }
 
-NEXUS_Error NxClient_P_General(nxclient_t client, enum nxclient_p_general_param_type type, const nxclient_p_general_param *param, nxclient_p_general_output *output)
+void NxClient_P_GetComposition(nxclient_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition)
 {
+    /* non-destructive or per-client functions */
+    NxClient_P_GetSurfaceClientComposition(client, surfaceClientId, composition);
+    return;
+}
+
+NEXUS_Error NxClient_P_SetComposition(nxclient_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return NxClient_P_SetSurfaceClientComposition(client, surfaceClientId, composition);
+}
+
+NEXUS_Error NxClient_P_WriteTeletext(nxclient_t client, const nxclient_p_teletext_data *data, size_t numLines, size_t *pNumLinesWritten)
+{
+    NEXUS_DisplayVbiSettings settings;
     NEXUS_Error rc;
+    NEXUS_DisplayHandle display = b_get_vbi_display(client->session);
+
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+
+    NEXUS_Display_GetVbiSettings(display, &settings);
+    if (!settings.teletextEnabled) {
+        settings.teletextEnabled = true;
+        rc = NEXUS_Display_SetVbiSettings(display, &settings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    return NEXUS_Display_WriteTeletext(display, data->lines, numLines, pNumLinesWritten);
+}
+
+NEXUS_Error NxClient_P_WriteClosedCaption(nxclient_t client, const nxclient_p_closecaption_data *data, size_t numEntries, size_t *pNumEntriesWritten )
+{
+    NEXUS_DisplayVbiSettings settings;
+    NEXUS_Error rc;
+    NEXUS_DisplayHandle display = b_get_vbi_display(client->session);
+
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+
+    NEXUS_Display_GetVbiSettings(display, &settings);
+    if (!settings.closedCaptionEnabled) {
+        settings.closedCaptionEnabled = true;
+        rc = NEXUS_Display_SetVbiSettings(display, &settings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    return NEXUS_Display_WriteClosedCaption(display, data->entries, numEntries, pNumEntriesWritten);
+}
+
+NEXUS_Error NxClient_P_Display_SetWss(nxclient_t client, uint16_t wssData)
+{
+    NEXUS_DisplayVbiSettings settings;
+    NEXUS_DisplayHandle display = b_get_vbi_display(client->session);
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+
+    NEXUS_Display_GetVbiSettings(display, &settings);
+    if (!settings.wssEnabled) {
+        NEXUS_Error rc;
+        settings.wssEnabled = true;
+        rc = NEXUS_Display_SetVbiSettings(display, &settings);
+        if (rc) return BERR_TRACE(rc);
+    }
+    return NEXUS_Display_SetWss(display, wssData);
+}
+
+NEXUS_Error NxClient_P_Display_SetCgms(nxclient_t client, uint32_t cgmsData)
+{
     unsigned i;
 
-    switch (type) {
-    case nxclient_p_general_param_type_get_composition:
-    case nxclient_p_general_param_type_get_audio_processing_settings:
-    case nxclient_p_general_param_type_grow_heap:
-    case nxclient_p_general_param_type_register_acknowledge_standby:
-    case nxclient_p_general_param_type_unregister_acknowledge_standby:
-    case nxclient_p_general_param_type_acknowledge_standby:
-        /* non-destructive or per-client functions */
-        break;
-    default:
-        if (!is_trusted_client(client)) {
-            return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
-        }
-        break;
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
     }
 
-    switch (type) {
-    case nxclient_p_general_param_type_get_composition:
-        NxClient_P_GetSurfaceClientComposition(client, param->get_composition.surfaceClientId, &output->get_composition.composition);
-        return 0;
-    case nxclient_p_general_param_type_set_composition:
-        return NxClient_P_SetSurfaceClientComposition(client, param->set_composition.surfaceClientId, &param->set_composition.composition);
-    case nxclient_p_general_param_type_write_teletext:
-        {
-        NEXUS_DisplayVbiSettings settings;
-        NEXUS_DisplayHandle display = b_get_vbi_display(client->session);
-        NEXUS_Display_GetVbiSettings(display, &settings);
-        if (!settings.teletextEnabled) {
-            settings.teletextEnabled = true;
-            rc = NEXUS_Display_SetVbiSettings(display, &settings);
+    /* cgms to all displays */
+    for (i=0;i<NXCLIENT_MAX_DISPLAYS;i++) {
+        NEXUS_DisplayHandle display = client->session->display[i].display;
+        if (display) {
+            NEXUS_Error rc;
+            NEXUS_DisplayVbiSettings settings;
+            NEXUS_Display_GetVbiSettings(display, &settings);
+            if (!settings.cgmsEnabled) {
+                settings.cgmsEnabled = true;
+                rc = NEXUS_Display_SetVbiSettings(display, &settings);
+                if (rc) return BERR_TRACE(rc);
+            }
+            rc = NEXUS_Display_SetCgms(display, cgmsData);
             if (rc) return BERR_TRACE(rc);
         }
-        return NEXUS_Display_WriteTeletext(display, param->write_teletext.lines, param->write_teletext.numLines, &output->write_teletext.numLinesWritten);
-        }
-    case nxclient_p_general_param_type_write_closed_caption:
-        {
-        NEXUS_DisplayVbiSettings settings;
-        NEXUS_DisplayHandle display = b_get_vbi_display(client->session);
-        NEXUS_Display_GetVbiSettings(display, &settings);
-        if (!settings.closedCaptionEnabled) {
-            settings.closedCaptionEnabled = true;
-            rc = NEXUS_Display_SetVbiSettings(display, &settings);
-            if (rc) return BERR_TRACE(rc);
-        }
-        return NEXUS_Display_WriteClosedCaption(display, param->write_closed_caption.entries, param->write_closed_caption.numEntries, &output->write_closed_caption.numEntriesWritten);
-        }
-    case nxclient_p_general_param_type_set_wss:
-        {
-        NEXUS_DisplayVbiSettings settings;
-        NEXUS_DisplayHandle display = b_get_vbi_display(client->session);
-        NEXUS_Display_GetVbiSettings(display, &settings);
-        if (!settings.wssEnabled) {
-            settings.wssEnabled = true;
-            rc = NEXUS_Display_SetVbiSettings(display, &settings);
-            if (rc) return BERR_TRACE(rc);
-        }
-        return NEXUS_Display_SetWss(display, param->set_wss.data);
-        }
-    case nxclient_p_general_param_type_set_cgms:
-        /* cgms to all displays */
-        for (i=0;i<NXCLIENT_MAX_DISPLAYS;i++) {
-            NEXUS_DisplayHandle display = client->session->display[i].display;
-            if (display) {
-                NEXUS_DisplayVbiSettings settings;
-                NEXUS_Display_GetVbiSettings(display, &settings);
-                if (!settings.cgmsEnabled) {
-                    settings.cgmsEnabled = true;
-                    rc = NEXUS_Display_SetVbiSettings(display, &settings);
-                    if (rc) return BERR_TRACE(rc);
-                }
-                rc = NEXUS_Display_SetCgms(display, param->set_cgms.data);
-                if (rc) return BERR_TRACE(rc);
-            }
-        }
-        return NEXUS_SUCCESS;
-    case nxclient_p_general_param_type_set_cgms_b:
-        /* cgms to all displays */
-        for (i=0;i<NXCLIENT_MAX_DISPLAYS;i++) {
-            NEXUS_DisplayHandle display = client->session->display[i].display;
-            if (display) {
-                NEXUS_DisplayVbiSettings settings;
-                NEXUS_Display_GetVbiSettings(display, &settings);
-                if (!settings.cgmsEnabled) {
-                    settings.cgmsEnabled = true;
-                    rc = NEXUS_Display_SetVbiSettings(display, &settings);
-                    if (rc) return BERR_TRACE(rc);
-                }
-                rc = NEXUS_Display_SetCgmsB(display, param->set_cgms_b.data, param->set_cgms_b.size);
-                if (rc) return BERR_TRACE(rc);
-            }
-        }
-        return NEXUS_SUCCESS;
-    case nxclient_p_general_param_type_get_audio_processing_settings:
-        nxserverlib_p_audio_get_audio_procesing_settings(client->session, &output->get_audio_processing_settings.settings);
-        return NEXUS_SUCCESS;
-    case nxclient_p_general_param_type_set_audio_processing_settings:
-        return nxserverlib_p_audio_set_audio_procesing_settings(client->session, &param->set_audio_processing_settings.settings);
-    case nxclient_p_general_param_type_reconfig:
-        return nxserverlib_p_reconfig(client, &param->reconfig.settings);
-    case nxclient_p_general_param_type_screenshot:
-        return nxserverlib_p_screenshot(client, &param->screenshot.settings, param->screenshot.surface);
-    case nxclient_p_general_param_type_set_macrovision:
-        return nxserverlib_p_set_macrovision(client->session, param->set_macrovision.type, param->set_macrovision.table_isnull?NULL:&param->set_macrovision.table);
-    case nxclient_p_general_param_type_grow_heap:
-        if (param->grow_heap.heapIndex >= NEXUS_MAX_HEAPS || !client->server->settings.client.heap[param->grow_heap.heapIndex] ||
-            param->grow_heap.heapIndex != NXCLIENT_DYNAMIC_HEAP) {
-            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        }
-        else {
-            return NEXUS_Platform_GrowHeap(client->server->settings.client.heap[param->grow_heap.heapIndex], client->server->settings.growHeapBlockSize);
-        }
-    case nxclient_p_general_param_type_shrink_heap:
-        if (param->shrink_heap.heapIndex >= NEXUS_MAX_HEAPS || !client->server->settings.client.heap[param->shrink_heap.heapIndex] ||
-            param->shrink_heap.heapIndex != NXCLIENT_DYNAMIC_HEAP) {
-            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-        }
-        else {
-            NEXUS_Platform_ShrinkHeap(client->server->settings.client.heap[param->shrink_heap.heapIndex], client->server->settings.growHeapBlockSize, client->server->settings.growHeapBlockSize);
-            return NEXUS_SUCCESS;
-        }
-    case nxclient_p_general_param_type_lookup_client:
-        output->lookup_client.handle = nxserverlib_p_lookup_client(client->server, param->lookup_client.pid);
-        return output->lookup_client.handle ? 0 : NEXUS_INVALID_PARAMETER;
-    case nxclient_p_general_param_type_display_get_crc_data:
-        if (param->display_get_crc_data.displayIndex >= NXCLIENT_MAX_DISPLAYS) {
-            return NEXUS_NOT_AVAILABLE;
-        }
-        else {
-            NEXUS_DisplayHandle display = client->session->display[param->display_get_crc_data.displayIndex].display;
-            NEXUS_DisplaySettings settings;
-            if (!display) {
-                return NEXUS_NOT_AVAILABLE;
-            }
-            NEXUS_Display_GetSettings(display, &settings);
-            if (settings.crcQueueSize == 0) {
-                settings.crcQueueSize = 32;
-                rc = NEXUS_Display_SetSettings(display, &settings);
-                if (rc) return BERR_TRACE(rc);
-                /* when this client exits, we shutdown */
-                client->session->display[param->display_get_crc_data.displayIndex].crc_client = client;
-            }
-            return NEXUS_Display_GetCrcData(display,
-                output->display_get_crc_data.data.data,
-                sizeof(output->display_get_crc_data.data.data)/sizeof(output->display_get_crc_data.data.data[0]),
-                &output->display_get_crc_data.data.numEntries);
-        }
-    case nxclient_p_general_param_type_hdmi_output_get_crc_data:
-#if NEXUS_HAS_HDMI_OUTPUT
-        if (!client->session->hdmiOutput) {
-            return NEXUS_NOT_AVAILABLE;
-        }
-        else {
-            NEXUS_HdmiOutputSettings settings;
-            NEXUS_HdmiOutput_GetSettings(client->session->hdmiOutput, &settings);
-            if (settings.crcQueueSize == 0) {
-                settings.crcQueueSize = 32;
-                rc = NEXUS_HdmiOutput_SetSettings(client->session->hdmiOutput, &settings);
-                if (rc) return BERR_TRACE(rc);
-                /* when this client exits, we shutdown */
-                client->session->hdmiOutput_crc_client = client;
-            }
-            return NEXUS_HdmiOutput_GetCrcData(client->session->hdmiOutput,
-                output->hdmi_output_get_crc_data.data.data,
-                sizeof(output->hdmi_output_get_crc_data.data.data)/sizeof(output->hdmi_output_get_crc_data.data.data[0]),
-                &output->hdmi_output_get_crc_data.data.numEntries);
-        }
-#else
-        return NEXUS_NOT_AVAILABLE;
-#endif
-    case nxclient_p_general_param_type_register_acknowledge_standby:
-        {
-            struct b_client_standby_ack *ack = BKNI_Malloc(sizeof(*ack));
-            if (!ack) return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-            BLST_S_INSERT_HEAD(&client->standby.acks, ack, link);
-            ack->id = client->server->nextId[b_resource_register_standby];
-            inc_id(client->server, b_resource_register_standby);
-            output->register_acknowledge_standby.id = ack->id;
-        }
-        return NEXUS_SUCCESS;
-    case nxclient_p_general_param_type_unregister_acknowledge_standby:
-        {
-            struct b_client_standby_ack *ack;
-            for (ack = BLST_S_FIRST(&client->standby.acks); ack; ack = BLST_S_NEXT(ack, link)) {
-                if (ack->id == param->unregister_acknowledge_standby.id) {
-                    BLST_S_REMOVE(&client->standby.acks, ack, b_client_standby_ack, link);
-                    BKNI_Free(ack);
-                    break;
-                }
-            }
-            if (!ack) {
-                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            }
-        }
-        return NEXUS_SUCCESS;
-    case nxclient_p_general_param_type_acknowledge_standby:
-        {
-            struct b_client_standby_ack *ack;
-            for (ack = BLST_S_FIRST(&client->standby.acks); ack; ack = BLST_S_NEXT(ack, link)) {
-                if (ack->id == param->acknowledge_standby.id) {
-                    ack->waiting = false;
-                    break;
-                }
-            }
-            if (!ack) {
-                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-            }
-        }
-        return NEXUS_SUCCESS;
-#if NEXUS_HAS_HDMI_OUTPUT
-    case nxclient_p_general_param_type_load_hdcp_keys:
-        return nxserver_load_hdcp_keys(client->session, param->load_hdcp_keys.hdcpType, param->load_hdcp_keys.block, param->load_hdcp_keys.blockOffset, param->load_hdcp_keys.size);
-#endif
-    case nxclient_p_general_param_type_set_slave_display_graphics:
-        return nxserver_set_slave_display_graphics(client, param->set_slave_display_graphics.slaveDisplay, param->set_slave_display_graphics.surface);
-    case nxclient_p_general_param_type_get_status:
-        return nxserver_get_status(client, &output->get_status.status);
-    default:
-        break;
     }
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    return NEXUS_SUCCESS;
+}
+
+void NxClient_P_GetAudioProcessingSettings(nxclient_t client, NxClient_AudioProcessingSettings *pSettings )
+{
+    /* non-destructive or per-client functions */
+    nxserverlib_p_audio_get_audio_procesing_settings(client->session, pSettings);
+    return;
+}
+
+NEXUS_Error NxClient_P_SetAudioProcessingSettings(nxclient_t client, const NxClient_AudioProcessingSettings *pSettings )
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserverlib_p_audio_set_audio_procesing_settings(client->session, pSettings);
+}
+
+NEXUS_Error NxClient_P_Reconfig(nxclient_t client, const NxClient_ReconfigSettings *pSettings)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserverlib_p_reconfig(client, pSettings);
+}
+
+NEXUS_Error NxClient_P_Screenshot(nxclient_t client,  const NxClient_ScreenshotSettings *pSettings, NEXUS_SurfaceHandle surface)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserverlib_p_screenshot(client, pSettings, surface);
+}
+
+NEXUS_Error NxClient_P_Display_SetMacrovision(nxclient_t client, NEXUS_DisplayMacrovisionType type, bool pTable_isNull, const NEXUS_DisplayMacrovisionTables *pTable)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserverlib_p_set_macrovision(client->session, type, pTable_isNull?NULL:pTable);
+}
+
+NEXUS_Error NxClient_P_GrowHeap(nxclient_t client, unsigned heapIndex )
+{
+    /* non-destructive or per-client functions */
+    if (heapIndex >= NEXUS_MAX_HEAPS || !client->server->settings.client.heap[heapIndex] ||
+        heapIndex != NXCLIENT_DYNAMIC_HEAP) {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+    else {
+        return NEXUS_Platform_GrowHeap(client->server->settings.client.heap[heapIndex], client->server->settings.growHeapBlockSize);
+    }
+}
+
+void NxClient_P_ShrinkHeap(nxclient_t client, unsigned heapIndex )
+{
+    if (!is_trusted_client(client)) {
+        BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+        return;
+    }
+    if (heapIndex >= NEXUS_MAX_HEAPS || !client->server->settings.client.heap[heapIndex] ||
+        heapIndex != NXCLIENT_DYNAMIC_HEAP) {
+        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
+    }
+    else {
+        NEXUS_Platform_ShrinkHeap(client->server->settings.client.heap[heapIndex], client->server->settings.growHeapBlockSize, client->server->settings.growHeapBlockSize);
+        return;
+    }
+}
+
+NEXUS_Error NxClient_P_Config_LookupClient(nxclient_t client, unsigned pid, NEXUS_ClientHandle *pHandle)
+{
+    *pHandle = 0;
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    *pHandle = nxserverlib_p_lookup_client(client->server, pid);
+    return *pHandle ? 0 : NEXUS_INVALID_PARAMETER;
+}
+
+NEXUS_Error NxClient_P_Display_GetCrcData(nxclient_t client, unsigned displayIndex, NxClient_DisplayCrcData *pData)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    if (displayIndex >= NXCLIENT_MAX_DISPLAYS) {
+        return NEXUS_NOT_AVAILABLE;
+    }
+    else {
+        NEXUS_DisplayHandle display = client->session->display[displayIndex].display;
+        NEXUS_DisplaySettings settings;
+        NEXUS_Error rc;
+        if (!display) {
+            return NEXUS_NOT_AVAILABLE;
+        }
+        NEXUS_Display_GetSettings(display, &settings);
+        if (settings.crcQueueSize == 0) {
+            settings.crcQueueSize = 32;
+            rc = NEXUS_Display_SetSettings(display, &settings);
+            if (rc) return BERR_TRACE(rc);
+            /* when this client exits, we shutdown */
+            client->session->display[displayIndex].crc_client = client;
+        }
+        return NEXUS_Display_GetCrcData(display,
+                                        pData->data,
+                                        sizeof(pData->data)/sizeof(pData->data[0]),
+                                        &pData->numEntries);
+    }
+}
+
+NEXUS_Error NxClient_P_HdmiOutput_GetCrcData(nxclient_t client, NxClient_HdmiOutputCrcData *pData )
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+#if NEXUS_HAS_HDMI_OUTPUT
+    if (!client->session->hdmiOutput) {
+        return NEXUS_NOT_AVAILABLE;
+    }
+    else {
+        NEXUS_HdmiOutputSettings settings;
+        NEXUS_Error rc;
+        NEXUS_HdmiOutput_GetSettings(client->session->hdmiOutput, &settings);
+        if (settings.crcQueueSize == 0) {
+            settings.crcQueueSize = 32;
+            rc = NEXUS_HdmiOutput_SetSettings(client->session->hdmiOutput, &settings);
+            if (rc) return BERR_TRACE(rc);
+            /* when this client exits, we shutdown */
+            client->session->hdmiOutput_crc_client = client;
+        }
+        return NEXUS_HdmiOutput_GetCrcData(client->session->hdmiOutput,
+                                           pData->data,
+                                           sizeof(pData->data)/sizeof(pData->data[0]),
+                                           &pData->numEntries);
+    }
+#else
+    return NEXUS_NOT_AVAILABLE;
+#endif
+}
+
+NEXUS_Error NxClient_P_RegisterAcknowledgeStandby_ipc(nxclient_t client, unsigned *id)
+{
+    struct b_client_standby_ack *ack;
+
+    /* non-destructive or per-client functions */
+    ack = BKNI_Malloc(sizeof(*ack));
+    if (!ack) return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+    BLST_S_INSERT_HEAD(&client->standby.acks, ack, link);
+    ack->id = client->server->nextId[b_resource_register_standby];
+    inc_id(client->server, b_resource_register_standby);
+    *id = ack->id;
+    return NEXUS_SUCCESS;
+}
+
+void NxClient_P_UnregisterAcknowledgeStandby(nxclient_t client, unsigned id )
+{
+    struct b_client_standby_ack *ack;
+    /* non-destructive or per-client functions */
+
+    for (ack = BLST_S_FIRST(&client->standby.acks); ack; ack = BLST_S_NEXT(ack, link)) {
+        if (ack->id == id) {
+            BLST_S_REMOVE(&client->standby.acks, ack, b_client_standby_ack, link);
+            BKNI_Free(ack);
+            break;
+        }
+    }
+    if (!ack) {
+        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
+    }
+    return;
+}
+
+void NxClient_P_AcknowledgeStandby(nxclient_t client, unsigned id )
+{
+    struct b_client_standby_ack *ack;
+    /* non-destructive or per-client functions */
+    for (ack = BLST_S_FIRST(&client->standby.acks); ack; ack = BLST_S_NEXT(ack, link)) {
+        if (ack->id == id) {
+            ack->waiting = false;
+            break;
+        }
+    }
+    if (!ack) {
+        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
+    }
+    return;
+}
+
+NEXUS_Error NxClient_P_LoadHdcpKeys(nxclient_t client, NxClient_HdcpType hdcpType, NEXUS_MemoryBlockHandle block, unsigned blockOffset,unsigned size)
+{
+#if NEXUS_HAS_HDMI_OUTPUT
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserver_load_hdcp_keys(client->session, hdcpType, block, blockOffset, size);
+#else
+    return NEXUS_NOT_AVAILABLE;
+#endif
+}
+
+NEXUS_Error NxClient_P_SetHdmiInputRepeater(nxclient_t client, NEXUS_HdmiInputHandle hdmiInput)
+{
+#if NEXUS_HAS_HDMI_OUTPUT
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserver_set_hdmi_input_repeater(client, hdmiInput);
+#else
+    return NEXUS_NOT_AVAILABLE;
+#endif
+}
+
+NEXUS_Error NxClient_P_SetSlaveDisplayGraphics(nxclient_t client, unsigned slaveDisplay, NEXUS_SurfaceHandle surface)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserver_set_slave_display_graphics(client, slaveDisplay, surface);
+}
+
+NEXUS_Error NxClient_P_GetStatus(nxclient_t client, NxClient_Status *pStatus)
+{
+    if (!is_trusted_client(client)) {
+        return BERR_TRACE(NXCLIENT_NOT_ALLOWED);
+    }
+    return nxserver_get_status(client, pStatus);
 }
 
 static NEXUS_VideoFormat get_4k_matching_format(NEXUS_VideoFormat format)
@@ -1618,15 +1727,9 @@ static NEXUS_HeapHandle nxserver_p_framebuffer_heap(struct b_session *session, u
         NEXUS_MemoryStatus status;
         NEXUS_Heap_GetStatus(heap, &status);
         switch (status.memcIndex) {
-#ifdef NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
         case 0: heap = session->server->platformConfig.heap[NEXUS_MEMC0_SECURE_GRAPHICS_HEAP]; break;
-#endif
-#ifdef NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
         case 1: heap = session->server->platformConfig.heap[NEXUS_MEMC1_SECURE_GRAPHICS_HEAP]; break;
-#endif
-#ifdef NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
         case 2: heap = session->server->platformConfig.heap[NEXUS_MEMC2_SECURE_GRAPHICS_HEAP]; break;
-#endif
         default: heap = NULL; break;
         }
         if (!heap) {
@@ -1871,6 +1974,7 @@ static void nxserver_check_hdcp(struct b_session *session)
 {
     int rc;
     nxclient_t client;
+    nxclient_t repeaterClient;
     NxClient_HdcpLevel prev_hdcp_level = session->server->settings.hdcp.alwaysLevel;
     NxClient_HdcpLevel curr_hdcp_level;
     NxClient_HdcpVersion version_select = session->hdcp.currSelect;
@@ -1883,12 +1987,18 @@ static void nxserver_check_hdcp(struct b_session *session)
     if (!session->hdmiOutput) return;
 
     hdmiOutput = session->hdmiOutput;
+    repeaterClient = session->hdmi.repeater.client;
 
-    /* find highest hdcp level among all clients */
-    curr_hdcp_level = prev_hdcp_level;
-    for (client = BLST_D_FIRST(&session->server->clients); client; client = BLST_D_NEXT(client, link)) {
-        if (client->hdcp > prev_hdcp_level) {
-            curr_hdcp_level = client->hdcp;
+    if (repeaterClient) {
+        curr_hdcp_level = repeaterClient->hdcp;
+    }
+    else {
+        /* find highest hdcp level among all clients */
+        curr_hdcp_level = prev_hdcp_level;
+        for (client = BLST_D_FIRST(&session->server->clients); client; client = BLST_D_NEXT(client, link)) {
+            if (client->hdcp > prev_hdcp_level) {
+                curr_hdcp_level = client->hdcp;
+            }
         }
     }
 
@@ -1899,6 +2009,9 @@ static void nxserver_check_hdcp(struct b_session *session)
     if (rc) { BERR_TRACE(rc); goto done; }
     if (!hdmiStatus.rxPowered) {
         BDBG_MSG(("hdmiStatus.rxPowered == 0, do nothing"));
+        if (repeaterClient) {
+            repeaterClient->hdcp = NxClient_HdcpLevel_eNone;
+        }
         session->callbackStatus.hdmiOutputHdcpChanged++;
         session->hdcp.version_state = nxserver_hdcp_not_pending;
         goto done;
@@ -2032,11 +2145,18 @@ static void nxserver_check_hdcp(struct b_session *session)
     case nxserver_hdcp_pending_start:
     case nxserver_hdcp_pending_start_retry:
         if (!is_hdcp_start_complete(&hdcpStatus)) {
-            initializeHdmiOutputHdcpSettings(session, version_select);
-            rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
-            if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+            if (repeaterClient) {
+                BDBG_WRN(("nxserver_check_hdcp: authentication failed in repeater mode. no auto-restart."));
+                repeaterClient->hdcp = NxClient_HdcpLevel_eNone;
+                session->hdcp.version_state = nxserver_hdcp_not_pending;
+            }
+            else {
+                initializeHdmiOutputHdcpSettings(session, version_select);
+                rc = NEXUS_HdmiOutput_StartHdcpAuthentication(hdmiOutput);
+                if (rc) BDBG_ERR(("nxserver_check_hdcp: %s: NEXUS_HdmiOutput_StartHdcpAuthentication failed: %d", g_nxserver_hdcp_str[curr_version_state], rc));
+                session->hdcp.version_state = nxserver_hdcp_pending_start_retry;
+            }
             session->callbackStatus.hdmiOutputHdcpChanged++;
-            session->hdcp.version_state = nxserver_hdcp_pending_start_retry;
         }
         else {
             session->callbackStatus.hdmiOutputHdcpChanged++;
@@ -2178,22 +2298,6 @@ static void nxserver_p_acquire_release_all_resources(struct b_session *session, 
 }
 
 #if NEXUS_HAS_HDMI_OUTPUT
-/*
-from HDCP Spec:
-Table 51 gives the format of the HDCP SRM. All values are stored in big endian format.
-
-Specify KSVs here in big endian;
-*/
-#define NUM_REVOKED_KSVS 3
-static uint8_t NumRevokedKsvs = NUM_REVOKED_KSVS;
-static const NEXUS_HdmiOutputHdcpKsv RevokedKsvs[NUM_REVOKED_KSVS] =
-{
-    /* MSB ... LSB */
-    {{0xa5, 0x1f, 0xb0, 0xc3, 0x72}},
-    {{0x65, 0xbf, 0x04, 0x8a, 0x7c}},
-    {{0x65, 0x65, 0x1e, 0xd5, 0x64}}
-};
-
 static void nxserver_hdcp_mute(struct b_session *session)
 {
     int rc;
@@ -2422,6 +2526,26 @@ err_prop:
     return rc;
 }
 
+static NEXUS_Error nxserver_set_hdmi_input_repeater(nxclient_t client, NEXUS_HdmiInputHandle hdmiInput)
+{
+    struct b_session *session = client->session;
+    nxserver_t server = session->server;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    if (!session->hdmiOutput) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+#if NEXUS_HAS_HDMI_INPUT
+    session->hdmi.repeater.client = client;
+    NEXUS_HdmiOutput_SetRepeaterInput(session->hdmiOutput, hdmiInput);
+#else
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif
+    client->hdcp = NxClient_HdcpLevel_eMandatory;
+    session->hdcp.version_state = nxserver_hdcp_not_pending;
+    nxserver_check_hdcp(session);
+    return rc;
+}
+
 static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient_HdcpVersion version_select)
 {
     NEXUS_Error rc;
@@ -2466,13 +2590,6 @@ static void initializeHdmiOutputHdcpSettings(struct b_session *session, NxClient
             BDBG_ERR(("Error setting Hdcp2x encrypted keys. HDCP2.x will not work."));
             /* fall through for HDCP 1.x */
         }
-    }
-
-    /* install list of revoked KSVs from SRMs (System Renewability Message) if available */
-    rc = NEXUS_HdmiOutput_SetHdcpRevokedKsvs(session->hdmiOutput, RevokedKsvs, NumRevokedKsvs);
-    if (rc) {
-        BERR_TRACE(rc);
-        /* fall through */
     }
 
 }
@@ -2559,7 +2676,7 @@ bool nxserver_p_video_only_display(struct b_session *session, unsigned displayIn
 
 static bool nxserver_p_has_spdif_output(struct b_session *session)
 {
-#if NEXUS_NUM_SPDIF_OUTPUTS
+#if NEXUS_HAS_AUDIO
     return nxserverlib_p_session_has_sd_audio(session) && session->server->platformConfig.outputs.spdif[0];
 #else
     BSTD_UNUSED(session);
@@ -2811,15 +2928,12 @@ after_display_open:
             if (!session->main_audio) {rc = BERR_TRACE(-1); goto error;}
         }
     }
-#endif
     if (nxserver_p_has_spdif_output(session)) {
-#if NEXUS_NUM_SPDIF_OUTPUTS
         NEXUS_SpdifOutputSettings settings;
         NEXUS_SpdifOutput_GetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
         session->audioSettings.spdif.channelStatusInfo = settings.channelStatusInfo;
-#endif
     }
-
+#endif
 
 #if (BCHP_CHIP == 11360)
 /* Ignore check for display if session_display_index is 0 for non-BCG displays -
@@ -3996,6 +4110,9 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
     int rc;
     bool reconfig_audio = false;
     bool restart = false;
+    NEXUS_AudioCapabilities audioCapabilities;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     if (pSettings->sequenceNumber != session->audioSettings.sequenceNumber) {
         return BERR_TRACE(NXCLIENT_BAD_SEQUENCE_NUMBER);
@@ -4009,15 +4126,17 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
     }
 
     if (nxserverlib_p_session_has_sd_audio(session)) {
-        #if NEXUS_NUM_AUDIO_DACS || NEXUS_NUM_I2S_OUTPUTS
-        #if NEXUS_NUM_AUDIO_DACS
-        NEXUS_AudioOutput audioOutput = NEXUS_AudioDac_GetConnector(session->server->platformConfig.outputs.audioDacs[0]);
-        #else
-        NEXUS_AudioOutput audioOutput = NEXUS_I2sOutput_GetConnector(session->server->platformConfig.outputs.i2s[0]);
-        #endif
-        rc = nxserver_p_set_audio_output(session, audioOutput, pSettings, &pSettings->dac);
-        if (rc) {return BERR_TRACE(rc);}
-        #endif
+        if (audioCapabilities.numOutputs.dac > 0) {
+            NEXUS_AudioOutput audioOutput = NEXUS_AudioDac_GetConnector(session->server->platformConfig.outputs.audioDacs[0]);
+            rc = nxserver_p_set_audio_output(session, audioOutput, pSettings, &pSettings->dac);
+            if (rc) {return BERR_TRACE(rc);}
+        }
+        else if (audioCapabilities.numOutputs.i2s > 0) {
+            NEXUS_AudioOutput audioOutput = NEXUS_I2sOutput_GetConnector(session->server->platformConfig.outputs.i2s[0]);
+            rc = nxserver_p_set_audio_output(session, audioOutput, pSettings, &pSettings->dac);
+            if (rc) {return BERR_TRACE(rc);}
+        }
+
         #if NEXUS_NUM_RFM_OUTPUTS
         if (session->server->platformConfig.outputs.rfm[0]) {
             rc = nxserver_p_set_audio_output(session, NEXUS_Rfm_GetAudioConnector(session->server->platformConfig.outputs.rfm[0]), pSettings, &pSettings->rfm);
@@ -4026,40 +4145,41 @@ static NEXUS_Error NxClient_P_SetSessionAudioSettings(struct b_session *session,
         #endif
     }
 
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    if (nxserver_p_has_spdif_output(session)) {
-        NEXUS_SpdifOutputSettings settings;
-        rc = nxserver_p_set_audio_output(session, NEXUS_SpdifOutput_GetConnector(session->server->platformConfig.outputs.spdif[0]), pSettings, &pSettings->spdif);
-        if (rc) {return BERR_TRACE(rc);}
-
-        NEXUS_SpdifOutput_GetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
-        if (BKNI_Memcmp(&settings.channelStatusInfo, &pSettings->spdif.channelStatusInfo, sizeof(settings.channelStatusInfo))) {
-            settings.channelStatusInfo = pSettings->spdif.channelStatusInfo;
-            rc = NEXUS_SpdifOutput_SetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        if (nxserver_p_has_spdif_output(session)) {
+            NEXUS_SpdifOutputSettings settings;
+            rc = nxserver_p_set_audio_output(session, NEXUS_SpdifOutput_GetConnector(session->server->platformConfig.outputs.spdif[0]), pSettings, &pSettings->spdif);
             if (rc) {return BERR_TRACE(rc);}
+
+            NEXUS_SpdifOutput_GetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
+            if (BKNI_Memcmp(&settings.channelStatusInfo, &pSettings->spdif.channelStatusInfo, sizeof(settings.channelStatusInfo))) {
+                settings.channelStatusInfo = pSettings->spdif.channelStatusInfo;
+                rc = NEXUS_SpdifOutput_SetSettings(session->server->platformConfig.outputs.spdif[0], &settings);
+                if (rc) {return BERR_TRACE(rc);}
+            }
         }
     }
-#endif
-
-#if NEXUS_HAS_HDMI_OUTPUT
-    if (session->hdmiOutput) {
-        NEXUS_HdmiOutputSettings settings;
-        bool hdmiChanged = false;
-        rc = nxserver_p_set_audio_output(session, NEXUS_HdmiOutput_GetAudioConnector(session->hdmiOutput), pSettings, &pSettings->hdmi);
-        if (rc) {return BERR_TRACE(rc);}
-
-        NEXUS_HdmiOutput_GetSettings(session->hdmiOutput, &settings);
-        if (BKNI_Memcmp(&settings.audioChannelStatusInfo, &pSettings->hdmi.channelStatusInfo, sizeof(settings.audioChannelStatusInfo))) {
-            settings.audioChannelStatusInfo = pSettings->hdmi.channelStatusInfo;
-            hdmiChanged = true;
-        }
-        if (settings.loudnessDeviceMode != pSettings->hdmi.loudnessDeviceMode) {
-            settings.loudnessDeviceMode = pSettings->hdmi.loudnessDeviceMode;
-            hdmiChanged = true;
-        }
-        if (hdmiChanged) {
-            rc = NEXUS_HdmiOutput_SetSettings(session->hdmiOutput, &settings);
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0) {
+        if (session->hdmiOutput) {
+            NEXUS_HdmiOutputSettings settings;
+            bool hdmiChanged = false;
+            rc = nxserver_p_set_audio_output(session, NEXUS_HdmiOutput_GetAudioConnector(session->hdmiOutput), pSettings, &pSettings->hdmi);
             if (rc) {return BERR_TRACE(rc);}
+
+            NEXUS_HdmiOutput_GetSettings(session->hdmiOutput, &settings);
+            if (BKNI_Memcmp(&settings.audioChannelStatusInfo, &pSettings->hdmi.channelStatusInfo, sizeof(settings.audioChannelStatusInfo))) {
+                settings.audioChannelStatusInfo = pSettings->hdmi.channelStatusInfo;
+                hdmiChanged = true;
+            }
+            if (settings.loudnessDeviceMode != pSettings->hdmi.loudnessDeviceMode) {
+                settings.loudnessDeviceMode = pSettings->hdmi.loudnessDeviceMode;
+                hdmiChanged = true;
+            }
+            if (hdmiChanged) {
+                rc = NEXUS_HdmiOutput_SetSettings(session->hdmiOutput, &settings);
+                if (rc) {return BERR_TRACE(rc);}
+            }
         }
     }
 #endif
@@ -4346,9 +4466,6 @@ static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClien
                 hdmiOutputHdcpSettings.stateChangedCallback.context = session;
                 rc = NEXUS_HdmiOutput_SetHdcpSettings(session->hdmiOutput, &hdmiOutputHdcpSettings);
                 if (rc) rc = BERR_TRACE(rc);
-
-                /* install list of revoked KSVs from SRMs (System Renewability Message) if available */
-                NEXUS_HdmiOutput_SetHdcpRevokedKsvs(session->hdmiOutput, RevokedKsvs, NumRevokedKsvs);
 
                 NEXUS_HdmiOutput_GetSettings(session->hdmiOutput, &hdmiSettings);
                 hdmiSettings.hotplugCallback.callback = hotplug_callback;

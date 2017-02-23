@@ -140,7 +140,7 @@ BERR_Code BSAT_g1_P_EnableTimer_isr(BSAT_ChannelHandle h, BSAT_TimerSelect t, ui
 
    if (delay == 0)
    {
-      BDBG_ERR(("BSAT_g1_P_EnableTimer_isr(%d): delay=0, t=%d, func=0x%X", h->channel, t, func));
+      BDBG_ERR(("BSAT_g1_P_EnableTimer_isr(%d): delay=0, t=%d, func=0x%X", h->channel, t, (unsigned int)func));
       return BERR_INVALID_PARAMETER;
    }
 

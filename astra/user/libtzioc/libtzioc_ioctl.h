@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,11 +63,11 @@ int _tzioc_ioctl_map_paddr(
     uint32_t ulPaddr,
     uint32_t ulSize,
     uint32_t ulFlags,
-    uint32_t *pulVaddr);
+    uintptr_t *pulVaddr);
 
 int _tzioc_ioctl_unmap_paddr(
     struct tzioc_client *pClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize);
 
 int _tzioc_ioctl_map_paddrs(

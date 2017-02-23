@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -491,6 +491,9 @@ typedef struct BXDM_PictureProvider_P_Config
 
    BXDM_PictureProvider_P_DebugFifo stDebugFifo;
    BXDM_Debug_ReaderInfo stDebugReader;
+
+   /* SWSTB-3450: to support overriding the color parameters */
+   BXDM_PictureProvider_ColorOverride stColorOverride;
 
 } BXDM_PictureProvider_P_Config;
 

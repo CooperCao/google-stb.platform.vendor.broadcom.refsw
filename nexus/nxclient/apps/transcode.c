@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_STREAM_MUX
 #include "nxclient.h"
@@ -123,6 +122,8 @@ typedef struct EncodeContext
         NEXUS_PidChannelHandle passthrough[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
         unsigned num_passthrough;
         NEXUS_KeySlotHandle keyslot;
+        bool useInitialPts;
+        uint32_t initialPts;
     } encoderStartSettings;
     NEXUS_SimpleEncoderStartSettings startSettings;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
@@ -301,7 +302,10 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         );
     printf(
         "  -video         output video pid (0 for no video)\n"
-        "  -video_type    output video codec\n"
+        );
+    print_list_option(
+        "  -video_type    output video type",g_videoCodecStrs);
+    printf(
         "  -video_bitrate RATE   output video bitrate in Mbps\n"
         "  -video_size    WIDTH,HEIGHT (default is 1280,720)\n"
         "  -window X,Y,WIDTH,HEIGHT    window within video_size (default is full size)\n"
@@ -316,7 +320,10 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         );
     printf(
         "  -audio         output audio pid (0 for no audio)\n"
-        "  -audio_type    output audio codec\n"
+        );
+    print_list_option(
+        "  -audio_type    output audio type",g_audioCodecStrs);
+    printf(
         "  -audio_passthrough    audio codec passthrough\n"
         "  -audio_samplerate     audio output sample rate in HZ\n"
         "  -audio_bitrate  output audio bitrate in bps"
@@ -331,6 +338,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -rt            real-time encoding (default is non-real-time)\n"
         "  -tts           record with 4 byte timestamp\n"
         "  -gui off \n"
+        "  -initial_pts PTS\n"
         );
     printf(
         "  -passthrough PID[=REMAP] Passthrough PID with optional remap PID. Option can be given %d times.\n", NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS
@@ -342,7 +350,8 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         "  -hdmi_input    encode hdmi input instead of INPUTFILE\n"
         "  -graphics      encode graphics instead of INPUTFILE\n"
         );
-    print_list_option("format",g_videoFormatStrs);
+    print_list_option(
+        "  -format        max source format",g_videoFormatStrs);
 }
 
 static unsigned b_get_time(void)
@@ -523,6 +532,8 @@ static int start_encode(EncodeContext *pContext)
         }
     }
 
+    encoderSettings.finished.callback = complete;
+    encoderSettings.finished.context = pContext->finishEvent;
     rc = NEXUS_SimpleEncoder_SetSettings(pContext->hEncoder, &encoderSettings);
     BDBG_ASSERT(!rc);
 
@@ -538,7 +549,11 @@ static int start_encode(EncodeContext *pContext)
         startSettings.output.transport.type = NEXUS_TransportType_eTs;
     startSettings.output.video.index = !pContext->encoderStartSettings.raiIndex;
     startSettings.output.video.raiIndex = pContext->encoderStartSettings.raiIndex;
+    startSettings.output.video.settings.bounds.inputDimension.max.width = pContext->encoderSettings.width;
+    startSettings.output.video.settings.bounds.inputDimension.max.height = pContext->encoderSettings.height;
     startSettings.output.video.settings.interlaced = pContext->encoderSettings.interlaced;
+    startSettings.transcode.useInitialPts = pContext->encoderStartSettings.useInitialPts;
+    startSettings.transcode.initialPts = pContext->encoderStartSettings.initialPts;
     if (pContext->encoderStartSettings.videoCodec) {
         startSettings.output.video.settings.codec = pContext->encoderStartSettings.videoCodec;
     }
@@ -570,6 +585,9 @@ static int start_encode(EncodeContext *pContext)
     }
     startSettings.output.video.keyslot = pContext->encoderStartSettings.keyslot;
     startSettings.output.audio.keyslot = pContext->encoderStartSettings.keyslot;
+    for (i=0;i<pContext->encoderStartSettings.num_passthrough;i++) {
+        startSettings.output.passthrough[i].keyslot = pContext->encoderStartSettings.keyslot;
+    }
 
     rc = NEXUS_SimpleEncoder_Start(pContext->hEncoder, &startSettings);
     if (rc) {
@@ -723,8 +741,15 @@ static void stop_encode(EncodeContext *pContext)
     if (pContext->hPlayback) {
         NEXUS_Playback_Stop(pContext->hPlayback);
     }
-    if(!pContext->outputEs && !pContext->outputMp4) {
-        NEXUS_Recpump_Stop(pContext->hRecpump);
+    if (pContext->hVideoDecoder) {
+        NEXUS_SimpleVideoDecoder_Stop(pContext->hVideoDecoder);
+    }
+    if (pContext->hAudioDecoder) {
+        NEXUS_SimpleAudioDecoder_Stop(pContext->hAudioDecoder);
+    }
+
+    if (BKNI_WaitForEvent(pContext->finishEvent, 5 * 60 * 1000) != BERR_SUCCESS) {
+        BDBG_ERR(("SimpleEncoder finish timeout"));
     }
     /* resume auto stop mode before stop */
     NEXUS_SimpleEncoder_GetSettings(pContext->hEncoder,&encoderSettings);
@@ -732,12 +757,10 @@ static void stop_encode(EncodeContext *pContext)
     NEXUS_SimpleEncoder_SetSettings(pContext->hEncoder,&encoderSettings);
     NEXUS_SimpleEncoder_Stop(pContext->hEncoder);
 
-    if (pContext->hVideoDecoder) {
-        NEXUS_SimpleVideoDecoder_Stop(pContext->hVideoDecoder);
+    if(!pContext->outputEs && !pContext->outputMp4) {
+        NEXUS_Recpump_Stop(pContext->hRecpump);
     }
-    if (pContext->hAudioDecoder) {
-        NEXUS_SimpleAudioDecoder_Stop(pContext->hAudioDecoder);
-    }
+
     if (pContext->input_type == input_type_hdmi) {
         if (pContext->hVideoDecoder) {
             NEXUS_SimpleVideoDecoder_StopHdmiInput(pContext->hVideoDecoder);
@@ -757,7 +780,6 @@ static void stop_encode(EncodeContext *pContext)
         NEXUS_FileMux_Stop(pContext->fileMux);
         NEXUS_MuxFile_Close(pContext->muxFileOutput);
         NEXUS_FileMux_Destroy(pContext->fileMux);
-        BKNI_DestroyEvent(pContext->finishEvent);
     }
     if (pContext->outputAes) {
         fclose(pContext->pOutputAes);
@@ -826,8 +848,7 @@ int main(int argc, const char **argv)  {
     EncodeContext context;
     unsigned timeout = 0;
     bool loop = false;
-    bool reachedEof = false;
-    unsigned starttime, thistime, eofTime = 0;
+    unsigned starttime, thistime;
     bool gui = true;
     brecord_gui_t record_gui = NULL;
     bool realtime = false;
@@ -988,6 +1009,10 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-crypto") && curarg+1 < argc) {
             encrypt_algo = lookup(g_securityAlgoStrs, argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-initial_pts") && curarg+1 < argc) {
+            context.encoderStartSettings.useInitialPts = true;
+            context.encoderStartSettings.initialPts = strtoul(argv[++curarg], NULL, 0);
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -1101,20 +1126,23 @@ int main(int argc, const char **argv)  {
     connectSettings.simpleAudioDecoder.id = allocResults.simpleAudioDecoder.id;
     connectSettings.simpleEncoder[0].id = allocResults.simpleEncoder[0].id;
     connectSettings.simpleEncoder[0].nonRealTime = !realtime;
-    connectSettings.simpleEncoder[0].encoderCapabilities.maxWidth = context.encoderSettings.width;
-    connectSettings.simpleEncoder[0].encoderCapabilities.maxHeight = context.encoderSettings.height;
-
-    NEXUS_LookupFrameRate(context.encoderSettings.frameRate, &context.encoderSettings.frameRateEnum);
-    /* with 1000/1001 rate tracking by default */
-    switch (context.encoderSettings.frameRateEnum) {
-    case NEXUS_VideoFrameRate_e29_97:  context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e30; break;
-    case NEXUS_VideoFrameRate_e59_94:  context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e60; break;
-    case NEXUS_VideoFrameRate_e23_976: context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e24; break;
-    case NEXUS_VideoFrameRate_e14_985: context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e15; break;
-    default: break;
+    if (context.encoderSettings.width && context.encoderSettings.height) {
+        connectSettings.simpleEncoder[0].encoderCapabilities.maxWidth = context.encoderSettings.width;
+        connectSettings.simpleEncoder[0].encoderCapabilities.maxHeight = context.encoderSettings.height;
     }
+    if (context.encoderSettings.frameRate) {
+        NEXUS_LookupFrameRate(context.encoderSettings.frameRate, &context.encoderSettings.frameRateEnum);
+        /* with 1000/1001 rate tracking by default */
+        switch (context.encoderSettings.frameRateEnum) {
+        case NEXUS_VideoFrameRate_e29_97:  context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e30; break;
+        case NEXUS_VideoFrameRate_e59_94:  context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e60; break;
+        case NEXUS_VideoFrameRate_e23_976: context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e24; break;
+        case NEXUS_VideoFrameRate_e14_985: context.encoderSettings.frameRateEnum = NEXUS_VideoFrameRate_e15; break;
+        default: break;
+        }
 
-    connectSettings.simpleEncoder[0].encoderCapabilities.maxFrameRate = context.encoderSettings.frameRateEnum;
+        connectSettings.simpleEncoder[0].encoderCapabilities.maxFrameRate = context.encoderSettings.frameRateEnum;
+    }
     rc = NxClient_Connect(&connectSettings, &connectId);
     if (rc) {BDBG_WRN(("unable to connect transcode resources")); return -1;}
 
@@ -1172,6 +1200,7 @@ int main(int argc, const char **argv)  {
     }
 
     BKNI_CreateEvent(&dataReadyEvent);
+    BKNI_CreateEvent(&context.finishEvent);
 
     context.hEncoder = NEXUS_SimpleEncoder_Acquire(allocResults.simpleEncoder[0].id);
     BDBG_ASSERT(context.hEncoder);
@@ -1198,7 +1227,6 @@ int main(int argc, const char **argv)  {
     } if (context.outputMp4) {
         NEXUS_FileMuxCreateSettings muxFileCreateSettings;
 
-        BKNI_CreateEvent(&context.finishEvent);
         NEXUS_FileMux_GetDefaultCreateSettings(&muxFileCreateSettings);
         muxFileCreateSettings.finished.callback = complete;
         muxFileCreateSettings.finished.context = context.finishEvent;
@@ -1412,17 +1440,10 @@ int main(int argc, const char **argv)  {
         }
 
 check_for_end:
-        /* if reached EOF, flush out the last a few seconds data due to buffer delay */
-        if(!loop && reachedEof && (thistime - eofTime) > (realtime? 3000:300)) {/* NRT mode drained fast */
-            BDBG_MSG(("tistime = %u ms, eofTime = %u ms", thistime, eofTime));
-            break;
-        }
-        if (!loop && context.hPlayback && !reachedEof) {
+        if (!loop && context.hPlayback) {
             NEXUS_PlaybackStatus status;
             NEXUS_Playback_GetStatus(context.hPlayback, &status);
             if (status.state == NEXUS_PlaybackState_ePaused) {
-                eofTime = b_get_time();
-                reachedEof = true;
                 if(context.hEncoder && !realtime) {
                     /* unlink video from stream mux output to allow final audio frames to come output of mux in NRT mode. */
                     if(!context.outputEs) {
@@ -1432,15 +1453,15 @@ check_for_end:
                         NEXUS_SimpleEncoder_Stop(context.hEncoder);
                     }
                 }
-                BDBG_MSG(("EOF!"));
+                break;
             }
         }
     } while (!timeout || (thistime - starttime)/1000 < timeout || context.stopped);
 
     /* encoder thread will exit when EOS is received */
-    BDBG_WRN(("%s -> %s: context.stopped", context.filename, context.outputfile));
-
+    BDBG_WRN(("%s -> %s: stopping", context.filename, context.outputfile));
     stop_encode(&context);
+    BDBG_WRN(("%s -> %s: stopped", context.filename, context.outputfile));
 
     /* Bring down system */
     if (record_gui) {
@@ -1450,6 +1471,7 @@ check_for_end:
     if (crypto) {
         dvr_crypto_destroy(crypto);
     }
+    BKNI_DestroyEvent(context.finishEvent);
     BKNI_DestroyEvent(dataReadyEvent);
     if(!context.outputEs && !context.outputMp4) {
         NEXUS_Recpump_Close(context.hRecpump);

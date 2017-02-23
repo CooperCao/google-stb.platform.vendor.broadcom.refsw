@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,10 +91,9 @@ Description:
 ***************************************************************************/
 typedef struct BDSP_Arm_P_MsgQueue
 {
-    BMEM_Handle hHeap;
     BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psQueuePointer;
     int32_t  MsgQueueHandleIndex;     /*Message queue Handle Index for this message queue */
-    void * pBaseAddr;                 /* Address of the buffer provided*/
+    BDSP_MMA_Memory Memory;
     uint32_t ui32Size;                /* Size of the Buffer */
 } BDSP_Arm_P_MsgQueue;
 
@@ -124,6 +123,15 @@ typedef struct BDSP_Arm_P_HbcInfo
 
 }BDSP_Arm_P_HbcInfo;
 
+typedef struct BDSP_Arm_P_InterfaceQueue{
+    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *parmInterfaceQHndl; /*[BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE];*/ /* Stores the physical address of Interface Queue Handle */
+    BDSP_MMA_Memory  Memory; /*[BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE];*/ /* Stores the physical address of Interface Queue Handle */
+}BDSP_Arm_P_InterfaceQueue;
+
+typedef struct BDSP_Arm_P_Hbc{
+    BDSP_Arm_P_HbcInfo  *psHbcInfo;
+    BDSP_MMA_Memory     Memory;
+}BDSP_Arm_P_Hbc;
 
 typedef struct BDSP_Arm
 {
@@ -137,17 +145,18 @@ typedef struct BDSP_Arm
     BDSP_ArmSettings settings;
     BCHP_Handle chpHandle;
     BREG_Handle regHandle;
-    BMEM_Handle memHandle;
+    BMMA_Heap_Handle memHandle;
     BINT_Handle intHandle;
     BKNI_EventHandle hDeviceEvent;
     size_t fwHeapSize;
     void *pFwHeapMemory;
+    dramaddr_t FwHeapOffset;
     BDSP_ArmImgCacheEntry imgCache[BDSP_ARM_IMG_ID_MAX];
     BLST_S_HEAD(BDSP_ArmContextList, BDSP_ArmContext) contextList;
     BDSP_Arm_P_TaskInfo taskDetails;
     BDSP_Arm_P_MemoryGrant memInfo;
     bool armIntrfcQHndlFlag[BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE];
-    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *armInterfaceQHndl; /*[BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE];*/ /* Stores the physical address of Interface Queue Handle */
+    BDSP_Arm_P_InterfaceQueue  sArmInterfaceQ; /*[BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE];*/ /* Stores the physical address of Interface Queue Handle */
     BDSP_Arm_P_MsgQueueHandle hCmdQueue;         /* Cmd queue handle*/
     BDSP_Arm_P_MsgQueueHandle hGenRspQueue;      /* Generic Response queue handle*/
     bool                    deviceWatchdogFlag;
@@ -155,8 +164,7 @@ typedef struct BDSP_Arm
     BKNI_MutexHandle captureMutex;
     BKNI_MutexHandle    watchdogMutex;
     BDSP_Arm_MapTableEntry       sDeviceMapTable[BDSP_ARM_MAX_ALLOC_DEVICE];
-    BDSP_Arm_P_HbcInfo          *psHbcInfo;
-
+    BDSP_Arm_P_Hbc              HbcInfo;
 }BDSP_Arm;
 
 typedef struct BDSP_ArmContext
@@ -219,7 +227,7 @@ typedef struct BDSP_Arm_P_TaskCallBacks
     BDSP_Arm_P_TaskMemoryInfo taskMemGrants; /* Memory for contiguous Async Msgs */
     uint32_t        eventEnabledMask;        /* Contains information abt. event ids already enabled */
     BDSP_TaskSchedulingMode schedulingMode;
-    void            *pFeedbackBuffer;               /* Feedback buffer between Tasks(Master writes-Slaves read) */
+    BDSP_MMA_Memory FeedbackBuffer;             /* Feedback buffer between Tasks(Master writes-Slaves read) */
     BDSP_Arm_MapTableEntry       sTaskMapTable[BDSP_ARM_MAX_ALLOC_TASK];
 #if 0
     BDSP_Raaga_P_MsgQueueHandle      hPDQueue;      /* Picture Delivery queue(PDQ)*/
@@ -250,15 +258,15 @@ typedef struct BDSP_ArmStage
     unsigned ui32BranchId;/*stores the branch information during traversing; can be used for filling in node network*/
 
     /*Alloc these buffers during Stage create*/
-    BDSP_AF_P_sDRAM_BUFFER_isr   sDramUserConfigBuffer;
-    BDSP_AF_P_sDRAM_BUFFER       sDramInterFrameBuffer;
-    BDSP_AF_P_sDRAM_BUFFER_isr   sDramStatusBuffer;
+    BDSP_P_FwBuffer  sDramUserConfigBuffer;
+    BDSP_P_FwBuffer  sDramInterFrameBuffer;
+    BDSP_P_FwBuffer  sDramStatusBuffer;
 
     /* The offsets to the interframe, status and user cfg buffer for the framsync node */
     BDSP_P_AlgoBufferOffsets     sFrameSyncOffset;
 
     /* Extra buffer to on-the-fly program cfg params */
-    BDSP_AF_P_sDRAM_BUFFER_isr   sDramUserConfigSpareBuffer;
+    BDSP_P_FwBuffer  sDramUserConfigSpareBuffer;
 
 #if 0
     /*get these details during BDSP_Stage_SetAlgorithm*/
@@ -312,9 +320,8 @@ void BDSP_Arm_P_GetAlgorithmInfo(
     );
 
 void BDSP_Arm_P_GetAlgorithmDefaultSettings(
-    void *pDeviceHandle,
     BDSP_Algorithm algorithm,
-    void *pSettingsBuffer,        /* [out] */
+    BDSP_MMA_Memory *pMemory,
     size_t settingsBufferSize
     );
 
@@ -421,10 +428,7 @@ BERR_Code   BDSP_Arm_P_CreateTaskQueues(void *pTaskHandle);
 
 BERR_Code   BDSP_Arm_P_DestroyTaskQueues(void *pTaskHandle);
 
-BERR_Code BDSP_Arm_P_SendCitReconfigCommand(
-    BDSP_ArmTask *pArmTask,
-    BDSP_ARM_AF_P_sTASK_CONFIG  *psWorkingTaskCitBuffAddr_Cached
-    );
+BERR_Code BDSP_Arm_P_SendCitReconfigCommand(BDSP_ArmTask *pArmTask);
 
 BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
     void *pStageHandle,

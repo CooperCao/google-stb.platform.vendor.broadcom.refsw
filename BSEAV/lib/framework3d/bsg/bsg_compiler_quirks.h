@@ -45,6 +45,13 @@
 
 #include "bsg_common.h"
 
+// The BSG_NO_RETURN must be defined before we #include "bsg_exception.h"
+#if (defined(__GNUC__) || defined(__clang__))
+#define BSG_NO_RETURN  __attribute__((noreturn))
+#else
+#define BSG_NO_RETURN
+#endif
+
 //! When passing a temporary object by const reference, according to the strict letter of
 //! C++ law, the object is copied.  However, the copy can be (and usually is) elided.
 //! Even if elided, the compiler should respect the visibility of the copy constructor.

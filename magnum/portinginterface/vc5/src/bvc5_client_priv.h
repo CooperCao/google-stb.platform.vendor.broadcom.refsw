@@ -56,6 +56,7 @@
  */
 typedef struct BVC5_P_Client
 {
+   BVC5_Handle       hVC5;
    uint32_t          uiClientId;
    uint64_t          uiPlatformToken;
 
@@ -88,6 +89,7 @@ typedef struct BVC5_P_Client
    BVC5_JobQHandle      hRunnableBinnerQ;       /* Bin jobs ready to run               */
    BVC5_JobQHandle      hRunnableRenderQ;       /* Render jobs ready to run            */
    BVC5_JobQHandle      hRunnableTFUQ;          /* TFU jobs ready to run               */
+   BVC5_JobQHandle      hRunnableBarrierQ;      /* Barriers ready to run               */
 
    BVC5_JobQHandle      hCompletedQ;            /* Waiting for dependency finalizers   */
    BVC5_JobQHandle      hFinalizableQ;          /* Ready to launch finalizers          */
@@ -105,9 +107,10 @@ typedef struct BVC5_P_Client
 
 enum
 {
-   BVC5_CLIENT_BIN    = 1,
-   BVC5_CLIENT_RENDER = 2,
-   BVC5_CLIENT_TFU    = 4
+   BVC5_CLIENT_BIN      = 1,
+   BVC5_CLIENT_RENDER   = 2,
+   BVC5_CLIENT_TFU      = 4,
+   BVC5_CLIENT_BARRIER  = 8
 };
 
 typedef struct BVC5_P_Client     *BVC5_ClientHandle;
@@ -344,7 +347,8 @@ bool BVC5_P_ClientSetMaxJobId(
 );
 
 void BVC5_P_ClientMarkJobsFlushedV3D(
-   BVC5_ClientHandle hClient
+   BVC5_ClientHandle hClient,
+   uint32_t uiCoreIndex
 );
 
 /****************************************************************************/

@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -493,7 +493,7 @@ static B_Error CollectionFunc(B_PSIP_CollectionRequest * pRequest, void * contex
         /*printf("-=-=- B_PSIP_eCollectCopyBuffer -=-=-\n");*/
         if (NEXUS_SUCCESS == NEXUS_Message_GetBuffer(msg, (const void **)&buffer, &size)) {
             if (0 < size) {
-                BDBG_MSG(("NEXUS_Message_GetBuffer() succeeded! size:%d\n",size));
+                BDBG_MSG(("NEXUS_Message_GetBuffer() succeeded! size:"BDBG_UINT64_FMT"\n",BDBG_UINT64_ARG((uint64_t)size)));
                 memcpy(pRequest->pBuffer, buffer, *(pRequest->pBufferLength)); /* copy valid data to request buffer */
                 *(pRequest->pBufferLength) = MIN(*(pRequest->pBufferLength), size);
                 NEXUS_Message_ReadComplete(msg, size);
@@ -1077,16 +1077,22 @@ static void xcode_stop_systemdata( TranscodeContext  *pContext )
 }
 
 #if  NEXUS_HAS_FRONTEND
+typedef struct GenericCallbackContext
+{
+   void *context;
+   void* handle;
+} GenericCallbackContext;
+
 static void qam_lock_callback(void *context, int param)
 {
-    NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)context;
+    NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)((GenericCallbackContext*)context)->context;
     NEXUS_FrontendQamStatus qamStatus;
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
+    BKNI_EventHandle statusEvent = (BKNI_EventHandle)((GenericCallbackContext*)context)->handle;
 
-    fprintf(stderr, "Lock callback, frontend 0x%08x\n", (unsigned)frontend);
+    fprintf(stderr, "Lock callback, frontend %p\n", (void*)frontend);
 
     NEXUS_Frontend_GetQamStatus(frontend, &qamStatus);
-    fprintf(stderr, "QAM Lock callback, frontend 0x%08x - lock status %d, %d\n", (unsigned)frontend,
+    fprintf(stderr, "QAM Lock callback, frontend %p - lock status %d, %d\n", (void*)frontend,
             qamStatus.fecLock, qamStatus.receiverLock);
 
     BKNI_SetEvent(statusEvent);
@@ -1094,9 +1100,9 @@ static void qam_lock_callback(void *context, int param)
 
 static void sat_lock_callback(void *context, int param)
 {
-    NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)context;
+    NEXUS_FrontendHandle frontend = (NEXUS_FrontendHandle)((GenericCallbackContext*)context)->context;
     NEXUS_FrontendSatelliteStatus status;
-    BKNI_EventHandle statusEvent = (BKNI_EventHandle)param;
+    BKNI_EventHandle statusEvent = (BKNI_EventHandle)((GenericCallbackContext*)context)->handle;
 
     fprintf(stderr, "Frontend(%p) - lock callback\n", (void*)frontend);
 
@@ -1158,6 +1164,8 @@ int main(int argc, char *argv[])
     NEXUS_FrontendQamSettings qamSettings;
     NEXUS_FrontendSatelliteSettings satSettings;
     NEXUS_FrontendDiseqcSettings diseqcSettings;
+    GenericCallbackContext qamLockCallbackContext;
+    GenericCallbackContext satLockCallbackContext;
 #endif
     NEXUS_ParserBand parserBand;
     NEXUS_ParserBandSettings parserBandSettings;
@@ -1351,10 +1359,11 @@ int main(int argc, char *argv[])
     case 1024: qamSettings.mode = NEXUS_FrontendQamMode_e1024; qamSettings.symbolRate = 0; /* TODO */break;
     }
     qamSettings.annex = NEXUS_FrontendQamAnnex_eB;
+    qamLockCallbackContext.context = frontend;
+    qamLockCallbackContext.handle = signalLockedEvent;
     qamSettings.bandwidth = NEXUS_FrontendQamBandwidth_e6Mhz;
     qamSettings.lockCallback.callback = qam_lock_callback;
-    qamSettings.lockCallback.context = frontend;
-    qamSettings.lockCallback.param = (int)signalLockedEvent;
+    qamSettings.lockCallback.context = &qamLockCallbackContext;
 
     NEXUS_Frontend_GetUserParameters(frontend, &userParams);
 
@@ -1398,9 +1407,10 @@ int main(int argc, char *argv[])
     NEXUS_Frontend_GetDefaultSatelliteSettings(&satSettings);
     satSettings.frequency = 1119000000;
     satSettings.mode = NEXUS_FrontendSatelliteMode_eDvb;
+    satLockCallbackContext.context = frontend;
+    satLockCallbackContext.handle = signalLockedEvent;
     satSettings.lockCallback.callback = sat_lock_callback;
-    satSettings.lockCallback.context = frontend;
-    satSettings.lockCallback.param = (int)signalLockedEvent;
+    satSettings.lockCallback.context = &satLockCallbackContext;
 
     NEXUS_Frontend_GetUserParameters(frontend, &userParams);
 

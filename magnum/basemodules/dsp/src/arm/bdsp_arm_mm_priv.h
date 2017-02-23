@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -77,23 +77,22 @@ typedef struct BDSP_Arm_MapTableEntry
 
 typedef struct BDSP_Arm_P_CommonStageMemory
 {
-    BDSP_AF_P_sIO_BUFFER            InterStageIOBuff[BDSP_ARM_MAX_BRANCH];
-    BDSP_AF_P_sIO_GENERIC_BUFFER    InterStageIOGenericBuff[BDSP_ARM_MAX_BRANCH];
-    BDSP_AF_P_sDRAM_BUFFER          ui32DspScratchMemGrant;
-
+    BDSP_P_IOBuffer                 InterStageIOBuff[BDSP_ARM_MAX_BRANCH];
+    BDSP_P_IOGenBuffer              InterStageIOGenericBuff[BDSP_ARM_MAX_BRANCH];
+    BDSP_P_FwBuffer                 DspScratchMemGrant;
 }BDSP_Arm_P_CommonStageMemory;
 
 /* SR_TBD:  This structure needs to be modified as per ARM requirement */
 typedef struct BDSP_Arm_P_MsgQueueParams
 {
-    void *pBaseAddr; /* Virtual Address */
+    BDSP_MMA_Memory Queue;
     uint32_t uiMsgQueueSize;
 } BDSP_Arm_P_MsgQueueParams;
 
 
 typedef struct BDSP_Arm_P_DwnldBufUsageInfo
 {
-    void *pAddr;
+	BDSP_MMA_Memory Memory;
     BDSP_Algorithm algorithm;
     int32_t numUser;
     bool bIsExistingDwnldValid;
@@ -119,7 +118,7 @@ typedef struct BDSP_Arm_P_DwnldMemInfo
     uint32_t ui32TotalSupportedBinSize; /* Sum of all binary sizes */
     uint32_t ui32AllocatedBinSize;      /* Memory allocated for heap in this run */
     uint32_t ui32AllocwithGuardBand;        /* Memory allocated for heap in this run */
-    void *pImgBuf;                      /* Start address of the complete image buf */
+    BDSP_MMA_Memory ImgBuf;				/* Start address of the complete image buf */
     BDSP_Arm_P_AlgoTypeImgBuf AlgoTypeBufs[BDSP_AlgorithmType_eMax];
 }BDSP_Arm_P_DwnldMemInfo;
 
@@ -129,7 +128,7 @@ typedef struct BDSP_Arm_P_TaskQueues
 {
     BDSP_Arm_P_MsgQueueParams    sTaskSyncQueue;     /* Synchronous queue */
     BDSP_Arm_P_MsgQueueParams    sTaskAsyncQueue;    /* Asynchronous queue */
-    BDSP_P_FwBuffer              sAsyncMsgBufmem;    /* Memory for Async */
+    BDSP_P_HostBuffer            sAsyncMsgBufmem;    /* Memory for Async */
 }BDSP_Arm_P_TaskQueues;
 
 /* This structure contains actual addresses & sizes per task */
@@ -191,18 +190,16 @@ BERR_Code BDSP_Arm_P_FreeStageMemory(
     );
 
 BERR_Code  BDSP_Arm_P_InsertEntry_MapTable(
-    BMEM_Handle memHandle,
-    BDSP_Arm_MapTableEntry *pMapTable,
-    void *pAddress,
+	BDSP_Arm_MapTableEntry *pMapTable,
+	BDSP_MMA_Memory *pMemory,
     uint32_t size,
     BDSP_ARM_AF_P_MemoryMapType eMapType,
     uint32_t ui32MaxEntry
     );
 
 BERR_Code  BDSP_Arm_P_DeleteEntry_MapTable(
-    BMEM_Handle memHandle,
-    BDSP_Arm_MapTableEntry *pMapTable,
-    void *pAddress,
+	BDSP_Arm_MapTableEntry *pMapTable,
+	BDSP_MMA_Memory *pMemory,
     uint32_t ui32MaxEntry
     );
 

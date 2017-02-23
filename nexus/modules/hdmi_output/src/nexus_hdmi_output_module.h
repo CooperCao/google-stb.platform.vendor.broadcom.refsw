@@ -136,6 +136,7 @@ typedef struct NEXUS_HdmiOutput
     BHDM_Handle hdmHandle;
     NEXUS_HdmiOutputOpenSettings openSettings;
     NEXUS_HdmiOutputSettings settings;
+    NEXUS_HdmiOutputDisplaySettings displaySettings;
     NEXUS_HdmiOutputSettings previousSettings;
     NEXUS_HdmiOutputExtraSettings extraSettings;
     NEXUS_EventCallbackHandle hotplugEventCallback;

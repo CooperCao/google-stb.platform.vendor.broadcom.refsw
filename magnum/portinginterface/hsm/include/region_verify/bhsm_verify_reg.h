@@ -219,7 +219,7 @@ typedef struct BHSM_RegionConfiguration
     uint8_t                         svpFwReleaseVersion;      /* The SVP version of the FW. Applicable for BFW400+ */
     uint8_t                         ucSigVersion;             /* Signature Version */
     BCMD_SignatureType_e            ucSigType;                /* Signature type */
-    bool                            enforceAuthentication;    /* Enable instruction and background check. See documentation. */
+    bool                            enforceAuthentication;    /* Force region authentication irrespective of OTP. */
     bool                            disallowDisable;          /* Disallow the region to be disabled once enalbed. */
    #endif
     uint32_t                        unMarketID;               /* Market ID  >= ZEUS 2.0 */

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -435,12 +435,14 @@ NEXUS_P_ThreadInfo_Get(void)
 const char *
 NEXUS_GetEnv(const char *name)
 {
+    NEXUS_P_CheckEnv(name);
     return getenv(name);
 }
 
 void
 NEXUS_SetEnv(const char *name, const char *value)
 {
+    NEXUS_P_CheckEnv(name);
     if (value) {
         setenv(name, value, 1);
     }

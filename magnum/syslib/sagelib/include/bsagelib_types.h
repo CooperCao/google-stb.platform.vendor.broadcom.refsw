@@ -341,6 +341,18 @@ enum {
     DynamicLoadModule_CommandId_eMax
 };
 
+
+/* anti-rollback module IDs */
+enum AntiRollback_ModuleId_e {
+    AntiRollback_ModuleId_eAntiRollback = 0x1
+};
+
+enum {
+    AntiRollbackModule_CommandId_eHeartbeat  = 0x1,
+    AntiRollbackModule_CommandId_eRegisterTa = 0x2
+};
+
+
 /* List of ModuleId for each loaderable TA */
 enum adobe_module {
     Adobe_ModuleId_eDRM = 0x01

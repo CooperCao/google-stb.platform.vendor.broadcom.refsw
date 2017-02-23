@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -127,32 +127,27 @@ static int __llatox(char *buf, unsigned long long num, unsigned int radix,
     op = &buffer[0];
     retval = 0;
 
-        UNUSED(radix);
-    /*
-     * Hack: to avoid pulling in the helper library that isn't necessarily
-     * compatible with PIC code, force radix to 16, use shifts and masks
-     */
-    do {
-        *op++ = pdigits[num & 0x0F];
-        retval++;
-        num >>= 4;
-    } while (num != 0);
+	do {
+		*op++ = pdigits[num % radix];
+		retval++;
+		num /= radix;
+	} while (num != 0);
 
-    if (width && (width > retval)) {
-        width = width - retval;
-        while (width) {
-            *op++ = '0';
-            retval++;
-            width--;
-        }
-    }
+	if (width && (width > retval)) {
+		width = width - retval;
+		while (width) {
+			*op++ = '0';
+			retval++;
+			width--;
+		}
+	}
 
-    while (op != buffer) {
-        op--;
-        *buf++ = *op;
-    }
+	while (op != buffer) {
+		op--;
+		*buf++ = *op;
+	}
 
-    return retval;
+	return retval;
 }
 
 /*  *********************************************************************
@@ -171,24 +166,24 @@ static int __llatox(char *buf, unsigned long long num, unsigned int radix,
 #define isdigit(x) (((x) >= '0') && ((x) <= '9'))
 int xvsprintf(char *outbuf, const char *templat, va_list marker)
 {
-    char *optr;
-    const char *iptr;
-    unsigned char *tmpptr;
-    unsigned int x;
-    unsigned long long lx;
-    int i;
+	char *optr;
+	const char *iptr;
+	unsigned char *tmpptr;
+	unsigned int x;
+	unsigned long long lx;
+	int i;
     long long ll;
-    int islong;
-    int width;
-    int width2 = 0;
-    int hashash;
+	int islong;
+	int width;
+	int width2 = 0;
+	int hashash;
         int lastch_is_cr = 0;
 
-    optr = outbuf;
-    iptr = templat;
+	optr = outbuf;
+	iptr = templat;
 
-    while (*iptr) {
-        if (*iptr != '%') {
+	while (*iptr) {
+		if (*iptr != '%') {
                     if (*iptr == '\r')
                         lastch_is_cr = 1;
                     else {
@@ -199,160 +194,173 @@ int xvsprintf(char *outbuf, const char *templat, va_list marker)
                     }
                     *optr++ = *iptr++;
                     continue;
-        }
+		}
 
-        iptr++;
+		iptr++;
 
-        hashash = 0;
-        if (*iptr == '#') {
-            hashash = 1;
-            iptr++;
-        }
+		hashash = 0;
+		if (*iptr == '#') {
+			hashash = 1;
+			iptr++;
+		}
 
-        width = 0;
-        if (*iptr == '*') {
-            iptr++;
-            width = va_arg(marker, unsigned int);
-        }
-        while (*iptr && isdigit(*iptr)) {
-            width += (*iptr - '0');
-            iptr++;
-            if (isdigit(*iptr))
-                width *= 10;
-        }
-        if (*iptr == '.') {
-            iptr++;
-            width2 = 0;
-            while (*iptr && isdigit(*iptr)) {
-                width2 += (*iptr - '0');
-                iptr++;
-                if (isdigit(*iptr))
-                    width2 *= 10;
-            }
-        }
+		width = 0;
+		if (*iptr == '*') {
+			iptr++;
+			width = va_arg(marker, unsigned int);
+		}
+		while (*iptr && isdigit(*iptr)) {
+			width += (*iptr - '0');
+			iptr++;
+			if (isdigit(*iptr))
+				width *= 10;
+		}
+		if (*iptr == '.') {
+			iptr++;
+			width2 = 0;
+			while (*iptr && isdigit(*iptr)) {
+				width2 += (*iptr - '0');
+				iptr++;
+				if (isdigit(*iptr))
+					width2 *= 10;
+			}
+		}
 
-        islong = 0;
-        if (*iptr == 'l') {
-            islong++;
-            iptr++;
-        }
-        if (*iptr == 'l') {
-            islong++;
-            iptr++;
-        }
-        if (*iptr == 'p') {
-            hashash = 1;
-        }
-
-        if (hashash) {
-            *optr++ = '0';
-            *optr++ = 'x';
-            /* Hash steals from the width */
-            width = (width > 2) ? width - 2 : 0;
-        }
-
-        switch (*iptr) {
-        case 's':
-            tmpptr =
-                (unsigned char *)va_arg(marker, unsigned char *);
-            if (!tmpptr)
-                tmpptr = (unsigned char *)"(null)";
-            if ((width == 0) & (width2 == 0)) {
-                while (*tmpptr)
-                    *optr++ = *tmpptr++;
-                break;
-            }
-            i = strlen((char *)tmpptr);
-            if (width > i)
-                i = width - i;
-            else
-                i = 0;  /* don't need to print blank spaces */
-
-            while (i) {
-                *optr++ = ' ';
-                i--;
-            }
-            while (width && *tmpptr) {
-                *optr++ = *tmpptr++;
-                width--;
-            }
-            break;
-        case 'd':
-            switch (islong) {
-            case 0:
-            case 1:
-                i = va_arg(marker, int);
-                if (i < 0) {
-                    *optr++ = '-';
-                    i = -i;
-                }
-                optr += __atox(optr, i, 10, width, digits);
-                break;
-            case 2:
-                ll = va_arg(marker, long long int);
-                if (ll < 0) {
-                    *optr++ = '-';
-                    ll = -ll;
-                }
-                optr += __llatox(optr, ll, 10, width, digits);
-                break;
-            }
-            break;
-        case 'u':
-            switch (islong) {
-            case 0:
-            case 1:
-                x = va_arg(marker, unsigned int);
-                optr += __atox(optr, x, 10, width, digits);
-                break;
-            case 2:
-                lx = va_arg(marker, unsigned long long);
-                optr += __llatox(optr, lx, 10, width, digits);
-                break;
-            }
-            break;
-        case 'X':
-        case 'x':
-            switch (islong) {
-            case 0:
-            case 1:
-                x = va_arg(marker, unsigned int);
-                optr += __atox(optr, x, 16, width,
-                           (*iptr ==
-                        'X') ? digits : ldigits);
-                break;
-            case 2:
-                lx = va_arg(marker, unsigned long long);
-                optr += __llatox(optr, lx, 16, width,
-                         (*iptr ==
-                          'X') ? digits : ldigits);
-                break;
-            }
-            break;
-        case 'p':
-#ifdef __long64
-            lx = va_arg(marker, unsigned long long);
-            optr += __llatox(optr, lx, 16, width, ldigits);
+		islong = 0;
+		if (*iptr == 'l') {
+#ifdef __aarch64__
+			islong+=2;
 #else
-            x = va_arg(marker, unsigned int);
-            optr += __atox(optr, x, 16, width, ldigits);
+			islong++;
 #endif
-            break;
-        case 'c':
-            x = va_arg(marker, int);
-            *optr++ = x & 0xff;
-            break;
+			iptr++;
+		}
+		if (*iptr == 'l') {
+			islong++;
+			iptr++;
+		}
+		if (*iptr == 'z') {
+#ifdef __aarch64__
+			islong+=2;
+#else
+			islong++;
+#endif
+			iptr++;
+		}
 
-        default:
-            *optr++ = *iptr;
-            break;
-        }
-        iptr++;
-    }
+		if (*iptr == 'p') {
+			hashash = 1;
+		}
 
-    *optr = '\0';
+		if (hashash) {
+			*optr++ = '0';
+			*optr++ = 'x';
+			/* Hash steals from the width */
+			width = (width > 2) ? width - 2 : 0;
+		}
 
-    return (optr - outbuf);
+		switch (*iptr) {
+		case 's':
+			tmpptr =
+			    (unsigned char *)va_arg(marker, unsigned char *);
+			if (!tmpptr)
+				tmpptr = (unsigned char *)"(null)";
+			if ((width == 0) & (width2 == 0)) {
+				while (*tmpptr)
+					*optr++ = *tmpptr++;
+				break;
+			}
+			i = strlen((char *)tmpptr);
+			if (width > i)
+				i = width - i;
+			else
+				i = 0;	/* don't need to print blank spaces */
+
+			while (i) {
+				*optr++ = ' ';
+				i--;
+			}
+			while (width && *tmpptr) {
+				*optr++ = *tmpptr++;
+				width--;
+			}
+			break;
+		case 'd':
+			switch (islong) {
+			case 0:
+			case 1:
+				i = va_arg(marker, int);
+				if (i < 0) {
+					*optr++ = '-';
+					i = -i;
+				}
+				optr += __atox(optr, i, 10, width, digits);
+				break;
+			case 2:
+				ll = va_arg(marker, long long int);
+				if (ll < 0) {
+					*optr++ = '-';
+					ll = -ll;
+				}
+				optr += __llatox(optr, ll, 10, width, digits);
+				break;
+			}
+			break;
+		case 'u':
+			switch (islong) {
+			case 0:
+			case 1:
+				x = va_arg(marker, unsigned int);
+				optr += __atox(optr, x, 10, width, digits);
+				break;
+			case 2:
+				lx = va_arg(marker, unsigned long long);
+				optr += __llatox(optr, lx, 10, width, digits);
+				break;
+			}
+			break;
+		case 'X':
+		case 'x':
+			switch (islong) {
+			case 0:
+			case 1:
+				x = va_arg(marker, unsigned int);
+				optr += __atox(optr, x, 16, width,
+					       (*iptr ==
+						'X') ? digits : ldigits);
+				break;
+			case 2:
+				lx = va_arg(marker, unsigned long long);
+				optr += __llatox(optr, lx, 16, width,
+						 (*iptr ==
+						  'X') ? digits : ldigits);
+				break;
+			}
+			break;
+		case 'p':
+#if defined __long64 || defined __aarch64__
+			lx = va_arg(marker, unsigned long long);
+			optr += __llatox(optr, lx, 16, width, ldigits);
+#else
+			x = va_arg(marker, unsigned int);
+			optr += __atox(optr, x, 16, width, ldigits);
+#endif
+			break;
+		case 'c':
+			x = va_arg(marker, int);
+			*optr++ = x & 0xff;
+			break;
+
+		default:
+			*optr++ = *iptr;
+			break;
+		}
+		iptr++;
+	}
+
+	*optr = '\0';
+
+	return (optr - outbuf);
 }
 
 /*  *********************************************************************
@@ -370,14 +378,14 @@ int xvsprintf(char *outbuf, const char *templat, va_list marker)
     ********************************************************************* */
 int xsprintf(char *buf, const char *templat, ...)
 {
-    va_list marker;
-    int count;
+	va_list marker;
+	int count;
 
-    va_start(marker, templat);
-    count = xvsprintf(buf, templat, marker);
-    va_end(marker);
+	va_start(marker, templat);
+	count = xvsprintf(buf, templat, marker);
+	va_end(marker);
 
-    return count;
+	return count;
 }
 
 /*  *********************************************************************
@@ -389,32 +397,32 @@ int xsprintf(char *buf, const char *templat, ...)
     *      %x - hex word (machine size)
     *
     *  Return value:
-    *      number of bytes written
+    *  	   number of bytes written
     ********************************************************************* */
 
 int xprintf(const char *templat, ...)
 {
-    va_list marker;
-    int count;
-    char buffer[PRINTF_BUF_SIZE];
+	va_list marker;
+	int count;
+	char buffer[PRINTF_BUF_SIZE];
 
-    va_start(marker, templat);
-    count = xvsprintf(buffer, templat, marker);
-    va_end(marker);
+	va_start(marker, templat);
+	count = xvsprintf(buffer, templat, marker);
+	va_end(marker);
 
-    uart_puts(buffer);
+	uart_puts(buffer);
 
-    return count;
+	return count;
 }
 
 int xvprintf(const char *templat, va_list marker)
 {
-    int count;
-    char buffer[PRINTF_BUF_SIZE];
+	int count;
+	char buffer[PRINTF_BUF_SIZE];
 
-    count = xvsprintf(buffer, templat, marker);
+	count = xvsprintf(buffer, templat, marker);
 
-    uart_puts(buffer);
+	uart_puts(buffer);
 
-    return count;
+	return count;
 }

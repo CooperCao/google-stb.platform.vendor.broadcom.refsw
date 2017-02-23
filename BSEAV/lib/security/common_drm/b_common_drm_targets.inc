@@ -44,7 +44,7 @@ endif
 
 .PHONY: b_common_drm_target_dummy b_common_drm_target_build b_common_drm_target_clean
 
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 B_COMMON_DRM_OTHER_BUILDS += b_openssl_target_build
 B_COMMON_DRM_OTHER_CLEANS += b_openssl_target_clean
 B_COMMON_DRM_OTHER_CLEAN_ALL += b_openssl_target_clean_all

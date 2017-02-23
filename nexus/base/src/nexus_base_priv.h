@@ -74,6 +74,10 @@ struct NEXUS_Module {
     BLST_S_ENTRY(NEXUS_Module) link;
     struct b_objdb_module *objdb; /* pointer to the object data base used by this module */
     bool enabled;
+    struct {
+        const char *functionName;
+        NEXUS_Time time;
+    } pendingCaller;
 };
 
 NEXUS_P_Scheduler *NEXUS_P_Scheduler_Create(NEXUS_ModulePriority priority, const char *name, const NEXUS_ThreadSettings *pSettings);

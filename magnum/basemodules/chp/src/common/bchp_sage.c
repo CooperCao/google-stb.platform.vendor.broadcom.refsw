@@ -145,13 +145,19 @@ BCHP_SAGE_Reset(
         do {
             uint32_t wdval;
             cpt++;
-            BKNI_Sleep(1);
+            BKNI_Sleep(10);
             wdval = BREG_Read32(hReg, BCHP_SCPU_HOST_INTR2_CPU_STATUS);
             if (wdval & (1 << BCHP_SCPU_HOST_INTR2_CPU_STATUS_SCPU_TIMER_SHIFT)) {
                 BDBG_MSG(("SAGE has been reset successfully!"));
                 break;
             }
             val=BREG_Read32(hReg, SAGE_RESET_REG);
+
+            if(val == SAGE_RESETVAL_DOWN)
+            {
+                BDBG_MSG(("SAGE shutdown successfully"));
+                break;
+            }
             if(val == SAGE_RESETVAL_READYTORESTART)
             {
                 BDBG_MSG(("SAGE has cleaned succesfully!"));

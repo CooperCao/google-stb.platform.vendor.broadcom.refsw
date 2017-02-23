@@ -179,12 +179,9 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
         n += snprintf(&buf[n], sizeof(buf)-n, " composite");
     }
     if (pSettings->hdmiPreferences.enabled) {
-        n += snprintf(&buf[n], sizeof(buf)-n, " hdmi(%d bit,%s,%s",
-            pSettings->hdmiPreferences.colorDepth,
-            lookup_name(g_colorSpaceStrs, pSettings->hdmiPreferences.colorSpace),
-            lookup_name(g_matrixCoeffStrs, pSettings->hdmiPreferences.matrixCoefficients));
+        n += snprintf(&buf[n], sizeof(buf)-n, " hdmi");
         if (drm_configured(&pSettings->hdmiPreferences.drmInfoFrame)) {
-            n += snprintf(&buf[n], sizeof(buf)-n, ",DRM{%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
+            n += snprintf(&buf[n], sizeof(buf)-n, "DRM{%s,mdcv{rgbw=(%d,%d),(%d,%d),(%d,%d),(%d,%d),luma=(%d,%d)},cll={%d,%d}}",
             lookup_name(g_videoEotfStrs, pSettings->hdmiPreferences.drmInfoFrame.eotf),
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.max,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.contentLightLevel.maxFrameAverage,
@@ -199,7 +196,6 @@ static void print_settings(const char *name, const NxClient_DisplaySettings *pSe
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.max,
             pSettings->hdmiPreferences.drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume.luminance.min);
         }
-        n += snprintf(&buf[n], sizeof(buf)-n, ")");
     }
     printf("%s\n", buf);
 
@@ -260,7 +256,11 @@ static void print_status(void)
     hdmiOutput = NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0, NULL);
     if (hdmiOutput) {
         NEXUS_HdmiOutputBasicEdidData edid;
+        NEXUS_HdmiOutputStatus status;
         rc = NEXUS_HdmiOutput_GetBasicEdidData(hdmiOutput, &edid);
+        if (rc) BERR_TRACE(rc);
+        rc = NEXUS_HdmiOutput_GetStatus(hdmiOutput, &status);
+        if (rc) BERR_TRACE(rc);
         printf(
             "Basic EDID:\n"
             "  VendorID: %02x%02x\n"
@@ -270,6 +270,11 @@ static void print_status(void)
             edid.productID[0],edid.productID[1],
             edid.serialNum[0],edid.serialNum[1],edid.serialNum[2],edid.serialNum[3]
             );
+        printf(
+            "color space: %s\n"
+            "color depth: %u\n",
+            lookup_name(g_colorSpaceStrs, status.colorSpace),
+            status.colorDepth);
         NEXUS_HdmiOutput_Close(hdmiOutput);
     }
     }

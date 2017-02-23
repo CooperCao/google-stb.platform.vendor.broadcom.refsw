@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,7 +166,7 @@ void UserAppDmon::uappStartProc(
                 if (!pUApp->shared || !pCmd->shared) {
                     LOGE("Can not add peer app to user app %s", pCmd->name);
                     pUApp = NULL; // don't delete existing user app
-                    throw(-EEXIST);
+                    throw((int)-EEXIST);
                 }
 
                 // Create a new peer app
@@ -197,6 +197,10 @@ void UserAppDmon::uappStartProc(
             delete pUApp;
         }
         err = exception;
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
     }
 
     // Caution: reused the cmd buffer for rpy. This only works if:
@@ -240,7 +244,7 @@ void UserAppDmon::uappStopProc(
 
         if (!pUApp) {
             LOGE("Failed to find existing user app %s", pCmd->name);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing user app %s", pCmd->name);
@@ -250,7 +254,7 @@ void UserAppDmon::uappStopProc(
 
         if (!pPApp) {
             LOGE("Failed to find existing peer app for user app %s", pCmd->name);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing peer app for user app %s", pCmd->name);
@@ -274,6 +278,10 @@ void UserAppDmon::uappStopProc(
     }
     catch (int exception) {
         err = exception;
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
     }
 
     // Caution: reused the cmd buffer for rpy
@@ -315,7 +323,7 @@ void UserAppDmon::uappGetIdProc(
 
         if (!pUApp) {
             LOGE("Failed to find existing user app %s", pCmd->name);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing user app %s", pCmd->name);
@@ -325,7 +333,7 @@ void UserAppDmon::uappGetIdProc(
 
         if (!pPApp) {
             LOGE("Failed to find existing peer app for user app %s", pCmd->name);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing peer app for user app %s", pCmd->name);
@@ -342,6 +350,10 @@ void UserAppDmon::uappGetIdProc(
     }
     catch (int exception) {
         err = exception;
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
     }
 
     // Caution: reused the cmd buffer for rpy
@@ -373,7 +385,7 @@ void UserAppDmon::uappCoreDumpProc(
         return;
     }
 
-    LOGD("User app Core dump cmd received, name %s Addr=0x%x size=0x%x", pCmd->name, pCmd->paddr, pCmd->bytes);
+    LOGD("User app Core dump cmd received, name %s Addr=0x%zx size=0x%x", pCmd->name, (size_t)pCmd->paddr, pCmd->bytes);
     // Map physical address
     coreDumpMem = tzioc_map_paddr(
         UserAppDmon::hClient,
@@ -382,9 +394,9 @@ void UserAppDmon::uappCoreDumpProc(
         0);
 
     if (!coreDumpMem) {
-        LOGE("Failed to map physical addr 0x%x, bytes 0x%x",
-            pCmd->paddr, pCmd->bytes);
-        return ;
+        LOGE("Failed to map physical addr 0x%zx, bytes 0x%x",
+            (size_t)pCmd->paddr, pCmd->bytes);
+        return;
     }
     UserApp *pUApp = NULL;
     PeerApp *pPApp = NULL;
@@ -395,7 +407,7 @@ void UserAppDmon::uappCoreDumpProc(
 
         if (!pUApp) {
             LOGE("Failed to find existing user app %s", pCmd->name);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing user app %s", pCmd->name);
@@ -405,7 +417,7 @@ void UserAppDmon::uappCoreDumpProc(
 
         if (!pPApp) {
             LOGE("Failed to find existing peer app for user app %s", pCmd->name);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing peer app for user app %s", pCmd->name);
@@ -424,11 +436,15 @@ void UserAppDmon::uappCoreDumpProc(
                 throw(err);
             }
 
-            LOGI("Stopped user app %s", pCmd->name);
+            LOGI("Core dumped user app %s", pCmd->name);
         }
     }
     catch (int exception) {
         err = exception;
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
     }
 
     // Caution: reused the cmd buffer for rpy

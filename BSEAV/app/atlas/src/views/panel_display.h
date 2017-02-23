@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -83,9 +83,12 @@ protected:
     CWidgetButton *      _ContentMode;
     CWidgetLabel *       _ContentModeLabel;
     CWidgetPopupList *   _ContentModePopup;
-    CWidgetButton *      _Color;
-    CWidgetLabel *       _ColorLabel;
-    CWidgetPopupList *   _ColorPopup;
+    CWidgetButton *      _ColorSpace;
+    CWidgetLabel *       _ColorSpaceLabel;
+    CWidgetPopupList *   _ColorSpacePopup;
+    CWidgetButton *      _ColorDepth;
+    CWidgetLabel *       _ColorDepthLabel;
+    CWidgetPopupList *   _ColorDepthPopup;
     CWidgetCheckButton * _Deinterlacer;
     CWidgetCheckButton * _BoxDetect;
     CWidgetCheckButton * _MpaaDecimation;

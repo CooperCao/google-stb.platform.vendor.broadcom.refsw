@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_types.h"
 #include "nexus_platform_priv.h"
@@ -148,17 +147,14 @@ void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-#if NEXUS_ENABLE_HVD_OL_OUTPUT
-    /* set to 1 if HVD OL output is needed */
-    BREG_Handle hReg = g_pCoreHandles->reg;
-    uint32_t reg;
-#endif
-
 #if NEXUS_HAS_SAGE
     NEXUS_Platform_P_EnableSageDebugPinmux();
 #endif
 
 #if NEXUS_ENABLE_HVD_OL_OUTPUT
+    {
+    BREG_Handle hReg = g_pCoreHandles->reg;
+    uint32_t reg;
     /* HVD OL output setup */
     reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
     reg &= ~(
@@ -184,6 +180,22 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     reg &= ~(BCHP_MASK(SUN_TOP_CTRL_TEST_PORT_CTRL, encoded_tp_enable));
     reg |= BCHP_FIELD_DATA(SUN_TOP_CTRL_TEST_PORT_CTRL,encoded_tp_enable, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL_encoded_tp_enable_SYS);
     BREG_Write32(hReg, BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL, reg);
+    }
+#endif
+
+/* set pinmux for PKT3 to enable BCM9TS_DC streamer input. may require board rework. */
+#if 0
+    {
+    uint32_t reg;
+    reg = BREG_Read32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
+    reg &= ~(BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013) |
+             BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014) |
+             BCHP_MASK(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015) );
+    reg |= (BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_013, 5) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_014, 5) |
+            BCHP_FIELD_DATA(SUN_TOP_CTRL_PIN_MUX_CTRL_2, gpio_015, 5) );
+    BREG_Write32(g_pCoreHandles->reg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2, reg);
+    }
 #endif
 
     return BERR_SUCCESS;

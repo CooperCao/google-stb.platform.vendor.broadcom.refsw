@@ -92,7 +92,7 @@ void NEXUS_Dma_GetDefaultSettings(
     return;
 }
 
-NEXUS_Error NEXUS_Dma_P_ApplySettings(
+static NEXUS_Error NEXUS_Dma_P_ApplySettings(
     NEXUS_DmaHandle handle, 
     const NEXUS_DmaSettings *pSettings
     )
@@ -324,7 +324,7 @@ void NEXUS_DmaJob_GetDefaultSettings(
     NEXUS_CallbackDesc_Init(&pSettings->completionCallback);
 }
 
-NEXUS_Error NEXUS_Dma_P_ApplyJobSettings(
+static NEXUS_Error NEXUS_Dma_P_ApplyJobSettings(
     NEXUS_DmaJobHandle handle, 
     const NEXUS_DmaJobSettings *pSettings
     )

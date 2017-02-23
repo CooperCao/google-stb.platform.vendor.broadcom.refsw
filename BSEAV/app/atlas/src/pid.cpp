@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -598,7 +598,9 @@ void CPid::writeXML(MXmlElement * xmlElem)
 
 CPid::~CPid()
 {
-    DEL(_pCrypto);
+   if (_pCrypto) {
+       DEL(_pCrypto);
+   }
 }
 
 eRet CPid::open(CParserBand * pParserBand)
@@ -849,6 +851,7 @@ eRet CPid::close(void)
     if (_pCrypto)
     {
         _pCrypto->removeKey(_pidChannel);
+        DEL(_pCrypto);
     }
 
     NEXUS_PidChannel_Close(_pidChannel);
@@ -870,6 +873,7 @@ eRet CPid::close(CPlaypump * pPlaypump)
     if (_pCrypto)
     {
         _pCrypto->removeKey(_pidChannel);
+        DEL(_pCrypto);
     }
 
     nerror = NEXUS_Playpump_ClosePidChannel(pPlaypump->getPlaypump(), _pidChannel);
@@ -891,6 +895,7 @@ eRet CPid::close(CPlayback * pPlayback)
     if (_pCrypto)
     {
         _pCrypto->removeKey(_pidChannel);
+        DEL(_pCrypto);
     }
     NEXUS_Playback_ClosePidChannel(pPlayback->getPlayback(), _pidChannel);
 
@@ -911,6 +916,12 @@ eRet CPid::close(CRecord * pRecord)
 
     nerror = NEXUS_Record_RemovePidChannel(pRecord->getRecord(), _pidChannel);
     CHECK_NEXUS_ERROR_GOTO("Cannot Close Pid Channel", ret, nerror, error);
+
+    if (_pCrypto)
+    {
+        _pCrypto->removeKey(_pidChannel);
+        DEL(_pCrypto);
+    }
 
 error:
     BDBG_MSG(("PidChannel (pid:0x%0x) removed record ", _pid));

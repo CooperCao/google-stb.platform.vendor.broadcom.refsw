@@ -38,6 +38,7 @@
  * Module Description:
  *
  *****************************************************************************/
+#if NEXUS_HAS_AUDIO
 #include "nexus_platform.h"
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
@@ -215,3 +216,11 @@ int main(void) {
     NEXUS_Platform_Uninit();
     return 0;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

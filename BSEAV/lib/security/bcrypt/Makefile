@@ -38,7 +38,7 @@
 ############################################################
 NEXUS_TOP := ../../../../nexus
 BSEAV_TOP := $(NEXUS_TOP)/../BSEAV/
-OPENSSL_TOP := $(BSEAV_TOP)/lib/openssl/
+OPENSSL_TOP := $(BSEAV_TOP)/opensource/openssl/
 
 # Build the name of this makefile, relative to B_REFSW_TOP (used for recipe tracing)
 # Keep this line before any includes!
@@ -57,7 +57,7 @@ BCRYPT_OBJ_ROOT := ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 
 
 # Sanity check that we received a valid platform
@@ -200,7 +200,7 @@ ifneq ($(ANDROID_BUILD),y)
     ${F_PUBLIC_LIBS}  ${END_OBJS} : | ssl_lib
 endif
 
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 .PHONY : ssl_lib
 ifeq ($(B_BUILD_DEPS),n)
 ssl_lib:

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom.  All rights reserved.
+ * Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -126,6 +126,9 @@ b_media_adts_header_aac_init(const bmedia_info_aac *aac, bmedia_info_aac *initia
    else
    {
        initialized_aac->sampling_frequency_index = aac->sampling_frequency_index;
+       if( aac->sampling_frequency_index == 0x0F) {
+            initialized_aac->sampling_frequency = aac->sampling_frequency;
+       }
    }
 
 }
@@ -607,7 +610,7 @@ bmedia_vc1ap_read_pic_type(batom_cursor *cursor, const bmedia_vc1ap_info *info)
 	bmedia_video_pic_type pic_type;
 
 	BATOM_NEXT(byte, cursor);
-	if(byte==BIO_EOF) {
+	if(byte==BATOM_EOF) {
 		goto eof;
 	}
 	sc = ((uint32_t)byte<<24) | batom_cursor_uint24_be(cursor);
@@ -615,13 +618,13 @@ bmedia_vc1ap_read_pic_type(batom_cursor *cursor, const bmedia_vc1ap_info *info)
 		 while(sc!=0x10D) {
 			/* not a picture scartcode, try to load the next one*/
 			BATOM_NEXT(byte, cursor);
-			if(byte==BIO_EOF) {
+			if(byte==BATOM_EOF) {
 				goto eof;
 			}
 			sc = (sc << 8)|(uint32_t)byte;
 		}
 		BATOM_NEXT(byte, cursor);
-		if(byte==BIO_EOF) {
+		if(byte==BATOM_EOF) {
 			goto eof;
 		}
 	}

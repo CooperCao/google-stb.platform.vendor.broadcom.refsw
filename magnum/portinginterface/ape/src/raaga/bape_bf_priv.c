@@ -53,6 +53,14 @@
 #include "bchp_aud_fmm_bf_esr2_h.h"
 #endif
 
+#if defined BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR
+  #define BAPE_BF_ADDRESS_STRIDE (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR - BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR)
+#elif defined BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR
+  #define BAPE_BF_ADDRESS_STRIDE (BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR - BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR)
+#else
+  #warning "UNSUPPORTED CHIP - update this code"
+#endif
+
 BDBG_MODULE(bape_bf_priv);
 BDBG_FILE_MODULE(bape_dfifo);
 BDBG_FILE_MODULE(bape_sfifo);
@@ -287,7 +295,8 @@ BERR_Code BAPE_SfifoGroup_P_Start(
     /* Program each SFIFO */
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        uint32_t base, end, watermark, wrpoint, writeOffset;
+        BMMA_DeviceOffset base, end, wrpoint, writeOffset;
+        unsigned watermark;
 
         regAddr = BCHP_AUD_FMM_BF_CTRL_SOURCECH_CFGi_ARRAY_BASE + (4*handle->sfifoIds[i]);
         regVal = BREG_Read32(deviceHandle->regHandle, regAddr);
@@ -353,22 +362,23 @@ BERR_Code BAPE_SfifoGroup_P_Start(
         watermark = handle->settings.bufferInfo[2*i].watermark;
         wrpoint = handle->settings.bufferInfo[2*i].wrpoint;
         writeOffset = handle->settings.bufferInfo[2*i].writeOffset;
-        BREG_Write32(deviceHandle->regHandle, regAddr, base);
-        regAddr += 4;   /* Write is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, base);  /* leave buf empty for now */
-        regAddr += 4;   /* Base is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, base);
-        regAddr += 4;   /* End is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, end);
-        regAddr += 4;   /* Freefull is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, watermark);
-        regAddr += 4;   /* WRPOINT is last */
-        BREG_Write32(deviceHandle->regHandle, regAddr, wrpoint);
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Write is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, base);  /* leave buf empty for now */
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Base is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* End is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, end);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Freefull is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, (BMMA_DeviceOffset)watermark);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* WRPOINT is last */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, wrpoint);
         BAPE_Sfifo_P_CommitData (handle,  writeOffset, i  , 0 ); /* now adjust write pointer for existing data */
 
         if ( handle->settings.interleaveData )
         {
-            base=end=watermark=wrpoint=writeOffset=0;
+            base = end = wrpoint = writeOffset = 0;
+            watermark = 0;
         }
         else
         {
@@ -378,18 +388,18 @@ BERR_Code BAPE_SfifoGroup_P_Start(
             wrpoint = handle->settings.bufferInfo[(2*i)+1].wrpoint;
             writeOffset = handle->settings.bufferInfo[(2*i)+1].writeOffset;
         }
-        regAddr += 4;   /* Next RDADDR */
-        BREG_Write32(deviceHandle->regHandle, regAddr, base);
-        regAddr += 4;   /* Write is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, base);  /* leave buf empty for now */
-        regAddr += 4;   /* Base is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, base);
-        regAddr += 4;   /* End is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, end);
-        regAddr += 4;   /* Freefull is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, watermark);
-        regAddr += 4;   /* WRPOINT is last */
-        BREG_Write32(deviceHandle->regHandle, regAddr, wrpoint);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Next RDADDR */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Write is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, base);  /* leave buf empty for now */
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Base is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* End is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, end);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Freefull is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, (BMMA_DeviceOffset)watermark);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* WRPOINT is last */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, wrpoint);
         BAPE_Sfifo_P_CommitData (handle,  writeOffset, i  , 1 ); /* now adjust write pointer for existing data */
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_SOURCECH_BYTE_REORDERi_ARRAY_BASE
@@ -676,29 +686,29 @@ void BAPE_SfifoGroup_P_Stop(
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
         regAddr = BAPE_P_SFIFO_TO_RDADDR_REG(handle->sfifoIds[i]);
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Write is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Base is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* End is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Freefull is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* WRPOINT is last */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Next RDADDR */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Write is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Base is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* End is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* Freefull is next */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
-        regAddr += 4;   /* WRPOINT is last */
-        BREG_Write32(deviceHandle->regHandle, regAddr, 0);
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Write is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Base is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* End is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Freefull is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* WRPOINT is last */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Next RDADDR */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Write is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Base is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* End is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Freefull is next */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* WRPOINT is last */
+        BREG_WriteAddr(deviceHandle->regHandle, regAddr, 0);
     }
 
     handle->started = false;
@@ -941,18 +951,16 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
     unsigned bufferNum              /*0,1*/
     )
 {
-    BERR_Code errCode;
-
-    uint32_t rd,wr,base,sfifoId,rdaddr,wraddr;
-    unsigned bufferSize, padding=1024;
+    BMMA_DeviceOffset rd,wr,base,rdaddr,wraddr;
+    unsigned bufferSize, sfifoId, padding=1024;
 
     sfifoId = handle->sfifoIds[chPair];
     bufferSize = handle->settings.bufferInfo[chPair*2 + bufferNum].length;
-    rd = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
-    wr = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
-    base = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_BASEADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    rd = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    wr = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    base = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_BASEADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
 
-    BDBG_MSG(("PB GetBuffer: RDADDR 0x%x WRADDR 0x%x BASEADDR 0x%x Size %d ", rd, wr, base, bufferSize));
+    BDBG_MSG(("PB GetBuffer: RDADDR " BDBG_UINT64_FMT "WRADDR " BDBG_UINT64_FMT "BASEADDR " BDBG_UINT64_FMT "Size %u", BDBG_UINT64_ARG(rd), BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(base), bufferSize));
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
@@ -962,41 +970,23 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
     wraddr = BCHP_GET_FIELD_DATA(wr, AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
 #endif
 
-    if (bufferNum == 0)
-    {
-        errCode = BMEM_ConvertOffsetToAddress(handle->deviceHandle->memHandle, wraddr, &pBuffers->buffers[BAPE_Channel_eLeft].pBuffer);
-        if ( errCode )
-        {
-            errCode = BERR_TRACE(errCode);
-        }
-        errCode = BMEM_ConvertOffsetToAddress(handle->deviceHandle->memHandle, base, &pBuffers->buffers[BAPE_Channel_eLeft].pWrapBuffer);
-        if ( errCode )
-        {
-            errCode = BERR_TRACE(errCode);
-        }
-    }
-    else if (bufferNum == 1)
-    {
-        errCode = BMEM_ConvertOffsetToAddress(handle->deviceHandle->memHandle, wraddr, &pBuffers->buffers[BAPE_Channel_eRight].pBuffer);
-        if ( errCode )
-        {
-            errCode = BERR_TRACE(errCode);
-        }
-        errCode = BMEM_ConvertOffsetToAddress(handle->deviceHandle->memHandle, base, &pBuffers->buffers[BAPE_Channel_eRight].pWrapBuffer);
-        if ( errCode )
-        {
-            errCode = BERR_TRACE(errCode);
-        }
-    }
+    BDBG_CASSERT(BAPE_Channel_eLeft == 0);
+    BDBG_CASSERT(BAPE_Channel_eRight == 1);
+    BDBG_ASSERT(wraddr >= base);
+    pBuffers->buffers[bufferNum].block = handle->settings.bufferInfo[chPair*2 + bufferNum].block;
+    pBuffers->buffers[bufferNum].pBuffer = (uint8_t*)handle->settings.bufferInfo[chPair*2 + bufferNum].pBuffer + (wraddr - base);
+    pBuffers->buffers[bufferNum].pWrapBuffer = handle->settings.bufferInfo[chPair*2 + bufferNum].pBuffer;
+    BDBG_ASSERT(pBuffers->buffers[bufferNum].pBuffer);
+    BDBG_ASSERT(pBuffers->buffers[bufferNum].pWrapBuffer);
 
     if ( wraddr > rdaddr )
     {
-        pBuffers->bufferSize = bufferSize - (wraddr-base);
-        pBuffers->wrapBufferSize = rdaddr-base;
+        pBuffers->bufferSize = bufferSize - (unsigned)(wraddr-base);
+        pBuffers->wrapBufferSize = (unsigned)(rdaddr-base);
     }
     else if ( wraddr < rdaddr )
     {
-        pBuffers->bufferSize = rdaddr-wraddr;
+        pBuffers->bufferSize = (unsigned)(rdaddr-wraddr);
     }
     else    /* equal */
     {
@@ -1011,7 +1001,7 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
            )
         {
             /* Toggle bits are equal, buffer is empty. */
-            pBuffers->bufferSize = bufferSize - (wraddr-base);
+            pBuffers->bufferSize = bufferSize - (unsigned)(wraddr-base);
             pBuffers->wrapBufferSize = bufferSize - pBuffers->bufferSize;
         }
         else
@@ -1053,6 +1043,10 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
         {
             pBuffers->buffers[bufferNum*2].pBuffer = NULL;
         }
+        if ( pBuffers->bufferSize == 0 && pBuffers->wrapBufferSize == 0 )
+        {
+            pBuffers->buffers[bufferNum*2].block = NULL;
+        }
     }
     else
     {
@@ -1064,6 +1058,19 @@ static BERR_Code BAPE_Sfifo_P_GetBuffer(
         {
             pBuffers->buffers[bufferNum].pBuffer = NULL;
         }
+        if ( pBuffers->bufferSize == 0 && pBuffers->wrapBufferSize == 0 )
+        {
+            pBuffers->buffers[bufferNum].block = NULL;
+        }
+    }
+
+    if ( pBuffers->bufferSize > 0 )
+    {
+        BMMA_FlushCache(pBuffers->buffers[bufferNum].block, pBuffers->buffers[bufferNum].pBuffer, pBuffers->bufferSize);
+    }
+    if ( pBuffers->wrapBufferSize > 0 )
+    {
+        BMMA_FlushCache(pBuffers->buffers[bufferNum].block, pBuffers->buffers[bufferNum].pWrapBuffer, pBuffers->wrapBufferSize);
     }
     return BERR_SUCCESS;
 }
@@ -1117,16 +1124,17 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     )
 {
 
-    uint32_t rd,wr,base,sfifoId,rdaddr,wraddr;
+    BMMA_DeviceOffset rd,wr,base,rdaddr,wraddr;
+    unsigned sfifoId;
     unsigned bufferSize;
 
     sfifoId = handle->sfifoIds[chPair];
     bufferSize = handle->settings.bufferInfo[chPair*2 + bufferNum].length;
-    rd = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
-    wr = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
-    base = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_BASEADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    rd = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    wr = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    base = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_BASEADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
 
-    BDBG_MSG(("PB Commit: RDADDR 0x%x WRADDR 0x%x BASEADDR 0x%x Size %d ", rd, wr, base, bufferSize));
+    BDBG_MSG(("PB Commit: RDADDR " BDBG_UINT64_FMT " WRADDR " BDBG_UINT64_FMT " BASEADDR " BDBG_UINT64_FMT " Size %u", BDBG_UINT64_ARG(rd), BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(base), bufferSize));
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
@@ -1139,12 +1147,12 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     /* Make sure the write pointer doesn't try and pass read */
     if ( rdaddr > wraddr )
     {
-        if ( wraddr + numBytes > rdaddr )
+        if ( (wraddr + (BMMA_DeviceOffset)numBytes) > rdaddr )
         {
             BDBG_ERR(("Playback: Attempt to write more data than available in the buffer."));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
-        else if ( wraddr + numBytes == rdaddr )
+        else if ( (wraddr + (BMMA_DeviceOffset)numBytes) == rdaddr )
         {
             if (
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
@@ -1164,9 +1172,10 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     }
     else    /* rdaddr <= wraddr */
     {
-        if ( wraddr + numBytes > (base + bufferSize) )
+        if ( (wraddr + (BMMA_DeviceOffset)numBytes) > (base + (BMMA_DeviceOffset)bufferSize) )
         {
             BDBG_ERR(("Playback: Attempt to write more data than available in the buffer."));
+            BDBG_ERR(("wraddr " BDBG_UINT64_FMT ", rdaddr " BDBG_UINT64_FMT ", numBytes %u, base " BDBG_UINT64_FMT ", bufferSize %u", BDBG_UINT64_ARG(wraddr), BDBG_UINT64_ARG(rdaddr), numBytes, BDBG_UINT64_ARG(base), bufferSize));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
     }
@@ -1175,7 +1184,7 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     wraddr += numBytes;
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     wr &= ~BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
-    if ( wraddr == bufferSize + base )
+    if ( wraddr == ((BMMA_DeviceOffset)bufferSize + base) )
     {
         BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
         wr ^= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1);   /* flip the toggle bit */
@@ -1184,15 +1193,15 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     wr |= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR, wraddr);
 #else
     wr &= ~BCHP_MASK(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
-    if ( wraddr == bufferSize + base )
+    if ( wraddr == ((BMMA_DeviceOffset)bufferSize + base) )
     {
-        BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
+        BDBG_MSG(("Inverting toggle bit - was " BDBG_UINT64_FMT " now " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1))));
         wr ^= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1);   /* flip the toggle bit */
         wraddr = base;
     }
     wr |= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR, wraddr);
 #endif
-    BREG_Write32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE), wr);
+    BREG_WriteAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE), wr);
 
     return BERR_SUCCESS;
 }
@@ -1215,9 +1224,9 @@ BERR_Code BAPE_SfifoGroup_P_Flush(
     {
         for (bufferNum = 0; bufferNum < handle->numChannelPairs; bufferNum++)
         {
-            BREG_Write32(handle->deviceHandle->regHandle,
+            BREG_WriteAddr(handle->deviceHandle->regHandle,
                          BAPE_P_SFIFO_TO_WRADDR_REG(handle->sfifoIds[bufferNum]),
-                         BREG_Read32(handle->deviceHandle->regHandle,
+                         BREG_ReadAddr(handle->deviceHandle->regHandle,
                                      BAPE_P_SFIFO_TO_RDADDR_REG(handle->sfifoIds[bufferNum])));
         }
     }
@@ -1225,14 +1234,14 @@ BERR_Code BAPE_SfifoGroup_P_Flush(
     {
         for (bufferNum = 0; bufferNum < handle->numChannelPairs; bufferNum++)
         {
-            BREG_Write32(handle->deviceHandle->regHandle,
+            BREG_WriteAddr(handle->deviceHandle->regHandle,
                          BAPE_P_SFIFO_TO_WRADDR_REG(handle->sfifoIds[bufferNum]),
-                         BREG_Read32(handle->deviceHandle->regHandle,
+                         BREG_ReadAddr(handle->deviceHandle->regHandle,
                                      BAPE_P_SFIFO_TO_RDADDR_REG(handle->sfifoIds[bufferNum])));
 
-            BREG_Write32(handle->deviceHandle->regHandle,
+            BREG_WriteAddr(handle->deviceHandle->regHandle,
                          BAPE_P_SFIFO_TO_WRADDR_REG(handle->sfifoIds[bufferNum]) + BAPE_P_RINGBUFFER_STRIDE,
-                         BREG_Read32(handle->deviceHandle->regHandle,
+                         BREG_ReadAddr(handle->deviceHandle->regHandle,
                                      BAPE_P_SFIFO_TO_RDADDR_REG(handle->sfifoIds[bufferNum] + BAPE_P_RINGBUFFER_STRIDE)));
         }
     }
@@ -1289,14 +1298,14 @@ static BERR_Code BAPE_Sfifo_P_GetQueuedBytes(
     unsigned bufferNum     /*0,1*/
     )
 {
-    uint32_t rd,wr,base,sfifoId,rdaddr,wraddr;
-    unsigned bufferSize, queuedBytes;
+    BMMA_DeviceOffset rd,wr,base,rdaddr,wraddr;
+    unsigned bufferSize, sfifoId, queuedBytes;
 
     sfifoId = handle->sfifoIds[chPair];
     bufferSize = handle->settings.bufferInfo[chPair*2 + bufferNum].length;
-    rd = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
-    wr = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
-    base = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_BASEADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    rd = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    wr = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_WRADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    base = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_BASEADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     rdaddr = BCHP_GET_FIELD_DATA(rd, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
@@ -1345,17 +1354,18 @@ void BAPE_SfifoGroup_P_GetReadAddress(
     BAPE_SfifoGroupHandle handle,
     unsigned chPair,       /*0,1,2,3*/
     unsigned bufferNum,     /*0,1*/
-    uint32_t *pReadPtr
+    BMMA_DeviceOffset *pReadPtr
     )
 {
-    uint32_t read,sfifoId;
+    BMMA_DeviceOffset read;
+    unsigned sfifoId;
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
     BDBG_ASSERT(NULL != pReadPtr);
 
     sfifoId = handle->sfifoIds[chPair];
-    read = BREG_Read32(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
+    read = BREG_ReadAddr(handle->deviceHandle->regHandle, BAPE_P_SFIFO_TO_RDADDR_REG(sfifoId) + (bufferNum * BAPE_P_RINGBUFFER_STRIDE));
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     *pReadPtr = BCHP_GET_FIELD_DATA(read, AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR);
@@ -1598,7 +1608,7 @@ static void BAPE_DfifoGroup_P_ApplySettings(
     {
         uint32_t sfifoId = (handle->settings.linkedSfifo) ? handle->settings.linkedSfifo->sfifoIds[i] : BAPE_Bf_P_GetFirstRunningSfifo(handle->deviceHandle, NULL);
         uint32_t fciId = handle->settings.input.ids[i];
-        uint32_t base, end, watermark;
+        BMMA_DeviceOffset base, end, watermark;
 #ifdef BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0
         regAddr = BCHP_AUD_FMM_BF_CTRL_DESTCH_CFG0;
         regMask =
@@ -1697,17 +1707,17 @@ static void BAPE_DfifoGroup_P_ApplySettings(
         base = handle->settings.bufferInfo[2*i].base;
         end = base + handle->settings.bufferInfo[2*i].length - 1;
         watermark = handle->settings.bufferInfo[2*i].watermark;
-        BREG_Write32(regHandle, regAddr, base);
-        regAddr += 4;   /* Write is next */
-        BREG_Write32(regHandle, regAddr, base);
-        regAddr += 4;   /* Base is next */
-        BREG_Write32(regHandle, regAddr, base);
-        regAddr += 4;   /* End is next */
-        BREG_Write32(regHandle, regAddr, end);
-        regAddr += 4;   /* Freefull is next */
-        BREG_Write32(regHandle, regAddr, watermark);
-        regAddr += 4;   /* WRPOINT is last */
-        BREG_Write32(regHandle, regAddr, 0);
+        BREG_WriteAddr(regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Write is next */
+        BREG_WriteAddr(regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Base is next */
+        BREG_WriteAddr(regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* End is next */
+        BREG_WriteAddr(regHandle, regAddr, end);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Freefull is next */
+        BREG_WriteAddr(regHandle, regAddr, watermark);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* WRPOINT is last */
+        BREG_WriteAddr(regHandle, regAddr, 0);
         if ( handle->settings.interleaveData )
         {
             base=end=watermark=0;
@@ -1718,18 +1728,18 @@ static void BAPE_DfifoGroup_P_ApplySettings(
             end = base + handle->settings.bufferInfo[(2*i)+1].length - 1;
             watermark = handle->settings.bufferInfo[(2*i)+1].watermark;
         }
-        regAddr += 4;   /* Next RDADDR */
-        BREG_Write32(regHandle, regAddr, base);
-        regAddr += 4;   /* Write is next */
-        BREG_Write32(regHandle, regAddr, base);
-        regAddr += 4;   /* Base is next */
-        BREG_Write32(regHandle, regAddr, base);
-        regAddr += 4;   /* End is next */
-        BREG_Write32(regHandle, regAddr, end);
-        regAddr += 4;   /* Freefull is next */
-        BREG_Write32(regHandle, regAddr, watermark);
-        regAddr += 4;   /* WRPOINT is last */
-        BREG_Write32(regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Next RDADDR */
+        BREG_WriteAddr(regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Write is next */
+        BREG_WriteAddr(regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Base is next */
+        BREG_WriteAddr(regHandle, regAddr, base);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* End is next */
+        BREG_WriteAddr(regHandle, regAddr, end);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* Freefull is next */
+        BREG_WriteAddr(regHandle, regAddr, watermark);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;   /* WRPOINT is last */
+        BREG_WriteAddr(regHandle, regAddr, 0);
     }
 }
 
@@ -1779,7 +1789,8 @@ static void BAPE_DfifoGroup_P_SetCaptureRun_isr(
     uint32_t value
     )
 {
-    uint32_t baseAddr, stride;
+    uint32_t baseAddr;
+    unsigned stride;
     unsigned i;
 
     /* These registers are not read/modify/write and thus are safe from either task or interrupt context */
@@ -1882,7 +1893,7 @@ void BAPE_DfifoGroup_P_Halt_isr(
 #endif
 
 typedef struct {
-    uint32_t rd, wr, base;
+    BMMA_DeviceOffset rd, wr, base;
 } BAPE_P_BufferPtrs;
 
 BERR_Code BAPE_DfifoGroup_P_GetBuffer(
@@ -1890,10 +1901,9 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
     BAPE_BufferDescriptor *pBuffers      /* [out] */
     )
 {
-    uint32_t rd, wr, base, wrap;
+    BMMA_DeviceOffset rd, wr, base, wrap;
     BAPE_P_BufferPtrs ptrs[BAPE_Channel_eMax];
     unsigned bufferSize, wrapBufferSize=0, fifoSize, i, minBufferSize=0x7fffffff;
-    BERR_Code errCode;
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
@@ -1921,14 +1931,14 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
     BKNI_EnterCriticalSection();
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        ptrs[2*i].rd = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]));
-        ptrs[2*i].wr = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i]));
-        ptrs[2*i].base = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i]));
+        ptrs[2*i].rd = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]));
+        ptrs[2*i].wr = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i]));
+        ptrs[2*i].base = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i]));
         if ( handle->settings.interleaveData == false )
         {
-            ptrs[(2*i)+1].rd = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
-            ptrs[(2*i)+1].wr = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
-            ptrs[(2*i)+1].base = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
+            ptrs[(2*i)+1].rd = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
+            ptrs[(2*i)+1].wr = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
+            ptrs[(2*i)+1].base = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
         }
     }
     BKNI_LeaveCriticalSection();
@@ -1958,16 +1968,19 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
 #endif
 
         /* Get base address to read from */
-        errCode = BMEM_Heap_ConvertOffsetToAddress(handle->deviceHandle->memHandle, rd, &pBuffers->buffers[2*i].pBuffer);
-        if ( errCode )
+        BDBG_ASSERT(rd >= base);
+        pBuffers->buffers[2*i].pBuffer = (uint8_t*)handle->settings.bufferInfo[2*i].pBuffer + (rd - base);
+        if ( !pBuffers->buffers[2*i].pBuffer )
         {
-            return BERR_TRACE(errCode);
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
+
+        pBuffers->buffers[2*i].block = handle->settings.bufferInfo[2*i].block;
 
         /* Compute size of contiguous space */
         if ( wrap )
         {
-            bufferSize = fifoSize - (rd-base);
+            bufferSize = (uint64_t)fifoSize - (rd-base);
             wrapBufferSize = wr-base;
         }
         else
@@ -2005,11 +2018,14 @@ BERR_Code BAPE_DfifoGroup_P_GetBuffer(
 #endif
 
             /* Get base address to read from */
-            errCode = BMEM_Heap_ConvertOffsetToAddress(handle->deviceHandle->memHandle, rd, &pBuffers->buffers[(2*i)+1].pBuffer);
-            if ( errCode )
+            BDBG_ASSERT(rd >= base);
+            pBuffers->buffers[(2*i)+1].pBuffer = (uint8_t*)handle->settings.bufferInfo[(2*i)+1].pBuffer + (rd - base);
+            if ( !pBuffers->buffers[(2*i)+1].pBuffer )
             {
-                return BERR_TRACE(errCode);
+                return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             }
+
+            pBuffers->buffers[(2*i)+1].block = handle->settings.bufferInfo[(2*i)+1].block;
 
             /* Compute size of contiguous space */
             if ( wrap )
@@ -2039,9 +2055,9 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
     unsigned numBytes                   /* Number of bytes written into the buffer */
     )
 {
-    uint32_t rd, wr, base, wrap, rdaddr, wraddr, wrapBit, prevReadAddr;
+    BMMA_DeviceOffset rd, wr, base, wrap, rdaddr, wraddr, wrapBit, prevReadAddr;
     unsigned fifoSize, i;
-    uint32_t rdaddrRegs[BAPE_Channel_eMax];
+    BMMA_DeviceOffset rdaddrRegs[BAPE_Channel_eMax];
 
     BDBG_ASSERT(NULL != handle);
     BDBG_ASSERT(handle->allocated);
@@ -2056,9 +2072,9 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
         /* Read registers */
-        rd = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]));
-        wr = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i]));
-        base = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i]));
+        rd = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]));
+        wr = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i]));
+        base = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i]));
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
         /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
@@ -2084,7 +2100,7 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
             if (numBytes > ((base+fifoSize-rdaddr)+(wraddr-base)) )
             {
                 BDBG_ERR(("Invalid number of bytes provided to BAPE_OutputCapture_ConsumeData [wrap]"));
-                BDBG_ERR(("rd %#x wr %#x base %#x size %#x numBytes %#x", rd, wr, base, fifoSize, numBytes));
+                BDBG_ERR(("rd " BDBG_UINT64_FMT " wr " BDBG_UINT64_FMT " base " BDBG_UINT64_FMT " size %#x numBytes %#x", BDBG_UINT64_ARG(rd), BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(base), fifoSize, numBytes));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
         }
@@ -2093,7 +2109,7 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
             if ( (rdaddr+numBytes) > wraddr )
             {
                 BDBG_ERR(("Invalid number of bytes provided to BAPE_OutputCapture_ConsumeData [no wrap]"));
-                BDBG_ERR(("rd %#x wr %#x base %#x size %#x numBytes %#x", rd, wr, base, fifoSize, numBytes));
+                BDBG_ERR(("rd " BDBG_UINT64_FMT " wr " BDBG_UINT64_FMT " base " BDBG_UINT64_FMT " size %#x numBytes %#x", BDBG_UINT64_ARG(rd), BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(base), fifoSize, numBytes));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
             }
         }
@@ -2122,9 +2138,9 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
         if ( handle->settings.interleaveData == false )
         {
             /* Read registers */
-            rd = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
-            wr = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
-            base = BREG_Read32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
+            rd = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
+            wr = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
+            base = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_BASEADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE);
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
             /* Same toggle bit means no wrap.  Opposite toggle bits means wrap. */
@@ -2150,7 +2166,7 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
                 if (numBytes > ((base+fifoSize-rdaddr)+(wraddr-base)) )
                 {
                     BDBG_ERR(("Invalid number of bytes provided to BAPE_OutputCapture_ConsumeData [wrap]"));
-                    BDBG_ERR(("rd %#x wr %#x base %#x size %#x numBytes %#x", rd, wr, base, fifoSize, numBytes));
+                    BDBG_ERR(("rd " BDBG_UINT64_FMT " wr " BDBG_UINT64_FMT " base " BDBG_UINT64_FMT " size %#x numBytes %#x", BDBG_UINT64_ARG(rd), BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(base), fifoSize, numBytes));
                     return BERR_TRACE(BERR_INVALID_PARAMETER);
                 }
             }
@@ -2159,7 +2175,7 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
                 if ( (rdaddr+numBytes) > wraddr )
                 {
                     BDBG_ERR(("Invalid number of bytes provided to BAPE_OutputCapture_ConsumeData [no wrap]"));
-                    BDBG_ERR(("rd %#x wr %#x base %#x size %#x numBytes %#x", rd, wr, base, fifoSize, numBytes));
+                    BDBG_ERR(("rd " BDBG_UINT64_FMT " wr " BDBG_UINT64_FMT " base " BDBG_UINT64_FMT " size %#x numBytes %#x", BDBG_UINT64_ARG(rd), BDBG_UINT64_ARG(wr), BDBG_UINT64_ARG(base), fifoSize, numBytes));
                     return BERR_TRACE(BERR_INVALID_PARAMETER);
                 }
             }
@@ -2191,10 +2207,10 @@ BERR_Code BAPE_DfifoGroup_P_CommitData_isr(
     /* Move the actual read pointer after validation */
     for ( i = 0; i < handle->numChannelPairs; i++ )
     {
-        BREG_Write32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]), rdaddrRegs[2*i]);
+        BREG_WriteAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]), rdaddrRegs[2*i]);
         if ( false == handle->settings.interleaveData )
         {
-            BREG_Write32_isr(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE, rdaddrRegs[(2*i)+1]);
+            BREG_WriteAddr_isrsafe(handle->deviceHandle->regHandle, BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i])+BAPE_P_RINGBUFFER_STRIDE, rdaddrRegs[(2*i)+1]);
         }
     }
 
@@ -2205,13 +2221,13 @@ BERR_Code BAPE_DfifoGroup_P_Flush_isr(
     BAPE_DfifoGroupHandle handle
     )
 {
-    uint32_t regAddr, regVal, offset, wrap;
+    BMMA_DeviceOffset regAddr, regVal, offset, wrap;
     unsigned i;
 
     /* To flush, first compute where the read address should be in terms
        of offset from base.  Then apply to all buffers. */
     regAddr = BAPE_P_DFIFO_TO_WRADDR_REG(handle->dfifoIds[0]);
-    regVal = BREG_Read32_isr(handle->deviceHandle->regHandle, regAddr);
+    regVal = BREG_ReadAddr_isrsafe(handle->deviceHandle->regHandle, regAddr);
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
     wrap = regVal & BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR_WRAP);
     offset = (regVal & BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR, RINGBUF_RDADDR)) - handle->settings.bufferInfo[0].base;
@@ -2223,12 +2239,12 @@ BERR_Code BAPE_DfifoGroup_P_Flush_isr(
     {
         regAddr = BAPE_P_DFIFO_TO_RDADDR_REG(handle->dfifoIds[i]);
         regVal = wrap | (offset+handle->settings.bufferInfo[2*i].base);
-        BREG_Write32_isr(handle->deviceHandle->regHandle, regAddr, regVal);
+        BREG_WriteAddr_isrsafe(handle->deviceHandle->regHandle, regAddr, regVal);
         if ( handle->settings.interleaveData )
         {
             regAddr += BAPE_P_RINGBUFFER_STRIDE;
             regVal = wrap | (offset+handle->settings.bufferInfo[(2*i)+1].base);
-            BREG_Write32_isr(handle->deviceHandle->regHandle, regAddr, regVal);
+            BREG_WriteAddr_isrsafe(handle->deviceHandle->regHandle, regAddr, regVal);
         }
     }
 
@@ -3314,16 +3330,16 @@ BERR_Code BAPE_P_InitBfHw(
     BDBG_MSG(("Clearing ringbuffer registers from 0x%x to 0x%x", regAddr, endAddr-4));
     while ( regAddr < endAddr )
     {
-        BREG_Write32(regHandle, regAddr, 0);
-        regAddr += 4;
+        BREG_WriteAddr(regHandle, regAddr, 0);
+        regAddr += BAPE_BF_ADDRESS_STRIDE;
     }
 #ifdef BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FRMSTADDR
     regAddr = BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FRMSTADDR;
-    endAddr = regAddr + (8*2*(BAPE_CHIP_MAX_SFIFOS + BAPE_CHIP_MAX_DFIFOS));
+    endAddr = regAddr + ((BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_FRMSTADDR-BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FRMSTADDR)*2*(BAPE_CHIP_MAX_SFIFOS + BAPE_CHIP_MAX_DFIFOS));
     while ( regAddr < endAddr )
     {
-        BREG_Write32(regHandle, regAddr, 0);
-        regAddr += 4;
+        BREG_WriteAddr(regHandle, regAddr, 0);
+        regAddr += (BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_MI_VALID-BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FRMSTADDR);
     }
 #endif
 #endif

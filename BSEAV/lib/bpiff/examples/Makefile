@@ -40,16 +40,10 @@
 NEXUS_TOP := $(shell cd ../../../../nexus; pwd)
 BSEAV_TOP := $(shell cd ../../../../BSEAV; pwd)
 
-ifeq ($(SAGE_VERSION), 2x)
-PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
-else
-PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
-endif
-
 #APPS = encode_piff playback_piff playback_piff_PR_drm
 #SRCS = encode_piff.c playback_piff.c playback_piff_PR_drm.c
-APPS = encode_playback_piff
-SRCS = encode_playback_piff.c
+APPS = encode_piff encode_playback_piff
+SRCS = encode_piff.c encode_playback_piff.c
 OBJS = ${SRCS:.c=.o}
 
 # include cross-compiler definitions
@@ -75,6 +69,12 @@ endif
 
 include $(BSEAV_TOP)/lib/security/common_drm/lib/prdy_libdir.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
+
+ifeq ($(SAGE_VERSION), 2x)
+PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
+else
+PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+endif
 
 APP_BINS = $(APPS)
 

@@ -47,7 +47,7 @@ include $(BSEAV)/lib/bwin/include/bwin.mak
 .PHONY: b_bwin_target_dummy b_bwin_target_build b_bwin_target_clean
 
 ifeq ($(PNG_SUPPORT),y)
-include $(BSEAV)/lib/libpng/b_libpng_targets.inc
+include $(BSEAV)/opensource/libpng/b_libpng_targets.inc
 B_BWIN_OTHER_BUILDS += b_libpng_target_build
 B_BWIN_OTHER_CLEANS += b_libpng_target_clean
 B_BWIN_OTHER_CLEAN_ALL += b_libpng_target_clean_all
@@ -56,7 +56,7 @@ B_LIBPNG_TARGET_MAKEFLAGS += $(B_BWIN_TARGET_MAKEFLAGS)
 endif
 
 ifeq ($(JPEG_SUPPORT),y)
-include $(BSEAV)/lib/jpeg-6b/b_libjpeg_targets.inc
+include $(BSEAV)/opensource/jpeg/b_libjpeg_targets.inc
 B_BWIN_OTHER_BUILDS += b_libjpeg_target_build
 B_BWIN_OTHER_CLEANS += b_libjpeg_target_clean
 B_BWIN_OTHER_CLEAN_ALL += b_libjpeg_target_clean_all
@@ -65,7 +65,7 @@ B_LIBJPEG_TARGET_MAKEFLAGS += $(B_BWIN_TARGET_MAKEFLAGS)
 endif
 
 ifeq ($(FREETYPE_SUPPORT),y)
-include $(FREETYPE_DIR)/b_freetype_targets.inc
+include $(FREETYPE_DIR)/$(FREETYPE_NAME)/b_freetype_targets.inc
 B_BWIN_OTHER_BUILDS += b_freetype_target_build
 B_BWIN_OTHER_CLEANS += b_freetype_target_clean
 B_BWIN_OTHER_CLEAN_ALL += b_freetype_target_clean_all

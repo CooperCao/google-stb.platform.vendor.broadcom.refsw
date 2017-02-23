@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2014 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_platform.h"
@@ -60,12 +52,26 @@ int main(int argc, char **argv)
     NEXUS_Error errCode;
     NEXUS_I2sInputHandle i2sInput;
     NEXUS_PlatformConfiguration platformConfig;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
 
-	argc=argc;
-	argv=argv;
+    argc=argc;
+    argv=argv;
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numInputs.i2s == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
 
     i2sInput = NEXUS_I2sInput_Open(0, NULL);
     if ( NULL == i2sInput )
@@ -74,15 +80,20 @@ int main(int argc, char **argv)
         return -1;
     }
 
-#if NEXUS_NUM_AUDIO_DACS
-    errCode = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                                         NEXUS_I2sInput_GetConnector(i2sInput));
-    if ( errCode )
+    if (audioDacHandle) {
+        errCode = NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                             NEXUS_I2sInput_GetConnector(i2sInput));
+        if ( errCode )
+        {
+            fprintf(stderr, "Unable to connect DAC to I2S Input\n");
+            return -1;
+        }
+    }
+    else
     {
-        fprintf(stderr, "Unable to connect DAC to I2S Input\n");
+        fprintf(stderr, "No DAC Output\n");
         return -1;
     }
-#endif
 
     errCode = NEXUS_I2sInput_Start(i2sInput);
     if ( errCode )
@@ -95,13 +106,14 @@ int main(int argc, char **argv)
     getchar();
 
     NEXUS_I2sInput_Stop(i2sInput);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
+    if (audioCapabilities.numOutputs.dac > 0) {
+        NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
+    }
+
     NEXUS_AudioInput_Shutdown(NEXUS_I2sInput_GetConnector(i2sInput));
     NEXUS_I2sInput_Close(i2sInput);
 
-	return 0;
+    return 0;
 }
 #else /* NEXUS_HAS_AUDIO */
 int main(void)

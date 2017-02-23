@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,10 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
  *****************************************************************************/
-
 #ifndef NXSERVERLIB_H__
 #define NXSERVERLIB_H__
 
@@ -47,7 +49,7 @@
 #if NEXUS_HAS_IR_INPUT
 #include "nexus_ir_input.h"
 #endif
-#if NEXUS_NUM_AUDIO_CAPTURES
+#if NEXUS_HAS_AUDIO
 #include "nexus_audio_capture.h"
 #endif
 #include "nxserver_ipc_types.h"
@@ -136,6 +138,11 @@ struct nxserver_settings
     struct {
         unsigned fifoSize; /* default fifo size. if 0, use internal defaults. */
     } audioPlayback;
+#if NEXUS_HAS_AUDIO
+    struct {
+        NEXUS_AudioOutputClockSource clockSources[NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS]; /* Clock config for captures */
+    } audioCapture;
+#endif
 #define NXCLIENT_MAX_SESSIONS 4
     struct nxserver_session_settings {
         /* Supported combinations:
@@ -259,6 +266,7 @@ struct nxserver_cmdline_settings
     struct {
         unsigned userId, groupId; /* drop to this user and group id after connecting to driver */
     } permissions;
+    bool dtu;
 };
 
 
@@ -339,12 +347,31 @@ void        NxClient_P_GetDisplaySettings(nxclient_t client, struct b_session *s
 NEXUS_Error NxClient_P_SetDisplaySettings(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings );
 NEXUS_Error NxClient_P_GetDisplayStatus(struct b_session *session, NxClient_DisplayStatus *pStatus );
 
-NEXUS_Error NxClient_P_General(nxclient_t client, enum nxclient_p_general_param_type type, const nxclient_p_general_param *param, nxclient_p_general_output *output);
-
+void NxClient_P_GetComposition(nxclient_t client, unsigned surfaceClientId, NEXUS_SurfaceComposition *composition);
+NEXUS_Error NxClient_P_SetComposition(nxclient_t client, unsigned surfaceClientId, const NEXUS_SurfaceComposition *composition);
+NEXUS_Error NxClient_P_WriteTeletext(nxclient_t client, const nxclient_p_teletext_data *data, size_t numLines,  size_t *pNumLinesWritten);
+NEXUS_Error NxClient_P_WriteClosedCaption(nxclient_t client, const nxclient_p_closecaption_data *data, size_t numEntries, size_t *pNumEntriesWritten );
+NEXUS_Error NxClient_P_Display_SetWss(nxclient_t client, uint16_t wssData);
+NEXUS_Error NxClient_P_Display_SetCgms(nxclient_t client, uint32_t cgmsData);
+void NxClient_P_GetAudioProcessingSettings(nxclient_t client, NxClient_AudioProcessingSettings *pSettings );
+NEXUS_Error NxClient_P_SetAudioProcessingSettings(nxclient_t client, const NxClient_AudioProcessingSettings *pSettings );
+NEXUS_Error NxClient_P_Reconfig(nxclient_t client, const NxClient_ReconfigSettings *pSettings);
+NEXUS_Error NxClient_P_Screenshot(nxclient_t client,  const NxClient_ScreenshotSettings *pSettings, NEXUS_SurfaceHandle surface);
+NEXUS_Error NxClient_P_Display_SetMacrovision(nxclient_t client, NEXUS_DisplayMacrovisionType type, bool pTable_isNull, const NEXUS_DisplayMacrovisionTables *pTable);
+NEXUS_Error NxClient_P_GrowHeap(nxclient_t client, unsigned heapIndex );
+void NxClient_P_ShrinkHeap(nxclient_t client, unsigned heapIndex );
+NEXUS_Error NxClient_P_Config_LookupClient(nxclient_t client, unsigned pid, NEXUS_ClientHandle *pHandle);
+NEXUS_Error NxClient_P_Display_GetCrcData(nxclient_t client, unsigned displayIndex, NxClient_DisplayCrcData *pData);
+NEXUS_Error NxClient_P_HdmiOutput_GetCrcData(nxclient_t client, NxClient_HdmiOutputCrcData *pData );
+NEXUS_Error NxClient_P_RegisterAcknowledgeStandby_ipc(nxclient_t client, unsigned *id);
+void NxClient_P_UnregisterAcknowledgeStandby(nxclient_t client, unsigned id );
+void NxClient_P_AcknowledgeStandby(nxclient_t client, unsigned id );
+NEXUS_Error NxClient_P_LoadHdcpKeys(nxclient_t client, NxClient_HdcpType hdcpType, NEXUS_MemoryBlockHandle block, unsigned blockOffset,unsigned size);
+NEXUS_Error NxClient_P_SetHdmiInputRepeater(nxclient_t client, NEXUS_HdmiInputHandle hdmiInput);
+NEXUS_Error NxClient_P_SetSlaveDisplayGraphics(nxclient_t client, unsigned slaveDisplay, NEXUS_SurfaceHandle surface);
+NEXUS_Error NxClient_P_GetStatus(nxclient_t client, NxClient_Status *pStatus);
 NEXUS_Error NxClient_P_GetStandbyStatus(nxclient_t client, NxClient_StandbyStatus *pStatus);
-void        NxClient_P_AcknowledgeStandby(nxclient_t client, bool done);
 NEXUS_Error NxClient_P_SetStandbySettings(nxclient_t client, const NxClient_StandbySettings *pSettings);
-
 NEXUS_Error NxClient_P_Config_GetJoinSettings(nxclient_t client, NEXUS_ClientHandle nexusClient, NxClient_JoinSettings *pSettings );
 void        NxClient_P_Config_GetSurfaceClientComposition(nxclient_t client, NEXUS_ClientHandle nexusClient, NEXUS_SurfaceClientHandle surfaceClient, NEXUS_SurfaceComposition *pComposition );
 NEXUS_Error NxClient_P_Config_SetSurfaceClientComposition(nxclient_t client, NEXUS_ClientHandle nexusClient, NEXUS_SurfaceClientHandle surfaceClient, const NEXUS_SurfaceComposition *pComposition );

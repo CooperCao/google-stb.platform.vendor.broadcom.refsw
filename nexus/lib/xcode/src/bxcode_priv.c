@@ -2126,7 +2126,11 @@ void bxcode_close_audio_transcode(
  */
 static unsigned getAudioDummyId(BXCode_P_Context  *bxcode)
 {
-    unsigned audioDummyId = NEXUS_NUM_AUDIO_DUMMY_OUTPUTS - 1;
+    unsigned audioDummyId;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    audioDummyId = audioCapabilities.numOutputs.dummy;
     BSTD_UNUSED(bxcode);
     do {
         if(((1<<audioDummyId) & g_BXCode_P_State.usedAudioDummyOutputs) == 0) break;

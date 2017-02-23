@@ -1,42 +1,43 @@
-/***************************************************************************
- *  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- ************************************************************/
-
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "nexus_platform_priv.h"
 #include <linux/version.h>
 #include "nexus_base_ioctl.h"
@@ -87,22 +88,36 @@
 
 static int      nexus_driver_open(struct inode *inode, struct file *file);
 static int      nexus_driver_close(struct inode *inode, struct file * file);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-static int      nexus_driver_ioctl(struct inode *inode, struct file * file, unsigned int cmd, unsigned long arg);
-#else
-static long nexus_driver_ioctl(struct file * file, unsigned int cmd, unsigned long arg);
-#endif
+static long nexus_driver_ioctl(struct file * file, unsigned int cmd, unsigned long arg, bool compat);
 static int      nexus_driver_mmap(struct file *file, struct vm_area_struct *vma);
+
+static long
+nexus_driver_ioctl_native(struct file * file, unsigned int cmd, unsigned long arg)
+{
+    return nexus_driver_ioctl(file, cmd, arg, false);
+}
+
+#ifdef CONFIG_COMPAT
+static long
+nexus_driver_ioctl_compat(struct file * file, unsigned int cmd, unsigned long arg)
+{
+#if NEXUS_COMPAT_32ABI
+    return nexus_driver_ioctl(file, cmd, arg, true);
+#else
+    /* printk("32-bit ABI is not supported\n"); */
+    return -EINVAL;
+#endif
+}
+#endif
 
 static struct file_operations
 nexus_driver_fops = {
     owner:          THIS_MODULE,
     read:           NULL,
     write:          NULL,
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-    ioctl:          nexus_driver_ioctl,
-#else
-    unlocked_ioctl: nexus_driver_ioctl,
+    unlocked_ioctl: nexus_driver_ioctl_native,
+#ifdef CONFIG_COMPAT
+    compat_ioctl: nexus_driver_ioctl_compat,
 #endif
     mmap:           nexus_driver_mmap,
     open:           nexus_driver_open,
@@ -238,15 +253,8 @@ static int nexus_driver_mmap(struct file *file, struct vm_area_struct *vma) {
 #endif
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,36)
-static int
-nexus_driver_ioctl(struct inode *inode, struct file * file,
-                      unsigned int cmd, unsigned long arg)
-#else
 static long
-nexus_driver_ioctl(struct file * file,
-                     unsigned int cmd, unsigned long arg)
-#endif
+nexus_driver_ioctl(struct file * file, unsigned int cmd, unsigned long arg, bool compat)
 {
     int rc;
     unsigned module = NEXUS_IOCTL_NUM(cmd) / NEXUS_IOCTL_PER_MODULE;
@@ -254,7 +262,7 @@ nexus_driver_ioctl(struct file * file,
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0)
     current->flags |= PF_FREEZER_SKIP;
 #endif
-    rc = nexus_generic_driver_ioctl(module, file->private_data, cmd, arg);
+    rc = nexus_generic_driver_ioctl(module, file->private_data, cmd, arg, compat);
     current->flags &= ~PF_NOFREEZE;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0)
     current->flags &= ~PF_FREEZER_SKIP;
@@ -277,7 +285,11 @@ nexus_init_module(void)
 #if NEXUS_USE_CMA
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
     for (i=0;i<sizeof(settings.region)/sizeof(settings.region[0]);i++) {
+  #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,1)
+        phys_addr_t offset, size;
+  #else
         unsigned long offset, size;
+  #endif
         rc = bmem_region_info(i, &offset, &size);
         if (rc) break;
         settings.region[i].offset = offset;
@@ -300,7 +312,7 @@ nexus_init_module(void)
 #error
 #endif
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)) && (NEXUS_CPU_ARM || NEXUS_CPU_ARM64)
     {
         struct brcm_cache_info info;
         brcm_get_cache_info(&info);
@@ -310,7 +322,7 @@ nexus_init_module(void)
     we will have cache coherency problems (which lead to major system failures).
     This code verifies that Nexus's MEM configuration is compatible with the MIPS cache line size.
     If this code fails, please check to make sure the Linux kernel is configured right, then modify nexus_core_features.h to match. */
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)) && (NEXUS_CPU_ARM || NEXUS_CPU_ARM64)
     {
         struct brcm_cache_info info;
         brcm_get_cache_info(&info);

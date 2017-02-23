@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -73,6 +73,7 @@
 #if BAPE_DSP_SUPPORT
 #define BAPE_CHIP_MAX_DECODERS (BAPE_CHIP_MAX_SFIFOS)
 #define BAPE_CHIP_MAX_DSP_MIXERS (1)                            /* Allow 1 DSP mixer */
+#define BAPE_CHIP_HAS_POST_PROCESSING (1)
 #define BAPE_CHIP_MAX_DSP_TASKS (3+BAPE_CHIP_MAX_DSP_MIXERS)    /* 3 decoders + 1 FW Mixer */
 #if BDSP_ARM_AUDIO_SUPPORT
 #define BAPE_CHIP_MAX_ARM_TASKS (1)    /* 1 encoder */
@@ -80,6 +81,9 @@
 #define BAPE_CHIP_MAX_ARM_TASKS (0)
 #endif
 #else
+#define BAPE_CHIP_MAX_DECODERS (0)
+#define BAPE_CHIP_MAX_DSP_MIXERS (0)
+#define BAPE_CHIP_HAS_POST_PROCESSING (0)
 #define BAPE_CHIP_MAX_DSP_TASKS (0)
 #define BAPE_CHIP_MAX_ARM_TASKS (0)
 #endif
@@ -122,6 +126,8 @@
 #define BAPE_CHIP_MAX_DACS (2)
 #elif defined BCHP_HIFIDAC_CTRL0_REG_START || defined BCHP_HIFIDAC_CTRL_0_REG_START
 #define BAPE_CHIP_MAX_DACS (1)
+#else
+#define BAPE_CHIP_MAX_DACS (0)
 #endif
 
 /* Check for the number of I2S outputs... */

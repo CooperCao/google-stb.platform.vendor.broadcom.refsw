@@ -44,6 +44,9 @@
 #include "bchp_ebi.h"
 #include "bchp_gio.h"
 #include "bchp_rdc.h"
+#include "bchp_v3d_top_gr_bridge.h"
+#include "bchp_v3d_ctl_0.h"
+#include "bchp_v3d_hub_ctl.h"
 
 /* These are the registers that need to be excluded from the register dump either
    because they interrupt the CPU or disturb settings done elsewhere like the CFE
@@ -112,7 +115,10 @@
 	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_RO_REGISTERS_0_REG_START, BCHP_AVS_RO_REGISTERS_0_REG_END) || \
 	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_RO_REGISTERS_1_REG_START, BCHP_AVS_RO_REGISTERS_1_REG_END) || \
 	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_TOP_CTRL_REG_START, BCHP_AVS_TOP_CTRL_REG_END) || \
-	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_UART_REG_START, BCHP_AVS_UART_REG_END) \
+	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_AVS_UART_REG_START, BCHP_AVS_UART_REG_END) || \
+	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_TOP_GR_BRIDGE_REVISION, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_1) || \
+	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_CTL_0_IDENT0, BCHP_V3D_CTL_0_INT_MSK_CLR_PCI) || \
+	BSPLASH_ADDRESS_IN_RANGE(addr, BCHP_V3D_HUB_CTL_AXICFG, BCHP_V3D_HUB_CTL_INT_MSK_CLR_PCI) \
 )
 
 /* number of mem heap handles  */

@@ -235,11 +235,12 @@ BERR_Code BVDC_Compositor_SetBackgroundColor
         0x00, ucRed, ucGreen, ucBlue);
 
     /* Convert base on current output matrixCoeffs
-     * TODO: add covert for BT2020 */
-    if((BVDC_P_MatrixCoeffs_eBt2020_NCL != hCompositor->eOutMatrixCoeffs) &&
-       (BVDC_P_MatrixCoeffs_eBt2020_CL != hCompositor->eOutMatrixCoeffs) &&
-       (BVDC_P_MatrixCoeffs_eBt709 != hCompositor->eOutMatrixCoeffs) &&
-       (BVDC_P_MatrixCoeffs_eSmpte240M != hCompositor->eOutMatrixCoeffs))
+     * TODO: add covert for BT2020
+     * this conversion needs to do later after hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry
+     * is updated */
+    if((BAVC_P_Colorimetry_eBt2020 != hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry) &&
+       (BAVC_P_Colorimetry_eBt709 != hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry) &&
+       (BAVC_P_Colorimetry_eSmpte240M != hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry))
     {
         BPXL_ConvertPixel_RGBtoYCbCr(BPXL_eA8_Y8_Cb8_Cr8, BPXL_eA8_R8_G8_B8,
             uiARGB, (unsigned int*)&hCompositor->stNewInfo.ulBgColorYCrCb);

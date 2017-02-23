@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,6 +42,21 @@
 #include "berr.h"
 #include "nexus_types.h"
 
+#ifdef MPOD_SUPPORT
+#include "bdbg.h"
+#include "nexus_core_utils.h"
+#include "nexus_platform.h"
+#include "nexus_pid_channel.h"
+#include "nexus_parser_band.h"
+#include "nexus_frontend.h"
+#include "nexus_pid_channel.h"
+#include "nexus_video_types.h"
+#include "nexus_audio_types.h"
+#include "nexus_message.h"
+#include "nexus_playback.h"
+#include "nexus_playpump.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,12 +73,29 @@ typedef enum bresult {
     berr_timeout=8
 } bresult;
 
+#ifdef MPOD_SUPPORT
+#define ISO936_CODE_LENGTH 3
+#define MAX_PROGRAM_CC_SERVICE	32
+#endif
+
 typedef struct
 {
     uint16_t    pid;
     uint8_t     streamType;
     uint16_t    ca_pid;
+#ifdef MPOD_SUPPORT
+    unsigned char iso639[ISO936_CODE_LENGTH];
+#endif
 } EPID;
+
+#ifdef MPOD_SUPPORT
+typedef struct
+{
+    uint8_t     ccType;
+    uint8_t     ccService;
+    unsigned char iso639[ISO936_CODE_LENGTH];
+} ECC;
+#endif
 
 #define MAX_PROGRAM_MAP_PIDS    12
 typedef struct
@@ -71,6 +103,11 @@ typedef struct
     uint16_t    program_number;
     uint16_t    map_pid;
     uint8_t     version;
+#ifdef MPOD_SUPPORT
+    uint8_t     broadcast_flag;
+    uint8_t     num_cc;
+    ECC         cc[MAX_PROGRAM_CC_SERVICE];
+#endif
     uint16_t    pcr_pid;
     uint16_t    ca_pid;
     uint8_t     num_video_pids;
@@ -79,8 +116,13 @@ typedef struct
     EPID        audio_pids[MAX_PROGRAM_MAP_PIDS];
     uint8_t     num_other_pids;
     EPID        other_pids[MAX_PROGRAM_MAP_PIDS];
+#ifdef MPOD_SUPPORT
+    uint32_t    pmt_size;
+    uint8_t     *pmt;
+#else
     uint16_t    maxWidth[MAX_PROGRAM_MAP_PIDS];                     /*!< Coded video width, or 0 if unknown, maps to video pid */
     uint16_t    maxHeight[MAX_PROGRAM_MAP_PIDS];                    /*!< Coded video height, or 0 if unknown maps to video pid */
+#endif
 } PROGRAM_INFO_T;
 
 #define MAX_PROGRAMS_PER_CHANNEL 64
@@ -104,17 +146,30 @@ then builds the structure.
 
 If you want finer-grain control, use the other tspsimgr functions below.
 **/
-BERR_Code tsPsi_getChannelInfo2(CHANNEL_INFO_T * pChanInfo, NEXUS_ParserBand band);
+BERR_Code tsPsi_getChannelInfo( CHANNEL_INFO_T * pChanInfo, NEXUS_ParserBand band );
+
+#ifdef MPOD_SUPPORT
+int  tsPsi_getProgramInfo( PROGRAM_INFO_T *p_pgInfo, unsigned pg_number, NEXUS_ParserBand parserBand, unsigned char *pmt, unsigned int *pmt_size );
+/**
+Get the timeout counts for PAT and PMT.
+**/
+int tsPsi_getTimeoutCnt( int *patTimeoutCount, int *pmtTimeoutCount );
+
+/**
+Reset the timeout counts for PAT and PMT.
+**/
+void tsPsi_resetTimeoutCnt( void );
+#endif
 
 /**
 Set the timeout values for various blocking operations in tspsimgr.
 **/
-void tsPsi_setTimeout2( int patTimeout, int pmtTimeout );
+void tsPsi_setTimeout( int patTimeout, int pmtTimeout );
 
 /**
 Get the timeout values for various blocking operations in tspsimgr.
 **/
-void tsPsi_getTimeout2( int *patTimeout, int *pmtTimeout );
+void tsPsi_getTimeout( int *patTimeout, int *pmtTimeout );
 
 /**
 Summary:
@@ -129,12 +184,12 @@ Returns the number of bytes read.
 0 for no PAT read.
 >0 for successful PAT read.
 **/
-int tsPsi_getPAT2(NEXUS_ParserBand band, void * pPatBuffer, unsigned patBufferSize);
+int tsPsi_getPAT( NEXUS_ParserBand band, void * pPatBuffer, unsigned patBufferSize );
 
 /**
 Callback used by tsPsi_getPMTs
 **/
-typedef void (*tsPsi_PMT_callback)(void *context, uint16_t pmt_pid, const void *pmt, unsigned pmtSize);
+typedef void (*tsPsi_PMT_callback)( void *context, uint16_t pmt_pid, const void *pmt, unsigned pmtSize );
 
 /**
 Summary:
@@ -144,17 +199,17 @@ Description:
 This will launch multiple bmessage_stream's and call the callback as each
 PMT is read.
 **/
-BERR_Code tsPsi_getPMTs2(NEXUS_ParserBand     band,
+BERR_Code tsPsi_getPMTs( NEXUS_ParserBand     band,
                          const void         * pPatBuffer,
                          unsigned             patBufferSize,
                          tsPsi_PMT_callback   callback,
-                         void               * context);
+                         void               * context );
 
 /**
 Summary:
 Parse a PMT structure into a PROGRAM_INFO_T structure.
 **/
-void tsPsi_parsePMT2(const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_programInfo);
+void tsPsi_parsePMT(const void *pmt, unsigned pmtSize, PROGRAM_INFO_T *p_programInfo);
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,8 @@
 # HVD0 (AVD0)
 AVD -> AVD0
 AVD0 -> {AVD0_CLK, AVD0_PWR}
-AVD0_CLK -> {HW_HVD0_CORE_CLK, HW_HVD0_CPU_CLK, HW_HVD0_SCB_CLK, HW_HVD0_GISB_CLK, HW_HVD0_108_54_CLK}
+AVD0_CLK -> {HW_HVD0_CPU_CLK}
+HW_HVD0_CPU_CLK -> {HW_HVD0_CORE_CLK, HW_HVD0_SCB_CLK, HW_HVD0_GISB_CLK, HW_HVD0_108_54_CLK}
 AVD0_PWR -> HW_HVD0_SRAM      # HVD0 SRAM
 
 
@@ -22,12 +23,14 @@ RAAGA0_SRAM -> HW_RAAGA0_SRAM
 
 
 # Display
-VDC              -> {BVN, VDC_DAC, VDC_VEC, VDC_656_OUT}
-BVN              -> {HW_BVN_CLK, HW_BVN_BVB_GISB_CLK, HW_BVN_SRAM}                  # BVN clocks
-VDC_DAC          -> HW_VDC_DAC                                              # DAC clocks
-VDC_VEC          -> {HW_VEC_CLK, HW_BVN_BVB_GISB_CLK, HW_VEC_BVB_216_CLK, HW_VEC_AIO_54_CLK, HW_VIP_BVB, HW_VEC_SRAM}    #VEC clocks
-VDC_656_OUT      -> {HW_ITU_656_CLK, HW_VEC_BVB_216_CLK}                        # 656 clocks
-
+VDC              -> {BVN, BVN_SRAM, VDC_DAC, VDC_VEC, VDC_VEC_SRAM, VDC_656_OUT}
+BVN              -> {HW_BVN_CLK, HW_BVN_BVB_GISB_CLK}
+BVN_SRAM         -> {HW_BVN_SRAM}
+VDC_DAC          -> HW_VDC_DAC
+VDC_VEC          -> {HW_VEC_CLK, HW_BVN_BVB_GISB_CLK, HW_VEC_BVB_216_CLK, HW_VEC_AIO_54_CLK, HW_VIP_BVB}
+VDC_VEC_SRAM     -> {HW_VEC_SRAM}
+VDC_656_OUT      -> {HW_ITU_656_CLK, HW_VEC_BVB_216_CLK}
+VDC_STG0         -> VIP
 VDC_HDMI_TX_PHY0 -> HW_HDMI_TX0_PHY
 VDC_HDMI_RX_CLK0 -> {HW_HDMI_RX0_CLK, HW_HDMI_RX0_BVB_216_CLK}
 
@@ -184,9 +187,6 @@ HW_MTSIF_TX1          -> HW_PLL_RAAGA_PLL_CH3
 HW_FSK_FSK_DIG -> HW_PLL_LC_CH4
 
 # BINT_Open requires access to L2 interrupt registers after BCHP_PWR_Open turns off the CLOCK_GEN clocks.
-# BPWR_Open used to guarantee this initial power requirement, but BPWR is being phased-out.
-# The BINT_OPEN node will handle this instead, by being acquired and released around the BINT_Open call.
-
 BINT_OPEN -> {AVD, RAAGA, AUD_AIO, VDC, XPT, HDMI_TX, HDMI_RX, M2MC, GRAPHICS3D, SID, RFM}
 
 
@@ -195,7 +195,7 @@ BINT_OPEN -> {AVD, RAAGA, AUD_AIO, VDC, XPT, HDMI_TX, HDMI_RX, M2MC, GRAPHICS3D,
 # Upper-level SW is responsible for initializing all other HW resources
 
 MAGNUM_CONTROLLED -> {AVD, AUD_PLL0, AUD_PLL1, AUD_AIO, AUD_DAC, RAAGA}
-MAGNUM_CONTROLLED -> {VDC, VDC_HDMI_TX_PHY0, VDC_HDMI_RX_CLK0}
+MAGNUM_CONTROLLED -> {VDC, VDC_STG0, VDC_HDMI_TX_PHY0, VDC_HDMI_RX_CLK0}
 MAGNUM_CONTROLLED -> {XPT, XPT_DEMOD, HDMI_TX, HDMI_RX}
 MAGNUM_CONTROLLED -> {M2MC, M2MC_SRAM, GRAPHICS3D, GRAPHICS3D_SRAM}
 MAGNUM_CONTROLLED -> {DMA, SMARTCARD, SID, SID_SRAM, RFM, VIP}

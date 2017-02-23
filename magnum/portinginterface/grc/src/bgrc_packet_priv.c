@@ -363,6 +363,142 @@ static const uint32_t s_BGRC_PACKET_P_DeviceRegisterOffsets[] =
     BGRC_M2MC(SRC_FEEDER_ENABLE) - BGRC_M2MC(SRC_FEEDER_ENABLE)
 };
 
+/***************************************************************************/
+#if BGRC_P_64BITS_ADDR
+static const uint8_t s_BGRC_PACKET_P_RegAddrType[] =
+{
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_FEEDER_ENABLE              0x002c8104 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_0             0x002c8108 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_0_LSB         0x002c810c */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD     0x002c8110 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_LSB 0x002c8114 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_STRIDE_0           0x002c8118 */
+    BGRC_P_AddrType_eGap,     /* ADDR GAP                                 0x002c811c */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_1             0x002c8120 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_1_LSB         0x002c8124 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD     0x002c8128 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_LSB 0x002c812c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_STRIDE_1           0x002c8130 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_1     0x002c8134 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_2     0x002c8138 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_3     0x002c813c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_1     0x002c8140 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_2     0x002c8144 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_3     0x002c8148 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_W_ALPHA                    0x002c814c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CONSTANT_COLOR             0x002c8150 */
+    BGRC_P_AddrType_eGap,     /* ADDR GAP                                 0x002c8154 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_2             0x002c8158 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_SRC_SURFACE_ADDR_2_LSB         0x002c815c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_FEEDER_ENABLE             0x002c8160 */
+    BGRC_P_AddrType_eGap,     /* ADDR GAP                                 0x002c8164 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_DEST_SURFACE_ADDR_0            0x002c8168 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_DEST_SURFACE_ADDR_0_LSB        0x002c816c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_SURFACE_STRIDE_0          0x002c8170 */
+    BGRC_P_AddrType_eGap,     /* ADDR GAP                                 0x002c8174 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_DEST_SURFACE_ADDR_1            0x002c8178 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_DEST_SURFACE_ADDR_1_LSB        0x002c817c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_SURFACE_STRIDE_1          0x002c8180 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_1      0x002c8184 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_2      0x002c8188 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_3      0x002c818c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_W_ALPHA                   0x002c8190 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_CONSTANT_COLOR            0x002c8194 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_OUTPUT_FEEDER_ENABLE           0x002c8198 */
+    BGRC_P_AddrType_eGap,     /* ADDR GAP                                 0x002c819c */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_OUTPUT_SURFACE_ADDR_0          0x002c81a0 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_LSB      0x002c81a4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0        0x002c81a8 */
+    BGRC_P_AddrType_eGap,     /* ADDR GAP                                 0x002c81ac */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_OUTPUT_SURFACE_ADDR_1          0x002c81b0 */
+    BGRC_P_AddrType_eAddr,    /* BCHP_M2MC_OUTPUT_SURFACE_ADDR_1_LSB      0x002c81b4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_OUTPUT_SURFACE_STRIDE_1        0x002c81b8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_1    0x002c81bc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_2    0x002c81c0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_3    0x002c81c4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_HEADER                    0x002c81c8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_TOP_LEFT_0            0x002c81cc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_SIZE_0                0x002c81d0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_UIF_FULL_HEIGHT       0x002c81d4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_TOP_LEFT_1            0x002c81d8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_SIZE_1                0x002c81dc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_STRIPE_HEIGHT_WIDTH_0 0x002c81e0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_SRC_STRIPE_HEIGHT_WIDTH_1 0x002c81e4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_DEST_TOP_LEFT             0x002c81e8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_DEST_SIZE                 0x002c81ec */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_DEST_UIF_FULL_HEIGHT      0x002c81f0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_OUTPUT_TOP_LEFT           0x002c81f4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_OUTPUT_SIZE               0x002c81f8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_OUTPUT_UIF_FULL_HEIGHT    0x002c81fc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_INPUT_STRIPE_WIDTH_0      0x002c8200 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_INPUT_STRIPE_WIDTH_1      0x002c8204 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_OUTPUT_STRIPE_WIDTH       0x002c8208 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_STRIPE_OVERLAP_0          0x002c820c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_STRIPE_OVERLAP_1          0x002c8210 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLIT_CTRL                      0x002c8214 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SCALER_CTRL                    0x002c8218 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_AVERAGER_COUNT           0x002c821c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_AVERAGER_COEFF           0x002c8220 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_AVERAGER_COUNT            0x002c8224 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_AVERAGER_COEFF            0x002c8228 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_SCALER_0_INITIAL_PHASE   0x002c822c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_SCALER_0_STEP            0x002c8230 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_SCALER_1_INITIAL_PHASE   0x002c8234 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_SCALER_1_STEP            0x002c8238 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_SCALER_0_INITIAL_PHASE    0x002c823c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_SCALER_0_STEP             0x002c8240 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_SCALER_1_INITIAL_PHASE    0x002c8244 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_SCALER_1_STEP             0x002c8248 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLEND_COLOR_OP                 0x002c824c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLEND_ALPHA_OP                 0x002c8250 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLEND_CONSTANT_COLOR           0x002c8254 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_BLEND_COLOR_KEY_ACTION         0x002c8258 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_ROP_OPERATION                  0x002c825c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_ROP_PATTERN_TOP                0x002c8260 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_ROP_PATTERN_BOTTOM             0x002c8264 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_ROP_PATTERN_COLOR_0            0x002c8268 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_ROP_PATTERN_COLOR_1            0x002c826c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_COLOR_KEY_HIGH             0x002c8270 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_COLOR_KEY_LOW              0x002c8274 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_COLOR_KEY_MASK             0x002c8278 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_COLOR_KEY_REPLACEMENT      0x002c827c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_COLOR_KEY_REPLACEMENT_MASK 0x002c8280 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_COLOR_KEY_HIGH            0x002c8284 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_COLOR_KEY_LOW             0x002c8288 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_COLOR_KEY_MASK            0x002c828c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_COLOR_KEY_REPLACEMENT     0x002c8290 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_DEST_COLOR_KEY_REPLACEMENT_MASK 0x002c8294 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE0_01    0x002c8298 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE0_2     0x002c829c */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE1_01    0x002c82a0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE1_2     0x002c82a4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE0_01    0x002c82a8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE0_2     0x002c82ac */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE1_01    0x002c82b0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE1_2     0x002c82b4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_0_COEFF_PHASE0_01     0x002c82b8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_0_COEFF_PHASE0_2      0x002c82bc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_0_COEFF_PHASE1_01     0x002c82c0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_0_COEFF_PHASE1_2      0x002c82c4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_1_COEFF_PHASE0_01     0x002c82c8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_1_COEFF_PHASE0_2      0x002c82cc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_1_COEFF_PHASE1_01     0x002c82d0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_VERT_FIR_1_COEFF_PHASE1_2      0x002c82d4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C00_C01                 0x002c82d8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C02_C03                 0x002c82dc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C04                     0x002c82e0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C10_C11                 0x002c82e4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C12_C13                 0x002c82e8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C14                     0x002c82ec */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C20_C21                 0x002c82f0 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C22_C23                 0x002c82f4 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C24                     0x002c82f8 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C30_C31                 0x002c82fc */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C32_C33                 0x002c8300 */
+    BGRC_P_AddrType_eReg32,   /* BCHP_M2MC_SRC_CM_C34                     0x002c8304 */
+};
+#endif
+
 #if defined(BGRC_PACKET_P_DEBUG_DESC) || defined(BGRC_PACKET_P_DEBUG_SW_PKT)
 /***************************************************************************/
 static const char *s_BGRC_PACKET_P_DESCR_GRP_NAME[] =
@@ -837,6 +973,19 @@ static void BGRC_PACKET_P_ValidateSurCompression( BGRC_PacketContext_Handle hCon
     BGRC_M2MC(sur##_FORMAT_DEF_3_CH0_DISABLE_MASK) | BGRC_M2MC(sur##_FORMAT_DEF_3_CH1_DISABLE_MASK) | \
     BGRC_M2MC(sur##_FORMAT_DEF_3_CH2_DISABLE_MASK) | BGRC_M2MC(sur##_FORMAT_DEF_3_CH3_DISABLE_MASK))
 
+
+#if (BGRC_P_64BITS_ADDR)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_LSB           (BCHP_M2MC_SRC_SURFACE_ADDR_0 + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_LSB   (BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_LSB           (BCHP_M2MC_SRC_SURFACE_ADDR_1 + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_LSB   (BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD + 4)
+#define BCHP_M2MC_SRC_SURFACE_ADDR_2_LSB           (BCHP_M2MC_SRC_SURFACE_ADDR_2 + 4)
+#define BCHP_M2MC_DEST_SURFACE_ADDR_0_LSB          (BCHP_M2MC_DEST_SURFACE_ADDR_0 + 4)
+#define BCHP_M2MC_DEST_SURFACE_ADDR_1_LSB          (BCHP_M2MC_DEST_SURFACE_ADDR_1 + 4)
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_LSB        (BCHP_M2MC_OUTPUT_SURFACE_ADDR_0 + 4)
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_1_LSB        (BCHP_M2MC_OUTPUT_SURFACE_ADDR_1 + 4)
+#endif
+
 /***************************************************************************/
 static void BGRC_PACKET_P_ProcSwPktSourceFeeder( BGRC_PacketContext_Handle hContext, BM2MC_PACKET_Header *header )
 {
@@ -869,7 +1018,13 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeder( BGRC_PacketContext_Handle hCont
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- SrcFeeder          " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, packet->plane.address ? 1 : 0 );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, (uint32_t)(packet->plane.address & 0xFFFFFFFF));
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_LSB, 0 );
+#else
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+#endif
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, ulPitch );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, 0 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_1, 0 );
@@ -886,7 +1041,7 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeder( BGRC_PacketContext_Handle hCont
     BGRC_PACKET_P_STORE_REG( SRC_CONSTANT_COLOR, packet->color );
 
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB_ADDR_MSB_MASK)
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_MSB, (uint32_t)(packet->plane.address >> 32) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
 #endif
 
 #if defined(BCHP_M2MC_BLIT_CTRL_READ_420_AS_FIELDS_MASK)
@@ -925,9 +1080,17 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeders( BGRC_PacketContext_Handle hCon
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- SrcFeeders         " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, packet->plane0.address ? 1 : 0 );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, (uint32_t)(packet->plane0.address & 0xFFFFFFFF));
+
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(packet->plane0.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane0.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, BGRC_P_GET_UINT64_HIGH(packet->plane1.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_LSB, BGRC_P_GET_UINT64_LOW(packet->plane1.address) );
+#else
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(packet->plane0.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, BGRC_P_GET_UINT64_LOW(packet->plane1.address) );
+#endif
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, packet->plane0.pitch );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, (uint32_t)(packet->plane1.address & 0xFFFFFFFF));
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_1, packet->plane1.pitch );
 
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_1, hContext->src_format0 );
@@ -942,8 +1105,8 @@ static void BGRC_PACKET_P_ProcSwPktSourceFeeders( BGRC_PacketContext_Handle hCon
     BGRC_PACKET_P_STORE_REG( SRC_CONSTANT_COLOR, packet->color );
 
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB_ADDR_MSB_MASK)
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_MSB, (uint32_t)(packet->plane0.address >> 32) );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_MSB, (uint32_t)(packet->plane1.address >> 32) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane0.address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane1.address) );
 #endif
 
 #if defined(BCHP_M2MC_BLIT_CTRL_READ_420_AS_FIELDS_MASK)
@@ -976,15 +1139,29 @@ static void BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( BGRC_PacketContext_Hand
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- StripedSrcFeeders         " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, 1 );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, (uint32_t)(packet->plane.luma_address & 0xFFFFFFFF) );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(packet->plane.luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, BGRC_P_GET_UINT64_HIGH(packet->plane.chroma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.chroma_address) );
+#else
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(packet->plane.luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, BGRC_P_GET_UINT64_LOW(packet->plane.chroma_address) );
+#endif
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, packet->plane.stripe_pitch );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, (uint32_t)(packet->plane.chroma_address & 0xFFFFFFFF));
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_1, packet->plane.stripe_pitch );
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD)
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_BOT_FLD, (uint32_t)(packet->plane.bottom_field_luma_address & 0xFFFFFFFF));
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_BOT_FLD, (uint32_t)(packet->plane.bottom_field_chroma_address & 0xFFFFFFFF));
-    BGRC_PACKET_P_STORE_REG_FIELD_COMP( BLIT_CTRL, READ_420_AS_FIELDS, DISABLE, ENABLE, packet->plane.bottom_field_luma_address );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_BOT_FLD, BGRC_P_GET_UINT64_HIGH(packet->plane.bottom_field_luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_BOT_FLD_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.bottom_field_luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_BOT_FLD, BGRC_P_GET_UINT64_HIGH(packet->plane.bottom_field_chroma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_BOT_FLD_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.bottom_field_chroma_address) );
+#else
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_BOT_FLD, BGRC_P_GET_UINT64_LOW(packet->plane.bottom_field_luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_BOT_FLD, BGRC_P_GET_UINT64_LOW(packet->plane.bottom_field_chroma_address) );
 #endif
+    BGRC_PACKET_P_STORE_REG_FIELD_COMP( BLIT_CTRL, READ_420_AS_FIELDS, DISABLE, ENABLE, packet->plane.bottom_field_luma_address );
+#endif /* defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD) */
 
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_1, hContext->src_format0 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_2, format01 );
@@ -998,13 +1175,13 @@ static void BGRC_PACKET_P_ProcSwPktStripedSourceFeeders( BGRC_PacketContext_Hand
     BGRC_PACKET_P_STORE_REG( SRC_CONSTANT_COLOR, packet->color );
 
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB_ADDR_MSB_MASK)
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_MSB, (uint32_t)(packet->plane.luma_address >> 32) );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_MSB, (uint32_t)(packet->plane.chroma_address >> 32) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.chroma_address) );
 #endif
 
 #if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB_ADDR_BOT_FLD_MSB_MASK)
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_BOT_FLD_MSB, (uint32_t)(packet->plane.bottom_field_luma_address >> 32) );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_BOT_FLD_MSB, (uint32_t)(packet->plane.bottom_field_chroma_address >> 32) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_BOT_FLD_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.bottom_field_luma_address) );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_BOT_FLD_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.bottom_field_chroma_address) );
 #endif
 
     BGRC_PACKET_P_STORE_REG( BLIT_SRC_STRIPE_HEIGHT_WIDTH_0, (packet->plane.stripe_width>>7) |
@@ -1046,8 +1223,12 @@ static void BGRC_PACKET_P_ProcSwPktSourceColor( BGRC_PacketContext_Handle hConte
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- SrcColor           " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, 1 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, 0 );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, 0 );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_LSB, 0 );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_LSB, 0 );
+#endif
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_1, 0 );
 
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_1, BGRC_PACKET_P_SURFACE_FORMAT_DEF_1_DISABLE );
@@ -1090,8 +1271,12 @@ static void BGRC_PACKET_P_ProcSwPktSourceNone( BGRC_PacketContext_Handle hContex
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- SrcNone            " );
     BGRC_PACKET_P_STORE_REG( SRC_FEEDER_ENABLE, BGRC_PACKET_P_SRC_FEEDER_ENABLE_DISABLE );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0, 0 );
-    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1, 0 );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_0_LSB, 0 );
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_ADDR_1_LSB, 0 );
+#endif
+    BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_STRIDE_1, 0 );
 
     BGRC_PACKET_P_STORE_REG( SRC_SURFACE_FORMAT_DEF_1, BGRC_PACKET_P_SURFACE_FORMAT_DEF_1_DISABLE );
@@ -1166,9 +1351,15 @@ static void BGRC_PACKET_P_ProcSwPktDestinationFeeder( BGRC_PacketContext_Handle 
 
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- DstFeeder          " );
     BGRC_PACKET_P_STORE_REG( DEST_FEEDER_ENABLE, packet->plane.address ? 1 : 0 );
-    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0, (uint32_t)(packet->plane.address & 0xFFFFFFFF));
-    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_0, ulPitch );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_1_LSB, 0);
+#else
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+#endif
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_1, 0 );
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_0, ulPitch );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_1, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_FORMAT_DEF_1, format0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_FORMAT_DEF_2, s_BGRC_PACKET_P_DevicePixelFormats[packet->plane.format][1] );
@@ -1177,7 +1368,7 @@ static void BGRC_PACKET_P_ProcSwPktDestinationFeeder( BGRC_PacketContext_Handle 
     BGRC_PACKET_P_STORE_REG( DEST_CONSTANT_COLOR, packet->color );
 
 #if defined(BCHP_M2MC_DEST_SURFACE_ADDR_0_MSB_ADDR_MSB_MASK)
-    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0_MSB, (uint32_t)(packet->plane.address >> 32) );
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
 #endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
@@ -1203,8 +1394,12 @@ static void BGRC_PACKET_P_ProcSwPktDestinationColor( BGRC_PacketContext_Handle h
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- DstColor           " );
     BGRC_PACKET_P_STORE_REG( DEST_FEEDER_ENABLE, 1 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0, 0 );
-    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_1, 0 );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0_LSB, 0 );
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_1_LSB, 0 );
+#endif
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_1, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_FORMAT_DEF_1, BGRC_PACKET_P_SURFACE_FORMAT_DEF_1_DISABLE );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_FORMAT_DEF_2, BGRC_PACKET_P_SURFACE_FORMAT_DEF_2_DISABLE );
@@ -1232,8 +1427,12 @@ static void BGRC_PACKET_P_ProcSwPktDestinationNone( BGRC_PacketContext_Handle hC
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- DstNone            " );
     BGRC_PACKET_P_STORE_REG( DEST_FEEDER_ENABLE, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0, 0 );
-    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_1, 0 );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_0_LSB, 0 );
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_ADDR_1_LSB, 0 );
+#endif
+    BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_0, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_STRIDE_1, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_FORMAT_DEF_1, 0 );
     BGRC_PACKET_P_STORE_REG( DEST_SURFACE_FORMAT_DEF_2, 0 );
@@ -1284,9 +1483,15 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
     hContext->out_format0 = out_format0;
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- OutFeeder          " );
     BGRC_PACKET_P_STORE_REG( OUTPUT_FEEDER_ENABLE, packet->plane.address ? 1 : 0 );
-    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, (uint32_t)(packet->plane.address & 0xFFFFFFFF));
-    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_STRIDE_0, ulPitch );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0_LSB, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_1_LSB, 0 );
+#else
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0, BGRC_P_GET_UINT64_LOW(packet->plane.address) );
+#endif
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_1, 0 );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_STRIDE_0, ulPitch );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_STRIDE_1, 0 );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_FORMAT_DEF_1, format0 );
     BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_FORMAT_DEF_2, s_BGRC_PACKET_P_DevicePixelFormats[packet->plane.format][1] );
@@ -1335,7 +1540,7 @@ static void BGRC_PACKET_P_ProcSwPktOutputFeeder( BGRC_PacketContext_Handle hCont
     }
 
 #if defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB_ADDR_MSB_MASK)
-    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0_MSB, (uint32_t)(packet->plane.address >> 32) );
+    BGRC_PACKET_P_STORE_REG( OUTPUT_SURFACE_ADDR_0_MSB, BGRC_P_GET_UINT64_HIGH(packet->plane.address) );
 #endif
 
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
@@ -1955,11 +2160,11 @@ static void BGRC_PACKET_P_SetDcegCompression( BGRC_PacketContext_Handle hContext
                 BCHP_FIELD_ENUM(M2MC_DCEG_CFG, FIXED_RATE, Fixed ) |
                 BCHP_FIELD_ENUM(M2MC_DCEG_CFG, COMPRESSION, BPP_16p5 ) );
             /* to avoid confusion during debug */
-            BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, 0);
-            BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, 0);
-            BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, 0);
-            BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_0, 0);
-            BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1, 0);
+            BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_0, 0 );
+            BGRC_PACKET_P_STORE_REG( BLIT_INPUT_STRIPE_WIDTH_1, 0 );
+            BGRC_PACKET_P_STORE_REG( BLIT_OUTPUT_STRIPE_WIDTH, 0 );
+            BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_0, 0 );
+            BGRC_PACKET_P_STORE_REG( BLIT_STRIPE_OVERLAP_1, 0 );
         }
     }
     else
@@ -3245,7 +3450,7 @@ void BGRC_P_CheckHwStatus(
 
     if ( hGrc->pLastHwPktPtr )
     {
-        ulCurExeHwPkt = BGRC_P_ReadReg32( hGrc->hRegister, LIST_CURR_PKT_ADDR );
+        ulCurExeHwPkt = BGRC_P_ReadAddr( hGrc->hRegister, LIST_CURR_PKT_ADDR );
         ulLastHwPktOffset = (hGrc->pLastHwPktPtr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
         if (ulCurExeHwPkt == ulLastHwPktOffset)
         {
@@ -3421,7 +3626,10 @@ void BGRC_PACKET_P_WriteHwPkt(
 
     /* write group header */
     BGRC_PACKET_P_DEBUG_PRINT_CTX( "** Desc group header: " );
-    BGRC_PACKET_P_WRITE_DATA( *pHwPktWritePtr++, BCHP_M2MC_LIST_PACKET_HEADER_0_LAST_PKT_IND_MASK );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_WRITE_DATA( *pHwPktWritePtr++, BGRC_P_GET_UINT64_HIGH(BCHP_M2MC_LIST_PACKET_HEADER_0_LAST_PKT_IND_MASK) );
+#endif
+    BGRC_PACKET_P_WRITE_DATA( *pHwPktWritePtr++, BGRC_P_GET_UINT64_LOW(BCHP_M2MC_LIST_PACKET_HEADER_0_LAST_PKT_IND_MASK) );
     BGRC_PACKET_P_WRITE_DATA( *pHwPktWritePtr++, ulGroupMask );
     BGRC_PACKET_P_DEBUG_PRINT( "\n" );
     BGRC_PACKET_P_PRINT_DESC("Desc group header:");
@@ -3450,8 +3658,13 @@ void BGRC_PACKET_P_WriteHwPkt(
             BGRC_PACKET_P_PRINT_DESC(s_BGRC_PACKET_P_DESCR_GRP_NAME[ii]);
             for( jj = 0; jj < count; ++jj )
             {
-                BGRC_PACKET_P_WRITE_REG( *pHwPktWritePtr++, index + jj );
-                BGRC_PACKET_P_PRINT_DESC_VALUE(hContext->stored_registers[index + jj]);
+#if BGRC_P_64BITS_ADDR
+                if (s_BGRC_PACKET_P_RegAddrType[index + jj] != BGRC_P_AddrType_eGap)
+#endif
+                {
+                    BGRC_PACKET_P_WRITE_REG( *pHwPktWritePtr++, index + jj );
+                    BGRC_PACKET_P_PRINT_DESC_VALUE(hContext->stored_registers[index + jj]);
+                }
             }
             BGRC_PACKET_P_DEBUG_PRINT( "\n" );
         }
@@ -3486,7 +3699,12 @@ void BGRC_PACKET_P_WriteHwPkt(
     if( hGrc->pHwPktPrevWritePtr )
     {
         BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- NEXT               " );
+#if BGRC_P_64BITS_ADDR
+        BGRC_PACKET_P_WRITE_DATA( *(uint32_t *)hGrc->pHwPktPrevWritePtr, BGRC_P_GET_UINT64_HIGH(ulHwPktWritePtrOffset) );
+        BGRC_PACKET_P_WRITE_DATA( *(uint32_t *)(hGrc->pHwPktPrevWritePtr+4), BGRC_P_GET_UINT64_LOW(ulHwPktWritePtrOffset) );
+#else
         BGRC_PACKET_P_WRITE_DATA( *(uint32_t *)hGrc->pHwPktPrevWritePtr, ulHwPktWritePtrOffset );
+#endif
         BGRC_PACKET_P_DEBUG_PRINT( "\n" );
     }
     hGrc->pHwPktPrevWritePtr = hGrc->pHwPktWritePtr;
@@ -3515,7 +3733,12 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     {
         /* append this hw pkt series to the tail of previously submitted */
         BGRC_PACKET_P_DEBUG_PRINT_CTX( "** NEXT               " );
+#if BGRC_P_64BITS_ADDR
+        BGRC_PACKET_P_WRITE_DATA( *(uint32_t *)hGrc->pHwPktSubmitLinkPtr, BGRC_P_GET_UINT64_HIGH(ulStartHwPktOffset) );
+        BGRC_PACKET_P_WRITE_DATA( *(uint32_t *)(hGrc->pHwPktSubmitLinkPtr+4), BGRC_P_GET_UINT64_LOW(ulStartHwPktOffset) );
+#else
         BGRC_PACKET_P_WRITE_DATA( *(uint32_t *)hGrc->pHwPktSubmitLinkPtr, ulStartHwPktOffset );
+#endif
         BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 
         /* flush "next offset" from previous blits */
@@ -3528,10 +3751,12 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     }
     else
     {
+#if !(BGRC_P_64BITS_ADDR)
         if (ulStartHwPktOffset >> 32) {
             BDBG_ERR(("invalid 40 bit LIST_FIRST_PKT_ADDR address: " BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulStartHwPktOffset)));
         }
-        BGRC_P_WriteReg32( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulStartHwPktOffset );
+#endif
+        BGRC_P_WriteAddr( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulStartHwPktOffset );
         BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, Ack ) |
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |

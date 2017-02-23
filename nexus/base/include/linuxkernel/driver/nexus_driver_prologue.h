@@ -47,10 +47,10 @@
 #include "nexus_types.h"
 #include "nexus_memory.h"
 #include "nexus_base_ioctl.h"
-#include "priv/nexus_core_driver.h"
 #include "nexus_platform_client.h"
 #include "bkni.h"
 #include "b_objdb.h"
+#include "common/ipc/nexus_ipc_server_api.h"
 
 #if BDBG_DEBUG_BUILD
 #define NEXUS_DRIVER_TRACE(x)   BERR_TRACE(x)
@@ -82,6 +82,9 @@ struct nexus_driver_client_state {
     bool dynamic; /* dynamically created by driver */
     bool joined; /* set true on join, false on uninit */
     unsigned numJoins;
+#if NEXUS_COMPAT_32ABI
+    unsigned abi;
+#endif
 };
 
 /* struct nexus_driver_slave_scheduler; */
@@ -141,8 +144,23 @@ typedef struct NEXUS_P_DriverInVararg {
     struct b_objdb_client *client;
 } NEXUS_P_DriverInVararg;
 
+struct NEXUS_P_IpcProcessArgs {
+    NEXUS_P_ServerOutVarArg_State vout_data;
+    struct nexus_driver_module_header *module_header;
+    struct nexus_driver_slave_scheduler *slave_scheduler;
+};
+
 void NEXUS_P_DriverInVararg_Init(NEXUS_P_DriverInVararg *state, struct b_objdb_client *client, void *data, unsigned size);
 void NEXUS_P_DriverInVararg_Shutdown(NEXUS_P_DriverInVararg *state);
 NEXUS_Error NEXUS_P_DriverInVararg_InVarArg(NEXUS_P_DriverInVararg *state, unsigned vararg_size, const void *src, int *field, bool *is_null);
 NEXUS_Error NEXUS_P_DriverInVararg_InVarArg_AddrField(NEXUS_P_DriverInVararg *state, const NEXUS_Addr *src, unsigned count, int varArg, int *varArgField);
 NEXUS_Error NEXUS_P_Driver_OutVarArg(const void *out_data, unsigned size, void *dest, int varArg);
+
+/* declare prototypes for all ioctl functions */
+#define NEXUS_PLATFORM_P_DRIVER_MODULE(module) \
+    int nexus_driver_##module##_ioctl(void *context, unsigned int cmd, unsigned long arg, unsigned long type, bool unlocked, bool compat); \
+    int nexus_driver_##module##_open(unsigned); \
+    void nexus_driver_##module##_close(void);
+
+#include "nexus_driver_modules.h"
+#undef NEXUS_PLATFORM_P_DRIVER_MODULE

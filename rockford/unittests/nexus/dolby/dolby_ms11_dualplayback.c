@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2010 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -671,7 +663,7 @@ int main(int argc, const char *argv[])
 #if NEXUS_HAS_PLAYBACK
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
-    NEXUS_StcChannelHandle stcChannel;
+    NEXUS_StcChannelHandle stcChannel[2];
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_PidChannelHandle audioPidChannel = NULL, pcrPidChannel;
 
@@ -695,6 +687,7 @@ int main(int argc, const char *argv[])
 
     int i,no_of_streams = 2;
     NEXUS_Error rc;
+    bool shareSTCChannel = false;
 
 
     struct dolby_digital_plus_command_args dolby_args;
@@ -719,12 +712,6 @@ int main(int argc, const char *argv[])
     mixerSettings.mixUsingDsp = true;
     mixer = NEXUS_AudioMixer_Open(&mixerSettings);
 
-    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
-    stcSettings.timebase = NEXUS_Timebase_e0;
-    stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-    stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
-    stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
-
     for ( i=0;i<no_of_streams;i++ )
     {
 
@@ -737,7 +724,26 @@ int main(int argc, const char *argv[])
         {
             return 0;
         }
+    }
 
+    shareSTCChannel = (strcmp(dolby_args.primary_stream, dolby_args.secondary_stream) == 0);
+
+    NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
+    stcSettings.timebase = NEXUS_Timebase_e0;
+    stcSettings.mode = NEXUS_StcChannelMode_eAuto;
+    stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eFirstAvailable;
+    stcChannel[0] = NEXUS_StcChannel_Open(0, &stcSettings);
+    if (shareSTCChannel)
+    {
+        stcChannel[1] = stcChannel[0];
+    }
+    else
+    {
+        stcChannel[1] = NEXUS_StcChannel_Open(1, &stcSettings);
+    }
+
+    for ( i=0;i<no_of_streams;i++ )
+    {
         /* Bring up all modules for a platform in a default configuraiton for this platform */
 
         audioDecoder[i] = NEXUS_AudioDecoder_Open(i, NULL);
@@ -795,7 +801,7 @@ int main(int argc, const char *argv[])
         playbackSettings.playpumpSettings.timestamp.pacing = false;
         playbackSettings.playpumpSettings.timestamp.type = opts[i].common.tsTimestampType;
 
-        playbackSettings.stcChannel = stcChannel;
+        playbackSettings.stcChannel = stcChannel[i];
         playbackSettings.stcTrick = opts[i].stcTrick;
         playbackSettings.beginningOfStreamAction = opts[i].beginningOfStreamAction;
         playbackSettings.endOfStreamAction = opts[i].endOfStreamAction;
@@ -829,7 +835,7 @@ int main(int argc, const char *argv[])
         audioProgram[i].forceCompleteFirstFrame = dolby_args.completeFirstFrame;
         audioProgram[i].codec = opts[i].common.audioCodec;
         audioProgram[i].pidChannel = audioPidChannel;
-        audioProgram[i].stcChannel = stcChannel;
+        audioProgram[i].stcChannel = stcChannel[i];
         if ( i==1 )
         {
             audioProgram[i].secondaryDecoder=true;
@@ -1266,4 +1272,3 @@ int main(int argc, const char *argv[])
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
     return 0;
 }
-

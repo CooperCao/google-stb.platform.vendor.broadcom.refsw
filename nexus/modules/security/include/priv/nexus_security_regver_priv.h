@@ -209,11 +209,18 @@ typedef struct NEXUS_SecurityRegionInfoQuery
 } NEXUS_SecurityRegionInfoQuery;
 
 
+typedef struct NEXUS_SecurityRegionModuleSettings{
+    bool enforceAuthentication[NEXUS_SecurityFirmwareType_eMax];
+}NEXUS_SecurityRegionModuleSettings;
+
+
+
+void  NEXUS_Security_GetDefaultRegionVerificationModuleSettings( NEXUS_SecurityRegionModuleSettings *pSettings );
 
 /**
     Intialise region verification module. Call on platform initialisation.
 **/
-NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void );
+NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityRegionModuleSettings *pSettings );
 
 
 /**

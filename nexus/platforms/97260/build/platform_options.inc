@@ -54,7 +54,6 @@ export NEXUS_FRONTEND_45216 ?= y
 export NEXUS_FRONTEND_45308 ?= y
 
 B_REFSW_STRICT_PRINTF_FORMAT ?= y
-NEXUS_ABIVERIFY_MODULES ?= $(filter-out ${NEXUS_CLIENT_MODULES}, ${NEXUS_MODULES})
 #
 # by default, we include the following
 #

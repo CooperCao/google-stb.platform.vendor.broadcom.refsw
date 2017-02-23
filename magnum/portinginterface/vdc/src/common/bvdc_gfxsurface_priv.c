@@ -168,8 +168,8 @@ BERR_Code BVDC_P_GfxSurface_Init
 
     BDBG_ASSERT(0 != pGfxSurface->ulSurAddrReg[0] &&
                 0 != pGfxSurface->ulVsyncCntrReg);
-    BREG_Write32(pGfxSurface->hRegister, pGfxSurface->ulSurAddrReg[0],  0);
-    BREG_Write32(pGfxSurface->hRegister, pGfxSurface->ulVsyncCntrReg,   1);
+    BREG_WriteAddr(pGfxSurface->hRegister, pGfxSurface->ulSurAddrReg[0],  0);
+    BRDC_WriteScratch(pGfxSurface->hRegister, pGfxSurface->ulVsyncCntrReg,   1);
 
     if (pGfxSurface->b3dSrc)
     {
@@ -177,10 +177,10 @@ BERR_Code BVDC_P_GfxSurface_Init
                     0 != pGfxSurface->ulRSurAddrReg[0] &&
                     0 != pGfxSurface->ulRSurAddrReg[1] &&
                     0 != pGfxSurface->ulRegIdxReg );
-        BREG_Write32(pGfxSurface->hRegister, pGfxSurface->ulSurAddrReg[1],  0);
-        BREG_Write32(pGfxSurface->hRegister, pGfxSurface->ulRSurAddrReg[0], 0);
-        BREG_Write32(pGfxSurface->hRegister, pGfxSurface->ulRSurAddrReg[1], 0);
-        BREG_Write32(pGfxSurface->hRegister, pGfxSurface->ulRegIdxReg,      0);
+        BREG_WriteAddr(pGfxSurface->hRegister, pGfxSurface->ulSurAddrReg[1],  0);
+        BREG_WriteAddr(pGfxSurface->hRegister, pGfxSurface->ulRSurAddrReg[0], 0);
+        BREG_WriteAddr(pGfxSurface->hRegister, pGfxSurface->ulRSurAddrReg[1], 0);
+        BRDC_WriteScratch(pGfxSurface->hRegister, pGfxSurface->ulRegIdxReg,      0);
     }
 
     BKNI_Memset((void*)&pGfxSurface->stIsrSurInfo, 0x0, sizeof(BVDC_P_SurfaceInfo));
@@ -460,7 +460,7 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
     /* pre-read of ulVsyncCntrReg before setting shadow registers.
      * note: when RUL is executed it will increase the value in ulVsyncCntrReg by 1
      */
-    ulVsyncCntr1 = BREG_Read32_isr(hRegister, pGfxSurface->ulVsyncCntrReg);
+    ulVsyncCntr1 = BRDC_ReadScratch_isrsafe(hRegister, pGfxSurface->ulVsyncCntrReg);
     if (0 == ulVsyncCntr1)
     {
         /* we could see this once after 828.5 days of running */
@@ -510,7 +510,7 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
 
     /* post-read of ulVsyncCntrReg after setting shadow registers.
      */
-    ulVsyncCntr2 = BREG_Read32_isr(hRegister, pGfxSurface->ulVsyncCntrReg);
+    ulVsyncCntr2 = BRDC_ReadScratch_isrsafe(hRegister, pGfxSurface->ulVsyncCntrReg);
 
     /* choose a node to record this sur setting */
     iNodeIdx = pGfxSurface->ucNodeIdx;
@@ -549,7 +549,7 @@ BAVC_Gfx_Picture *BVDC_P_GfxSurface_GetSurfaceInHw_isr
     int ii, iNodeIdx;
 
     /* when RUL is executed it will increase the value in ulVsyncCntrReg by 1 */
-    ulVsyncCntr = BREG_Read32_isr(pGfxSurface->hRegister, pGfxSurface->ulVsyncCntrReg);
+    ulVsyncCntr = BRDC_ReadScratch_isrsafe(pGfxSurface->hRegister, pGfxSurface->ulVsyncCntrReg);
 
     iNodeIdx = pGfxSurface->ucNodeIdx;
     for (ii=0; ii<4; ii++)

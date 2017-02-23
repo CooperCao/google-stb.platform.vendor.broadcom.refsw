@@ -932,6 +932,12 @@ unsigned int LittleEndianInput = 1;
                 FwParams.Param.MarketIDMask = Value;
             }
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+            else if (0 == strcmp(SubToken, "-mid_sel"))
+            {
+                SubToken = strtok_r(NULL, "=", &SavePtr3);
+                sscanf(SubToken, "%x", &Value);
+                FwParams.Param.MarketIDSelect = Value;
+            }
             else if (0 == strcmp(SubToken, "-epo_sel"))
             {
                 SubToken = strtok_r(NULL, "=", &SavePtr3);

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,25 +70,25 @@
 /***************************************************************************
  *V3D_MCS
  ***************************************************************************/
-#define BCHP_V3D_MCS_FRAME_ID0                   0x21200500 /* [RW] MCS Frame ID 0 */
-#define BCHP_V3D_MCS_FRAME_ID1                   0x21200504 /* [RW] MCS Frame ID 1 */
-#define BCHP_V3D_MCS_ERRS                        0x21200508 /* [RW] MCS Bad Requests */
-#define BCHP_V3D_MCS_STARTED_0_0                 0x21200520 /* [RW] MCS Frame 0 Started 0 */
-#define BCHP_V3D_MCS_STARTED_0_1                 0x21200524 /* [RW] MCS Frame 0 Started 1 */
-#define BCHP_V3D_MCS_STARTED_0_2                 0x21200528 /* [RW] MCS Frame 0 Started 2 */
-#define BCHP_V3D_MCS_STARTED_0_3                 0x2120052c /* [RW] MCS Frame 0 Started 3 */
-#define BCHP_V3D_MCS_STARTED_0_4                 0x21200530 /* [RW] MCS Frame 0 Started 4 */
-#define BCHP_V3D_MCS_STARTED_0_5                 0x21200534 /* [RW] MCS Frame 0 Started 5 */
-#define BCHP_V3D_MCS_STARTED_0_6                 0x21200538 /* [RW] MCS Frame 0 Started 6 */
-#define BCHP_V3D_MCS_STARTED_0_7                 0x2120053c /* [RW] MCS Frame 0 Started 7 */
-#define BCHP_V3D_MCS_STARTED_1_0                 0x21200540 /* [RW] MCS Frame 1 Started 0 */
-#define BCHP_V3D_MCS_STARTED_1_1                 0x21200544 /* [RW] MCS Frame 1 Started 1 */
-#define BCHP_V3D_MCS_STARTED_1_2                 0x21200548 /* [RW] MCS Frame 1 Started 2 */
-#define BCHP_V3D_MCS_STARTED_1_3                 0x2120054c /* [RW] MCS Frame 1 Started 3 */
-#define BCHP_V3D_MCS_STARTED_1_4                 0x21200550 /* [RW] MCS Frame 1 Started 4 */
-#define BCHP_V3D_MCS_STARTED_1_5                 0x21200554 /* [RW] MCS Frame 1 Started 5 */
-#define BCHP_V3D_MCS_STARTED_1_6                 0x21200558 /* [RW] MCS Frame 1 Started 6 */
-#define BCHP_V3D_MCS_STARTED_1_7                 0x2120055c /* [RW] MCS Frame 1 Started 7 */
+#define BCHP_V3D_MCS_FRAME_ID0                   0x21200500 /* [RW][32] MCS Frame ID 0 */
+#define BCHP_V3D_MCS_FRAME_ID1                   0x21200504 /* [RW][32] MCS Frame ID 1 */
+#define BCHP_V3D_MCS_ERRS                        0x21200508 /* [RW][32] MCS Bad Requests */
+#define BCHP_V3D_MCS_STARTED_0_0                 0x21200520 /* [RW][32] MCS Frame 0 Started 0 */
+#define BCHP_V3D_MCS_STARTED_0_1                 0x21200524 /* [RW][32] MCS Frame 0 Started 1 */
+#define BCHP_V3D_MCS_STARTED_0_2                 0x21200528 /* [RW][32] MCS Frame 0 Started 2 */
+#define BCHP_V3D_MCS_STARTED_0_3                 0x2120052c /* [RW][32] MCS Frame 0 Started 3 */
+#define BCHP_V3D_MCS_STARTED_0_4                 0x21200530 /* [RW][32] MCS Frame 0 Started 4 */
+#define BCHP_V3D_MCS_STARTED_0_5                 0x21200534 /* [RW][32] MCS Frame 0 Started 5 */
+#define BCHP_V3D_MCS_STARTED_0_6                 0x21200538 /* [RW][32] MCS Frame 0 Started 6 */
+#define BCHP_V3D_MCS_STARTED_0_7                 0x2120053c /* [RW][32] MCS Frame 0 Started 7 */
+#define BCHP_V3D_MCS_STARTED_1_0                 0x21200540 /* [RW][32] MCS Frame 1 Started 0 */
+#define BCHP_V3D_MCS_STARTED_1_1                 0x21200544 /* [RW][32] MCS Frame 1 Started 1 */
+#define BCHP_V3D_MCS_STARTED_1_2                 0x21200548 /* [RW][32] MCS Frame 1 Started 2 */
+#define BCHP_V3D_MCS_STARTED_1_3                 0x2120054c /* [RW][32] MCS Frame 1 Started 3 */
+#define BCHP_V3D_MCS_STARTED_1_4                 0x21200550 /* [RW][32] MCS Frame 1 Started 4 */
+#define BCHP_V3D_MCS_STARTED_1_5                 0x21200554 /* [RW][32] MCS Frame 1 Started 5 */
+#define BCHP_V3D_MCS_STARTED_1_6                 0x21200558 /* [RW][32] MCS Frame 1 Started 6 */
+#define BCHP_V3D_MCS_STARTED_1_7                 0x2120055c /* [RW][32] MCS Frame 1 Started 7 */
 
 /***************************************************************************
  *FRAME_ID0 - MCS Frame ID 0

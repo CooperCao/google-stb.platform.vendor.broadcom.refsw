@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $bcm_Workfile: $
- * $bcm_Revision: $
- * $bcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * BMedia library, MPEG2-TS NAV player
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -53,7 +73,12 @@ struct bmedia_player_nav {
     unsigned index_file_size; /* max accessible size of index file */
     unsigned long last_timestamp;       /* last timestamp in index file - playback duration in mSec */
     unsigned long last_position; /* last position of player, used in case tell fails */
+    unsigned dqt_wait_count;
     uint8_t ts_buf[188+4]; /* buffer to hold generated data injected by the bcmplayer */
+    struct {
+        unsigned first, last;
+        bool set;
+    } bounds;
 };
 
 #define GET_INDEX_FILEIO(fp) (((bmedia_player_nav_t)fp)->fd)
@@ -85,36 +110,23 @@ bmedia_nav_bp_seek( void *fp, long offset, int origin )
     return 0;
 }
 
-static int
-bmedia_nav_bp_bounds(BNAV_Player_Handle handle, void *fp, long *firstIndex, long *lastIndex)
+static bool b_valid_naventry(const BNAV_Entry *pNavEntry, const BNAV_Entry *pPrevNavEntry)
 {
-    bmedia_player_nav_t player = fp;
-    bfile_io_read_t f = GET_INDEX_FILEIO(fp);
-    off_t first, last;
-    unsigned index_entrysize = player->index_entrysize;
-    int rc;
-
-    BSTD_UNUSED(handle);
-    rc = f->bounds(f, &first, &last);
-    if (player->index_file_size) {
-        /* we cannot assume first=0 for wrapped fifo record files. we must take what was populated via f->bounds() */
-        last = player->index_file_size;
-    }
-    BDBG_ASSERT(index_entrysize);
-    *firstIndex = first/index_entrysize;
-    *lastIndex = (last-1)/index_entrysize;
-
-    return rc;
+    return
+        BNAV_get_timestamp(pNavEntry) >= BNAV_get_timestamp(pPrevNavEntry) &&
+        BNAV_get_frameOffset(pNavEntry) > BNAV_get_frameOffset(pPrevNavEntry) &&
+        BNAV_get_version(pNavEntry) < BNAV_VersionUnknown &&
+        BNAV_get_frameSize(pNavEntry) > 0 &&
+        BNAV_get_frameSize(pNavEntry) <= 5*1024*1024;
 }
 
-/* copied from NEXUS_P_ReadFirstNavEntry in nexus_file.c */
 static int
-b_read_first_naventry(bmedia_player_nav_t player, BNAV_Entry *pNavEntry)
+b_read_naventry(bmedia_player_nav_t player, unsigned index, BNAV_Entry *pNavEntry)
 {
     bfile_io_read_t f = GET_INDEX_FILEIO(player);
     off_t rc;
 
-    rc = f->seek(f, 0, SEEK_SET);
+    rc = f->seek(f, index * player->index_entrysize, SEEK_SET);
     if ( rc == (off_t)-1) {
         return -1;
     }
@@ -125,6 +137,64 @@ b_read_first_naventry(bmedia_player_nav_t player, BNAV_Entry *pNavEntry)
     }
     
     return 0;
+}
+
+static int
+bmedia_nav_bp_bounds(BNAV_Player_Handle handle, void *fp, long *firstIndex, long *lastIndex)
+{
+    int rc = 0;
+    bmedia_player_nav_t player = fp;
+
+    BSTD_UNUSED(handle);
+    if (player->config.timeshifting || !player->bounds.set) {
+        bfile_io_read_t f = GET_INDEX_FILEIO(fp);
+        off_t first, last;
+        unsigned index_entrysize = player->index_entrysize;
+        BNAV_Entry nav, prevnav;
+
+        rc = f->bounds(f, &first, &last);
+        if (rc) return rc;
+        if (player->index_file_size) {
+            /* we cannot assume first=0 for wrapped fifo record files. we must take what was populated via f->bounds() */
+            last = player->index_file_size;
+        }
+        BDBG_ASSERT(index_entrysize);
+        player->bounds.first = first/index_entrysize;
+        player->bounds.last = (last-1)/index_entrysize;
+        player->bounds.set = true;
+
+        /* If last index is not valid, search from beginning to find last valid index. */
+        if (player->bounds.last == 0) {
+            rc = -1;
+        }
+        else {
+            rc = b_read_naventry(player, player->bounds.last, &nav);
+        }
+        if (!rc) {
+            rc = b_read_naventry(player, player->bounds.last - 1, &prevnav);
+        }
+        if (rc || !b_valid_naventry(&nav, &prevnav)) {
+            rc = b_read_naventry(player, 0, &prevnav);
+            if (!rc) {
+                unsigned i;
+                for (i=1;i<=player->bounds.last;i++) {
+                    rc = b_read_naventry(player, i, &nav);
+                    if (rc) break;
+                    if (!b_valid_naventry(&nav, &prevnav)) break;
+                    prevnav = nav;
+                }
+                player->bounds.last = i-1;
+            }
+            else {
+                player->bounds.first = player->bounds.last = 0;
+            }
+            rc = 0;
+        }
+    }
+    *firstIndex = player->bounds.first;
+    *lastIndex = player->bounds.last;
+
+    return rc;
 }
 
 static bmedia_player_nav_t
@@ -169,6 +239,8 @@ bmedia_player_nav_create(bfile_io_read_t fd, const bmedia_player_config *config,
     player->mode = eBpPlayNormal;
     player->last_position = 0;
     player->index_file_size = 0;
+    player->dqt_wait_count = 0;
+    player->bounds.set = false;
 
     BNAV_Player_GetDefaultSettings(&cfg);
     cfg.videoPid = stream->master;
@@ -184,7 +256,7 @@ bmedia_player_nav_create(bfile_io_read_t fd, const bmedia_player_config *config,
     /* read the first index entry ourselves */
     {
         BNAV_Entry navEntry;
-        rc = b_read_first_naventry(player, &navEntry);
+        rc = b_read_naventry(player, 0, &navEntry);
         if (!rc) {
             cfg.navVersion = BNAV_get_version(&navEntry);
         }
@@ -328,7 +400,31 @@ bmedia_player_nav_next(bmedia_player_nav_t player, bmedia_player_entry *entry)
         entry->timestamp = pos.timestamp;
     }
 
-    if (bcmEntry.isInsertedPacket) {
+    if (bcmEntry.waitingForIntraGopPictureIndex) {
+        unsigned index, openGopPictures;
+        if (!player->config.get_dqt_index) {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+        rc = player->config.get_dqt_index(player->config.cntx, &index, &openGopPictures);
+        if (!rc) {
+            BNAV_Player_SetMDqtInfo(player->bcm_player, index, openGopPictures);
+            player->dqt_wait_count = 0;
+        }
+        else {
+            if (++player->dqt_wait_count % 100 == 0) {
+                BDBG_WRN(("waiting %u", player->dqt_wait_count));
+                entry->type = bmedia_player_entry_type_no_data;
+            }
+            if (player->dqt_wait_count == 1000) {
+                /* TODO: revise this */
+                BDBG_WRN(("uncle!"));
+                BNAV_Player_SetMDqtInfo(player->bcm_player, 0, 0);
+                player->dqt_wait_count = 0;
+            }
+            BKNI_Sleep(10); /* not ideal, but HVD must have some time */
+        }
+    }
+    else if (bcmEntry.isInsertedPacket) {
         entry->type = bmedia_player_entry_type_embedded;
         entry->content = bmedia_player_entry_content_header;
         entry->embedded = player->ts_buf;
@@ -620,6 +716,8 @@ bmedia_player_nav_set_direction(bmedia_player_nav_t player,
         case bmedia_player_host_trick_mode_brcm: playMode.playMode = eBpPlayBrcm; break;
         case bmedia_player_host_trick_mode_gop: playMode.playMode = eBpPlayDecoderGOPTrick; break;
         case bmedia_player_host_trick_mode_gop_IP: playMode.playMode = eBpPlayDecoderGOPIPTrick; break;
+        case bmedia_player_host_trick_mode_mdqt: playMode.playMode = eBpPlayDecoderMDqtTrick; break;
+        case bmedia_player_host_trick_mode_mdqt_IP: playMode.playMode = eBpPlayDecoderMDqtIPTrick; break;
         case bmedia_player_host_trick_mode_time_skip: 
             playMode.playMode = eBpPlayTimeSkip; 
             /* In order to perform time skip calculations, the app needs to know source frame rate. But it doesn't know. So,
@@ -673,7 +771,20 @@ bmedia_player_nav_set_direction(bmedia_player_nav_t player,
         BDBG_MSG(("no discontinuity"));
         mode->discontinuity = false;
     }
-    mode->dqt = ((playMode.playMode==eBpPlayDecoderGOPTrick || playMode.playMode==eBpPlayDecoderGOPIPTrick) && (playMode.playModeModifier < 0))?true:false;
+    switch (playMode.playMode) {
+    case eBpPlayDecoderGOPTrick:
+    case eBpPlayDecoderGOPIPTrick:
+    case eBpPlayDecoderMDqtTrick:
+    case eBpPlayDecoderMDqtIPTrick:
+        if (playMode.playModeModifier < 0) {
+            mode->dqt = true;
+            break;
+        }
+        /* fall through */
+    default:
+        mode->dqt = false;
+        break;
+    }
     mode->tsm = playMode.playMode == eBpPlayNormal;
     mode->continuous = playMode.playMode == eBpPlayNormal;
     mode->brcm = playMode.playMode == eBpPlayBrcm;
@@ -686,6 +797,7 @@ bmedia_player_nav_set_direction(bmedia_player_nav_t player,
     case eBpPlayI:
         mode->display_frames = bmedia_player_decoder_frames_I;
         break;
+    case eBpPlayDecoderMDqtIPTrick:
     case eBpPlayIP:
         mode->display_frames = bmedia_player_decoder_frames_IP;
         break;

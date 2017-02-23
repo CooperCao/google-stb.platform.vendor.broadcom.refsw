@@ -271,7 +271,7 @@ The output must support the Display's current NEXUS_VideoFormat, otherwise the f
 **/
 NEXUS_Error NEXUS_Display_AddOutput(
     NEXUS_DisplayHandle display,
-    NEXUS_VideoOutput output
+    NEXUS_VideoOutputHandle output
     );
 
 /**
@@ -280,7 +280,7 @@ Removes connected VideoOutput from the display
 **/
 NEXUS_Error NEXUS_Display_RemoveOutput(
     NEXUS_DisplayHandle display,
-    NEXUS_VideoOutput output
+    NEXUS_VideoOutputHandle output
     );
 
 /**
@@ -436,6 +436,16 @@ safely delete the surface. To re-enable, you must set NEXUS_GraphicsSettings.ena
 NEXUS_Error NEXUS_Display_SetGraphicsFramebuffer(
     NEXUS_DisplayHandle display,
     NEXUS_SurfaceHandle frameBuffer
+    );
+
+
+/**
+Summary:
+Create a surface with the required settings for this display
+**/
+NEXUS_SurfaceHandle NEXUS_Display_CreateFramebuffer( /* attr{local=yes} */
+    NEXUS_DisplayHandle display,
+    const NEXUS_SurfaceCreateSettings *pSettings
     );
 
 /**
@@ -635,6 +645,14 @@ NEXUS_Error NEXUS_Display_SetStgSettings(
     const NEXUS_DisplayStgSettings *pSettings
     );
 
+typedef enum NEXUS_GraphicsCompression
+{
+    NEXUS_GraphicsCompression_eNone,
+    NEXUS_GraphicsCompression_eAllowed,
+    NEXUS_GraphicsCompression_eRequired,
+    NEXUS_GraphicsCompression_eMax
+} NEXUS_GraphicsCompression;
+
 /**
 Summary:
 display module capabilities
@@ -647,6 +665,7 @@ typedef struct NEXUS_DisplayCapabilities
         unsigned numVideoWindows; /* if 0, display is not usable */
         struct {
             unsigned width, height; /* if 0, graphics is not usable */
+            NEXUS_GraphicsCompression compression;
         } graphics; /* max capability */
     } display[NEXUS_MAX_DISPLAYS];
     bool displayFormatSupported[NEXUS_VideoFormat_eMax]; /* is NEXUS_DisplaySettings.format supported by any display in the system? */

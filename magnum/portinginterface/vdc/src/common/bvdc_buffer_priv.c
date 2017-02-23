@@ -40,7 +40,6 @@
 ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
-#include "bmem.h"
 #include "bvdc_buffer_priv.h"
 #include "bvdc_vnet_priv.h"
 #include "bvdc_compositor_priv.h"
@@ -706,6 +705,8 @@ static uint32_t BVDC_P_Buffer_GetCurrentDelay_isr
 static void BVDC_P_Buffer_InitPictureNode
     ( BVDC_P_PictureNode              *pPicture )
 {
+    int ii;
+
     /* Fill-in the default info for each node. */
     pPicture->pHeapNode            = NULL;
     pPicture->pHeapNode_R          = NULL;
@@ -716,7 +717,6 @@ static void BVDC_P_Buffer_InitPictureNode
     BVDC_P_CLEAN_ALL_DIRTY(&(pPicture->stVnetMode));
     pPicture->stVnetMode.stBits.bInvalid  = BVDC_P_ON;
     pPicture->eFrameRateCode       = BAVC_FrameRateCode_e29_97;
-    pPicture->eMatrixCoefficients  = BAVC_MatrixCoefficients_eSmpte_170M;
     pPicture->eDisplayPolarity     = BAVC_Polarity_eTopField;
     pPicture->eSrcPolarity         = BAVC_Polarity_eTopField;
     pPicture->eSrcOrientation      = BFMT_Orientation_e2D;
@@ -725,6 +725,10 @@ static void BVDC_P_Buffer_InitPictureNode
     pPicture->eDstPolarity         = BAVC_Polarity_eTopField;
     pPicture->pSurface             = NULL;
     pPicture->pSurface_R           = NULL;
+    for (ii=0; ii<BAVC_MOSAIC_MAX; ii++)
+    {
+        BVDC_P_Cfc_InitAvcColorSpace(&pPicture->astMosaicColorSpace[ii]);
+    }
 
     pPicture->bValidTimeStampDelay = false;
 
@@ -1943,8 +1947,8 @@ BVDC_P_PictureNode* BVDC_P_Buffer_GetNextWriterNode_isr
     }
 
     /* Determine if MTG phase or MTG-based picture repeats warrant multibuffer processing. If not, drop the picture. */
-    if ((hWindow->pCurWriterNode->stFlags.bRev32Locked && (ulMadOutPhase != 3 && ulMadOutPhase != 1)) ||
-        (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat))
+    if (((hWindow->pCurWriterNode->stFlags.bRev32Locked && (ulMadOutPhase != 3 && ulMadOutPhase != 1)) ||
+         (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)) && !hWindow->pCurWriterNode->bMute)
     {
         hWindow->hBuffer->pCurWriterBuf = hWindow->pCurWriterNode;
         if (eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat)

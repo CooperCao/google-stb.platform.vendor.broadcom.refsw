@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -765,6 +765,14 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
         BIP_HttpStreamerProtocol       streamerProtocol;
 
         BIP_HttpStreamer_GetDefaultOutputSettings(&streamerOutputSettings);
+
+/* this is slow because pacing is on */
+#if 0
+        /* disable pid information in http headers.  atlas client will have to probe for pids.
+           this is so multiple audio pids can be detected by the client. */
+        streamerOutputSettings.disableAvHeadersInsertion = true;
+#endif
+
 #if B_HAS_DTCP_IP
         if (_enableDtcpIp)
         {
@@ -829,6 +837,7 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
         }
 #endif /* if NEXUS_HAS_VIDEO_ENCODER */
     }
+
     /* At this point, we have set sucessfully configured the Input & Output settings of the HttpStreamer. */
 
     /* Now Set any custom or app specific HTTP Headers that HttpStreamer should include when it sends out the Response Message. */

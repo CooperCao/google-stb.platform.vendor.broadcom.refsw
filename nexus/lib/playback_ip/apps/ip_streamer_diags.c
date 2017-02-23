@@ -1,14 +1,14 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
  * no license (express or implied), right to use, or waiver of any kind with respect to the
  * Software, and Broadcom expressly reserves all rights in and to the Software and all
  * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELYn
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
@@ -35,17 +35,9 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description: 
  *  main test app for ip_streamer
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
@@ -86,7 +78,6 @@
 #include "nexus_record.h"                                                                                                
 #endif                                                                                                                   
 #include "nexus_file_fifo.h"                                                                                             
-#include "b_psip_lib.h"                                                                                                  
 #include "nexus_core_utils.h"                                                                                            
 #endif /* DMS_CROSS_PLATFORMS */                                                                                         
 #include "b_playback_ip_lib.h"                                                                                           
@@ -522,13 +513,13 @@ int B_IpStreamer_SpecAOpen(void * dlnaGlobalCtx, int frontendNo, int* selectedFr
         }
         BKNI_ReleaseMutex(ipStreamerGlobalCtx->qamSrcMutex);
     
-		if(frontendHandle != NULL)
-		{
-			if (BKNI_CreateEvent(&qamSrc->signalSpecADataRdy)) {
-				BDBG_ERR(("Failed to signalSpecADataRdy event at %d", __LINE__));
-				return -1;
-			}
-		}
+        if(frontendHandle != NULL)
+        {
+            if (BKNI_CreateEvent(&qamSrc->signalSpecADataRdy)) {
+                BDBG_ERR(("Failed to signalSpecADataRdy event at %d", __LINE__));
+                return -1;
+            }
+        }
     }
     else
     {
@@ -625,9 +616,9 @@ int B_IpStreamer_GetFrontendSpecAData(void * dlnaGlobalCtx, int frontendNo, IpSt
         qamSrc->totalFftSamples = specAParams->numOfSamples;
         qamSrc->fftData = specAParams->data;
         
-		spectrumSettings.dataReadyCallback.callback = spectrum_data_ready_callback;
+        spectrumSettings.dataReadyCallback.callback = spectrum_data_ready_callback;
         spectrumSettings.dataReadyCallback.context = qamSrc;
-		spectrumSettings.data = specAParams->data;
+        spectrumSettings.data = specAParams->data;
         spectrumSettings.binAverage = specAParams->numOfAvgBins;
         spectrumSettings.numSamples = specAParams->numOfSamples;
         spectrumSettings.startFrequency = specAParams->fStart;

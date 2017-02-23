@@ -75,9 +75,7 @@
 #define SRAI_PlatformId_eCommonDrm (0)
 #define MAX_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 
-#ifdef USE_UNIFIED_COMMON_DRM
 static int DrmCommon_TL_Counter = 0;
-#endif
 
 static BKNI_MutexHandle drmCommonTLMutex[Common_Platform_Max] = {0,0,0,0,0,0,0,0};
 
@@ -194,15 +192,14 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
         bUseExternalHeapTA[platformIndex] = true;
     }
 
-#ifdef USE_UNIFIED_COMMON_DRM
-    /* Call to  DRM_Common_BasicInitialize needed? Possible for DMA operations */
+    /* Call DRM_Common_BasicInitialize */
+    /* TODO: revisit when making TL modules independent from libcmndrm */
     rc = DRM_Common_BasicInitialize(&pCommonTLSettings->drmCommonInit);
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error calling BasicInitialize", __FUNCTION__));
         goto ErrorExit;
     }
-#endif
 
     platformID = DRM_Common_P_PlatformIndex_to_PlatformID(platformIndex);
 
@@ -260,9 +257,7 @@ DRM_Common_TL_Initialize(DrmCommonInit_TL_t *pCommonTLSettings)
         BDBG_WRN(("%s: Platform ID 0x%x already initialized *************************", __FUNCTION__,platformID));
     }
 
-#ifdef USE_UNIFIED_COMMON_DRM
     DrmCommon_TL_Counter++;
-#endif
 
 ErrorExit:
 
@@ -621,13 +616,10 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
     BDBG_ASSERT(drmCommonTLMutex[platformIndex] != NULL);
     BKNI_AcquireMutex(drmCommonTLMutex[platformIndex]);
 
-#ifdef USE_UNIFIED_COMMON_DRM
     BDBG_MSG(("%s - Entered function (init = '%d')", __FUNCTION__, DrmCommon_TL_Counter));
-#endif
 
     platformID = DRM_Common_P_PlatformIndex_to_PlatformID(platformIndex);
 
-#ifdef USE_UNIFIED_COMMON_DRM
     /* sanity check */
     if(DrmCommon_TL_Counter <= 0)
     {
@@ -636,7 +628,6 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
     /* if there's one DRM module left calling DRM_Common_Finalize, clean everything up
      * Otherwise skip the clean up and decrement the counter */
     if(DrmCommon_TL_Counter == 1)
-#endif
     {
         /* Call to URR Toggle. DRM_Common_TL_Finalize() will be called within its own context so we must
         * release the mutex.  The counter will increment again preventing an infinite loop. */
@@ -656,11 +647,9 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
             platformHandle[platformIndex] = NULL;
         }
 
-#ifdef USE_UNIFIED_COMMON_DRM
         /* Finalize and decrement the counter after we finish the URR toggle */
         DRM_Common_Finalize();
         DrmCommon_TL_Counter--;
-#endif
 
         SRAI_Platform_UnInstall(BSAGE_PLATFORM_ID_COMMONDRM);
 
@@ -668,7 +657,6 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
         BKNI_DestroyMutex(drmCommonTLMutex[platformIndex]);
         drmCommonTLMutex[platformIndex] = 0;
     }
-#ifdef USE_UNIFIED_COMMON_DRM
     else
     {
         DRM_Common_Finalize();
@@ -680,7 +668,6 @@ DrmRC DRM_Common_TL_Finalize_TA(CommonDrmPlatformType_e platIndex)
     }
 
     BDBG_MSG(("%s - Exiting function (init = '%d')", __FUNCTION__, DrmCommon_TL_Counter));
-#endif
     return rc;
 }
 

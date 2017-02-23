@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,15 +39,13 @@
 #include "arm/arm.h"
 
 int arm::cpuId() {
-    register int mpidr;
-    asm volatile("mrc p15, 0, %[result], c0, c0, 5" : [result] "=r" (mpidr) : :);
-
-    return (mpidr & MPIDR_CPUID_MASK);
+	register int id;
+	ARCH_SPECIFIC_CPU_ID(id);
+	return id;
 }
 
 int arm::smpCpuNum() {
-    register int mpidr;
-    asm volatile("mrc p15, 0, %[result], c0, c0, 5" : [result] "=r" (mpidr) : :);
-
-    return (mpidr & MPIDR_CPUID_MASK);
+	register int num;
+	ARCH_SPECIFIC_SMP_CPU_NUM(num);
+	return num;
 }

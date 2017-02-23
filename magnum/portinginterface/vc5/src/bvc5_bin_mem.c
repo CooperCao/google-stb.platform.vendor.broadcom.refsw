@@ -44,7 +44,6 @@
 
 #include "bkni.h"
 #include "bkni_multi.h"
-#include "bmem.h"
 
 #define BVC5_P_INITIAL_BIN_ARRAY_LENGTH   16
 

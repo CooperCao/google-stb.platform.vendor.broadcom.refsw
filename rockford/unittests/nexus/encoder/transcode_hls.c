@@ -1,5 +1,5 @@
 /******************************************************************************
-* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -919,8 +919,8 @@ static void open_tsmux( TranscodeContext  *pContext )
 	 */
 	BDBG_MSG(("To open recpump with dataReadyThreshold = %d indexReadyThreshold=%d",
 		recpumpOpenSettings.data.dataReadyThreshold, recpumpOpenSettings.index.dataReadyThreshold));
-	BDBG_MSG(("        recpump with data fifo size     = %d index fifo size    =%d",
-		recpumpOpenSettings.data.bufferSize, recpumpOpenSettings.index.bufferSize));
+	BDBG_MSG(("        recpump with data fifo size     = "BDBG_UINT64_FMT" index fifo size    ="BDBG_UINT64_FMT,
+		BDBG_UINT64_ARG((uint64_t)recpumpOpenSettings.data.bufferSize), BDBG_UINT64_ARG((uint64_t)recpumpOpenSettings.index.bufferSize)));
 	pContext->recpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
 	assert(pContext->recpump);
 
@@ -1228,7 +1228,7 @@ static void videoPlaypump_thread(
                 break;
             /* feed until end of chunk */
             case BTST_P_ChunkState_eFeed:
-                if ((buffer_size + pContext->fileOffset > pContext->chunk.endOffset) && (pContext->chunk.endOffset != -1)) {
+                if ((buffer_size + pContext->fileOffset > (size_t) pContext->chunk.endOffset) && (pContext->chunk.endOffset != -1)) {
                     buffer_size = pContext->chunk.endOffset - pContext->fileOffset;
                     chunkState = BTST_P_ChunkState_eToEnd;
                     BDBG_MODULE_MSG(chunk_state, ("[%u] eFeed --> eToEnd", pContext->xcodeId));
@@ -2139,13 +2139,13 @@ static void videoRecpump_thread(
 		if (indexsize) {/* assume one RAI index per segment */
 			off_t highByte;
 
-			BDBG_MSG(("indexsize = %u", indexsize));
+			BDBG_MSG(("indexsize = "BDBG_UINT64_FMT, BDBG_UINT64_ARG((uint64_t)indexsize)));
 			/* byte offset since the start of the record session */
 			highByte = ((off_t)*((uint32_t*)indexBuf+2) >> 24);
 			bytesRecordedTillCurrentRai = highByte << 32;
 			bytesRecordedTillCurrentRai |= (off_t)*((uint32_t*)indexBuf+3);
-			BDBG_MSG(("Seg[%u] byte offset: "BDBG_UINT64_FMT, segment, BDBG_UINT64_ARG(bytesRecordedTillCurrentRai)));
-			BDBG_MSG(("fifo: R[%p], W[%p], duration=%u, idxSize=%u", (void*)BFIFO_READ(&pContext->durationFifo), (void*)BFIFO_WRITE(&pContext->durationFifo), *BFIFO_READ(&pContext->durationFifo), indexsize));
+			BDBG_MSG(("Seg[%u] byte offset: "BDBG_UINT64_FMT, segment, BDBG_UINT64_ARG((uint64_t)bytesRecordedTillCurrentRai)));
+			BDBG_MSG(("fifo: R[%p], W[%p], duration=%u, idxSize="BDBG_UINT64_FMT, (void*)BFIFO_READ(&pContext->durationFifo), (void*)BFIFO_WRITE(&pContext->durationFifo), *BFIFO_READ(&pContext->durationFifo), BDBG_UINT64_ARG((uint64_t)indexsize)));
 			/* log the segment info */
 			/* increment segment counter: assume one RAI per segment. */
 			fprintf(pContext->fileHls, "%u,", segment++);
@@ -2158,7 +2158,7 @@ static void videoRecpump_thread(
 			BFIFO_READ_COMMIT(&pContext->durationFifo, 1);
 #define BTST_TPIT_DEBUG
 #ifdef BTST_TPIT_DEBUG
-			BDBG_MSG(("RAI tpit entry: index bytesRead %d, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", datasize, *(uint32_t*)indexBuf, *((uint32_t*)indexBuf+2), *((uint32_t*)indexBuf+3)));
+			BDBG_MSG(("RAI tpit entry: index bytesRead "BDBG_UINT64_FMT", tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", BDBG_UINT64_ARG((uint64_t)datasize), *(uint32_t*)indexBuf, *((uint32_t*)indexBuf+2), *((uint32_t*)indexBuf+3)));
 #endif
 			indexBuf = (uint8_t *)indexBuf + BRCM_TPIT_ENTRY_SIZE;/* consume one index */
 			rc = NEXUS_Recpump_IndexReadComplete(pContext->recpump, BRCM_TPIT_ENTRY_SIZE);
@@ -2169,17 +2169,17 @@ static void videoRecpump_thread(
 		if (datasize) {
 			/* if dataSize + totalRecordBytes < bytesRecordedTillCurrentRai or no new index, write dataSize of current segment;
 			    else, write up to bytesRecordedTillCurrentRai, then PAT/PMT for the next segment; */
-			if((0==indexsize) || (datasize + totalRecordBytes < bytesRecordedTillCurrentRai)) {
+			if((0==indexsize) || (datasize + totalRecordBytes < (size_t) bytesRecordedTillCurrentRai)) {
 				write(pContext->fileTranscode, buffer, datasize);
-				BDBG_MSG(("1) Wrote %u data.", datasize));
+				BDBG_MSG(("1) Wrote "BDBG_UINT64_FMT" data.", BDBG_UINT64_ARG((uint64_t)datasize)));
 			} else {/* one or more indices */
 				/* record rest of the previous segment before the new RAI packet and increment buffer pointer */
 				write(pContext->fileTranscode, buffer, bytesRecordedTillCurrentRai - totalRecordBytes);
 				buffer = (uint8_t*)buffer + bytesRecordedTillCurrentRai - totalRecordBytes;
 				BDBG_MSG(("2) Wrote "BDBG_UINT64_FMT" data ("BDBG_UINT64_FMT", "BDBG_UINT64_FMT").",
-					  BDBG_UINT64_ARG(bytesRecordedTillCurrentRai - totalRecordBytes),
-					  BDBG_UINT64_ARG(bytesRecordedTillCurrentRai),
-					  BDBG_UINT64_ARG(totalRecordBytes)));
+					  BDBG_UINT64_ARG((uint64_t)(bytesRecordedTillCurrentRai - totalRecordBytes)),
+					  BDBG_UINT64_ARG((uint64_t)(bytesRecordedTillCurrentRai)),
+					  BDBG_UINT64_ARG((uint64_t)(totalRecordBytes))));
 
 				if(firstTime) {/* first pat/pmt already written previously for the 1st segment */
 					firstTime = false;

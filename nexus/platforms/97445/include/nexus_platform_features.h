@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,14 +34,11 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
  ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
 #include "bstd.h"
-
-#include "nexus_platform_generic_features_priv.h"
 
 /* Transport Features */
 #define NEXUS_NUM_PARSER_BANDS 24    /* Was 6. There are 24 avaliable */
@@ -51,21 +48,6 @@
 #define NEXUS_NUM_PLAYPUMPS 32  /* 6*4 for headless config, 32 available */
 
 #define NEXUS_NUM_VIDEO_DECODERS  6         /* 2 each for HEVD and each HVD */
-
-/* Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 12 /* Increased from 6 to 12 for SW7445-2423 */
-#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 2 /* Number of external inputs active at a time */
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_INPUTS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 2
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 8
-#define NEXUS_NUM_AUDIO_MIXERS 14
-
-#define NEXUS_NUM_I2S_INPUTS 1
-#define NEXUS_NUM_I2S_OUTPUTS 2
-#define NEXUS_NUM_AUDIO_PLAYBACKS 3
-
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 1
@@ -128,26 +110,8 @@ upon the chip usage. See below */
 /* Memory features */
 #define NEXUS_NUM_MEMC 3
 
-/* default heap indices, refer to memory map document  */
-#define NEXUS_MEMC0_MAIN_HEAP           0
-#define NEXUS_VIDEO_SECURE_HEAP         1
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 2
-#define NEXUS_MEMC0_GRAPHICS_HEAP       3
-#define NEXUS_SAGE_SECURE_HEAP          4
-#define NEXUS_MEMC1_GRAPHICS_HEAP       5
-#define NEXUS_MEMC1_PICTURE_BUFFER_HEAP 6
-#define NEXUS_MEMC1_DRIVER_HEAP         7
-#define NEXUS_MEMC2_GRAPHICS_HEAP       8
-#define NEXUS_MEMC2_PICTURE_BUFFER_HEAP 9
-#define NEXUS_MEMC2_DRIVER_HEAP         10
-#define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 11
-#define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP 12
-#define NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP 13
-#define NEXUS_MEMC0_SECURE_GRAPHICS_HEAP 14
-#define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP 15
-#define NEXUS_MEMC2_SECURE_GRAPHICS_HEAP 16
-#define NEXUS_EXPORT_HEAP               17
-
-
 #define NEXUS_AVS_MONITOR           0
+
+#include "nexus_platform_generic_features_priv.h"
+
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */
