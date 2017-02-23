@@ -681,147 +681,6 @@ static BODS_SelectiveAsyncStatusType NEXUS_Frontend_P_7364_t2StatusTypeToOds(NEX
     }
 }
 
-static void NEXUS_Frontend_P_PrintDvbt2PartialStatus(NEXUS_FrontendDvbt2Status *pStatus)
-{
-    unsigned i=0;
-
-    switch ( pStatus->type )
-    {
-    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsL1Pre:
-    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsL1Post:
-    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpA:
-    case NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpB:
-        BDBG_MSG(("pStatus->status.fecStatistics.lock = %d",pStatus->status.fecStatistics.lock));
-        BDBG_MSG(("pStatus->status.fecStatistics.snrData = %d",pStatus->status.fecStatistics.snrData));
-        BDBG_MSG(("pStatus->status.fecStatistics.ldpcAvgIter = %d",pStatus->status.fecStatistics.ldpcAvgIter));
-        BDBG_MSG(("pStatus->status.fecStatistics.ldpcTotIter = %d",pStatus->status.fecStatistics.ldpcTotIter));
-        BDBG_MSG(("pStatus->status.fecStatistics.ldpcTotFrm = %d",pStatus->status.fecStatistics.ldpcTotFrm));
-        BDBG_MSG(("pStatus->status.fecStatistics.ldpcUncFrm = %d",pStatus->status.fecStatistics.ldpcUncFrm));
-        BDBG_MSG(("pStatus->status.fecStatistics.ldpcBER = %d",pStatus->status.fecStatistics.ldpcBER));
-        BDBG_MSG(("pStatus->status.fecStatistics.bchCorBit = %d",pStatus->status.fecStatistics.bchCorBit));
-        BDBG_MSG(("pStatus->status.fecStatistics.bchTotBlk = %d",pStatus->status.fecStatistics.bchTotBlk));
-        BDBG_MSG(("pStatus->status.fecStatistics.bchClnBlk = %d",pStatus->status.fecStatistics.bchTotBlk));
-        BDBG_MSG(("pStatus->status.fecStatistics.bchCorBlk = %d",pStatus->status.fecStatistics.bchCorBlk));
-        BDBG_MSG(("pStatus->status.fecStatistics.bchUncBlk = %d",pStatus->status.fecStatistics.bchUncBlk));
-        break;
-    case NEXUS_FrontendDvbt2StatusType_eL1Pre:
-        BDBG_MSG(("pStatus->status.l1Pre.streamType = %d",pStatus->status.l1Pre.streamType));
-        BDBG_MSG(("pStatus->status.l1Pre.bwtExt = %d",pStatus->status.l1Pre.bwtExt));
-        BDBG_MSG(("pStatus->status.l1Pre.s1 = %d",pStatus->status.l1Pre.s1));
-        BDBG_MSG(("pStatus->status.l1Pre.s2 = %d",pStatus->status.l1Pre.s2));
-        BDBG_MSG(("pStatus->status.l1Pre.l1RepetitionFlag = %d",pStatus->status.l1Pre.l1RepetitionFlag));
-        BDBG_MSG(("pStatus->status.l1Pre.guardInterval = %d",pStatus->status.l1Pre.guardInterval));
-        BDBG_MSG(("pStatus->status.l1Pre.papr = %d",pStatus->status.l1Pre.papr));
-        BDBG_MSG(("pStatus->status.l1Pre.l1Mod = %d",pStatus->status.l1Pre.l1Mod));
-        BDBG_MSG(("pStatus->status.l1Pre.l1CodeRate = %d",pStatus->status.l1Pre.l1CodeRate));
-        BDBG_MSG(("pStatus->status.l1Pre.l1FecType = %d",pStatus->status.l1Pre.l1FecType));
-        BDBG_MSG(("pStatus->status.l1Pre.pilotPattern = %d",pStatus->status.l1Pre.pilotPattern));
-        BDBG_MSG(("pStatus->status.l1Pre.regenFlag = %d",pStatus->status.l1Pre.regenFlag));
-        BDBG_MSG(("pStatus->status.l1Pre.l1PostExt = %d",pStatus->status.l1Pre.l1PostExt));
-        BDBG_MSG(("pStatus->status.l1Pre.numRf = %d",pStatus->status.l1Pre.numRf));
-        BDBG_MSG(("pStatus->status.l1Pre.currentRfIndex = %d",pStatus->status.l1Pre.currentRfIndex));
-        BDBG_MSG(("pStatus->status.l1Pre.txIdAvailability = %d",pStatus->status.l1Pre.txIdAvailability));
-        BDBG_MSG(("pStatus->status.l1Pre.numT2Frames = %d",pStatus->status.l1Pre.numT2Frames));
-        BDBG_MSG(("pStatus->status.l1Pre.numDataSymbols = %d",pStatus->status.l1Pre.numDataSymbols));
-        BDBG_MSG(("pStatus->status.l1Pre.cellId = %d",pStatus->status.l1Pre.cellId));
-        BDBG_MSG(("pStatus->status.l1Pre.networkId = %d",pStatus->status.l1Pre.networkId));
-        BDBG_MSG(("pStatus->status.l1Pre.t2SystemId = %d",pStatus->status.l1Pre.t2SystemId));
-        BDBG_MSG(("pStatus->status.l1Pre.l1PostSize = %d",pStatus->status.l1Pre.l1PostSize));
-        BDBG_MSG(("pStatus->status.l1Pre.l1PostInfoSize = %d",pStatus->status.l1Pre.l1PostInfoSize));
-        break;
-    case NEXUS_FrontendDvbt2StatusType_eL1PostConfigurable:
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.subSlicesPerFrame = %d",pStatus->status.l1PostConfigurable.subSlicesPerFrame));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.numPlp = %d",pStatus->status.l1PostConfigurable.numPlp));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.numAux = %d",pStatus->status.l1PostConfigurable.numAux));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.fefType = %d",pStatus->status.l1PostConfigurable.fefType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.rfIdx = %d",pStatus->status.l1PostConfigurable.rfIdx));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.fefInterval = %d",pStatus->status.l1PostConfigurable.fefInterval));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.frequency = %d",pStatus->status.l1PostConfigurable.frequency));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.fefLength = %d",pStatus->status.l1PostConfigurable.fefLength));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.auxStreamType = %d",pStatus->status.l1PostConfigurable.auxStreamType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.auxPrivateConf = %d",pStatus->status.l1PostConfigurable.auxPrivateConf ));
-
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpId = %d",pStatus->status.l1PostConfigurable.plpA.plpId));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpGroupId = %d",pStatus->status.l1PostConfigurable.plpA.plpGroupId));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpType = %d",pStatus->status.l1PostConfigurable.plpA.plpType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpPayloadType = %d",pStatus->status.l1PostConfigurable.plpA.plpPayloadType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.ffFlag = %d",pStatus->status.l1PostConfigurable.plpA.ffFlag));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.firstRfIdx = %d",pStatus->status.l1PostConfigurable.plpA.firstRfIdx));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.firstFrameIdx = %d",pStatus->status.l1PostConfigurable.plpA.firstFrameIdx));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpCodeRate = %d",pStatus->status.l1PostConfigurable.plpA.plpCodeRate ));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpMod = %d",pStatus->status.l1PostConfigurable.plpA.plpMod));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpRotation = %d",pStatus->status.l1PostConfigurable.plpA.plpRotation));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpFecType = %d",pStatus->status.l1PostConfigurable.plpA.plpFecType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.plpNumBlocksMax = %d",pStatus->status.l1PostConfigurable.plpA.plpNumBlocksMax));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.frameInterval = %d",pStatus->status.l1PostConfigurable.plpA.frameInterval));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.timeIlLength = %d",pStatus->status.l1PostConfigurable.plpA.timeIlLength));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.timeIlType = %d",pStatus->status.l1PostConfigurable.plpA.timeIlType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpA.inBandFlag = %d",pStatus->status.l1PostConfigurable.plpA.inBandFlag));
-
-
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpId = %d",pStatus->status.l1PostConfigurable.plpB.plpId));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpGroupId = %d",pStatus->status.l1PostConfigurable.plpB.plpGroupId));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpType = %d",pStatus->status.l1PostConfigurable.plpB.plpType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpPayloadType = %d",pStatus->status.l1PostConfigurable.plpB.plpPayloadType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.ffFlag = %d",pStatus->status.l1PostConfigurable.plpB.ffFlag));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.firstRfIdx = %d",pStatus->status.l1PostConfigurable.plpB.firstRfIdx));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.firstFrameIdx = %d",pStatus->status.l1PostConfigurable.plpB.firstFrameIdx));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpCodeRate = %d",pStatus->status.l1PostConfigurable.plpB.plpCodeRate ));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpMod = %d",pStatus->status.l1PostConfigurable.plpB.plpMod));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpRotation = %d",pStatus->status.l1PostConfigurable.plpB.plpRotation));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpFecType = %d",pStatus->status.l1PostConfigurable.plpB.plpFecType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.plpNumBlocksMax = %d",pStatus->status.l1PostConfigurable.plpB.plpNumBlocksMax));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.frameInterval = %d",pStatus->status.l1PostConfigurable.plpB.frameInterval));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.timeIlLength = %d",pStatus->status.l1PostConfigurable.plpB.timeIlLength));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.timeIlType = %d",pStatus->status.l1PostConfigurable.plpB.timeIlType));
-        BDBG_MSG(("pStatus->status.l1PostConfigurable.plpB.inBandFlag = %d",pStatus->status.l1PostConfigurable.plpB.inBandFlag));
-        break;
-    case NEXUS_FrontendDvbt2StatusType_eL1PostDynamic:
-        BDBG_MSG(("pStatus->status.l1PostDynamic.frameIdx = %d",pStatus->status.l1PostDynamic.frameIdx));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.l1ChanlgeCounter = %d",pStatus->status.l1PostDynamic.l1ChanlgeCounter));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.startRfIdx = %d",pStatus->status.l1PostDynamic.startRfIdx));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.subSliceInterval = %d",pStatus->status.l1PostDynamic.subSliceInterval));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.type2Start = %d",pStatus->status.l1PostDynamic.type2Start));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.auxPrivateDyn_31_0 = %d",pStatus->status.l1PostDynamic.auxPrivateDyn_31_0));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.auxPrivateDyn_47_32 = %d",pStatus->status.l1PostDynamic.auxPrivateDyn_47_32));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.plpA.plpId = %d",pStatus->status.l1PostDynamic.plpA.plpId));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.plpA.plpNumBlocks = %d",pStatus->status.l1PostDynamic.plpA.plpNumBlocks));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.plpA.plpStart = %d",pStatus->status.l1PostDynamic.plpA.plpStart));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.plpB.plpId = %d",pStatus->status.l1PostDynamic.plpB.plpId));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.plpB.plpNumBlocks = %d",pStatus->status.l1PostDynamic.plpB.plpNumBlocks));
-        BDBG_MSG(("pStatus->status.l1PostDynamic.plpB.plpStart = %d",pStatus->status.l1PostDynamic.plpB.plpStart));
-        break;
-    case NEXUS_FrontendDvbt2StatusType_eL1Plp:
-        BDBG_MSG(("pStatus->status.l1Plp.numPlp = %d",pStatus->status.l1Plp.numPlp));
-
-        for(i=0; i<pStatus->status.l1Plp.numPlp; i++) {
-            BDBG_MSG(("pStatus->status.l1Plp.plp[%d].plpId = %d", i,pStatus->status.l1Plp.plp[i].plpId));
-            BDBG_MSG(("pStatus->status.l1Plp.plp[%d].plpGroupId = %d",i,pStatus->status.l1Plp.plp[i].plpGroupId));
-            BDBG_MSG(("pStatus->status.l1Plp.plp[%d].plpPayloadType = %d",i,pStatus->status.l1Plp.plp[i].plpPayloadType));
-            BDBG_MSG(("pStatus->status.l1Plp.plp[%d].plpType = %d",i,pStatus->status.l1Plp.plp[i].plpType));
-        }
-        break;
-    case NEXUS_FrontendDvbt2StatusType_eBasic:
-        BDBG_MSG(("pStatus->status.basic.fecLock = %d",pStatus->status.basic.fecLock));
-        BDBG_MSG(("pStatus->status.basic.spectrumInverted = %d",pStatus->status.basic.spectrumInverted));
-        BDBG_MSG(("pStatus->status.basic.snr = %d",pStatus->status.basic.snr));
-        BDBG_MSG(("pStatus->status.basic.gainOffset = %d",pStatus->status.basic.gainOffset));
-        BDBG_MSG(("pStatus->status.basic.carrierOffset = %d",pStatus->status.basic.carrierOffset));
-        BDBG_MSG(("pStatus->status.basic.timingOffset = %d",pStatus->status.basic.timingOffset));
-        BDBG_MSG(("pStatus->status.basic.signalStrength = %d",pStatus->status.basic.signalStrength));
-        BDBG_MSG(("pStatus->status.basic.signalLevelPercent = %d",pStatus->status.basic.signalLevelPercent));
-        BDBG_MSG(("pStatus->status.basic.signalQualityPercent = %d",pStatus->status.basic.signalQualityPercent));
-        BDBG_MSG(("pStatus->status.basic.reacquireCount = %d",pStatus->status.basic.reacquireCount));
-        BDBG_MSG(("pStatus->status.basic.profile = %d",pStatus->status.basic.profile));
-        break;
-    default:
-        BDBG_MSG((" Unsupported status type."));
-        break;
-    }
-    BDBG_MSG(("pStatus->type = %d",pStatus->type));
-
-}
-
 static NEXUS_Error NEXUS_Frontend_P_7364_RequestDvbt2AsyncStatus(void *handle, NEXUS_FrontendDvbt2StatusType type)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
@@ -877,22 +736,16 @@ done:
     return rc;
 }
 
-static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus(void *handle, NEXUS_FrontendDvbt2StatusType type, NEXUS_FrontendDvbt2Status *pStatus)
+static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncFecStatistics(void *handle, NEXUS_FrontendDvbt2StatusType type, NEXUS_FrontendDvbt2FecStatistics *pStatus)
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
-    unsigned i=0;
     BODS_SelectiveAsyncStatusType statusType;
     NEXUS_7364Device *pDevice;
     BDBG_ASSERT(handle != NULL);
     pDevice = (NEXUS_7364Device *)handle;
 
-    BKNI_Memset(pStatus, 0, sizeof(NEXUS_FrontendDvbt2Status));
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     BKNI_Memset(&pDevice->odsStatus, 0, sizeof(pDevice->odsStatus));
-
-    if(pDevice->lastChannel != NEXUS_7364_DVBT2_CHN){
-        rc = BERR_TRACE(BERR_INVALID_PARAMETER);
-        goto done;
-    }
 
     statusType = NEXUS_Frontend_P_7364_t2StatusTypeToOds(type);
 
@@ -910,204 +763,237 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus(void *handle, NEXUS
     case BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsL1Post:
     case BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsPlpA:
     case BODS_SelectiveAsyncStatusType_eDvbt2FecStatisticsPlpB:
-        pStatus->status.fecStatistics.lock = pDevice->odsStatus.status.dvbt2FecStatistics.lock;
-        pStatus->status.fecStatistics.snrData = pDevice->odsStatus.status.dvbt2FecStatistics.snrData/256;
-        pStatus->status.fecStatistics.ldpcAvgIter = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcAvgIter;
-        pStatus->status.fecStatistics.ldpcTotIter = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcTotIter;
-        pStatus->status.fecStatistics.ldpcTotFrm = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcTotFrm;
-        pStatus->status.fecStatistics.ldpcUncFrm = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcUncFrm;
-        pStatus->status.fecStatistics.ldpcBER = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcBER;
-        pStatus->status.fecStatistics.bchCorBit = pDevice->odsStatus.status.dvbt2FecStatistics.bchCorBit;
-        pStatus->status.fecStatistics.bchTotBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchTotBlk;
-        pStatus->status.fecStatistics.bchClnBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchClnBlk;
-        pStatus->status.fecStatistics.bchCorBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchCorBlk;
-        pStatus->status.fecStatistics.bchUncBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchUncBlk;
-        break;
-    case BODS_SelectiveAsyncStatusType_eDvbt2L1Pre:
-        pStatus->status.l1Pre.streamType = pDevice->odsStatus.status.dvbt2L1Pre.streamType;
-        pStatus->status.l1Pre.bwtExt = pDevice->odsStatus.status.dvbt2L1Pre.bwtExt;
-        pStatus->status.l1Pre.s1 = pDevice->odsStatus.status.dvbt2L1Pre.s1;
-        pStatus->status.l1Pre.s2 = pDevice->odsStatus.status.dvbt2L1Pre.s2;
-        pStatus->status.l1Pre.l1RepetitionFlag = pDevice->odsStatus.status.dvbt2L1Pre.l1RepetitionFlag;
-        pStatus->status.l1Pre.guardInterval= pDevice->odsStatus.status.dvbt2L1Pre.guardInterval;
-        pStatus->status.l1Pre.papr = pDevice->odsStatus.status.dvbt2L1Pre.papr;
-        pStatus->status.l1Pre.l1Mod = pDevice->odsStatus.status.dvbt2L1Pre.l1Modulation;
-        pStatus->status.l1Pre.l1CodeRate = pDevice->odsStatus.status.dvbt2L1Pre.l1CodeRate;
-        pStatus->status.l1Pre.l1FecType = pDevice->odsStatus.status.dvbt2L1Pre.l1FecType;
-        pStatus->status.l1Pre.pilotPattern = pDevice->odsStatus.status.dvbt2L1Pre.pilotPattern;
-        pStatus->status.l1Pre.regenFlag = pDevice->odsStatus.status.dvbt2L1Pre.regenFlag;
-        pStatus->status.l1Pre.l1PostExt = pDevice->odsStatus.status.dvbt2L1Pre.l1PostExt;
-        pStatus->status.l1Pre.numRf = pDevice->odsStatus.status.dvbt2L1Pre.numRf;
-        pStatus->status.l1Pre.currentRfIndex = pDevice->odsStatus.status.dvbt2L1Pre.currentRfIndex;
-        pStatus->status.l1Pre.txIdAvailability = pDevice->odsStatus.status.dvbt2L1Pre.txIdAvailability;
-        pStatus->status.l1Pre.numT2Frames = pDevice->odsStatus.status.dvbt2L1Pre.numT2Frames;
-        pStatus->status.l1Pre.numDataSymbols = pDevice->odsStatus.status.dvbt2L1Pre.numDataSymbols;
-        pStatus->status.l1Pre.cellId = pDevice->odsStatus.status.dvbt2L1Pre.cellId;
-        pStatus->status.l1Pre.networkId = pDevice->odsStatus.status.dvbt2L1Pre.networkId;
-        pStatus->status.l1Pre.t2SystemId = pDevice->odsStatus.status.dvbt2L1Pre.t2SystemId;
-        pStatus->status.l1Pre.l1PostSize = pDevice->odsStatus.status.dvbt2L1Pre.l1PostSize;
-        pStatus->status.l1Pre.l1PostInfoSize = pDevice->odsStatus.status.dvbt2L1Pre.l1PostInfoSize;
-        break;
-    case BODS_SelectiveAsyncStatusType_eDvbt2L1PostConfigurable:
-        pStatus->status.l1PostConfigurable.subSlicesPerFrame = pDevice->odsStatus.status.dvbt2L1PostConfigurable.subSlicesPerFrame;
-        pStatus->status.l1PostConfigurable.numPlp = pDevice->odsStatus.status.dvbt2L1PostConfigurable.numPlp;
-        pStatus->status.l1PostConfigurable.numAux = pDevice->odsStatus.status.dvbt2L1PostConfigurable.numAux;
-        pStatus->status.l1PostConfigurable.fefType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.fefType;
-        pStatus->status.l1PostConfigurable.rfIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.rfIdx;
-        pStatus->status.l1PostConfigurable.fefInterval = pDevice->odsStatus.status.dvbt2L1PostConfigurable.fefInterval;
-        pStatus->status.l1PostConfigurable.frequency = pDevice->odsStatus.status.dvbt2L1PostConfigurable.frequency;
-        pStatus->status.l1PostConfigurable.fefLength = pDevice->odsStatus.status.dvbt2L1PostConfigurable.fefLength;
-        pStatus->status.l1PostConfigurable.auxStreamType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.auxStreamType;
-        pStatus->status.l1PostConfigurable.auxPrivateConf = pDevice->odsStatus.status.dvbt2L1PostConfigurable.auxPrivateConf;
-
-        pStatus->status.l1PostConfigurable.plpA.plpId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpId;
-        pStatus->status.l1PostConfigurable.plpA.plpGroupId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpGroupId;
-        pStatus->status.l1PostConfigurable.plpA.plpType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpType;
-        pStatus->status.l1PostConfigurable.plpA.plpPayloadType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpPayloadType;
-        pStatus->status.l1PostConfigurable.plpA.ffFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.ffFlag;
-        pStatus->status.l1PostConfigurable.plpA.firstRfIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.firstRfIdx;
-        pStatus->status.l1PostConfigurable.plpA.firstFrameIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.firstFrameIdx;
-        pStatus->status.l1PostConfigurable.plpA.plpCodeRate = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.codeRate;
-        pStatus->status.l1PostConfigurable.plpA.plpMod = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.modulation;
-        pStatus->status.l1PostConfigurable.plpA.plpRotation = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpRotation;
-        pStatus->status.l1PostConfigurable.plpA.plpFecType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpFecType;
-        pStatus->status.l1PostConfigurable.plpA.plpNumBlocksMax = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpNumBlocksMax;
-        pStatus->status.l1PostConfigurable.plpA.frameInterval = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.frameInterval;
-        pStatus->status.l1PostConfigurable.plpA.timeIlLength = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.timeIlLength;
-        pStatus->status.l1PostConfigurable.plpA.timeIlType= pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.timeIlType;
-        pStatus->status.l1PostConfigurable.plpA.inBandFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.inBandFlag;
-
-        pStatus->status.l1PostConfigurable.plpB.plpId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpId;
-        pStatus->status.l1PostConfigurable.plpB.plpGroupId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpGroupId;
-        pStatus->status.l1PostConfigurable.plpB.plpType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpType;
-        pStatus->status.l1PostConfigurable.plpB.plpPayloadType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpPayloadType;
-        pStatus->status.l1PostConfigurable.plpB.ffFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.ffFlag;
-        pStatus->status.l1PostConfigurable.plpB.firstRfIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.firstRfIdx;
-        pStatus->status.l1PostConfigurable.plpB.firstFrameIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.firstFrameIdx;
-        pStatus->status.l1PostConfigurable.plpB.plpCodeRate = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.codeRate;
-        pStatus->status.l1PostConfigurable.plpB.plpMod = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.modulation;
-        pStatus->status.l1PostConfigurable.plpB.plpRotation = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpRotation;
-        pStatus->status.l1PostConfigurable.plpB.plpFecType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpFecType;
-        pStatus->status.l1PostConfigurable.plpB.plpNumBlocksMax = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpNumBlocksMax;
-        pStatus->status.l1PostConfigurable.plpB.frameInterval = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.frameInterval;
-        pStatus->status.l1PostConfigurable.plpB.timeIlLength = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.timeIlLength;
-        pStatus->status.l1PostConfigurable.plpB.timeIlType= pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.timeIlType;
-        pStatus->status.l1PostConfigurable.plpB.inBandFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.inBandFlag;
-        break;
-    case BODS_SelectiveAsyncStatusType_eDvbt2L1PostDynamic:
-        pStatus->status.l1PostDynamic.frameIdx = pDevice->odsStatus.status.dvbt2L1PostDynamic.frameIdx;
-        pStatus->status.l1PostDynamic.l1ChanlgeCounter = pDevice->odsStatus.status.dvbt2L1PostDynamic.l1ChanlgeCounter;
-        pStatus->status.l1PostDynamic.startRfIdx = pDevice->odsStatus.status.dvbt2L1PostDynamic.startRfIdx;
-        pStatus->status.l1PostDynamic.subSliceInterval = pDevice->odsStatus.status.dvbt2L1PostDynamic.subSliceInterval;
-        pStatus->status.l1PostDynamic.type2Start = pDevice->odsStatus.status.dvbt2L1PostDynamic.type2Start;
-        pStatus->status.l1PostDynamic.auxPrivateDyn_31_0 = pDevice->odsStatus.status.dvbt2L1PostDynamic.auxPrivateDyn_31_0;
-        pStatus->status.l1PostDynamic.auxPrivateDyn_47_32 = pDevice->odsStatus.status.dvbt2L1PostDynamic.auxPrivateDyn_47_32;
-        pStatus->status.l1PostDynamic.plpA.plpId = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpA.plpId;
-        pStatus->status.l1PostDynamic.plpA.plpNumBlocks = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpA.plpNumBlocks;
-        pStatus->status.l1PostDynamic.plpA.plpStart = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpA.plpNumBlocks;
-        pStatus->status.l1PostDynamic.plpB.plpId = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpB.plpId;
-        pStatus->status.l1PostDynamic.plpB.plpNumBlocks = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpB.plpNumBlocks;
-        pStatus->status.l1PostDynamic.plpB.plpStart = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpB.plpNumBlocks;
-        break;
-    case BODS_SelectiveAsyncStatusType_eDvbt2L1Plp:
-        pStatus->status.l1Plp.numPlp = pDevice->odsStatus.status.dvbt2L1Plp.numPlp;
-        for(i=0; i<pStatus->status.l1Plp.numPlp; i++) {
-            pStatus->status.l1Plp.plp[i].plpId = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpId;
-            pStatus->status.l1Plp.plp[i].plpGroupId = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpGroupId;
-            pStatus->status.l1Plp.plp[i].plpPayloadType = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpPayloadType;
-            pStatus->status.l1Plp.plp[i].plpType = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpType;
-        }
-        break;
-    case BODS_SelectiveAsyncStatusType_eDvbt2Short:
-        pStatus->status.basic.fecLock = pDevice->odsStatus.status.dvbt2Short.lock;
-        pStatus->status.basic.spectrumInverted = pDevice->odsStatus.status.dvbt2Short.spectrumInverted;
-        pStatus->status.basic.snr = pDevice->odsStatus.status.dvbt2Short.snrEstimate*100/256;
-        pStatus->status.basic.gainOffset = pDevice->odsStatus.status.dvbt2Short.gainOffset*100/256;
-        pStatus->status.basic.carrierOffset = pDevice->odsStatus.status.dvbt2Short.carrierFreqOffset;
-        pStatus->status.basic.timingOffset = pDevice->odsStatus.status.dvbt2Short.timingOffset;
-        pStatus->status.basic.signalStrength = pDevice->odsStatus.status.dvbt2Short.signalStrength/10;
-        pStatus->status.basic.signalLevelPercent = pDevice->odsStatus.status.dvbt2Short.signalLevelPercent;
-        pStatus->status.basic.signalQualityPercent = pDevice->odsStatus.status.dvbt2Short.signalQualityPercent;
-        pStatus->status.basic.reacquireCount = pDevice->odsStatus.status.dvbt2Short.reacqCount;
-        pStatus->status.basic.profile = pDevice->odsStatus.status.dvbt2Short.profile;
+        pStatus->lock = pDevice->odsStatus.status.dvbt2FecStatistics.lock;
+        pStatus->snrData = pDevice->odsStatus.status.dvbt2FecStatistics.snrData/256;
+        pStatus->ldpcAvgIter = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcAvgIter;
+        pStatus->ldpcTotIter = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcTotIter;
+        pStatus->ldpcTotFrm = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcTotFrm;
+        pStatus->ldpcUncFrm = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcUncFrm;
+        pStatus->ldpcBER = pDevice->odsStatus.status.dvbt2FecStatistics.ldpcBER;
+        pStatus->bchCorBit = pDevice->odsStatus.status.dvbt2FecStatistics.bchCorBit;
+        pStatus->bchTotBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchTotBlk;
+        pStatus->bchClnBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchClnBlk;
+        pStatus->bchCorBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchCorBlk;
+        pStatus->bchUncBlk = pDevice->odsStatus.status.dvbt2FecStatistics.bchUncBlk;
         break;
     default:
         BDBG_ERR((" Unsupported status type."));
         rc = BERR_TRACE(BERR_NOT_SUPPORTED);
     }
-
-    pStatus->type = type;
-
-    NEXUS_Frontend_P_PrintDvbt2PartialStatus(pStatus);
 done:
     return rc;
 }
 
-static void NEXUS_Frontend_P_Dvbt2PartialtoLegacyStatus(const NEXUS_FrontendDvbt2Status *pPartialStatus, NEXUS_FrontendOfdmStatus *pStatus)
+static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PreStatus(void *handle, NEXUS_FrontendDvbt2L1PreStatus *pStatus)
 {
-    switch ( pPartialStatus->type )
-    {
-        case NEXUS_FrontendDvbt2StatusType_eBasic:
-            pStatus->fecLock = pPartialStatus->status.basic.fecLock;
-            pStatus->receiverLock = pPartialStatus->status.basic.fecLock;
-            pStatus->spectrumInverted = pPartialStatus->status.basic.spectrumInverted;
-            pStatus->snr = pPartialStatus->status.basic.snr;
-            pStatus->dvbt2Status.gainOffset = pPartialStatus->status.basic.gainOffset;
-            pStatus->carrierOffset = pPartialStatus->status.basic.carrierOffset;
-            pStatus->timingOffset = pPartialStatus->status.basic.timingOffset;
-            pStatus->signalStrength = pPartialStatus->status.basic.signalStrength;
-            pStatus->signalLevelPercent = pPartialStatus->status.basic.signalLevelPercent;
-            pStatus->signalQualityPercent = pPartialStatus->status.basic.signalQualityPercent;
-            pStatus->reacquireCount = pPartialStatus->status.basic.reacquireCount;
-            break;
-        case NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpA:
-            pStatus->fecCorrectedBlocks = pPartialStatus->status.fecStatistics.bchCorBlk;
-            pStatus->fecUncorrectedBlocks = pPartialStatus->status.fecStatistics.bchUncBlk;
-            pStatus->fecCleanBlocks = pPartialStatus->status.fecStatistics.bchClnBlk;
-            pStatus->viterbiErrorRate = pPartialStatus->status.fecStatistics.ldpcBER;
-            break;
-        case NEXUS_FrontendDvbt2StatusType_eL1Pre:
-            pStatus->guardInterval = pPartialStatus->status.l1Pre.guardInterval;
-            switch (pPartialStatus->status.l1Pre.s2>>1)
-            {
-            case 0:
-                pStatus->transmissionMode =  NEXUS_FrontendOfdmTransmissionMode_e2k;
-                break;
-            case 1:
-            case 6:
-                pStatus->transmissionMode =  NEXUS_FrontendOfdmTransmissionMode_e8k;
-                break;
-            case 2:
-                pStatus->transmissionMode =  NEXUS_FrontendOfdmTransmissionMode_e4k;
-                break;
-            case 3:
-                pStatus->transmissionMode =  NEXUS_FrontendOfdmTransmissionMode_e1k;
-                break;
-            case 4:
-                pStatus->transmissionMode =  NEXUS_FrontendOfdmTransmissionMode_e16k;
-                break;
-            case 5:
-            case 7:
-                pStatus->transmissionMode =  NEXUS_FrontendOfdmTransmissionMode_e32k;
-                break;
-            default:
-                BDBG_WRN(("Unrecognized transmissionMode (%d) reported by BTHD", (pPartialStatus->status.l1Pre.s2>>1)));
-                BERR_TRACE(BERR_NOT_SUPPORTED);
-            }
-            break;
-        case NEXUS_FrontendDvbt2StatusType_eL1PostConfigurable:
-            if(pPartialStatus->status.l1PostConfigurable.plpA.plpMod < NEXUS_FrontendDvbt2PlpMod_eMax)
-                pStatus->modulation = pPartialStatus->status.l1PostConfigurable.plpA.plpMod;
-            else {
-                BDBG_WRN(("Unrecognized modulation(%d) reported by BTHD", pPartialStatus->status.l1PostConfigurable.plpA.plpMod));
-                BERR_TRACE(BERR_NOT_SUPPORTED);
-            }
-            break;
-        default:
-            BDBG_ERR((" Unsupported status type."));
-            BERR_TRACE(BERR_NOT_SUPPORTED);
-            break;
-        }
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_7364Device *pDevice;
+    BDBG_ASSERT(handle != NULL);
+    pDevice = (NEXUS_7364Device *)handle;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    BKNI_Memset(&pDevice->odsStatus, 0, sizeof(pDevice->odsStatus));
+
+    rc = BODS_GetSelectiveAsyncStatus(pDevice->ods_chn[NEXUS_7364_DVBT2_CHN], BODS_SelectiveAsyncStatusType_eDvbt2L1Pre, &pDevice->odsStatus);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    if(BODS_SelectiveAsyncStatusType_eDvbt2L1Pre != pDevice->odsStatus.type){
+        BDBG_ERR(("Requested nexus status type BODS_SelectiveAsyncStatusType_eDvbt2L1Pre does not match the returned pi status type %d.", pDevice->odsStatus.type));
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto done;
+    }
+
+    pStatus->streamType = pDevice->odsStatus.status.dvbt2L1Pre.streamType;
+    pStatus->bwtExt = pDevice->odsStatus.status.dvbt2L1Pre.bwtExt;
+    pStatus->s1 = pDevice->odsStatus.status.dvbt2L1Pre.s1;
+    pStatus->s2 = pDevice->odsStatus.status.dvbt2L1Pre.s2;
+    pStatus->l1RepetitionFlag = pDevice->odsStatus.status.dvbt2L1Pre.l1RepetitionFlag;
+    pStatus->guardInterval= pDevice->odsStatus.status.dvbt2L1Pre.guardInterval;
+    pStatus->papr = pDevice->odsStatus.status.dvbt2L1Pre.papr;
+    pStatus->l1Mod = pDevice->odsStatus.status.dvbt2L1Pre.l1Modulation;
+    pStatus->l1CodeRate = pDevice->odsStatus.status.dvbt2L1Pre.l1CodeRate;
+    pStatus->l1FecType = pDevice->odsStatus.status.dvbt2L1Pre.l1FecType;
+    pStatus->pilotPattern = pDevice->odsStatus.status.dvbt2L1Pre.pilotPattern;
+    pStatus->regenFlag = pDevice->odsStatus.status.dvbt2L1Pre.regenFlag;
+    pStatus->l1PostExt = pDevice->odsStatus.status.dvbt2L1Pre.l1PostExt;
+    pStatus->numRf = pDevice->odsStatus.status.dvbt2L1Pre.numRf;
+    pStatus->currentRfIndex = pDevice->odsStatus.status.dvbt2L1Pre.currentRfIndex;
+    pStatus->txIdAvailability = pDevice->odsStatus.status.dvbt2L1Pre.txIdAvailability;
+    pStatus->numT2Frames = pDevice->odsStatus.status.dvbt2L1Pre.numT2Frames;
+    pStatus->numDataSymbols = pDevice->odsStatus.status.dvbt2L1Pre.numDataSymbols;
+    pStatus->cellId = pDevice->odsStatus.status.dvbt2L1Pre.cellId;
+    pStatus->networkId = pDevice->odsStatus.status.dvbt2L1Pre.networkId;
+    pStatus->t2SystemId = pDevice->odsStatus.status.dvbt2L1Pre.t2SystemId;
+    pStatus->l1PostSize = pDevice->odsStatus.status.dvbt2L1Pre.l1PostSize;
+    pStatus->l1PostInfoSize = pDevice->odsStatus.status.dvbt2L1Pre.l1PostInfoSize;
+
+done:
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PostConfigurableStatus(void *handle, NEXUS_FrontendDvbt2L1PostConfigurableStatus *pStatus)
+{
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_7364Device *pDevice;
+    BDBG_ASSERT(handle != NULL);
+    pDevice = (NEXUS_7364Device *)handle;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    BKNI_Memset(&pDevice->odsStatus, 0, sizeof(pDevice->odsStatus));
+
+    rc = BODS_GetSelectiveAsyncStatus(pDevice->ods_chn[NEXUS_7364_DVBT2_CHN], BODS_SelectiveAsyncStatusType_eDvbt2L1PostConfigurable, &pDevice->odsStatus);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    if(BODS_SelectiveAsyncStatusType_eDvbt2L1PostConfigurable != pDevice->odsStatus.type){
+        BDBG_ERR(("Requested nexus status type BODS_SelectiveAsyncStatusType_eDvbt2L1PostConfigurable does not match the returned pi status type %d.", pDevice->odsStatus.type));
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto done;
+    }
+
+    pStatus->subSlicesPerFrame = pDevice->odsStatus.status.dvbt2L1PostConfigurable.subSlicesPerFrame;
+    pStatus->numPlp = pDevice->odsStatus.status.dvbt2L1PostConfigurable.numPlp;
+    pStatus->numAux = pDevice->odsStatus.status.dvbt2L1PostConfigurable.numAux;
+    pStatus->fefType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.fefType;
+    pStatus->rfIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.rfIdx;
+    pStatus->fefInterval = pDevice->odsStatus.status.dvbt2L1PostConfigurable.fefInterval;
+    pStatus->frequency = pDevice->odsStatus.status.dvbt2L1PostConfigurable.frequency;
+    pStatus->fefLength = pDevice->odsStatus.status.dvbt2L1PostConfigurable.fefLength;
+    pStatus->auxStreamType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.auxStreamType;
+    pStatus->auxPrivateConf = pDevice->odsStatus.status.dvbt2L1PostConfigurable.auxPrivateConf;
+
+    pStatus->plpA.plpId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpId;
+    pStatus->plpA.plpGroupId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpGroupId;
+    pStatus->plpA.plpType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpType;
+    pStatus->plpA.plpPayloadType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpPayloadType;
+    pStatus->plpA.ffFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.ffFlag;
+    pStatus->plpA.firstRfIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.firstRfIdx;
+    pStatus->plpA.firstFrameIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.firstFrameIdx;
+    pStatus->plpA.plpCodeRate = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.codeRate;
+    pStatus->plpA.plpMod = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.modulation;
+    pStatus->plpA.plpRotation = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpRotation;
+    pStatus->plpA.plpFecType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpFecType;
+    pStatus->plpA.plpNumBlocksMax = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.plpNumBlocksMax;
+    pStatus->plpA.frameInterval = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.frameInterval;
+    pStatus->plpA.timeIlLength = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.timeIlLength;
+    pStatus->plpA.timeIlType= pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.timeIlType;
+    pStatus->plpA.inBandFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpA.inBandFlag;
+
+    pStatus->plpB.plpId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpId;
+    pStatus->plpB.plpGroupId = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpGroupId;
+    pStatus->plpB.plpType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpType;
+    pStatus->plpB.plpPayloadType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpPayloadType;
+    pStatus->plpB.ffFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.ffFlag;
+    pStatus->plpB.firstRfIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.firstRfIdx;
+    pStatus->plpB.firstFrameIdx = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.firstFrameIdx;
+    pStatus->plpB.plpCodeRate = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.codeRate;
+    pStatus->plpB.plpMod = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.modulation;
+    pStatus->plpB.plpRotation = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpRotation;
+    pStatus->plpB.plpFecType = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpFecType;
+    pStatus->plpB.plpNumBlocksMax = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.plpNumBlocksMax;
+    pStatus->plpB.frameInterval = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.frameInterval;
+    pStatus->plpB.timeIlLength = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.timeIlLength;
+    pStatus->plpB.timeIlType= pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.timeIlType;
+    pStatus->plpB.inBandFlag = pDevice->odsStatus.status.dvbt2L1PostConfigurable.plpB.inBandFlag;
+
+done:
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncPostDynamicStatus(void *handle, NEXUS_FrontendDvbt2L1PostDynamicStatus *pStatus)
+{
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_7364Device *pDevice;
+    BDBG_ASSERT(handle != NULL);
+    pDevice = (NEXUS_7364Device *)handle;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    BKNI_Memset(&pDevice->odsStatus, 0, sizeof(pDevice->odsStatus));
+
+    rc = BODS_GetSelectiveAsyncStatus(pDevice->ods_chn[NEXUS_7364_DVBT2_CHN], BODS_SelectiveAsyncStatusType_eDvbt2L1PostDynamic, &pDevice->odsStatus);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    if(BODS_SelectiveAsyncStatusType_eDvbt2L1PostDynamic != pDevice->odsStatus.type){
+        BDBG_ERR(("Requested nexus status type BODS_SelectiveAsyncStatusType_eDvbt2L1PostDynamic does not match the returned pi status type %d.", pDevice->odsStatus.type));
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto done;
+    }
+
+    pStatus->frameIdx = pDevice->odsStatus.status.dvbt2L1PostDynamic.frameIdx;
+    pStatus->l1ChanlgeCounter = pDevice->odsStatus.status.dvbt2L1PostDynamic.l1ChanlgeCounter;
+    pStatus->startRfIdx = pDevice->odsStatus.status.dvbt2L1PostDynamic.startRfIdx;
+    pStatus->subSliceInterval = pDevice->odsStatus.status.dvbt2L1PostDynamic.subSliceInterval;
+    pStatus->type2Start = pDevice->odsStatus.status.dvbt2L1PostDynamic.type2Start;
+    pStatus->auxPrivateDyn_31_0 = pDevice->odsStatus.status.dvbt2L1PostDynamic.auxPrivateDyn_31_0;
+    pStatus->auxPrivateDyn_47_32 = pDevice->odsStatus.status.dvbt2L1PostDynamic.auxPrivateDyn_47_32;
+    pStatus->plpA.plpId = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpA.plpId;
+    pStatus->plpA.plpNumBlocks = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpA.plpNumBlocks;
+    pStatus->plpA.plpStart = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpA.plpNumBlocks;
+    pStatus->plpB.plpId = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpB.plpId;
+    pStatus->plpB.plpNumBlocks = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpB.plpNumBlocks;
+    pStatus->plpB.plpStart = pDevice->odsStatus.status.dvbt2L1PostDynamic.plpB.plpNumBlocks;
+done:
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PlpStatus(void *handle, NEXUS_FrontendDvbt2L1PlpStatus *pStatus)
+{
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    unsigned i=0;
+    NEXUS_7364Device *pDevice;
+    BDBG_ASSERT(handle != NULL);
+    pDevice = (NEXUS_7364Device *)handle;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    BKNI_Memset(&pDevice->odsStatus, 0, sizeof(pDevice->odsStatus));
+
+    rc = BODS_GetSelectiveAsyncStatus(pDevice->ods_chn[NEXUS_7364_DVBT2_CHN], BODS_SelectiveAsyncStatusType_eDvbt2L1Plp, &pDevice->odsStatus);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    if(BODS_SelectiveAsyncStatusType_eDvbt2L1Plp != pDevice->odsStatus.type){
+        BDBG_ERR(("Requested nexus status type BODS_SelectiveAsyncStatusType_eDvbt2L1Plp does not match the returned pi status type %d.", pDevice->odsStatus.type));
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto done;
+    }
+
+    pStatus->numPlp = pDevice->odsStatus.status.dvbt2L1Plp.numPlp;
+    for(i=0; i<pStatus->numPlp; i++) {
+        pStatus->plp[i].plpId = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpId;
+        pStatus->plp[i].plpGroupId = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpGroupId;
+        pStatus->plp[i].plpPayloadType = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpPayloadType;
+        pStatus->plp[i].plpType = pDevice->odsStatus.status.dvbt2L1Plp.plp[i].plpType;
+    }
+done:
+    return rc;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_7364_GetDvbt2AsyncBasicStatus(void *handle, NEXUS_FrontendDvbt2BasicStatus *pStatus)
+{
+    NEXUS_Error  rc = NEXUS_SUCCESS;
+    NEXUS_7364Device *pDevice;
+    BDBG_ASSERT(handle != NULL);
+    pDevice = (NEXUS_7364Device *)handle;
+
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    BKNI_Memset(&pDevice->odsStatus, 0, sizeof(pDevice->odsStatus));
+
+    rc = BODS_GetSelectiveAsyncStatus(pDevice->ods_chn[NEXUS_7364_DVBT2_CHN], BODS_SelectiveAsyncStatusType_eDvbt2Short, &pDevice->odsStatus);
+    if(rc){rc = BERR_TRACE(rc); goto done;}
+
+    if(BODS_SelectiveAsyncStatusType_eDvbt2Short != pDevice->odsStatus.type){
+        BDBG_ERR(("Requested nexus status type BODS_SelectiveAsyncStatusType_eDvbt2Short does not match the returned pi status type %d.", pDevice->odsStatus.type));
+        rc = BERR_TRACE(NEXUS_UNKNOWN); goto done;
+    }
+
+    pStatus->fecLock = pDevice->odsStatus.status.dvbt2Short.lock;
+    pStatus->spectrumInverted = pDevice->odsStatus.status.dvbt2Short.spectrumInverted;
+    pStatus->snr = pDevice->odsStatus.status.dvbt2Short.snrEstimate*100/256;
+    pStatus->gainOffset = pDevice->odsStatus.status.dvbt2Short.gainOffset*100/256;
+    pStatus->carrierOffset = pDevice->odsStatus.status.dvbt2Short.carrierFreqOffset;
+    pStatus->timingOffset = pDevice->odsStatus.status.dvbt2Short.timingOffset;
+    pStatus->signalStrength = pDevice->odsStatus.status.dvbt2Short.signalStrength/10;
+    pStatus->signalLevelPercent = pDevice->odsStatus.status.dvbt2Short.signalLevelPercent;
+    pStatus->signalQualityPercent = pDevice->odsStatus.status.dvbt2Short.signalQualityPercent;
+    pStatus->reacquireCount = pDevice->odsStatus.status.dvbt2Short.reacqCount;
+    pStatus->profile = pDevice->odsStatus.status.dvbt2Short.profile;
+
+done:
+    return rc;
 }
 
 static void NEXUS_Frontend_P_PrintOfdmStatus(NEXUS_FrontendOfdmStatus *pStatus)
@@ -1222,6 +1108,7 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetOfdmAsyncStatus(void *handle, NEXUS_
 {
     NEXUS_Error  rc = NEXUS_SUCCESS;
     NEXUS_FrontendDvbt2StatusReady t2StatusReady;
+    NEXUS_FrontendDvbt2BasicStatus basic;
     NEXUS_7364Device *pDevice = (NEXUS_7364Device *)handle;
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
@@ -1237,21 +1124,31 @@ static NEXUS_Error NEXUS_Frontend_P_7364_GetOfdmAsyncStatus(void *handle, NEXUS_
         if((t2StatusReady.type[NEXUS_FrontendDvbt2StatusType_eBasic]) && (t2StatusReady.type[NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpA]) &&
            (t2StatusReady.type[NEXUS_FrontendDvbt2StatusType_eL1Pre]) && (t2StatusReady.type[NEXUS_FrontendDvbt2StatusType_eL1PostConfigurable]))
         {
-            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus(pDevice, NEXUS_FrontendDvbt2StatusType_eBasic, &pDevice->t2PartialStatus);
+            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncBasicStatus(handle, &basic);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            NEXUS_Frontend_P_Dvbt2PartialtoLegacyStatus(&pDevice->t2PartialStatus, pStatus);
+            pStatus->fecLock = basic.fecLock;
+            pStatus->receiverLock = basic.fecLock;
+            pStatus->spectrumInverted = basic.spectrumInverted;
+            pStatus->snr = basic.snr;
+            pStatus->dvbt2Status.gainOffset = basic.gainOffset;
+            pStatus->carrierOffset = basic.carrierOffset;
+            pStatus->timingOffset = basic.timingOffset;
+            pStatus->signalStrength = basic.signalStrength;
+            pStatus->signalLevelPercent = basic.signalLevelPercent;
+            pStatus->signalQualityPercent = basic.signalQualityPercent;
+            pStatus->reacquireCount = basic.reacquireCount;
 
-            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus(pDevice, NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpA, &pDevice->t2PartialStatus);
+            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncFecStatistics(handle, NEXUS_FrontendDvbt2StatusType_eFecStatisticsPlpA, &pStatus->dvbt2Status.plpAStatistics);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            NEXUS_Frontend_P_Dvbt2PartialtoLegacyStatus(&pDevice->t2PartialStatus, pStatus);
 
-            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus(pDevice, NEXUS_FrontendDvbt2StatusType_eL1Pre, &pDevice->t2PartialStatus);
+            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PreStatus(handle, &pStatus->dvbt2Status.l1PreStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            NEXUS_Frontend_P_Dvbt2PartialtoLegacyStatus(&pDevice->t2PartialStatus, pStatus);
 
-            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus(pDevice, NEXUS_FrontendDvbt2StatusType_eL1PostConfigurable, &pDevice->t2PartialStatus);
+            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PostConfigurableStatus(handle, &pStatus->dvbt2Status.l1PostCfgStatus);
             if(rc){rc = BERR_TRACE(rc); goto done;}
-            NEXUS_Frontend_P_Dvbt2PartialtoLegacyStatus(&pDevice->t2PartialStatus, pStatus);
+
+            rc = NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PlpStatus(handle, &pStatus->dvbt2Status.l1PlpStatus);
+            if(rc){rc = BERR_TRACE(rc); goto done;}
 
             NEXUS_Frontend_P_PrintOfdmStatus(pStatus);
         }
@@ -2380,7 +2277,12 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7364_Terrestrial(const NEXUS_FrontendCha
     frontendHandle->getDvbtAsyncStatus = NEXUS_Frontend_P_7364_GetDvbtAsyncStatus;
     frontendHandle->requestDvbt2AsyncStatus = NEXUS_Frontend_P_7364_RequestDvbt2AsyncStatus;
     frontendHandle->getDvbt2AsyncStatusReady = NEXUS_Frontend_P_7364_GetDvbt2AsyncStatusReady;
-    frontendHandle->getDvbt2AsyncStatus = NEXUS_Frontend_P_7364_GetDvbt2AsyncStatus;
+    frontendHandle->getDvbt2AsyncFecStatistics = NEXUS_Frontend_P_7364_GetDvbt2AsyncFecStatistics;
+    frontendHandle->getDvbt2AsyncL1PreStatus = NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PreStatus;
+    frontendHandle->getDvbt2AsyncL1PostConfigurableStatus = NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PostConfigurableStatus;
+    frontendHandle->getDvbt2AsyncPostDynamicStatus = NEXUS_Frontend_P_7364_GetDvbt2AsyncPostDynamicStatus;
+    frontendHandle->getDvbt2AsyncL1PlpStatus = NEXUS_Frontend_P_7364_GetDvbt2AsyncL1PlpStatus;
+    frontendHandle->getDvbt2AsyncBasicStatus = NEXUS_Frontend_P_7364_GetDvbt2AsyncBasicStatus;
     frontendHandle->requestIsdbtAsyncStatus = NEXUS_Frontend_P_7364_RequestIsdbtAsyncStatus;
     frontendHandle->getIsdbtAsyncStatusReady = NEXUS_Frontend_P_7364_GetIsdbtAsyncStatusReady;
     frontendHandle->getIsdbtAsyncStatus = NEXUS_Frontend_P_7364_GetIsdbtAsyncStatus;

@@ -40,50 +40,45 @@
 
 #include "nexus_base.h"
 
-#define B_SIZEOF(type, field) sizeof(((type *)0)->field)
 #define B_CONCAT_1(x,y) x ## y
 #define B_CONCAT(x,y) B_CONCAT_1(x,y)
 
-#define B_NEXUS_COMPAT_TYPE(type) NEXUS_Compat_##type
+#include "nexus_base_compat.h"
 
 #if NEXUS_P_ABI_VERIFY_MODE_VERIFY
 #include <stdio.h>
 #include <assert.h>
-typedef uint32_t B_NEXUS_COMPAT_TYPE(ptr);
-typedef uint32_t B_NEXUS_COMPAT_TYPE(size_t);
-typedef uint32_t B_NEXUS_COMPAT_TYPE(unsigned_long);
-typedef B_NEXUS_COMPAT_TYPE(ptr) B_NEXUS_COMPAT_TYPE(NEXUS_P_MemoryUserAddr);
-typedef B_NEXUS_COMPAT_TYPE(ptr) B_NEXUS_COMPAT_TYPE(NEXUS_KeySlotTag);
-typedef struct B_NEXUS_COMPAT_TYPE(NEXUS_CallbackDesc) {
-    NEXUS_Compat_ptr callback;
-    NEXUS_Compat_ptr context;
-    int param;
-} B_NEXUS_COMPAT_TYPE(NEXUS_CallbackDesc);
 
-#define B_NEXUS_COMPAT_TYPE_HANDLE(handle) NEXUS_BaseObjectId
-#define B_NEXUS_COMPAT_TYPE_MEMORY(_ptr) B_NEXUS_COMPAT_TYPE(ptr)
-#define B_NEXUS_COMPAT_TYPE_MISC(type,alias) B_NEXUS_COMPAT_TYPE(alias)
-#define B_NEXUS_COMPAT_TYPE_POINTER(type) type
 
 #define VERIFY_COMPAT_BEGIN(x)    void B_CONCAT(NEXUS_P_ABIVERIFY_MODULE, x) (void) {
 #define VERIFY_COMPAT_END(x)      return;}
-#if 1
-#define VERIFY_COMPAT_FIELD(type, field, offset, size, sub_type) BDBG_CASSERT( (offset == offsetof(B_NEXUS_COMPAT_TYPE(type), field)) && (size == B_SIZEOF(B_NEXUS_COMPAT_TYPE(type),field)) );
-#else
-#define VERIFY_COMPAT_FIELD(type, field, offset, size, sub_type) fprintf(stderr, "%s,%s,%u,%u,%u,%u,%s\n", #type, #field, offset, size, (unsigned)offsetof(B_NEXUS_COMPAT_TYPE(type), field), (unsigned)B_SIZEOF(B_NEXUS_COMPAT_TYPE(type), field), #sub_type); assert( (offset == offsetof(B_NEXUS_COMPAT_TYPE(type), field)) && (size == B_SIZEOF(B_NEXUS_COMPAT_TYPE(type),field)) );
-#endif
+#define VERIFY_COMPAT_FIELD_RUNTIME(type, field, offset, size, sub_type) BDBG_CWARNING( (offset == offsetof(B_NEXUS_COMPAT_TYPE(type), field)) && (size == B_SIZEOF(B_NEXUS_COMPAT_TYPE(type),field)) );
+#define VERIFY_COMPAT_FIELD_BUILDTIME(type, field, offset, size, sub_type) fprintf(stderr, "%s,%s,%u,%u,%u,%u,%s\n", #type, #field, offset, size, (unsigned)offsetof(B_NEXUS_COMPAT_TYPE(type), field), (unsigned)B_SIZEOF(B_NEXUS_COMPAT_TYPE(type), field), #sub_type); assert( (offset == offsetof(B_NEXUS_COMPAT_TYPE(type), field)) && (size == B_SIZEOF(B_NEXUS_COMPAT_TYPE(type),field)) );
+#define VERIFY_COMPAT_FIELD(type, field, offset, size, sub_type) VERIFY_COMPAT_FIELD_RUNTIME(type, field, offset, size, sub_type); VERIFY_COMPAT_FIELD_BUILDTIME(type, field, offset, size, sub_type);
 #define VERIFY_BEGIN(x)
 #define VERIFY_END(x)
 #define VERIFY_FIELD(type, field, sub_type)
 #define VERIFY_STRUCT(type)
+#define VERIFY_GENERIC(type, field, sub_type)
+#define VERIFY_HANDLE(type, field, sub_type)
 #define VERIFY_PLAIN_TYPE(type, field, sub_type)
 #define VERIFY_FAKE_HANDLE(type, field, sub_type)
 #define VERIFY_POINTER(type, field, sub_type)
 #else
+#undef B_NEXUS_COMPAT_TYPE_HANDLE
 #define B_NEXUS_COMPAT_TYPE_HANDLE(handle) handle
+#undef B_NEXUS_COMPAT_TYPE_FAKE_HANDLE
+#define B_NEXUS_COMPAT_TYPE_FAKE_HANDLE(handle) handle
+#undef B_NEXUS_COMPAT_TYPE_ENUM_HANDLE
+#define B_NEXUS_COMPAT_TYPE_ENUM_HANDLE(handle) handle
+#undef B_NEXUS_COMPAT_TYPE_MEMORY
 #define B_NEXUS_COMPAT_TYPE_MEMORY(ptr) ptr
+#undef B_NEXUS_COMPAT_TYPE_MISC
 #define B_NEXUS_COMPAT_TYPE_MISC(type,alias) type
+#undef B_NEXUS_COMPAT_TYPE_POINTER
 #define B_NEXUS_COMPAT_TYPE_POINTER(type) type
+#undef B_NEXUS_COMPAT_TYPE_NULL_POINTER
+#define B_NEXUS_COMPAT_TYPE_NULL_POINTER(type) type
 #if NEXUS_P_ABI_VERIFY_MODE_PRINT
 #include <stdio.h>
 #include <assert.h>
@@ -91,6 +86,8 @@ typedef struct B_NEXUS_COMPAT_TYPE(NEXUS_CallbackDesc) {
 #define VERIFY_FIELD(type, field, sub_type) fprintf(stdout,"VERIFY_COMPAT_FIELD(%s,%s,%u,%u,%s)\n", #type, #field, (unsigned)offsetof(type, field), (unsigned)B_SIZEOF(type, field), #sub_type);
 #define VERIFY_STRUCT(type)
 #define VERIFY_PLAIN_TYPE(type, field, sub_type)
+#define VERIFY_GENERIC(type, field, sub_type)
+#define VERIFY_HANDLE(type, field, sub_type)
 #define VERIFY_FAKE_HANDLE(type, field, sub_type)
 #define VERIFY_POINTER(type, field, sub_type)
 #define VERIFY_END(x)      fprintf(stdout,"VERIFY_COMPAT_END(%s)\n", #x);return;}
@@ -100,7 +97,9 @@ typedef struct B_NEXUS_COMPAT_TYPE(NEXUS_CallbackDesc) {
 #define VERIFY_BEGIN(x)    void B_CONCAT(NEXUS_P_ABIVERIFY_MODULE, x) (void) {
 #define VERIFY_FIELD(type, field, sub_type) BDBG_CASSERT( (offsetof(type, field) == offsetof(B_NEXUS_COMPAT_TYPE(type), field)) && (B_SIZEOF(type,field) == B_SIZEOF(B_NEXUS_COMPAT_TYPE(type),field)) );
 #define VERIFY_STRUCT(type) BDBG_CASSERT(sizeof(type) == sizeof(B_NEXUS_COMPAT_TYPE(type)));
-#define VERIFY_PLAIN_TYPE(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(int));
+#define VERIFY_GENERIC(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(int));
+#define VERIFY_PLAIN(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(int));
+#define VERIFY_HANDLE(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(void *));
 #define VERIFY_FAKE_HANDLE(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(void *));
 #define VERIFY_POINTER(type, field, sub_type) BDBG_CASSERT(sizeof(sub_type)==sizeof(void *));
 #else
@@ -117,7 +116,8 @@ typedef struct B_NEXUS_COMPAT_TYPE(NEXUS_CallbackDesc) {
     unsigned size = sizeof(type), size_compat = sizeof(B_NEXUS_COMPAT_TYPE(type));\
     fprintf(stdout,"%-40s,,%8u,,%8u\n", #type, size, size_compat);\
     assert(size==size_compat);} while(0);
-#define VERIFY_PLAIN_TYPE(type, field, sub_type) do { fprintf(stdout, "%-40s,,%8u,,%8u,%20s\n", #type "." #field, (unsigned)sizeof(sub_type), (unsigned)sizeof(int), #sub_type); assert(sizeof(sub_type)==sizeof(int));} while(0);
+#define VERIFY_PLAIN(type, field, sub_type) do { fprintf(stdout, "%-40s,,%8u,,%8u,%20s\n", #type "." #field, (unsigned)sizeof(sub_type), (unsigned)sizeof(int), #sub_type); assert(sizeof(sub_type)==sizeof(int));} while(0);
+#define VERIFY_HANDLE(type, field, sub_type) do { fprintf(stdout, "%-40s,,%8u,,%8u,%20s\n", #type "." #field, (unsigned)sizeof(sub_type), (unsigned)sizeof(void *), #sub_type); assert(sizeof(sub_type)==sizeof(void *));} while(0);
 #define VERIFY_FAKE_HANDLE(type, field, sub_type) do { fprintf(stdout, "%-40s,,%8u,,%8u,%20s\n", #type "." #field, (unsigned)sizeof(sub_type), (unsigned)sizeof(void *), #sub_type); assert(sizeof(sub_type)==sizeof(void *));} while(0);
 #define VERIFY_POINTER(type, field, sub_type) do { fprintf(stdout, "%-40s,,%8u,,%8u,%20s\n", #type "." #field, (unsigned)sizeof(sub_type), (unsigned)sizeof(void *), #sub_type); assert(sizeof(sub_type)==sizeof(void *));} while(0);
 #endif /* #if 1 */

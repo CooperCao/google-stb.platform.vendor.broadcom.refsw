@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2011 Broadcom Corporation
+ * Copyright (C) 2011-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #ifndef BIPC_SERVER_H__
 #define BIPC_SERVER_H__
@@ -56,11 +46,16 @@ extern "C" {
 #endif
 
 
+typedef struct {
+    size_t offset;
+    size_t size;
+} bipc_send_data;
+
 typedef struct bipc_server_descriptor {
     bipc_interface_descriptor interface;
     unsigned constructor_entry;
     unsigned destructor_entry;
-    int (*process)(void **instance, unsigned entry, void *buf, size_t recv_size, size_t *send_offset, size_t *send_size);
+    int (*process)(unsigned abi, void **instance, unsigned entry, void *buf, size_t recv_size, bipc_send_data *send_data);
 } bipc_server_descriptor;
 
 typedef struct bipc_server_create_settings {

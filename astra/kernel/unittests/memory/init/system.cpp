@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,17 +35,10 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * system.cpp
- *
- *  Created on: Feb 18, 2015
- *      Author: gambhire
- */
-
 #include <stdint.h>
 
 #include "arm/arm.h"
+#include "arm/gic.h"
 #include "config.h"
 
 #include "lib_printf.h"
@@ -55,6 +48,10 @@
 #include "kernel.h"
 #include "tzmemory.h"
 #include "pgtable.h"
+#include "interrupt.h"
+#include "hwtimer.h"
+#include "tztask.h"
+#include "scheduler.h"
 
 #include "system.h"
 
@@ -89,6 +86,14 @@ void System::init(const void *devTree) {
 
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");
+}
+
+void System::initSecondaryCpu() {
+    Interrupt::init();
+    GIC::secondaryCpuInit();
+    TzTimers::secondaryCpuInit();
+    Scheduler::initSecondaryCpu();
+    TzTask::initSecondaryCpu();
 }
 
 IDirectory *System::root() {

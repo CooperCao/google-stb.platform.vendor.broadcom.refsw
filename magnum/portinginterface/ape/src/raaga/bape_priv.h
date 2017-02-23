@@ -293,8 +293,9 @@ typedef struct BAPE_BufferNode
 {
     BDBG_OBJECT(BAPE_BufferNode)
     BLST_S_ENTRY(BAPE_BufferNode) node;
+    BMMA_Block_Handle block;
     void *pMemory;
-    uint32_t offset;
+    BMMA_DeviceOffset offset;
     unsigned bufferSize;
     bool allocated;
     uint8_t poolIndex;
@@ -314,7 +315,7 @@ typedef struct BAPE_Device
     /* Open Parameters */
     BCHP_Handle chpHandle;
     BREG_Handle regHandle;
-    BMEM_Handle memHandle;
+    BMMA_Heap_Handle memHandle;
     BINT_Handle intHandle;
     BTMR_Handle tmrHandle;
     BDSP_Handle dspHandle;
@@ -440,8 +441,8 @@ typedef struct BAPE_Device
 #endif
 
     /* SRC Memory Heaps (DTV-Only) */
-    BMEM_Heap_Handle srcCoefHeap;
-    BMEM_Heap_Handle srcScratchHeap;
+    BMMA_Heap_Handle srcCoefHeap;
+    BMMA_Heap_Handle srcScratchHeap;
 
     /* Interrupts */
     BINT_CallbackHandle isrBfEsr1;
@@ -1542,9 +1543,9 @@ typedef struct BAPE_DecodeToMemoryNode
 {
     BLST_Q_ENTRY(BAPE_DecodeToMemoryNode) node;
     BAPE_DecoderBufferDescriptor descriptor;
-    void *pMetadataAddr;    /* un-cached address */
+    BMMA_Block_Handle metadataBlock;
+    BMMA_DeviceOffset metadataOffset;
     BDSP_OnDemand_MetaDataInfo *pMetadata; /* cached address */
-    uint32_t metadataOffset;
 } BAPE_DecodeToMemoryNode;
 #endif
 
@@ -1579,6 +1580,8 @@ typedef struct BAPE_Decoder
         BAPE_DecoderDecodeToMemorySettings settings;
         BAPE_DecoderDecodeToMemoryStatus status;
         BDSP_QueueHandle hARQ, hADQ;
+        BMMA_Block_Handle arqMemBlock, adqMemBlock;
+        BMMA_DeviceOffset arqMemOffset, adqMemOffset;
         void *pArqMem, *pAdqMem;
         BAPE_DecodeToMemoryNode *pNodes;
         void *pMetadata;
@@ -1710,9 +1713,10 @@ typedef struct BAPE_Decoder
     /* Ancillary Data Handling */
     BDSP_QueueHandle hAncDataQueue;
     BDSP_AF_P_sSINGLE_CIRC_BUFFER *pAncDataBufferDescriptor;
-    void *pAncDataDspBuffer;
+    BMMA_Block_Handle ancDataDspBlock, ancDataHostBlock;
+    BMMA_DeviceOffset ancDataDspOffset, ancDataHostOffset;
+    void *pAncDataDspBuffer, *pAncDataHostBuffer;
     size_t ancDataBufferSize;
-    void *pAncDataHostBuffer, *pAncDataHostCached;
     BAPE_P_FIFO_HEAD(AncDataFifo, uint8_t) ancDataFifo;
     bool ancDataInit;
 
@@ -1731,11 +1735,14 @@ typedef struct BAPE_Decoder
 #endif
 } BAPE_Decoder;
 
+#if BAPE_CHIP_MAX_DECODERS
 /***************************************************************************
 Summary:
 Initialize the ancillary data buffer descriptor prior to start
 ***************************************************************************/
 void BAPE_Decoder_P_InitAncillaryDataBuffer(BAPE_DecoderHandle hDecoder);
+
+#endif
 
 /***************************************************************************
 Summary:
@@ -1822,11 +1829,13 @@ typedef struct BAPE_Playback
 {
     BDBG_OBJECT(BAPE_Playback)
     BAPE_Handle hApe;
-    BMEM_Heap_Handle hHeap;
+    BMMA_Heap_Handle hHeap;
     unsigned index;
     BAPE_PathNode node;
     BAPE_PathConnection *pMaster;
     BAPE_PlaybackStartSettings startSettings;
+    BMMA_Block_Handle block[BAPE_Channel_eMax];
+    BMMA_DeviceOffset offset[BAPE_Channel_eMax];
     void *pBuffer[BAPE_Channel_eMax];
     BAPE_PlaybackSettings settings;
     unsigned bufferSize;
@@ -1848,7 +1857,7 @@ typedef struct BAPE_InputCapture
 {
     BDBG_OBJECT(BAPE_InputCapture)
     BAPE_Handle deviceHandle;
-    BMEM_Heap_Handle hHeap;
+    BMMA_Heap_Handle hHeap;
     unsigned bufferSize;
     bool useLargeRingBuffers;
     unsigned index;
@@ -1858,8 +1867,9 @@ typedef struct BAPE_InputCapture
     BAPE_InputCaptureSettings settings;
     BAPE_InputCaptureInterruptHandlers interrupts;
     unsigned numBuffers;
+    BMMA_Block_Handle bufferBlock[BAPE_Channel_eMax];
     void *pBuffers[BAPE_Channel_eMax];
-    uint32_t bufferOffset[BAPE_Channel_eMax];
+    BMMA_DeviceOffset bufferOffset[BAPE_Channel_eMax];
     BAPE_DfifoGroupHandle dfifoGroup;
     BAPE_PathConnection *pMasterConnection;         /* Master for SFIFO master/slave designation */
     BAPE_FciSplitterOutputGroupHandle fciSpOutput;
@@ -1985,8 +1995,8 @@ typedef struct BAPE_FrameItbEntries
 
 typedef struct BAPE_OutputDescriptorInfo
 {
-    uint32_t uiITBBufferShadowReadOffset; /* Points to the ITB entry that needs to be parsed next */
-    uint32_t uiCDBBufferShadowReadOffset; /* Points to the CDB location that needs to be muxed next */
+    BMMA_DeviceOffset uiITBBufferShadowReadOffset; /* Points to the ITB entry that needs to be parsed next */
+    BMMA_DeviceOffset uiCDBBufferShadowReadOffset; /* Points to the CDB location that needs to be muxed next */
 
     struct {
         BAVC_AudioBufferDescriptor *cached;
@@ -1998,8 +2008,8 @@ typedef struct BAPE_OutputDescriptorInfo
         BMMA_Block_Handle block;
         unsigned blockOffset;
     } metadata;
-    uint32_t uiDescriptorWriteOffset;
-    uint32_t uiDescriptorReadOffset;
+    BMMA_DeviceOffset uiDescriptorWriteOffset;
+    BMMA_DeviceOffset uiDescriptorReadOffset;
     unsigned numOutstandingDescriptors;
 
     /* ITB Parsing Info */
@@ -2027,16 +2037,17 @@ typedef enum BAPE_MuxOutputState
 
 typedef struct BAPE_BufferInterface
 {
-    uint32_t base;
-    uint32_t end;
-    uint32_t read;
-    uint32_t valid;
+    BMMA_DeviceOffset base;
+    BMMA_DeviceOffset end;
+    BMMA_DeviceOffset read;
+    BMMA_DeviceOffset valid;
     bool     inclusive; /* If true the end address is included */
 } BAPE_BufferInterface;
 
 typedef struct BAPE_MuxOutput
 {
     BDBG_OBJECT(BAPE_MuxOutput)
+#if BAPE_CHIP_HAS_POST_PROCESSING
     BAPE_PathNode node;
     BAPE_MuxOutputState state;
     bool sendEos;
@@ -2048,22 +2059,18 @@ typedef struct BAPE_MuxOutput
     struct {
         void *cached;
         BMMA_DeviceOffset offset;
-
         /* RDB */
-        #if BAPE_DSP_SUPPORT
         BDSP_QueueHandle queue;
         BDSP_AF_P_sDRAM_CIRCULAR_BUFFER buffer;
-        #endif
         BAPE_BufferInterface bufferInterface;
     } cdb, itb;
     BAPE_OutputDescriptorInfo descriptorInfo;
     BLST_S_ENTRY(BAPE_MuxOutput) deviceListNode;
     BLST_S_ENTRY(BAPE_MuxOutput) decoderListNode;
-    #if BAPE_DSP_SUPPORT
     BDSP_StageHandle hStage;
-    #endif
     BAPE_MuxOutputInterruptHandlers interrupts;
     BAVC_Xpt_StcSoftIncRegisters nonRealTimeIncrement;
+#endif
 } BAPE_MuxOutput;
 
 typedef struct BAPE_MaiInput
@@ -2184,7 +2191,6 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
 #define BAPE_P_GetCodecName(x) "Unknown"
 #define BAPE_P_GetDolbyMSVersion(void) BAPE_DolbyMSVersion_eNone
 #define BAPE_P_GetDolbyMS12Config(void) BAPE_DolbyMs12Config_eNone
-#define BAPE_DolbyDigitalReencode_P_GetDeviceIndex(x) 0
 #endif
 #include "bape_path_priv.h"
 #include "bape_fmm_priv.h"

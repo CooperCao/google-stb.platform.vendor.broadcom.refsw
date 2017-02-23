@@ -216,7 +216,7 @@ Recycle captured surfaces obtained from NEXUS_SimpleVideoDecoder_GetCapturedSurf
 **/
 void NEXUS_SimpleVideoDecoder_RecycleCapturedSurfaces(
     NEXUS_SimpleVideoDecoderHandle handle,
-    const NEXUS_SurfaceHandle *pSurface, /* attr{nelem=numEntries} */
+    const NEXUS_SurfaceHandle *pSurface, /* attr{nelem=numEntries;handle_verify=no} */
     unsigned numEntries
     );
 
@@ -584,6 +584,11 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetVideoInputCrcData(
 NEXUS_Error NEXUS_SimpleVideoDecoder_SetSdOverride(
     NEXUS_SimpleVideoDecoderHandle handle,
     bool enabled
+    );
+
+NEXUS_Error NEXUS_SimpleVideoDecoder_ReadMultiPassDqtData(
+    NEXUS_SimpleVideoDecoderHandle handle,
+    NEXUS_VideoDecoderMultiPassDqtData *pData
     );
 
 #ifdef __cplusplus

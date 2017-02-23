@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -130,6 +130,7 @@ typedef struct NEXUS_AudioModuleData
     BAPE_DebugHandle debugHandle;
     NEXUS_AudioModuleSettings settings;
     NEXUS_AudioModuleInternalSettings internalSettings;
+    NEXUS_AudioCapabilities capabilities;
     void *pImageContext;
     bool watchdogDeferred;
     unsigned numDsps;
@@ -378,30 +379,6 @@ NEXUS_Error NEXUS_AudioInput_P_GetOutputs(
 
 /***************************************************************************
 Summary:
-    Set connection-specific data for the binding between the specified
-    source and destination connectors.  The data will be copied and stored
-    inside the connector object.  It will be lost when the connection is
-    broken.
- ***************************************************************************/
-NEXUS_Error NEXUS_AudioInput_P_SetConnectionData(
-    NEXUS_AudioInputHandle destination,
-    NEXUS_AudioInputHandle source,
-    const void *pData,
-    size_t dataSize
-    );
-
-/***************************************************************************
-Summary:
-    Retrieve a pointer to the stored connection data between this source
-    and destination.  May be NULL if not previously set.
- ***************************************************************************/
-const void *NEXUS_AudioInput_P_GetConnectionData(
-    NEXUS_AudioInputHandle destination,
-    NEXUS_AudioInputHandle source
-    );
-
-/***************************************************************************
-Summary:
     Connect an audio output to the specified connector.
  ***************************************************************************/
 NEXUS_Error NEXUS_AudioInput_P_ConnectOutput(
@@ -453,6 +430,14 @@ Summary:
 NEXUS_Error NEXUS_AudioInput_P_OutputSettingsChanged(
     NEXUS_AudioInputHandle input,
     NEXUS_AudioOutputHandle output
+    );
+
+/***************************************************************************
+Summary:
+    Get the default unity volume
+ ***************************************************************************/
+void NEXUS_AudioInput_P_GetDefaultVolume(
+    BAPE_MixerInputVolume *pInputVolume    /* [out] */
     );
 
 /***************************************************************************
@@ -693,7 +678,6 @@ void NEXUS_AudioEqualizer_P_GetStages(
     unsigned *pNumStages
     );
 
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT
 /***************************************************************************
 Summary:
     Link audio mux output to a particular node
@@ -711,7 +695,6 @@ void NEXUS_AudioMuxOutput_P_RemoveInput(
     NEXUS_AudioMuxOutputHandle handle,
     NEXUS_AudioInputHandle input
     );
-#endif
 
 /***************************************************************************
 Summary:
@@ -817,9 +800,7 @@ bool NEXUS_I2sInput_P_IsRunning(NEXUS_I2sInputHandle handle);
 Summary:
     Is an InputCapture running?
  ***************************************************************************/
-#if NEXUS_NUM_AUDIO_INPUT_CAPTURES > 0
 bool NEXUS_AudioInputCapture_P_IsRunning(NEXUS_AudioInputCaptureHandle handle);
-#endif
 
 #if NEXUS_NUM_RF_AUDIO_DECODERS > 0
 BDBG_OBJECT_ID_DECLARE(NEXUS_RfAudioDecoder);
@@ -919,7 +900,6 @@ bool NEXUS_AnalogAudioDecoder_P_IsRunning(
     );
 #endif
 
-#if NEXUS_NUM_SPDIF_INPUTS
 NEXUS_Error NEXUS_SpdifInput_P_GetInputPortStatus(
     NEXUS_SpdifInputHandle input,
     NEXUS_AudioInputPortStatus *pStatus     /* [out] */
@@ -936,7 +916,6 @@ NEXUS_Error NEXUS_SpdifInput_P_SetStcIndex(
     NEXUS_SpdifInputHandle handle,
     unsigned stcIndex
     );
-#endif
 
 /***************************************************************************
 Summary:

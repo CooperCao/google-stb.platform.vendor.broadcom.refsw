@@ -448,9 +448,9 @@ static void NEXUS_P_Base_Stats_ApiClear(void)
 }
 
 
-const char *NEXUS_P_Base_Stats_PriorityName(NEXUS_ModulePriority priority)
+static const char *NEXUS_P_Base_Stats_PriorityName(NEXUS_ModulePriority priority)
 {
-    static const char *scheduler_names[]={
+    static const char * const scheduler_names[]={
         "Idle",
         "Low",
         "Default",

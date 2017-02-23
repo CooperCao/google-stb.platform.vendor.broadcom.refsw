@@ -59,6 +59,11 @@
 #define IKOS_INIT_CAPTURE       12
 #define IKOS_START_CAPTURE      14
 #define IKOS_STOP_CAPTURE       16
+#define IKOS_COMMAND            18
+#define IKOS_REG_READ64         20 /* register read with 64-bit data */
+#define IKOS_REG_WRITE64        22 /* register write with 64-bit data */
+#define IKOS_MEM_READ64         32 /* memory read with 40-bit addr */
+#define IKOS_MEM_WRITE64        34 /* memory write with 40-bit addr */
 
 #define SERVER_VERSION_ID       "Hydra_Software_Devel/12"
 
@@ -140,6 +145,7 @@ static unsigned  aulUserSetReg[BTST_MAX_USER_SET_REG_CNT] = {0,};
 static unsigned  aulUserSetVal[BTST_MAX_USER_SET_REG_CNT] = {0,};
 static bool abUseVal[BTST_MAX_USER_SET_REG_CNT] = {false,};
 #endif
+
 /* stub tb_r() function to return dummy register read value */
 unsigned long tb_r(unsigned long addr)
 {
@@ -183,7 +189,7 @@ unsigned long tb_r(unsigned long addr)
         unsigned long seq1;
         static unsigned long seq = 0;
         seq1 = deref32 (
-            seq, addr, g_stSysInfo.bregBaseAddr - BCHP_REGISTER_START, &regval);
+            seq, addr, (unsigned long)g_stSysInfo.bregBaseAddr - BCHP_REGISTER_START, &regval);
         if (seq1 != (seq + 1))
         {
             bComplain = true;
@@ -221,20 +227,101 @@ void tb_w(unsigned long addr, unsigned long data)
 #endif
 }
 
-void* convert_mem_offset_to_vaddr(uint32_t offset, uint32_t size)
+/* stub tb_r64() function to return dummy register read value */
+uint64_t tb_r64(unsigned long addr)
+{
+#ifdef SETTOPBOX/* to run on real 7038 set-top box */
+
+    /* regscope client somehow tries to guess chip ID twice.
+       Here is workaround. */
+    static int iChipIdRead = 2;
+
+    if(iChipIdRead)
+    {
+        if(!IS_CHIP_ID_ADDR(addr))
+        {
+            return 0;
+        } else
+        {
+            iChipIdRead--;
+        }
+    }
+    #ifdef EMULATION/* to run on faked ikos */
+    if(IS_CHIP_ID_ADDR(addr))
+        return (((BCHP_CHIP/1000)<<28) + (((BCHP_CHIP/100)%10)<<24) + (((BCHP_CHIP/10)%10)<<20) + ((BCHP_CHIP%10)<<16) +
+            ((BCHP_VER&0xF0000)>>12) + (BCHP_VER&0x000F));
+    else
+    {
+        if(bRegCustom) /* back door to control stub server behavior of register read */
+        {
+            int i;
+            for(i=0; i<BTST_MAX_USER_SET_REG_CNT; i++)
+            {
+                if(abUseVal[i] && (addr == aulUserSetReg[i]))
+                    return aulUserSetVal[i];
+            }
+        }
+        return (0);/* default to 0 */
+    }
+
+    #else
+    {
+        uint64_t regval;
+        unsigned long seq1;
+        static unsigned long seq = 0;
+        seq1 = deref64 (seq, addr, g_stSysInfo.bregBaseAddr, &regval);
+        if (seq1 != (seq + 1))
+        {
+            bComplain = true;
+        }
+        ++seq;
+        return regval;
+    }
+    #endif
+#else /* legacy hard-coded fake ikos server is unused any more. TODO: remove this */
+    /* for fake ikos erver on 'usul', always return chip id as 7038A0 */
+    if(addr == 0x10404000)
+        return 0x70380000;
+    if(addr == 0x101c1178)
+    #ifdef BCHP_REV_B0
+        return 0x500;
+    #elif defined(BCHP_REV_C0)
+        return 0x520;
+    #else /* B1 */
+        return 0x501;
+    #endif
+    return addr;
+#endif
+}
+
+/* stub tb_w64() function to perform dummy register write */
+void tb_w64(unsigned long addr, uint64_t data)
+{
+#ifdef SETTOPBOX
+#ifndef EMULATION/* to run on real set-top box */
+    *((volatile uint64_t *)((uintptr_t)g_stSysInfo.bregBaseAddr + (addr & BTST_REG_OFFSET_MASK))) = data;
+#else/* to run on faked ikos */
+    BSTD_UNUSED(addr);
+    BSTD_UNUSED(data);
+#endif
+#endif
+}
+
+
+void* convert_mem_offset_to_vaddr(uint64_t offset, uint32_t size)
 {
     void *pAddr;
     if((offset >= g_stSysInfo.bmemOffset) &&
         (offset + size < g_stSysInfo.bmemOffset + g_stSysInfo.bmemSize))
     {
-        pAddr = (void*)((uint32_t)g_stSysInfo.bmemAddress + offset - g_stSysInfo.bmemOffset);
+        pAddr = (void*)((uint8_t*)g_stSysInfo.bmemAddress + offset - g_stSysInfo.bmemOffset);
         g_bFail = false;
     }
 #ifdef MEMC_0_MEM_UBASE
     else if((offset >= g_stSysInfo.bmemOffsetU) &&
         (offset + size < g_stSysInfo.bmemOffsetU + g_stSysInfo.bmemSizeU))
     {
-        pAddr = (void*)((uint32_t)g_stSysInfo.bmemAddressU + offset - g_stSysInfo.bmemOffsetU);
+        pAddr = (void*)((uint8_t*)g_stSysInfo.bmemAddressU + offset - g_stSysInfo.bmemOffsetU);
         g_bFail = false;
     }
 #endif
@@ -242,7 +329,7 @@ void* convert_mem_offset_to_vaddr(uint32_t offset, uint32_t size)
     else if((offset >= g_stSysInfo.bmemOffset1) &&
         (offset + size < g_stSysInfo.bmemOffset1 + g_stSysInfo.bmemSize1))
     {
-        pAddr = (void*)((uint32_t)g_stSysInfo.bmemAddress1 + offset - g_stSysInfo.bmemOffset1);
+        pAddr = (void*)((uint8_t*)g_stSysInfo.bmemAddress1 + offset - g_stSysInfo.bmemOffset1);
         g_bFail = false;
     }
 #endif
@@ -250,27 +337,27 @@ void* convert_mem_offset_to_vaddr(uint32_t offset, uint32_t size)
     else if((offset >= g_stSysInfo.bmemOffset2) &&
         (offset + size < g_stSysInfo.bmemOffset2 + g_stSysInfo.bmemSize2))
     {
-        pAddr = (void*)((uint32_t)g_stSysInfo.bmemAddress2 + offset - g_stSysInfo.bmemOffset2);
+        pAddr = (void*)((uint8_t*)g_stSysInfo.bmemAddress2 + offset - g_stSysInfo.bmemOffset2);
         g_bFail = false;
     }
 #endif
     else
     {
-        printf("!!! regscope_server MemoryRead addr 0x%x size0x%x is outside mapped range:\n",
-            offset, size);
-        printf("[0x%lx, 0x%lx)",
-            g_stSysInfo.bmemOffset, g_stSysInfo.bmemOffset + g_stSysInfo.bmemSize);
+        printf("!!! regscope_server MemoryRead addr 0x%x%0x size0x%x is outside mapped range:\n",
+            (uint32_t)(offset>>32), (uint32_t)offset, size);
+        printf("["BDBG_UINT64_FMT", "BDBG_UINT64_FMT")\n",
+            BDBG_UINT64_ARG(g_stSysInfo.bmemOffset), BDBG_UINT64_ARG(g_stSysInfo.bmemOffset + g_stSysInfo.bmemSize));
 #ifdef MEMC_0_MEM_UBASE
-        printf(", [0x%lx, 0x%lx)",
-            g_stSysInfo.bmemOffsetU, g_stSysInfo.bmemOffsetU + g_stSysInfo.bmemSizeU);
+        printf(", ["BDBG_UINT64_FMT", "BDBG_UINT64_FMT")",
+            BDBG_UINT64_ARG(g_stSysInfo.bmemOffsetU), BDBG_UINT64_ARG(g_stSysInfo.bmemOffsetU + g_stSysInfo.bmemSizeU));
 #endif
 #ifdef MEMC_1_MEM_PBASE
-        printf(", [0x%lx, 0x%lx)",
-            g_stSysInfo.bmemOffset1, g_stSysInfo.bmemOffset1 + g_stSysInfo.bmemSize1);
+        printf(", ["BDBG_UINT64_FMT", "BDBG_UINT64_FMT")",
+            BDBG_UINT64_ARG(g_stSysInfo.bmemOffset1), BDBG_UINT64_ARG(g_stSysInfo.bmemOffset1 + g_stSysInfo.bmemSize1));
 #endif
 #ifdef MEMC_2_MEM_PBASE
-        printf(", [0x%lx, 0x%lx)",
-            g_stSysInfo.bmemOffset2, g_stSysInfo.bmemOffset2 + g_stSysInfo.bmemSize2);
+        printf(", ["BDBG_UINT64_FMT", "BDBG_UINT64_FMT")",
+            BDBG_UINT64_ARG(g_stSysInfo.bmemOffset2), BDBG_UINT64_ARG(g_stSysInfo.bmemOffset2 + g_stSysInfo.bmemSize2));
 #endif
         printf("!!!\n");
         g_bFail = true;
@@ -287,7 +374,7 @@ void* convert_mem_offset_to_vaddr(uint32_t offset, uint32_t size)
    output:
     *data - bytes array;
  */
-void tb_zmr8_block( u8 * data, uint32_t addr, uint32_t size, uint32_t *x )
+void tb_zmr8_block( u8 * data, uint64_t addr, uint32_t size, uint32_t *x )
 {
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
     uint32_t i;
@@ -337,7 +424,7 @@ void tb_zmr8_block( u8 * data, uint32_t addr, uint32_t size, uint32_t *x )
 }
 
 /* stub tb_zmw8_block() function to perform dummy memory write */
-void tb_zmw8_block( u8 * data, uint32_t addr, uint32_t size, uint32_t *x )
+void tb_zmw8_block( u8 * data, uint64_t addr, uint32_t size, uint32_t *x )
 {
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
     /* for regscope_server, command 'mw addr data size' is writing the same 32-bit data to size of continuous bytes
@@ -400,12 +487,12 @@ void tb_zmw8_block( u8 * data, uint32_t addr, uint32_t size, uint32_t *x )
             switch(index)
             {
             case 0: /* enable/disable */
-                abUseVal[i] = ulVal != 0; printf("ENABLE  [%d]: addr = %8x, data = %8x\n", i, addr, abUseVal[i]); break;
+                abUseVal[i] = ulVal != 0; printf("ENABLE  [%d]: addr = "BDBG_UINT64_FMT", data = %8x\n", i, BDBG_UINT64_ARG(addr), abUseVal[i]); break;
             case 1: /* reg addr */
                 aulUserSetReg[i] = ulVal;
-                printf("REGISTER[%d]: addr = %8x, data = %8x\n", i, addr, aulUserSetReg[i]); break;
+                printf("REGISTER[%d]: addr = "BDBG_UINT64_FMT", data = %8x\n", i, BDBG_UINT64_ARG(addr), aulUserSetReg[i]); break;
             case 2: /* reg value */
-                aulUserSetVal[i] = ulVal; printf("VALUE   [%d]: addr = %8x, data = %8x\n", i, addr, aulUserSetVal[i]); break;
+                aulUserSetVal[i] = ulVal; printf("VALUE   [%d]: addr = "BDBG_UINT64_FMT", data = %8x\n", i, BDBG_UINT64_ARG(addr), aulUserSetVal[i]); break;
             case 3:
             default: printf(">>> error!\n"); break;
             }
@@ -663,7 +750,7 @@ int sim( )
 
     for( ;; )
     {
-        unsigned char buffer[ 9 ];
+        unsigned char buffer[ 13 ];
         uint32_t addr;
         char acPath[241];
         int size;
@@ -726,6 +813,9 @@ int sim( )
                                 "socket %d\n", inet_ntoa(remoteaddr.sin_addr), newfd);
                     }
                 } else {
+                    int count = 0;
+                    bool is64bit = false;
+                    uint64_t memAddr;
                     /* handle data from a client*/
                     if( (nbytes = my_recv( i, buffer, 1, 0 )) < 1 )
                     {
@@ -751,6 +841,8 @@ int sim( )
                         stop_client = 1;
                         break;
                     case IKOS_REG_READ:
+                    case IKOS_REG_READ64:
+                        is64bit = (IKOS_REG_READ64==buffer[0]);
                         timeout_ns( 10000 );
                         if( my_recv( i, &buffer[ 1 ], 4, 0 ) < 4 )
                         {
@@ -773,35 +865,52 @@ int sim( )
                         if( IS_VALID_ADDR( addr ) )
                         {
                             data[0] = tb_r(addr);
+                            if(is64bit) {
+                                data[1] = tb_r(addr+4); /* hi word */
+                            }
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
                             if(bDump)
 #endif
-                            printf( "IKOS_REG_READ data %08X\n", data[0] );
+                            printf( "IKOS_REG_READ data 0x%x%08X\n", (is64bit)?data[1]:0, data[0] );
                             fflush( stdout );
                         } else
                         {
                             pout( "IKOS_REG_READ addr out of range!" );
                         }
 
-                        buffer[ 0 ] |= IKOS_ACK;
-                        buffer[ 1 ] = (unsigned char) (data[0] >> 24);
-                        buffer[ 2 ] = (unsigned char) (data[0] >> 16);
-                        buffer[ 3 ] = (unsigned char) (data[0] >>  8);
-                        buffer[ 4 ] = (unsigned char) (data[0] >>  0);
+                        buffer[ count++ ] |= IKOS_ACK;
+                        if(is64bit) {
+                            buffer[ count++ ] = (unsigned char) (data[1] >> 24);
+                            buffer[ count++ ] = (unsigned char) (data[1] >> 16);
+                            buffer[ count++ ] = (unsigned char) (data[1] >>  8);
+                            buffer[ count++ ] = (unsigned char) (data[1] >>  0);
+                            buffer[ count++ ] = (unsigned char) (data[0] >> 24);
+                            buffer[ count++ ] = (unsigned char) (data[0] >> 16);
+                            buffer[ count++ ] = (unsigned char) (data[0] >>  8);
+                            buffer[ count++ ] = (unsigned char) (data[0] >>  0);
+                        } else {
+                            buffer[ count++ ] = (unsigned char) (data[0] >> 24);
+                            buffer[ count++ ] = (unsigned char) (data[0] >> 16);
+                            buffer[ count++ ] = (unsigned char) (data[0] >>  8);
+                            buffer[ count++ ] = (unsigned char) (data[0] >>  0);
+                        }
                         if (bComplain)
                         {
                             fprintf (stderr,
                                 "WARNING: caught signal\n");
                             bComplain = false;
                         }
-                        if( my_send( i, buffer, 5, 0 ) < 5 )
+                        if( my_send( i, buffer, count, 0 ) < count )
                         {
                             pout( "IKOS_REG_READ send()" );
                             stop_client = 1;
                         }
                         break;
                     case IKOS_REG_WRITE:
-                        if( my_recv( i, &buffer[ 1 ], 8, 0 ) < 8 )
+                    case IKOS_REG_WRITE64:
+                        is64bit = (IKOS_REG_WRITE64==buffer[0]);
+                        count = is64bit? 12:8;
+                        if( my_recv( i, &buffer[ 1 ], count, 0 ) < count )
                         {
                             pout( "IKOS_REG_WRITE recv()" );
                             stop_client = 1;
@@ -812,11 +921,24 @@ int sim( )
                             ((unsigned long) buffer[ 2 ] << 16) |
                             ((unsigned long) buffer[ 3 ] <<  8) |
                             ((unsigned long) buffer[ 4 ] <<  0);
-                        data[0] =
-                            ((unsigned long) buffer[ 5 ] << 24) |
-                            ((unsigned long) buffer[ 6 ] << 16) |
-                            ((unsigned long) buffer[ 7 ] <<  8) |
-                            ((unsigned long) buffer[ 8 ] <<  0);
+                        if(is64bit) {
+                            data[1] =
+                                ((unsigned long) buffer[ 5 ] << 24) |
+                                ((unsigned long) buffer[ 6 ] << 16) |
+                                ((unsigned long) buffer[ 7 ] <<  8) |
+                                ((unsigned long) buffer[ 8 ] <<  0);
+                            data[0] =
+                                ((unsigned long) buffer[  9 ] << 24) |
+                                ((unsigned long) buffer[ 10 ] << 16) |
+                                ((unsigned long) buffer[ 11 ] <<  8) |
+                                ((unsigned long) buffer[ 12 ] <<  0);
+                        } else {
+                            data[0] =
+                                ((unsigned long) buffer[ 5 ] << 24) |
+                                ((unsigned long) buffer[ 6 ] << 16) |
+                                ((unsigned long) buffer[ 7 ] <<  8) |
+                                ((unsigned long) buffer[ 8 ] <<  0);
+                        }
 
                         /* write register here */
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
@@ -827,10 +949,12 @@ int sim( )
                         if( IS_VALID_ADDR( addr ) )
                         {
                             tb_w(addr,data[0]);
+                            if(is64bit)
+                                tb_w(addr+4, data[1]);/* hi word */
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
                             if(bDump)
 #endif
-                                printf( "IKOS_REG_WRITE data %08X\n", data[0] );
+                                printf( "IKOS_REG_WRITE data 0x%x%08X\n", (is64bit)?data[1]:0, data[0] );
                             fflush( stdout );
                         } else
                         {
@@ -845,30 +969,48 @@ int sim( )
                         }
                         break;
                     case IKOS_MEM_READ:
-                        if( my_recv( i, &buffer[ 1 ], 8, 0 ) < 8 )
+                    case IKOS_MEM_READ64:
+                        is64bit = (IKOS_MEM_READ64==buffer[0]);
+                        count = is64bit? 12:8;
+                        if( my_recv( i, &buffer[ 1 ], count, 0 ) < count )
                         {
                             pout( "IKOS_MEM_READ recv()" );
                             stop_client = 1;
                             break;
                         }
-                        addr =
-                            ((unsigned long) buffer[ 1 ] << 24) |
-                            ((unsigned long) buffer[ 2 ] << 16) |
-                            ((unsigned long) buffer[ 3 ] <<  8) |
-                            ((unsigned long) buffer[ 4 ] <<  0);
-                        size =
-                            ((unsigned long) buffer[ 5 ] << 24) |
-                            ((unsigned long) buffer[ 6 ] << 16) |
-                            ((unsigned long) buffer[ 7 ] <<  8) |
-                            ((unsigned long) buffer[ 8 ] <<  0);
+                        if(is64bit) {
+                            memAddr =
+                                ((uint64_t) buffer[ 1 ] << 32) |
+                                ((uint64_t) buffer[ 2 ] << 24) |
+                                ((uint64_t) buffer[ 3 ] << 16) |
+                                ((uint64_t) buffer[ 4 ] <<  8) |
+                                ((uint64_t) buffer[ 5 ] <<  0);
+                            size =
+                                ((unsigned long) buffer[ 6 ] << 24) |
+                                ((unsigned long) buffer[ 7 ] << 16) |
+                                ((unsigned long) buffer[ 8 ] <<  8) |
+                                ((unsigned long) buffer[ 9 ] <<  0);
+                        } else {
+                            memAddr =
+                                ((uint64_t) buffer[ 1 ] << 24) |
+                                ((uint64_t) buffer[ 2 ] << 16) |
+                                ((uint64_t) buffer[ 3 ] <<  8) |
+                                ((uint64_t) buffer[ 4 ] <<  0);
+                            size =
+                                ((unsigned long) buffer[ 5 ] << 24) |
+                                ((unsigned long) buffer[ 6 ] << 16) |
+                                ((unsigned long) buffer[ 7 ] <<  8) |
+                                ((unsigned long) buffer[ 8 ] <<  0);
+                        }
 
                         /* read memory here */
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
                         if(bDump)
 #endif
-                            printf( "IKOS_MEM_READ: addr = 0x%x, size = 0x%x\n", addr, size );
+                            printf( "IKOS_MEM_READ: addr = 0x%x%0x, size = 0x%x\n", (uint32_t)(memAddr>>32),
+                                (uint32_t)memAddr, size );
                         fflush( stdout );
-                        tb_zmr8_block( (u8 *) data, addr, size, NULL );
+                        tb_zmr8_block( (u8 *) data, memAddr, size, NULL );
                         if(!g_bFail)
                         {
                             buffer[ 0 ] |= IKOS_ACK;
@@ -879,7 +1021,7 @@ int sim( )
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
                             if(bDump)
 #endif
-                            printf( "IKOS_MEM_READ: addr = 0x%x, size = 0x%x failed!\n", addr, size );
+                            printf( "IKOS_MEM_READ failed!\n" );
                             g_bFail = false;
                         }
 
@@ -897,22 +1039,39 @@ int sim( )
                         }
                         break;
                     case IKOS_MEM_WRITE:
-                        if( my_recv( i, &buffer[ 1 ], 8, 0 ) < 8 )
+                    case IKOS_MEM_WRITE64:
+                        is64bit = (IKOS_MEM_WRITE64==buffer[0]);
+                        count = is64bit? 12:8;
+                        if( my_recv( i, &buffer[ 1 ], count, 0 ) < count )
                         {
                             pout( "IKOS_MEM_WRITE recv()" );
                             stop_client = 1;
                             break;
                         }
-                        addr =
-                            ((unsigned long) buffer[ 1 ] << 24) |
-                            ((unsigned long) buffer[ 2 ] << 16) |
-                            ((unsigned long) buffer[ 3 ] <<  8) |
-                            ((unsigned long) buffer[ 4 ] <<  0);
-                        size =
-                            ((unsigned long) buffer[ 5 ] << 24) |
-                            ((unsigned long) buffer[ 6 ] << 16) |
-                            ((unsigned long) buffer[ 7 ] <<  8) |
-                            ((unsigned long) buffer[ 8 ] <<  0);
+                        if(is64bit) {
+                            memAddr =
+                                ((uint64_t) buffer[ 1 ] << 32) |
+                                ((uint64_t) buffer[ 2 ] << 24) |
+                                ((uint64_t) buffer[ 3 ] << 16) |
+                                ((uint64_t) buffer[ 4 ] <<  8) |
+                                ((uint64_t) buffer[ 5 ] <<  0);
+                            size =
+                                ((unsigned long) buffer[ 6 ] << 24) |
+                                ((unsigned long) buffer[ 7 ] << 16) |
+                                ((unsigned long) buffer[ 8 ] <<  8) |
+                                ((unsigned long) buffer[ 9 ] <<  0);
+                        } else {
+                            memAddr =
+                                ((unsigned long) buffer[ 1 ] << 24) |
+                                ((unsigned long) buffer[ 2 ] << 16) |
+                                ((unsigned long) buffer[ 3 ] <<  8) |
+                                ((unsigned long) buffer[ 4 ] <<  0);
+                            size =
+                                ((unsigned long) buffer[ 5 ] << 24) |
+                                ((unsigned long) buffer[ 6 ] << 16) |
+                                ((unsigned long) buffer[ 7 ] <<  8) |
+                                ((unsigned long) buffer[ 8 ] <<  0);
+                        }
 
                         if( my_recv( i, data, size, 0 ) < size )
                         {
@@ -924,11 +1083,11 @@ int sim( )
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
                         if(bDump)
 #endif
-                            printf( "IKOS_MEM_WRITE: addr = 0x%x, size = 0x%x, data = 0x%x\n", addr, size, *data );
+                            printf( "IKOS_MEM_WRITE: addr = "BDBG_UINT64_FMT", size = 0x%x, data = 0x%x\n", BDBG_UINT64_ARG(memAddr), size, *data );
                         /* write memory here */
                         /*printf( "before tb_zmw8_block\n" );*/
                         fflush( stdout );
-                        tb_zmw8_block( (u8 *) data, addr, size, NULL );
+                        tb_zmw8_block( (u8 *) data, memAddr, size, NULL );
 
                         if(!g_bFail)
                         {
@@ -940,7 +1099,7 @@ int sim( )
 #ifdef SETTOPBOX/* to run on real 7038 set-top box */
                             if(bDump)
 #endif
-                            printf( "IKOS_MEM_READ: addr = 0x%x, size = 0x%x failed!\n", addr, size );
+                            printf( "IKOS_MEM_WRITE: failed!\n" );
                             g_bFail = false;
                         }
                         if( my_send( i, buffer, 1, 0 ) < 1 )

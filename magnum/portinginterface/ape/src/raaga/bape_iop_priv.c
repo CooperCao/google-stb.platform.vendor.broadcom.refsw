@@ -52,6 +52,22 @@
 #include "bchp_aud_fmm_iop_dummysink_0.h"
 #endif
 
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+    #define BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
+#else
+    #define BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
+#endif
+#endif
+
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+    #define BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
+#else
+    #define BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
+#endif
+#endif
+
 BDBG_MODULE(bape_iop_priv);
 BDBG_FILE_MODULE(bape_fci);
 
@@ -974,39 +990,40 @@ BERR_Code BAPE_LoopbackGroup_P_SetSettings_isr(
             }
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0
         case BAPE_MclkSource_eNco0:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen0); 
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(0));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen1
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen1 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_1
         case BAPE_MclkSource_eNco1:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen1); 
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(1));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen2
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen2 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_2
         case BAPE_MclkSource_eNco2:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen2);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(2));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen3
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen3 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_3
         case BAPE_MclkSource_eNco3:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen3);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(3));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen4
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen4 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_4
         case BAPE_MclkSource_eNco4:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen4);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(4));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen5
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen5 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_5
         case BAPE_MclkSource_eNco5:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen5);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(5));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen6
+#if defined BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen6 || BCHP_AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i_PLLCLKSEL_NCO_6
         case BAPE_MclkSource_eNco6:
-            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen6);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_LOOPBACK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_LB_MCLKCFG_NCO_CONSTRUCT_PARAM(6));
             break;
 #endif
         default:
@@ -1450,39 +1467,39 @@ BERR_Code BAPE_DummysinkGroup_P_SetSettings_isr(
             }
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen0 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_0
         case BAPE_MclkSource_eNco0:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen0);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(0));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen1
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen1 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_1
         case BAPE_MclkSource_eNco1:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen1);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(1));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen2
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen2 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_2
         case BAPE_MclkSource_eNco2:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen2);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(2));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen3
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen3 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_3
         case BAPE_MclkSource_eNco3:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen3);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(3));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen4
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen4 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_4
         case BAPE_MclkSource_eNco4:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen4);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(4));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen5
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen5 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_5
         case BAPE_MclkSource_eNco5:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen5);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(5));
             break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen6
+#if defined BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_Mclk_gen6 || BCHP_AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i_PLLCLKSEL_NCO_6
         case BAPE_MclkSource_eNco6:
-            BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, Mclk_gen6);
+            BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_DUMMYSINK_0_MCLK_CFG_i, PLLCLKSEL, BAPE_DS_MCLKCFG_NCO_CONSTRUCT_PARAM(6));
             break;
 #endif
         default:

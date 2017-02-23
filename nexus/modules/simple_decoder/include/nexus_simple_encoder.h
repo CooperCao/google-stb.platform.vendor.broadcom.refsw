@@ -42,7 +42,7 @@
 #include "nexus_simple_video_decoder.h"
 #include "nexus_simple_audio_decoder.h"
 #include "nexus_recpump.h"
-#ifdef NEXUS_HAS_STREAM_MUX
+#ifdef NEXUS_HAS_VIDEO_ENCODER
 #include "nexus_video_encoder.h"
 #include "nexus_video_encoder_output.h"
 #else
@@ -119,6 +119,9 @@ typedef struct NEXUS_SimpleEncoderStartSettingsOutput
         unsigned pmtPid;            /* if zero, no PSI */
         unsigned interval;          /* internal for psi insertion, in millseconds */
     } transport;
+    struct {
+        NEXUS_KeySlotHandle keyslot;
+    } passthrough[NEXUS_SIMPLE_ENCODER_NUM_PASSTHROUGH_PIDS];
 } NEXUS_SimpleEncoderStartSettingsOutput;
 
 /**
@@ -134,6 +137,8 @@ typedef struct NEXUS_SimpleEncoderStartSettings
     struct {
         NEXUS_DisplayHandle display; /* client-opened display */
         unsigned nonRealTimeRate; /* Rate in units of NEXUS_NORMAL_PLAY_SPEED for non realtime muxing */
+        bool useInitialPts;    /* (only used if nonRealTime=true) Enables seeding of initial PTS */
+        uint32_t initialPts;   /* (only used if nonRealTime=true) Indicates the desired PTS for the first *video* frame. All other A/V timing parameters are adjusted accordingly (32-bits of 45Khz clock ticks) */
     } transcode;
 
     NEXUS_RecpumpHandle recpump; /* Recpump where encoded stream and index will be captured.
@@ -200,6 +205,7 @@ typedef struct NEXUS_SimpleEncoderSettings
     NEXUS_VideoEncoderSettings videoEncoder;
     NEXUS_AudioEncoderCodecSettings audioEncoder; /* must set audioEncoder.codec to match NEXUS_SimpleEncoderStartSettings.audio.codec. */
     NEXUS_CallbackDesc resourceChanged;
+    NEXUS_CallbackDesc finished;
     NEXUS_SimpleEncoderStopMode stopMode;
     struct {
         struct {
@@ -335,6 +341,12 @@ typedef struct NEXUS_SimpleEncoderStatus
     } videoEncoder;
     NEXUS_SimpleEncoderVideoStatus video;
     NEXUS_SimpleEncoderAudioStatus audio;
+    struct {
+        struct {
+            uint32_t video[1];
+            uint32_t audio[1];
+        } currentTimestamp; /* most recent timestamp (DTS) completed (in 45 Khz) */
+    } streamMux;
 } NEXUS_SimpleEncoderStatus;
 
 /**

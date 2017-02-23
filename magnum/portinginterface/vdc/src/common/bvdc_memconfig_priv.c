@@ -281,21 +281,18 @@ BERR_Code BVDC_P_MemConfig_GetDefaultDisplaySettings
 
     bStg = abStg[ulDispIndex];
 
-#if (BVDC_P_SUPPORT_DTG_RMD) && (!BVDC_P_SUPPORT_DSCL)
-    /* BVDC_P_SUPPORT_DTG_RMD only means vec supports 4kx2k,
-     * on 7425Bx, BVN do not support 4kx2k, it uses BVDC_P_SUPPORT_DSCL
-     * to scale it up on vec.
-     * BVN supports 4kx2k means:
-     *      BVDC_P_SUPPORT_DTG_RMD & !BVDC_P_SUPPORT_DSCL
-     */
-    pDisplay->eMaxDisplayFormat =
-        (ulDispIndex == 0) ? BFMT_VideoFmt_e4096x2160p_24Hz :
-        (bStg ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC);
-#else
-    pDisplay->eMaxDisplayFormat =
-        (ulDispIndex == 0) ? BFMT_VideoFmt_e3D_1080p_30Hz :
-        (bStg ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC);
-#endif
+    if(pSystemConfigInfo->b4kSupported)
+    {
+        pDisplay->eMaxDisplayFormat =
+            (ulDispIndex == 0) ? BFMT_VideoFmt_e4096x2160p_24Hz :
+            (bStg ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC);
+    }
+    else
+    {
+        pDisplay->eMaxDisplayFormat =
+            (ulDispIndex == 0) ? BFMT_VideoFmt_e3D_1080p_30Hz :
+            (bStg ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC);
+    }
 
     return BERR_SUCCESS;
 }
@@ -326,12 +323,15 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
 
     bStg = abStg[ulDispIndex];
 
-#if (BVDC_P_SUPPORT_DTG_RMD) && (!BVDC_P_SUPPORT_DSCL)
-    pWindow->eMaxSourceFormat = BFMT_VideoFmt_e4096x2160p_24Hz;
-#else
-    pWindow->eMaxSourceFormat =
-        (ulDispIndex) ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_e3D_1080p_30Hz;
-#endif
+    if(pSystemConfigInfo->b4kSupported)
+    {
+        pWindow->eMaxSourceFormat = BFMT_VideoFmt_e4096x2160p_24Hz;
+    }
+    else
+    {
+        pWindow->eMaxSourceFormat =
+            (ulDispIndex) ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_e3D_1080p_30Hz;
+    }
 
 #if (BVDC_P_SUPPORT_HDDVI || BVDC_P_NUM_656IN_SUPPORT)
     pWindow->bNonMfdSource = bStg ? false : true;
@@ -424,6 +424,8 @@ BERR_Code BVDC_P_MemConfigInfo_Init
     pSystemConfigInfo->ulNumMadUsed  = 0;
     pSystemConfigInfo->ulNumMadrUsed = 0;
 
+    pSystemConfigInfo->b4kSupported =
+        BVDC_P_IsVidfmtSupported(BFMT_VideoFmt_e4096x2160p_24Hz);
     pSystemConfigInfo->bEnableShare4Lipsync = false;
     return BERR_SUCCESS;
 }
@@ -738,16 +740,6 @@ static BERR_Code BVDC_P_MemConfig_GetWindowCapBufCnt
 
     ulIndex = pHeapSizeInfo->aulIndex[eBufHeapId];
     pWinConfigInfo->aulCapBufCnt[ulIndex] = ulCapBufCnt;
-    BDBG_MSG(("Disp[%d]Win[%d]     CapBuf: %3d %6d %6d %6d %6d %5d %5d %5d",
-        ulDispIndex, ulWinIndex,
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]],
-        pWinConfigInfo->aulCapBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]]));
 
     return BERR_SUCCESS;
 
@@ -773,10 +765,7 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
     BVDC_P_BufferHeap_SizeInfo   *pHeapSizeInfo;
     BVDC_P_Compression_Settings   stCompression;
 
-
-#if (!BDBG_DEBUG_BUILD)
     BSTD_UNUSED(ulDispIndex);
-#endif
 
     BDBG_ASSERT(pSystemConfigInfo);
     BDBG_ASSERT(pWinConfigInfo);
@@ -852,18 +841,6 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
     BVDC_P_BufferHeap_GetHeapIdBySize(pHeapSizeInfo, ulBufSize, &eBufHeapId);
     ulIndex = pHeapSizeInfo->aulIndex[eBufHeapId];
     aulMadBufCnt[ulIndex] += ulQmBufCnt;
-
-    BDBG_MSG(("Disp[%d]Win[%d]    %s: %3d %6d %6d %6d %6d %5d %5d %5d",
-        ulDispIndex, ulWinIndex,
-        pWinConfigInfo->bMadr ? "MadrBuf" : " MadBuf",
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e4HD_Pip]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_e2HD_Pip]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eHD_Pip]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD]],
-        aulMadBufCnt[pHeapSizeInfo->aulIndex[BVDC_P_BufferHeapId_eSD_Pip]]));
 
     for(ulIndex = 0; ulIndex < BVDC_P_BufferHeapId_eCount; ulIndex++)
     {

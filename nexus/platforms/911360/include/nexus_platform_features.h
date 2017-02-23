@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,6 @@
 /* Video Features,do not change these numbers
    this covers the chip max capabilities  */
 #define NEXUS_NUM_VIDEO_DECODERS  0         /* 2 each for HEVD and each HVD */
-#define NEXUS_NUM_XVD_DEVICES   0
 #define NEXUS_NUM_MOSAIC_DECODES 0
 #define NEXUS_NUM_STILL_DECODES 0
 
@@ -60,7 +59,14 @@
 
 #define NEXUS_NUM_AUDIO_PLAYBACKS 0
 #define NEXUS_NUM_AUDIO_DSP 0
+#undef NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
 #define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 0
+#define NEXUS_HAS_AUDIO_MUX_OUTPUT 0
+#define NEXUS_NUM_AUDIO_DACS 0
+#define NEXUS_NUM_I2S_OUTPUTS 0
+#define NEXUS_NUM_SPDIF_OUTPUTS 0
+#define NEXUS_NUM_AUDIO_CAPTURES 0
+#define NEXUS_NUM_AUDIO_CRCS 0
 /* Avoid audio logging (Not supported for this platform) */
 #define NEXUS_AUDIO_MODULE_FAMILY BCHP_CHIP
 
@@ -99,9 +105,6 @@ upon the chip usage. See below */
 
 /* Memory features */
 #define NEXUS_NUM_MEMC 1
-
-/* default heap indices, refer to memory map document  */
-#define NEXUS_MEMC0_MAIN_HEAP           0
 
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
 

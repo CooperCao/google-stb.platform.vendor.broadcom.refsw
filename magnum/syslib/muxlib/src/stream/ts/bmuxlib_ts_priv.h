@@ -46,6 +46,7 @@
 #include "bmuxlib_input.h"
 #include "bkni_multi.h"
 #include "bmuxlib_ts_mcpb.h"
+#include "bmma_range.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -542,62 +543,73 @@ typedef struct BMUXlib_TS_P_Context
       BMUXlib_TS_CreateSettings stCreateSettings;
       BMUXlib_TS_P_MemoryBuffers stMemoryBuffers;
 
+      BMMA_RangeAllocator_Block_Handle hTransportDescriptorBlock;
       BMUXlib_TS_TransportDescriptor *astTransportDescriptor;
+      BMMA_RangeAllocator_Block_Handle hTransportDescriptorTempBlock;
       BMUXlib_TS_TransportDescriptor *astTransportDescriptorTemp;
+      BMMA_RangeAllocator_Block_Handle hTransportDescriptorMetaDataTempBlock;
       BMUXlib_TS_P_TransportDescriptorMetaData *astTransportDescriptorMetaDataTemp;
       BMUXlib_List_Handle hTransportDescriptorFreeList; /* Stack containing free transport descriptors */
       BMUXlib_List_Handle hTransportDescriptorPendingList[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES]; /* FIFO containing the pending transport descriptors
                                                                                                      * for each transport interface.  Entries move between
                                                                                                      * the pending and free lists */
 
+      BMMA_RangeAllocator_Block_Handle hTransportDescriptorMetaDataBlock;
       BMUXlib_TS_P_TransportDescriptorMetaData *astTransportDescriptorMetaData;
       BMUXlib_List_Handle hTransportDescriptorMetaDataFreeList; /* Stack containing free transport metadata descriptors */
       BMUXlib_List_Handle hTransportDescriptorMetaDataPendingList[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES]; /* FIFO containing the pending transport metadata descriptors
                                                                                                              * for each transport interface.  Entries move between
                                                                                                              * the pending and free lists */
       unsigned uiPendingCompleted[BMUXLIB_TS_MAX_TRANSPORT_INSTANCES];
+      BMMA_RangeAllocator_Block_Handle hPESHeaderBlock;
       BMUXlib_TS_P_PESHeader *astPESHeader;
       BMUXlib_List_Handle hPESHeaderFreeList; /* Stack containing free PES Header buffers */
 
+      BMMA_RangeAllocator_Block_Handle hTSPacketBlock;
       BMUXlib_TS_P_TSPacket *astTSPacket;
       BMUXlib_List_Handle hTSPacketFreeList; /* Stack containing TS Packet buffers */
 
+      BMMA_RangeAllocator_Block_Handle hBPPDataBlock;
       BMUXlib_TS_P_BPPData *astBPPData; /* Used for BPP packets.  Can be reused within a playback. */
       BMUXlib_List_Handle hBPPFreeList; /* Stack containing BPP buffers */
 
+      BMMA_RangeAllocator_Block_Handle hMTUBPPDataBlock;
       BMUXlib_TS_P_MTUBPPData *astMTUBPPData; /* Used for MTU BPP packets.  Cannot be reused within a playback. */
       BMUXlib_List_Handle hMTUBPPFreeList; /* Stack containing MTU BPP buffers */
 
       BMUXlib_List_Handle hSystemDataPendingList;
+      BMMA_RangeAllocator_Block_Handle hSystemDataPendingListBlock;
       BMUXlib_TS_SystemData *astSystemDataPendingList;
 
       BMUXlib_TS_SystemData *astSystemDataPendingListPreQ;
 
       BMUXlib_List_Handle hUserdataPendingList[BMUXLIB_TS_MAX_USERDATA_PIDS]; /* data pending for sending to transport for each userdata input */
       BMUXlib_List_Handle hUserdataFreeList;
+      BMMA_RangeAllocator_Block_Handle hUserdataPendingBlock;
       BMUXlib_TS_P_UserdataPending *astUserdataPending;
 
       /* the memory used to store updated PTS values for userdata PES packets */
       BMUXlib_List_Handle hUserdataPTSFreeList;
+      BMMA_RangeAllocator_Block_Handle hUserdataPTSBlock;
       BMUXlib_TS_P_UserdataPTSEntry *astUserdataPTS;
 
       /* memory used for "unwrapping" TS packets for sending to transport */
+      BMMA_RangeAllocator_Block_Handle hUserdataUnwrapBlock;
       BMUXlib_TS_P_TSPacket *astUserdataUnwrap;
 
       /* NOTE: The following cannot use a "List" object since these do not support
          removal from arbitrary nodes */
       BMUXlib_TS_P_UserdataReleaseQEntry *pUserdataReleaseQFreeList;
+      BMMA_RangeAllocator_Block_Handle hUserdataReleaseQFreeListBaseBlock;
       BMUXlib_TS_P_UserdataReleaseQEntry *pUserdataReleaseQFreeListBase;
 
       struct
       {
-         BMEM_ModuleHandle hMemModule;
-         size_t uiSize;
          BMMA_Block_Handle hBlock;
          void *pBuffer;
-         BMMA_DeviceOffset uiBufferOffset;
 
-         BMEM_Handle hMem;
+         BMMA_RangeAllocator_CreateSettings stMmaRangeAllocatorCreateSettings;
+         BMMA_RangeAllocator_Handle hMmaRangeAllocator;
       } stSubHeap[BMUXlib_TS_P_MemoryType_eMax];
 
       /* Status */

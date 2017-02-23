@@ -550,6 +550,10 @@ BERR_Code BHSM_GenerateRouteKey(
         pGrk->keyTweak = BHSM_KeyTweak_eDSK;
     }
     #endif
+
+   #if ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2) )
+    BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCwProtectionKeyIvSource, pGrk->protectionKeyIvSource );
+   #endif
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyTweak, pGrk->keyTweak );
 
    #elif ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(1,0) )

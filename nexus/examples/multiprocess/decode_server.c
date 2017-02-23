@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,13 +38,7 @@
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if !NEXUS_HAS_VIDEO_DECODER
-int main(void)
-{
-    printf("This application is not supported on this platform (needs video decoder)!\n");
-    return 0;
-}
-#else
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_AUDIO
 #include "nexus_types.h"
 #include "nexus_platform_server.h"
 #include "nexus_display.h"
@@ -308,4 +302,10 @@ If you enable this, HDMI/SPDIF will get compressed for ac3, mixed pcm for all ot
     NEXUS_Platform_Uninit();
     return 0;
 }
-#endif /* !NEXUS_HAS_VIDEO_DECODER  */
+#else
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

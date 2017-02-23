@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -143,6 +143,7 @@ BIP_BASE_LIB_SOURCES +=       $(BIP_LIB_TOP)/src/bip_http_response.c
 BIP_BASE_LIB_SOURCES +=       $(BIP_LIB_TOP)/src/bip_atom.c
 BIP_BASE_LIB_SOURCES +=       $(BIP_LIB_TOP)/src/bip_probe.c
 BIP_BASE_LIB_SOURCES +=       $(BIP_LIB_TOP)/src/bip_ssl.c
+BIP_BASE_LIB_SOURCES +=       $(BSEAV)/lib/tspsi2/tspsimgr2.c
 BIP_BASE_LIB_SOURCES +=       $(BSEAV)/lib/mlibs/mstring.cpp
 BIP_BASE_LIB_SOURCES +=       $(BSEAV)/lib/mlibs/mxmlparser.cpp
 BIP_BASE_LIB_SOURCES +=       $(BSEAV)/lib/mlibs/mxmlelement.cpp
@@ -303,10 +304,10 @@ ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 endif
 
 # Since "server" uses "client", it needs all of client's sublibs.
-  BIP_BASE_LIB_SUBLIBS := b_os  livemedia             tshdrbuilder  psip  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
-BIP_CLIENT_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  psip  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
-BIP_SERVER_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  psip  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
-   BIP_ALL_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  psip  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
+  BIP_BASE_LIB_SUBLIBS := b_os  livemedia             tshdrbuilder  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
+BIP_CLIENT_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
+BIP_SERVER_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
+   BIP_ALL_LIB_SUBLIBS := b_os  livemedia  blive_ext  tshdrbuilder  $(BIP_OPENSSL_LIB_MAYBE)  playback_ip dtcp_ip
 
 # Define the nicknames of the libraries that aren't cleaned by the normal
 # "clean" target... but require a "make distclean" to clean.
@@ -387,11 +388,11 @@ $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,playback_ip, $(filter-out -lnexu
 # Library: livemedia
 ifneq ($(LIVEMEDIA_SUPPORT),n)
     # Library: blive_ext
-    include ${NEXUS_TOP}/../BSEAV/lib/livemedia/blive_ext/include/blive_ext.mak
+    include ${NEXUS_TOP}/../BSEAV/opensource/livemedia/blive_ext/include/blive_ext.mak
     BIP_COMMON_PRIVATE_CFLAGS += ${BLIVE_EXT_CFLAGS}
     $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,blive_ext, ${BLIVE_EXT_LDFLAGS})
 
-    include ${NEXUS_TOP}/../BSEAV/lib/livemedia/livemedia.inc
+    include ${NEXUS_TOP}/../BSEAV/opensource/livemedia/livemedia.inc
     BIP_COMMON_PRIVATE_CFLAGS += ${B_LIVEMEDIA_CFLAGS}
     BIP_COMMON_DEFINES += $(B_LIVEMEDIA_DEFINES)
     $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,livemedia, ${B_LIVEMEDIA_LDFLAGS})
@@ -416,7 +417,7 @@ endif
 
 # Library: openssl
 ifneq ($(SSL_SUPPORT),n)
-    include ${NEXUS_TOP}/../BSEAV/lib/openssl/openssl.inc
+    include ${NEXUS_TOP}/../BSEAV/opensource/openssl/openssl.inc
     BIP_COMMON_PRIVATE_CFLAGS += $(B_OPENSSL_CFLAGS)
     $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,openssl, $(B_OPENSSL_LDFLAGS))
 endif # SSL_SUPPORT
@@ -431,12 +432,6 @@ $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,dtcp_ip, $(B_DTCP_IP_LIB_LDFLAGS
 include ${NEXUS_TOP}/../BSEAV/lib/tshdrbuilder/tshdrbuilder.inc
 BIP_COMMON_PRIVATE_INCLUDES += $(TSHDRBUILDER_INCLUDES)
 $(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,tshdrbuilder, -ltshdrbuilder)
-
-# Library: psip
-B_PSIP_TOP := ${NEXUS_TOP}/../rockford/lib/psip
-include ${NEXUS_TOP}/../rockford/lib/psip/b_psip_lib.inc
-BIP_COMMON_PRIVATE_INCLUDES += $(B_PSIP_LIB_PUBLIC_INCLUDES)
-$(call BIP_LIB_MAKEFUNC_SET_LDFLAGS_FOR_SUBLIB ,psip, -lb_psip)
 
 # Library: b_os
 include ${NEXUS_TOP}/lib/os/b_os_lib.inc

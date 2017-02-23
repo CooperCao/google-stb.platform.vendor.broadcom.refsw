@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,12 +52,15 @@
 #include "bape.h"
 #include "bape_priv.h"
 #include "bchp_aud_fmm_bf_ctrl.h"
+#if BAPE_CHIP_MAX_DECODERS
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_decoder);
 
 BDBG_OBJECT_ID(BAPE_Decoder);
 
+#if BAPE_CHIP_MAX_DECODERS
 #define BAPE_DECODER_ENABLE_GENERIC_PT      0
 
 #define BAPE_DISABLE_DSP 0  /* Enable this to check for CIT errors and avoid starting the DSP */
@@ -122,6 +125,40 @@ void BAPE_Decoder_GetDefaultOpenSettings(
     else
     {
         pSettings->multichannelFormat = BAPE_MultichannelFormat_e5_1;
+    }
+}
+
+void BAPE_Decoder_P_FreeAncillaryResources(BAPE_DecoderHandle handle)
+{
+    if ( handle->ancDataDspBlock )
+    {
+        if ( handle->pAncDataDspBuffer )
+        {
+            BMMA_Unlock(handle->ancDataDspBlock, handle->pAncDataDspBuffer);
+            handle->pAncDataDspBuffer = NULL;
+        }
+        if ( handle->ancDataDspOffset )
+        {
+            BMMA_UnlockOffset(handle->ancDataDspBlock, handle->ancDataDspOffset);
+            handle->ancDataDspOffset = 0;
+        }
+        BMMA_Free(handle->ancDataDspBlock);
+        handle->ancDataDspBlock = NULL;
+    }
+    if ( handle->ancDataHostBlock )
+    {
+        if ( handle->pAncDataHostBuffer )
+        {
+            BMMA_Unlock(handle->ancDataHostBlock, handle->pAncDataHostBuffer);
+            handle->pAncDataHostBuffer = NULL;
+        }
+        if ( handle->ancDataHostOffset )
+        {
+            BMMA_UnlockOffset(handle->ancDataHostBlock, handle->ancDataHostOffset);
+            handle->ancDataHostOffset = 0;
+        }
+        BMMA_Free(handle->ancDataHostBlock);
+        handle->ancDataHostBlock = NULL;
     }
 }
 
@@ -265,8 +302,20 @@ BERR_Code BAPE_Decoder_Open(
     {
         BDSP_QueueCreateSettings queueSettings;
 
-        handle->pAncDataDspBuffer = BMEM_Heap_Alloc(deviceHandle->memHandle, pSettings->ancillaryDataFifoSize);
+        handle->ancDataDspBlock = BMMA_Alloc(deviceHandle->memHandle, pSettings->ancillaryDataFifoSize, 0, NULL);
+        if ( NULL == handle->ancDataDspBlock )
+        {
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            goto err_ancillary_buffer;
+        }
+        handle->pAncDataDspBuffer = BMMA_Lock(handle->ancDataDspBlock);
         if ( NULL == handle->pAncDataDspBuffer )
+        {
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            goto err_ancillary_buffer;
+        }
+        handle->ancDataDspOffset = BMMA_LockOffset(handle->ancDataDspBlock);
+        if ( 0 == handle->ancDataDspOffset )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_ancillary_buffer;
@@ -276,7 +325,9 @@ BERR_Code BAPE_Decoder_Open(
         queueSettings.dataType = BDSP_DataType_eRdbAnc;
         queueSettings.numBuffers = 1;
         queueSettings.bufferInfo[0].bufferSize = pSettings->ancillaryDataFifoSize;
-        BMEM_Heap_ConvertAddressToOffset(deviceHandle->memHandle, handle->pAncDataDspBuffer, &queueSettings.bufferInfo[0].bufferAddress);
+        queueSettings.bufferInfo[0].buffer.hBlock = handle->ancDataDspBlock;
+        queueSettings.bufferInfo[0].buffer.offset = handle->ancDataDspOffset;
+        queueSettings.bufferInfo[0].buffer.pAddr = handle->pAncDataDspBuffer;
 
         errCode = BDSP_Queue_Create(deviceHandle->dspContext, pSettings->dspIndex, &queueSettings, &handle->hAncDataQueue);
         if ( errCode )
@@ -284,20 +335,24 @@ BERR_Code BAPE_Decoder_Open(
             errCode = BERR_TRACE(errCode);
             goto err_ancillary_buffer;
         }
-        handle->pAncDataHostBuffer = BMEM_Heap_Alloc(deviceHandle->memHandle, pSettings->ancillaryDataFifoSize);
+        handle->ancDataHostBlock = BMMA_Alloc(deviceHandle->memHandle, pSettings->ancillaryDataFifoSize, 0, NULL);
+        if ( NULL == handle->ancDataHostBlock )
+        {
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            goto err_ancillary_buffer;
+        }
+        handle->pAncDataHostBuffer = BMMA_Lock(handle->ancDataHostBlock);
         if ( NULL == handle->pAncDataHostBuffer )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_ancillary_buffer;
         }
-
-        errCode = BMEM_Heap_ConvertAddressToCached(deviceHandle->memHandle, handle->pAncDataHostBuffer, &handle->pAncDataHostCached);
-        if ( NULL == handle->pAncDataHostCached )
+        handle->ancDataHostOffset = BMMA_LockOffset(handle->ancDataHostBlock);
+        if ( 0 == handle->ancDataHostOffset )
         {
-            errCode = BERR_TRACE(errCode);
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_ancillary_buffer;
         }
-
         handle->ancDataBufferSize = pSettings->ancillaryDataFifoSize;
     }
 
@@ -508,14 +563,7 @@ void BAPE_Decoder_Close(
     BAPE_Connector_P_RemoveAllConnections(&handle->node.connectors[BAPE_ConnectorFormat_eMono]);
 
     /* Cleanup */
-    if ( handle->pAncDataHostBuffer )
-    {
-        BMEM_Heap_Free(handle->deviceHandle->memHandle, handle->pAncDataHostBuffer);
-    }
-    if ( handle->pAncDataDspBuffer )
-    {
-        BMEM_Heap_Free(handle->deviceHandle->memHandle, handle->pAncDataDspBuffer);
-    }
+    BAPE_Decoder_P_FreeAncillaryResources(handle);
     if ( handle->hAncDataQueue )
     {
         BDSP_Queue_Destroy(handle->hAncDataQueue);
@@ -1357,6 +1405,8 @@ static BERR_Code BAPE_Decoder_P_Start(
         for ( i = 0; i < dfifoCreateSettings.numChannelPairs; i++ )
         {
             /* Setup CIT to have correct ringbuffer ID for each DFIFO -- TODO: There should be a routine in dsp_utils_priv that takes a DFIFO Group handle instead */
+            dfifoSettings.bufferInfo[2*i].block = handle->pInputBuffers[i]->block;
+            dfifoSettings.bufferInfo[2*i].pBuffer = handle->pInputBuffers[i]->pMemory;
             dfifoSettings.bufferInfo[2*i].base = handle->pInputBuffers[i]->offset;
             if ( dfifoSettings.interleaveData )
             {
@@ -1366,6 +1416,8 @@ static BERR_Code BAPE_Decoder_P_Start(
             {
                 unsigned length = handle->pInputBuffers[i]->bufferSize/2;
                 dfifoSettings.bufferInfo[2*i].length = dfifoSettings.bufferInfo[(2*i)+1].length = length;
+                dfifoSettings.bufferInfo[(2*i)+1].block = dfifoSettings.bufferInfo[2*i].block;
+                dfifoSettings.bufferInfo[(2*i)+1].pBuffer = (uint8_t*)handle->pInputBuffers[i]->pMemory + length;
                 dfifoSettings.bufferInfo[(2*i)+1].base = handle->pInputBuffers[i]->offset + length;
             }
         }
@@ -1801,7 +1853,7 @@ static BERR_Code BAPE_Decoder_P_Start(
     }
 
     /* Init ancillary data buffer */
-    if ( handle->pAncDataHostCached )
+    if ( handle->pAncDataHostBuffer )
     {
         BAPE_Decoder_P_InitAncillaryDataBuffer(handle);
     }
@@ -2867,6 +2919,8 @@ void BAPE_Decoder_GetStatus(
     BAPE_DecoderStatus *pStatus     /* [out] */
     )
 {
+    BERR_Code errCode = BERR_SUCCESS;
+
     BDBG_OBJECT_ASSERT(handle, BAPE_Decoder);
     BDBG_ASSERT(NULL != pStatus);
 
@@ -2877,7 +2931,11 @@ void BAPE_Decoder_GetStatus(
         pStatus->codec = handle->startSettings.codec;
         BAPE_Decoder_GetTsmStatus(handle, &pStatus->tsmStatus);
         pStatus->sampleRate = handle->pcmOutputSampleRate;
-        BAPE_Decoder_P_GetCodecStatus(handle, pStatus);
+        errCode = BAPE_Decoder_P_GetCodecStatus(handle, pStatus);
+        if (errCode == BERR_SUCCESS)
+        {
+            pStatus->valid = true;
+        }
         pStatus->running = true;
         BKNI_EnterCriticalSection();
         BAPE_Decoder_P_GetDataSyncStatus_isr(handle, &pStatus->cdbUnderFlowCount);
@@ -4019,14 +4077,39 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         queueSize = sizeof(uint32_t) * (pSettings->maxBuffers+1);  /* +1 to allow for the DSP's full/empty algo to work */
 
         /* Allocate backing memory for queues */
-        hDecoder->decodeToMem.pArqMem = BMEM_Heap_Alloc(hDecoder->deviceHandle->memHandle, queueSize);
+        hDecoder->decodeToMem.arqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, 0, NULL);
+        if ( NULL == hDecoder->decodeToMem.arqMemBlock )
+        {
+            BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        }
+        hDecoder->decodeToMem.pArqMem = BMMA_Lock(hDecoder->decodeToMem.arqMemBlock);
         if ( NULL == hDecoder->decodeToMem.pArqMem )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
-        hDecoder->decodeToMem.pAdqMem = BMEM_Heap_Alloc(hDecoder->deviceHandle->memHandle, queueSize);
+        hDecoder->decodeToMem.arqMemOffset = BMMA_LockOffset(hDecoder->decodeToMem.arqMemBlock);
+        if ( 0 == hDecoder->decodeToMem.arqMemOffset )
+        {
+            BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        }
+
+        hDecoder->decodeToMem.adqMemBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, queueSize, 0, NULL);
+        if ( NULL == hDecoder->decodeToMem.adqMemBlock )
+        {
+            BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        }
+        hDecoder->decodeToMem.pAdqMem = BMMA_Lock(hDecoder->decodeToMem.adqMemBlock);
         if ( NULL == hDecoder->decodeToMem.pAdqMem )
+        {
+            BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        }
+        hDecoder->decodeToMem.adqMemOffset = BMMA_LockOffset(hDecoder->decodeToMem.adqMemBlock);
+        if ( 0 == hDecoder->decodeToMem.adqMemOffset )
         {
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -4037,7 +4120,9 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         queueSettings.dataType = BDSP_DataType_eRDBPool;
         queueSettings.numBuffers = 1;
         queueSettings.bufferInfo[0].bufferSize = queueSize;
-        BMEM_Heap_ConvertAddressToOffset(hDecoder->deviceHandle->memHandle, hDecoder->decodeToMem.pArqMem, &queueSettings.bufferInfo[0].bufferAddress);
+        queueSettings.bufferInfo[0].buffer.hBlock = hDecoder->decodeToMem.arqMemBlock;
+        queueSettings.bufferInfo[0].buffer.offset = hDecoder->decodeToMem.arqMemOffset;
+        queueSettings.bufferInfo[0].buffer.pAddr = hDecoder->decodeToMem.pArqMem;
         queueSettings.input = true;
         errCode = BDSP_Queue_Create(hDecoder->deviceHandle->dspContext, hDecoder->dspIndex, &queueSettings, &hDecoder->decodeToMem.hARQ);
         if ( errCode )
@@ -4045,7 +4130,9 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
             BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
             return BERR_TRACE(errCode);
         }
-        BMEM_Heap_ConvertAddressToOffset(hDecoder->deviceHandle->memHandle, hDecoder->decodeToMem.pAdqMem, &queueSettings.bufferInfo[0].bufferAddress);
+        queueSettings.bufferInfo[0].buffer.hBlock = hDecoder->decodeToMem.adqMemBlock;
+        queueSettings.bufferInfo[0].buffer.offset = hDecoder->decodeToMem.adqMemOffset;
+        queueSettings.bufferInfo[0].buffer.pAddr = hDecoder->decodeToMem.pAdqMem;
         queueSettings.input = false;
         errCode = BDSP_Queue_Create(hDecoder->deviceHandle->dspContext, hDecoder->dspIndex, &queueSettings, &hDecoder->decodeToMem.hADQ);
         if ( errCode )
@@ -4066,16 +4153,24 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
         for ( i = 0; i < pSettings->maxBuffers; i++ )
         {
             BAPE_DecodeToMemoryNode *pNode = hDecoder->decodeToMem.pNodes+i;
-            void *pCachedAddr;
-            pNode->pMetadataAddr = BMEM_Heap_Alloc(hDecoder->deviceHandle->memHandle, sizeof(BDSP_OnDemand_MetaDataInfo));
-            if ( NULL == pNode->pMetadataAddr )
+            pNode->metadataBlock = BMMA_Alloc(hDecoder->deviceHandle->memHandle, sizeof(BDSP_OnDemand_MetaDataInfo), 0, NULL);
+            if ( NULL == pNode->metadataBlock )
             {
                 BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
                 return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             }
-            BMEM_Heap_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, pNode->pMetadataAddr, &pCachedAddr);
-            pNode->pMetadata = pCachedAddr;
-            BMEM_Heap_ConvertAddressToOffset(hDecoder->deviceHandle->memHandle, pNode->pMetadataAddr, &pNode->metadataOffset);
+            pNode->pMetadata = BMMA_Lock(pNode->metadataBlock);
+            if ( NULL == pNode->pMetadata )
+            {
+                BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
+                return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            }
+            pNode->metadataOffset = BMMA_LockOffset(pNode->metadataBlock);
+            if ( 0 == pNode->metadataOffset )
+            {
+                BAPE_Decoder_P_FreeDecodeToMemory(hDecoder);
+                return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            }
             BLST_Q_INSERT_TAIL(&hDecoder->decodeToMem.freeList, &hDecoder->decodeToMem.pNodes[i], node);
         }
     }
@@ -4098,10 +4193,7 @@ BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
 
 static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
 {
-    BERR_Code errCode;
     BAPE_DecodeToMemoryNode *pNode;
-    BDSP_BufferDescriptor bufferDesc;
-    uint32_t *pAddr, offset;
     unsigned numPending, numCompleted;
 
     numPending = hDecoder->decodeToMem.status.pendingBuffers;
@@ -4109,32 +4201,32 @@ static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
 
     if ( hDecoder->state != BAPE_DecoderState_eStopped )
     {
+        BERR_Code errCode;
+        BDSP_BufferDescriptor bufferDesc;
+        void *pAddr;
+        BMMA_DeviceOffset offset;
         while ( numPending > 0 )
         {
             BDSP_Queue_GetBuffer(hDecoder->decodeToMem.hADQ, &bufferDesc);
             if ( bufferDesc.bufferSize >= 4 )
             {
-                errCode = BMEM_Heap_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, bufferDesc.buffers[0].pBuffer, (void **)&pAddr);
-                if ( errCode )
-                {
-                    (void)BERR_TRACE(errCode);
-                    return;
-                }
-                (void)BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pAddr, sizeof(uint32_t));
-                offset = pAddr[0];
+                pAddr = bufferDesc.buffers[0].buffer.pAddr;
+                BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
+                /* TBDBMMA - should this become a uint64_t ? */
+                offset = ((uint32_t*)pAddr)[0];
 
                 /* Find matching entry in pending list (should be head) */
                 for ( pNode = BLST_Q_FIRST(&hDecoder->decodeToMem.pendingList);
                       NULL != pNode;
                       pNode = BLST_Q_NEXT(pNode, node) )
                 {
-                    if ( (uint32_t)pNode->metadataOffset == offset)
+                    if ( pNode->metadataOffset == offset)
                     {
                         /* Remove from pending list */
                         BLST_Q_REMOVE(&hDecoder->decodeToMem.pendingList, pNode, node);
                         numPending--;
                         /* Translate buffer info */
-                        BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
+                        BMMA_FlushCache(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
                         pNode->descriptor.filledBytes = pNode->pMetadata->ui32FrameValid ? pNode->pMetadata->ui32ActualBytesFilledInBuffer : 0;
                         pNode->descriptor.sampleRate = pNode->pMetadata->ui32SampleRate;
                         pNode->descriptor.ptsInfo.ui32CurrentPTS = pNode->pMetadata->ui32PTS;
@@ -4160,7 +4252,7 @@ static void BAPE_Decoder_P_UpdateQueues(BAPE_DecoderHandle hDecoder)
                 }
                 if ( NULL == pNode )
                 {
-                    BDBG_ERR(("Invalid buffer offset %#x not found in pending list.  Dropping frame.", offset));
+                    BDBG_ERR(("Invalid buffer offset 0x" BDBG_UINT64_FMT " not found in pending list. Dropping frame.", BDBG_UINT64_ARG(offset)));
                 }
 
                 /* Consume entry from DSP */
@@ -4215,6 +4307,25 @@ BERR_Code BAPE_Decoder_GetDecodeToMemoryStatus(
     return BERR_SUCCESS;
 }
 
+void BAPE_Decoder_P_FreeMetadata(BAPE_DecodeToMemoryNode *pNode)
+{
+    if ( pNode->metadataBlock )
+    {
+        if ( pNode->pMetadata )
+        {
+            BMMA_Unlock(pNode->metadataBlock, pNode->pMetadata);
+            pNode->pMetadata = NULL;
+        }
+        if ( pNode->metadataOffset )
+        {
+            BMMA_UnlockOffset(pNode->metadataBlock, pNode->metadataOffset);
+            pNode->metadataOffset = 0;
+        }
+        BMMA_Free(pNode->metadataBlock);
+        pNode->metadataBlock = NULL;
+    }
+}
+
 static void BAPE_Decoder_P_FreeDecodeToMemory(
     BAPE_DecoderHandle hDecoder
     )
@@ -4231,29 +4342,50 @@ static void BAPE_Decoder_P_FreeDecodeToMemory(
         BDSP_Queue_Destroy(hDecoder->decodeToMem.hADQ);
         hDecoder->decodeToMem.hADQ = NULL;
     }
-    if ( hDecoder->decodeToMem.pArqMem )
+
+    if ( hDecoder->decodeToMem.arqMemBlock )
     {
-        BMEM_Heap_Free(hDecoder->deviceHandle->memHandle, hDecoder->decodeToMem.pArqMem);
-        hDecoder->decodeToMem.pArqMem = NULL;
+        if ( hDecoder->decodeToMem.pArqMem )
+        {
+            BMMA_Unlock(hDecoder->decodeToMem.arqMemBlock, hDecoder->decodeToMem.pArqMem);
+            hDecoder->decodeToMem.pArqMem = NULL;
+        }
+        if ( hDecoder->decodeToMem.arqMemOffset )
+        {
+            BMMA_UnlockOffset(hDecoder->decodeToMem.arqMemBlock, hDecoder->decodeToMem.arqMemOffset);
+            hDecoder->decodeToMem.arqMemOffset = 0;
+        }
+        BMMA_Free(hDecoder->decodeToMem.arqMemBlock);
+        hDecoder->decodeToMem.arqMemBlock = NULL;
     }
-    if ( hDecoder->decodeToMem.pAdqMem )
+    if ( hDecoder->decodeToMem.adqMemBlock )
     {
-        BMEM_Heap_Free(hDecoder->deviceHandle->memHandle, hDecoder->decodeToMem.pAdqMem);
-        hDecoder->decodeToMem.pAdqMem = NULL;
+        if ( hDecoder->decodeToMem.pAdqMem )
+        {
+            BMMA_Unlock(hDecoder->decodeToMem.adqMemBlock, hDecoder->decodeToMem.pAdqMem);
+            hDecoder->decodeToMem.pAdqMem = NULL;
+        }
+        if ( hDecoder->decodeToMem.adqMemOffset )
+        {
+            BMMA_UnlockOffset(hDecoder->decodeToMem.adqMemBlock, hDecoder->decodeToMem.adqMemOffset);
+            hDecoder->decodeToMem.adqMemOffset = 0;
+        }
+        BMMA_Free(hDecoder->decodeToMem.adqMemBlock);
+        hDecoder->decodeToMem.adqMemBlock = NULL;
     }
     while ( (pNode = BLST_Q_FIRST(&hDecoder->decodeToMem.freeList)) )
     {
-        BMEM_Heap_Free(hDecoder->deviceHandle->memHandle, pNode->pMetadataAddr);
+        BAPE_Decoder_P_FreeMetadata(pNode);
         BLST_Q_REMOVE_HEAD(&hDecoder->decodeToMem.freeList, node);
     }
     while ( (pNode = BLST_Q_FIRST(&hDecoder->decodeToMem.pendingList)) )
     {
-        BMEM_Heap_Free(hDecoder->deviceHandle->memHandle, pNode->pMetadataAddr);
+        BAPE_Decoder_P_FreeMetadata(pNode);
         BLST_Q_REMOVE_HEAD(&hDecoder->decodeToMem.pendingList, node);
     }
     while ( (pNode = BLST_Q_FIRST(&hDecoder->decodeToMem.completedList)) )
     {
-        BMEM_Heap_Free(hDecoder->deviceHandle->memHandle, pNode->pMetadataAddr);
+        BAPE_Decoder_P_FreeMetadata(pNode);
         BLST_Q_REMOVE_HEAD(&hDecoder->decodeToMem.completedList, node);
     }
     if ( hDecoder->decodeToMem.pNodes )
@@ -4321,7 +4453,7 @@ BERR_Code BAPE_Decoder_QueueBuffer(
     pNode->pMetadata->ui32FrameBufBaseAddressLow = (uint32_t)pDescriptor->memoryOffset;
     pNode->pMetadata->ui32FrameBufBaseAddressHigh = (uint32_t)(pDescriptor->memoryOffset>>32);
     pNode->pMetadata->ui32FrameBufferSizeInBytes = (uint32_t)pDescriptor->allocatedBytes;
-    BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
+    BMMA_FlushCache(pNode->metadataBlock, pNode->pMetadata, sizeof(BDSP_OnDemand_MetaDataInfo));
 
     /* Get slot in DSP queue */
     errCode = BDSP_Queue_GetBuffer(hDecoder->decodeToMem.hARQ, &bufferDesc);
@@ -4330,14 +4462,10 @@ BERR_Code BAPE_Decoder_QueueBuffer(
         return BERR_TRACE(errCode);
     }
     BDBG_ASSERT(bufferDesc.bufferSize >= 4);
-    errCode = BMEM_Heap_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, bufferDesc.buffers[0].pBuffer, (void **)&pAddr);
-    if ( errCode )
-    {
-        return BERR_TRACE(errCode);
-    }
-    (void)BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pAddr, sizeof(uint32_t));
+    pAddr = bufferDesc.buffers[0].buffer.pAddr;
+    BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
     pAddr[0] = (uint32_t)pNode->metadataOffset;
-    (void)BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pAddr, sizeof(uint32_t));
+    BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pAddr, sizeof(uint32_t));
 
     /* Commit entry to DSP */
     errCode = BDSP_Queue_CommitData(hDecoder->decodeToMem.hARQ, sizeof(uint32_t));
@@ -4439,3 +4567,375 @@ BERR_Code BAPE_Decoder_ConsumeBuffers(
 
     return BERR_SUCCESS;
 }
+#else
+void BAPE_Decoder_GetDefaultOpenSettings(
+    BAPE_DecoderOpenSettings *pSettings     /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Decoder_Open(
+    BAPE_Handle deviceHandle,
+    unsigned index,
+    const BAPE_DecoderOpenSettings *pSettings,
+    BAPE_DecoderHandle *pHandle                 /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_Close(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_Decoder_GetDefaultStartSettings(
+    BAPE_DecoderStartSettings *pSettings    /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+void BAPE_Decoder_GetDefaultKaraokeSettings(
+    BAPE_DecoderKaraokeSettings *pSettings /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Decoder_Start(
+    BAPE_DecoderHandle handle,
+    const BAPE_DecoderStartSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_Stop(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+BERR_Code BAPE_Decoder_Pause(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_Resume(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_Advance(
+    BAPE_DecoderHandle handle,
+    unsigned milliseconds           /* Milliseconds to advance */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(milliseconds);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_Freeze(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_UnFreeze(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_DisableForFlush(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_Flush(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_GetTsmSettings(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderTsmSettings *pSettings  /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+void BAPE_Decoder_GetTsmSettings_isr(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderTsmSettings *pSettings  /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Decoder_SetTsmSettings(
+    BAPE_DecoderHandle handle,
+    const BAPE_DecoderTsmSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_SetTsmSettings_isr(
+    BAPE_DecoderHandle handle,
+    const BAPE_DecoderTsmSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_GetTsmStatus(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderTsmStatus *pStatus  /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_GetTsmStatus_isr(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderTsmStatus *pStatus  /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_GetSettings(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderSettings *pSettings     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Decoder_SetSettings(
+    BAPE_DecoderHandle handle,
+    const BAPE_DecoderSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_GetStatus(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderStatus *pStatus     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+}
+
+void BAPE_Decoder_GetPresentationInfo(
+    BAPE_DecoderHandle handle,
+    unsigned presentationIndex,
+    BAPE_DecoderPresentationInfo *pInfo     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(presentationIndex);
+    BSTD_UNUSED(pInfo);
+}
+
+
+void BAPE_Decoder_GetCodecSettings(
+    BAPE_DecoderHandle handle,
+    BAVC_AudioCompressionStd codec,
+    BAPE_DecoderCodecSettings *pSettings     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(codec);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Decoder_SetCodecSettings(
+    BAPE_DecoderHandle handle,
+    const BAPE_DecoderCodecSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_GetConnector(
+    BAPE_DecoderHandle handle,
+    BAPE_ConnectorFormat format,
+    BAPE_Connector *pConnector /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(format);
+    BSTD_UNUSED(pConnector);
+}
+
+void BAPE_Decoder_GetInterruptHandlers(
+    BAPE_DecoderHandle handle,
+    BAPE_DecoderInterruptHandlers *pInterrupts     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pInterrupts);
+}
+
+BERR_Code BAPE_Decoder_SetInterruptHandlers(
+    BAPE_DecoderHandle handle,
+    const BAPE_DecoderInterruptHandlers *pInterrupts
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pInterrupts);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_EnterUnderflowMode(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_GetDefaultCdbItbConfig(
+    BAPE_DecoderHandle handle,
+    BAVC_CdbItbConfig *pConfig  /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConfig);
+}
+
+BERR_Code BAPE_Decoder_SetStcValid_isr(
+    BAPE_DecoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_GetPathDelay_isr(
+    BAPE_DecoderHandle handle,
+    unsigned *pDelay    /* [out] in ms */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pDelay);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_GetDecodeToMemorySettings(
+    BAPE_DecoderHandle hDecoder,
+    BAPE_DecoderDecodeToMemorySettings *pSettings /* [out] */
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Decoder_SetDecodeToMemorySettings(
+    BAPE_DecoderHandle hDecoder,
+    const BAPE_DecoderDecodeToMemorySettings *pSettings
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_GetDecodeToMemoryStatus(
+    BAPE_DecoderHandle hDecoder,
+    BAPE_DecoderDecodeToMemoryStatus *pStatus /* [out] */
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_InitBufferDescriptor(
+    BAPE_DecoderBufferDescriptor *pDescriptor /* [out] */
+    )
+{
+     BSTD_UNUSED(pDescriptor);
+}
+
+BERR_Code BAPE_Decoder_QueueBuffer(
+    BAPE_DecoderHandle hDecoder,
+    const BAPE_DecoderBufferDescriptor *pDescriptor
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(pDescriptor);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_GetBuffers(
+    BAPE_DecoderHandle hDecoder,
+    BAPE_DecoderBufferDescriptor *pBuffers, /* [out] */
+    unsigned maxBuffers,
+    unsigned *pNumBuffers/* [out] */
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(pBuffers);
+    BSTD_UNUSED(maxBuffers);
+    BSTD_UNUSED(pNumBuffers);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_ConsumeBuffers(
+    BAPE_DecoderHandle hDecoder,
+    unsigned numBuffers
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(numBuffers);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

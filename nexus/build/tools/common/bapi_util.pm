@@ -50,35 +50,6 @@ use strict;
 
 package bapi_util;
 
-my %special_types = map {$_ => 1} qw ( NEXUS_ParserBand NEXUS_Timebase NEXUS_InputBand NEXUS_AudioOutput NEXUS_VideoOutput );
-
-sub is_special_handle {
-    my $type = shift;
-    exists $special_types{$type};
-}
-
-sub is_class_handle {
-    my $type = shift;
-    my $class_handles = shift;
-    foreach (@$class_handles) {
-        return 1 if $type eq $_;
-    }
-    return 0;
-}
-
-sub is_handle {
-    my $type = shift;
-    my $class_handles = shift;
-    if(is_special_handle($type)) {
-        return 1;
-    } elsif(is_class_handle($type, $class_handles)) {
-        return 1;
-    } elsif( $type =~ /Handle$/) {
-        return 1;
-    }
-    return 0;
-}
-
 sub print_code
 {
     my $file = shift;
@@ -113,7 +84,7 @@ sub struct_id {
     my $id = 0;
     my $key;
 
-    foreach $key (keys %$structs) {
+    foreach $key (sort keys %$structs) {
         $id++;
         if($key eq $struct) {
             return $id;

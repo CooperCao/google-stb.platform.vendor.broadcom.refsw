@@ -129,6 +129,42 @@ BERR_Code BVDC_Window_GetDefaultSettings
     return BERR_SUCCESS;
 }
 
+/***************************************************************************
+ *
+ */
+static BERR_Code BVDC_P_Window_ValidateMemconfigSettings
+    ( BVDC_Compositor_Handle           hCompositor,
+      BVDC_Source_Handle               hSource,
+      BVDC_P_WindowId                  eWinId )
+{
+    bool   bSyncSlipInMemconfig, bSrcToBeLocked;
+    uint32_t  ulWinIdex;
+
+    if(!BVDC_P_WIN_IS_VIDEO_WINDOW(eWinId))
+        return BERR_SUCCESS;
+
+    ulWinIdex = BVDC_P_WIN_IS_V0(eWinId) ? 0 : 1;
+    bSyncSlipInMemconfig = hCompositor->hVdc->abSyncSlipInMemconfig[hCompositor->eId][ulWinIdex];
+
+    bSrcToBeLocked = BVDC_P_SRC_IS_MPEG(hSource->eId) &&
+       (hSource->ulConnectedWindow == 0) &&
+       (!hSource->hSyncLockCompositor) &&
+       (!hCompositor->hSyncLockSrc) &&
+       (!hCompositor->hSrcToBeLocked);
+
+    BKNI_EnterCriticalSection();
+    if(!bSrcToBeLocked && !bSyncSlipInMemconfig)
+    {
+        BDBG_WRN(("============================================================"));
+        BDBG_WRN(("Disp[%d] Win[%d] SyncSlip Mismatch RunTime(%d), Memconfig(%d)",
+            hCompositor->eId, eWinId, !bSrcToBeLocked, bSyncSlipInMemconfig));
+        BDBG_WRN(("System may run out of memory"));
+        BDBG_WRN(("============================================================"));
+    }
+    BKNI_LeaveCriticalSection();
+
+    return BERR_SUCCESS;
+}
 
 /***************************************************************************
  *
@@ -180,6 +216,16 @@ BERR_Code BVDC_Window_Create
         return BERR_TRACE(eRet);
     }
 
+    /* Error if memory going to be short synclock allocation for MPEG. */
+    if(BVDC_P_SRC_IS_MPEG(hSource->eId))
+    {
+        eRet = BVDC_P_Window_ValidateMemconfigSettings(hCompositor, hSource, hWindow->eId);
+        if (BERR_SUCCESS != eRet)
+        {
+            return BERR_TRACE(eRet);
+        }
+    }
+
     /* Check if the window is already created or not. */
     if(!BVDC_P_STATE_IS_INACTIVE(hWindow))
     {
@@ -196,6 +242,7 @@ BERR_Code BVDC_Window_Create
 
         /* this makes gfx surface be validated in next ApplyChanges */
         hSource->hGfxFeeder->hWindow = hWindow;
+        hSource->hGfxFeeder->stCfc.pColorSpaceOut = &(hWindow->hCompositor->stOutColorSpace);
 
         /* check GFD usage for xcode path*/
         if (BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg) &&
@@ -2083,33 +2130,15 @@ BERR_Code BVDC_Window_SetColorTemp
     int32_t lAttenuationR;
     int32_t lAttenuationG;
     int32_t lAttenuationB;
+    BVDC_P_Csc3x4 stCscCoeffs;
 
     BDBG_ENTER(BVDC_Window_SetColorTemp);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
     hWindow->stNewInfo.sColorTemp = sColorTemp;
 
-    if(BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId))
-    {
-        BVDC_P_CscCoeffs stCscCoeffs = BVDC_P_MAKE_GFD_CSC
-            ( 1.00000, 0.00000, 0.00000, 0.00000, 0.00000,
-              0.00000, 1.00000, 0.00000, 0.00000, 0.00000,
-              0.00000, 0.00000, 1.00000, 0.00000, 0.00000 );
-
-        BVDC_P_Csc_ColorTempToAttenuationRGB(sColorTemp,
-            &lAttenuationR, &lAttenuationG, &lAttenuationB, &stCscCoeffs);
-    }
-    else
-    {
-        /* coverity[result_independent_of_operands: FALSE] */
-        BVDC_P_CscCoeffs stCscCoeffs = BVDC_P_MAKE_CMP_CSC
-            ( 1.00000, 0.00000, 0.00000, 0.00000,
-              0.00000, 1.00000, 0.00000, 0.00000,
-              0.00000, 0.00000, 1.00000, 0.00000 );
-
-        BVDC_P_Csc_ColorTempToAttenuationRGB(sColorTemp,
-            &lAttenuationR, &lAttenuationG, &lAttenuationB, &stCscCoeffs);
-    }
+    BVDC_P_Cfc_ColorTempToAttenuationRGB(sColorTemp,
+        &lAttenuationR, &lAttenuationG, &lAttenuationB, &stCscCoeffs);
 
     hWindow->stNewInfo.lAttenuationR = lAttenuationR;
     hWindow->stNewInfo.lAttenuationG = lAttenuationG;
@@ -2155,21 +2184,15 @@ BERR_Code BVDC_Window_SetAttenuationRGB
       int32_t   nOffsetG,
       int32_t   nOffsetB)
 {
-    int32_t ulShiftBits;
-
     BDBG_ENTER(BVDC_Window_SetAttenuationRGB);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    ulShiftBits = BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId)?
-                  BVDC_P_CSC_GFD_CX_F_BITS - 11 :
-                  BVDC_P_CSC_CMP_CX_F_BITS - 11;
-
-    hWindow->stNewInfo.lAttenuationR = nAttentuationR << ulShiftBits;
-    hWindow->stNewInfo.lAttenuationG = nAttentuationG << ulShiftBits;
-    hWindow->stNewInfo.lAttenuationB = nAttentuationB << ulShiftBits;
-    hWindow->stNewInfo.lOffsetR      = nOffsetR       << ulShiftBits;
-    hWindow->stNewInfo.lOffsetG      = nOffsetG       << ulShiftBits;
-    hWindow->stNewInfo.lOffsetB      = nOffsetB       << ulShiftBits;
+    hWindow->stNewInfo.lAttenuationR = BVDC_P_CFC_ITOFIX(nAttentuationR);
+    hWindow->stNewInfo.lAttenuationG = BVDC_P_CFC_ITOFIX(nAttentuationG);
+    hWindow->stNewInfo.lAttenuationB = BVDC_P_CFC_ITOFIX(nAttentuationB);
+    hWindow->stNewInfo.lOffsetR      = BVDC_P_CFC_ITOFIX(nOffsetR);
+    hWindow->stNewInfo.lOffsetG      = BVDC_P_CFC_ITOFIX(nOffsetG);
+    hWindow->stNewInfo.lOffsetB      = BVDC_P_CFC_ITOFIX(nOffsetB);
 
     BDBG_LEAVE(BVDC_Window_SetAttenuationRGB);
 
@@ -2194,9 +2217,7 @@ BERR_Code BVDC_Window_GetAttenuationRGB
     BDBG_ENTER(BVDC_Window_GetAttenuationRGB);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    ulShiftBits = BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId)?
-                  BVDC_P_CSC_GFD_CX_F_BITS - 11 :
-                  BVDC_P_CSC_CMP_CX_F_BITS - 11;
+    ulShiftBits = BVDC_P_CSC_SW_CX_F_BITS;
 
     (*plAttenuationR) = hWindow->stCurInfo.lAttenuationR >> ulShiftBits;
     (*plAttenuationG) = hWindow->stCurInfo.lAttenuationG >> ulShiftBits;
@@ -3500,7 +3521,7 @@ BERR_Code BVDC_Window_GetColorMatrix
     BDBG_ENTER(BVDC_Window_GetColorMatrix);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    BVDC_P_Window_GetColorMatrix(hWindow, hWindow->stNewInfo.bUserCsc, &hWindow->pCscCfg->stCscMC,
+    BVDC_P_Window_GetColorMatrix(hWindow, hWindow->stNewInfo.bUserCsc,
                                  hWindow->stCurInfo.pl32_Matrix, pl32_Matrix);
 
     *pbOverride = hWindow->stNewInfo.bUserCsc;

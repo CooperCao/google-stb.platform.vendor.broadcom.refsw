@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
-#include "nexus_platform_generic_features_priv.h"
+#include "bstd.h"
 
 /* Transport Features */
 #if defined(NEXUS_PLATFORM_7563_DGL)
@@ -61,25 +61,8 @@
 #define NEXUS_NUM_VIDEO_DECODERS 1
 
 /* TBD: Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 3
-#define NEXUS_NUM_AUDIO_MIXERS 8
-#define NEXUS_NUM_I2S_OUTPUTS 1
-
-#ifdef NEXUS_PLATFORM_7563_DGL
-#define NEXUS_NUM_AUDIO_DACS 0
-#define NEXUS_NUM_SPDIF_OUTPUTS 0
-#else
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#endif
-
-#define NEXUS_NUM_I2S_INPUTS 0
-#define NEXUS_NUM_AUDIO_PLAYBACKS 3
-
-#ifdef NEXUS_NUM_AUDIO_CRCS
-#undef NEXUS_NUM_AUDIO_CRCS
 #define NEXUS_NUM_AUDIO_CRCS 0
-#endif
+
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 0
@@ -143,12 +126,9 @@ upon the chip usage. See below */
 /* enable AVS */
 #define NEXUS_AVS_MONITOR 1
 
-#define NEXUS_MEMC0_MAIN_HEAP           0
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 1
-#define NEXUS_MEMC0_GRAPHICS_HEAP       2
-#define NEXUS_VIDEO_SECURE_HEAP         3
-
 #define NEXUS_PLATFORM_DEFAULT_HEAP (0)
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
+
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

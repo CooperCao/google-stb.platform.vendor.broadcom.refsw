@@ -181,7 +181,7 @@ int probe_media_request(const struct probe_request *request, struct probe_result
     }
 
     for(track=BLST_SQ_FIRST(&stream->tracks);track;track=BLST_SQ_NEXT(track, link)) {
-        if (track->type == bmedia_track_type_audio || track->type == bmedia_track_type_video) {
+        if ((track->type == bmedia_track_type_audio || track->type == bmedia_track_type_video) && track->program != (unsigned)-1) {
             if (prev_program_set) {
                 if (track->program != prev_program) {
                     cur_program_offset++;

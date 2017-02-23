@@ -57,6 +57,7 @@
 #include <linux/highmem.h>
 #include <linux/slab.h>
 #include <linux/namei.h>
+#include <linux/dma-contiguous.h>
 #include "quad.h"
 #include "sage.h"
 
@@ -87,7 +88,7 @@ uint64_t __aeabi_uldivmod_c(uint64_t n, uint64_t d, uint64_t *rem)
     return __qdivrem(n, d, rem);
 }
 
-SageBase sagebase;
+static SageBase sagebase;
 
 static irqreturn_t sage_isr(int irq, void *wq)
 {
@@ -129,7 +130,7 @@ static int sage_isr_thread(void *data)
 	return 0;
 }
 
-int SAGE_EnableInterrupt(int linuxIrqNum,IrqCtx *pIsr)
+static int SAGE_EnableInterrupt(int linuxIrqNum,IrqCtx *pIsr)
 {
     int rc;
     char name[50];
@@ -159,7 +160,7 @@ int SAGE_EnableInterrupt(int linuxIrqNum,IrqCtx *pIsr)
     return BERR_SUCCESS;
 }
 
-void SAGE_DisableInterrupt(IrqCtx *pIsr)
+static void SAGE_DisableInterrupt(IrqCtx *pIsr)
 {
     if(pIsr->linuxIrqNum != 0)
     {
@@ -184,6 +185,12 @@ static uint64_t Sage_AddrToOffset(const void *addr)
     void              *pvAddress = (void *)addr;
     uint32_t          ulOffset;
 
+    if(Heap == NULL)
+    {
+        BDBG_WRN(("%s %d hMemGlr NULL!",__FUNCTION__,__LINE__));
+        return 0;
+    }
+
     BMEM_Heap_ConvertAddressToOffset_isrsafe(Heap,pvAddress,&ulOffset);
 
     return (uint64_t)ulOffset;
@@ -195,24 +202,48 @@ static void *Sage_OffsetToAddr(uint64_t offset)
     uint32_t           ulOffset = offset;
     void              *pvAddress;
 
+    if(Heap == NULL)
+    {
+        BDBG_WRN(("%s %d hMemGlr NULL!",__FUNCTION__,__LINE__));
+        return NULL;
+    }
+
     BMEM_Heap_ConvertOffsetToAddress_isrsafe(Heap,ulOffset,&pvAddress);
 
     return pvAddress;
 }
 
-void * Sage_Malloc(size_t size)
+static void * Sage_Malloc(size_t size)
 {
-	BMEM_Heap_Handle   Heap = sagebase.hMemGlr;
+    BMEM_Heap_Handle   Heap = sagebase.hMemGlr;
+    if(Heap == NULL)
+    {
+        BDBG_WRN(("%s %d hMemGlr NULL!",__FUNCTION__,__LINE__));
+        return NULL;
+    }
     return BMEM_Heap_Alloc(Heap,size);
 }
-void * Sage_MallocRestricted(size_t size)
+static void Sage_MfreeOffset(uint32_t offset)
 {
-	BMEM_Heap_Handle   Heap = sagebase.hMemGlr;
-    return BMEM_Heap_Alloc(Heap,size);
+    void *pMemory;
+    BMEM_Heap_Handle   Heap = sagebase.hMemGlr;
+    if(Heap == NULL)
+    {
+        BDBG_WRN(("%s %d hMemGlr NULL!",__FUNCTION__,__LINE__));
+        return;
+    }
+    BMEM_Heap_ConvertOffsetToAddress_isrsafe(Heap,offset,&pMemory);
+
+    BMEM_Heap_Free(Heap,pMemory);
 }
-void Sage_Memory_Free( void *pMemory )
+static void Sage_Mfree( void *pMemory )
 {
-	BMEM_Heap_Handle   Heap = sagebase.hMemGlr;
+    BMEM_Heap_Handle   Heap = sagebase.hMemGlr;
+    if(Heap == NULL)
+    {
+        BDBG_WRN(("%s %d hMemGlr NULL!",__FUNCTION__,__LINE__));
+        return;
+    }
     BMEM_Heap_Free(Heap,pMemory);
 }
 
@@ -226,7 +257,7 @@ static void Sage_Unlock_Sage(void)
     BKNI_ReleaseMutex(sagebase.sageLock);
 }
 
-BCMD_VKLID_e
+static BCMD_VKLID_e
 SAGE_AllocSageVkl(void)
 {
     BERR_Code rc;
@@ -251,7 +282,7 @@ SAGE_AllocSageVkl(void)
     return vklId;
 }
 
-void
+static void
 SAGE_FreeSageVkl(
     BCMD_VKLID_e vklId)
 {
@@ -263,15 +294,15 @@ static void SAGE_Hsm_Uninit(void)
 
     BHSM_Close(sagebase.hHsm);
 
-    SAGE_DisableInterrupt(&sagebase.isr1);
+    SAGE_DisableInterrupt(&sagebase.isrHsm);
 
-    free_pages((unsigned long)sagebase.page_address,BLOCK_SIZE_2M);
-    BMEM_Heap_Destroy(sagebase.hMem);
+    __free_pages(sagebase.pageHsm,BLOCK_SIZE_2M);
+    BMEM_Heap_Destroy(sagebase.hMemHsm);
 }
 
 static void SAGE_Base_Uninit(void)
 {
-    brcmstb_memory_kva_unmap(sagebase.bmemAddress);
+    brcmstb_memory_kva_unmap(sagebase.addrGLR);
     BMEM_Heap_Destroy(sagebase.hMemGlr);
 
     if(sagebase.hSAGE != NULL)
@@ -280,7 +311,7 @@ static void SAGE_Base_Uninit(void)
         sagebase.hSAGE = NULL;
     }
 
-    SAGE_DisableInterrupt(&sagebase.isr2);
+    SAGE_DisableInterrupt(&sagebase.isrRpc);
 
     BKNI_DestroyMutex(sagebase.sageLock);
 
@@ -400,26 +431,28 @@ static int SAGE_Hsm_Init(void)
 {
     BERR_Code rc;
     BMEM_Heap_Settings    mem_heap_settings;
+    void *addrHSM;
+    phys_addr_t offsetHSM;
     BHSM_Settings hsmSettings;
     BHSM_InitKeySlotIO_t keyslot_io;
 
-    sagebase.pages = alloc_pages(GFP_KERNEL | __GFP_ZERO, BLOCK_SIZE_2M);
-    sagebase.page_address = page_address(sagebase.pages);
-    sagebase.page_offset = page_to_phys(sagebase.pages);
+    sagebase.pageHsm = alloc_pages(GFP_KERNEL | __GFP_ZERO, BLOCK_SIZE_2M);
+    addrHSM = page_address(sagebase.pageHsm);
+    offsetHSM = page_to_phys(sagebase.pageHsm);
 
     mem_heap_settings.eSafetyConfig = BMEM_CONFIG_FASTEST;
     mem_heap_settings.eBookKeeping  = BMEM_BOOKKEEPING_SYSTEM;
     mem_heap_settings.uiAlignment = 8;
-    mem_heap_settings.pCachedAddress = sagebase.page_address;
+    mem_heap_settings.pCachedAddress = addrHSM;
 
-    rc = BMEM_Heap_Create(sagebase.hMemModule,sagebase.page_address, sagebase.page_offset, SIZE_2M, &mem_heap_settings,&sagebase.hMem);
+    rc = BMEM_Heap_Create(sagebase.hMemModule,addrHSM, offsetHSM, SIZE_2M, &mem_heap_settings,&sagebase.hMemHsm);
     if(rc!=BERR_SUCCESS) { return BERR_TRACE(rc);}
 
-    rc = SAGE_EnableInterrupt(32 + BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_BSP_CPU_INTR_SHIFT,&sagebase.isr1);
+    rc = SAGE_EnableInterrupt(32 + BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_BSP_CPU_INTR_SHIFT,&sagebase.isrHsm);
     if(rc!=BERR_SUCCESS) { return BERR_TRACE(rc);}
 
     BHSM_GetDefaultSettings(&hsmSettings, NULL);
-    hsmSettings.hHeap = sagebase.hMem;
+    hsmSettings.hHeap = sagebase.hMemHsm;
 
     hsmSettings.sageEnabled = true;
 
@@ -481,7 +514,7 @@ static int SAGE_Hsm_Init(void)
 }
 
 /* copy regionMaps from sagebase.regionMap into pRegionMap */
-static BERR_Code SAGE_Boot_FillRegionInfo(BSAGElib_RegionInfo *pRegionMap)
+static BERR_Code SAGE_Boot_WriteRegionMap(BSAGElib_RegionInfo *pRegionMap)
 {
     BERR_Code rc = BERR_SUCCESS;
     BSAGE_BootSettings *pBootSettings = &sagebase.bootSettings;
@@ -524,6 +557,8 @@ static BERR_Code SAGE_Boot_Load(char *filename,uint32_t *pOffset, uint32_t *pSiz
         printk("%s %d pOffset or pSize is NULL !\n",__FUNCTION__,__LINE__);
         goto err;
     }
+    *pOffset = 0;
+    *pSize = 0;
 
     oldfs = get_fs();
     set_fs(get_ds());
@@ -537,7 +572,7 @@ static BERR_Code SAGE_Boot_Load(char *filename,uint32_t *pOffset, uint32_t *pSiz
     vfs_getattr(&filp->f_path, &stat);
     *pSize = stat.size;
 
-    pBuff = (uint32_t *) BMEM_Alloc(sagebase.hMemGlr,*pSize);
+    pBuff = (uint32_t *) Sage_Malloc(*pSize);
     if(pBuff == NULL) {
         rc = BERR_OUT_OF_DEVICE_MEMORY;
         printk("%s %d alloc 0x%x failed!\n",__FUNCTION__,__LINE__,(unsigned int)*pSize);
@@ -555,45 +590,90 @@ static BERR_Code SAGE_Boot_Load(char *filename,uint32_t *pOffset, uint32_t *pSiz
 err:
     return rc;
 }
-
-static int SAGE_GetRegionMap(uint32_t regionId,BSAGElib_RegionInfo *pRegionInfo, uint32_t *pOffset,uint32_t *pSize)
+/* get the index of region with regionId in sagebase.regionMap */
+static int SAGE_Boot_GetRegion(uint32_t regionId)
 {
     int i;
 
     for(i=0;i<sagebase.bootSettings.regionMapNum  && i < REGION_MAP_MAX_NUM;i++)
     {
-        if(pRegionInfo[i].id == regionId)
+        if(sagebase.regionMap[i].id == regionId)
         {
-            *pOffset = pRegionInfo[i].offset;
-            *pSize = pRegionInfo[i].size;
-            return 0;
+            return i;
         }
     }
     return -1;
 }
 
-static BERR_Code SAGE_Boot_GLR(uint32_t regionMapNum,BSAGElib_RegionInfo *pRegionMap)
+/* Add the region to sagebase.regionMap, if duplicate, change the old one in sagebase.regionMap
+   return the index of added region */
+static int SAGE_Boot_AddRegion(BSAGElib_RegionInfo *pRegionInfo)
+{
+    int i;
+
+    for(i=0;i<sagebase.bootSettings.regionMapNum  && i < REGION_MAP_MAX_NUM;i++)
+    {
+        if(sagebase.regionMap[i].id == pRegionInfo->id)
+        {
+            sagebase.regionMap[i] = *pRegionInfo;
+            BDBG_MSG(("%s %d add region %d offset 0x%lx size 0x%lx at %d!!",__FUNCTION__,__LINE__,pRegionInfo->id,pRegionInfo->offset,pRegionInfo->size,i));
+            goto end;
+        }
+    }
+
+    if(i >= REGION_MAP_MAX_NUM)
+    {
+        i = -1;
+        BDBG_ERR(("%s %d Regions full at %d, add region %d offset 0x%lx size 0x%lx failed !!",__FUNCTION__,__LINE__,sagebase.bootSettings.regionMapNum, pRegionInfo->id,pRegionInfo->offset,pRegionInfo->size));
+        goto end;
+    }
+
+    sagebase.regionMap[i].id = pRegionInfo->id;
+    sagebase.regionMap[i]      = *pRegionInfo;
+
+    BDBG_MSG(("%s %d add region %d offset 0x%lx size 0x%lx at %d!!",__FUNCTION__,__LINE__,pRegionInfo->id,pRegionInfo->offset,pRegionInfo->size,i));
+
+    sagebase.bootSettings.regionMapNum++;
+end:
+    return i;
+}
+
+static BERR_Code SAGE_Boot_ReadRegionMap(uint32_t regionMapNum,BSAGElib_RegionInfo *pRegionMap)
 {
     BERR_Code rc;
     BMEM_Heap_Settings    mem_heap_settings;
     uint32_t GlrOffset,GlrSize,i;
 
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Glr,pRegionMap,&GlrOffset,&GlrSize);
-
-    if(rc != 0)
+    for(i=0;i < regionMapNum && i < REGION_MAP_MAX_NUM;i++)
     {
-        BDBG_ERR(("%s %d Fail to read GLR info from region Map!!",__LINE__));
-        return rc;
+        rc = SAGE_Boot_AddRegion(&pRegionMap[i]);
+        if(rc < 0)
+        {
+            BDBG_ERR(("%s %d add region %d offset 0x%lx size 0x%lx failed !!",__FUNCTION__,__LINE__,pRegionMap[i].id,pRegionMap[i].offset,pRegionMap[i].size));
+            goto err;
+        }
     }
 
-    if(sagebase.bmemAddress != NULL)
-        brcmstb_memory_kva_unmap(sagebase.bmemAddress);
+    i = SAGE_Boot_GetRegion(BSAGElib_RegionId_Glr);
+
+    if(i < 0 || sagebase.regionMap[i].id != BSAGElib_RegionId_Glr)
+    {
+        rc = BERR_UNKNOWN;
+        BDBG_ERR(("%s %d Fail to read GLR info from region Map!!",__LINE__));
+        goto err;
+    }
+
+    GlrOffset = sagebase.regionMap[i].offset;
+    GlrSize = sagebase.regionMap[i].size;
+
+    if(sagebase.addrGLR != NULL)
+        brcmstb_memory_kva_unmap(sagebase.addrGLR);
 
     if(sagebase.hMemGlr != NULL)
         BMEM_Heap_Destroy(sagebase.hMemGlr);
 
-    sagebase.bmemAddress = brcmstb_memory_kva_map_phys(GlrOffset, GlrSize,true);
-    if ( NULL == sagebase.bmemAddress)
+    sagebase.addrGLR = brcmstb_memory_kva_map_phys(GlrOffset, GlrSize,true);
+    if ( NULL == sagebase.addrGLR)
     {
         rc = BERR_OS_ERROR;
         BDBG_ERR(("%s %d brcmstb_memory_kva_map_phys offset 0x%lx size 0x%lx failed!",__FUNCTION__,__LINE__,GlrOffset, GlrSize));
@@ -603,23 +683,150 @@ static BERR_Code SAGE_Boot_GLR(uint32_t regionMapNum,BSAGElib_RegionInfo *pRegio
     mem_heap_settings.eSafetyConfig = BMEM_CONFIG_FASTEST;
     mem_heap_settings.eBookKeeping  = BMEM_BOOKKEEPING_SYSTEM;
     mem_heap_settings.uiAlignment = 8;
-    mem_heap_settings.pCachedAddress = sagebase.bmemAddress;
+    mem_heap_settings.pCachedAddress = sagebase.addrGLR;
 
-    rc = BMEM_Heap_Create(sagebase.hMemModule,sagebase.bmemAddress, GlrOffset, GlrSize, &mem_heap_settings,&sagebase.hMemGlr);
+    rc = BMEM_Heap_Create(sagebase.hMemModule,sagebase.addrGLR, GlrOffset, GlrSize, &mem_heap_settings,&sagebase.hMemGlr);
     if(rc!=BERR_SUCCESS)
     {
-        BDBG_ERR(("%s %d BMEM_Heap_Create offset 0x%lx size 0x%lx at %p failed!",__FUNCTION__,__LINE__,GlrOffset, GlrSize,sagebase.bmemAddress));
+        BDBG_ERR(("%s %d BMEM_Heap_Create offset 0x%lx size 0x%lx at %p failed!",__FUNCTION__,__LINE__,GlrOffset, GlrSize,sagebase.addrGLR));
         goto err;
     }
 
+    i = SAGE_Boot_GetRegion(BSAGElib_RegionId_Glr2);
+
+    if(i >= 0 && sagebase.regionMap[i].id == BSAGElib_RegionId_Glr2)
+    {
+
+        GlrOffset = sagebase.regionMap[i].offset;
+        GlrSize = sagebase.regionMap[i].size;
+
+        if(sagebase.addrGLR2 != NULL)
+            brcmstb_memory_kva_unmap(sagebase.addrGLR2);
+
+        if(sagebase.hMemGlr2 != NULL)
+            BMEM_Heap_Destroy(sagebase.hMemGlr2);
+
+        sagebase.addrGLR2 = brcmstb_memory_kva_map_phys(GlrOffset, GlrSize,true);
+        if ( NULL == sagebase.addrGLR2)
+        {
+            rc = BERR_OS_ERROR;
+            BDBG_ERR(("%s %d brcmstb_memory_kva_map_phys offset 0x%lx size 0x%lx failed!",__FUNCTION__,__LINE__,GlrOffset, GlrSize));
+            goto err;
+        }
+
+        mem_heap_settings.eSafetyConfig = BMEM_CONFIG_FASTEST;
+        mem_heap_settings.eBookKeeping  = BMEM_BOOKKEEPING_SYSTEM;
+        mem_heap_settings.uiAlignment = 8;
+        mem_heap_settings.pCachedAddress = sagebase.addrGLR2;
+
+        rc = BMEM_Heap_Create(sagebase.hMemModule,sagebase.addrGLR2, GlrOffset, GlrSize, &mem_heap_settings,&sagebase.hMemGlr2);
+        if(rc!=BERR_SUCCESS)
+        {
+            BDBG_ERR(("%s %d BMEM_Heap_Create offset 0x%lx size 0x%lx at %p failed!",__FUNCTION__,__LINE__,GlrOffset, GlrSize,sagebase.addrGLR2));
+            goto err;
+        }
+    }
+err:
+    return rc;
+}
+
+static BERR_Code SAGE_Boot_Region_Check(uint32_t regionMapNum,BSAGElib_RegionInfo *pRegionMap)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    uint8_t cntNewRegion = 0;
+    int i,regionIndex,srrIndex = -1,glr2Index = -1;
+
     for(i=0;i < regionMapNum && i < REGION_MAP_MAX_NUM;i++)
     {
-        sagebase.regionMap[i] = pRegionMap[i];
+        if(pRegionMap[i].id == BSAGElib_RegionId_Srr)
+            srrIndex = i;
+        if(pRegionMap[i].id == BSAGElib_RegionId_Glr2)
+            glr2Index = i;
+
+        regionIndex = SAGE_Boot_GetRegion(pRegionMap[i].id);
+        if(regionIndex < 0)
+        {
+            /* the region is not found in sagebase.regionMap[], must be a new region */
+            cntNewRegion++;
+            continue;
+        }
+
+        if(sagebase.regionMap[regionIndex].id != pRegionMap[i].id)
+        {
+            rc = BERR_UNKNOWN;
+            BDBG_ERR(("%s %d found new region(%d@%d) different with old(%d@%d) something is wrong ",__FUNCTION__,__LINE__,
+                      sagebase.regionMap[regionIndex].id, regionIndex, pRegionMap[i].id,i));
+            goto err;
+        }
+
+        if(sagebase.regionMap[regionIndex].offset != pRegionMap[i].offset ||
+           sagebase.regionMap[regionIndex].size   != pRegionMap[i].size)
+        {
+            /* new region do not match with old */
+            BDBG_ERR(("%s %d new region(%d) changed, old(%d) offset 0x%lx, size 0x%lx ---old ox%lx size 0x%lx",__FUNCTION__,__LINE__,
+                  sagebase.regionMap[regionIndex].id,      pRegionMap[i].id,
+                  sagebase.regionMap[regionIndex].offset,  pRegionMap[i].offset,
+                  sagebase.regionMap[regionIndex].size,    pRegionMap[i].size));
+
+            if(sagebase.regionMap[regionIndex].id == BSAGElib_RegionId_Srr ||
+               sagebase.regionMap[regionIndex].id == BSAGElib_RegionId_Glr2)
+            {
+                /* SRR and GLR2 can not be changed */
+                BDBG_ERR(("%s %d  SRR and GLR2 can not change, but new region SRR, GLR2 changed.",__FUNCTION__,__LINE__));
+                /*rc = BERR_INVALID_PARAMETER;
+                goto err;*/
+            }
+        }
+    }
+    if(cntNewRegion + sagebase.bootSettings.regionMapNum > REGION_MAP_MAX_NUM)
+    {
+        BDBG_ERR(("%s %d Number of Regions too many, new region number %d, old %d ",__FUNCTION__,__LINE__,cntNewRegion, sagebase.bootSettings.regionMapNum));
+        rc = BERR_INVALID_PARAMETER;
+        goto err;
     }
 
-    SAGE_DisableInterrupt(&sagebase.isr2);
+    if(srrIndex == -1)
+        srrIndex = SAGE_Boot_GetRegion(BSAGElib_RegionId_Srr);
+    if(glr2Index == -1)
+        glr2Index = SAGE_Boot_GetRegion(BSAGElib_RegionId_Glr2);
 
-    rc = SAGE_EnableInterrupt(32 + BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_SCPU_CPU_INTR_SHIFT,&sagebase.isr2);
+    if(srrIndex == -1)
+    {
+        BDBG_ERR(("%s %d SRR region not available ",__FUNCTION__,__LINE__));
+        rc = BERR_INVALID_PARAMETER;
+        goto err;
+    }
+/*
+    if(glr2Index == -1)
+    {
+        BDBG_ERR(("%s %d GLR2 region not available ",__FUNCTION__,__LINE__));
+        rc = BERR_INVALID_PARAMETER;
+        goto err;
+    }*/
+err:
+    return rc;
+}
+
+static int SAGE_Boot_Rpc_Init(uint32_t HSIBufferOffset)
+{
+    BERR_Code rc;
+
+    if(NULL == Sage_OffsetToAddr(HSIBufferOffset))
+    {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s %d HSIBufferOffset 0x%lx is wrong, it's not within GLR region!!",__FUNCTION__,__LINE__,(unsigned long)HSIBufferOffset));
+        goto err;
+    }
+
+    rc = BSAGE_Rpc_Init(HSIBufferOffset);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - BSAGE_Rpc_Init failed.", __FUNCTION__));
+        goto err;
+    }
+
+    SAGE_DisableInterrupt(&sagebase.isrRpc);
+
+    rc = SAGE_EnableInterrupt(32 + BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_SCPU_CPU_INTR_SHIFT,&sagebase.isrRpc);
     if(rc!=BERR_SUCCESS)
     {
         BDBG_ERR(("%s %d SAGE_EnableInterrupt BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_SCPU_CPU_INTR_SHIFT %d failed!",__FUNCTION__,__LINE__,32 + BCHP_HIF_CPU_INTR1_INTR_W0_STATUS_SCPU_CPU_INTR_SHIFT));
@@ -628,82 +835,116 @@ static BERR_Code SAGE_Boot_GLR(uint32_t regionMapNum,BSAGElib_RegionInfo *pRegio
 err:
     return rc;
 }
-
-int SAGE_Boot_RegionInfo(uint32_t HSIBufferOffset,uint32_t regionMapNum,BSAGElib_RegionInfo *pRegionMap)
+static int SAGE_Boot_RegionInfo(uint32_t HSIBufferOffset,uint32_t regionMapNum,BSAGElib_RegionInfo *pRegionMap)
 {
     BERR_Code rc = BERR_SUCCESS;
     char *bootloader_filename,*framwork_filename,*bootloaderDev_filename,*framworkDev_filename;
     BCMD_VKLID_e vkl;
-    BSAGElib_RegionInfo *pBootRegionMap;
+    BSAGElib_RegionInfo *pBootRegionMap=NULL;
 
     if(pRegionMap == NULL)
     {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d NULL pRegionMap !!"));
+        BDBG_ERR(("%s %d NULL pRegionMap !!",__FUNCTION__,__LINE__));
         goto err;
     }
 
     if(regionMapNum > REGION_MAP_MAX_NUM)
     {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d regionMapNum %d is bigger than %d !!",regionMapNum,REGION_MAP_MAX_NUM));
+        BDBG_ERR(("%s %d regionMapNum %d is bigger than %d !!",__FUNCTION__,__LINE__,regionMapNum,REGION_MAP_MAX_NUM));
         goto err;
     }
-    sagebase.bootSettings.regionMapNum = regionMapNum;
 
-    bootloaderDev_filename = "sage_bl_dev.bin";
-    framworkDev_filename = "sage_framework_dev.bin";
-    bootloader_filename = "sage_bl.bin";
-    framwork_filename = "sage_framework.bin";
+    if(HSIBufferOffset == 0)
+    {
+        if(sagebase.bootSettings.HSIBufferOffset == 0)
+        {
+            rc = BERR_INVALID_PARAMETER;
+            BDBG_ERR(("%s %d HSIBufferOffset is zero!!",__FUNCTION__,__LINE__));
+            goto err;
+        }
+        if(sagebase.bootSettings.HSIBufferOffset != HSIBufferOffset)
+        {
+            BDBG_WRN(("%s %d HSIBufferOffset(0x%lx) is different from old(0x%lx)!! HSIBufferOffset can not change, set it to old value !!",__FUNCTION__,__LINE__,HSIBufferOffset,sagebase.bootSettings.HSIBufferOffset));
+            HSIBufferOffset = sagebase.bootSettings.HSIBufferOffset;
+        }
+    }
 
-    SAGE_Boot_GLR(regionMapNum,pRegionMap);
-
-    if(NULL == Sage_OffsetToAddr(HSIBufferOffset))
+    rc = SAGE_Boot_Region_Check(regionMapNum,pRegionMap);
+    if(rc != BERR_SUCCESS)
     {
         rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d HSIBufferOffset 0x%lx is wrong, it's not within GLR region!!",(unsigned long)HSIBufferOffset));
+        BDBG_ERR(("%s %d region map not valid!!",__FUNCTION__,__LINE__));
         goto err;
     }
+
+    rc = SAGE_Boot_ReadRegionMap(regionMapNum,pRegionMap);
+    if(rc != BERR_SUCCESS)
+    {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s %d SAGE_Boot_ReadRegionMap failed!!",__FUNCTION__,__LINE__));
+        goto err;
+    }
+
+    rc = SAGE_Boot_Rpc_Init(HSIBufferOffset);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - SAGE_Rpc_Init failed.", __FUNCTION__));
+        goto err;
+    }
+
+    if(sagebase.bootSettings.HSIBufferOffset != 0)
+    {
+        /* sage already booted */
+        /* send command for Region map change */
+        goto err;
+    }
+
     sagebase.bootSettings.HSIBufferOffset = HSIBufferOffset;
 
     pBootRegionMap = (BSAGElib_RegionInfo *)Sage_Malloc(regionMapNum*sizeof(BSAGElib_RegionInfo));
     if(pBootRegionMap == NULL)
     {
         rc = BERR_OUT_OF_DEVICE_MEMORY;
-        BDBG_ERR(("%s %d alloc %d boot regionMap memeory failed!!",regionMapNum));
+        BDBG_ERR(("%s %d alloc %d boot regionMap memeory failed!!",__FUNCTION__,__LINE__,regionMapNum));
         goto err;
     }
 
     sagebase.bootSettings.regionMapOffset = Sage_AddrToOffset(pBootRegionMap);
 
-    rc = SAGE_Boot_FillRegionInfo(pBootRegionMap);
+    rc = SAGE_Boot_WriteRegionMap(pBootRegionMap);
     if(rc != BERR_SUCCESS) {
         printk("%s %d load RegionMap failed !\n",__FUNCTION__,__LINE__);
         goto err;
     }
 
+    bootloaderDev_filename = "sage_bl_dev.bin";
+    framworkDev_filename = "sage_framework_dev.bin";
+    bootloader_filename = "sage_bl.bin";
+    framwork_filename = "sage_framework.bin";
+
     rc = SAGE_Boot_Load(bootloader_filename,&sagebase.bootSettings.bootloaderOffset,&sagebase.bootSettings.bootloaderSize);
     if(rc != BERR_SUCCESS) {
         printk("%s %d load %s failed !\n",__FUNCTION__,__LINE__,bootloader_filename);
-        goto err;
+        goto err_load1;
     }
 
     rc = SAGE_Boot_Load(framwork_filename,&sagebase.bootSettings.frameworkOffset,&sagebase.bootSettings.frameworkSize);
     if(rc != BERR_SUCCESS) {
         printk("%s %d load %s failed !\n",__FUNCTION__,__LINE__,framwork_filename);
-        goto err;
+        goto err_load2;
     }
 
     rc = SAGE_Boot_Load(bootloaderDev_filename,&sagebase.bootSettings.bootloaderDevOffset,&sagebase.bootSettings.bootloaderDevSize);
     if(rc != BERR_SUCCESS) {
         printk("%s %d load %s failed !\n",__FUNCTION__,__LINE__,bootloaderDev_filename);
-        goto err;
+        goto err_load3;
     }
 
     rc = SAGE_Boot_Load(framworkDev_filename,&sagebase.bootSettings.frameworkDevOffset,&sagebase.bootSettings.frameworkDevSize);
     if(rc != BERR_SUCCESS) {
         printk("%s %d load %s failed !\n",__FUNCTION__,__LINE__,framworkDev_filename);
-        goto err;
+        goto err_load4;
     }
 
     SAGE_Hsm_Init();
@@ -747,19 +988,33 @@ int SAGE_Boot_RegionInfo(uint32_t HSIBufferOffset,uint32_t regionMapNum,BSAGElib
 
 err_core:
     SAGE_Hsm_Uninit();
+err_load4:
+    if(sagebase.bootSettings.frameworkDevOffset)
+        Sage_MfreeOffset(sagebase.bootSettings.frameworkDevOffset);
+err_load3:
+    if(sagebase.bootSettings.bootloaderDevOffset)
+        Sage_MfreeOffset(sagebase.bootSettings.bootloaderDevOffset);
+err_load2:
+    if(sagebase.bootSettings.frameworkOffset)
+        Sage_MfreeOffset(sagebase.bootSettings.frameworkOffset);
+err_load1:
+    if(sagebase.bootSettings.bootloaderOffset)
+        Sage_MfreeOffset(sagebase.bootSettings.bootloaderOffset);
 err:
+    if(pBootRegionMap)
+        Sage_Mfree(pBootRegionMap);
     return rc;
 }
 
-BERR_Code SAGE_Boot_GetInfo(BSAGElib_ChipInfo *pChipInfo,BSAGElib_ImageInfo *pBootloaderInfo,BSAGElib_ImageInfo *pFrameworkInfo)
+static BERR_Code SAGE_Boot_GetInfo(BSAGElib_ChipInfo *pChipInfo,BSAGElib_ImageInfo *pBootloaderInfo,BSAGElib_ImageInfo *pFrameworkInfo)
 {
     return BSAGE_Boot_GetInfo(pChipInfo,pBootloaderInfo,pFrameworkInfo);
 }
-BERR_Code SAGE_GetStatus(BSAGElib_Status *pStatus)
+static BERR_Code SAGE_GetStatus(BSAGElib_Status *pStatus)
 {
     return BSAGE_GetStatus(pStatus);
 }
-void SAGE_Management_Reset(void)
+static void SAGE_Management_Reset(void)
 {
     BSAGE_Management_Reset();
 }
@@ -769,11 +1024,9 @@ EXPORT_SYMBOL(SAGE_Boot_GetInfo);
 EXPORT_SYMBOL(SAGE_GetStatus);
 EXPORT_SYMBOL(SAGE_Management_Reset);
 
-static int SAGE_Boot_Check(BSAGE_BootSettings *pBootSettings)
+static int SAGE_BootSetting_Check(BSAGE_BootSettings *pBootSettings)
 {
     BERR_Code rc = BERR_SUCCESS;
-    BSAGElib_RegionInfo *pRegionMap;
-    uint32_t offset,size,offset2,size2;
 
     if(pBootSettings == NULL)
     {
@@ -782,153 +1035,109 @@ static int SAGE_Boot_Check(BSAGE_BootSettings *pBootSettings)
         goto err;
     }
 
-    if(sagebase.hMemGlr == NULL)
+    if(pBootSettings->HSIBufferOffset == 0)
     {
-        rc = BERR_NOT_INITIALIZED;
-        printk("%s %d GLR heap not available yet!\n",__FUNCTION__,__LINE__);
-        goto err;
-    }
-
-    pRegionMap = (BSAGElib_RegionInfo *)Sage_OffsetToAddr(pBootSettings->regionMapOffset);
-    if(pRegionMap == NULL)
-    {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d Fail to find regionMapOffset(offset 0x%lx) addr in GLR !!",__FUNCTION__,__LINE__,pBootSettings->regionMapOffset));
-        goto err;
-    }
-
-    if(pBootSettings->regionMapNum != sagebase.bootSettings.regionMapNum)
-    {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d regionMapNum (%d) do not match the old one %d !!",__FUNCTION__,__LINE__,pBootSettings->regionMapNum,sagebase.bootSettings.regionMapNum));
-        goto err;
-    }
-
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Glr,sagebase.regionMap,&offset,&size);
-    if(rc != 0)
-    {
-        BDBG_ERR(("%s %d Fail to read GLR info from sagebase region Map!!",__FUNCTION__,__LINE__));
-        goto err;
-    }
-
-    pRegionMap = (BSAGElib_RegionInfo *) Sage_OffsetToAddr(pBootSettings->regionMapOffset);
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Glr,pRegionMap,&offset2,&size2);
-    if(rc != 0)
-    {
-        BDBG_ERR(("%s %d Fail to read GLR info from pBootSettings region Map!!",__FUNCTION__,__LINE__));
-        goto err;
-    }
-
-    if(offset != offset2 || size != size2)
-    {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d GLR region mismatch new offset 0x%lx, size 0x%lx ---old ox%lx size 0x%lx",__FUNCTION__,__LINE__,offset,size,offset2,size2));
-        goto err;
-    }
-
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Srr,sagebase.regionMap,&offset,&size);
-    if(rc != 0)
-    {
-        BDBG_ERR(("%s %d Fail to read SRR info from sagebase region Map!!",__FUNCTION__,__LINE__));
-        goto err;
-    }
-
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Srr,pRegionMap,&offset2,&size2);
-    if(rc != 0)
-    {
-        BDBG_ERR(("%s %d Fail to read SRR info from pBootSettings region Map!!",__FUNCTION__,__LINE__));
-        goto err;
-    }
-
-    if(offset != offset2 || size != size2)
-    {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d SRR region mismatch new offset 0x%lx, size 0x%lx ---old ox%lx size 0x%lx",__FUNCTION__,__LINE__,offset,size,offset2,size2));
-        goto err;
-    }
-
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Crr,sagebase.regionMap,&offset,&size);
-    if(rc != 0)
-    {
-        BDBG_ERR(("%s %d Fail to read CRR info from sagebase region Map!!",__FUNCTION__,__LINE__));
-        goto err;
-    }
-
-    rc = SAGE_GetRegionMap(BSAGElib_RegionId_Crr,pRegionMap,&offset2,&size2);
-    if(rc != 0)
-    {
-        BDBG_ERR(("%s %d Fail to read CRR info from pBootSettings region Map!!",__FUNCTION__,__LINE__));
-        goto err;
-    }
-
-    if(offset != offset2 || size != size2)
-    {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s %d CRR region mismatch new offset 0x%lx, size 0x%lx ---old ox%lx size 0x%lx",__FUNCTION__,__LINE__,offset,size,offset2,size2));
-        goto err;
+        if(sagebase.bootSettings.HSIBufferOffset == 0)
+        {
+            rc = BERR_INVALID_PARAMETER;
+            BDBG_ERR(("%s %d HSIBufferOffset is zero!!",__FUNCTION__,__LINE__));
+            goto err;
+        }
+        if(sagebase.bootSettings.HSIBufferOffset != pBootSettings->HSIBufferOffset)
+        {
+            BDBG_WRN(("%s %d HSIBufferOffset(0x%lx) is different from old(0x%lx)!! HSIBufferOffset can not change, set it to old value !!",__FUNCTION__,__LINE__,pBootSettings->HSIBufferOffset,sagebase.bootSettings.HSIBufferOffset));
+            pBootSettings->HSIBufferOffset = sagebase.bootSettings.HSIBufferOffset;
+        }
     }
 
 err:
     return rc;
 }
 
-static int SAGE_Boot_Parse(BSAGE_BootSettings *pBootSettings)
-{
-    int i;
-    uint8_t *pPage;
-    uint32_t pageoffset;
-    BSAGElib_RegionInfo *pRegionMap;
-
-    pageoffset = pBootSettings->regionMapOffset&(~(PAGE_SIZE-1));
-    pPage = (uint8_t *)brcmstb_memory_kva_map_phys(pageoffset, PAGE_SIZE*2,true);
-    if ( NULL == pPage) {
-        BDBG_ERR(("%s %d uname to map regionMapOffset page!",__FUNCTION__,__LINE__));
-        return BERR_TRACE(BERR_OS_ERROR);
-    }
-
-    pRegionMap = (BSAGElib_RegionInfo *)(pPage + (pBootSettings->regionMapOffset - pageoffset));
-
-    sagebase.bootSettings = *pBootSettings;
-
-    for(i=0;i < pBootSettings->regionMapNum && i < REGION_MAP_MAX_NUM;i++)
-    {
-        sagebase.regionMap[i] = pRegionMap[i];
-    }
-
-    brcmstb_memory_kva_unmap(pPage);
-
-    return 0;
-}
-
-BERR_Code
+static BERR_Code
 SAGE_Boot_Launch(
     BHSM_Handle hHsm,
     BSAGE_BootSettings *pBootSettings)
 {
     BERR_Code rc;
+    BSAGElib_RegionInfo *pRegionMap;
+    uint8_t *pPage = NULL;
+    uint32_t pageoffset;
 
-    rc = SAGE_Boot_Check(pBootSettings);
+    /* check bootsetting map except regionMap */
+    rc = SAGE_BootSetting_Check(pBootSettings);
     if(rc != 0)
     {
         BDBG_ERR(("%s %d Fail to read CRR info from pBootSettings region Map!!"));
         goto err;
     }
 
-    rc = BSAGE_Rpc_Init(pBootSettings->HSIBufferOffset);
-    if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s - BSAGE_Rpc_Init failed.", __FUNCTION__));
+    pRegionMap = (BSAGElib_RegionInfo *)Sage_OffsetToAddr(pBootSettings->regionMapOffset);
+    if(pRegionMap == NULL)
+    {
+        pageoffset = pBootSettings->regionMapOffset&(~(PAGE_SIZE-1));
+        pPage = (uint8_t *)brcmstb_memory_kva_map_phys(pageoffset, PAGE_SIZE*2,true);
+        if ( NULL == pPage) {
+            rc = BERR_OS_ERROR;
+            BDBG_ERR(("%s %d unable to map regionMapOffset pageoffset 0x%xlx!",__FUNCTION__,__LINE__,pageoffset));
+            goto err;
+        }
+        pRegionMap = (BSAGElib_RegionInfo *)(pPage + (pBootSettings->regionMapOffset - pageoffset));
+    }
+
+    if(pRegionMap == NULL)
+    {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s %d Fail to map regionMapOffset(offset 0x%lx) addr!!",__FUNCTION__,__LINE__,pBootSettings->regionMapOffset));
         goto err;
     }
 
-/*
+    rc = SAGE_Boot_Region_Check(pBootSettings->regionMapNum,pRegionMap);
+    if(rc != 0)
+    {
+        BDBG_ERR(("%s %d region Map check fail !!",__FUNCTION__,__LINE__));
+        goto err;
+    }
+
+    rc = SAGE_Boot_ReadRegionMap(pBootSettings->regionMapNum,pRegionMap);
+
+    if(pPage != NULL)
+        brcmstb_memory_kva_unmap(pPage);
+
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - SAGE_Boot_ReadRegionMap failed.", __FUNCTION__));
+        goto err;
+    }
+
+    rc = SAGE_Boot_Rpc_Init(pBootSettings->HSIBufferOffset);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - SAGE_Rpc_Init failed.", __FUNCTION__));
+        goto err;
+    }
+
+    if(sagebase.bootSettings.HSIBufferOffset != 0)
+    {
+        /* sage already booted */
+        /* send command for Region map change */
+        goto err;
+    }
+
+    sagebase.bootSettings.HSIBufferOffset = pBootSettings->HSIBufferOffset;
+
     SAGE_Hsm_Init();
 
     rc = BSAGE_Boot_Launch(sagebase.hHsm,pBootSettings);
+    if(rc != BERR_SUCCESS) {
+        printk("%s %d BSAGE_Boot_Launch failed !\n",__FUNCTION__,__LINE__);
+        goto err_core;
+    }
+
+    PINFO("Initialization complete\n");
 
     BSAGE_Boot_GetInfo(&sagebase.chipInfo,&sagebase.bootloaderInfo,&sagebase.frameworkInfo);
 
+err_core:
     SAGE_Hsm_Uninit();
-*/
 err:
     return rc;
 }
@@ -969,22 +1178,22 @@ static const struct file_operations ioctl_fops_##name = {	\
 	.read	=	seq_read,				\
 	.write	=	proc_write_##name,			\
 	.llseek =	seq_lseek,				\
-	.release = 	seq_release,				\
+	.release = 	proc_release_##name,				\
     .unlocked_ioctl	= proc_ioctl_##name,	\
 };
 
-BSAGE_RpcRemoteHandle SAGE_AddRemote(uint32_t platformId,uint32_t moduleId,void *async_argument,uint64_t messageOffset);
-void SAGE_RemoveRemote(BSAGE_RpcRemoteHandle remote);
-BERR_Code SAGE_SendCommand(BSAGE_RpcRemoteHandle remote,BSAGElib_RpcCommand *command,uint32_t *pAsync_id);
-BERR_Code SAGE_SendCallbackResponse(BSAGE_RpcRemoteHandle remote,uint32_t sequenceId,BERR_Code retCode);
-BERR_Code SAGE_RegisterCallback(SAGE_Event event,void *callback,void *context,BSAGE_RpcRemoteHandle remote);
-BERR_Code SAGE_UnRegisterCallback(SAGE_Event event,BSAGE_RpcRemoteHandle remote);
-void SAGE_ResponseCallback(struct platform *p,BERR_Code response_rc);
-void SAGE_IndicationRecvCallback(struct platform *p,void *async_argument,uint32_t indication_id,uint32_t value);
-BERR_Code SAGE_RequestCallback(struct platform *p,void *async_argument);
-void SAGE_TATerminateCallback(struct platform *p,void *async_argument,uint32_t reason,uint32_t source);
-void SAGE_WatchdogCallback(struct platform *p);
-void *SAGE_AddWatchdog(void *callback,void *context);
+static BSAGE_RpcRemoteHandle SAGE_AddRemote(uint32_t platformId,uint32_t moduleId,void *async_argument,uint64_t messageOffset);
+static void SAGE_RemoveRemote(BSAGE_RpcRemoteHandle remote);
+static BERR_Code SAGE_SendCommand(BSAGE_RpcRemoteHandle remote,BSAGElib_RpcCommand *command,uint32_t *pAsync_id);
+static BERR_Code SAGE_SendCallbackResponse(BSAGE_RpcRemoteHandle remote,uint32_t sequenceId,BERR_Code retCode);
+static BERR_Code SAGE_RegisterCallback(SAGE_Event event,void *callback,void *context,BSAGE_RpcRemoteHandle remote);
+static BERR_Code SAGE_UnRegisterCallback(SAGE_Event event,BSAGE_RpcRemoteHandle remote);
+static void SAGE_ResponseCallback(struct platform *p,BERR_Code response_rc);
+static void SAGE_IndicationRecvCallback(struct platform *p,void *async_argument,uint32_t indication_id,uint32_t value);
+static BERR_Code SAGE_RequestCallback(struct platform *p,void *async_argument);
+static void SAGE_TATerminateCallback(struct platform *p,void *async_argument,uint32_t reason,uint32_t source);
+static void SAGE_WatchdogCallback(struct platform *p);
+static void *SAGE_AddWatchdog(void *callback,void *context);
 
 static int proc_read_platform(struct seq_file *seq, void *v)
 {
@@ -1160,6 +1369,15 @@ err:
 //        BDBG_ERR(("%s %d IOCTL command %d arg 0x%lx failed %d!",__FUNCTION__,__LINE__,command,arg,rc));
     }
     return rc;
+}
+
+static int proc_release_platform(struct inode *inode, struct file *file)
+{
+    struct platform *p = PDE_DATA(((struct file *)file)->f_inode);
+
+    SAGE_RemoveRemote((BSAGE_RpcRemoteHandle)p);
+
+    return seq_release(inode, file);
 }
 
 static int proc_read_remove_watchdog(struct seq_file *seq, void *v)
@@ -1604,78 +1822,44 @@ static int proc_read_bootInfo(struct seq_file *seq, void *v)
     return  0;
 }
 
-uint32_t *getPointerFromFilename(struct path *path)
+static int proc_read_bmemInfo(struct seq_file *seq, void *v)
 {
-/*    if(strcmp(path->dentry->d_iname,"crroffset") == 0)
-        return &sagebase.CrrOffset;
-    if(strcmp(path->dentry->d_iname,"crrsize") == 0)
-        return &sagebase.CrrSize;
-    if(strcmp(path->dentry->d_iname,"srroffset") == 0)
-        return &sagebase.SrrOffset;
-    if(strcmp(path->dentry->d_iname,"srrsize") == 0)
-        return &sagebase.SrrSize;
-    if(strcmp(path->dentry->d_iname,"glroffset") == 0)
-        return &sagebase.GlrOffset;
-    if(strcmp(path->dentry->d_iname,"glrsize") == 0)
-        return &sagebase.GlrSize;
-    if(strcmp(path->dentry->d_iname,"hsioffset") == 0)
-        return &sagebase.HsiOffset;
-*/
-    return NULL;
-}
+    struct brcmstb_memory osmem;
+    int i,j;
 
-static int proc_read_memregion(struct seq_file *seq, void *v)
-{
-    struct file *file = (struct file *)seq->private;
-    uint32_t *p = getPointerFromFilename(&(file->f_path));
+    brcmstb_memory_get(&osmem);
 
-    if(p == NULL)
+    for(i=0;i<MAX_BRCMSTB_MEMC;i++)
     {
-        printk(" Can get %s's value!\n",file->f_path.dentry->d_iname);
-        return 0;
-    }else{
-
-        seq_printf(seq,"Current %s is 0x%x(dec%d) \n",file->f_path.dentry->d_iname,*p,*p);
+        for(j=0;j<osmem.memc[i].count && j<MAX_BRCMSTB_RANGE;j++)
+        {
+            seq_printf(seq," memc[%d] addr 0x%8llx size 0x%8llx\n",i,osmem.memc[i].range[j].addr,osmem.memc[i].range[j].size);
+        }
     }
 
-	return  0;
-}
-
-static ssize_t proc_write_memregion(struct file *file, const char __user *buffer, size_t count, loff_t *data)
-{
-    int rc,copy_len;
-    char intarray[100];
-    long value;
-    uint32_t *p = getPointerFromFilename(&(file->f_path));
-
-    if(count >= 99)
-        printk(" %s %d glr offset data is %d byte in length, it's too long \n",__FUNCTION__,__LINE__,count);
-
-    if(p == NULL)
+    for(j=0;j<osmem.lowmem.count && j<MAX_BRCMSTB_RANGE;j++)
     {
-        printk(" Can get %s's value!\n",file->f_path.dentry->d_iname);
-        return 0;
+        seq_printf(seq,"  lowmem addr 0x%8llx size 0x%8llx\n",osmem.lowmem.range[j].addr,osmem.lowmem.range[j].size);
     }
 
-    copy_len = copy_from_user(&intarray,buffer,count);
-    if(copy_len == 0)
+    for(j=0;j<osmem.bmem.count && j<MAX_BRCMSTB_RANGE;j++)
     {
-        intarray[count] = '\0';
-        rc = kstrtol(intarray,0,&value);
-        if(rc != 0)
-            printk("SRR size convert from %s failed ! \n",intarray);
-        else
-            *p = value;
-    }else{
-        printk("%s fail to read value ! \n",file->f_path.dentry->d_iname);
+        seq_printf(seq,"    bmem addr 0x%8llx size 0x%8llx\n",osmem.bmem.range[j].addr,osmem.bmem.range[j].size);
     }
 
-/*    printk("now %s is 0x%x(dec:%d)\n",file->f_path.dentry->d_iname,*p,*p);*/
+    for(j=0;j<osmem.cma.count && j<MAX_BRCMSTB_RANGE;j++)
+    {
+        seq_printf(seq,"     cma addr 0x%8llx size 0x%8llx\n",osmem.cma.range[j].addr,osmem.cma.range[j].size);
+    }
 
-    return count;
+    for(j=0;j<osmem.reserved.count && j<MAX_BRCMSTB_RANGE;j++)
+    {
+        seq_printf(seq,"reserved addr 0x%8llx size 0x%8llx\n",osmem.reserved.range[j].addr,osmem.reserved.range[j].size);
+    }
+    return  0;
 }
 
-int SAGE_CallbackTask(void * data)
+static int SAGE_CallbackTask(void * data)
 {
     int rc;
     struct platform *p = (struct platform *)data;
@@ -1751,7 +1935,7 @@ err:
     return 0;
 }
 
-void SAGE_ResponseCallback(
+static void SAGE_ResponseCallback(
     struct platform *p,
     BERR_Code response_rc)
 {
@@ -1783,7 +1967,7 @@ void SAGE_ResponseCallback(
     }
 }
 
-void SAGE_IndicationRecvCallback(
+static void SAGE_IndicationRecvCallback(
     struct platform *p,
     void *async_argument,
     uint32_t indication_id,
@@ -1817,7 +2001,7 @@ void SAGE_IndicationRecvCallback(
     }
 }
 
-BERR_Code SAGE_RequestCallback(
+static BERR_Code SAGE_RequestCallback(
     struct platform *p,
     void *async_argument)
 {
@@ -1852,7 +2036,7 @@ BERR_Code SAGE_RequestCallback(
     return rc;
 }
 
-void SAGE_TATerminateCallback(
+static void SAGE_TATerminateCallback(
     struct platform *p,
     void *async_argument,
     uint32_t reason,
@@ -1886,7 +2070,7 @@ void SAGE_TATerminateCallback(
     }
 }
 
-void SAGE_WatchdogCallback(
+static void SAGE_WatchdogCallback(
     struct platform *p)
 {
     struct sk_buff *skb;
@@ -1921,7 +2105,7 @@ BUILD_RW_FOPS(bootRegionInfo);
 BUILD_RW_FOPS(bootSettings);
 BUILD_RO_FOPS(bootInfo);
 BUILD_RO_FOPS(bootStatus);
-BUILD_RW_FOPS(memregion);
+BUILD_RO_FOPS(bmemInfo);
 BUILD_RW_FOPS(create_platform);
 BUILD_RW_FOPS(remove_platform);
 BUILD_IOCTL_FOPS(platform);
@@ -1929,9 +2113,9 @@ BUILD_RW_FOPS(create_watchdog);
 BUILD_RW_FOPS(remove_watchdog);
 BUILD_RW_FOPS(toreset);
 
-struct proc_dir_entry *platforms_dir,*management_dir;
+static struct proc_dir_entry *platforms_dir,*management_dir;
 
-void *SAGE_AddWatchdog(
+static void *SAGE_AddWatchdog(
     void *callback,
     void *context)
 {
@@ -1981,7 +2165,7 @@ err:
     return NULL;
 }
 
-BERR_Code SAGE_SendCommand(
+static BERR_Code SAGE_SendCommand(
     BSAGE_RpcRemoteHandle remote,
     BSAGElib_RpcCommand *command,
     uint32_t *pAsync_id)
@@ -2009,7 +2193,7 @@ BERR_Code SAGE_SendCommand(
     return rc;
 }
 
-BERR_Code SAGE_SendCallbackResponse(
+static BERR_Code SAGE_SendCallbackResponse(
     BSAGE_RpcRemoteHandle remote,
     uint32_t sequenceId,
     BERR_Code retCode)
@@ -2038,7 +2222,7 @@ err:
     return rc;
 }
 
-BERR_Code SAGE_RegisterCallback(
+static BERR_Code SAGE_RegisterCallback(
     SAGE_Event event,
     void *callback,
     void *context,
@@ -2071,7 +2255,7 @@ err:
     return rc;
 }
 
-BERR_Code SAGE_UnRegisterCallback(
+static BERR_Code SAGE_UnRegisterCallback(
     SAGE_Event event,
     BSAGE_RpcRemoteHandle remote)
 {
@@ -2099,7 +2283,7 @@ err:
     return rc;
 }
 
-BSAGE_RpcRemoteHandle SAGE_AddRemote(
+static BSAGE_RpcRemoteHandle SAGE_AddRemote(
     uint32_t platformId,
     uint32_t moduleId,
     void *async_argument,
@@ -2160,7 +2344,7 @@ err:
     return NULL;
 }
 
-void SAGE_RemoveRemote(
+static void SAGE_RemoveRemote(
     BSAGE_RpcRemoteHandle remote)
 {
     struct platform *p = (struct platform *) remote;
@@ -2213,7 +2397,7 @@ void SAGE_RemoveRemote(
     BDBG_LEAVE((SAGE_RemoveRemote));
 }
 
-BERR_Code SAGE_RegisterCallback1(
+static BERR_Code SAGE_RegisterCallback1(
     SAGE_Event event,
     void *callback,
     void *context,
@@ -2279,7 +2463,7 @@ err:
     return rc;
 }
 
-BERR_Code SAGE_UnRegisterCallback1(
+static BERR_Code SAGE_UnRegisterCallback1(
     SAGE_Event event,
     BSAGE_RpcRemoteHandle remote)
 {
@@ -2369,7 +2553,7 @@ error:
 static int Sage_create_boot_files(struct proc_dir_entry *sage_dir)
 {
     struct proc_dir_entry *bootSettings_file, *bootInfo_file, *bootStatus_file, \
-                          *bootRegionInfo_file, *toreset_file;
+                          *bootRegionInfo_file, *toreset_file,*bmemInfo_file;
 
 
     int rv=0;
@@ -2414,13 +2598,21 @@ static int Sage_create_boot_files(struct proc_dir_entry *sage_dir)
         goto error;
     }
 
+    bmemInfo_file = proc_create_data("showBmemInfo",0664, sage_dir,&read_fops_bmemInfo,NULL);
+    if (bmemInfo_file == NULL)
+    {
+        printk(" %s %d create sage/showBmemInfo failed \n",__FUNCTION__,__LINE__);
+        rv  = -ENOMEM;
+        goto error;
+    }
+
     return 0;
 error:
     return rv;
 
 }
 
-struct proc_dir_entry *sage_dir;
+static struct proc_dir_entry *sage_dir;
 
 static int __init __init_module(void)
 {
@@ -2502,6 +2694,8 @@ static void __exit __cleanup_module(void)
 {
     PINFO("Cleanup_modules...\n");
 
+    remove_proc_entry("100-0-28eb2b80",platforms_dir);
+    remove_proc_subtree("platforms", sage_dir);
     remove_proc_subtree(MODULE_NAME, NULL);
 
     SAGE_Base_Uninit();

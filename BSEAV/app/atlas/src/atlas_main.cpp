@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,6 +38,10 @@
 
 #include "atlas_main.h"
 #include "display.h"
+
+#ifdef CPUTEST_SUPPORT
+#include "cputest.h"
+#endif
 
 BDBG_MODULE(atlas_main);
 
@@ -160,6 +164,7 @@ CDisplay * CAtlas::displayInitialize(
     {
         NEXUS_DisplayCapabilities capsDisplay;
         NEXUS_GetDisplayCapabilities(&capsDisplay);
+        int formatPreferred = 0;
 
         {
             int width  = capsDisplay.display[pDisplay->getNumber()].graphics.width;
@@ -172,6 +177,24 @@ CDisplay * CAtlas::displayInitialize(
             /* use nexus reported max graphics size instead of given size */
             framebufferWidth  = capsDisplay.display[pDisplay->getNumber()].graphics.width;
             framebufferHeight = capsDisplay.display[pDisplay->getNumber()].graphics.height;
+        }
+
+        for (formatPreferred = videoFormat; 0 < videoFormat; formatPreferred--)
+        {
+            if (true == capsDisplay.displayFormatSupported[formatPreferred])
+            {
+                /* Print out a warning because preferred format should be changed in atlas.cfg */
+                if (videoFormat != (NEXUS_VideoFormat)formatPreferred)
+                {
+                    BDBG_WRN(("Preferred VideoFormat %s is not supported in this boxmode. VideoFormat Changed to %s \n"
+                              "To adjust Preferred Format please modify atlas.cfg PREFERRED_FORMAT_HD/SD \n"
+                              "You May be running a 50Hz boxmode",
+                              videoFormatToString((NEXUS_VideoFormat)videoFormat).s(),
+                              videoFormatToString((NEXUS_VideoFormat)formatPreferred).s()));
+                }
+                videoFormat = (NEXUS_VideoFormat) formatPreferred;
+                break;
+            }
         }
     }
 
@@ -822,6 +845,7 @@ eRet CAtlas::wifiInitialize(void)
         ret = pWifi->start();
         CHECK_ERROR_GOTO("unable to start wifi object", ret, error);
         _pBoardResources->checkinResource(pWifi);
+        _model.setWifi(pWifi);
     }
 error:
     ATLAS_MEMLEAK_TRACE("END");
@@ -835,6 +859,7 @@ void CAtlas::wifiUninitialize(void)
     pWifi = (CWifi *)_pBoardResources->checkoutResource(this, eBoardResource_wifi);
     if (NULL != pWifi)
     {
+        _model.setWifi(NULL);
         pWifi->stop();
         pWifi->close();
         _pBoardResources->checkinResource(pWifi);
@@ -1909,6 +1934,9 @@ void CAtlas::notificationsInitialize()
 #ifdef MPOD_SUPPORT
     CCablecard * pCableCard = _model.getCableCard();
 #endif
+#ifdef CPUTEST_SUPPORT
+    CCpuTest * pCpuTest = _model.getCpuTest();
+#endif
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
     /* register objects _pControl observes */
@@ -2044,6 +2072,9 @@ void CAtlas::notificationsInitialize()
 #if NEXUS_HAS_VIDEO_ENCODER
         _pBoardResources->registerObserver(this, eBoardResource_encode, _pMainScreen);
 #endif
+#ifdef CPUTEST_SUPPORT
+        if (NULL != pCpuTest) { pCpuTest->registerObserver(_pMainScreen); }
+#endif
     }
 
     /* register objects _pLua observes */
@@ -2097,6 +2128,9 @@ void CAtlas::notificationsInitialize()
         _pBoardResources->registerObserver(this, eBoardResource_outputAudioDacI2s, _pLua);
         _pBoardResources->registerObserver(this, eBoardResource_outputHdmi, _pLua);
         _pBoardResources->registerObserver(this, eBoardResource_outputRFM, _pLua);
+#ifdef CPUTEST_SUPPORT
+        if (NULL != pCpuTest) { pCpuTest->registerObserver(_pLua); }
+#endif
     }
 
     /* check appropriate resources back in */
@@ -2145,6 +2179,9 @@ void CAtlas::notificationsUninitialize()
 #endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 #ifdef MPOD_SUPPORT
     CCablecard * pCableCard = _model.getCableCard();
+#endif
+#ifdef CPUTEST_SUPPORT
+    CCpuTest * pCpuTest = _model.getCpuTest();
 #endif
 
     /* unregister objects _pControl observes */
@@ -2275,6 +2312,9 @@ void CAtlas::notificationsUninitialize()
 #if NEXUS_HAS_VIDEO_ENCODER
         _pBoardResources->unregisterObserver(this, eBoardResource_encode, _pMainScreen);
 #endif
+#ifdef CPUTEST_SUPPORT
+        if (NULL != pCpuTest) { pCpuTest->unregisterObserver(_pMainScreen); }
+#endif
     }
 
     /* unregister objects _pLua observes */
@@ -2328,6 +2368,9 @@ void CAtlas::notificationsUninitialize()
         _pBoardResources->unregisterObserver(this, eBoardResource_outputAudioDacI2s, _pLua);
         _pBoardResources->unregisterObserver(this, eBoardResource_outputHdmi, _pLua);
         _pBoardResources->unregisterObserver(this, eBoardResource_outputRFM, _pLua);
+#ifdef CPUTEST_SUPPORT
+        if (NULL != pCpuTest) { pCpuTest->unregisterObserver(_pLua); }
+#endif
     }
 
     /* check appropriate resources back in */
@@ -2610,6 +2653,14 @@ errorAudioCapture:
         CHECK_MSG_GOTO("Graphical User Interface failed to initialize", ret, error);
     }
 
+#ifdef CPUTEST_SUPPORT
+    {
+        CCpuTest * pCpuTest = new CCpuTest(_pWidgetEngine, _pCfg);
+        CHECK_PTR_ERROR_GOTO("unable to create CCpuTest", pCpuTest, ret, eRet_OutOfMemory, error);
+        _model.setCpuTest(pCpuTest);
+    }
+#endif /* ifdef CPUTEST_SUPPORT */
+
     /* register observers for allowed notification deliveries */
     notificationsInitialize();
 
@@ -2691,6 +2742,19 @@ void CAtlas::uninitialize()
 #endif
 
     notificationsUninitialize();
+
+#ifdef CPUTEST_SUPPORT
+    {
+        CCpuTest * pCpuTest = _model.getCpuTest();
+        if (NULL != pCpuTest)
+        {
+            pCpuTest->stop();
+            _model.setCpuTest(NULL);
+            DEL(pCpuTest);
+        }
+    }
+#endif /* ifdef CPUTEST_SUPPORT */
+
     guiUninitialize();
 
 #ifdef PLAYBACK_IP_SUPPORT

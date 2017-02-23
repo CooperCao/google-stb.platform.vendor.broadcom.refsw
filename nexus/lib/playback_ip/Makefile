@@ -79,4 +79,4 @@ include $(B_LIB_TOP)/build/b_lib_rules.inc
 
 B_LIB_CFLAGS += -std=c99
 B_LIB_CPPFLAGS += -std=c++0x
-CFLAGS += $(BSEAV)/lib/livemedia/blive_ext
+CFLAGS += $(BSEAV)/opensource/livemedia/blive_ext

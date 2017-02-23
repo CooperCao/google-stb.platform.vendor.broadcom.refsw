@@ -80,6 +80,7 @@ static BERR_Code NEXUS_Playpump_P_SetParserBand(NEXUS_PlaypumpHandle p, const NE
 static void NEXUS_Playpump_P_InstallRangeErrIntHandler(NEXUS_PlaypumpHandle p);
 static void NEXUS_Playpump_P_UninstallRangeErrIntHandler(NEXUS_PlaypumpHandle p);
 static NEXUS_Error NEXUS_Playpump_P_SetInterrupts(NEXUS_PlaypumpHandle p, const NEXUS_PlaypumpSettings *pSettings);
+static NEXUS_Error NEXUS_Playpump_P_SetPause( NEXUS_PlaypumpHandle p);
 
 void NEXUS_Playpump_GetDefaultOpenPidChannelSettings_priv(NEXUS_Playpump_OpenPidChannelSettings_priv *pSettings)
 {
@@ -992,7 +993,7 @@ static NEXUS_Error NEXUS_Playpump_Start_priv(NEXUS_PlaypumpHandle p, bool muxInp
     /* pause playback until first consumer (decode or record) is started. this prevent data from being lost
     if any amount of time between playback start and rave configuration (which is done at decode start). */
     if(!p->consumerStarted) { /* 't pause on Start */
-        rc = NEXUS_Playpump_SetPause(p, true);
+        rc = NEXUS_Playpump_P_SetPause(p);
         if (rc) {rc=BERR_TRACE(rc);goto error_pause;}
     }
 
@@ -1160,7 +1161,7 @@ NEXUS_Error NEXUS_Playpump_Flush(NEXUS_PlaypumpHandle p)
 
     /* PI will clear pause, so restore it */
     if (p->paused) {
-        rc = NEXUS_Playpump_SetPause(p, true);
+        rc = NEXUS_Playpump_P_SetPause(p);
         if (rc) return BERR_TRACE(rc);
     }
 
@@ -1300,6 +1301,21 @@ NEXUS_Error NEXUS_Playpump_GetStatus(NEXUS_PlaypumpHandle p, NEXUS_PlaypumpStatu
     pStatus->mediaPtsType = NEXUS_PtsType_eInterpolatedFromInvalidPTS;
     pStatus->mediaPts = 0;
 
+    /* for scatter-gather, use fifoDepth for sum of payload bytes */
+    if (pStatus->fifoDepth==0 && pStatus->descFifoDepth!=0) {
+        size_t sum = 0;
+        struct bpvr_queue fifo = p->activeFifo;
+        while (BFIFO_READ_LEFT(&fifo)) {
+            struct bpvr_queue_item *item = BFIFO_READ(&fifo);
+            sum += item->desc.length;
+            BFIFO_READ_COMMIT(&fifo, 1);
+        }
+        pStatus->fifoDepth = sum;
+        if (sum) {
+            pStatus->fifoSize = sum;
+        }
+    }
+
 #if B_HAS_MEDIA
     if(p->state.packetizer==b_play_packetizer_media) {
         b_pump_demux_status(p->demux, pStatus);
@@ -1315,11 +1331,13 @@ void NEXUS_Playpump_P_ConsumerStarted(NEXUS_PlaypumpHandle p)
 {
     BERR_Code rc;
     BDBG_OBJECT_ASSERT(p, NEXUS_Playpump);
-    if(p->state.running && !p->consumerStarted) {
-        rc = NEXUS_Playpump_SetPause(p, false);
-        if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc);}
+    if (!p->consumerStarted) {
+        p->consumerStarted = true; /* don't pause on Start */
+        if (p->state.running) {
+            rc = NEXUS_Playpump_P_SetPause(p);
+            if(rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc);}
+        }
     }
-    p->consumerStarted=true; /* don't pause on Start */
     return;
 }
 
@@ -1548,6 +1566,7 @@ NEXUS_Playpump_P_OpenPidChannel_MuxImpl(NEXUS_PlaypumpHandle p, unsigned pid, co
     pidChannel = NEXUS_PidChannel_P_Create(play_pid->pid_channel);
     if(pidChannel==NULL) {
         NEXUS_Playpump_P_ClosePid(p, play_pid);
+	return NULL;
     }
 
     return pidChannel;
@@ -1632,11 +1651,10 @@ NEXUS_Playpump_CloseAllPidChannels(NEXUS_PlaypumpHandle p)
     return;
 }
 
-/* This function was added for low-level control required for IP STB flow control. */
-NEXUS_Error NEXUS_Playpump_SetPause( NEXUS_PlaypumpHandle p, bool paused )
+static NEXUS_Error NEXUS_Playpump_P_SetPause( NEXUS_PlaypumpHandle p)
 {
     BERR_Code rc;
-    if (paused) {
+    if (p->paused || !p->consumerStarted) {
         rc = BXPT_Playback_Pause(p->xpt_play);
         if (rc) return BERR_TRACE(rc);
     }
@@ -1644,8 +1662,20 @@ NEXUS_Error NEXUS_Playpump_SetPause( NEXUS_PlaypumpHandle p, bool paused )
         rc = BXPT_Playback_Resume(p->xpt_play);
         if (rc) return BERR_TRACE(rc);
     }
-    p->paused = paused;
     return 0;
+}
+
+NEXUS_Error NEXUS_Playpump_SetPause( NEXUS_PlaypumpHandle p, bool paused )
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    if (p->paused != paused) {
+        p->paused = paused;
+        rc = NEXUS_Playpump_P_SetPause(p);
+        if (rc) {
+            p->paused = !p->paused;
+        }
+    }
+    return rc;
 }
 
 NEXUS_Error NEXUS_Playpump_SuspendPacing( NEXUS_PlaypumpHandle p, bool suspended )
@@ -1680,7 +1710,7 @@ static void NEXUS_Playpump_P_UninstallRangeErrIntHandler(NEXUS_PlaypumpHandle p)
     (void)BINT_DestroyCallback(p->pacingErrIntCallback);
 }
 
-void NEXUS_Playpump_P_CCError_isr(void *context, int param)
+static void NEXUS_Playpump_P_CCError_isr(void *context, int param)
 {
     NEXUS_PlaypumpHandle p = context;
     BSTD_UNUSED(param);
@@ -1688,7 +1718,7 @@ void NEXUS_Playpump_P_CCError_isr(void *context, int param)
     NEXUS_IsrCallback_Fire_isr(p->ccErrorCallback);
 }
 
-void NEXUS_Playpump_P_TeiError_isr(void *context, int param)
+static void NEXUS_Playpump_P_TeiError_isr(void *context, int param)
 {
     NEXUS_PlaypumpHandle p = context;
     BSTD_UNUSED(param);

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,25 @@ void BAPE_Playback_GetDefaultOpenSettings(
     pSettings->watermarkThreshold = 64*1024;
 }
 
+void BAPE_Playback_P_FreeBuffer(BAPE_PlaybackHandle hPlayback, unsigned idx)
+{
+    if ( hPlayback->block[idx] )
+    {
+        if ( hPlayback->pBuffer[idx] )
+        {
+            BMMA_Unlock(hPlayback->block[idx], hPlayback->pBuffer[idx]);
+            hPlayback->pBuffer[idx] = NULL;
+        }
+        if ( hPlayback->offset[idx] )
+        {
+            BMMA_UnlockOffset(hPlayback->block[idx], hPlayback->offset[idx]);
+            hPlayback->offset[idx] = 0;
+        }
+        BMMA_Free(hPlayback->block[idx]);
+        hPlayback->block[idx] = NULL;
+    }
+}
+
 BERR_Code BAPE_Playback_Open(
     BAPE_Handle hApe,
     unsigned index,
@@ -119,10 +138,24 @@ BERR_Code BAPE_Playback_Open(
 
     for (i = 0; i < pSettings->numBuffers; i++) 
     {
-        hPlayback->pBuffer[i] = BMEM_AllocAligned(hPlayback->hHeap, pSettings->bufferSize, 5, 0);
+        hPlayback->block[i] = BMMA_Alloc(hPlayback->hHeap, pSettings->bufferSize, 32, NULL);
+        if ( NULL == hPlayback->block[i] )
+        {
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            goto err_buffer_alloc;
+        }
+        hPlayback->pBuffer[i] = BMMA_Lock(hPlayback->block[i]);
         if ( NULL == hPlayback->pBuffer[i] )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            BAPE_Playback_P_FreeBuffer(hPlayback, i);
+            goto err_buffer_alloc;
+        }
+        hPlayback->offset[i] = BMMA_LockOffset(hPlayback->block[i]);
+        if ( 0 == hPlayback->offset[i] )
+        {
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            BAPE_Playback_P_FreeBuffer(hPlayback, i);
             goto err_buffer_alloc;
         }
     }
@@ -169,7 +202,7 @@ err_buffer_alloc:
     {
         if ( NULL != hPlayback->pBuffer[i] )
         {
-            BMEM_Free(hPlayback->hHeap, hPlayback->pBuffer[i]);
+            BAPE_Playback_P_FreeBuffer(hPlayback, i);
         }
     }
 
@@ -198,7 +231,7 @@ void BAPE_Playback_Close(
     {
         if (hPlayback->pBuffer[i]) 
         {
-            BMEM_Free(hPlayback->hHeap, hPlayback->pBuffer[i]);
+            BAPE_Playback_P_FreeBuffer(hPlayback, i);
         }
     }
 
@@ -602,24 +635,36 @@ void BAPE_Playback_Suspend(
     hPlayback->bufferDepth = bufferDepth;
     if ( bufferDepth > 0 )
     {
-        uint32_t baseAddr, rdAddr, length;
+        BMMA_Block_Handle tmpBlock;
+        BMMA_DeviceOffset baseAddr, rdAddr;
+        unsigned length;
         unsigned chPairs, i;
         void *pBuffer, *pSrcCached, *pDstCached;
-        unsigned preWrap;
-        unsigned postWrap;
+        BMMA_DeviceOffset preWrap;
+        BMMA_DeviceOffset postWrap;
         BAPE_SfifoGroupSettings sfifoSettings;
 
         BAPE_SfifoGroup_P_GetSettings(hPlayback->pMaster->sfifoGroup, &sfifoSettings);
         length = hPlayback->bufferSize;
-        pBuffer = BMEM_AllocAligned(hPlayback->hHeap, length, 5, 0);
-        if ( NULL == pBuffer )
+        tmpBlock = BMMA_Alloc(hPlayback->hHeap, length, 32, NULL);
+        if ( NULL == tmpBlock )
         {
             BDBG_ERR(("Unable to suspend, stopping playback"));
             BAPE_Playback_Stop(hPlayback);
             hPlayback->suspending = false;
             return;
         }
-        BMEM_ConvertAddressToCached(hPlayback->hHeap, pBuffer, &pDstCached);
+        pBuffer = BMMA_Lock(tmpBlock);
+        if ( NULL == pBuffer )
+        {
+            BDBG_ERR(("Unable to suspend, stopping playback"));
+            BMMA_Free(tmpBlock);
+            tmpBlock = NULL;
+            BAPE_Playback_Stop(hPlayback);
+            hPlayback->suspending = false;
+            return;
+        }
+        pDstCached = pBuffer;
 
         /* copy the data*/
         chPairs = BAPE_FMT_P_GetNumChannelPairs_isrsafe(&hPlayback->node.connectors[0].format);
@@ -629,10 +674,11 @@ void BAPE_Playback_Suspend(
             baseAddr = sfifoSettings.bufferInfo[i*2].base;
             BAPE_SfifoGroup_P_GetReadAddress(hPlayback->pMaster->sfifoGroup, i*2, 0, &rdAddr);
 
-            BMEM_ConvertAddressToCached(hPlayback->hHeap, hPlayback->pBuffer[i*2], &pSrcCached);
+            pSrcCached = hPlayback->pBuffer[i*2];
 
             if (rdAddr+bufferDepth <= baseAddr+length) /* there is no wrap */
             {
+                BMMA_FlushCache(hPlayback->block[i*2], (uint8_t*)pSrcCached+(rdAddr-baseAddr), bufferDepth);
                 BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), bufferDepth);
             }
             else /* there is wrap */
@@ -640,21 +686,24 @@ void BAPE_Playback_Suspend(
                 preWrap = baseAddr + length - rdAddr;
                 postWrap = bufferDepth - preWrap;
 
+                BMMA_FlushCache(hPlayback->block[i*2], (uint8_t*)pSrcCached+(rdAddr-baseAddr), preWrap);
                 BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), preWrap);
+                BMMA_FlushCache(hPlayback->block[i*2], pSrcCached, postWrap);
                 BKNI_Memcpy((uint8_t*)pDstCached+preWrap, pSrcCached, postWrap);
             }
             BKNI_Memcpy(pSrcCached, pDstCached, bufferDepth);
-            BMEM_Heap_FlushCache(hPlayback->hHeap, pSrcCached, bufferDepth);
+            BMMA_FlushCache(hPlayback->block[i*2], pSrcCached, bufferDepth);
 
             if (!sfifoSettings.interleaveData)
             {
                 baseAddr = sfifoSettings.bufferInfo[i*2+1].base;
                 BAPE_SfifoGroup_P_GetReadAddress(hPlayback->pMaster->sfifoGroup, i*2, 1, &rdAddr);
 
-                BMEM_ConvertAddressToCached(hPlayback->hHeap, hPlayback->pBuffer[i*2+1], &pSrcCached);
+                pSrcCached = hPlayback->pBuffer[i*2+1];
 
                 if (rdAddr+bufferDepth <= baseAddr+length) /* there is no wrap */
                 {
+                    BMMA_FlushCache(hPlayback->block[i*2+1], (uint8_t*)pSrcCached+(rdAddr-baseAddr), bufferDepth);
                     BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), bufferDepth);
                 }
                 else /* there is wrap */
@@ -662,14 +711,19 @@ void BAPE_Playback_Suspend(
                     preWrap = baseAddr + length - rdAddr;
                     postWrap = bufferDepth - preWrap;
 
+                    BMMA_FlushCache(hPlayback->block[i*2+1], (uint8_t*)pSrcCached+(rdAddr-baseAddr), preWrap);
                     BKNI_Memcpy(pDstCached, (uint8_t*)pSrcCached+(rdAddr-baseAddr), preWrap);
+                    BMMA_FlushCache(hPlayback->block[i*2+1], pSrcCached, postWrap);
                     BKNI_Memcpy((uint8_t*)pDstCached+preWrap, pSrcCached, postWrap);
                 }
                 BKNI_Memcpy(pSrcCached, pDstCached, bufferDepth);
-                BMEM_Heap_FlushCache(hPlayback->hHeap, pSrcCached, bufferDepth);
+                BMMA_FlushCache(hPlayback->block[i*2+1], pSrcCached, bufferDepth);
             }
         }
-        BMEM_Free(hPlayback->hHeap, pBuffer);
+        BMMA_Unlock(tmpBlock, pBuffer);
+        pBuffer = NULL;
+        BMMA_Free(tmpBlock);
+        tmpBlock = NULL;
     }
 
     /* Stop Paths Downstream */
@@ -735,15 +789,18 @@ BERR_Code BAPE_Playback_GetBuffer(
                 {
                     for ( i = 0; i < numChannelPairs; i++)
                     {
-                        pBuffers->buffers[i*2].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                        pBuffers->buffers[i*2].pBuffer = (void *)((uint8_t*)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                        pBuffers->buffers[i*2].block = hPlayback->block[i];
                     }
                 }
                 else
                 {
                     for ( i = 0; i < numChannelPairs; i++)
                     {
-                        pBuffers->buffers[i*2].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
-                        pBuffers->buffers[i*2 + 1].pBuffer = (void *)((unsigned long)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                        pBuffers->buffers[i*2].pBuffer = (void *)((uint8_t*)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                        pBuffers->buffers[i*2 + 1].pBuffer = (void *)((uint8_t*)hPlayback->pBuffer[i] + hPlayback->bufferDepth);
+                        pBuffers->buffers[i*2].block = hPlayback->block[i];
+                        pBuffers->buffers[i*2 + 1].block = hPlayback->block[i];
                     }
                 }
             }
@@ -887,8 +944,6 @@ static void BAPE_Playback_P_ReArmWatermark(BAPE_PlaybackHandle hPlayback)
 static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_PathConnection *pConnection)
 {
     BAPE_PlaybackHandle hPlayback;
-    BERR_Code errCode;
-    unsigned offset;
     unsigned chPairs;
     unsigned i;
 
@@ -955,20 +1010,20 @@ static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_P
         {
             if ( sfifoSettings.interleaveData) 
             {
-                errCode = BMEM_ConvertAddressToOffset(hPlayback->hHeap, hPlayback->pBuffer[i*2], &offset);
-                BDBG_ASSERT(BERR_SUCCESS == errCode);
-                sfifoSettings.bufferInfo[i].base = offset;
+                sfifoSettings.bufferInfo[i].block = hPlayback->block[i*2];
+                sfifoSettings.bufferInfo[i].pBuffer = hPlayback->pBuffer[i*2];
+                sfifoSettings.bufferInfo[i].base = hPlayback->offset[i*2];
                 sfifoSettings.bufferInfo[i].writeOffset = hPlayback->bufferDepth;
                 sfifoSettings.bufferInfo[i].length = hPlayback->bufferSize;
                 sfifoSettings.bufferInfo[i].watermark = hPlayback->threshold;
                 if ( hPlayback->startSettings.startThreshold > hPlayback->bufferSize )
                 {
                     BDBG_WRN(("Start threshold is too large.  Starting with buffer full."));
-                    sfifoSettings.bufferInfo[i].wrpoint = offset + hPlayback->bufferSize - 1;
+                    sfifoSettings.bufferInfo[i].wrpoint = hPlayback->offset[i*2] + hPlayback->bufferSize - 1;
                 }
                 else if ( hPlayback->startSettings.startThreshold > 0 )
                 {
-                    sfifoSettings.bufferInfo[i].wrpoint = offset + hPlayback->startSettings.startThreshold-1;
+                    sfifoSettings.bufferInfo[i].wrpoint = hPlayback->offset[i*2] + hPlayback->startSettings.startThreshold-1;
                 }
                 else
                 {
@@ -977,40 +1032,38 @@ static BERR_Code BAPE_Playback_P_ConfigPathToOutput(BAPE_PathNode *pNode, BAPE_P
             }
             else
             {
-                errCode = BMEM_ConvertAddressToOffset(hPlayback->hHeap, hPlayback->pBuffer[i*2], &offset);
-                BDBG_ASSERT(BERR_SUCCESS == errCode);
-                sfifoSettings.bufferInfo[i*2].base = offset;
+                sfifoSettings.bufferInfo[i*2].base = hPlayback->offset[i*2];
                 sfifoSettings.bufferInfo[i*2].writeOffset = hPlayback->bufferDepth;
                 sfifoSettings.bufferInfo[i*2].length = hPlayback->bufferSize;
                 sfifoSettings.bufferInfo[i*2].watermark = hPlayback->threshold;
                 if ( hPlayback->startSettings.startThreshold > hPlayback->bufferSize )
                 {
                     BDBG_WRN(("Start threshold is too large.  Starting with buffer full."));
-                    sfifoSettings.bufferInfo[i*2].wrpoint = offset + hPlayback->bufferSize - 1;
+                    sfifoSettings.bufferInfo[i*2].wrpoint = hPlayback->offset[i*2] + hPlayback->bufferSize - 1;
                 }
                 else if ( hPlayback->startSettings.startThreshold > 0 )
                 {
-                    sfifoSettings.bufferInfo[i*2].wrpoint = offset + hPlayback->startSettings.startThreshold-1;
+                    sfifoSettings.bufferInfo[i*2].wrpoint = hPlayback->offset[i*2] + hPlayback->startSettings.startThreshold-1;
                 }
                 else
                 {
                     sfifoSettings.bufferInfo[i*2].wrpoint = 0;
                 }
 
-                errCode = BMEM_ConvertAddressToOffset(hPlayback->hHeap, hPlayback->pBuffer[(i*2) + 1], &offset);
-                BDBG_ASSERT(BERR_SUCCESS == errCode);
-                sfifoSettings.bufferInfo[i*2 + 1].base = offset;
+                sfifoSettings.bufferInfo[i*2 + 1].block = hPlayback->block[(i*2) + 1];
+                sfifoSettings.bufferInfo[i*2 + 1].pBuffer = hPlayback->pBuffer[(i*2) + 1];
+                sfifoSettings.bufferInfo[i*2 + 1].base = hPlayback->offset[(i*2) + 1];
                 sfifoSettings.bufferInfo[i*2 + 1].writeOffset = hPlayback->bufferDepth;
                 sfifoSettings.bufferInfo[i*2 + 1].length = hPlayback->bufferSize;
                 sfifoSettings.bufferInfo[i*2 + 1].watermark = hPlayback->threshold;
                 if ( hPlayback->startSettings.startThreshold > hPlayback->bufferSize )
                 {
                     BDBG_WRN(("Start threshold is too large.  Starting with buffer full."));
-                    sfifoSettings.bufferInfo[i*2 + 1].wrpoint = offset + hPlayback->bufferSize - 1;
+                    sfifoSettings.bufferInfo[i*2 + 1].wrpoint = hPlayback->offset[(i*2) + 1] + hPlayback->bufferSize - 1;
                 }
                 else if ( hPlayback->startSettings.startThreshold > 0 )
                 {
-                    sfifoSettings.bufferInfo[i*2 + 1].wrpoint = offset + hPlayback->startSettings.startThreshold-1;
+                    sfifoSettings.bufferInfo[i*2 + 1].wrpoint = hPlayback->offset[(i*2) + 1] + hPlayback->startSettings.startThreshold-1;
                 }
                 else
                 {

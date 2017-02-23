@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -74,6 +94,10 @@ typedef struct BXVD_Decoder_P_PictureContext
    BXVD_Decoder_P_PictureSetType    eSetType;
    uint32_t                         uiSetCount;
 
+   /* SW7425-2686: intra-GOP picture index, the picture number from
+    * the beginning of the GOP. '1' based. */
+   uint32_t uiIntraGOPIndex;
+
    /* Drop if not a complete set of pictures (not TSM related) */
    bool                       bDropPicture;
 
@@ -105,6 +129,10 @@ typedef struct BXVD_Decoder_P_PictureContextQueue
 
    /* FWAVD-289: Use the queue index to detect when a picture is being evaluated for the first time. */
    uint32_t uiPreviousWriteOffset;
+
+   /* SW7425-2686: intra-GOP picture index, running count of the pictures from
+    * the beginning of the GOP. '1' based. */
+   uint32_t uiIntraGOPIndex;
 
    /* SW7445-3153:  only used in BXVD_Decoder_S_UnifiedQ_Update_isr, track these values here to aid in debug. */
    uint32_t uiDeliveryQWriteOffset0Based;
@@ -166,15 +194,12 @@ typedef struct BXVD_Decoder_P_UnifiedPictureQueue
 } BXVD_Decoder_P_UnifiedPictureQueue;
 
 
+/*
+ * Parameters to support "Display Queue Trick Mode"
+ */
 typedef struct BXVD_Decoder_P_DQTContext
 {
-   /*
-    * Parameters to support "Display Queue Trick Mode"
-    */
-   /*bool    bFoundStartOfGop;*/   /* indicates that the beginning of a GOP has been detected */
-   /*uint32_t    uiSearchRdOffset; */  /* for looking ahead to find the end of the GOP */
-
-   bool  bDqtEnabled;       /* enables the reverse playback of GOPs */
+   bool  bDqtEnabled;   /* enables the reverse playback of GOPs */
 
    bool  bConvertGopToUniPics;   /* indicates in the middle of playing a GOP backwards */
 
@@ -201,6 +226,31 @@ typedef struct BXVD_Decoder_P_DQTContext
    bool  bDeadlock;
    bool  bFoundEndOfGop;
    bool  bDqtMvcError;
+
+   /*
+    * SW7425-2686: variables for multi-pass DQT.
+    */
+   bool     bMultiPass;          /* The same GOP will be sent multiple times.  */
+   bool     b1stPass1stGop;      /* First pass of first GOP, trigger on the PTS value if it is coded. */
+   uint32_t uiTargetIndex;       /* Trigger intra-GOP picture index. */
+   uint32_t uiTargetPTS;
+   BXVD_PTSType eTargetPTSType;
+
+   uint32_t uiAvailableBuffers;  /* Number of picture buffers that can be outstanding, from the PPB. */
+   uint32_t uiBuffersInUse;      /* for "sliding window" logic, number of curently outstanding picture buffers. */
+   uint32_t uiSizeOfChunk;       /* The number of pictures being displayed on this pass. */
+   uint32_t uiOpenGopPictures;   /* The number of open GOP pictures in the current GOP, reported by the firmware. */
+
+   /* The following state information is to help wring out the sliding window algorithm, i.e.
+    * to help figure out when picture buffers should be returned to AVD.
+    * These variables are not used in any XVD logic. */
+
+   uint32_t uiGopLength;         /* length of the current GOP, set when the last picture flag or target PTS is reached.  */
+
+   uint32_t uiPassCount;
+   uint32_t uiNumberOfAdditionalPasses;
+   uint32_t uiRemainder;
+   uint32_t uiPicsPerPass;
 
 } BXVD_Decoder_P_DQTContext;
 

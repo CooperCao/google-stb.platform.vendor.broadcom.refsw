@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,22 +70,22 @@
 /***************************************************************************
  *SID_STRM - Stream Input
  ***************************************************************************/
-#define BCHP_SID_STRM_CTL                        0x20980800 /* [RW] Stream control */
-#define BCHP_SID_STRM_RAW_BYTE_CNT               0x20980808 /* [RO] Raw Byte Count */
-#define BCHP_SID_STRM_BSHIFT_POS                 0x2098080c /* [RO] Stream Bit-shifter position */
-#define BCHP_SID_STRM_START_ADDR                 0x20980810 /* [RW] Stream Start Address */
-#define BCHP_SID_STRM_LENGTH                     0x20980814 /* [RW] Stream Length */
-#define BCHP_SID_STRM_RD_RAW_BYTE                0x20980820 /* [RO] Stream Read Raw Byte */
-#define BCHP_SID_STRM_SKIP_RAW_BYTES             0x20980824 /* [RW] Skip Raw Bytes */
-#define BCHP_SID_STRM_LD_BSHIFT_CNT              0x20980828 /* [RW] Load Bit Shift Cnt */
-#define BCHP_SID_STRM_JPEG_MARKER                0x2098082c /* [RO] JPEG Marker Code */
-#define BCHP_SID_STRM_RD_RAW_WORD_BE             0x20980830 /* [RO] Read Raw Word Big-endian */
-#define BCHP_SID_STRM_RD_RAW_LWORD_BE            0x20980834 /* [RO] Read Raw LWord Big-endian */
-#define BCHP_SID_STRM_RD_RAW_WORD_LE             0x20980838 /* [RO] Read Raw Word Little-endian */
-#define BCHP_SID_STRM_RD_RAW_LWORD_LE            0x2098083c /* [RO] Read Raw LWord Little-endian */
-#define BCHP_SID_STRM_PEEK_RAW_BYTE              0x20980840 /* [RO] Stream Peek Raw Byte */
-#define BCHP_SID_STRM_CRC                        0x20980844 /* [RW] Stream CRC */
-#define BCHP_SID_STRM_DEBUG                      0x2098087c /* [RO] Stream Debug */
+#define BCHP_SID_STRM_CTL                        0x20980800 /* [RW][32] Stream control */
+#define BCHP_SID_STRM_RAW_BYTE_CNT               0x20980808 /* [RO][32] Raw Byte Count */
+#define BCHP_SID_STRM_BSHIFT_POS                 0x2098080c /* [RO][32] Stream Bit-shifter position */
+#define BCHP_SID_STRM_START_ADDR                 0x20980810 /* [RW][32] Stream Start Address */
+#define BCHP_SID_STRM_LENGTH                     0x20980814 /* [RW][32] Stream Length */
+#define BCHP_SID_STRM_RD_RAW_BYTE                0x20980820 /* [RO][32] Stream Read Raw Byte */
+#define BCHP_SID_STRM_SKIP_RAW_BYTES             0x20980824 /* [RW][32] Skip Raw Bytes */
+#define BCHP_SID_STRM_LD_BSHIFT_CNT              0x20980828 /* [RW][32] Load Bit Shift Cnt */
+#define BCHP_SID_STRM_JPEG_MARKER                0x2098082c /* [RO][32] JPEG Marker Code */
+#define BCHP_SID_STRM_RD_RAW_WORD_BE             0x20980830 /* [RO][32] Read Raw Word Big-endian */
+#define BCHP_SID_STRM_RD_RAW_LWORD_BE            0x20980834 /* [RO][32] Read Raw LWord Big-endian */
+#define BCHP_SID_STRM_RD_RAW_WORD_LE             0x20980838 /* [RO][32] Read Raw Word Little-endian */
+#define BCHP_SID_STRM_RD_RAW_LWORD_LE            0x2098083c /* [RO][32] Read Raw LWord Little-endian */
+#define BCHP_SID_STRM_PEEK_RAW_BYTE              0x20980840 /* [RO][32] Stream Peek Raw Byte */
+#define BCHP_SID_STRM_CRC                        0x20980844 /* [RW][32] Stream CRC */
+#define BCHP_SID_STRM_DEBUG                      0x2098087c /* [RO][32] Stream Debug */
 
 /***************************************************************************
  *CTL - Stream control

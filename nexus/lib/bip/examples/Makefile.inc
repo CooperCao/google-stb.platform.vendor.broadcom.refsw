@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -173,6 +173,8 @@ BIPEX_EXTRA_INCLUDES += $(NEXUS_TOP)/utils
 
 include ${BSEAV_TOP}/lib/media/bmedia.inc
 BIPEX_EXTRA_INCLUDES += $(BMEDIA_INCLUDES)
+BIPEX_EXTRA_INCLUDES += $(BSEAV_TOP)/../magnum/syslib/sagelib/include
+BIPEX_EXTRA_INCLUDES += $(BSEAV_TOP)/lib/security/sage/srai/include
 
 ####  Target Rules  ####
 

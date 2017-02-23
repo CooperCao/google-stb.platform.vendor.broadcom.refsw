@@ -337,7 +337,6 @@ static void BVDC_P_Mcvp_Init_isr
         hMcvp->ulHsclSizeThreshold = pBoxVdc->astDeinterlacer[hMcvp->eId].ulHsclThreshold;
     }
 
-    hMcvp->stDirty.stBits.bCompress = BVDC_P_DIRTY;
     for(i=0; i<BAVC_MOSAIC_MAX;i++)
         hMcvp->ulUpdateAll[i] = BVDC_P_RUL_UPDATE_THRESHOLD;
 
@@ -786,8 +785,6 @@ static void BVDC_P_Mcvp_BuildRul_SIOB_isr
     {
         BVDC_P_Mvp_BuildRul_DcxInit_isr(hMcvp, pList, bEnable10Bit);
     }
-
-    hMcvp->stDirty.stBits.bCompress = BVDC_P_CLEAN;
 }
 
 
@@ -996,7 +993,6 @@ static void BVDC_P_Mcvp_BuildRul_DrainVnet_isr
     BVDC_P_SubRul_Drain_isr(&(hMcvp->SubRul), pList,
         hMcvp->ulCoreResetAddr, hMcvp->ulCoreResetMask,
         hMcvp->ulVnetResetAddr, hMcvp->ulVnetResetMask);
-    hMcvp->stDirty.stBits.bCompress = BVDC_P_DIRTY;
     BSTD_UNUSED(bNoCoreReset);
 #endif
 
@@ -1055,9 +1051,7 @@ static void BVDC_P_MCVP_SetSingleInfo_isr
             (pCurCompression->ulPixelPerGroup != pNewCompression->ulPixelPerGroup)||
             (pCurCompression->ulPredictionMode != pNewCompression->ulPredictionMode))
         {
-            hMcvp->stDirty.stBits.bCompress = BVDC_P_DIRTY;
             *pCurCompression = *pNewCompression;
-            BDBG_MSG(("hMvp[%d] bCompress dirty", hMcvp->eId));
         }
     }
 #endif
@@ -1084,7 +1078,10 @@ static void BVDC_P_MCVP_SetSingleInfo_isr
         /* 2. channel change */
         if(pPicture->bChannelChange !=hMcvp->bChannelChange[ulChannelId])
         {
-            hMcvp->hMcdi->stSwDirty.stBits.bChannelChange = BVDC_P_DIRTY;
+            /* only hard start MCDI when channel start: bChannelChange 1->0 */
+            if(!pPicture->bChannelChange) {
+                hMcvp->hMcdi->stSwDirty.stBits.bChannelChange = BVDC_P_DIRTY;
+            }
             hMcvp->bChannelChange[ulChannelId] = pPicture->bChannelChange;
             if((hMcvp->bAnr) & (bAnr))
                 hMcvp->hAnr->stSwDirty.stBits.bChannel = BVDC_P_DIRTY;
@@ -1283,10 +1280,6 @@ void BVDC_P_Mcvp_BuildRul_isr
     if(bEnable)
     {
         bBypass = BVDC_P_MVP_BYPASS_MVP(pPicture->stMvpMode);
-        if(hMcvp->stDirty.stBits.bCompress)
-        {
-            BVDC_P_Mcvp_BuildRul_SIOB_isr(hMcvp, pList, pPicture->bEnable10Bit);
-        }
         if(bBypass)
         {
             /* set mode */
@@ -1336,9 +1329,12 @@ void BVDC_P_Mcvp_BuildRul_isr
                 BDBG_MSG(("ch[%d] ulUpdateAll %d bInit %d bAnrDirty %x, bMcdiDirty %x, bLastExecuted %d",
                     pPicture->ulPictureIdx, hMcvp->ulUpdateAll[ulChannelId],bInit,
                     bAnrDirty?hMcvp->hAnr->stSwDirty.aulInts[0]:0, hMcvp->hMcdi->stSwDirty.aulInts[0], !pList->bLastExecuted ));
+
             if(hMcvp->ulUpdateAll[ulChannelId])
             {
                 hMcvp->ulUpdateAll[ulChannelId]--;
+
+                BVDC_P_Mcvp_BuildRul_SIOB_isr(hMcvp, pList, pPicture->bEnable10Bit);
 
                 if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
                 {

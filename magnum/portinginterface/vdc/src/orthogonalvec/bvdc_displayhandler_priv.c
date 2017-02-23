@@ -79,7 +79,7 @@
 #if BCHP_DVI_MISC_0_REG_START
 #include "bchp_dvi_misc_0.h"
 #endif
-#if BCHP_DVI_CFC_0_REG_START
+#ifdef BCHP_DVI_CFC_0_REG_START
 #include "bchp_dvi_cfc_0.h"
 #endif
 
@@ -106,7 +106,8 @@
 BDBG_MODULE(BVDC_DISP);
 BDBG_FILE_MODULE(BVDC_DISP_CSC);
 BDBG_FILE_MODULE(BVDC_CMP_SIZE);
-BDBG_FILE_MODULE(BVDC_DVI_NLCSC);
+BDBG_FILE_MODULE(BVDC_CFC_2);
+BDBG_FILE_MODULE(BVDC_CFC_3);
 
 /* A forward definition for convenience */
 static void BVDC_P_Display_Copy_Acp_isr(
@@ -3261,7 +3262,6 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
       BVDC_P_DisplayDviChan           *pstChan,
       BVDC_P_ListInfo                 *pList )
 {
-    const BVDC_P_DisplayCscMatrix *pCscMatrix = NULL;
     const BVDC_P_DisplayInfo *pCurInfo = &hDisplay->stCurInfo;
     uint8_t ucCh0, ucCh1, ucCh2;
     const BVDC_P_Compositor_Info *pCmpInfo = &hDisplay->hCompositor->stCurInfo;
@@ -3273,11 +3273,9 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     BDBG_MSG(("Display %d Hdmi %d using %s",
         hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].pcAvcCsStr));
 #if BCHP_DVI_MISC_0_REG_START
-    bDviCscPassThrough = (hDisplay->bCmpBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
-    if (bDviCscPassThrough)
-    {
-        BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("disp[%d] bypass DVI_CSC", hDisplay->eId));
-    }
+    bDviCscPassThrough = (hDisplay->hCompositor->bBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
+    BDBG_MODULE_MSG(BVDC_CFC_2, ("Display%d %s DVI_CSC (due to %d || %d)", hDisplay->eId, (bDviCscPassThrough)? "bypass" : "not bypass",
+                                 hDisplay->hCompositor->bBypassDviCsc, hDisplay->stCurInfo.bBypassVideoProcess));
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL + pstChan->ulDviRegOffset);
     *pList->pulCurrent++ =
@@ -3286,23 +3284,15 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
 #endif
 
     /* --- Setup DVI CSC --- */
-    BVDC_P_Display_GetDviCscTable_isr(pCurInfo, &pCscMatrix);
-
     /* TODO: fold sync only into generic display output mute functionality */
     if(pCurInfo->bUserCsc)
     {
-        BVDC_P_Csc_FromMatrixDvo_isr(&hDisplay->stDvoCscMatrix.stCscCoeffs,
-            pCurInfo->pl32_Matrix, pCurInfo->ulUserShift,
-            ((pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs == BAVC_MatrixCoefficients_eHdmi_RGB) ||
-             (pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs == BAVC_MatrixCoefficients_eDvi_Full_Range_RGB))? true : false);
-
-        hDisplay->stDvoCscMatrix.ulMin = pCscMatrix->ulMin;
-        hDisplay->stDvoCscMatrix.ulMax = pCscMatrix->ulMax;
+        BVDC_P_Cfc_FromMatrix_isr(&hDisplay->stCfc, pCurInfo->pl32_Matrix, pCurInfo->ulUserShift);
     }
     else
     {
-        /* For BVDC_Display_GetDvoColorMatrix() */
-        hDisplay->stDvoCscMatrix = *pCscMatrix;
+        BVDC_P_Cfc_UpdateCfg_isr(&hDisplay->stCfc, false,
+            hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc || hDisplay->stCurInfo.stDirty.stBits.bOutputMute);
     }
 
     /* Blank color, use in CSC and DVI_DVF_0_DVF_VALUES */
@@ -3312,18 +3302,27 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
 
     if(!pCurInfo->abOutputMute[BVDC_DisplayOutput_eDvo])
     {
-        BVDC_P_Csc_DvoApplyAttenuationRGB_isr(hDisplay->stCurInfo.lDvoAttenuationR,
+        BVDC_P_Cfc_DvoApplyAttenuationRGB_isr(hDisplay->stCurInfo.lDvoAttenuationR,
                                               hDisplay->stCurInfo.lDvoAttenuationG,
                                               hDisplay->stCurInfo.lDvoAttenuationB,
                                               hDisplay->stCurInfo.lDvoOffsetR,
                                               hDisplay->stCurInfo.lDvoOffsetG,
                                               hDisplay->stCurInfo.lDvoOffsetB,
-                                             &hDisplay->stDvoCscMatrix.stCscCoeffs);
+                                             &hDisplay->stCfc.stMc);
     }
     else
     {
-        /* Swap ch0 and 1 of input color to match vec csc layout */
-        BVDC_P_Csc_ApplyYCbCrColor_isr(&hDisplay->stDvoCscMatrix.stCscCoeffs, ucCh1, ucCh0, ucCh2);
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+        if((BAVC_MatrixCoefficients_eHdmi_RGB == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
+           (BAVC_MatrixCoefficients_eDvi_Full_Range_RGB == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs))
+        {
+            ucCh0 = pCmpInfo->ucRed;
+            ucCh1 = pCmpInfo->ucGreen;
+            ucCh2 = pCmpInfo->ucBlue;
+        }
+#endif
+
+        BVDC_P_Cfc_ApplyYCbCrColor_isr(&hDisplay->stCfc.stMc, ucCh0, ucCh1, ucCh2);
     }
 
     if((BAVC_MatrixCoefficients_eHdmi_RGB == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
@@ -3334,80 +3333,10 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         ucCh2 = pCmpInfo->ucRed;
     }
 
-#if BCHP_DVI_CFC_0_REG_START
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL + pstChan->ulDviRegOffset);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, CSC_MC_ENABLE, ENABLE) |
-        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, CSC_MB_ENABLE, DISABLE) |
-        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, CSC_MA_ENABLE, DISABLE) |
-        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_L2NL, BYPASS) |
-        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, SEL_NL2L, BYPASS) |
-        BCHP_FIELD_ENUM(DVI_CFC_0_VEC_HDR_NL_CSC_CTRL, NL_CSC,   BYPASS);
-
-    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(3);
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CFC_0_CSC_MIN_MAX_Y + pstChan->ulDviRegOffset);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_ENUM(DVI_CFC_0_CSC_MIN_MAX_Y, CLAMP_EN, ENABLE) |
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_MIN_MAX_Y, MAX, 0xFFF);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_ENUM(DVI_CFC_0_CSC_MIN_MAX_CB, CLAMP_EN, ENABLE) |
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_MIN_MAX_CB, MAX, 0xFFF);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_ENUM(DVI_CFC_0_CSC_MIN_MAX_CR, CLAMP_EN, ENABLE) |
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_MIN_MAX_CR, MAX, 0xFFF);
-
-    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(3 * 4);
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CFC_0_CSC_R0_MC_COEFF_C00 + pstChan->ulDviRegOffset);
-
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C00, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usY0);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C01, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usY1);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C02, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usY2);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C03, CSC_COEF_ADD,  pCscMatrix->stCscCoeffs.usYOffset);
-
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C10, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCb0);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C11, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCb1);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C12, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCb2);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C13, CSC_COEF_ADD,  pCscMatrix->stCscCoeffs.usCbOffset);
-
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C20, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCr0);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C21, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCr1);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C22, CSC_COEF_MULT, pCscMatrix->stCscCoeffs.usCr2);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(DVI_CFC_0_CSC_R0_MC_COEFF_C23, CSC_COEF_ADD,  pCscMatrix->stCscCoeffs.usCrOffset);
-
-#if 0 /* bypass not work yet??? */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL + pstChan->ulDviRegOffset);
-    *pList->pulCurrent++ =
-         BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_ENABLE, 1) |
-         BCHP_FIELD_DATA(DVI_MISC_0_CSC_BYPASS_OVERRIDE_CONTROL, OVERRIDE_VALUE,  1);
-#endif
-
-#elif BVDC_P_CMP_NON_LINEAR_CSC_VER < 3
-    /* DVI_CSC_CSC_MODE (RW) */
-    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(BVDC_P_CSC_TABLE_SIZE);
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_CSC_MODE + pstChan->ulDviRegOffset);
-    BVDC_P_Vec_Build_CSC_isr(&hDisplay->stDvoCscMatrix, pList);
-#if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
-    /* enable converting from BT2020 NCL R'G'B' to BT2020 CL YCbCr */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_CL2020_CONTROL + pstChan->ulDviRegOffset);
-    *pList->pulCurrent++ = (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs)?
-        BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, CTRL, ENABLE ) | BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, SEL_GAMMA, BT1886_GAMMA ):
-        BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, CTRL, DISABLE );
-#endif /* #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC */
+#ifdef BCHP_DVI_CFC_0_REG_START
+    BVDC_P_Display_BuildCfcRul_isr(hDisplay, BCHP_DVI_CFC_0_VEC_HDR_NL_CSC_CTRL + pstChan->ulDviRegOffset, pList);
+#else
+    BVDC_P_Display_BuildCfcRul_isr(hDisplay, BCHP_DVI_CSC_0_CSC_MODE + pstChan->ulDviRegOffset, pList);
 #endif
 
     /* Blank padding color */
@@ -3520,6 +3449,7 @@ static void BVDC_P_ProgramDviChan_isr
     BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, pstChan, pList, true);
     BVDC_P_Vec_Build_DVI_DTG_isr(hDisplay, pstChan, bReloadMicrocode, pList);
     BVDC_P_Vec_Build_DVI_DVF_isr(hDisplay, pstChan, pList);
+    BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
     BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, pstChan, pList);
     BVDC_P_Vec_Build_DVI_FC_isr(hDisplay, pstChan, pList);
     BVDC_P_Display_SetupDviTG_isr(hDisplay, pList);
@@ -3552,6 +3482,11 @@ static void BVDC_P_SetupDviChan_isr
 #ifdef BCHP_DVI_FC_0_REG_START
     BVDC_P_VEC_SW_INIT(DVI_FC_0,   pstChan->ulFcSwInitOffset,   0);
 #endif
+
+    /* force to rebuild RUL for CFC */
+    BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d reset DVI_CSC", hDisplay->eId));
+    hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc = BVDC_P_DIRTY;
+
     return;
 }
 
@@ -4674,7 +4609,7 @@ static void BVDC_P_Display_Copy_VideoFormat_isr
 
     pCurInfo->eAnlg_0_OutputColorSpace = pNewInfo->eAnlg_0_OutputColorSpace;
     pCurInfo->eAnlg_1_OutputColorSpace = pNewInfo->eAnlg_1_OutputColorSpace;
-    pCurInfo->eCmpMatrixCoeffs = pNewInfo->eCmpMatrixCoeffs;
+    pCurInfo->eCmpColorimetry = pNewInfo->eCmpColorimetry;
     pCurInfo->bMultiRateAllow = pNewInfo->bMultiRateAllow;
 
     /* This is an event handler for analog copy protection (ACP) */
@@ -5106,6 +5041,7 @@ static void BVDC_P_Display_Copy_DAC_Setting_isr
     pCurInfo->eAnlg_0_OutputColorSpace = pNewInfo->eAnlg_0_OutputColorSpace;
     pCurInfo->eAnlg_1_OutputColorSpace = pNewInfo->eAnlg_1_OutputColorSpace;
     pCurInfo->bMultiRateAllow = pNewInfo->bMultiRateAllow;
+    pCurInfo->uiNumDacsOn = pNewInfo->uiNumDacsOn;
 
     return;
 }
@@ -5827,6 +5763,7 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
+        BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 
@@ -6509,6 +6446,7 @@ static void BVDC_P_Display_Apply_HdmiCsc_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
+        BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList);
     }
 
@@ -7586,6 +7524,7 @@ static void BVDC_P_Display_Apply_OutputMute_Setting_isr
 
     if(hDisplay->stCurInfo.bEnableHdmi)
     {
+        BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 

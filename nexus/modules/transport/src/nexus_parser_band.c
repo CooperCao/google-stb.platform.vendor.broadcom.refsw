@@ -382,14 +382,11 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
     /* clear accumulated rsbuff/xcbuff overflow errors.
        use refcnt==0 instead of enabled, because host PB is disabled when using MTSIF */
     if (parserBand->refcnt==0) {
-        unsigned ibp = parserBand->hwIndex;
-        pTransport->overflow.rsbuff.ibp[ibp] = 0;
-        pTransport->overflow.xcbuff.ibp2rave[ibp] = 0;
-        pTransport->overflow.xcbuff.ibp2msg[ibp] = 0;
-        pTransport->overflow.xcbuff.ibp2rmx0[ibp] = 0;
-        pTransport->overflow.xcbuff.ibp2rmx1[ibp] = 0;
+        NEXUS_ParserBand_P_ResetOverflowCounts(parserBand);
     }
 
+    if(parserBand->settings.sourceType == NEXUS_ParserBandSourceType_eInputBand)
+       pTransport->inputBand[ parserBand->settings.sourceTypeSettings.inputBand ].enabled = enabled;
 #if !BXPT_NUM_RAVE_CONTEXTS
     {
         int refcnt = 0;
@@ -403,9 +400,24 @@ void NEXUS_ParserBand_P_SetEnable(NEXUS_ParserBandHandle parserBand)
         enabled = refcnt?true:false;
         rc = BXPT_EnableOutputBufferBand(pTransport->xpt, inputBand, enabled);
         if (rc) {BERR_TRACE(rc);}
-        pTransport->inputBand[inputBand].enabled = enabled;
     }
 #endif
+}
+
+void NEXUS_ParserBand_P_ResetOverflowCounts(NEXUS_ParserBandHandle parserBand)
+{
+    unsigned ibp;
+
+    BDBG_OBJECT_ASSERT(parserBand, NEXUS_ParserBand);
+
+    ibp = parserBand->hwIndex;
+    if (ibp < 32) {
+        pTransport->overflow.rsbuff.ibp[ibp] = 0;
+        pTransport->overflow.xcbuff.ibp2rave[ibp] = 0;
+        pTransport->overflow.xcbuff.ibp2msg[ibp] = 0;
+        pTransport->overflow.xcbuff.ibp2rmx0[ibp] = 0;
+        pTransport->overflow.xcbuff.ibp2rmx1[ibp] = 0;
+    }
 }
 
 static void NEXUS_ParserBand_P_CCError_isr(void *context, int param)

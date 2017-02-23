@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_STREAM_MUX
@@ -82,8 +74,9 @@ static void print_usage(void)
         "  -sizelimit SIZE                size limit in MB. 0 is unlimited.\n"
         "  -video_bitrate RATE   output video bitrate in Mbps\n"
         "  -video_size    WIDTH,HEIGHT (default is 1280,720)\n"
-        "  -audio_type    output audio codec\n"
     );
+    print_list_option(
+        "  -audio_type           output audio type",g_audioCodecStrs);
 }
 
 static NEXUS_VideoFormat lookup_format(unsigned width, unsigned height, bool interlaced)

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -925,7 +925,9 @@ See Also: NEXUS_AddrToOffset NEXUS_OffsetToCachedAddr NEXUS_OffsetToUncachedAddr
 NEXUS_Error NEXUS_P_AddMap(
     NEXUS_Addr offset,  /* physical offset in memory */
     void *cached,       /* cached address */
+    NEXUS_AddrType cachedAddrType, /* cached address type */
     void *uncached,     /* uncached address */
+    NEXUS_AddrType uncachedAddrType, /* uncached address type */
     size_t length       /* size in bytes */
     );
 
@@ -1153,8 +1155,15 @@ size_t NEXUS_P_SizeAlign(
 );
 
 /* unit type for IPC, variable size arrays would use this type, and would be aligned to size of this type */
-typedef unsigned long NEXUS_Ipc_Unit;
+typedef uint64_t NEXUS_Ipc_Unit;
 #define B_IPC_DATA_ALIGN(size) (size+(sizeof(NEXUS_Ipc_Unit)-1)-(size + sizeof(NEXUS_Ipc_Unit) - 1)%sizeof(NEXUS_Ipc_Unit))
+
+void NEXUS_Module_SetPendingCaller(NEXUS_ModuleHandle module, const char *functionName);
+void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *functionName);
+/* native ABI of nexus binary */
+#define NEXUS_P_NATIVE_ABI  (sizeof(void *)*8)
+void NEXUS_P_PrintEnv(const char *mode);
+void NEXUS_P_CheckEnv(const char *name);
 
 #endif /* !defined NEXUS_BASE_H */
 

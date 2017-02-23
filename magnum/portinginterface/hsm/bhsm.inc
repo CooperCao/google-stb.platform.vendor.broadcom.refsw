@@ -45,9 +45,6 @@ BHSM_DEFINES += BHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR)
 BHSM_DEFINES += BHSM_ZEUS_VER_MINOR=$(BHSM_ZEUS_VER_MINOR)
 BHSM_DEFINES += BHSM_ZEUS_VER_SUBMINOR=$(BHSM_ZEUS_VER_SUBMINOR)
 
-#$(warning  ..........bhsm_zeus.inc entered with CORETECH = $(CORETECH) and ZEUSVER = $(ZEUSVER))
-
-
 export ZEUS_VERSION=$(ZEUSVER)
 
 # Define this module
@@ -64,11 +61,13 @@ endif
 BHSM_DEFINES += BHSM_AEGIS_SUPPORT
 
 
-ifeq ($(BHSM_TEST_INCLUDE_ALL),ON)
+ifeq ($(BHSM_TEST_INCLUDE_ALL),ON) # only used for build test.
     BHSM_SUPPORT_CARLSBAD=ON
     BHSM_SUPPORT_IRDETO=ON
     BHSM_SUPPORT_RESTRICTED_REG_VER=ON
     BHSM_SUPPORT_KEYLADDER_VISTA=ON
+    BHSM_SUPPORT_DSK_SCTE52=ON
+    BHSM_SUPPORT_DSK_SCTE52_SAGE=ON
     BHSM_SUPPORT_USER_AESDES=ON
     BHSM_SUPPORT_KKC=ON
     BHSM_SUPPORT_HDCP22=ON
@@ -86,6 +85,7 @@ ifeq ($(BHSM_TEST_INCLUDE_ALL),ON)
     BHSM_GEN_ROOT_KEY=ON
     BHSM_CHALLENGE_RESPONSE=ON
     # BHSM_AV_CMD=ON
+    BHSM_SUPPORT_REGION_RESIZE=ON
 endif
 
 
@@ -110,6 +110,10 @@ BHSM_OTPMSP       := ON
 BHSM_INCLUDES +=    $(MAGNUM)/portinginterface/hsm/include/region_verify
 ifneq ($(HSM_SOURCE_AVAILABLE),n)
     BHSM_SOURCES  +=    $(MAGNUM)/portinginterface/hsm/src/region_verify/bhsm_verify_reg.c
+    ifeq ($(BHSM_SUPPORT_REGION_RESIZE),ON)
+        BHSM_SOURCES  +=    $(MAGNUM)/portinginterface/hsm/src/region_verify/bhsm_restricted_verify_reg.c
+        BHSM_DEFINES  += BHSM_SUPPORT_REGION_RESIZE=1
+    endif
 endif
 
 
@@ -483,6 +487,14 @@ endif
 ifeq ($(BHSM_SUPPORT_KEYLADDER_VISTA),ON)
     BHSM_DEFINES += BHSM_SUPPORT_KEYLADDER_VISTA=1
     BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/keyladder/bhsm_restricted_keyladder_vista.c
+endif
+
+ifeq ($(BHSM_SUPPORT_DSK_SCTE52),ON)
+    BHSM_DEFINES += BHSM_SUPPORT_DSK_SCTE52=1
+    BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/keyladder/bhsm_restricted_dsk_scte52.c
+endif
+ifeq ($(BHSM_SUPPORT_DSK_SCTE52_SAGE),ON)
+    BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/keyladder/bhsm_restricted_dsk_scte52_sage.c
 endif
 
 ifeq ($(BHSM_SUPPORT_RESTRICTED_REG_VER),ON)

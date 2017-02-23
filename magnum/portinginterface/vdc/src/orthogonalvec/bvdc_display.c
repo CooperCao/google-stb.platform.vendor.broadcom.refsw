@@ -297,6 +297,7 @@ BERR_Code BVDC_Display_Create
         /* Note, when disabled, VIP will be freed after ApplyChanges and isr programs RUL to put VIP back to auto drain mode */
 #endif
 
+        /* Note: This will acquire power for both STG and VIP if VIP is managed by VDC */
 #ifdef BCHP_PWR_RESOURCE_VDC_STG0
         BDBG_MSG(("STG master mode: Acquire BCHP_PWR_RESOURCE_VDC_STG %d", hDisplay->stStgChan.ulStg));
         BVDC_P_AcquireStgPwr(hDisplay);
@@ -561,6 +562,16 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+#if (BVDC_P_DCX_3D_WORKAROUND)
+    if(BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt))
+    {
+        BDBG_WRN(("==================================================================="));
+        BDBG_WRN(("May not have enough bandwidth to support 3D Format %s",
+            pFmtInfo->pchFormatStr));
+        BDBG_WRN(("==================================================================="));
+    }
+#endif
+
     if (!BFMT_IS_VESA_MODE(pFmtInfo->eVideoFmt) &&
         !VIDEO_FORMAT_IS_SD(pFmtInfo->eVideoFmt) &&
         !hDisplay->stCurInfo.bEnableStg)
@@ -658,6 +669,7 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
         hDisplay->stNewInfo.stDirty.stBits.b3DSetting = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bAlignment = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bAspRatio = BVDC_P_DIRTY;
+        hDisplay->stNewInfo.stDirty.stBits.bHdmiCsc= BVDC_P_DIRTY;
         if (hDisplay->bAnlgEnable)
         {
             hDisplay->stNewInfo.stDirty.stBits.bMpaaComp = BVDC_P_DIRTY;
@@ -667,7 +679,7 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
             hDisplay->stNewInfo.stDirty.stBits.bMpaaHdmi = BVDC_P_DIRTY;
         }
     }
-    BDBG_MSG(("pFmt=%p[%s], cur->pFmt=%p[%s], bFmtChange=%d",
+	BDBG_MSG(("pFmt=%p[%s], cur->pFmt=%p[%s], bFmtChange=%d",
         (void *)pFmtInfo,pFmtInfo->pchFormatStr,(void *)hDisplay->stCurInfo.pFmtInfo,hDisplay->stCurInfo.pFmtInfo->pchFormatStr, bFmtChange));
 
     BDBG_LEAVE(BVDC_Display_SetCustomVideoFormat);
@@ -1250,7 +1262,10 @@ static BERR_Code BVDC_P_Display_SetHdmiSettings
         hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_DIRTY;
     }
-    if (hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf != hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf)
+    if ((hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs != hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs) ||
+        (hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf != hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf) ||
+        (hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorComponent != hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorComponent) ||
+        (hDisplay->stCurInfo.stHdmiSettings.stSettings.eColorRange != hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorRange))
     {
         hDisplay->stNewInfo.stDirty.stBits.bHdmiSettings = BVDC_P_DIRTY;
     }
@@ -2437,7 +2452,7 @@ BERR_Code BVDC_Display_SetDvoAttenuationRGB
     BDBG_ENTER(BVDC_Display_SetDvoAttenuationRGB);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
-    ulShiftBits = BVDC_P_CSC_DVO_CX_F_BITS - 11;
+    ulShiftBits = BVDC_P_CFC_FIX_FRACTION_BITS - 11;
 
     hDisplay->stNewInfo.lDvoAttenuationR = nAttentuationR << ulShiftBits;
     hDisplay->stNewInfo.lDvoAttenuationG = nAttentuationG << ulShiftBits;
@@ -2479,7 +2494,7 @@ BERR_Code BVDC_Display_GetDvoAttenuationRGB
     BDBG_ENTER(BVDC_Display_GetDvoAttenuationRGB);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
-    ulShiftBits = BVDC_P_CSC_DVO_CX_F_BITS - 11;
+    ulShiftBits = BVDC_P_CFC_FIX_FRACTION_BITS - 11;
 
     (*plAttenuationR) = hDisplay->stNewInfo.lDvoAttenuationR >> ulShiftBits;
     (*plAttenuationG) = hDisplay->stNewInfo.lDvoAttenuationG >> ulShiftBits;
@@ -2560,7 +2575,7 @@ BERR_Code BVDC_Display_GetDvoColorMatrix
     else
     {
         BKNI_EnterCriticalSection();
-        BVDC_P_Csc_ToMatrix_isr(pl32_Matrix, &hDisplay->stDvoCscMatrix.stCscCoeffs,
+        BVDC_P_Cfc_ToMatrix_isr(pl32_Matrix, &hDisplay->stCfc.stMc,
             BVDC_P_FIX_POINT_SHIFT);
         BKNI_LeaveCriticalSection();
 
@@ -2648,6 +2663,16 @@ BERR_Code BVDC_Display_SetOrientation
 
     hDisplay->stNewInfo.eOrientation = eOrientation;
     hDisplay->hCompositor->stNewInfo.eOrientation = eOrientation;
+
+#if (BVDC_P_DCX_3D_WORKAROUND)
+    if(eOrientation != BFMT_Orientation_e2D)
+    {
+        BDBG_WRN(("===================================================================="));
+        BDBG_WRN(("May not have enough bandwidth to support 3D display (orientation %d)",
+            eOrientation));
+        BDBG_WRN(("===================================================================="));
+    }
+#endif
 
     if((hDisplay->stCurInfo.eOrientation != eOrientation) ||
        (hDisplay->stNewInfo.bErrorLastSetting))

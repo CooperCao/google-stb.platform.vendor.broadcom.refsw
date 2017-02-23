@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_playback_module.h"
 #include "nexus_playback_impl.h"
@@ -96,8 +95,6 @@ b_play_flush(NEXUS_PlaybackHandle playback)
     rc = NEXUS_Playpump_Flush(playback->params.playpump);
     if(rc!=NEXUS_SUCCESS) {rc = BERR_TRACE(rc);}
 
-    b_play_stc_invalidate(playback);
-
     for(pid = BLST_S_FIRST(&playback->pid_list); pid ; pid = BLST_S_NEXT(pid, link)) {
         switch(pid->cfg.pidSettings.pidType) {
         default: break;
@@ -105,6 +102,9 @@ b_play_flush(NEXUS_PlaybackHandle playback)
         case NEXUS_PidType_eAudio: NEXUS_P_Playback_AudioDecoder_Flush(pid); break;
         }
     }
+
+    b_play_stc_invalidate(playback);
+
 #if B_PLAYBACK_CAPTURE
     if(playback->capture.has_data) {
         b_play_capture_close(playback);
@@ -333,7 +333,17 @@ b_play_trick_set_pid(NEXUS_PlaybackHandle p, const NEXUS_Playback_P_PidChannel *
         vdecState.brcmTrickModesEnabled = settings->state == b_trick_state_brcm_trick_mode;
         vdecState.hostTrickModesEnabled = settings->state == b_trick_state_host_paced || settings->state == b_trick_state_host_trick_mode;
         vdecState.stcTrickEnabled = settings->stc_trick && (settings->decode_rate != NEXUS_NORMAL_PLAY_SPEED);
-        vdecState.dqtEnabled = settings->state == b_trick_state_display_queue_trick_mode;
+        switch (settings->state) {
+        case b_trick_state_dqt_mode:
+            vdecState.dqtEnabled = NEXUS_VideoDecoderDqtMode_eSinglePass;
+            break;
+        case b_trick_state_mdqt_mode:
+            vdecState.dqtEnabled = NEXUS_VideoDecoderDqtMode_eMultiPass;
+            break;
+        default:
+            vdecState.dqtEnabled = NEXUS_VideoDecoderDqtMode_eDisabled;
+            break;
+        }
         slowMotion = (-NEXUS_NORMAL_PLAY_SPEED < (int)settings->decode_rate && settings->decode_rate < NEXUS_NORMAL_PLAY_SPEED);
         /* show only top field if decoder expected to repeat frames or do TSM trickmodes */
         vdecState.topFieldOnly = slowMotion || settings->state == b_trick_state_host_paced || settings->simulated_tsm || vdecState.stcTrickEnabled;

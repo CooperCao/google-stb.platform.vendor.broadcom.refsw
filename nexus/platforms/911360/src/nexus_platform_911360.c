@@ -74,12 +74,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 
 NEXUS_Error NEXUS_Platform_P_GetFramebufferHeapIndex(unsigned displayIndex, unsigned *pHeapIndex)
 {
-       BSTD_UNUSED(displayIndex);
-#ifdef NEXUS_MEMC0_GRAPHICS_HEAP
-      *pHeapIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
-#else
-      *pHeapIndex = NEXUS_MEMC0_MAIN_HEAP;
-#endif
+    BSTD_UNUSED(displayIndex);
+    *pHeapIndex = NEXUS_MEMC0_MAIN_HEAP;
     return BERR_SUCCESS;
 }
 

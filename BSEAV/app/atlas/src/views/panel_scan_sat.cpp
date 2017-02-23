@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -139,35 +139,35 @@ eRet CPanelScanSat::initialize(
         _Settings->setMenuTitle(NULL, "Settings");
         _Settings->setScroll(true);
         {
-            ret = addDualLabelEditButton(_Settings, "Start Freq", &_StartFreq, &_StartFreqLabel, &_StartFreqEdit, &_StartFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "Start Freq", &_StartFreq, &_StartFreqLabel, &_StartFreqEdit, &_StartFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _StartFreq->setFocusable(false);
             _StartFreqLabel->setText("Start Freq:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _StartFreqEdit->setText("1207", bwidget_justify_horiz_right);
             _StartFreqUnits->setText("MHz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "End Freq", &_EndFreq, &_EndFreqLabel, &_EndFreqEdit, &_EndFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "End Freq", &_EndFreq, &_EndFreqLabel, &_EndFreqEdit, &_EndFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _EndFreq->setFocusable(false);
             _EndFreqLabel->setText("End Freq:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _EndFreqEdit->setText("1210", bwidget_justify_horiz_right);
             _EndFreqUnits->setText("MHz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "Step Freq", &_StepFreq, &_StepFreqLabel, &_StepFreqEdit, &_StepFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "Step Freq", &_StepFreq, &_StepFreqLabel, &_StepFreqEdit, &_StepFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _StepFreq->setFocusable(false);
             _StepFreqLabel->setText("Step Freq:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _StepFreqEdit->setText("1", bwidget_justify_horiz_right);
             _StepFreqUnits->setText("MHz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addDualLabelEditButton(_Settings, "Bandwidth", &_BandwidthFreq, &_BandwidthFreqLabel, &_BandwidthFreqEdit, &_BandwidthFreqUnits, font12);
+            ret = _Settings->addDualLabelEditButton(this, "Bandwidth", &_BandwidthFreq, &_BandwidthFreqLabel, &_BandwidthFreqEdit, &_BandwidthFreqUnits, font12);
             CHECK_ERROR_GOTO("unable to allocate dual label edit button", ret, error);
             _BandwidthFreq->setFocusable(false);
             _BandwidthFreqLabel->setText("Bandwidth:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _BandwidthFreqEdit->setText("1", bwidget_justify_horiz_right);
             _BandwidthFreqUnits->setText("MHz", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            ret = addLabelPopupButton(_Settings, "ADC", &_Adc, &_AdcLabel, &_AdcPopup, font12, 25);
+            ret = _Settings->addLabelPopupButton(this, "ADC", &_Adc, &_AdcLabel, &_AdcPopup, font12, 25);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Adc->setFocusable(false);
             _AdcLabel->setText("ADC:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);

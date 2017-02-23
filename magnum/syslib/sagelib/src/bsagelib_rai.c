@@ -136,12 +136,15 @@ BSAGELib_Rai_P_WaitForResponse(BSAGElib_ClientHandle hSAGElibClient, uint32_t as
         BKNI_Sleep(1);
         rc = BSAGElib_Client_GetResponse(hSAGElibClient, &data);
     }
+    if(rc != BERR_SUCCESS)
+    {
+        return rc;
+    }
     if(async_id != data.async_id){
         return BERR_UNKNOWN;
     }
 
-    return rc;
-
+    return data.rc;
 }
 
 static bool
@@ -236,6 +239,7 @@ BSAGElib_Rai_Platform_Install(
     uint32_t async_id;
     BSAGElib_SDLHeader *pHeader = NULL;
     char *platform_name = _P_LookupPlatformName(platformId);
+    char revstr[9];
 
     if (binSize < sizeof(BSAGElib_SDLHeader)) {
         BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
@@ -248,22 +252,26 @@ BSAGElib_Rai_Platform_Install(
     if(container == NULL)
         goto err;
 
+    BKNI_Snprintf(revstr, sizeof(revstr)-1, "%u", pHeader->ucSdlVersion[3]);
+    if ((pHeader->ucSdlVersion[2] == 0) && (pHeader->ucSdlVersion[3] != 0)) {
+        BKNI_Snprintf(revstr, sizeof(revstr)-1, "Alpha%u", pHeader->ucSdlVersion[3]);
+    }
     if (platform_name == NULL) {
-        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platformId,
-                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
-                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
-                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
-                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2], revstr,
+                  pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
     }
     else {
-        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%s, Signing Tool=%u.%u.%u.%u]",
                   platform_name,
-                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
-                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
-                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
-                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  pHeader->ucSdlVersion[0], pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2], revstr,
+                  pHeader->ucSageSecureBootToolVersion[0], pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2], pHeader->ucSageSecureBootToolVersion[3]
                   ));
     }
     BDBG_MSG(("%s: Platform %x %p %d",__FUNCTION__, platformId, binBuff,binSize  ));
@@ -335,6 +343,75 @@ BSAGElib_Rai_Platform_Install(
         }
     }
 
+
+    BDBG_MSG(("%s: Anti-rollback Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->antirollback_platform, (void*)hSAGElibClient->antirollback_module ));
+
+    if((platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK) && (hSAGElibClient->antirollback_platform == NULL)) {
+
+        /* Open the platform */
+        rc = BSAGElib_Rai_Platform_Open(hSAGElibClient,
+                                        BSAGE_PLATFORM_ID_ANTIROLLBACK,
+                                        container,
+                                        &(hSAGElibClient->antirollback_platform),
+                                        (void *)hSAGElibClient,
+                                        &async_id);
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto err;
+        }
+
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            rc = BERR_TRACE(rc);
+            goto err;
+        }
+        BDBG_MSG(("%s: Anti-rollback Platform %p ",__FUNCTION__, (void *)hSAGElibClient->antirollback_platform ));
+
+        if(container->basicOut[0] != BSAGElib_State_eInit){
+
+            /* Not yet initialized: send init command*/
+            rc = BSAGElib_Rai_Platform_Init(hSAGElibClient->antirollback_platform,
+                                            container,
+                                            &async_id);
+            if (rc != BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto err;
+            }
+
+            rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+            if (rc != BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto err;
+            }
+        }
+
+        if (hSAGElibClient->antirollback_module == NULL) {
+            rc = BSAGElib_Rai_Module_Init(hSAGElibClient->antirollback_platform,
+                                        AntiRollback_ModuleId_eAntiRollback,
+                                        container,
+                                        &(hSAGElibClient->antirollback_module),
+                                        (void *)hSAGElibClient,
+                                        &async_id);
+            if (rc != BERR_SUCCESS) {
+                rc = BERR_TRACE(rc);
+                goto end;
+            }
+
+            rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+            if(rc == BSAGE_ERR_ALREADY_INITIALIZED)
+            {
+                /* This error can only occurs on SAGE 3.1.x where we do not need to send the RegisterTa command.  */
+                rc = BERR_SUCCESS;
+            }
+            else if (rc != BERR_SUCCESS) {
+                goto err;
+            }
+            BDBG_MSG(("%s: Anti-rollback Platform Module %p ",__FUNCTION__, (void *)hSAGElibClient->antirollback_module ));
+
+        }
+    }
+
+
     /* do it after the system platform open so we are sure the SAGE-side is booted
        and the status info are valid */
     if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, pHeader)) {
@@ -343,11 +420,68 @@ BSAGElib_Rai_Platform_Install(
         goto err;
     }
 
+
+    /* Regiter TA to the Anti-rollback TA (skip when installing AR TA) */
+    if((platformId != BSAGE_PLATFORM_ID_ANTIROLLBACK) &&
+       (hSAGElibClient->antirollback_module != NULL))
+    {
+        BKNI_Memset(container, 0, sizeof(*container));
+        container->basicIn[0] = platformId;
+
+        rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElibClient->antirollback_module,
+                                                AntiRollbackModule_CommandId_eRegisterTa,
+                                                container,
+                                                &async_id);
+        if (rc != BERR_SUCCESS) {
+            /* If message to Load failed then SAGE might be reset so clean up Anti-rollback Platform Handles */
+            BDBG_ERR(("%s BSAGElib_Rai_Module_ProcessCommand failure %d",__FUNCTION__,rc));
+            hSAGElibClient->antirollback_platform = NULL;
+            hSAGElibClient->antirollback_module = NULL;
+            rc = BERR_TRACE(rc);
+            goto err;
+        }
+
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+        if(rc == BSAGE_ERR_MODULE_COMMAND_ID)
+        {
+            /* In SAGE 3.1.x, AR TA did not support RegisterTa command. Just ignore the request. */
+            BDBG_MSG(("%s: Anti-rollback TA does not support the RegisterTa command. Ignoring the error.", __FUNCTION__));
+            rc = BERR_SUCCESS;
+        }
+        else if((rc != BERR_SUCCESS) || (container->basicOut[0] != BERR_SUCCESS))
+        {
+            rc = BERR_UNKNOWN;
+            BDBG_ERR(("%s: Cannot register TA to the Anti-rollback TA\n", __FUNCTION__));
+            goto err;
+        }
+    }
+
+    /* Load TA using the System TA */
+    BKNI_Memset(container, 0, sizeof(*container));
     container->basicIn[0] = platformId;
 
     /* provide the SDL binary that's been pulled from FS */
     container->blocks[0].data.ptr = binBuff;
     container->blocks[0].len = binSize;
+
+    {
+        BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)binBuff;
+        if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_SINGLE)
+        {
+            BDBG_MSG(("%s: Single signed image detected ^^^^^", __FUNCTION__)); /* TODO: change to MSG */
+            container->basicIn[1] = 0;
+        }
+        else if(pHeader->ucSageImageSigningScheme == BSAGELIB_SDL_IMAGE_SIGNING_SCHEME_TRIPLE)
+        {
+            BDBG_MSG(("%s: Triple signed image detected ^^^^^", __FUNCTION__)); /* TODO: change to MSG */
+            container->basicIn[1] = 1;
+        }
+        else{
+            BDBG_ERR(("%s: invalida Image Siging Scheme value (0x%02x) detected", __FUNCTION__, pHeader->ucSageImageSigningScheme));
+            rc = BERR_INVALID_PARAMETER;
+            goto end;
+        }
+    }
 
     rc = BSAGElib_Rai_Module_ProcessCommand(hSAGElibClient->system_module,
                                             DynamicLoadModule_CommandId_eLoadSDL,
@@ -429,6 +563,29 @@ BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
     }
 
     BDBG_MSG(("%s Output Status %d",__FUNCTION__,container->basicOut[0]));
+
+    /* Uninitialize the Anti-Rollback module */
+    if (hSAGElibClient->antirollback_module != NULL) {
+        BSAGElib_Rai_Module_Uninit(hSAGElibClient->antirollback_module, &async_id);
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            goto err;
+        }
+
+        BSAGElib_Rpc_RemoveRemote(hSAGElibClient->antirollback_module);
+        hSAGElibClient->antirollback_module = NULL;
+    }
+
+    /* Uninitialize the Anti-Rollback platform */
+    if (hSAGElibClient->antirollback_platform != NULL) {
+        BSAGElib_Rai_Platform_Close(hSAGElibClient->antirollback_platform, &async_id);
+        rc = BSAGELib_Rai_P_WaitForResponse(hSAGElibClient, async_id);
+        if (rc != BERR_SUCCESS) {
+            goto err;
+        }
+        BSAGElib_Rpc_RemoveRemote(hSAGElibClient->antirollback_platform);
+        hSAGElibClient->antirollback_platform = NULL;
+    }
 
     if (hSAGElibClient->system_module != NULL) {
         BSAGElib_Rai_Module_Uninit(hSAGElibClient->system_module,&async_id);

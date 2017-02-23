@@ -69,10 +69,12 @@ static void BCHP_PWR_P_DV_AVX_CTRL_CH0_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT);
     }
 }
@@ -91,10 +93,12 @@ static void BCHP_PWR_P_DV_AVX_CTRL_CH1_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT);
     }
 }
@@ -113,10 +117,12 @@ static void BCHP_PWR_P_DV_AVX_CTRL_CH2_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT);
     }
 }
@@ -135,10 +141,12 @@ static void BCHP_PWR_P_DV_AVX_CTRL_CH3_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT);
     }
 }
@@ -157,10 +165,12 @@ static void BCHP_PWR_P_DV_AVX_CTRL_CH4_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_AVX_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_AVX_PLL_DIV, NDIV_INT);
     }
 }
@@ -179,11 +189,17 @@ static void BCHP_PWR_P_DV_CPU_CTRL_CH2_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_2, MDIV_CH2);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV, *prediv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K, reg);
+    } else {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT);
     }
 }
@@ -202,11 +218,17 @@ static void BCHP_PWR_P_DV_CPU_CTRL_CH3_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_3, MDIV_CH3);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV, *prediv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K, reg);
+    } else {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT);
     }
 }
@@ -225,11 +247,17 @@ static void BCHP_PWR_P_DV_CPU_CTRL_CH4_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV, *prediv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K, reg);
+    } else {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT);
     }
 }
@@ -248,11 +276,17 @@ static void BCHP_PWR_P_DV_CPU_CTRL_CH5_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_CHANNEL_CTRL_CH_5, MDIV_CH5);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV, *prediv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV, PDIV);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_CPU_PLL_DIV_4K, reg);
+    } else {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_CPU_PLL_DIV_4K, NDIV_INT);
     }
 }
@@ -271,11 +305,61 @@ static void BCHP_PWR_P_DV_RAAGA_CTRL_CH0_div_Control(BCHP_Handle handle, unsigne
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_RAAGA_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_STB_CORE_XPT_HIF_XPT_CORE_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_STB_CORE_XPT_HIF_XPT_CORE_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, reg);
+    } else {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV, reg);
+    } else {
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_STB_SECSECXPT_XPT_SECPIPELINE_SECXPT_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, reg);
+    } else {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV, reg);
+    } else {
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
     }
 }
 
@@ -293,11 +377,61 @@ static void BCHP_PWR_P_DV_V3D_CTRL_CH0_div_Control(BCHP_Handle handle, unsigned 
         *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0);
     }
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_DIV);
-    if(!set) {
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_DIV, reg);
+    } else {
         *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_DIV, PDIV);
-    }
-    if(!set) {
         *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_V3D_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_XPT_CTRL_CH0_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_XPT_CTRL_CH0_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, reg);
+    } else {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_0, MDIV_CH0);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV, reg);
+    } else {
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
+    }
+}
+
+static void BCHP_PWR_P_DV_XPT_CTRL_CH4_div_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)
+{
+    uint32_t reg;
+
+    BDBG_MSG(("DV_XPT_CTRL_CH4_div: %s", set?"write":"read"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4, *postdiv);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, reg);
+    } else {
+        *postdiv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_4, MDIV_CH4);
+    }
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV);
+    if(set) {
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV, *prediv);
+        BCHP_SET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT, *mult);
+        BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_XPT_PLL_DIV, reg);
+    } else {
+        *prediv = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, PDIV);
+        *mult = BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_XPT_PLL_DIV, NDIV_INT);
     }
 }
 
@@ -596,21 +730,6 @@ static void BCHP_PWR_P_HW_CTRL_SC1_PWRDN_REQ_Control(BCHP_Handle handle, bool ac
 
     reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL);
     mask = BCHP_CLKGEN_CLKGEN_INST_CTRL_bit_blast_SC1_PWRDN_PLL_REQ_MASK;
-    reg &= ~mask;
-    reg |= activate?0:mask;
-    BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
-    if(activate)
-        BKNI_Delay(55);
-}
-
-static void BCHP_PWR_P_HW_CTRL_V3D_PWRDN_REQ_Control(BCHP_Handle handle, bool activate)
-{
-    uint32_t mask, reg;
-
-    BDBG_MSG(("HW_CTRL_V3D_PWRDN_REQ: %s", activate?"on":"off"));
-
-    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL);
-    mask = BCHP_CLKGEN_CLKGEN_INST_CTRL_bit_blast_V3D_PWRDN_PLL_REQ_MASK;
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_CLKGEN_INST_CTRL, reg);
@@ -1247,6 +1366,50 @@ static void BCHP_PWR_P_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle
     reg &= ~mask;
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_CHANNEL_CTRL_CH_0, reg);
+}
+
+static void BCHP_PWR_P_HW_V3D_LDO_PWRON_LDO_PWRON_PLL_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_V3D_LDO_PWRON_LDO_PWRON_PLL: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON);
+    mask = BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON_LDO_PWRON_PLL_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_LDO_PWRON, reg);
+}
+
+static void BCHP_PWR_P_HW_V3D_PWRON_PWRON_PLL_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_V3D_PWRON_PWRON_PLL: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_PWRON);
+    mask = BCHP_CLKGEN_PLL_V3D_PLL_PWRON_PWRON_PLL_MASK;
+    reg &= ~mask;
+    reg |= activate?mask:0;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_PWRON, reg);
+    if(activate)
+        BKNI_Delay(5);
+}
+
+static void BCHP_PWR_P_HW_V3D_RESET_RESETD_Control(BCHP_Handle handle, bool activate)
+{
+    uint32_t mask, reg;
+
+    BDBG_MSG(("HW_V3D_RESET_RESETD: %s", activate?"on":"off"));
+
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_RESET);
+    mask = (BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETD_MASK |
+            BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETA_MASK);
+    reg &= ~mask;
+    reg |= activate?0:mask;
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_PLL_V3D_PLL_RESET, reg);
+    if(activate)
+        BKNI_Delay(30);
 }
 
 static void BCHP_PWR_P_HW_VCXO0_CH_CTRL_CH_0_POST_DIV_HOLD_CH0_Control(BCHP_Handle handle, bool activate)

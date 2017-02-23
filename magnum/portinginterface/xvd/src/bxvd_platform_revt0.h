@@ -63,28 +63,21 @@
 
 #define  BXVD_P_CORE_40BIT_ADDRESSABLE 1
 
-/*
-#if (BCHP_VER < BCHP_VER_D0)
-#define  BXVD_P_PRE_REVQ2_CORE 1
-#endif
-*/
-
-#define BXVD_P_CORE_REVISION 'T'
+#define  BXVD_P_CORE_REVISION 'T'
+#define  BXVD_P_DECODER_REVT 1
 
 #define  BXVD_P_USE_HVD_INTRS 1
+
 #define  BXVD_P_HEVD_DUAL_PIPE_PRESENT 1
 
 #define  BXVD_P_RUL_DONE_MASK_64_BITS 0
 
-/*#define  BXVD_P_STB_REG_BASE   0 */
-#define  BXVD_P_USE_HVD_INTRS  1
-
-#define  BXVD_P_DECODER_REVTT  1
+#define  BXVD_P_PHY_ADDR BMMA_DeviceOffset
 
 #if (BCHP_CHIP == 7278)
 #define  BXVD_P_MULTIPLE_HVD_PRESENT 1
 #define  BXVD_P_TWO_HVD_DECODERS_PRESENT 1
-/* #define  BXVD_P_PRE_REVQ2_CORE 1 */
+
 #define  BXVD_P_8N3_BUG 1
 
 #define  BXVD_MAX_INSTANCE_COUNT      2
@@ -116,13 +109,6 @@
 #include "bchp_int_id_hvd_intr2_0.h"
 
 #include "bchp_hevd_ol_ctl_0.h"
-
-#if 0
-#include "bchp_decode_sint_0.h"
-#include "bchp_reg_cabac2bins2_0.h"
-#include "bchp_decode_main_0.h"
-#endif
-
 #include "bchp_hevd_ol_sint_0.h"
 #include "bchp_hevd_pcache_0.h"
 
@@ -132,6 +118,7 @@
 #if BXVD_P_MULTIPLE_HVD_PRESENT
 #include "bchp_hevd_ol_cpu_regs_1.h"
 #include "bchp_hevd_il_cpu_regs_1.h"
+#include "bchp_hevd_il_cpu_regs_1.h"
 #include "bchp_hevd_ol_cpu_debug_1.h"
 #include "bchp_hevd_il_cpu_debug_1.h"
 
@@ -139,12 +126,6 @@
 #include "bchp_int_id_hvd_intr2_1.h"
 
 #include "bchp_hevd_ol_ctl_1.h"
-
-#if 0
-#include "bchp_decode_sint_1.h"
-#include "bchp_reg_cabac2bins2_1.h"
-#include "bchp_decode_main_1.h"
-#endif
 
 #include "bchp_hevd_ol_sint_1.h"
 
@@ -174,13 +155,6 @@
 #endif
 
 #include "bchp_hevd_ol_ctl_2.h"
-
-#if 0
-#include "bchp_decode_sint_2.h"
-#include "bchp_reg_cabac2bins2_2.h"
-#include "bchp_decode_main_2.h"
-#endif
-
 #include "bchp_hevd_ol_sint_2.h"
 
 #include "bchp_hevd_pcache_2.h"
@@ -200,9 +174,13 @@
 #if BXVD_P_HEVD_DUAL_PIPE_PRESENT
 #include "bchp_hevd_il_cpu_debug_2_0.h"
 #include "bchp_hevd_il_cpu_regs_2_0.h"
+#include "bchp_hevd_il_cpu_debug_2_1.h"
+#include "bchp_hevd_il_cpu_regs_2_1.h"
 
 #include "bchp_hevd_pfri_2_0.h"
 #include "bchp_hevd_pcache_2_0.h"
+#include "bchp_hevd_pfri_2_1.h"
+#include "bchp_hevd_pcache_2_1.h"
 #endif
 
 /* Common to all flavors */
@@ -221,40 +199,11 @@
 
 #if (BXVD_MAX_INSTANCE_COUNT == 1)
 
-#if BXVD_P_USE_HVD_INTRS
-/* SVD support removed */
 #define  BXVD_P_HVD_INTR2_0_CPU_SET   BCHP_HVD_INTR2_0_CPU_SET
-#else
-#define  BXVD_P_HVD_INTR2_0_CPU_SET   BCHP_SHVD_INTR2_0_CPU_SET
-#endif
-
-#if BXVD_P_MIPS_CORE
-#ifdef  BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_svd0_sw_init_MASK
-#define  BXVD_P_SW_INIT_0_SET_hvd0_sw_init_MASK     BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_svd0_sw_init_MASK
-#define  BXVD_P_SW_INIT_0_CLEAR_hvd0_sw_init_MASK   BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR_svd0_sw_init_MASK
-
-#define  BXVD_P_BVNF_INTR2_3_HVD0_STATUS       BCHP_BVNF_INTR2_3_SVD0_STATUS
-#define  BXVD_P_BVNF_INTR2_3_HVD0_CLEAR        BCHP_BVNF_INTR2_3_SVD0_CLEAR
-#define  BXVD_P_BVNF_INTR2_3_HVD0_MASK_CLEAR   BCHP_BVNF_INTR2_3_SVD0_MASK_CLEAR
-
-#define  BXVD_P_GISB_ARB_REQ_MASK_hvd_0_MASK   BCHP_SUN_GISB_ARB_REQ_MASK_svd_0_MASK
-
-#else
-#define  BXVD_P_SW_INIT_0_SET_hvd0_sw_init_MASK   BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_avd0_sw_init_MASK
-#define  BXVD_P_SW_INIT_0_CLEAR_hvd0_sw_init_MASK   BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR_avd0_sw_init_MASK
-
-#define  BXVD_P_BVNF_INTR2_3_HVD0_STATUS       BCHP_BVNF_INTR2_3_AVD0_STATUS
-#define  BXVD_P_BVNF_INTR2_3_HVD0_CLEAR        BCHP_BVNF_INTR2_3_AVD0_CLEAR
-#define  BXVD_P_BVNF_INTR2_3_HVD0_MASK_CLEAR   BCHP_BVNF_INTR2_3_AVD0_MASK_CLEAR
-
-#define  BXVD_P_GISB_ARB_REQ_MASK_hvd_0_MASK   BCHP_SUN_GISB_ARB_REQ_MASK_avd_0_MASK
-#endif
-#endif /* If MIPS_CORE */
 
 #else /* Multi-decoders */
 
 #if BXVD_P_USE_HVD_INTRS
-#define  BXVD_P_DECODER_REVP         1
 
 #define  BXVD_P_SW_INIT_0_SET_xvd0_sw_init_MASK  BCHP_SUN_TOP_CTRL_SW_INIT_0_SET_hvd0_sw_init_MASK
 #define  BXVD_P_SW_INIT_0_CLEAR_xvd0_sw_init_MASK BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR_hvd0_sw_init_MASK

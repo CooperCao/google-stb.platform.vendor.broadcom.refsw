@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,7 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
-#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT
+#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_AUDIO
 #include <getopt.h>
 
 #include "nexus_platform.h"

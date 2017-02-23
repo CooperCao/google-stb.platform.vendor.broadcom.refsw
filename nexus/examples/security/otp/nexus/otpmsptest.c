@@ -357,6 +357,7 @@ void Test_Read_DataSection(void)
             fprintf(stderr, " %02X ", readDataSectIO.dataSectBuf[i]);
         }
         fprintf(stderr, "Size %d.\n\n\n", readDataSectIO.dataSectSize);
+        fprintf(stderr, "The value is %s.\n\n\n", readDataSectIO.isShaOfData ? "Sha1 of the Data Section" : "Value of the Data Section");
     }
     else
     {

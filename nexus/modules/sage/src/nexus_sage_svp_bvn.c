@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -327,6 +327,14 @@ typedef enum BBVN_P_VnetMuxType
     BBVN_P_VnetMuxType_eDisabled
 } BBVN_P_VnetMuxType;
 
+typedef enum
+{
+    eRecurseUnknown=0,
+    eRecurseSecure,
+    eRecurseClear,
+    eRecurseViolation
+} BBVN_P_RecurseState;
+
 /***************************************************************************
  *
  */
@@ -351,7 +359,7 @@ typedef struct BBVN_P_VnetMux
 typedef struct BBVN_P_PathStatus
 {
     bool                     bSecuredCt;
-    bool                     bViolation;
+    BBVN_P_RecurseState      eViolation;
     BAVC_CoreList            stBvnCores;
     int                      iStrIndex;
     char                     achBvnMap[BBVN_P_BVNMAP_NAME_LEN];
@@ -427,10 +435,10 @@ static const BBVN_P_VnetMux s_astVnetFrontMuxes[] =
 #endif
 
 #if (BCHP_HD_DVI_0_REG_START)
-    BBVN_P_MAKE_VNET_F_TERMINAL_NODE(DVI_0, HdDvi_0, TERMINAL, Terminal, Back, Invalid),
+    BBVN_P_MAKE_VNET_F_TERMINAL_NODE(DVI_0, HdDvi_0, TERMINAL, Terminal, Back, DVI_0),
 #endif
 #if (BCHP_HD_DVI_1_REG_START)
-    BBVN_P_MAKE_VNET_F_TERMINAL_NODE(DVI_1, HdDvi_1, TERMINAL, Terminal, Back, Invalid),
+    BBVN_P_MAKE_VNET_F_TERMINAL_NODE(DVI_1, HdDvi_1, TERMINAL, Terminal, Back, DVI_1),
 #endif
 
 #if (BCHP_IN656_0_REG_START)
@@ -797,6 +805,29 @@ static BERR_Code BBVN_P_TraverseBvn_recursive
 
         if(BAVC_CoreId_eInvalid != pCurMux->eCoreId)
         {
+            switch(pPath->eViolation)
+            {
+                case eRecurseUnknown:
+                    pPath->eViolation=pSecureCores->aeCores[pCurMux->eCoreId] ? eRecurseSecure : eRecurseClear;
+                    break;
+                case eRecurseSecure:
+                    if(!pSecureCores->aeCores[pCurMux->eCoreId])
+                    {
+                        /* Ok to go from unsecure into secure */
+                        pPath->eViolation=eRecurseClear;
+                    }
+                    break;
+                case eRecurseClear:
+                    if(pSecureCores->aeCores[pCurMux->eCoreId])
+                    {
+                        /* NOT ok to go from secure to unsecure */
+                        pPath->eViolation=eRecurseViolation;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
             if(pSecureCores->aeCores[pCurMux->eCoreId])
             {
                 chSecured = 's';
@@ -1252,24 +1283,14 @@ BERR_Code BBVN_Monitor_Check
                     goto ERROR;
                 }
 
-                /* Check if the path has violation */
-                for(j = 0; j < BAVC_CoreId_eMax; j++)
-                {
-                    if((pPath->bSecuredCt) &&
-                       (pPath->stBvnCores.aeCores[j]) && (!pSecureCores->aeCores[j]))
-                    {
-                        pPath->bViolation = true;
-                    }
-                }
-
                 BDBG_MODULE_MSG(BBVN_L1,("%s - [%c][%c]", pPath->achBvnMap,
-                    pPath->bSecuredCt ? 's' : 'u', pPath->bViolation ? 'y' : 'n'));
+                    pPath->bSecuredCt ? 's' : 'u', (pPath->eViolation==eRecurseViolation) ? 'y' : 'n'));
 
                 if(BBVN_P_GetCmpInfo(hBvnMonitor->hReg, pCurMux->ulAddress,
                     &iCmpIdx, &iWinIdx, &ulHSize, &ulVSize))
                 {
                     hBvnMonitor->abCmpSecuredCt[iCmpIdx][iWinIdx] = pPath->bSecuredCt;
-                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx] = pPath->bViolation;
+                    hBvnMonitor->abCmpViolation[iCmpIdx][iWinIdx] = (pPath->eViolation==eRecurseViolation);
                     /* Records its width & height */
                     hBvnMonitor->aulCmpHSize[iCmpIdx] = ulHSize;
                     hBvnMonitor->aulCmpVSize[iCmpIdx] = ulVSize;

@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /* NOTE: this file gets exported into the Raaga Magnum host library and so it
  *       must abide by a specific strict set of rules. Please use only ANSI C
@@ -55,12 +52,17 @@
 #  include <string.h>
 #else
 #  include "bstd_defs.h"
+
+/* Workaround for the missing inttypes.h */
+#define PRIu8       "u"
+#define PRIu32      "u"
 #endif
 
 #include "libdspcontrol/COMMON.h"
 #include "libdspcontrol/DSP.h"
 #include "libdspcontrol/DSPLOG.h"
 #include "libdspcontrol/TB.h"
+#include "libdspcontrol/UTIL_c.h"
 
 #include "libsyschip/tbuf_chips.h"
 
@@ -70,7 +72,7 @@
 #include "TB_internal.h"
 
 /* for DDR_START */
-#if IS_HOST(BM)
+#if IS_HOST(BM) && !(defined(CELIVERO) || defined(CELTRIX))
 #  include "DSP_bm.h"
 #else
 #  define DDR_START     0
@@ -243,7 +245,7 @@ size_t TB_seek(TB_data_descriptor *descriptor, int offset, TB_seek_whence whence
  * @param[in]  descriptor   descriptor where to read the header from
  * @param[out] frame_header where to store the header data
  */
-static inline __alwaysinline
+BFPSDK_STATIC_ALWAYS_INLINE
 void TB_readFrameHeader(TB_data_descriptor *descriptor, TB_header *frame_header)
 {
     /* read data, it will be in little endian (FP) format */
@@ -271,7 +273,10 @@ void TB_readFrameInfo(TB_data_descriptor *descriptor,
             frame_header->pre_padding_length  +
             frame_header->payload_length      +
             frame_header->post_padding_length;
-    size_t frame_relative_off = sizeof(TB_header);  /* this is the base assumption */
+
+    /* where we are at any moment respect to the frame start,
+     * by contract we start from after the header */
+    size_t frame_relative_off = sizeof(TB_header);
     size_t saved_descriptor_offset = descriptor->cur_offset;
 
     /* extract info from the header */
@@ -281,6 +286,11 @@ void TB_readFrameInfo(TB_data_descriptor *descriptor,
     ret_value->payload_offset = descriptor->cur_offset + frame_header->pre_padding_length;
     ret_value->payload_address = NULL;
     ret_value->payload_length = frame_header->payload_length;
+#if !IS_HOST(DSP_LESS)
+    ret_value->indirect = frame_flags & TB_HEADER_FLAG_INDIRECT;
+    ret_value->indirect_payload.address = (uint32_t)(uintptr_t) NULL;
+    ret_value->indirect_payload.length = 0;
+#endif
 
     /* do we need to clone the descriptor at payload position? */
     if(descriptor_clone_at_payload != NULL)
@@ -292,6 +302,25 @@ void TB_readFrameInfo(TB_data_descriptor *descriptor,
         }
         *descriptor_clone_at_payload = *descriptor;
     }
+
+#if !IS_HOST(DSP_LESS)
+    /* if this is an indirect frame, read the TB_indirect_frame_payload content */
+    if(ret_value->indirect)
+    {
+        /* we could be or not at the beginning of the payload */
+        size_t payload_position_offset = sizeof(TB_header) +
+                                         frame_header->pre_padding_length -
+                                         frame_relative_off;
+        if(payload_position_offset > 0)
+            TB_seek(descriptor,
+                    payload_position_offset,
+                    TB_SEEK_CUR);
+        TB_read(descriptor, &ret_value->indirect_payload, sizeof(TB_indirect_frame_payload), true);
+        ret_value->indirect_payload.address = ENDIANESS_fptoh32(ret_value->indirect_payload.address);
+        ret_value->indirect_payload.length = ENDIANESS_fptoh32(ret_value->indirect_payload.length);
+        frame_relative_off += payload_position_offset + sizeof(TB_indirect_frame_payload);
+    }
+#endif
 
     /* try to extract the trailer */
     if(frame_header->post_padding_length > 0)
@@ -363,6 +392,15 @@ size_t TB_countFrames(TB_data_descriptor *descriptor,
                       TB_frame_filter filter,
                       void *filter_data)
 {
+    unsigned total_frames;
+    size_t total_payload_size;
+    size_t biggest_payload_size;
+    size_t remaining_data;
+    size_t cursor_after_last_frame;
+
+    /* save current buffer position */
+    size_t saved_descriptor_offset = descriptor->cur_offset;
+
     /* reset values */
     *frames_count = 0;
     *available_payload = 0;
@@ -371,72 +409,56 @@ size_t TB_countFrames(TB_data_descriptor *descriptor,
     if(max_frames == 0)
         return descriptor->cur_offset;
 
-    /* save current buffer position */
-    size_t saved_descriptor_offset = descriptor->cur_offset;
-
     /* walk the frames */
-    unsigned total_frames = 0;
-    size_t total_payload_size = 0;
-    size_t biggest_payload_size = 0;
-    size_t remaining_data = descriptor->total_size - descriptor->cur_offset;
-    size_t cursor_after_last_frame = descriptor->cur_offset;
+    total_frames = 0;
+    total_payload_size = 0;
+    biggest_payload_size = 0;
+    remaining_data = descriptor->total_size - descriptor->cur_offset;
+    cursor_after_last_frame = descriptor->cur_offset;
     while(remaining_data >= sizeof(TB_header) &&
           total_frames < max_frames)
     {
+        TB_frame_info frame_info;
+        size_t frame_size;
+
         /* read the header */
         TB_header frame_header;
         TB_readFrameHeader(descriptor, &frame_header);
-        DSPLOG_JUNK("TB_countFrames read header prologue=%#x, post_padding_length=%"PRIu8","
-                    " payload_length=%"PRIu32", pre_padding_length=%"PRIu8,
+        DSPLOG_JUNK("TB_countFrames read header prologue=%#x, post_padding_length=%" PRIu8 ","
+                    " payload_length=%" PRIu32 ", pre_padding_length=%" PRIu8,
                     frame_header.prologue, frame_header.pre_padding_length,
                     frame_header.payload_length, frame_header.post_padding_length);
 
         /* is this frame complete? */
-        size_t frame_size = sizeof(TB_header)               +
-                            frame_header.payload_length     +
-                            frame_header.pre_padding_length +
-                            frame_header.post_padding_length;
+        frame_size = sizeof(TB_header)               +
+                     frame_header.payload_length     +
+                     frame_header.pre_padding_length +
+                     frame_header.post_padding_length;
         if(remaining_data < frame_size)
             break;      /* incomplete frame, exit here */
 
-        if(filter != NULL)
-        {
-            /* we should extract frame info to allow the filter to take a decision */
-            TB_frame_info frame_info;
-            TB_readFrameInfo(descriptor, &frame_header, &frame_info, NULL, true);
-
-            if(filter(&frame_info, filter_data))
-            {
-                /* frame accepted */
-                total_frames++;
-                total_payload_size += frame_header.payload_length;
-                if(frame_header.payload_length > biggest_payload_size)
-                    biggest_payload_size = frame_header.payload_length;
-            }
-            /* frame rejected, nothing to to */
-        }
-        else
-        {
-            /* update counters */
-            total_frames++;
-            total_payload_size += frame_header.payload_length;
-            if(frame_header.payload_length > biggest_payload_size)
-                biggest_payload_size = frame_header.payload_length;
-
-            /* skip to the next frame */
-            TB_seek(descriptor,
-                    frame_header.pre_padding_length +
-                    frame_header.payload_length +
-                    frame_header.post_padding_length,
-                    TB_SEEK_CUR);
-        }
-
-        /* we have moved because of TB_readFrameInfo or TB_seek,
-         * update the "byte after the last considered frame" position */
+        /* extract the frame info to be able to take some decisions */
+        TB_readFrameInfo(descriptor, &frame_header, &frame_info, NULL, true);
+        /* update the "byte after the last considered frame" position */
         cursor_after_last_frame = descriptor->cur_offset;
-
         /* update the remaining available data */
         remaining_data -= frame_size;
+
+        if(filter == NULL || filter(&frame_info, filter_data))
+        {
+            /* update counters */
+#if !IS_HOST(DSP_LESS)
+            size_t actual_payload_size = frame_info.indirect ?
+                    frame_info.indirect_payload.length : frame_header.payload_length;
+#else
+            size_t actual_payload_size = frame_header.payload_length;
+#endif
+
+            total_frames++;
+            total_payload_size += actual_payload_size;
+            if(actual_payload_size > biggest_payload_size)
+                biggest_payload_size = actual_payload_size;
+        }
     }
 
     /* restore read cursor position */
@@ -459,6 +481,14 @@ size_t TB_peekFrames(TB_data_descriptor *descriptor,
                      TB_frame_filter filter,
                      void *filter_data)
 {
+    unsigned total_frames;
+    size_t total_payload_size;
+    size_t remaining_data;
+    size_t cursor_after_last_frame;
+
+    /* save current buffer position */
+    size_t saved_descriptor_offset = descriptor->cur_offset;
+
     /* reset values */
     *frames_count = 0;
     *available_payload = 0;
@@ -466,43 +496,47 @@ size_t TB_peekFrames(TB_data_descriptor *descriptor,
     if(num_frame_info == 0)
         return descriptor->cur_offset;
 
-    /* save current buffer position */
-    size_t saved_descriptor_offset = descriptor->cur_offset;
-
     /* walk the frames */
-    unsigned total_frames = 0;
-    size_t total_payload_size = 0;
-    size_t remaining_data = descriptor->total_size - descriptor->cur_offset;
-    size_t cursor_after_last_frame = descriptor->cur_offset;
+    total_frames = 0;
+    total_payload_size = 0;
+    remaining_data = descriptor->total_size - descriptor->cur_offset;
+    cursor_after_last_frame = descriptor->cur_offset;
     while(remaining_data >= sizeof(TB_header) &&
           total_frames < num_frame_info)
     {
+        TB_frame_info *cur_frame_info;
+        size_t frame_size;
+
         /* read the header */
         TB_header frame_header;
         TB_readFrameHeader(descriptor, &frame_header);
 
         /* is this frame complete? */
-        size_t frame_size = sizeof(TB_header)               +
-                            frame_header.payload_length     +
-                            frame_header.pre_padding_length +
-                            frame_header.post_padding_length;
+        frame_size = sizeof(TB_header)               +
+                     frame_header.payload_length     +
+                     frame_header.pre_padding_length +
+                     frame_header.post_padding_length;
         if(remaining_data < frame_size)
             break;      /* incomplete frame, exit here */
 
         /* extract frame info */
-        TB_frame_info *cur_frame_info = &frame_info[total_frames];
+        cur_frame_info = &frame_info[total_frames];
         TB_readFrameInfo(descriptor, &frame_header, cur_frame_info, NULL, true);
 
-        if(filter == NULL ||
-           filter(cur_frame_info, filter_data) == true)
+        if(filter == NULL || filter(cur_frame_info, filter_data))
         {
             /* frame accepted */
             total_frames++;
+#if !IS_HOST(DSP_LESS)
+            total_payload_size += cur_frame_info->indirect ?
+                    cur_frame_info->indirect_payload.length : frame_header.payload_length;
+#else
             total_payload_size += frame_header.payload_length;
+#endif
         }
-        /* frame rejected, track only where we read up to */
-        cursor_after_last_frame = descriptor->cur_offset;
 
+        /* track where we read up to */
+        cursor_after_last_frame = descriptor->cur_offset;
         /* update the remaining available data */
         remaining_data -= frame_size;
     }
@@ -528,6 +562,16 @@ size_t TB_readAllFrames(TB_data_descriptor *descriptor,
                         TB_frame_filter filter,
                         void *filter_data)
 {
+    unsigned total_frames;
+    size_t total_payload_size;
+    uint8_t *write_cursor;
+    size_t write_remaining_data;
+    size_t remaining_data;
+    size_t cursor_after_last_frame;
+
+    /* save current buffer position */
+    size_t saved_descriptor_offset = descriptor->cur_offset;
+
     /* reset values */
     *frames_count = 0;
     *available_payload = 0;
@@ -535,48 +579,55 @@ size_t TB_readAllFrames(TB_data_descriptor *descriptor,
     if(num_frame_info == 0)
         return descriptor->cur_offset;
 
-    /* save current buffer position */
-    size_t saved_descriptor_offset = descriptor->cur_offset;
-
     /* walk the frames */
-    unsigned total_frames = 0;
-    size_t total_payload_size = 0;
-    uint8_t *write_cursor = buf;
-    size_t write_remaining_data = buf_size;
-    size_t remaining_data = descriptor->total_size - descriptor->cur_offset;
-    size_t cursor_after_last_frame = descriptor->cur_offset;
+    total_frames = 0;
+    total_payload_size = 0;
+    write_cursor = buf;
+    write_remaining_data = buf_size;
+    remaining_data = descriptor->total_size - descriptor->cur_offset;
+    cursor_after_last_frame = descriptor->cur_offset;
     while(remaining_data >= sizeof(TB_header) &&
           total_frames < num_frame_info)
     {
+        TB_data_descriptor descriptor_at_payload;
+        TB_frame_info *cur_frame_info;
+        size_t frame_size, actual_payload_length;
+        bool frame_accepted;
+
         /* read the header */
         TB_header frame_header;
         TB_readFrameHeader(descriptor, &frame_header);
 
         /* is this frame complete? */
-        size_t frame_size = sizeof(TB_header)               +
-                            frame_header.payload_length     +
-                            frame_header.pre_padding_length +
-                            frame_header.post_padding_length;
+        frame_size = sizeof(TB_header)               +
+                     frame_header.payload_length     +
+                     frame_header.pre_padding_length +
+                     frame_header.post_padding_length;
         if(remaining_data < frame_size)
             break;      /* incomplete frame, exit here */
 
         /* extract frame info */
-        TB_frame_info *cur_frame_info = &frame_info[total_frames];
-        TB_data_descriptor descriptor_at_payload;
+        cur_frame_info = &frame_info[total_frames];
         TB_readFrameInfo(descriptor,
                          &frame_header,
                          cur_frame_info,
                          &descriptor_at_payload,
                          true);
+#if !IS_HOST(DSP_LESS)
+        actual_payload_length = cur_frame_info->indirect ?
+                cur_frame_info->indirect_payload.length : frame_header.payload_length;
+#else
+        actual_payload_length = frame_header.payload_length;
+#endif
 
         /* check the filter response */
-        bool frame_accepted = true;
+        frame_accepted = true;
         if(filter != NULL)
            frame_accepted = filter(cur_frame_info, filter_data);
 
         /* lack of available space is important only if the frame has been accepted */
-        if(frame_accepted && write_remaining_data < frame_header.payload_length)
-            break;  /* we exhausted write space, quit */
+        if(frame_accepted && write_remaining_data < actual_payload_length)
+            break;  /* we exhausted the write space, quit */
 
         /* how to proceed? */
         if(!frame_accepted)
@@ -588,13 +639,21 @@ size_t TB_readAllFrames(TB_data_descriptor *descriptor,
         else
         {
             /* frame accepted, read payload */
-            TB_read(&descriptor_at_payload, write_cursor, frame_header.payload_length, false);
+#if !IS_HOST(DSP_LESS)
+            if(cur_frame_info->indirect)
+                DSP_readDataAsDsp(descriptor->dsp, write_cursor,
+                                  cur_frame_info->indirect_payload.address,
+                                  cur_frame_info->indirect_payload.length);
+            else
+#endif
+                TB_read(&descriptor_at_payload, write_cursor, frame_header.payload_length, false);
             cur_frame_info->payload_address = write_cursor;
+
             /* update state */
             total_frames++;
-            total_payload_size += frame_header.payload_length;
-            write_cursor += frame_header.payload_length;
-            write_remaining_data -= frame_header.payload_length;
+            total_payload_size += actual_payload_length;
+            write_cursor += actual_payload_length;
+            write_remaining_data -= actual_payload_length;
             cursor_after_last_frame = descriptor->cur_offset;
         }
     }
@@ -622,32 +681,33 @@ size_t TB_readSingleFrames(TB_data_descriptor *descriptor,
      size_t cursor_after_last_frame = descriptor->cur_offset;
      while(remaining_data >= sizeof(TB_header))
      {
+         TB_frame_info frame_info;
+         TB_data_descriptor descriptor_at_payload;
+         size_t frame_size;
+
          /* read the header */
          TB_header frame_header;
          TB_readFrameHeader(descriptor, &frame_header);
 
          /* is this frame complete? */
-         size_t frame_size = sizeof(TB_header)               +
-                             frame_header.payload_length     +
-                             frame_header.pre_padding_length +
-                             frame_header.post_padding_length;
+         frame_size = sizeof(TB_header)               +
+                      frame_header.payload_length     +
+                      frame_header.pre_padding_length +
+                      frame_header.post_padding_length;
          if(remaining_data < frame_size)
              break;      /* incomplete frame, exit here */
 
          /* extract frame info */
-         TB_frame_info frame_info;
-         TB_data_descriptor descriptor_at_payload;
          TB_readFrameInfo(descriptor,
                           &frame_header,
                           &frame_info,
                           &descriptor_at_payload,
                           true);
 
-         /* invoke the callback */
-         bool should_continue = frames_reader(&frame_info,
-                                              &descriptor_at_payload,
-                                              reader_data);
-         if(!should_continue)
+         /* invoke the callback to decide whether to continue */
+         if(!frames_reader(&frame_info,
+                           &descriptor_at_payload,
+                           reader_data))
              break;
 
          /* update only if frames_reader returned true */

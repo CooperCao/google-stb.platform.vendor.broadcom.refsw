@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2005-2012 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef NEXUS_FILE_FIFO_CHUNK_H__
 #define NEXUS_FILE_FIFO_CHUNK_H__
@@ -87,7 +76,7 @@ typedef struct NEXUS_ChunkedFifoRecordSettings {
     unsigned snapshotInterval; /* interval between metadata writes, in seconds. 0 means metadata written only when file is closed */
     NEXUS_ChunkedFifoRecordLimit data; /* Limits for the timeshifting data file */
     NEXUS_ChunkedFifoRecordLimit index; /* Limits for the timeshifting index file */
-    char chunkTemplate[128]; /* template for the individual chunk file names, e.g. "chunk_%04.mpg" */
+    char chunkTemplate[128]; /* Template for the individual chunk file names. See NEXUS_ChunkedFilePlayOpenSettings for requirements. */
 } NEXUS_ChunkedFifoRecordSettings;
 
 /*
@@ -143,6 +132,8 @@ Open a playback file to pass to NEXUS_Playback_Start().
 Description:
 This function shall be used only for files created by NEXUS_ChunkedFifoRecord_Create.
 The NEXUS_FilePlayHandle can be used for only one playback at a time.
+
+templateName and chunksize is obtained from NEXUS_ChunkedFifoRecord or metadata in indexfile.
 */
 NEXUS_FilePlayHandle NEXUS_ChunkedFifoPlay_Open(
     const char *mpegFileName,
@@ -166,6 +157,62 @@ This function sets the new configuration of the timeshifting fifo
 NEXUS_Error NEXUS_ChunkedFifoRecord_SetSettings(
     NEXUS_ChunkedFifoRecordHandle fifo, /* Handle returned by NEXUS_ChunkedFifoRecord_Create */
     const NEXUS_ChunkedFifoRecordSettings *pSettings /* new settings of timeshifting buffer */
+    );
+
+typedef struct NEXUS_ChunkedFifoRecordExportSettings
+{
+    const char *filename; /* chunked file pattern applied to chunkTemplate */
+    const char *indexname; /* optional index file. not chunked. */
+    char chunkTemplate[128]; /* Template for the individual chunk file names. See NEXUS_ChunkedFilePlayOpenSettings for requirements. */
+    struct {
+        unsigned timestamp;
+    } first, last;
+} NEXUS_ChunkedFifoRecordExportSettings;
+
+void NEXUS_ChunkedFifoRecord_GetDefaultExportSettings(
+    NEXUS_ChunkedFifoRecordExportSettings *pSettings
+    );
+
+typedef struct NEXUS_ChunkedFifoRecordExport *NEXUS_ChunkedFifoRecordExportHandle;
+
+/*
+Export a linear chunked file from a continuous chunked file fifo by creating hardlinks
+to chunks and creating a new linear index.
+
+Export will continue until last timestamp is reached or StopExport is called.
+*/
+NEXUS_ChunkedFifoRecordExportHandle NEXUS_ChunkedFifoRecord_StartExport(
+    NEXUS_ChunkedFifoRecordHandle fifo,
+    const NEXUS_ChunkedFifoRecordExportSettings *pSettings
+    );
+
+void NEXUS_ChunkedFifoRecord_StopExport(
+    NEXUS_ChunkedFifoRecordExportHandle handle
+    );
+
+typedef enum NEXUS_ChunkedFifoRecordExportState
+{
+    NEXUS_ChunkedFifoRecordExportState_eIdle,   /* initial state */
+    NEXUS_ChunkedFifoRecordExportState_eStarted,
+    NEXUS_ChunkedFifoRecordExportState_eFailed, /* terminal state */
+    NEXUS_ChunkedFifoRecordExportState_eDone    /* terminal state */
+} NEXUS_ChunkedFifoRecordExportState;
+
+typedef struct NEXUS_ChunkedFifoRecordExportStatus
+{
+    NEXUS_ChunkedFifoRecordExportState state;
+    struct {
+        /* 'first' values may be greater than requested based on what is available.
+        'last' values may be less than requested if export is not done yet. */
+        unsigned timestamp;
+        unsigned chunkNumber;
+        off_t offset;
+    } first, last;
+} NEXUS_ChunkedFifoRecordExportStatus;
+
+NEXUS_Error NEXUS_ChunkedFifoRecord_GetExportStatus(
+    NEXUS_ChunkedFifoRecordExportHandle handle,
+    NEXUS_ChunkedFifoRecordExportStatus *pStatus
     );
 
 #ifdef __cplusplus

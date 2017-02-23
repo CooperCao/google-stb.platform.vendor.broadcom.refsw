@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,7 +46,7 @@
 #include "bhevc_video_probe.h"
 #include "b_playback_ip_lib.h"
 
-#include "b_psip_lib.h"
+#include "ts_psi.h"
 #ifdef STREAMER_CABLECARD_SUPPORT
 #include "ip_strm_cablecard.h"
 #else
@@ -2045,6 +2045,7 @@ error:
 /**********************************************************/
 /** ProbeTuner specific sub functions and data structure. **/
 /**********************************************************/
+#if 0
 #ifndef STREAMER_CABLECARD_SUPPORT
 static void tsPsi_procProgDescriptors(
     const uint8_t  *p_bfr,
@@ -2074,6 +2075,7 @@ static void tsPsi_procProgDescriptors(
         } /* switch */
     }
 } /* tsPsi_procProgDescriptors */
+#endif
 
 static void tsPsi_procStreamDescriptors(
     const uint8_t *p_bfr,
@@ -2122,483 +2124,125 @@ typedef enum {
     IpStreamerSrc_eMax       /* Max allowed enum */
 } IpStreamerSrc;
 
-typedef struct psiCollectionDataType
+static void populateMediaInfoTrackFromEPID(
+   BIP_MediaInfoTrack *pMediaInfoTrack,
+   EPID *pEpid,
+   BIP_MediaInfoTrackType type
+   )
 {
-    IpStreamerSrc        srcType;
-    NEXUS_ParserBand     parserBand;
-    B_EventHandle        signalLockedEvent;
-    NEXUS_PlaypumpHandle playpump;
-    NEXUS_PlaybackHandle playback;
-    NEXUS_FilePlayHandle file;
-#ifdef NEXUS_HAS_PLAYBACK
-    B_PlaybackIpHandle playbackIp;
-#endif
-    bool live;
-    struct {
-        uint16_t               num;
-        NEXUS_PidChannelHandle channel;
-    } pid[NUM_PID_CHANNELS];
-} psiCollectionDataType, *pPsiCollectionDataType;
+   pMediaInfoTrack->trackId = pEpid->pid;
 
-/* struct used to keep track of the si callback we must use, to notify
-   the si applib that it's previously requested data is now available */
-typedef struct siRequest_t
-{
-    B_PSIP_DataReadyCallback callback;
-    void                    *callbackParam;
-} siRequest_t;
+   pMediaInfoTrack->trackType = type;
+   if (type == BIP_MediaInfoTrackType_eVideo) {
+      pMediaInfoTrack->info.video.codec = pEpid->streamType;
+   }
+   else if (type == BIP_MediaInfoTrackType_eAudio ) {
+      pMediaInfoTrack->info.audio.codec = pEpid->streamType;
+   }
+   else
+   {
+      pMediaInfoTrack->trackType  = BIP_MediaInfoTrackType_eOther;
+   }
 
-/* we only have one filterHandle (i.e. msg), so we only have to keep track
-   of the current request from si (specifically, the si "data ready"
-   callback and associated param) */
-static siRequest_t g_siRequest;
-
-/* nexus message "data ready" callback - forward notification to si lib */
-static void DataReady(
-    void *context,
-    int   param
-    )
-{
-    BSTD_UNUSED( context );
-    BSTD_UNUSED( param );
-    BDBG_MSG((BIP_MSG_PRE_FMT "Nexus message data ready callback " BIP_MSG_PRE_ARG));
-
-    if (NULL != g_siRequest.callback)
-    {
-        /* printf("in DataReady callback - forward notification to psip lib\n");*/
-        g_siRequest.callback( g_siRequest.callbackParam );
-    }
+   BDBG_MSG((" ----------------------TrackType = %d and pEpid->streamType = %d", pMediaInfoTrack->trackType , pEpid->streamType));
 }
 
-/* message "data ready" callback which is called by si when our requested data
-   has been processed and is ready for retrieval */
-static void SiDataReady(
-    B_Error status,
-    void   *context
-    )
+static BIP_Status createMediaInfoTrackListFromProgramInfo(
+   BIP_MediaInfoStream  *pMediaInfoStream,
+   PROGRAM_INFO_T *pProgramInfo
+   )
 {
-    /* printf("in APP DataReady callback - psip lib has finished processing data\n");*/
-    if (B_ERROR_SUCCESS == status)
-    {
-        B_Event_Set((B_EventHandle)context );
-    }
-    else
-    {
-        BDBG_MSG((BIP_MSG_PRE_FMT "Problem receiving data from api call - error code:%d\n" BIP_MSG_PRE_ARG, status ));
-        /* set event so our test app can continue... */
-        B_Event_Set((B_EventHandle)context );
-    }
-}
+   BIP_Status rc = BIP_SUCCESS;
+   BIP_MediaInfoTrack *pMediaInfoTrack =  NULL;
+   uint8_t i;
 
-/* gets a pidchannel - nexus handles pid channel reuse automatically */
-static NEXUS_PidChannelHandle openPidChannel(
-    psiCollectionDataType *pCollectionData,
-    uint16_t               pid
-    )
-{
-    int i = 0;
-    NEXUS_PidChannelSettings             pidChannelSettings;
-    NEXUS_PlaypumpOpenPidChannelSettings playpumpPidChannelSettings;
+   /************************ Collect Pcr Track **********************/
+   if(pProgramInfo->pcr_pid > 1)
+   {
+       /*Create BIP_MediaInfoTrack for pcr track */
+       pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
+       BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
-    NEXUS_Playpump_GetDefaultOpenPidChannelSettings( &playpumpPidChannelSettings );
+       /* Populate pcr track related information.*/
+       pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_ePcr;
+       pMediaInfoTrack->trackId = pProgramInfo->pcr_pid;
 
-    playpumpPidChannelSettings.pidSettings.requireMessageBuffer = true;
-    pidChannelSettings.requireMessageBuffer = true;
-    NEXUS_PidChannel_GetDefaultSettings( &pidChannelSettings );
+      /* Adding track to track list. */
+      BIP_MEDIAINFO_TRACKLIST_INSERT(&pMediaInfoStream->pFirstTrackInfoForStream, pMediaInfoTrack);
+      /* Update numTracks in MediaInfoStream. */
+      pMediaInfoStream->numberOfTracks++;
+      /* Track added to track list.*/
+      rc = addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pProgramInfo->program_number);
+      BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoTrackToTrackGroup failed" ), error, rc, rc );
+      /************************ Pcr track Collected *********************/
+   }
 
-    for (i = 0; i < NUM_PID_CHANNELS; i++)
-    {
-        if (NULL == pCollectionData->pid[i].channel)
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "Open pidChannel for pid:0x%04x\n" BIP_MSG_PRE_ARG, pid ));
-            pCollectionData->pid[i].num = pid;
-            if (pCollectionData->srcType == IpStreamerSrc_eIp)
-            {
-                pCollectionData->pid[i].channel =
-                    NEXUS_Playpump_OpenPidChannel( pCollectionData->playpump, pid, &playpumpPidChannelSettings );
-            }
-            else
-            {
-                pCollectionData->pid[i].channel =
-                    NEXUS_PidChannel_Open( pCollectionData->parserBand, pid, &pidChannelSettings );
-            }
-            return( pCollectionData->pid[i].channel );
-        }
-    }
+   /************** Now collect the Video tracks ****************/
+   for (i=0; i < pProgramInfo->num_video_pids; i++)
+   {
+       /*Create BIP_MediaInfoTrack for video track */
+       pMediaInfoTrack = NULL;
+       pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
+       BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+       populateMediaInfoTrackFromEPID(pMediaInfoTrack, &pProgramInfo->video_pids[i], BIP_MediaInfoTrackType_eVideo);
 
-    if (i == NUM_PID_CHANNELS)
-    {
-        BDBG_ERR(( "failed to open pid channel:0x%04x - not enough storage space in pCollectionData!\n", pid ));
-    }
+       /* Adding track to track list. */
+       BIP_MEDIAINFO_TRACKLIST_INSERT(&pMediaInfoStream->pFirstTrackInfoForStream, pMediaInfoTrack);
+       /* Update numTracks in MediaInfoStream. */
+       pMediaInfoStream->numberOfTracks++;
+       /* Track added to track list.*/
 
-    return( NULL );
-} /* openPidChannel */
+       rc = addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pProgramInfo->program_number);
+       BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoTrackToTrackGroup failed" ), error, rc, rc );
 
-/* utility function to convert si applib message filter to nexus message filter
-   assumes pNexusFilter has already been properly initialized with default values */
-static void cpyFilter(
-    NEXUS_MessageFilter *pNexusFilter,
-    B_PSIP_Filter       *pSiFilter
-    )
-{
-    int i = 0;
+   }
+   /************** All Video tracks collected ******************/
 
-    for (i = 0; i < BIP_MIN( B_PSIP_FILTER_SIZE, NEXUS_MESSAGE_FILTER_SIZE ); i++)
-    {
-        if (i == 2)
-        {
-            /* WARNING: will not filter message byte 2! */
-            continue;
-        }
-        else if (i >= 2)
-        {
-            /* adjust nexus index see NEXUS_MessageFilter in nexus_message.h */
-            pNexusFilter->mask[i-1]        = pSiFilter->mask[i];
-            pNexusFilter->coefficient[i-1] = pSiFilter->coef[i];
-            pNexusFilter->exclusion[i-1]   = pSiFilter->excl[i];
-        }
-        else
-        {
-            pNexusFilter->mask[i]        = pSiFilter->mask[i];
-            pNexusFilter->coefficient[i] = pSiFilter->coef[i];
-            pNexusFilter->exclusion[i]   = pSiFilter->excl[i];
-        }
-    }
-} /* cpyFilter */
+   /************** Now collect the Audio tracks ****************/
+   for (i=0; i < pProgramInfo->num_audio_pids; i++)
+   {
+       /*Create BIP_MediaInfoTrack for audio track */
+       pMediaInfoTrack = NULL;
+       pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
+       BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+       populateMediaInfoTrackFromEPID(pMediaInfoTrack, &pProgramInfo->audio_pids[i], BIP_MediaInfoTrackType_eAudio);
 
-static void startMessageFilter(
-    psiCollectionDataType    *pCollectionData,
-    B_PSIP_CollectionRequest *pRequest,
-    NEXUS_PidChannelHandle    pidChannel
-    )
-{
-    NEXUS_MessageHandle        msg;
-    NEXUS_MessageStartSettings msgStartSettings;
+       /* Adding track to track list. */
+       BIP_MEDIAINFO_TRACKLIST_INSERT(&pMediaInfoStream->pFirstTrackInfoForStream, pMediaInfoTrack);
+       /* Update numTracks in MediaInfoStream. */
+       pMediaInfoStream->numberOfTracks++;
+       /* Track added to track list.*/
 
-    BSTD_UNUSED( pCollectionData );
-    msg = (NEXUS_MessageHandle)pRequest->filterHandle;
-    /* printf("StartMessageFilter\n");*/
+       addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pProgramInfo->program_number);
+   }
+   /************** All Audio tracks collected ******************/
 
-    NEXUS_Message_GetDefaultStartSettings( msg, &msgStartSettings );
-    msgStartSettings.bufferMode = NEXUS_MessageBufferMode_eOneMessage;
-    msgStartSettings.pidChannel = pidChannel;
-    cpyFilter( &msgStartSettings.filter, &pRequest->filter );
+   /************** Now collect all other tracks ****************/
+   for (i=0; i < pProgramInfo->num_other_pids; i++)
+   {
+       /*Create BIP_MediaInfoTrack for audio track */
+       pMediaInfoTrack = NULL;
+       pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
+       BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+       populateMediaInfoTrackFromEPID(pMediaInfoTrack, &pProgramInfo->other_pids[i], BIP_MediaInfoTrackType_eOther);
 
-    NEXUS_Message_Start( msg, &msgStartSettings );
-    NEXUS_StartCallbacks( msg );
-} /* startMessageFilter */
+       /* Adding track to track list. */
+       BIP_MEDIAINFO_TRACKLIST_INSERT(&pMediaInfoStream->pFirstTrackInfoForStream, pMediaInfoTrack);
+       /* Update numTracks in MediaInfoStream. */
+       pMediaInfoStream->numberOfTracks++;
+       /* Track added to track list.*/
 
-static void stopMessageFilter(
-    psiCollectionDataType    *pCollectionData,
-    B_PSIP_CollectionRequest *pRequest
-    )
-{
-    NEXUS_MessageHandle msg;
-
-    BSTD_UNUSED( pCollectionData );
-
-    /* printf("StopMessageFilter\n"); */
-    msg = (NEXUS_MessageHandle)pRequest->filterHandle;
-    NEXUS_StopCallbacks( msg );
-    NEXUS_Message_Stop( msg );
-}
-
-/* closes a previously opened pid channel */
-static void closePidChannel(
-    psiCollectionDataType *pCollectionData,
-    uint16_t               pid
-    )
-{
-    int  i     = 0;
-    bool found = false;
-
-    for (i = 0; i < NUM_PID_CHANNELS; i++)
-    {
-        /* find pid to close */
-        if (( pCollectionData->pid[i].num == pid ) &&
-            ( pCollectionData->pid[i].channel != NULL ))
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "close pidChannel for pid:0x%04x\n" BIP_MSG_PRE_ARG, pid ));
-
-            if (pCollectionData->srcType == IpStreamerSrc_eIp)
-            {
-                NEXUS_Playpump_ClosePidChannel( pCollectionData->playpump, pCollectionData->pid[i].channel );
-            }
-            else
-            {
-                NEXUS_PidChannel_Close( pCollectionData->pid[i].channel );
-            }
-            pCollectionData->pid[i].channel = NULL;
-            pCollectionData->pid[i].num     = 0;
-            found = true;
-            break;
-        }
-    }
-    if (!found)
-    {
-        BDBG_ERR(( "failure closing pid channel:0x%04x - not found in list\n", pid ));
-    }
-} /* closePidChannel */
-
-/* callback function called by si applib to collect si data */
-static B_Error collectionFunc(
-    B_PSIP_CollectionRequest *pRequest,
-    void                     *context
-    )
-{
-    NEXUS_PidChannelHandle pidChannel      = NULL;
-    pPsiCollectionDataType pCollectionData = (pPsiCollectionDataType)context;
-    NEXUS_MessageHandle    msg;
-
-    BDBG_ASSERT( NULL != pRequest );
-    BDBG_ASSERT( NULL != context );
-    msg = (NEXUS_MessageHandle)pRequest->filterHandle;
-    if (NULL == msg)
-    {
-        BDBG_ERR(( "invalid filterHandle received from SI applib!\n" ));
-        return( B_ERROR_INVALID_PARAMETER );
-    }
-
-    switch (pRequest->cmd)
-    {
-        const uint8_t *buffer;
-        size_t         size;
-
-        case B_PSIP_eCollectStart:
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "-=-=- B_PSIP_eCollectStart -=-=-\n" BIP_MSG_PRE_ARG));
-
-            /*
-             * Save off pRequest->callback and pRequest->callbackParam.
-             * these need to be called when DataReady() is called.  this will
-             * notify the si lib that it can begin processing the received data.
-             * Si applib only allows us to call one API at a time (per filterHandle),
-             * so we only have to keep track of the latest siRequest.callback
-             * and siRequest.callbackParam (for our one and only filterHandle).
-             */
-            g_siRequest.callback      = pRequest->callback;
-            g_siRequest.callbackParam = pRequest->callbackParam;
-
-            pidChannel = openPidChannel( pCollectionData, pRequest->pid );
-            startMessageFilter( pCollectionData, pRequest, pidChannel );
-            break;
-        }
-
-        case B_PSIP_eCollectStop:
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "-=-=- B_PSIP_eCollectStop -=-=-\n" BIP_MSG_PRE_ARG));
-            stopMessageFilter( pCollectionData, pRequest );
-            closePidChannel( pCollectionData, pRequest->pid );
-            break;
-        }
-
-        case B_PSIP_eCollectGetBuffer:
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "-=-=- B_PSIP_eCollectGetBuffer -=-=-\n" BIP_MSG_PRE_ARG));
-            /* fall through for now... */
-        }
-        case B_PSIP_eCollectCopyBuffer:
-        {
-            /*printf("-=-=- B_PSIP_eCollectCopyBuffer -=-=-\n");*/
-            if (NEXUS_SUCCESS == NEXUS_Message_GetBuffer( msg, (const void **)&buffer, &size ))
-            {
-                if (0 < size)
-                {
-                    BDBG_MSG((BIP_MSG_PRE_FMT "NEXUS_Message_GetBuffer() succeeded! size:%zu\n" BIP_MSG_PRE_ARG, size ));
-                    memcpy( pRequest->pBuffer, buffer, *( pRequest->pBufferLength )); /* copy valid data to request buffer */
-                    *( pRequest->pBufferLength ) = BIP_MIN( *( pRequest->pBufferLength ), size );
-                    NEXUS_Message_ReadComplete( msg, size );
-                }
-                else
-                {
-                    /* NEXUS_Message_GetBuffer can return size==0 (this is normal
-                     * operation).  We will simply wait for the next data ready
-                     * notification by returning a B_ERROR_RETRY to the PSIP applib
-                     */
-                    NEXUS_Message_ReadComplete( msg, size );
-                    return( B_ERROR_PSIP_RETRY );
-                }
-            }
-            else
-            {
-                BDBG_ERR((BIP_MSG_PRE_FMT "NEXUS_Message_GetBuffer() failed\n" BIP_MSG_PRE_ARG));
-
-                return( B_ERROR_UNKNOWN );
-            }
-            break;
-        }
-
-        default:
-        {
-            BDBG_ERR(( "-=-=- invalid Command received:%d -=-=-\n", pRequest->cmd ));
-            return( B_ERROR_INVALID_PARAMETER );
-
-            break;
-        }
-    } /* switch */
-
-    return( B_ERROR_SUCCESS );
-} /* collectionFunc */
-
-static void populateMediaInfoTrackFromTSPmtStruct(
-    TS_PMT_stream *pStream,
-    BIP_MediaInfoTrack   *pMediaInfoTrack
-    )
-{
-    pMediaInfoTrack->trackId = pStream->elementary_PID;
-    switch (pStream->stream_type)
-    {
-        case TS_PSI_ST_13818_2_Video:
-        case TS_PSI_ST_ATSC_Video:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eVideo;
-            pMediaInfoTrack->info.video.codec = NEXUS_VideoCodec_eMpeg2;
-            break;
-        }
-        case TS_PSI_ST_11172_2_Video:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eVideo;
-            pMediaInfoTrack->info.video.codec = NEXUS_VideoCodec_eMpeg1;
-            break;
-        }
-        case TS_PSI_ST_14496_10_Video:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eVideo;
-            pMediaInfoTrack->info.video.codec = NEXUS_VideoCodec_eH264;
-            break;
-        }
-        case 0x27:
-        case 0x24:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eVideo;
-            pMediaInfoTrack->info.video.codec = NEXUS_VideoCodec_eH265;
-            break;
-        }
-        case TS_PSI_ST_11172_3_Audio:
-        case TS_PSI_ST_13818_3_Audio:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eAudio;
-            pMediaInfoTrack->info.audio.codec = NEXUS_AudioCodec_eMpeg;
-            break;
-        }
-        case TS_PSI_ST_ATSC_AC3:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eAudio;
-            pMediaInfoTrack->info.audio.codec = NEXUS_AudioCodec_eAc3;
-            break;
-        }
-        case TS_PSI_ST_ATSC_EAC3:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eAudio;
-            pMediaInfoTrack->info.audio.codec = NEXUS_AudioCodec_eAc3Plus;
-            break;
-        }
-        case TS_PSI_ST_13818_7_AAC:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eAudio;
-            pMediaInfoTrack->info.audio.codec = NEXUS_AudioCodec_eAac;
-            break;
-        }
-        case TS_PSI_ST_14496_3_Audio:
-        {
-            pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_eAudio;
-            pMediaInfoTrack->info.audio.codec = NEXUS_AudioCodec_eAacPlus;
-            break;
-        }
-        default:
-        {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "###### TODO: Unknown stream type: %x #####" BIP_MSG_PRE_ARG, pStream->stream_type ));
-            pMediaInfoTrack->trackType             = BIP_MediaInfoTrackType_eOther;
-            break;
-        }
-    } /* switch */
-}
-
-/*****************************************************************************************
-  * Create BIPM_ediaInfoTrack from TS_PMT_Buffer received from TS_PMT_get* functions.
-  ****************************************************************************************/
-static BIP_Status createMediaInfoTrackFromTSPmtBuff(
-    BIP_MediaInfoStream  *pMediaInfoStream,
-    uint8_t                 *pBufPMT,/* In:pmt buff with pmt information.*/
-    uint32_t             bufPMTLength,/* In:pmt buffer length.*/
-    TS_PAT_program       *pTsPatProgram
-    )
-{
-    BIP_Status rc    = BIP_SUCCESS;
-    unsigned trackId;
-    BIP_MediaInfoTrack   *pMediaInfoTrack =  NULL;
-    int j;
-    TS_PMT_stream stream;
-#ifndef STREAMER_CABLECARD_SUPPORT
-    EPID epid;
-#endif
-
-    BDBG_ASSERT( NULL != pMediaInfoStream );
-
-    /************************ Collect pcr track *********************/
-    trackId = TS_PMT_getPcrPid( pBufPMT, bufPMTLength);
-    if (trackId > 1)
-    {
-        /*Create BIP_MediaInfoTrack for pcr track */
-        pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
-
-        /* Populate pcr track related information.*/
-        pMediaInfoTrack->trackType = BIP_MediaInfoTrackType_ePcr;
-        pMediaInfoTrack->trackId = trackId;
-    }
-    /* Adding track to track list. */
-    BIP_MEDIAINFO_TRACKLIST_INSERT(&pMediaInfoStream->pFirstTrackInfoForStream, pMediaInfoTrack);
-    /* Update numTracks in MediaInfoStream. */
-    pMediaInfoStream->numberOfTracks++;
-    /* Track added to track list.*/
-
-    rc = addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pTsPatProgram->program_number);
-    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoTrackToTrackGroup failed" ), error, rc, rc );
-
-    /************************ Pcr track Collected *********************/
-
-    /**************** Now collect the other tracks.*********************/
-    for (j = 0; j < TS_PMT_getNumStreams( pBufPMT, bufPMTLength ); j++)  /* this give you the track */
-    {
-        B_Os_Memset( &stream, 0, sizeof( stream ));
-        TS_PMT_getStream( pBufPMT, bufPMTLength, j, &stream );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "j %d, stream_type:0x%02X, PID:0x%04X\n" BIP_MSG_PRE_ARG, j, stream.stream_type, stream.elementary_PID ));
-
-        /*Create BIP_MediaInfoTrack for pcr track */
-        pMediaInfoTrack = NULL;
-        pMediaInfoTrack = B_Os_Calloc(1,sizeof(BIP_MediaInfoTrack));
-        BIP_CHECK_GOTO(( pMediaInfoTrack!=NULL ), ( "Failed to allocate memory (%zu bytes) for BIP_MediaInfo Object", sizeof(BIP_MediaInfoTrack)  ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
-
-        populateMediaInfoTrackFromTSPmtStruct( &stream, pMediaInfoTrack );
-
-        /* Adding track to track list. */
-        BIP_MEDIAINFO_TRACKLIST_INSERT(&pMediaInfoStream->pFirstTrackInfoForStream, pMediaInfoTrack);
-        /* Update numTracks in MediaInfoStream. */
-        pMediaInfoStream->numberOfTracks++;
-        /* Track added to track list.*/
-
-        rc = addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pTsPatProgram->program_number);
-        BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoTrackToTrackGroup failed" ), error, rc, rc );
-
-#ifndef STREAMER_CABLECARD_SUPPORT
-        /*TODO: Later check whether we at all need to keep the foloowing four lines of code.*/
-        B_Os_Memset( &epid, 0, sizeof( epid ));
-        tsPsi_procStreamDescriptors( pBufPMT, bufPMTLength, j, &epid );
-        if (epid.ca_pid)
-        {
-            BDBG_MSG((BIP_MSG_PRE_FMT "even program 0x%x has ca pid 0x%x, we are not ignoring it" BIP_MSG_PRE_ARG, pTsPatProgram->PID, epid.ca_pid ));
-        }
-#endif
-    }
-    /**************** All other tracks collected *********************/
+       rc = addMediaInfoTrackToTrackGroup(pMediaInfoStream, pMediaInfoTrack, pProgramInfo->program_number);
+       BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addMediaInfoTrackToTrackGroup failed" ), error, rc, rc );
+   }
+   /************** All Other tracks collected ******************/
 
 error:
     return rc;
 }
 
-#define PMT_BUF_LENGTH 4096
-#define PAT_BUF_LENGTH 4096
+#define BIP_MEDIAINFO_PAT_TIMEOUT 2000
+#define BIP_MEDIAINFO_PMT_TIMEOUT 2000
 /********************************************************
 * Probe tuner data to get media info meta data.
 *********************************************************/
@@ -2607,185 +2251,78 @@ BIP_Status BIP_MediaInfo_ProbeTunerForMediaInfo(
                                     NEXUS_ParserBand parserBand
                                     )
 {
-    BIP_Status rc    = BIP_SUCCESS;
-    psiCollectionDataType collectionData;
-    B_Error               errCode;
-    NEXUS_MessageSettings settings;
-    NEXUS_MessageHandle   msg = NULL;
-    B_PSIP_Handle         si  = NULL;
-    B_PSIP_Settings       si_settings;
-    B_PSIP_ApiSettings    settingsApi;
-    TS_PAT_program        program;
-    uint8_t               i;
-    uint8_t              *pBufPAT         = NULL;
-    uint32_t             bufPATLength = PAT_BUF_LENGTH;
-    uint8_t              *pBufPMT         = NULL;
-    uint32_t             bufPMTLength = PMT_BUF_LENGTH;
+    BIP_Status rc = BIP_SUCCESS;
+    BIP_MediaInfoStream  *pMediaInfoStream = NULL;
+    int patTimeout = BIP_MEDIAINFO_PAT_TIMEOUT;
+    int patTimeoutOrig = 0;
+    int pmtTimeout = BIP_MEDIAINFO_PAT_TIMEOUT;
+    int pmtTimeoutOrig = 0;
+    CHANNEL_INFO_T *pChanInfo = NULL;
+    uint8_t i = 0;
+    bool nitFound = 0;
+    BIP_MediaInfoCreateSettings *pMediaInfoCreateSettings = NULL;
 
-    B_EventHandle         dataReadyEvent = NULL;
-    bool                  nitFound = 0;
-    BIP_MediaInfoStream  *pMediaInfoStream;
-    BIP_MediaInfoCreateSettings *pMediaInfoCreateSettings;
-
-#ifndef STREAMER_CABLECARD_SUPPORT
-    PROGRAM_INFO_T programInfo;
-    B_Os_Memset( &programInfo, 0, sizeof( programInfo ));
-#endif
-
-    BDBG_ENTER(BIP_MediaInfo_ProbeTunerForMediaInfo);
-
-    BDBG_ASSERT(hMediaInfo);
-    BDBG_OBJECT_ASSERT(hMediaInfo,BIP_MediaInfo);
-
-    /* Initialize mediaInfoStream from MediaInfo object.*/
+     /* Initialize mediaInfoStream from MediaInfo object.*/
     pMediaInfoStream = &(hMediaInfo->mediaInfoStream);
     pMediaInfoCreateSettings = &(hMediaInfo->createSettings);
+
+    if (pMediaInfoCreateSettings && pMediaInfoCreateSettings->psiAcquireTimeoutInMs != 0)
+    {
+      /* patTimeout = pMediaInfoCreateSettings->psiAcquireTimeoutInMs;
+       pmtTimeout = pMediaInfoCreateSettings->psiAcquireTimeoutInMs;*/
+    }
 
     /* Populate MediaInfoStream structure */
     /* TODO: Check whether this has any issue , for Live case I always set it as bstream_mpeg_type_ts. */
     hMediaInfo->mediaInfoStream.transportType = BIP_MediaInfo_ConvertBmediaMpegTypeToNexus( bstream_mpeg_type_ts);
     hMediaInfo->mediaInfoStream.liveChannel = true;
 
-    /* Allocate pBufPAT and pBufPMT. */
-    pBufPAT = B_Os_Calloc( 1, bufPATLength);
-    BIP_CHECK_GOTO(( pBufPAT != NULL ), ( "Failed to allocate memory (%d bytes) for pBufPAT ", PAT_BUF_LENGTH ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    pChanInfo = B_Os_Malloc( sizeof(CHANNEL_INFO_T));
+    BIP_CHECK_GOTO(( pChanInfo != NULL ), ( "B_Os_Malloc() failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
 
-    pBufPMT = B_Os_Calloc( 1, bufPMTLength);
-    BIP_CHECK_GOTO(( pBufPMT != NULL ), ( "Failed to allocate memory (%d bytes) for pBufPMT ", PMT_BUF_LENGTH ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    /* adjust pat/pmt timeouts for faster scanning */
+    tsPsi_getTimeout(&patTimeoutOrig, &pmtTimeoutOrig);
+    tsPsi_setTimeout(patTimeout, pmtTimeout);
 
-    /* Start stream  */
-    B_Os_Memset( &collectionData, 0, sizeof( psiCollectionDataType ));
-    /* collectionFunc works same way for all srcType other than for type IpStreamerSrc_eIp.
-    Now BIP_MediaInfo_ProbeTunerForMediaInfo only works for sat and qam input.so collectionData.srcType is set to one of them.
-    Later based on requirements we can add srcType in BIP_MediaInfoCreateSettings. */
-    collectionData.srcType    = IpStreamerSrc_eSat;
-    collectionData.live       = true;
-    collectionData.parserBand = parserBand;
+    rc = tsPsi_getChannelInfo(pChanInfo, parserBand);
+    BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "tsPsi_getChannelInfo failed\\n" ), error, rc, rc );
 
-    NEXUS_Message_GetDefaultSettings( &settings );
-    settings.dataReady.callback = DataReady;
-    settings.dataReady.context  = NULL;
-    msg = NEXUS_Message_Open( &settings );
-    BIP_CHECK_GOTO(( msg != NULL), ( "PSI - NEXUS_Message_Open failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
+    /* restore default pat/pmt timeouts */
+    tsPsi_setTimeout(patTimeoutOrig, pmtTimeoutOrig);
 
-    B_PSIP_GetDefaultSettings( &si_settings );
-    si_settings.PatTimeout = 800;
-    si_settings.PmtTimeout = 800;
-    si = B_PSIP_Open( &si_settings, collectionFunc, &collectionData );
-    BIP_CHECK_GOTO(( si ), ( "PSI - Unable to open SI applib" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
-
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Starting PSI gathering\n" BIP_MSG_PRE_ARG ));
-
-    errCode = B_PSIP_Start( si );
-    BIP_CHECK_GOTO(( errCode == B_ERROR_SUCCESS ), ( "PSI - Unable to start SI data collection, err %d\n", errCode ), error, BIP_ERR_INTERNAL, rc );
-
-    dataReadyEvent = B_Event_Create( NULL );
-    BIP_CHECK_GOTO(( dataReadyEvent != NULL ), ( "Event Creation Failed" ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, rc );
-
-    B_PSIP_GetDefaultApiSettings( &settingsApi );
-    settingsApi.siHandle               = si;
-    settingsApi.filterHandle           = msg;
-    settingsApi.dataReadyCallback      = SiDataReady;
-    settingsApi.dataReadyCallbackParam = dataReadyEvent;
-    settingsApi.timeout                = 65000;
-
-    B_Event_Reset((B_EventHandle)settingsApi.dataReadyCallbackParam );
-    errCode = B_PSIP_GetPAT( &settingsApi, pBufPAT, &bufPATLength );
-    BIP_CHECK_GOTO(( errCode == B_ERROR_SUCCESS ), ( "B_PSIP_GetPAT() failed \n" ), error, errCode, rc );
-
-    /* wait for async response from si - wait on dataReadyEvent */
-    if (B_Event_Wait((B_EventHandle)settingsApi.dataReadyCallbackParam, pMediaInfoCreateSettings->psiAcquireTimeoutInMs ))
+    for (i = 0; i < pChanInfo->num_programs ; i++)
     {
-        BDBG_ERR(( BIP_MSG_PRE_FMT "Failed to find PAT table ...\n" BIP_MSG_PRE_ARG));
-        rc = BIP_INF_TIMEOUT;
-        goto error;
-    }
+       PROGRAM_INFO_T *pProgramInfo = NULL;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "Received response from SI, len = %d!\n" BIP_MSG_PRE_ARG, bufPATLength));
+       pProgramInfo = &pChanInfo->program_info[i];
 
-    if( bufPATLength > 0)
-    {
-        for (i = 0; i<TS_PAT_getNumPrograms( pBufPAT ) && ( TS_PAT_getProgram( pBufPAT, bufPATLength, i, &program )==BERR_SUCCESS ); i++)
-        {
-            if (program.program_number == 0)
-            {
-                nitFound = 1;
-                /* Right now we don't use nit information, so continue */
-                continue;
-            }
-            B_Event_Reset((B_EventHandle)settingsApi.dataReadyCallbackParam);
-            /* Reset pBufPMT and buPMTLength. */
-            bufPMTLength = PMT_BUF_LENGTH;
-            B_Os_Memset( pBufPMT, 0, bufPMTLength );
-            if (B_ERROR_SUCCESS != B_PSIP_GetPMT( &settingsApi, program.PID, pBufPMT, &bufPMTLength ))
-            {
-                BDBG_ERR(( BIP_MSG_PRE_FMT "B_PSIP_GetPMT() failed" BIP_MSG_PRE_ARG));
-                continue;
-            }
-            /* wait for async response from si - wait on dataReadyEvent */
-            if (B_Event_Wait((B_EventHandle)settingsApi.dataReadyCallbackParam,  pMediaInfoCreateSettings->psiAcquireTimeoutInMs ))
-            {
-                BDBG_ERR((BIP_MSG_PRE_FMT "Failed to find PMT table ..." BIP_MSG_PRE_ARG));
-                rc = BIP_INF_TIMEOUT;
-                goto error;
-            }
+       if (pProgramInfo->program_number == 0)
+       {
+           nitFound = 1;
+           /* Right now we don't use nit information, so continue */
+           continue;
+       }
 
-            /* On successful aquisition of Pmt add it to our TrackGroupList irrespective of whether it has any streams in it or not.*/
-            rc = addPmtPidToMediaInfoTrackGroup(
+       rc = addPmtPidToMediaInfoTrackGroup(
                         pMediaInfoStream,
-                        program.program_number,
-                        program.PID
+                        pProgramInfo->program_number,
+                        pProgramInfo->map_pid /* this is pmt_pid */
                         );
-            BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addPmtPidToMediaInfoTrackGroup failed \n" ), error, rc, rc );
+       BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "addPmtPidToMediaInfoTrackGroup failed \n" ), error, rc, rc );
 
-            BDBG_MSG(( BIP_MSG_PRE_FMT "Received PMT: size:%d. Number of streams(tracks for bip) in this program %d\n" BIP_MSG_PRE_ARG, bufPMTLength, TS_PMT_getNumStreams( pBufPMT, bufPMTLength )));
+       rc = createMediaInfoTrackListFromProgramInfo(
+                         pMediaInfoStream,
+                         pProgramInfo
+                         );
+       BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "createMediaInfoTrackListFromProgramInfo failed \n" ), error, rc, rc );
 
-            if(TS_PMT_getNumStreams( pBufPMT, bufPMTLength ) == 0)
-            {
-                BDBG_WRN((BIP_MSG_PRE_FMT "Found zero  tracks in this program " BIP_MSG_PRE_ARG));
-                continue;
-            }
-#ifndef STREAMER_CABLECARD_SUPPORT
-            /* find and process Program descriptors */
-            tsPsi_procProgDescriptors( pBufPMT, bufPMTLength, &programInfo );
-            if (programInfo.ca_pid)
-            {
-                /* we are no longer ignoring the programs w/ ca_pid set as it was causing us to skip over even the clear channels */
-                /* looks like this descriptor is set even for clear streams */
-                BDBG_MSG(( BIP_MSG_PRE_FMT "Even though Program # %d, pid 0x%x seems encrypted, ca_pid 0x%x, we are not skipping it" BIP_MSG_PRE_ARG, program.program_number, program.PID, programInfo.ca_pid ));
-            }
-#endif /* ifndef STREAMER_CABLECARD_SUPPORT */
-
-            if ( bufPMTLength > 0)
-            {
-                rc = createMediaInfoTrackFromTSPmtBuff( pMediaInfoStream, pBufPMT,bufPMTLength,&program );
-                BIP_CHECK_GOTO(( rc == BIP_SUCCESS ), ( "createMediaInfoTrackFromTSPmtBuff failed\\n" ), error, rc, rc );
-            }
-
-        }/* end of for loop */
     }
 
 error:
-    if(pBufPAT)
-    {
-        B_Os_Free(pBufPAT);
-    }
-    if(pBufPMT)
-    {
-        B_Os_Free(pBufPMT);
-    }
-    if (si)
-    {
-        B_PSIP_Close( si );
-    }
-    if (msg)
-    {
-        NEXUS_Message_Close( msg );
-    }
-    if (dataReadyEvent)
-    {
-        B_Event_Destroy( dataReadyEvent );
-    }
+   if (pChanInfo)
+   {
+      B_Os_Free(pChanInfo);
+   }
 
     BDBG_LEAVE( BIP_MediaInfo_ProbeTunerForMediaInfo );
     return rc;

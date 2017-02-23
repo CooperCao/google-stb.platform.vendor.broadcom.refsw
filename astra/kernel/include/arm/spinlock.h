@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,50 +36,34 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-#ifndef _B_HYP_ARM_SPINLOCK_H_
-#define _B_HYP_ARM_SPINLOCK_H_
+#ifndef _B_ARM_SPINLOCK_H_
+#define _B_ARM_SPINLOCK_H_
+#include <cstdint>
 
-typedef int spinlock_t;
+typedef uint32_t SpinLock;
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
-void spinlock_init(const char *lock_name, spinlock_t *);
-
-#define spin_lock(a) locker(__FUNCTION__, __LINE__, a)
-void locker(const char *from, int line, spinlock_t *);
-
-#define spin_unlock(a) unlocker(__FUNCTION__, __LINE__, a)
-void unlocker(const char *from, int line, spinlock_t *);
-
-int atomic_incr(volatile int *);
-int atomic_decr(volatile int *);
-
-#ifdef __cplusplus
+	void spinLockInit(SpinLock *lock);
+	void spinLockAcquire(SpinLock *lock);
+	void spinLockRelease(SpinLock *lock);
 }
-#endif
-
-#ifdef __cplusplus
 
 class SpinLocker {
 public:
-    SpinLocker(spinlock_t *lock) {
-        this->lock = lock;
-        spin_lock(this->lock);
-    }
-
-    ~SpinLocker() {
-        spin_unlock(lock);
-    }
+	SpinLocker(SpinLock *lck) : lock(lck) {
+		spinLockAcquire(lock);
+	}
+	~SpinLocker() {
+		spinLockRelease(lock);
+	}
 
 private:
-    spinlock_t *lock;
+	SpinLock *lock;
 
 private:
-    SpinLocker(SpinLocker& );
-    SpinLocker& operator = (const SpinLocker& );
+	SpinLocker() = delete;
+	SpinLocker(const SpinLocker& ) = delete;
+	SpinLocker& operator = (const SpinLocker &) = delete;
 };
-#endif
 
 #endif

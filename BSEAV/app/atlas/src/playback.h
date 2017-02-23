@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,11 +51,7 @@
 #include "mvc.h"
 #include "pidmgr.h"
 #include "mlist.h"
-#ifdef MPOD_SUPPORT
-#include "tspsimgr.h"
-#else
 #include "tspsimgr2.h"
-#endif
 #include "mstring.h"
 #include "mstringlist.h"
 #include "mxmlelement.h"

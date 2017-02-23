@@ -170,6 +170,24 @@ NEXUS_Error NEXUS_Platform_SetClientResources(
     const NEXUS_ClientResources *pResources
     );
 
+/*
+Summary:
+Returns object with matching object ID
+*/
+NEXUS_Error NEXUS_Platform_GetObjectFromId(
+    NEXUS_BaseObjectId id,
+    NEXUS_AnyObject *object
+    );
+
+/*
+Summary:
+Returns the object ID
+*/
+NEXUS_Error NEXUS_Platform_GetIdFromObject(
+    NEXUS_AnyObject object,
+    NEXUS_BaseObjectId *id
+    );
+
 #ifdef __cplusplus
 }
 #endif

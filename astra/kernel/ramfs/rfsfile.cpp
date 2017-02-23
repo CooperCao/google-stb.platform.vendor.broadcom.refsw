@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,7 @@
 #include "tztask.h"
 #include "tzmman.h"
 #include "lib_string.h"
+#include "atomic.h"
 
 static ObjCacheAllocator<RamFS::File> fileAllocator;
 
@@ -80,7 +81,7 @@ RamFS::File::File(uint16_t uid, uint16_t gid, uint32_t perms) {
     TzClock::RealTime::time(&times.lastModifiedAt);
     TzClock::RealTime::time(&times.lastStatusChangeAt);
 
-    spinlock_init("ramfs.file.lock", &lock);
+    spinLockInit(&lock);
 }
 
 int RamFS::File::addRef() {
@@ -330,7 +331,7 @@ uint8_t *RamFS::File::offsetToPage(uint64_t offset) {
 
     int l3Idx = l3Index(offset);
     uint8_t *l3Entry = (uint8_t *)l3Block[l3Idx];
-    printf("l3Idx %d entry %p\n", l3Idx, l3Entry);
+    //printf("l3Idx %d entry %p\n", l3Idx, l3Entry);
     return l3Entry;
 }
 
@@ -661,6 +662,9 @@ int RamFS::File::mmap(void *addr, void **mappedAddr, size_t length, int prot, in
 
         TzMem::PhysAddr pa = kernelPageTable->lookUp(filePage);
         pageTable->mapPage(curr, pa, MAIR_MEMORY, accessPerms, noExec, sharedMem);
+        if ((MEMORY_ACCESS_RW_USER == accessPerms) || (!sharedMem)) {
+            pageTable->makePageCopyOnWrite(curr);
+        }
         curr += PAGE_SIZE_4K_BYTES;
         currOffset += PAGE_SIZE_4K_BYTES;
     }

@@ -37,8 +37,15 @@
 *
 ***************************************************************************/
 
-#define B_IPC_SERVER_DECLARE(module) NEXUS_Error nexus_p_driver_##module##_process(unsigned function, b_##module##_module_ipc_in *__in_data, unsigned in_data_size, NEXUS_P_ServerOutVarArg_State *__vout_data, struct nexus_driver_module_header *module_header, struct nexus_driver_slave_scheduler *__slave_scheduler);
+#define B_IPC_SERVER_BODY_NATIVE(module)  rc = nexus_p_driver_##module##_process(in_data->header.function_id, &in_data->data.in, in_data_size - sizeof(in_data->header), &__varargs, module_header, __slave_scheduler);
+#define B_IPC_SERVER_BODY_END(module)  if(0) {goto err_invalid_ipc;goto err_alloc;goto err_fault;
+#if NEXUS_COMPAT_32ABI
+#define B_IPC_SERVER_DECLARE(module)
+#define B_IPC_SERVER_BODY(module) if(client->abi == NEXUS_P_NATIVE_ABI) { B_IPC_SERVER_BODY_NATIVE(module); } else { rc = nexus_p_driver_##module##_process_compat(in_data->header.function_id, ( void *)&in_data->data.in, in_data_size - sizeof(in_data->header), &__varargs, module_header, __slave_scheduler); } B_IPC_SERVER_BODY_END(module)
+#else
+#define B_IPC_SERVER_DECLARE(module)
+#define B_IPC_SERVER_BODY(module) B_IPC_SERVER_BODY_NATIVE(module) B_IPC_SERVER_BODY_END(module)
+#endif
 
-#define B_IPC_SERVER_BODY(module)  rc = nexus_p_driver_##module##_process(in_data->header.function_id, &in_data->data.in, in_data_size - sizeof(in_data->header), &__varargs, module_header, __slave_scheduler);if(0) {goto err_invalid_ipc;goto err_alloc;goto err_fault;
 
 /* END OF FILE */

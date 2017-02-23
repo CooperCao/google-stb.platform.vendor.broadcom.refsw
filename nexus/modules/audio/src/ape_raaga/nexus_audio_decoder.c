@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,14 +48,17 @@
 
 /* Comment this line to disable debug logging */
 #define RAAGA_DEBUG_LOG_CHANGES 1
+
+#if BAPE_DSP_SUPPORT
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(nexus_audio_decoder);
 BDBG_FILE_MODULE(nexus_flow_audio_decoder);
 
 #define BDBG_MSG_TRACE(X)
 
-NEXUS_AudioDecoderHandle g_decoders[NEXUS_NUM_AUDIO_DECODERS];
+NEXUS_AudioDecoderHandle g_decoders[NEXUS_MAX_AUDIO_DECODERS];
 
 static void NEXUS_AudioDecoder_P_Watchdog(void *pParam);
 static void NEXUS_AudioDecoder_P_SampleRate(void *pParam);
@@ -262,16 +265,19 @@ NEXUS_AudioDecoderHandle NEXUS_AudioDecoder_Open( /* attr{destructor=NEXUS_Audio
     BAPE_Connector mixerInput;
     BERR_Code errCode;
     unsigned j;
+    NEXUS_AudioCapabilities audioCapabilities;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     if ( index == NEXUS_ANY_ID )
     {
-        for ( index = 0; index < NEXUS_NUM_AUDIO_DECODERS; index++ )
+        for ( index = 0; index < audioCapabilities.numDecoders; index++ )
         {
             if (!g_decoders[index]) break;
         }
     }
 
-    if ( index >= NEXUS_NUM_AUDIO_DECODERS )
+    if ( index >= audioCapabilities.numDecoders )
     {
         errCode=BERR_TRACE(BERR_INVALID_PARAMETER);
         return NULL;
@@ -1981,6 +1987,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
     {
         unsigned frameLength, bitrate;
 
+        pStatus->valid = decoderStatus.valid;
         pStatus->sampleRate = decoderStatus.sampleRate;
         pStatus->pts = decoderStatus.tsmStatus.ptsInfo.ui32CurrentPTS;
         pStatus->ptsType = decoderStatus.tsmStatus.ptsInfo.ePTSType == BAVC_PTSType_eCoded ? NEXUS_PtsType_eCoded :
@@ -2084,6 +2091,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
         case BAVC_AudioCompressionStd_eAc3Plus:
             pStatus->codec = (decoderStatus.codec == BAVC_AudioCompressionStd_eAc3)?NEXUS_AudioCodec_eAc3:NEXUS_AudioCodec_eAc3Plus;
             pStatus->codecStatus.ac3.bitStreamId = decoderStatus.codecStatus.ac3.bitstreamId;
+            BDBG_CASSERT((int)NEXUS_AudioAc3Acmod_eMax==(int)BAPE_Ac3Acmod_eMax);
             pStatus->codecStatus.ac3.acmod = decoderStatus.codecStatus.ac3.acmod;
             pStatus->codecStatus.ac3.frameSizeCode = decoderStatus.codecStatus.ac3.frameSizeCode;
             pStatus->codecStatus.ac3.bitrate = decoderStatus.codecStatus.ac3.bitrate;
@@ -2312,12 +2320,15 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     tsmSettings.ptsOffset += handle->sync.settings.delay;
  #endif
 
+    /* default audio master mode off here but enable if astm or stc chan wants to after */
+    tsmSettings.thresholds.syncLimit = 0;
+    handle->stc.master = false;
+
 #if NEXUS_HAS_ASTM
     if (handle->astm.settings.enableAstm)
     {
         BDBG_MSG(("ASTM is setting the sync limit for audio channel %p to %d", (void *)handle, handle->astm.settings.syncLimit));
         tsmSettings.thresholds.syncLimit = handle->astm.settings.syncLimit;
-        /* PR49489 20081201 bandrews - added for audio master mode */
         BDBG_MSG(("ASTM is %s playback mode for audio channel %p", handle->astm.settings.enablePlayback ? "enabling" : "disabling", (void *)handle));
         tsmSettings.playback = handle->astm.settings.enablePlayback;
         tsmSettings.ptsOffset += handle->astm.settings.ptsOffset;
@@ -2331,16 +2342,14 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
             NEXUS_StcChannel_GetSettings(handle->programSettings.stcChannel, &stcSettings);
             if (stcSettings.mode == NEXUS_StcChannelMode_eAuto && stcSettings.modeSettings.Auto.behavior == NEXUS_StcChannelAutoModeBehavior_eAudioMaster)
             {
+                BDBG_MSG(("StcChannel is setting the sync limit for audio channel %p to %d", (void *)handle, 5000));
                 tsmSettings.thresholds.syncLimit = 5000;
                 handle->stc.master = true;
             }
         }
-        else
-        {
-            tsmSettings.thresholds.syncLimit = 0;
-            handle->stc.master = false;
-        }
     }
+
+    BDBG_MSG(("audio channel %p is stc %s, sync limit = %u", (void *)handle, handle->stc.master ? "master" : "slave", tsmSettings.thresholds.syncLimit));
 
     if ( 0 == handle->settings.discardThreshold )
     {
@@ -2841,12 +2850,14 @@ bool NEXUS_AudioDecoder_P_IsRunning(NEXUS_AudioDecoderHandle handle)
 void NEXUS_AudioDecoder_P_Reset(void)
 {
     unsigned i;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     /* Process watchdog STOP */
     BAPE_ProcessWatchdogInterruptStop(NEXUS_AUDIO_DEVICE_HANDLE);
 
     LOCK_TRANSPORT();
-    for ( i = 0; i < NEXUS_NUM_AUDIO_DECODERS; i++ )
+    for ( i = 0; i < audioCapabilities.numDecoders; i++ )
     {
         if ( g_decoders[i] && g_decoders[i]->running && NULL == g_decoders[i]->programSettings.input )
         {
@@ -2864,7 +2875,7 @@ void NEXUS_AudioDecoder_P_Reset(void)
 
     /* Restart RAVE contexts */
     LOCK_TRANSPORT();
-    for ( i = 0; i < NEXUS_NUM_AUDIO_DECODERS; i++ )
+    for ( i = 0; i < audioCapabilities.numDecoders; i++ )
     {
         if ( g_decoders[i] && g_decoders[i]->running && NULL == g_decoders[i]->programSettings.input )
         {
@@ -2874,7 +2885,7 @@ void NEXUS_AudioDecoder_P_Reset(void)
     UNLOCK_TRANSPORT();
 
 #if NEXUS_HAS_ASTM
-    for ( i = 0; i < NEXUS_NUM_AUDIO_DECODERS; i++ )
+    for ( i = 0; i < audioCapabilities.numDecoders; i++ )
     {
         if ( g_decoders[i] && g_decoders[i]->running && g_decoders[i]->astm.settings.enableAstm )
         {
@@ -2899,6 +2910,7 @@ static void NEXUS_AudioDecoder_P_Watchdog(void *pParam)
 
     g_numWatchdogs++;
 
+    #if BAPE_DSP_SUPPORT
     /* Check if core dump support is enabled.  If so, spin and wait for it to complete. */
     if ( g_NEXUS_audioModuleData.settings.dspDebugSettings.typeSettings[NEXUS_AudioDspDebugType_eCoreDump].enabled )
     {
@@ -2919,6 +2931,7 @@ static void NEXUS_AudioDecoder_P_Watchdog(void *pParam)
             corePending = true;
         }
     }
+    #endif
 
     if ( corePending )
     {
@@ -3606,7 +3619,7 @@ static void NEXUS_AudioDecoder_P_FifoWatchdog(void *context)
 
     if (audioDecoder->programSettings.stcChannel)
     {
-        uint32_t cdbValidPointer, cdbReadPointer;
+        uint64_t cdbValidPointer, cdbReadPointer;
         unsigned depth, size;
         BAPE_DecoderTsmStatus tsmStatus;
 
@@ -3908,12 +3921,12 @@ NEXUS_Error NEXUS_AudioDecoder_GetAncillaryDataBuffer(
         handle->lastAncillarySize = 0;
         return BERR_TRACE(errCode);
     }
-    errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pBuf, pBuffer);
-    if ( errCode )
+    if ( !pBuf )
     {
         handle->lastAncillarySize = 0;
-        return BERR_TRACE(errCode);
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
     }
+    *pBuffer = pBuf;
     handle->lastAncillarySize = *pSize;
     return BERR_SUCCESS;
 }

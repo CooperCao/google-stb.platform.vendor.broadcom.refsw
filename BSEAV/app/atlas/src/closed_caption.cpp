@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -734,7 +734,7 @@ static void loadFonts(
     /*
     ** First load the fonts.
     */
-    for (i = 0; i < 2 /*BDCC_FontStyle_Max_Value*/; i++)
+    for (i = 0; i < BDCC_FontStyle_Max_Value; i++)
     {
         for (j = 0; j < BDCC_PenSize_Max_Size; j++)
         {

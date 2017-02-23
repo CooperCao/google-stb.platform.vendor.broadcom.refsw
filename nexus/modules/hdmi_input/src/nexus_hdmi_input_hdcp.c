@@ -432,10 +432,14 @@ NEXUS_Error NEXUS_HdmiInput_HdcpGetStatus(
         }
         pStatus->hdcp2xContentStreamControl = stAuthenticationStatus.eContentStreamTypeFromUpstream;
 
-        if ((stAuthenticationStatus.eHdcpState == BHDCPlib_State_eEncryptionEnabled)
-            || (stAuthenticationStatus.eHdcpState == BHDCPlib_State_eLinkAuthenticated))
+        if (stAuthenticationStatus.eHdcpState == BHDCPlib_State_eReceiverAuthenticated)
         {
             pStatus->hdcpState = NEXUS_HdmiInputHdcpState_eAuthenticated;
+        }
+        else if ((stAuthenticationStatus.eHdcpState == BHDCPlib_State_eEncryptionEnabled)
+            || (stAuthenticationStatus.eHdcpState == BHDCPlib_State_eLinkAuthenticated))
+        {
+            pStatus->hdcpState = NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated;
         }
         else {
             pStatus->hdcpState = NEXUS_HdmiInputHdcpState_eUnauthenticated;
@@ -695,6 +699,7 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     g_hdmiInputTABlock.buf = NULL;
     g_hdmiInputTABlock.len = 0;
 
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
     BDBG_LOG(("%s: allocate %u bytes for HDCP_TA buffer", __FUNCTION__, (unsigned)length));
     rc = NEXUS_Memory_Allocate((uint32_t) length, NULL, &g_hdmiInputTABlock.buf);
     if(rc != NEXUS_SUCCESS) {
@@ -707,6 +712,12 @@ NEXUS_Error NEXUS_HdmiInput_LoadHdcpTA_priv(
     /* copy the TA buffer and save for later use */
     g_hdmiInputTABlock.len = length;
     BKNI_Memcpy(g_hdmiInputTABlock.buf, buf, length);
+
+#else
+    BSTD_UNUSED(buf);
+    BSTD_UNUSED(length);
+    goto done;
+#endif
 
 done:
 

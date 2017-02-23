@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,6 +82,7 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
    BDBG_ENTER(BXVD_P_FWLoad_RevN0);
 
    BXVD_DBG_MSG(hXvd, ("Loading Outer Loop ELF image"));
+   BXVD_DBG_MSG(hXvd, ("OL Image size to load: %08x", BXVD_P_FW_INNER_IMAGE_OFFSET));
 
    if (hXvd->eAVDBootMode == BXVD_AVDBootMode_eNormal)
    {
@@ -118,7 +119,7 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
    hXvd->astFWBootInfo[0].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
    hXvd->astFWBootInfo[0].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-   hXvd->uiOuterLoopInstructionBase = hXvd->uiFWMemBasePhyAddr;
+   hXvd->uiOuterLoopInstructionBase = hXvd->FWMemBasePhyAddr;
 
    uiEndOfCode = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
@@ -127,9 +128,7 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
    hXvd->uiCmdBufferVector = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize;
    pvCmdBuffer = (void *)(hXvd->uiFWMemBaseVirtAddr + stBAFLoadInfo.stCode.uiSize);
 
-   BXVD_DBG_MSG(hXvd, ("OL InstrBase: %08x", (unsigned int)hXvd->uiOuterLoopInstructionBase));
-   BXVD_DBG_MSG(hXvd, ("OL Start of code addr: %0x", (unsigned int)hXvd->uiOuterLoopInstructionBase));
-
+   BXVD_DBG_MSG(hXvd, ("OL Start of Code: %08x", (unsigned int)hXvd->uiOuterLoopInstructionBase));
    BXVD_DBG_MSG(hXvd, ("OL Code Size: %08x",  stBAFLoadInfo.stCode.uiSize));
    BXVD_DBG_MSG(hXvd, ("OL Data Size: %08x",  stBAFLoadInfo.stData.uiSize));
    BXVD_DBG_MSG(hXvd, ("OL End of code: %x",  (unsigned int)hXvd->uiOuterLoopEOC));
@@ -172,18 +171,13 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
    hXvd->astFWBootInfo[1].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
    hXvd->astFWBootInfo[1].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-   hXvd->uiInnerLoopInstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
-   uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
+   hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
+   hXvd->uiInnerLoopEOC = stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", (unsigned int) hXvd->uiInnerLoopInstructionBase));
    BXVD_DBG_MSG(hXvd, ("IL Code Size: %08x", stBAFLoadInfo.stCode.uiSize));
    BXVD_DBG_MSG(hXvd, ("IL Data Size: %08x", stBAFLoadInfo.stData.uiSize));
-   BXVD_DBG_MSG(hXvd, ("IL End of Code:: %08x",  (unsigned int) uiEndOfCode));
-
-   hXvd->uiInnerLoopEOC = uiEndOfCode - hXvd->uiInnerLoopInstructionBase;
-
-   BXVD_DBG_MSG(hXvd, ("InnerLoopInstBase: %08x", (unsigned int) hXvd->uiInnerLoopInstructionBase));
-   BXVD_DBG_MSG(hXvd, ("End of inner loop code at %x", (unsigned int) hXvd->uiInnerLoopEOC));
+   BXVD_DBG_MSG(hXvd, ("IL End of Code:: %08x",  (unsigned int) hXvd->uiInnerLoopEOC));
 
    hXvd->stDecoderContext.ulCmdBufferAddr = (unsigned long) pvCmdBuffer;
    hXvd->stDecoderContext.ulRspBufferAddr = (unsigned long) pvCmdBuffer;
@@ -214,18 +208,13 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
       hXvd->astFWBootInfo[2].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
       hXvd->astFWBootInfo[2].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-      hXvd->uiInnerLoop2InstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
-      uiEndOfCode = hXvd->uiInnerLoop2InstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
+      hXvd->uiInnerLoop2InstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
+      hXvd->uiInnerLoop2EOC = stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
       BXVD_DBG_MSG(hXvd, ("IL 2 Start of Code: %08x", (unsigned int) hXvd->uiInnerLoop2InstructionBase));
       BXVD_DBG_MSG(hXvd, ("IL 2 Code Size: %08x", stBAFLoadInfo.stCode.uiSize));
       BXVD_DBG_MSG(hXvd, ("IL 2 Data Size: %08x", stBAFLoadInfo.stData.uiSize));
-      BXVD_DBG_MSG(hXvd, ("IL 2 End of Code: %08x",  (unsigned int) uiEndOfCode));
-
-      hXvd->uiInnerLoop2EOC = uiEndOfCode - hXvd->uiInnerLoopInstructionBase;
-
-      BXVD_DBG_MSG(hXvd, ("InnerLoop2InstBase: %08x", (unsigned int) hXvd->uiInnerLoop2InstructionBase));
-      BXVD_DBG_MSG(hXvd, ("End of inner loop 2 code at %x", (unsigned int) hXvd->uiInnerLoop2EOC));
+      BXVD_DBG_MSG(hXvd, ("IL 2 End of Code: %08x",  (unsigned int) hXvd->uiInnerLoop2EOC));
    }
 #endif
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1247,6 +1247,8 @@ getRequestInfoFromUrl(
             cfg->satMode = NEXUS_FrontendSatelliteMode_eQpskLdpc;
         else if (strcmp(tmpBuf, "TURBO") == 0)
             cfg->satMode = NEXUS_FrontendSatelliteMode_eTurbo;
+        else if (strcmp(tmpBuf, "DVBS28PSK") == 0)
+            cfg->satMode = NEXUS_FrontendSatelliteMode_eDvbs28psk;
         else {
             BDBG_MSG(("%s: TODO: Sat Modulation type %d is not yet supported", __FUNCTION__, cfg->satMode));
             return -1;

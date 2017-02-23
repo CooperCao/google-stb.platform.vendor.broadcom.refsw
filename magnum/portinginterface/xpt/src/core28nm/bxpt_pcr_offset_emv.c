@@ -726,11 +726,6 @@ uint32_t BXPT_PcrOffset_GetStc_isr(
 
     BDBG_ASSERT( hChannel );
 
-#ifdef BCHP_XPT_PCROFFSET_STC0
-    RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0, hChannel->WhichStc );
-    Reg = BREG_Read32( hChannel->hReg, RegAddr );
-    Stc = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_STC0, COUNT );
-#else
     {
         bool Mode;
 
@@ -761,7 +756,6 @@ uint32_t BXPT_PcrOffset_GetStc_isr(
             Stc |= (BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_STC0_LO, COUNT ) >> 10);
         }
     }
-#endif
 
     return Stc;
 }
@@ -790,10 +784,6 @@ BERR_Code BXPT_PcrOffset_SetStc_isr(
 
     BDBG_ASSERT( hChannel );
 
-#ifdef BCHP_XPT_PCROFFSET_STC0
-    RegAddr = GetStcRegAddr_isrsafe( BCHP_XPT_PCROFFSET_STC0, hChannel->WhichStc );
-    BREG_Write32( hChannel->hReg, RegAddr, NewStc );
-#else
     {
         bool Mode;
         uint32_t Reg;
@@ -821,7 +811,6 @@ BERR_Code BXPT_PcrOffset_SetStc_isr(
             BREG_Write32( hChannel->hReg, RegAddr, (NewStc << 10) & 0xFFFFFC00 );
         }
     }
-#endif
 
     return( ExitCode );
 }
@@ -1193,6 +1182,25 @@ bool BXPT_PcrOffset_IsOffsetValid_isr(
     Status = BCHP_GET_FIELD_DATA( Reg, XPT_PCROFFSET_CONTEXT0_OFFSET_VALID, PCR_OFFSET_VALID ) == 1 ? true : false;
 
     return( Status );
+}
+
+bool BXPT_PcrOffset_IsOffsetEnabled_isr(
+      BXPT_PcrOffset_Handle hChannel,
+      unsigned int PidChannel
+    )
+{
+   uint32_t RegAddr;
+
+   BDBG_ASSERT( hChannel );
+
+   if( PidChannel >= BXPT_NUM_PID_CHANNELS )
+   {
+       BDBG_ERR(( "PidChannelNum %u out of range!", PidChannel ));
+       return false;
+   }
+
+   RegAddr = BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE + PidChannel * PID_CHNL_STEPSIZE;
+   return BCHP_GET_FIELD_DATA( BREG_Read32( hChannel->hReg, RegAddr ), XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
 }
 
 void  BXPT_PcrOffset_ForceInvalid( BXPT_PcrOffset_Handle hPcrOff)

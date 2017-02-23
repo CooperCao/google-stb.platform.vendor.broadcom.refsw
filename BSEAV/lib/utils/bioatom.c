@@ -1793,7 +1793,7 @@ batom_bitstream_eof(batom_bitstream *bs)
     return bs->cache_pos == -1 && batom_cursor_eof(bs->cursor);
 }
 
-int
+static int
 b_atom_bitstream_refill(batom_bitstream *bs)
 {
     batom_cursor *c = bs->cursor;

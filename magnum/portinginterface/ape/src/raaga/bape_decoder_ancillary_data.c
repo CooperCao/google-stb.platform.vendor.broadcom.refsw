@@ -1,22 +1,42 @@
 /***************************************************************************
- i     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Audio Decoder Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bape.h"
@@ -24,6 +44,7 @@
 
 BDBG_MODULE(bape_decoder_ancillary_data);
 
+#if BAPE_CHIP_MAX_DECODERS
 void BAPE_Decoder_P_AdvanceAncDspRead(BAPE_DecoderHandle hDecoder, unsigned amount, void *pBase, void **pRead, unsigned *pNumBytes, unsigned *pNumWrapBytes)
 {
     unsigned dspBytes, dspWrapBytes;
@@ -138,7 +159,7 @@ BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
 {
     unsigned dspBytes, dspWrapBytes, hostBytes, hostWrapBytes;
     BDSP_BufferDescriptor bufferDesc;
-    void *pDspCached=NULL, *pDspWrapCached=NULL, *pHostCached;    
+    void *pDspCached=NULL, *pDspWrapCached=NULL;
     uint32_t value;
     BDSP_Raaga_Audio_MpegAncDataPacket packet;
     BAPE_AncillaryDataHeader hostHeader;
@@ -151,11 +172,6 @@ BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
     *pBuffer = NULL;
     *pSize = 0;
 
-    errCode = BMEM_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, hDecoder->pAncDataHostBuffer, &pHostCached);
-    if ( errCode )
-    {        
-        return BERR_TRACE(errCode);
-    }
     errCode = BDSP_Queue_GetBuffer(hDecoder->hAncDataQueue, &bufferDesc);
     if ( errCode )
     {        
@@ -169,21 +185,13 @@ BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
     }
     else
     {        
-        errCode = BMEM_Heap_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, bufferDesc.buffers[0].pBuffer, &pDspCached);
-        if ( errCode )
-        {            
-            return BERR_TRACE(errCode);
-        }
-        (void)BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pDspCached, bufferDesc.bufferSize);
+        pDspCached = bufferDesc.buffers[0].buffer.pAddr;
+        BMMA_FlushCache(bufferDesc.buffers[0].buffer.hBlock, pDspCached, bufferDesc.bufferSize);
     }
     if ( dspWrapBytes > 0 )
     {
-        errCode = BMEM_Heap_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, bufferDesc.buffers[0].pWrapBuffer, &pDspWrapCached);
-        if ( errCode )
-        {
-            return BERR_TRACE(errCode);
-        }
-        (void)BMEM_Heap_FlushCache(hDecoder->deviceHandle->memHandle, pDspWrapCached, bufferDesc.wrapBufferSize);
+        pDspWrapCached = bufferDesc.buffers[0].wrapBuffer.pAddr;
+        BMMA_FlushCache(bufferDesc.buffers[0].wrapBuffer.hBlock, pDspWrapCached, bufferDesc.wrapBufferSize);
     }
     /* These are offsets, not addresses */
     hostBytes = BAPE_P_FIFO_WRITE_PEEK(&hDecoder->ancDataFifo);
@@ -312,7 +320,7 @@ BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
     }
 
 done:
-    *pBuffer = ((uint8_t *)BAPE_P_FIFO_READ(&hDecoder->ancDataFifo) - (uint8_t *)hDecoder->pAncDataHostCached)+(uint8_t *)hDecoder->pAncDataHostBuffer;
+    *pBuffer = (uint8_t *)BAPE_P_FIFO_READ(&hDecoder->ancDataFifo);
     hostBytes = BAPE_P_FIFO_READ_PEEK(&hDecoder->ancDataFifo);
     BDBG_MSG(("GetAncillaryData %u", hostBytes));
     *pSize = hostBytes;
@@ -384,14 +392,59 @@ void BAPE_Decoder_FlushAncillaryData(
 
 void BAPE_Decoder_P_InitAncillaryDataBuffer(BAPE_DecoderHandle hDecoder)
 {
-    void *pFifoCached;
     BDBG_MSG(("InitAncillaryDataBuffer"));
     if ( hDecoder->pAncDataBufferDescriptor )
     {
         BDSP_Queue_Flush(hDecoder->hAncDataQueue);
     }
-    (void)BMEM_Heap_ConvertAddressToCached(hDecoder->deviceHandle->memHandle, hDecoder->pAncDataHostBuffer, &pFifoCached);
-    BAPE_P_FIFO_INIT(&hDecoder->ancDataFifo, pFifoCached, hDecoder->ancDataBufferSize);
+    BAPE_P_FIFO_INIT(&hDecoder->ancDataFifo, hDecoder->pAncDataHostBuffer, hDecoder->ancDataBufferSize);
+    BMMA_FlushCache(hDecoder->ancDataHostBlock, hDecoder->pAncDataHostBuffer, hDecoder->ancDataBufferSize);
     hDecoder->ancDataInit = true;
 }
+#else
+void BAPE_Decoder_P_AdvanceAncDspRead(
+    BAPE_DecoderHandle hDecoder,
+    unsigned amount,
+    void *pBase,
+    void **pRead,
+    unsigned *pNumBytes,
+    unsigned *pNumWrapBytes)
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(amount);
+    BSTD_UNUSED(pBase);
+    BSTD_UNUSED(pRead);
+    BSTD_UNUSED(pNumBytes);
+    BSTD_UNUSED(pNumWrapBytes);
+}
 
+BERR_Code BAPE_Decoder_GetAncillaryDataBuffer(
+    BAPE_DecoderHandle hDecoder,
+    void **pBuffer, /* [out] pointer to ancillary data buffer */
+    size_t *pSize   /* [out] size of data buffer in bytes */
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(pBuffer);
+    BSTD_UNUSED(pSize);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Decoder_ConsumeAncillaryData(
+    BAPE_DecoderHandle hDecoder,
+    size_t numBytes
+    )
+{
+    BSTD_UNUSED(hDecoder);
+    BSTD_UNUSED(numBytes);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Decoder_FlushAncillaryData(
+    BAPE_DecoderHandle hDecoder
+    )
+{
+    BSTD_UNUSED(hDecoder);
+}
+
+#endif

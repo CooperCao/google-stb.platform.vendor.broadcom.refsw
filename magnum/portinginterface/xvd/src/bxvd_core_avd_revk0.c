@@ -133,7 +133,7 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
    hXvd->astFWBootInfo[0].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
    hXvd->astFWBootInfo[0].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-   hXvd->uiOuterLoopInstructionBase = hXvd->uiFWMemBasePhyAddr;
+   hXvd->uiOuterLoopInstructionBase = hXvd->FWMemBasePhyAddr;
 
    uiEndOfCode = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
@@ -193,7 +193,7 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
    hXvd->astFWBootInfo[1].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
    hXvd->astFWBootInfo[1].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-   hXvd->uiInnerLoopInstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
+   hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
    uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", hXvd->uiInnerLoopInstructionBase));
@@ -239,7 +239,7 @@ BERR_Code BXVD_P_FWLoad_RevK0(BXVD_Handle hXvd,
       hXvd->astFWBootInfo[2].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
       hXvd->astFWBootInfo[2].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-      hXvd->uiBaseInstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_BASELAYER_IMAGE_OFFSET;
+      hXvd->uiBaseInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_BASELAYER_IMAGE_OFFSET;
       uiEndOfCode = hXvd->uiBaseInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
       BXVD_DBG_MSG(hXvd, ("BL Start of Code: %08x", hXvd->uiBaseInstructionBase));

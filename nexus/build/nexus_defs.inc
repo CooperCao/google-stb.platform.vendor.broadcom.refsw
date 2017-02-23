@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file contains a set of definitions for building or using nexus
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -90,10 +80,6 @@ B_REFSW_SHAREABLE ?= $(SHAREABLE)
 endif
 ifdef NEXUS_EXTRALDFLAGS
 NEXUS_EXTRA_LDFLAGS += $(NEXUS_EXTRALDFLAGS)
-endif
-
-ifdef NEXUS_FIRMWARE_SUPPORT
-B_REFSW_FIRMWARE ?= $(NEXUS_FIRMWARE_SUPPORT)
 endif
 
 ifdef NEXUS_ANDROID_SUPPORT

@@ -215,8 +215,8 @@ BERR_Code BWFE_g3_P_ScanSpectrum(BWFE_ChannelHandle h, BWFE_SpecAnalyzerParams *
 BERR_Code BWFE_g3_P_GetSaSamples(BWFE_Handle h, uint32_t *pSaSamples);
 BERR_Code BWFE_g3_P_MirrorEquRefTaps(BWFE_ChannelHandle h, BWFE_ChannelHandle hRef);
 BERR_Code BWFE_g3_P_CalibrateAdcPhase(BWFE_ChannelHandle h);
-BERR_Code BWFE_g3_P_DisableTimer(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t);
-BERR_Code BWFE_g3_P_EnableTimer(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t, uint32_t delay_usec, BWFE_FUNCT func);
+BERR_Code BWFE_g3_P_DisableTimer_isr(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t);
+BERR_Code BWFE_g3_P_EnableTimer_isr(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t, uint32_t delay_usec, BWFE_FUNCT func);
 void BWFE_g3_P_Timer0_isr(void *p, int param);
 void BWFE_g3_P_Timer1_isr(void *p, int param);
 

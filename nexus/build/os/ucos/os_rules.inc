@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,8 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines the OS-specific rules for building in linuxuser mode.
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
 #
 ############################################################
 
@@ -67,7 +57,6 @@ ifdef NEXUS_SHARED_LIB
 endif
 ifdef NEXUS_STATIC_LIB
 	@$(CP) $(NEXUS_STATIC_LIB) ${NEXUS_BIN_DIR}
-	@$(CP) $(MAGNUM_LIB) ${NEXUS_BIN_DIR}
 endif
 ifneq ($(NEXUS_MODE),proxy)
 	@$(CP) $(NEXUS_TOP)/build/nexus ${NEXUS_BIN_DIR}
@@ -91,9 +80,9 @@ endif
 # Ensure that exactly the same commands are used to built shared library in symbol table rules and real rules
 ifeq ($(BPROFILE_SUPPORT),y)
 # Don't use -Wl,-x linker options that causes exclusion of private (e.g. static functions) symbols from the symbol table
-NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS} $(MAGNUM_PRECOMPILED_OBJECTS) ${MAGNUM_STATIC_LIBS}))
+NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}))
 else
-NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS} $(MAGNUM_PRECOMPILED_OBJECTS) ${MAGNUM_STATIC_LIBS}))
+NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}))
 endif
 
 ${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${MAGNUM_OBJECTS}) ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}
@@ -116,19 +105,19 @@ ${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${
 
 ifdef NEXUS_STATIC_LIB
 # Rule for magnum library
-$(MAGNUM_LIB): $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS)
+$(MAGNUM_LIB): $(MAGNUM_OBJECTS)
 	@echo "[Archive... $(notdir $@)]"
 	-$(Q_)cd $(NEXUS_OBJ_DIR);$(AR) rcs $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^))
 
 # Rule for magnum library
-$(NEXUS_STATIC_LIB): $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS) ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}
+$(NEXUS_STATIC_LIB): $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}
 	@echo "[Archive... $(notdir $@)]"
 	-$(Q_)cd $(NEXUS_OBJ_DIR);$(AR) rcs $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^))
 endif
 
 # Rule for shared nexus library
 ifdef NEXUS_SHARED_LIB
-$(NEXUS_SHARED_LIB): $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS) $(NEXUS_EXTRALIBS) ${MAGNUM_STATIC_LIBS}
+$(NEXUS_SHARED_LIB): $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(NEXUS_EXTRALIBS) ${MAGNUM_STATIC_LIBS}
 	@echo "[Link...... $(notdir $@)]"
 	${NEXUS_BUILD_SO} -o $(abspath $@) $(NEXUS_LDFLAGS)
 endif
@@ -142,7 +131,7 @@ ifdef NEXUS_SHARED_LIB
 	-$(Q_)$(RM) ${NEXUS_BIN_DIR}/$(notdir ${NEXUS_SHARED_LIB})
 endif
 ifdef NEXUS_STATIC_LIB
-	-$(Q_)$(RM) ${NEXUS_BIN_DIR}/$(notdir ${NEXUS_STATIC_LIB}) ${NEXUS_BIN_DIR}/$(notdir ${MAGNUM_LIB})
+	-$(Q_)$(RM) ${NEXUS_BIN_DIR}/$(notdir ${NEXUS_STATIC_LIB})
 endif
 
 # Include dependencies

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -305,6 +305,9 @@ typedef struct BXDM_PictureProvider_PTSInfo
     * HW PCR offset in the TSM equation.
     */
    bool bUseHwPcrOffset;
+
+   uint32_t uiIntraGOPIndex; /* SW7425-2686: position of the picture within the GOP, "1" based.*/
+
 } BXDM_PictureProvider_PTSInfo;
 
 typedef enum BXDM_PictureProvider_TSMResult
@@ -641,6 +644,68 @@ typedef struct BXDM_PictureProvider_DebugFifoInfo
    unsigned uiOffset;         /* Offset from start of memory block where BDBG_Fifo begins */
 
 } BXDM_PictureProvider_DebugFifoInfo;
+
+/*
+ * SWSTB-3450: support for overriding the color parameters.
+ */
+
+typedef enum BXDM_PictureProvider_ColorOverrideMode
+{
+   BXDM_PictureProvider_ColorOverrideMode_eNone=0,
+   BXDM_PictureProvider_ColorOverrideMode_eForce,
+
+   BXDM_PictureProvider_ColorOverrideMode_eMax
+} BXDM_PictureProvider_ColorOverrideMode;
+
+
+typedef struct BXDM_PictureProvider_HDRColorParameters
+{
+   uint32_t      ulAvgContentLight;       /* if non zero, indicates max average light level */
+   uint32_t      ulMaxContentLight;       /* if non zero, indicates max light level */
+
+   BAVC_Point    stDisplayPrimaries[3];   /* coordinates of the color primaries */
+   BAVC_Point    stWhitePoint;            /* coordinates of the white point */
+   uint32_t      ulMaxDispMasteringLuma;  /* nominal max display luminance */
+   uint32_t      ulMinDispMasteringLuma;  /* nominal min display luminance */
+
+   /* see bavc_types.h for definitions of the transfer characteristics. */
+   BAVC_TransferCharacteristics eTransferCharacteristics;
+
+} BXDM_PictureProvider_HDRColorParameters;
+
+typedef struct BXDM_PictureProvider_SDRColorParameters
+{
+   /* see bavc_types.h for definitions of the transfer characteristics. */
+   BAVC_TransferCharacteristics    eTransferCharacteristics;
+
+} BXDM_PictureProvider_SDRColorParameters;
+
+typedef struct BXDM_PictureProvider_ColorOverride
+{
+   BXDM_PictureProvider_ColorOverrideMode eOverrideMode;
+
+   BXDM_PictureProvider_SDRColorParameters stSDR;
+   BXDM_PictureProvider_HDRColorParameters stHDR;
+
+} BXDM_PictureProvider_ColorOverride;
+
+/*
+ * SWSTB-3450: support for passing parameters directly to BXDM_PictureProvider_Start_isr
+ */
+typedef struct BXDM_PictureProvider_StartSettings
+{
+    BXDM_PictureProvider_ColorOverride stColorOverride;
+
+} BXDM_PictureProvider_StartSettings;
+
+/*
+ * SWSTB-3450: support for passing parameters directly to BXDM_PictureProvider_Stop_isr
+ */
+typedef struct BXDM_PictureProvider_StopSettings
+{
+    uint32_t uiSimplyAPlaceHolder;   /* A hedge in case we want to pass settings in the future. */
+
+} BXDM_PictureProvider_StopSettings;
 
 #ifdef __cplusplus
 }

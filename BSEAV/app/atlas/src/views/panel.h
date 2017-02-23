@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,11 +76,6 @@ public:
     CWidgetEngine *  getWidgetEngine(void)                    { return(_pWidgetEngine); }
     CScreenMain *    getScreenMain(void)                      { return(_pScreenMain); }
     void             setScreenMain(CScreenMain * pScreenMain) { _pScreenMain = pScreenMain; }
-
-    eRet createDualLabelButton(int width, int height, const char * strName, CWidgetButton ** pButton, CWidgetLabel ** pLabel, CWidgetLabel ** pValue, bwin_font_t font, uint8_t labelPercentage, backgroundFillMode_t fillMode);
-    eRet addDualLabelButton(CWidgetMenu * pMenu, const char * strName, CWidgetButton ** pButton, CWidgetLabel ** pLabel, CWidgetLabel ** pValue, bwin_font_t font, uint8_t labelPercentage = 50, backgroundFillMode_t fillMode = fill_eGradient);
-    eRet addDualLabelEditButton(CWidgetMenu * pMenu, const char * strName, CWidgetButton ** pButton, CWidgetLabel ** pLabelLeft, CWidgetEdit ** pEdit, CWidgetLabel ** pLabelRight, bwin_font_t font, uint8_t labelLeftWidth = 80, uint8_t editWidth = 90, uint8_t labelRightWidth = 35, backgroundFillMode_t fillMode = fill_eGradient);
-    eRet addLabelPopupButton(CWidgetMenu * pMenu, const char * strName, CWidgetButton ** pButton, CWidgetLabel ** pLabel, CWidgetPopupList ** pPopup, bwin_font_t font, uint8_t labelPercentage = 50, backgroundFillMode_t fillMode = fill_eGradient);
 
 protected:
     CWidgetEngine *  _pWidgetEngine;

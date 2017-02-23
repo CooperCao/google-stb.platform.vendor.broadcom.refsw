@@ -36,10 +36,8 @@
 *  ANY LIMITED REMEDY.
 *
 ***************************************************************************/
+#include "nexus_platform_module.h"
 #if ((NEXUS_PLATFORM == 97563) || (NEXUS_PLATFORM == 975635))
-
-#include "nexus_types.h"
-#include "nexus_platform.h"
 #include "priv/nexus_core.h"
 
 #include "nexus_platform_features.h"

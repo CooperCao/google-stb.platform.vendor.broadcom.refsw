@@ -651,7 +651,7 @@ static NEXUS_Error NEXUS_Security_GenerateKey4or5(
     generateRouteKeyIO.client             = pCW->client;
     generateRouteKeyIO.SC01ModeMapping    = pCW->sc01GlobalMapping;
 #endif
-
+    generateRouteKeyIO.protectionKeyIvSource = pCW->protectionKeyIvSource;
     generateRouteKeyIO.keyTweak         = pCW->keyTweakOp;
     generateRouteKeyIO.sourceDupleKeyLadderId = pCW->sourceDupleKeyLadderId;
     generateRouteKeyIO.unKeySlotNum     = keyHandle->keySlotNumber;
@@ -897,6 +897,8 @@ NEXUS_Error NEXUS_Security_GenerateNextLayerKey(
                 bDecrypt,
                 blockType);
 
+
+    generateRouteKeyIO.protectionKeyIvSource = pCW->protectionKeyIvSource;
     generateRouteKeyIO.keyTweak         = pCW->keyTweakOp; /* needed for tweaks */
     generateRouteKeyIO.rootKeySrc         = rootkeySrc;             /* need this for ASKM keyladder distinction */
     generateRouteKeyIO.virtualKeyLadderID = pCW->virtualKeyLadderID;

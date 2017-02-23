@@ -43,6 +43,7 @@
 #include "bvdc_common_priv.h"
 #include "bvdc_window_priv.h"
 #include "bvdc_display_priv.h"
+#include "bvdc_cfc_priv.h"
 #include "bchp_cmp_0.h"
 #ifdef BCHP_HDR_CMP_0_REG_START
 #include "bchp_hdr_cmp_0.h"
@@ -136,10 +137,6 @@ do { \
     BVDC_P_CMP_OFFSET_WRITE_TO_RUL(reg, 0, addr_ptr)
 
     /* This macro does a block write into RUL */
-#define BVDC_P_CMP_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) \
-    BVDC_P_CMP_OFFSET_BLOCK_WRITE_TO_RUL(from, to, 0, pulCurrent)
-
-    /* This macro does a block write into RUL */
 #define BVDC_P_CMP_RECT_BLOCK_WRITE_TO_RUL(from, cnt, pulCurrent) \
     BVDC_P_CMP_OFFSET_BLOCK_WRITE_TO_RUL(from, cnt, 0, pulCurrent)
 #define BVDC_P_CMP_REGS_COUNT \
@@ -198,7 +195,9 @@ typedef union
 {
     struct
     {
-        uint32_t                          bColorClip : 1; /* new colorclip settings */
+        uint32_t                          bColorClip           : 1; /* new colorclip settings */
+        uint32_t                          bOutColorSpace       : 1; /* color space changed */
+        /* BVDC_P_Window_ValidateChanges checks diff of curDisp and newDisp, should change ??? */
     } stBits;
 
     uint32_t aulInts[BVDC_P_DIRTY_INT_ARRAY_SIZE];
@@ -312,10 +311,10 @@ typedef struct BVDC_P_CompositorContext
     uint32_t                          ulChunkId;
 
     /* Ouptut to VEC. */
-    BVDC_P_MatrixCoeffs               eOutMatrixCoeffs;
-    BAVC_HDMI_DRM_EOTF                eOutEotf;
     BAVC_FrameRateCode                eSrcFRateCode;
     bool                              bFullRate;
+    BVDC_P_ColorSpace                 stOutColorSpace;
+
 
     /* active windows (declare max).  Could also be dynamically allocated
      * to BVDC_P_CMP_X_MAX_WINDOW_COUNT.  But this is pretty much fix. */
@@ -325,14 +324,15 @@ typedef struct BVDC_P_CompositorContext
     bool                              bCscDemoCompute[BVDC_P_MAX_WINDOW_COUNT];
     uint32_t                          ulColorKeyAdjust[BVDC_P_MAX_WINDOW_COUNT];
     uint32_t                          ulMosaicAdjust[BVDC_P_MAX_WINDOW_COUNT];
-    uint32_t                          ulNLCscCtrl[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
-    bool                              bSupportMACsc[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
-    bool                              bSupportNLCsc[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
-    bool                              bSupportEotfConv[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
+    uint32_t                          ulNLCscCtrl[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1, for BlackBoxNLConv */
     bool                              bBypassDviCsc;
-#if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2))
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+    bool                              bBlendMatrixOn;
+#endif
+#if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2)
     uint32_t                          aulNLCfg[BVDC_P_MAX_VIDEO_WINS_PER_CMP][BVDC_P_CMP_NL_CFG_REGS]; /* V0 and V1, 8 regs */
 #endif
+    BVDC_P_Cfc_Capability             stCfcCapability[BVDC_P_MAX_VIDEO_WINS_PER_CMP];  /* V0 and V1 */
 
     /* this affects dvi dither setting */
     bool                              bIs10BitCore;
@@ -413,6 +413,23 @@ void BVDC_P_Compositor_SetMBoxMetaData_isr
     (
     const BVDC_P_PictureNode              *pPicture,
     BVDC_Compositor_Handle                hCompositor);
+
+/* configure hCompositor->stOutColorSpace for all cases,
+ * plus display->stOutColorSpace and
+ * hDisplay->stCfc.stColorSpaceIn.stAvcColorSpace for hdmi out
+ *
+ * note: CMP always output limited range YCbCr
+ *
+ */
+void BVDC_P_Compositor_UpdateOutColorSpace_isr
+    ( BVDC_Compositor_Handle           hCompositor,
+      bool                             bApplyChanges );
+
+/* Build RUL for blend out matrix
+ */
+void BVDC_P_Compositor_BuildBlendOutMatrixRul_isr
+    ( BVDC_Compositor_Handle           hCompositor,
+      BVDC_P_ListInfo                 *pList);
 
 #ifdef __cplusplus
 }

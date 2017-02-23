@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #ifndef BVDC_BUFFER_PRIV_H__
 #define BVDC_BUFFER_PRIV_H__
 
@@ -44,6 +45,7 @@
 #include "blst_circleq.h"
 #include "bvdc_common_priv.h"
 #include "bvdc_bufferheap_priv.h"
+#include "bvdc_cfc_priv.h"
 
 #if (BVDC_BUF_LOG == 1)
 #include "bvdc_dbg.h"
@@ -252,8 +254,6 @@ typedef struct
 
 } BVDC_P_PicNodeFlags;
 
-
-
 /***************************************************************************
  * BVDC_P_PictureNode
  *
@@ -292,12 +292,6 @@ typedef struct BVDC_P_PictureNode
                                                               * Updated every format change.
                                                               * Used by scaler?
                                                               */
-    BAVC_MatrixCoefficients            eMatrixCoefficients;  /* Matrix coefficients.
-                                                              * Updated every format change.
-                                                              * Used by scaler?
-                                                              */
-    BAVC_TransferCharacteristics       eTransferCharacteristics; /* transfer characteristics */
-
     BAVC_Polarity                      eSrcPolarity;         /* Top, bottom field or progressive.
                                                               * Updated every field.
                                                               * Used by MAD, video feeder and scaler.
@@ -382,6 +376,10 @@ typedef struct BVDC_P_PictureNode
     BVDC_P_Rect                       *pXsrcIn;              /* ->pDnr */
     BVDC_P_Rect                       *pXsrcOut;             /* ->pXsrcIn (H scaled) */
 
+    BVDC_P_Rect                       *pVfcIn;               /* ->pXsrcOut */
+    BVDC_P_Rect                       *pVfcOut;              /* ->pXsrcOut */
+
+
     BVDC_P_Rect                       *pHsclIn;              /* -> pSrcOut */
     BVDC_P_Rect                       *pHsclOut;             /* -> Hrz scaled */
 
@@ -456,6 +454,13 @@ typedef struct BVDC_P_PictureNode
     bool                               abMosaicVisible[BAVC_MOSAIC_MAX];
     BVDC_P_Rect                        astMosaicRect[BAVC_MOSAIC_MAX];
 
+    /* for dolby we might need to have a full BVDC_P_ColorSpace with all matrices here?
+     * or just need to add one or two matrices into BAVC_P_ColorSpace? */
+    BAVC_P_ColorSpace                  astMosaicColorSpace[BAVC_MOSAIC_MAX];
+#if 0 /* might be needed for dlbv */
+    int32_t                            aiMa[12];    /* ColorRange adjusted Ma */
+    int32_t                            aiMb[9];
+#endif
     bool                               bContinuous; /* mcvp buffer continuous indicator*/
     BVDC_P_Compression_Settings        stCapCompression;
 

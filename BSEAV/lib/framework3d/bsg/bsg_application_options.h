@@ -59,7 +59,7 @@ typedef enum {
    eGLES_1_1 = 1,
    eGLES_2_0 = 2,
    eGLES_3_0 = 4,
-   eOPVG_1_1 = ~0u
+   eOPVG_1_1 = -1
 } eBSGAPIVersion;
 
 //! Interface for application level extra argument parsing.

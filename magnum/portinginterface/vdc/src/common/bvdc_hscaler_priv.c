@@ -265,13 +265,46 @@ void BVDC_P_Hscaler_BuildRul_SrcInit_isr
     {
         hHscaler->ulUpdateAll--;
     /* optimize scaler mute RUL */
-        BVDC_P_HSCL_BLOCK_WRITE_TO_RUL(HSCL_0_HORIZ_CONTROL, HSCL_0_DEST_PIC_SIZE, pList->pulCurrent);
-#if (BVDC_P_SUPPORT_HSCL_VER >= BVDC_P_SUPPORT_HSCL_VER_5)
-        BVDC_P_HSCL_BLOCK_WRITE_TO_RUL(HSCL_0_SRC_PIC_HORIZ_PAN_SCAN, HSCL_0_HORIZ_DEST_PIC_REGION_3_END, pList->pulCurrent);
-        BVDC_P_HSCL_WRITE_TO_RUL(HSCL_0_VIDEO_3D_MODE, pList->pulCurrent);
+#if (BVDC_P_SUPPORT_HSCL_VER >= BVDC_P_SUPPORT_HSCL_VER_6)
+        BDBG_CASSERT(6 == (((BCHP_HSCL_0_DEST_PIC_SIZE - BCHP_HSCL_0_HORIZ_CONTROL) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_HSCL_0_DEST_PIC_SIZE - BCHP_HSCL_0_HORIZ_CONTROL) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HSCL_0_HORIZ_CONTROL + hHscaler->ulRegOffset);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_CONTROL);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_BVB_IN_SIZE);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_PIC_OFFSET);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_PIC_OFFSET_R);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_SRC_PIC_SIZE);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_DEST_PIC_SIZE);
 #else
-        BVDC_P_HSCL_BLOCK_WRITE_TO_RUL(HSCL_0_SRC_PIC_HORIZ_PAN_SCAN, HSCL_0_HORIZ_DEST_PIC_REGION_2_END, pList->pulCurrent);
+        BDBG_CASSERT(5 == (((BCHP_HSCL_0_DEST_PIC_SIZE - BCHP_HSCL_0_HORIZ_CONTROL) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_HSCL_0_DEST_PIC_SIZE - BCHP_HSCL_0_HORIZ_CONTROL) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HSCL_0_HORIZ_CONTROL + hHscaler->ulRegOffset);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_CONTROL);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_BVB_IN_SIZE);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_PIC_OFFSET);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_SRC_PIC_SIZE);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_DEST_PIC_SIZE);
 #endif
+
+        BDBG_CASSERT(14 == (((BCHP_HSCL_0_HORIZ_DEST_PIC_REGION_3_END - BCHP_HSCL_0_SRC_PIC_HORIZ_PAN_SCAN) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_HSCL_0_HORIZ_DEST_PIC_REGION_3_END - BCHP_HSCL_0_SRC_PIC_HORIZ_PAN_SCAN) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HSCL_0_SRC_PIC_HORIZ_PAN_SCAN + hHscaler->ulRegOffset);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_SRC_PIC_HORIZ_PAN_SCAN);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_LUMA_SRC_PIC_OFFSET);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_CHROMA_SRC_PIC_OFFSET);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_INIT_PHASE_ACC);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_INIT_PHASE_ACC_R);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_INIT_STEP_FRAC);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_INIT_STEP_INT);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_DEST_PIC_REGION_0_STEP_DELTA);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_FIR_DEST_PIC_REGION_2_STEP_DELTA);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_DEST_PIC_REGION_N1_END);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_DEST_PIC_REGION_0_END);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_DEST_PIC_REGION_1_END);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_DEST_PIC_REGION_2_END);
+        *pList->pulCurrent++ = BVDC_P_HSCL_GET_REG_DATA(HSCL_0_HORIZ_DEST_PIC_REGION_3_END);
+
+        BVDC_P_HSCL_WRITE_TO_RUL(HSCL_0_VIDEO_3D_MODE, pList->pulCurrent);
 
 #ifdef BCHP_HSCL_0_DERINGING
         if(hHscaler->bDeringing)
@@ -280,8 +313,8 @@ void BVDC_P_Hscaler_BuildRul_SrcInit_isr
         }
 #endif
 
-
-        BVDC_P_HSCL_BLOCK_WRITE_TO_RUL(HSCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01, HSCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05, pList->pulCurrent);
+        BVDC_P_HSCL_BLOCK_WRITE_TO_RUL(HSCL_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01,
+            HSCL_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05, pList->pulCurrent);
         BVDC_P_HSCL_WRITE_TO_RUL(HSCL_0_TOP_CONTROL, pList->pulCurrent);
     }
 }

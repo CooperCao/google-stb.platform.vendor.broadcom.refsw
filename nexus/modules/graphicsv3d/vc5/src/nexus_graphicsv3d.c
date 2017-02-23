@@ -80,39 +80,26 @@ CHECK_DEFINE(NEXUS_GRAPHICSV3D_MAX_COUNTER_NAME_LEN,        BVC5_MAX_COUNTER_NAM
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_MAX_COUNTER_UNIT_NAME_LEN,   BVC5_MAX_COUNTER_UNIT_NAME_LEN);
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_GROUP,      BVC5_MAX_COUNTERS_PER_GROUP);
 
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CLE_CL_READ,            BVC5_SYNC_CLE_CL_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CLE_SHADREC_READ,       BVC5_SYNC_CLE_SHADREC_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CLE_PRIM_READ,          BVC5_SYNC_CLE_PRIM_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CLE_DRAWREC_READ,       BVC5_SYNC_CLE_DRAWREC_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_VCD_READ,               BVC5_SYNC_VCD_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_QPU_INSTR_READ,         BVC5_SYNC_QPU_INSTR_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_QPU_UNIF_READ,          BVC5_SYNC_QPU_UNIF_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ,        BVC5_SYNC_TMU_CONFIG_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_PTB_TF_WRITE,           BVC5_SYNC_PTB_TF_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_READ,     BVC5_SYNC_PTB_TILESTATE_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_WRITE,    BVC5_SYNC_PTB_TILESTATE_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_READ,           BVC5_SYNC_PTB_PCF_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_WRITE,          BVC5_SYNC_PTB_PCF_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ,          BVC5_SYNC_TMU_DATA_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE,         BVC5_SYNC_TMU_DATA_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_READ,         BVC5_SYNC_TLB_IMAGE_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_WRITE,        BVC5_SYNC_TLB_IMAGE_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_READ,            BVC5_SYNC_TLB_OQ_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_WRITE,           BVC5_SYNC_TLB_OQ_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TFU_READ,               BVC5_SYNC_TFU_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE,              BVC5_SYNC_TFU_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CPU_READ,               BVC5_SYNC_CPU_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE,              BVC5_SYNC_CPU_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_V3D_READ,               BVC5_SYNC_V3D_READ);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE,              BVC5_SYNC_V3D_WRITE);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_V3D_RW,                 BVC5_SYNC_V3D_RW);
-CHECK_DEFINE(NEXUS_GRAPHICSV3D_SYNC_CPU_RW,                 BVC5_SYNC_CPU_RW);
-
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE,        BVC5_EMPTY_TILE_MODE_NONE);
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP,        BVC5_EMPTY_TILE_MODE_SKIP);
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_FILL,        BVC5_EMPTY_TILE_MODE_FILL);
 
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_NO_BIN_RENDER_OVERLAP,       BVC5_NO_BIN_RENDER_OVERLAP);
 CHECK_DEFINE(NEXUS_GRAPHICSV3D_GFXH_1181,                   BVC5_GFXH_1181);
+
+/* V3D cache operations */
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_SIC,   BVC5_CACHE_CLEAR_SIC);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_SUC,   BVC5_CACHE_CLEAR_SUC);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_L1TD,  BVC5_CACHE_CLEAR_L1TD);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_L1TC,  BVC5_CACHE_CLEAR_L1TC);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_VCD,   BVC5_CACHE_CLEAR_VCD);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_L2C,   BVC5_CACHE_CLEAR_L2C);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_FLUSH_L2T,   BVC5_CACHE_FLUSH_L2T);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAN_L1TD,  BVC5_CACHE_CLEAN_L1TD);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAN_L2T,   BVC5_CACHE_CLEAN_L2T);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAR_GCA,   BVC5_CACHE_CLEAR_GCA);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_FLUSH_L3C,   BVC5_CACHE_FLUSH_L3C);
+CHECK_DEFINE(NEXUS_GRAPHICSV3D_CACHE_CLEAN_L3C,   BVC5_CACHE_CLEAN_L3C);
 
 /* Static sanity checks on enums */
 #define CHECK_ENUM(NEXUS_NAME, MAGNUM_NAME) \
@@ -126,6 +113,7 @@ CHECK_ENUM(NEXUS_Graphicsv3dJobType_eTFU,          BVC5_JobType_eTFU);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eFenceWait,    BVC5_JobType_eFenceWait);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eTest,         BVC5_JobType_eTest);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eUsermode,     BVC5_JobType_eUsermode);
+CHECK_ENUM(NEXUS_Graphicsv3dJobType_eBarrier,      BVC5_JobType_eBarrier);
 CHECK_ENUM(NEXUS_Graphicsv3dJobType_eNumJobTypes,  BVC5_JobType_eNumJobTypes);
 
 CHECK_ENUM(NEXUS_Graphicsv3dCtrAcquire,            BVC5_CtrAcquire);
@@ -181,7 +169,7 @@ CHECK_STRUCT(NEXUS_Graphicsv3dEventDesc,           BVC5_EventDesc);
 CHECK_STRUCT(NEXUS_Graphicsv3dEventFieldDesc,      BVC5_EventFieldDesc);
 CHECK_STRUCT(NEXUS_Graphicsv3dEventTrackDesc,      BVC5_EventTrackDesc);
 
-static void NEXUS_Graphicsv3d_P_FenceHandler(void *pVc5, void *pEvent);
+static void NEXUS_Graphicsv3d_P_FenceHandler(void *pVc5, uint64_t uiEvent);
 static void NEXUS_Graphicsv3d_P_UsermodeHandler(void *pVc5);
 static void NEXUS_Graphicsv3d_P_CompletionHandler(void *pVc5);
 static void NEXUS_Graphicsv3d_P_SecureToggleHandler(bool bEnter);
@@ -189,7 +177,7 @@ static void NEXUS_Graphicsv3d_P_SecureToggleHandler(bool bEnter);
 /* Event Queue for Fence implementation */
 typedef struct NEXUS_P_EventQueue
 {
-   NEXUS_Graphicsv3dFenceEventHandle   hEvent;
+   uint64_t                            uiEvent;
    BLST_Q_ENTRY(NEXUS_P_EventQueue)    sChain;
 } NEXUS_P_EventQueue;
 
@@ -225,7 +213,7 @@ static bool NEXUS_Graphicsv3d_P_TSEventQueueConstruct(
  */
 static void NEXUS_Graphicsv3d_P_TSEventQueuePush(
    NEXUS_P_TSEventQueue                *tsQ,
-   NEXUS_Graphicsv3dFenceEventHandle    hEvent)
+   uint64_t                             uiEvent)
 {
    NEXUS_P_EventQueue   *entry;
 
@@ -238,7 +226,7 @@ static void NEXUS_Graphicsv3d_P_TSEventQueuePush(
 
    if (entry != NULL)
    {
-      entry->hEvent = hEvent;
+      entry->uiEvent = uiEvent;
       BLST_Q_INSERT_TAIL(&tsQ->sQueue, entry, sChain);
    }
 
@@ -249,10 +237,10 @@ static void NEXUS_Graphicsv3d_P_TSEventQueuePush(
  *
  * Pop an event from a thread-safe queue of events
  */
-static NEXUS_Graphicsv3dFenceEventHandle NEXUS_Graphicsv3d_P_TSEventQueuePop(
+static uint64_t NEXUS_Graphicsv3d_P_TSEventQueuePop(
    NEXUS_P_TSEventQueue *tsQ)
 {
-   NEXUS_Graphicsv3dFenceEventHandle   hEvent = NULL;
+   uint64_t   uiEvent = 0;
 
    BKNI_AcquireMutex(tsQ->hMutex);
 
@@ -262,7 +250,7 @@ static NEXUS_Graphicsv3dFenceEventHandle NEXUS_Graphicsv3d_P_TSEventQueuePop(
 
       if (entry != NULL)
       {
-         hEvent = entry->hEvent;
+         uiEvent = entry->uiEvent;
          BLST_Q_REMOVE_HEAD(&tsQ->sQueue, sChain);
          BKNI_Free(entry);
       }
@@ -270,7 +258,7 @@ static NEXUS_Graphicsv3dFenceEventHandle NEXUS_Graphicsv3d_P_TSEventQueuePop(
 
    BKNI_ReleaseMutex(tsQ->hMutex);
 
-   return hEvent;
+   return uiEvent;
 }
 
 /* NEXUS_Graphicsv3d_P_TSEventQueueDestruct
@@ -374,12 +362,13 @@ NEXUS_ModuleHandle NEXUS_Graphicsv3dModule_Init(
    const NEXUS_Graphicsv3dModuleSettings *pSettings)
 {
    BERR_Code            err = BERR_SUCCESS;
+   NEXUS_Error          rc = NEXUS_SUCCESS;
    NEXUS_ModuleSettings moduleSettings;
    const char           *pcEnv;
    BVC5_OpenParameters  openParams;
    BVC5_Callbacks       callbacks;
-   BMEM_Heap_Handle     heapSecure    = NULL;
    BMMA_Heap_Handle     heapSecureMma = NULL;
+   NEXUS_MemoryStatus   memoryStatus;
 
    BSTD_UNUSED(pSettings);
 
@@ -422,8 +411,6 @@ NEXUS_ModuleHandle NEXUS_Graphicsv3dModule_Init(
     * These options must be the same EV names as those used by memory_drm.c
     * in the nxpl library to initialize the client's DRM usage.
     */
-   pcEnv = NEXUS_GetEnv("V3D_DRM_DISABLE");
-   openParams.bDoDRMClientTerm = pcEnv != NULL ? (NEXUS_atoi(pcEnv) != 0 ? false : true) : openParams.bDoDRMClientTerm;
 
    pcEnv = NEXUS_GetEnv("V3D_DRM_DEVICE_NUM");
    openParams.uiDRMDevice = pcEnv != NULL ? (uint32_t)NEXUS_atoi(pcEnv) : openParams.uiDRMDevice;
@@ -436,18 +423,19 @@ NEXUS_ModuleHandle NEXUS_Graphicsv3dModule_Init(
    g_NEXUS_Graphicsv3d_P_ModuleState.hHeapSecure = pSettings->hHeapSecure;
 
    if (pSettings->hHeapSecure)
-   {
-      heapSecure    = NEXUS_Heap_GetMemHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeapSecure);
       heapSecureMma = NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeapSecure);
-   }
+
+   rc = NEXUS_Heap_GetStatus_driver(pSettings->hHeap, &memoryStatus);
+   if (rc != NEXUS_SUCCESS)
+      goto error1;
 
    err = BVC5_Open(&g_NEXUS_Graphicsv3d_P_ModuleState.hVc5,
                    g_pCoreHandles->chp,
                    g_pCoreHandles->reg,
-                   NEXUS_Heap_GetMemHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeap),
                    NEXUS_Heap_GetMmaHandle(g_NEXUS_Graphicsv3d_P_ModuleState.hHeap),
-                   heapSecure,
                    heapSecureMma,
+                   memoryStatus.offset, /* debug only */
+                   memoryStatus.size,   /* debug only */
                    g_pCoreHandles->bint,
                    &openParams,
                    &callbacks);
@@ -738,6 +726,23 @@ NEXUS_Error NEXUS_Graphicsv3d_QueueTFU(
    return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
 }
 
+NEXUS_Error NEXUS_Graphicsv3d_QueueBarrier(
+   NEXUS_Graphicsv3dHandle              hGfx,
+   const NEXUS_Graphicsv3dJobBarrier   *barrier
+)
+{
+   BERR_Code            berr = 0;
+
+   BDBG_ENTER(NEXUS_Graphicsv3d_QueueBarrier);
+
+   berr = BVC5_BarrierJob(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, hGfx->uiClientId,
+                      (const BVC5_JobBarrier *)barrier);
+
+   BDBG_LEAVE(NEXUS_Graphicsv3d_QueueBarrier);
+
+   return berr ==  BERR_SUCCESS ? NEXUS_SUCCESS : NEXUS_UNKNOWN;
+}
+
 NEXUS_Error NEXUS_Graphicsv3d_QueueNull(
    NEXUS_Graphicsv3dHandle             hGfx,
    const NEXUS_Graphicsv3dJobNull      *null
@@ -873,28 +878,28 @@ NEXUS_Error NEXUS_Graphicsv3d_MakeFenceForAnyNonFinalizedJob(
 
 static void NEXUS_Graphicsv3d_P_FenceHandler(
    void  *pVc5,
-   void  *pEvent
+   uint64_t uiEvent
    )
 {
    NEXUS_Graphicsv3dHandle  hGfx    = (NEXUS_Graphicsv3dHandle)pVc5;
    NEXUS_TaskCallbackHandle handler = hGfx->hFenceDoneCallback;
 
-   BDBG_MSG(("%s: V3d handle %p, Event %p", __FUNCTION__, (void*)hGfx, pEvent));
+   BDBG_MSG(("%s: V3d handle %p, Event " BDBG_UINT64_FMT, __FUNCTION__, (void*)hGfx, BDBG_UINT64_ARG(uiEvent)));
 
-   NEXUS_Graphicsv3d_P_TSEventQueuePush(&hGfx->sFenceEventQueue, pEvent);
+   NEXUS_Graphicsv3d_P_TSEventQueuePush(&hGfx->sFenceEventQueue, uiEvent);
 
    NEXUS_TaskCallback_Fire(handler);
 }
 
 NEXUS_Error NEXUS_Graphicsv3d_GetPendingFenceEvent(
    NEXUS_Graphicsv3dHandle              hGfx,
-   NEXUS_Graphicsv3dFenceEventHandle   *phEvent)
+   uint64_t                            *puiEvent)
 {
-   BDBG_ASSERT(phEvent != NULL);
+   BDBG_ASSERT(puiEvent != NULL);
 
    BDBG_ENTER(NEXUS_Graphicsv3d_GetPendingFenceEvent);
 
-   *phEvent = NEXUS_Graphicsv3d_P_TSEventQueuePop(&hGfx->sFenceEventQueue);
+   *puiEvent = NEXUS_Graphicsv3d_P_TSEventQueuePop(&hGfx->sFenceEventQueue);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_GetPendingFenceEvent);
 
@@ -941,7 +946,7 @@ NEXUS_Error NEXUS_Graphicsv3d_FenceKeep(
 NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
    NEXUS_Graphicsv3dHandle             hGfx,
    int                                 fence,
-   NEXUS_Graphicsv3dFenceEventHandle   hEvent)
+   uint64_t                            uiEvent)
 {
    BERR_Code   err;
 
@@ -953,7 +958,7 @@ NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
    /* Magnum will callback FenceHandler(handler) */
    err = BVC5_FenceRegisterWaitCallback(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, fence,
                                         hGfx->uiClientId,
-                                        NEXUS_Graphicsv3d_P_FenceHandler, hGfx, hEvent);
+                                        NEXUS_Graphicsv3d_P_FenceHandler, hGfx, uiEvent);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_RegisterFenceWait);
 
@@ -963,7 +968,7 @@ NEXUS_Error NEXUS_Graphicsv3d_RegisterFenceWait(
 NEXUS_Error NEXUS_Graphicsv3d_UnregisterFenceWait(
    NEXUS_Graphicsv3dHandle           hGfx,
    int                               fence,
-   NEXUS_Graphicsv3dFenceEventHandle hEvent,
+   uint64_t                          uiEvent,
    bool                              *signalled
    )
 {
@@ -971,7 +976,7 @@ NEXUS_Error NEXUS_Graphicsv3d_UnregisterFenceWait(
 
    BVC5_FenceUnregisterWaitCallback(g_NEXUS_Graphicsv3d_P_ModuleState.hVc5, fence,
                                     hGfx->uiClientId,
-                                    NEXUS_Graphicsv3d_P_FenceHandler, hGfx, hEvent,
+                                    NEXUS_Graphicsv3d_P_FenceHandler, hGfx, uiEvent,
                                     signalled);
 
    BDBG_LEAVE(NEXUS_Graphicsv3d_UnregisterFenceWait);

@@ -82,7 +82,9 @@ NEXUS_TRANSPORT_SOURCES := \
     $(NEXUS_TOP)/modules/transport/src/nexus_packetsub.c \
     $(NEXUS_TOP)/modules/transport/src/nexus_remux.c \
     $(NEXUS_TOP)/modules/transport/src/nexus_tsmf_stub.c \
-    $(NEXUS_TOP)/modules/transport/src/nexus_vcxo.c
+    $(NEXUS_TOP)/modules/transport/src/nexus_vcxo.c \
+    $(NEXUS_TOP)/modules/transport/src/nexus_parser_band_channelbonding.c \
+    $(NEXUS_TOP)/modules/transport/src/nexus_gcb_sw.c
 
 ifeq ($(filter NEXUS_HAS_XPT_DMA, $(NEXUS_PLATFORM_DEFINES)), NEXUS_HAS_XPT_DMA)
 NEXUS_TRANSPORT_SOURCES += $(NEXUS_TOP)/modules/transport/src/nexus_xpt_dma.c

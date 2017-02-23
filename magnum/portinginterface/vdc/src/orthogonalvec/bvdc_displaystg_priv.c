@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
@@ -91,6 +90,10 @@
 #include "bchp_vice2_arcss_ess_dccm_0.h"
 #include "bchp_vice2_arcss_ess_p1_intr2_0.h"
 #include "bchp_vice2_misc.h"
+#elif BCHP_VICE_ARCSS_ESS_DCCM_0_0_REG_START
+#include "bchp_vice_arcss_ess_dccm_0_0.h"
+#include "bchp_vice_arcss_ess_p1_intr2_0_0.h"
+#include "bchp_vice_misc_0.h"
 #endif
 
 BDBG_MODULE(BVDC_DISP);
@@ -264,7 +267,7 @@ void BVDC_P_ConnectStgSrc_isr
     *pList->pulCurrent++ =
             BCHP_FIELD_DATA(VEC_CFG_STG_0_SOURCE, SOURCE, ulCmpSrc);
 
-#if BVDC_P_SUPPORT_VIP && BCHP_VEC_CFG_VIP_0_SOURCE
+#if BCHP_VEC_CFG_VIP_0_SOURCE
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_VIP_0_SOURCE + ulRegOffset);
     *pList->pulCurrent++ =
@@ -283,7 +286,7 @@ void BVDC_P_ConnectStgSrc_isr
     }
 #endif
 
-	return;
+    return;
 }
 
 void BVDC_P_TearDownStgChan_isr
@@ -303,7 +306,12 @@ void BVDC_P_TearDownStgChan_isr
     *pList->pulCurrent++ =
         BCHP_FIELD_ENUM(VEC_CFG_STG_0_SOURCE, SOURCE, DISABLE);
 
-#if BVDC_P_SUPPORT_VIP && BCHP_VEC_CFG_VIP_0_SOURCE
+    /* disable STG timer trigger */
+    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VIDEO_ENC_STG_0_CONTROL + ulRegOffset);
+    *pList->pulCurrent++ = 0;
+
+#if BCHP_VEC_CFG_VIP_0_SOURCE
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_VIP_0_SOURCE + ulRegOffset);
     *pList->pulCurrent++ =
@@ -318,7 +326,7 @@ void BVDC_P_TearDownStgChan_isr
     }
 #endif
 
-	return;
+    return;
 }
 
 void BVDC_P_SetupStg_isr
@@ -428,8 +436,10 @@ void BVDC_P_Stg_Init_isr
     /* base address */
 #if BCHP_VICE2_ARCSS_ESS_DCCM_0_0_REG_START
         BCHP_VICE2_ARCSS_ESS_DCCM_0_0_DATAi_ARRAY_BASE +
-#else
+#elif BCHP_VICE2_ARCSS_ESS_DCCM_0_REG_START
         BCHP_VICE2_ARCSS_ESS_DCCM_0_DATAi_ARRAY_BASE +
+#else
+        BCHP_VICE_ARCSS_ESS_DCCM_0_0_DATAi_ARRAY_BASE +
 #endif
         ulViceCoreIdx * ulCoreOffset   +      /* core offset */
         ulViceChannel * ulChannelOffset +     /* channel offset */
@@ -445,8 +455,10 @@ void BVDC_P_Stg_Init_isr
     /* base address */
 #if BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET
         BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET +
-#else
+#elif BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_ARC_P1_SET
         BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_ARC_P1_SET +
+#else
+        BCHP_VICE_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET +
 #endif
         ulViceCoreIdx * ulViceIntOffset;   /*interrupt offset */
 
@@ -456,8 +468,10 @@ void BVDC_P_Stg_Init_isr
     ulViceIntMask = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET_VIP0_INTR_MASK;
 #elif BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET_ARCESS_SOFT0_00_INTR_MASK
     ulViceIntMask = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET_ARCESS_SOFT0_00_INTR_MASK;
-#else
+#elif BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_ARC_P1_SET_ARCESS_SOFT0_00_INTR_MASK
     ulViceIntMask = BCHP_VICE2_ARCSS_ESS_P1_INTR2_0_ARC_P1_SET_ARCESS_SOFT0_00_INTR_MASK;
+#else
+    ulViceIntMask = BCHP_VICE_ARCSS_ESS_P1_INTR2_0_0_ARC_P1_SET_VIP0_INTR_MASK;
 #endif
 
     hDisplay->stStgChan.ulViceIntMask = ulViceIntMask << ulViceChannel;
@@ -577,9 +591,8 @@ void BVDC_P_ProgrameStgMBox_isr
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldPolarity )
 {
-#if ((BCHP_VICE2_ARCSS_ESS_DCCM_0_REG_START) ||(BCHP_VICE2_ARCSS_ESS_DCCM_0_0_REG_START)) || BVDC_P_SUPPORT_VIP
-    BVDC_P_DisplayInfo              *pCurInfo = &hDisplay->stCurInfo;
-    BVDC_P_DisplayStgChan           *pstChan;
+    const BVDC_P_DisplayInfo       *pCurInfo = &hDisplay->stCurInfo;
+    const BVDC_P_DisplayStgChan    *pstChan;
     bool                            bRepeatPol;
     uint32_t                        ulRegOffset = 0;
 #if !BVDC_P_SUPPORT_VIP
@@ -610,6 +623,7 @@ void BVDC_P_ProgrameStgMBox_isr
         if(hDisplay->hVip) {
             BVDC_P_Vip_BuildRul_isr(hDisplay->hVip, pList, eFieldPolarity);
         }
+        BSTD_UNUSED(pstChan);
 #else
         bChannelChange = hDisplay->hCompositor->bChannelChange && hDisplay->hCompositor->bGfxChannelChange;
         /* stg fmt is the display format when no video window connected; otherwise it'll walk thru video pipe. */
@@ -800,12 +814,6 @@ void BVDC_P_ProgrameStgMBox_isr
         hDisplay->hCompositor->ulOrigPTS      = 0;
         hDisplay->hCompositor->bMute          = (NULL==hDisplay->hCompositor->hSyncLockSrc);
     }
-    BSTD_UNUSED(pstChan);
-#else
-    BSTD_UNUSED(hDisplay);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(eFieldPolarity);
-#endif
     return;
 }
 
@@ -866,7 +874,7 @@ void BVDC_P_FreeStgChanResources_isr
     {
         hDisplay->ulStgPwrAcquire--;
         hDisplay->ulStgPwrRelease = 1;
-        BDBG_MSG(("STG slave mode disable: Release pending BCHP_PWR_RESOURCE_VDC_STG"));
+        BDBG_MSG(("STG slave mode disable: Release pending BCHP_PWR_RESOURCE_VDC_STG(VIP)"));
     }
 #endif
 
@@ -903,6 +911,7 @@ BERR_Code BVDC_P_Display_Validate_Stg_Setting
             return BERR_TRACE(err);
 
 #ifdef BCHP_PWR_RESOURCE_VDC_STG0
+        /* This will acquire power for both STG and VIP if VIP is managed by VDC */
         BDBG_MSG(("STG slave mode: Acquire BCHP_PWR_RESOURCE_VDC_STG %d", hDisplay->stStgChan.ulStg));
         BVDC_P_AcquireStgPwr(hDisplay);
 #endif
@@ -1011,14 +1020,37 @@ void BVDC_P_Display_Apply_Stg_Setting_isr
                 }
 #endif
                 hDisplay->eStgState = BVDC_P_DisplayResource_eShuttingdown;
+                if(BVDC_P_State_eShutDownPending == hDisplay->eState) {
+                    hDisplay->eState = BVDC_P_State_eShutDown; /* defer inactivation untile STG gracefully shutdowns */
+                }
+                BDBG_MSG(("Display %d STG state changed to eShutdown", hDisplay->eId));
                 break;
 
             case BVDC_P_DisplayResource_eShuttingdown:
                 if (pList->bLastExecuted)
                 {
+                    int i;
                     BVDC_P_FreeStgChanResources_isr(hDisplay->hVdc->hResource, hDisplay);
                     hDisplay->eStgState = BVDC_P_DisplayResource_eInactive;
+                    if(BVDC_P_State_eShutDown == hDisplay->eState) {
+                        hDisplay->eState = BVDC_P_State_eInactive; /* defer inactivation untile STG gracefully shutdowns */
+                    }
                     hDisplay->stCurInfo.stDirty.stBits.bStgEnable = BVDC_P_CLEAN;
+                    BDBG_MSG(("Display %d STG state changed to eInactive", hDisplay->eId));
+                    if (BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg) ||
+                        (BVDC_P_State_eInactive == hDisplay->eState))
+                    {
+                        for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
+                        {
+                            BRDC_Slot_Disable_isr(hDisplay->hCompositor->ahSlot[i]);
+                        }
+
+                        for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
+                        {
+                            BINT_DisableCallback_isr(hDisplay->hCompositor->ahCallback[i]);
+                            BINT_ClearCallback_isr(hDisplay->hCompositor->ahCallback[i]);
+                        }
+                    }
                 }
                 else
                 {

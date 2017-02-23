@@ -45,9 +45,7 @@
 done:
 #if NEXUS_ABICOMPAT_MODE
     NEXUS_P_DriverInVararg_Shutdown(&__in_vararg);
-    if(__ipc_args.vout_data.data != __ipc_args.vout_data.original_data) {
-        BKNI_Free(__ipc_args.vout_data.data);
-    }
+    NEXUS_P_ServerCall_OutVarArg_Shutdown(&__ipc_args.vout_data);
 #endif
     if (!unlocked) {
         b_objdb_set_client(NULL);

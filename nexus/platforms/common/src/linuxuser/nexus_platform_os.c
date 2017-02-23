@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,7 +71,7 @@ BDBG_MODULE(nexus_platform_os);
 BDBG_FILE_MODULE(nexus_statistics_isr);
 
 #define BDBG_MSG_TRACE(X) /* BDBG_WRN(X) */
-#define NEXUS_RUNAWAY_L1_THRESHOLD 10000
+#define NEXUS_RUNAWAY_L1_THRESHOLD 50000
 
 #ifdef B_REFSW_ANDROID
 #define THREAD_STACK_SIZE (16*1024)
@@ -420,7 +420,7 @@ static void NEXUS_Platform_P_DebugCallback(void *context, NEXUS_ModuleHandle han
     }
 }
 
-char findDelimiter( char *dbgInfo ) {
+static char NEXUS_P_findDelimiter( const char *dbgInfo ) {
 
     const char delimiters[] = " .,;:";
 
@@ -460,7 +460,7 @@ static void NEXUS_Platform_P_DebugTimer(void *context)
 #endif
 
     if(rc==0 && debug_info[0]){
-        char delim = findDelimiter( debug_info );
+        char delim = NEXUS_P_findDelimiter( debug_info );
         const char *debug_list = debug_info;
         for(;;) {
             char buf[DEBUG_INFO_LEN];
@@ -702,7 +702,7 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
     state->debugTimer = NEXUS_ScheduleTimer(500, NEXUS_Platform_P_DebugTimer, NULL);
 #endif
 
-#if NEXUS_CPU_ARM && NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
     if (!g_NEXUS_platformHandles.baseOnlyInit) {
         (void)NEXUS_Platform_P_InitWakeupDriver();
     }
@@ -734,7 +734,7 @@ NEXUS_Error NEXUS_Platform_P_UninitOS(void)
 {
     NEXUS_Platform_Os_State *state = &g_NEXUS_Platform_Os_State;
 
-#if NEXUS_CPU_ARM && NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
     if (!g_NEXUS_platformHandles.baseOnlyInit) {
         NEXUS_Platform_P_UninitWakeupDriver();
     }
@@ -1034,11 +1034,11 @@ See Also:
 void *NEXUS_Platform_P_MapMemory(
     NEXUS_Addr offset,
     size_t length,
-    NEXUS_MemoryMapType type)
+    NEXUS_AddrType type)
 {
     void *pMem;
     NEXUS_Platform_Os_State *state = &g_NEXUS_Platform_Os_State;
-    int memFd = (type == NEXUS_MemoryMapType_eCached) ? state->memFdCached : state->memFd;
+    int memFd = (type == NEXUS_AddrType_eCached) ? state->memFdCached : state->memFd;
     int flags = MAP_SHARED;
 
     BDBG_ASSERT(length > 0);
@@ -1051,13 +1051,13 @@ void *NEXUS_Platform_P_MapMemory(
 
     if ( MAP_FAILED == pMem )
     {
-        BDBG_ERR(("mmap failed: offset=" BDBG_UINT64_FMT " size=%u (%s)", BDBG_UINT64_ARG(offset), (unsigned)length, type==NEXUS_MemoryMapType_eCached?"cached":"uncached"));
+        BDBG_ERR(("mmap failed: offset=" BDBG_UINT64_FMT " size=%u (%s)", BDBG_UINT64_ARG(offset), (unsigned)length, type==NEXUS_AddrType_eCached?"cached":"uncached"));
         BERR_TRACE(BERR_OS_ERROR);
         pMem = NULL;
     }
 #if B_REFSW_SYSTEM_MODE_CLIENT
     if(pMem) {
-        NEXUS_Platform_P_ClientMapMemory(pMem, length, offset, type == NEXUS_MemoryMapType_eCached);
+        NEXUS_Platform_P_ClientMapMemory(pMem, length, offset, type == NEXUS_AddrType_eCached);
     }
 #endif
 
@@ -1073,7 +1073,7 @@ See Also:
 void NEXUS_Platform_P_UnmapMemory(
     void *pMem,
     size_t length,
-    NEXUS_MemoryMapType type
+    NEXUS_AddrType type
     )
 {
     BDBG_MSG(("unmap: addr:%p size:%u", pMem, (unsigned)length));
@@ -1088,12 +1088,12 @@ void NEXUS_Platform_P_UnmapMemory(
 /* in userspace, this is the same */
 void *NEXUS_Platform_P_MapRegisterMemory(unsigned long offset, unsigned long length)
 {
-    return NEXUS_Platform_P_MapMemory(offset,length,false);
+    return NEXUS_Platform_P_MapMemory(offset,length,NEXUS_AddrType_eUncached);
 }
 
 void NEXUS_Platform_P_UnmapRegisterMemory(void *pMem,unsigned long length)
 {
-    NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_MemoryMapType_eUncached);
+    NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_AddrType_eUncached);
     return;
 }
 
@@ -1167,108 +1167,6 @@ NEXUS_Platform_P_Magnum_Uninit(void)
     }
     return;
 }
-
-#if NEXUS_HAS_AUDIO && NEXUS_HAS_SOFT_AUDIO
-/***************************************************************************
-Summary:
-Read reserved memory
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadReserved(
-    uint32_t physicalAddress
-    )
-{
-    t_bcm_linux_rw_reserved res;
-
-    res.address = physicalAddress;
-    res.value = 0;
-    if (ioctl(g_NEXUS_driverFd, BRCM_IOCTL_READ_RESERVED, &res))
-        BERR_TRACE(BERR_OS_ERROR);
-    return res.value;
-}
-
-/***************************************************************************
-Summary:
-Write reserved memory
-***************************************************************************/
-void NEXUS_Platform_P_WriteReserved(
-    uint32_t physicalAddress,
-    uint32_t value
-    )
-{
-    t_bcm_linux_rw_reserved res;
-
-    res.address = physicalAddress;
-    res.value = value;
-    if (ioctl(g_NEXUS_driverFd, BRCM_IOCTL_WRITE_RESERVED, &res))
-        BERR_TRACE(BERR_OS_ERROR);
-}
-
-/***************************************************************************
-Summary:
-Read core register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCoreReg(
-    uint32_t offset
-    )
-{
-    t_bcm_linux_rw_core_register reg;
-
-    reg.offset = offset;
-    reg.value = 0;
-    if (ioctl(g_NEXUS_driverFd, BRCM_IOCTL_READ_CORE_REGISTER, &reg))
-        BERR_TRACE(BERR_OS_ERROR);
-    return reg.value;
-}
-
-/***************************************************************************
-Summary:
-Write core register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCoreReg(
-    uint32_t offset,
-    uint32_t value
-    )
-{
-    t_bcm_linux_rw_core_register reg;
-
-    reg.offset = offset;
-    reg.value = value;
-    if (ioctl(g_NEXUS_driverFd, BRCM_IOCTL_WRITE_CORE_REGISTER, &reg))
-        BERR_TRACE(BERR_OS_ERROR);
-}
-
-/***************************************************************************
-Summary:
-Read CMT Control Register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCmtControl(void)
-{
-    int rc;
-    uint32_t value;
-    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_READ_CMT_CONTROL, &value);
-    if(rc!=0) {
-        (void)BERR_TRACE(NEXUS_OS_ERROR);
-        value = 0;
-    }
-    return value;
-}
-
-/***************************************************************************
-Summary:
-Write CMT Control Register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCmtControl(
-    uint32_t value
-    )
-{
-    int rc;
-    rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_WRITE_CMT_CONTROL, value);
-    if(rc!=0) {
-        (void)BERR_TRACE(NEXUS_OS_ERROR);
-    }
-    return;
-}
-#endif
 
 #if B_HAS_BPROFILE || B_HAS_TRC
 #include "bperf_counter.h"
@@ -1381,6 +1279,15 @@ void NEXUS_Platform_P_UninitializeThermalMonitor(void)
     if (!g_NEXUS_platformHandles.baseOnlyInit) {
         NEXUS_Platform_P_UninitThermalMonitor();
     }
+#endif
+}
+
+bool NEXUS_Platform_P_IsGisbTimeoutAvailable(void)
+{
+#if defined(NEXUS_GISB_ARB)
+    return false;
+#else
+    return true;
 #endif
 }
 

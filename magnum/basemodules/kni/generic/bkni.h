@@ -503,6 +503,9 @@ Returns:
     NULL - Memory could not be allocated
     Non-NULL - Memory was allocated
 ****************************************************************************/
+void *BKNI_Malloc(
+    size_t size             /* Number of bytes to allocate */
+    );
 #if BKNI_TRACK_MALLOCS
 #define BKNI_Malloc(size) BKNI_Malloc_tagged(size, BSTD_FILE, BSTD_LINE)
 
@@ -510,10 +513,6 @@ void *BKNI_Malloc_tagged(
     size_t size,
     const char *file,
     unsigned line
-    );
-#else
-void *BKNI_Malloc(
-    size_t size             /* Number of bytes to allocate */
     );
 #endif
 
@@ -534,6 +533,9 @@ Description:
 Returns:
     <none>
 ****************************************************************************/
+void BKNI_Free(
+    void *mem           /* Pointer to memory allocated by BKNI_Malloc */
+    );
 #if BKNI_TRACK_MALLOCS
 #define BKNI_Free(mem) BKNI_Free_tagged(mem, BSTD_FILE, BSTD_LINE)
 
@@ -541,10 +543,6 @@ void BKNI_Free_tagged(
     void *mem,          /* Pointer to memory allocated by BKNI_Malloc */
     const char *file,
     unsigned line
-    );
-#else
-void BKNI_Free(
-    void *mem           /* Pointer to memory allocated by BKNI_Malloc */
     );
 #endif
 
@@ -602,6 +600,7 @@ Returns:
     BERR_SUCCESS - The event is allocated and initialized.
     BERR_OS_ERROR - The event could not be allocated or initialized.
 ****************************************************************************/
+BERR_Code BKNI_CreateEvent(BKNI_EventHandle *event);
 #if BKNI_TRACK_MALLOCS
 #define BKNI_CreateEvent(event) BKNI_CreateEvent_tagged(event, BSTD_FILE, BSTD_LINE)
 
@@ -610,8 +609,6 @@ BERR_Code BKNI_CreateEvent_tagged(
     const char *file,
     int line
     );
-#else
-BERR_Code BKNI_CreateEvent(BKNI_EventHandle *event);
 #endif
 
 
@@ -625,6 +622,7 @@ Description:
 Input:
     event - event initialized by BKNI_CreateEvent
 ****************************************************************************/
+void BKNI_DestroyEvent(BKNI_EventHandle event);
 #if BKNI_TRACK_MALLOCS
 #define BKNI_DestroyEvent(event) BKNI_DestroyEvent_tagged(event, BSTD_FILE, BSTD_LINE)
 
@@ -633,8 +631,6 @@ void BKNI_DestroyEvent_tagged(
     const char *file,
     int line
     );
-#else
-void BKNI_DestroyEvent(BKNI_EventHandle event);
 #endif
 
 /***************************************************************************
@@ -822,14 +818,13 @@ Description:
 See Also:
     BKNI_LeaveCriticalSection, Magnum InterruptSafe rules
 ****************************************************************************/
+void BKNI_EnterCriticalSection(void);
 #if BKNI_DEBUG_CS_TIMING
 #define BKNI_EnterCriticalSection() BKNI_EnterCriticalSection_tagged(BSTD_FILE, BSTD_LINE)
 void BKNI_EnterCriticalSection_tagged(
     const char *file,
     unsigned line
     );
-#else
-void BKNI_EnterCriticalSection(void);
 #endif
 
 /***************************************************************************
@@ -843,14 +838,13 @@ Description:
 See Also:
     BKNI_EnterCriticalSection, Magnum InterruptSafe rules
 ****************************************************************************/
+void BKNI_LeaveCriticalSection(void);
 #if BKNI_DEBUG_CS_TIMING
 #define BKNI_LeaveCriticalSection() BKNI_LeaveCriticalSection_tagged(BSTD_FILE, BSTD_LINE)
 void BKNI_LeaveCriticalSection_tagged(
     const char *file,
     unsigned line
     );
-#else
-void BKNI_LeaveCriticalSection(void);
 #endif
 
 /***************************************************************************

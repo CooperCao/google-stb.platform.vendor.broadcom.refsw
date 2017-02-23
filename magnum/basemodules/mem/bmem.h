@@ -1,28 +1,52 @@
-/***************************************************************************
- *     Copyright (c) 2001-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
- *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+/******************************************************************************
+* Copyright (C) 2001-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+* This program is the proprietary software of Broadcom and/or its licensors,
+* and may only be used, duplicated, modified or distributed pursuant to the terms and
+* conditions of a separate, written license agreement executed between you and Broadcom
+* (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+* no license (express or implied), right to use, or waiver of any kind with respect to the
+* Software, and Broadcom expressly reserves all rights in and to the Software and all
+* intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+* secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+* and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+* THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+* OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+* LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+* OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+* USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+* EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+* USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+* THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+* ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+* LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+* ANY LIMITED REMEDY.
+******************************************************************************/
 #ifndef BMEM_H__
 #define BMEM_H__
 
 #ifdef __cplusplus
 extern "C" {
+#endif
+#if BMEM_DEPRECATED
+#warning "BMEM API IS DEPRECATED"
+
+#define BMEM_P_DEPRECATED   __attribute__ ((deprecated))
+#else
+#define BMEM_P_DEPRECATED
 #endif
 
 #include "bmem_config.h"
@@ -212,7 +236,7 @@ BERR_Code BMEM_Open
 (
     BMEM_ModuleHandle   *phMem,
     const BMEM_Settings *pDefSettings
-);
+) BMEM_P_DEPRECATED ;
 
 /***************************************************************************
 Summary:
@@ -228,7 +252,7 @@ See Also:
 void BMEM_Close
 (
     BMEM_ModuleHandle hMem
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -244,7 +268,7 @@ See Also:
 BERR_Code BMEM_Heap_GetDefaultSettings
 (
     BMEM_Heap_Settings *pHeapSettings
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -314,7 +338,7 @@ BERR_Code BMEM_Heap_Create
     size_t              zSize,         /* Size of chunk to manage in bytes */
     BMEM_Heap_Settings *pHeapSettings, /* default settings */
     BMEM_Heap_Handle   *phHeap         /* returned heap */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -333,7 +357,7 @@ See Also:
 void BMEM_Heap_Destroy
 (
 	BMEM_Heap_Handle Heap   /* Heap to destroy. */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -352,7 +376,7 @@ See Also:
 BERR_Code BMEM_Heap_Validate
 (
 	BMEM_Heap_Handle Heap  /* Heap to validate. */
-);
+) BMEM_P_DEPRECATED;
 
 /*{private}*****************************************************************
 Summary:
@@ -390,7 +414,7 @@ void *BMEM_P_Heap_TagAllocAligned
 			   				          allocated from */
 	int               iLine        /* line number in file where allocation
 							          occurs */
-);
+) BMEM_P_DEPRECATED;
 #else
 void *BMEM_Heap_AllocAligned
 (
@@ -398,7 +422,7 @@ void *BMEM_Heap_AllocAligned
 	size_t            ulSize,      /* size in bytes of block to allocate */
 	unsigned int      uiAlignment, /* alignment for the block (power of 2) */
 	unsigned int      Boundary     /* boundry restricting allocated value */
-);
+) BMEM_P_DEPRECATED;
 #endif
 
 /***************************************************************************
@@ -499,7 +523,7 @@ BERR_Code BMEM_Heap_Free
 (
 	BMEM_Heap_Handle  Heap,     /* Heap from which the block was allocated. */
 	void             *Address   /* Allocated block address. */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -526,7 +550,7 @@ BERR_Code BMEM_Heap_FreeCached
 (
 	BMEM_Heap_Handle  Heap,           /* Heap from which the block was allocated. */
 	void             *CachedAddress   /* Allocated cached block address. */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -549,7 +573,7 @@ BERR_Code BMEM_Heap_ConvertOffsetToAddress_isrsafe
 	BMEM_Heap_Handle   Heap,      /* Heap that contains the memory block */
 	uint32_t           ulOffset,  /* Device offset within the heap. */
 	void             **ppvAddress /* [out] Returned address. */
-);
+) BMEM_P_DEPRECATED;
 
 #define BMEM_Heap_ConvertOffsetToAddress_isr(Heap, ulOffset, ppvAddress) \
     BMEM_Heap_ConvertOffsetToAddress_isrsafe(Heap, ulOffset, ppvAddress)
@@ -577,7 +601,7 @@ BERR_Code BMEM_Heap_ConvertAddressToOffset_isrsafe
 	BMEM_Heap_Handle  Heap,      /* Heap that contains the memory block. */
 	void             *pvAddress, /* Address of the memory block */
 	uint32_t         *pulOffset  /* [out] Returned device offset. */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -635,7 +659,7 @@ void BMEM_Heap_GetInfo
 (
 	BMEM_Heap_Handle pheap,   /* Heap to get information from. */
 	BMEM_HeapInfo      *phi   /* [out] Returned information. */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -652,7 +676,7 @@ See Also:
 void BMEM_Heap_ResetHighWatermark
 (
 	BMEM_Heap_Handle pheap
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Description:
@@ -723,7 +747,7 @@ BERR_Code BMEM_Heap_ConvertAddressToCached_isrsafe
    BMEM_Heap_Handle  Heap,             /* Heap that contains the memory block. */
    void            *pvAddress,        /* Address of the memory block */
    void           **ppvCachedAddress  /* [out] Returned cache address. */
-);
+) BMEM_P_DEPRECATED;
 
 #define BMEM_Heap_ConvertAddressToCached_isr BMEM_Heap_ConvertAddressToCached_isrsafe
 #define BMEM_Heap_ConvertAddressToCached BMEM_Heap_ConvertAddressToCached_isrsafe
@@ -751,7 +775,7 @@ BERR_Code BMEM_Heap_FlushCache
    BMEM_Heap_Handle  Heap,             /* Heap containing the cached memory. */
    void             *pvCachedAddress,  /* Start address to flush */
    size_t            size              /* Size in bytes of the block to flush */
-);
+) BMEM_P_DEPRECATED;
 
 /***************************************************************************
 Summary:
@@ -775,7 +799,7 @@ BERR_Code BMEM_Heap_FlushCache_isr
    BMEM_Heap_Handle  Heap,             /* Heap containing the cached memory. */
    void             *pvCachedAddress,  /* Start address to flush */
    size_t            size              /* Size in bytes of the block to flush */
-);
+) BMEM_P_DEPRECATED;
 
 
 /***************************************************************************

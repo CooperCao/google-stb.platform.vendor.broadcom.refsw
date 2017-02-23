@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,8 +49,10 @@
 #include "kernel.h"
 #include "objalloc.h"
 #include "mempool.h"
-
+#include "scheduler.h"
 #include "system.h"
+
+extern "C" void tzKernelSecondary();
 
 extern uint8_t tzDevTree[MAX_DT_SIZE_BYTES];
 static unsigned long tzMemSize = 0;
@@ -405,6 +407,11 @@ void tzKernelInit(const void *devTree) {
 
     printf("%s: Memory subsystem unit tests\n", __FUNCTION__);
 
+    if (arm::smpCpuNum() != 0) {
+        tzKernelSecondary();
+        return;
+    }
+
     System::init(devTree);
 
     setupPageAllocTests(tzDevTree);
@@ -421,6 +428,15 @@ void tzKernelInit(const void *devTree) {
     while (1) {
         asm volatile("wfi":::);
     }
+}
+
+void tzKernelSecondary() {
+
+    System::initSecondaryCpu();
+
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+
+    schedule();
 }
 
 void kernelHalt(const char *reason) {

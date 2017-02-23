@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,19 +70,19 @@
 /***************************************************************************
  *HEVD_OL_CPU_DMA_0
  ***************************************************************************/
-#define BCHP_HEVD_OL_CPU_DMA_0_CH0_SD_ADDR       0x20000400 /* [RW] DMA 0 SDRAM address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH0_LCL_ADDR      0x20000404 /* [RW] DMA 0 Local Memory Address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH0_LEN           0x20000408 /* [RW] DMA 0 Length */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH1_SD_ADDR       0x20000410 /* [RW] DMA 1 SDRAM address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH1_LCL_ADDR      0x20000414 /* [RW] DMA 1 Local Memory Address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH1_LEN           0x20000418 /* [RW] DMA 1 Length */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH2_SD_ADDR       0x20000420 /* [RW] DMA 2 SDRAM address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH2_LCL_ADDR      0x20000424 /* [RW] DMA 2 Local Memory Address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH2_LEN           0x20000428 /* [RW] DMA 2 Length */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH3_SD_ADDR       0x20000430 /* [RW] DMA 3 SDRAM address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH3_LCL_ADDR      0x20000434 /* [RW] DMA 3 Local Memory Address */
-#define BCHP_HEVD_OL_CPU_DMA_0_CH3_LEN           0x20000438 /* [RW] DMA 3 Length */
-#define BCHP_HEVD_OL_CPU_DMA_0_STATUS            0x20000440 /* [RO] REG_DMA_STATUS */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH0_SD_ADDR       0x20000400 /* [RW][32] DMA 0 SDRAM address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH0_LCL_ADDR      0x20000404 /* [RW][32] DMA 0 Local Memory Address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH0_LEN           0x20000408 /* [RW][32] DMA 0 Length */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH1_SD_ADDR       0x20000410 /* [RW][32] DMA 1 SDRAM address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH1_LCL_ADDR      0x20000414 /* [RW][32] DMA 1 Local Memory Address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH1_LEN           0x20000418 /* [RW][32] DMA 1 Length */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH2_SD_ADDR       0x20000420 /* [RW][32] DMA 2 SDRAM address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH2_LCL_ADDR      0x20000424 /* [RW][32] DMA 2 Local Memory Address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH2_LEN           0x20000428 /* [RW][32] DMA 2 Length */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH3_SD_ADDR       0x20000430 /* [RW][32] DMA 3 SDRAM address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH3_LCL_ADDR      0x20000434 /* [RW][32] DMA 3 Local Memory Address */
+#define BCHP_HEVD_OL_CPU_DMA_0_CH3_LEN           0x20000438 /* [RW][32] DMA 3 Length */
+#define BCHP_HEVD_OL_CPU_DMA_0_STATUS            0x20000440 /* [RO][32] REG_DMA_STATUS */
 
 /***************************************************************************
  *CH0_SD_ADDR - DMA 0 SDRAM address

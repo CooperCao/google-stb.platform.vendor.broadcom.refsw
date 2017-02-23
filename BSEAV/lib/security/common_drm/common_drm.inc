@@ -47,7 +47,7 @@ B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 include $(NEXUS_TOP)/../BSEAV/lib/security/common_drm/lib/cmndrm_dir.inc
 include $(NEXUS_TOP)/../BSEAV/lib/security/bcrypt/bcrypt_libdir.inc
 include $(NEXUS_TOP)/../BSEAV/lib/drmrootfs/drmrootfs_libdir.inc
-include $(NEXUS_TOP)/../BSEAV/lib/openssl/openssl.inc
+include $(NEXUS_TOP)/../BSEAV/opensource/openssl/openssl.inc
 
 # COMMON_DRM_INCLUDES defines the include paths without the -I
 COMMON_DRM_INCLUDES = $(NEXUS_TOP)/../BSEAV/lib/security/common_drm/include \

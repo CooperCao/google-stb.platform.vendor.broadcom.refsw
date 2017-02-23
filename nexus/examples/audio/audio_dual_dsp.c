@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from a streamer, using DSP0 for 
@@ -100,6 +92,10 @@ int main(void)
     NEXUS_AudioDecoderOpenSettings audioDecoderOpenSettings;
     NEXUS_AudioCapabilities audioCaps;
     NEXUS_AudioDecoderStartSettings audioProgram;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
@@ -110,6 +106,13 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 2)
+    {
+        printf("This application is not supported on this platform (requires decoder).\n");
+        return 0;
+    }
 
     /* For this example, get data from a streamer input. The input band is platform-specific.
     See nexus/examples/frontend for input from a demodulator. */
@@ -135,6 +138,24 @@ int main(void)
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
     NEXUS_GetAudioCapabilities(&audioCaps);
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
+
     NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
     audioDecoderOpenSettings.dspIndex = 0;
     /* Bring up audio decoders and outputs */
@@ -144,33 +165,33 @@ int main(void)
         audioDecoderOpenSettings.dspIndex = 1;
     }
     compressedDecoder = NEXUS_AudioDecoder_Open(1, &audioDecoderOpenSettings);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-    if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 )
-    {
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        /* Only pass through AC3 */
+    if (audioDacHandle) {
         NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-            NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-#endif
-    }
-    else
-    {
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            audioDacHandle,
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
     }
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioSpdifHandle) {
+        if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 )
+        {
+            /* Only pass through AC3 */
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else
+        {
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #endif
 
     /* Bring up display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);

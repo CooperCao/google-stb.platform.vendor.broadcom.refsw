@@ -1,7 +1,9 @@
-# SDR stream B, PLM on, full screen VID with GFX thumbnail (pig=off)
-stream=1
-plm.vid=2
-plm.gfx=1
+# HLG stream A, EOTF HDR10, PLM on, full screen VID with GFX thumbnail
+stream=4
+eotf=hdr10
+plm.vid=1
+plm.gfx=2
 image=0
 bg=0
+gamut=2020
 pig=off

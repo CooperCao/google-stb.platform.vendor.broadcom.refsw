@@ -353,12 +353,14 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
    uint32_t val;
    uint8_t i;
 
+#if 0
    static const uint32_t firCoeff[] =
    {
       0x0FFC0FF6, 0x0FF70FF8, 0x0FF90FFB, 0x0FFC0FFE, 0x00000002, 0x00030003, 0x00030001, 0x0FFF0FFC,
       0x0FF70FF2, 0x0FED0FE7, 0x0FE00FDA, 0x0FD50FD0, 0x0FCC0FCA, 0x0FCA0FCB, 0x0FCF0FD5, 0x0FDE0FE8,
       0x0FF40002, 0x00110020, 0x00300040, 0x004F005D, 0x00690073, 0x007A007F, 0x00800000, 0x00000158
    };
+#endif
 
    static const uint32_t firCoeffNonConfirm[] =
    {
@@ -378,9 +380,9 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
 
    /* program fir filter */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCMEMADR, 0x00000000);
-   for (i = 0; i < 24; i++)
-      BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCMEMDAT, firCoeff[i]);
-   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSFIRCTL, 0x00000158);
+   for (i = 0; i < 27; i++)
+      BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCMEMDAT, firCoeffNonConfirm[i]);
+   BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSFIRCTL, 0x00000168);
 
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL00, 0x00091000);    /* release control word reset, release state machine reset */
    BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCTL01, 0x00000013);    /* set ddfs gain 630mV */
@@ -431,7 +433,7 @@ BERR_Code BDSQ_g1_P_ResetChannel(BDSQ_ChannelHandle h)
       BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCMEMADR, 0x00000000);
       for (i = 0; i < 27; i++)
          BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSCMEMDAT, firCoeffNonConfirm[i]);
-      BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSFIRCTL, 0x00000068);
+      BDSQ_P_WriteRegister_isrsafe(h, BCHP_SDS_DSEC_DSFIRCTL, 0x00000168);
    }
 
    /* set rx low duty timing and bit timing */

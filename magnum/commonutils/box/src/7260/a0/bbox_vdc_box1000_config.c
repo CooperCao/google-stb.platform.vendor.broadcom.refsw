@@ -61,7 +61,7 @@ void BBOX_P_Vdc_SetBox1000SourceCapabilities
 void BBOX_P_Vdc_SetBox1000DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid, Class1);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid, Disregard);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, HD,      BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable1080p);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 }

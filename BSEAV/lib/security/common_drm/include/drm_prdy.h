@@ -1318,6 +1318,29 @@ DRM_Prdy_Error_e DRM_Prdy_StoreMgmt_DeleteLicenses(
 DRM_Prdy_Error_e DRM_Prdy_Cleanup_LicenseStores( DRM_Prdy_Handle_t  pPrdyContext);
 
 
+/***********************************************************************************
+ * Function: DRM_Prdy_Cleanup_Expired_LicenseStores()
+ *
+ * Description:
+ * The DRM_Prdy_Cleanup_Expired_LicenseStores function deletes expired licenses from
+ * the license store.
+ *
+ * Maps to:
+ *  Drm_StoreMgmt_CleanupStore()
+ *
+ * Parameters:
+ *  pPrdyContext: [in] A valid DRM_Prdy_Context
+ *
+ * Returns:
+ *   On Success:   DRM_Prdy_ok
+ *   On Failure:   any other error code.
+ *
+ * Note:
+ *
+ ***********************************************************************************/
+DRM_Prdy_Error_e DRM_Prdy_Cleanup_Expired_LicenseStores( DRM_Prdy_Handle_t  pPrdyContext);
+
+
 /*
 ************************************************************************************
 ** Prdy ND APIs

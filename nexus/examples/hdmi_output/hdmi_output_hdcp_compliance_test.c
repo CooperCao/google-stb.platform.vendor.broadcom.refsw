@@ -423,7 +423,17 @@ int main(void)
 	bool done = false;
 	BERR_Code brc ;
 
-      hotplugCallbackParameters hotPlugCbParams ;
+    hotplugCallbackParameters hotPlugCbParams ;
+
+#if 1
+    printf("********************************************************************************************\n");
+    printf("* This example app should no longer be used. It will be deprecated in the next URSR release\n");
+    printf("* Please use hdmi_output_hdcp.c app instead. \n");
+    printf("* Use runtime option '-compliance' when running HDCP compliance test\n");
+    printf("********************************************************************************************\n");
+    return 0;
+#endif
+
 
 	/* Bring up all modules for a platform in a default configuration for this platform */
 	NEXUS_Platform_GetDefaultSettings(&platformSettings);

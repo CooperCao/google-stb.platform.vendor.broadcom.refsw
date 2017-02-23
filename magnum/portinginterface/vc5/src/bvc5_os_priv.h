@@ -40,9 +40,9 @@
 #define BVC5_OS_PRIV_H__
 
 BERR_Code BVC5_P_GetTime_isrsafe(uint64_t *pMicroseconds);
-void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex);
+void BVC5_P_DebugDumpHeapContents(uint64_t ulOffset, unsigned uSize, uint32_t uiCoreIndex);
 
-BERR_Code BVC5_P_DRMOpen(uint32_t uiDRMDevice);
+void BVC5_P_DRMOpen(uint32_t uiDRMDevice);
 void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken);
 
 #endif /* BVC5_OS_PRIV_H__ */

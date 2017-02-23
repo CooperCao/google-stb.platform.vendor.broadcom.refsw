@@ -412,6 +412,7 @@ control word which is Key4 in BRCM terminology.
 typedef struct NEXUS_SecurityEncryptedControlWord
 {
     NEXUS_SecurityKeyTweak              keyTweakOp;
+    bool                                protectionKeyIvSource;  /* Relevant to NEXUS_SecurityKeyTweak_eDSK.  0:use DS, 1:use internal */
 	NEXUS_SecurityClientType            client;
     NEXUS_SecurityKeyladderID           keyladderID;    /* not used for 40-nm;  for compatibility */
 	NEXUS_SecurityKeyGenCmdID           keyGenCmdID;    /* Key Generation or VKL Association query */

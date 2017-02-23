@@ -1,0 +1,40 @@
+/*=============================================================================
+Broadcom Proprietary and Confidential. (c)2015 Broadcom.
+All rights reserved.
+=============================================================================*/
+#pragma once
+
+#include "libs/core/v3d/v3d_addr.h"
+#include "libs/platform/v3d_barrier.h"
+#include "vcos_types.h"
+#include "gmem.h"
+
+VCOS_EXTERN_C_BEGIN
+
+typedef struct khrn_render_state khrn_render_state;
+typedef struct khrn_memaccess khrn_memaccess;
+typedef struct khrn_res_interlock KHRN_RES_INTERLOCK_T;
+
+khrn_memaccess* khrn_memaccess_create(khrn_render_state* rs);
+void khrn_memaccess_destroy(khrn_memaccess* ma);
+
+//! Record usage of a buffer.
+void khrn_memaccess_add_buffer(khrn_memaccess* ma, gmem_handle_t handle, v3d_barrier_flags bin_flags, v3d_barrier_flags rdr_flags);
+
+//! Register a resource so that buffer accesses can be synchronised.
+void khrn_memaccess_register_resource(khrn_memaccess* ma, KHRN_RES_INTERLOCK_T* res);
+
+//! This must be called before using khrn_memaccess_read().
+void khrn_memaccess_pre_read(khrn_memaccess* ma);
+
+//! Read from a v3d address. Must call khrn_memaccess_pre_read() before use.
+void khrn_memaccess_read(khrn_memaccess* ma, void *dst, v3d_addr_t read_addr, v3d_size_t read_size);
+
+//! Implements simcom_memaccess.read.
+void khrn_memaccess_read_fn(void *dst, v3d_addr_t src_addr, size_t size,
+   const char *file, uint32_t line, const char *func, void *p);
+
+//! Build GMP tables for bin/render jobs.
+void khrn_memaccess_build_gmp_tables(khrn_memaccess* ma, void* gmp_tables[2]);
+
+VCOS_EXTERN_C_END

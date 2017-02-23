@@ -255,8 +255,8 @@ const BVDC_Settings s_stDefaultSettings =
     false,
     false,
     false,
-    NULL /* box mode */
-
+    NULL, /* box mode */
+    NULL  /* BVDC_MemConfigSettings */
 };
 
 /* Here is a little consistency check */
@@ -678,7 +678,7 @@ BERR_Code BVDC_Open
     BVDC_P_Context *pVdc = NULL;
     BERR_Code eStatus = BERR_SUCCESS;
     BTMR_Settings sTmrSettings;
-    uint32_t i;
+    uint32_t i, j;
 
     BDBG_ENTER(BVDC_Open);
     BDBG_ASSERT(phVdc);
@@ -765,6 +765,31 @@ BERR_Code BVDC_Open
 
     /* Take in default settings. */
     pVdc->stSettings = (pDefSettings) ? *pDefSettings : s_stDefaultSettings;
+
+    /* Save memconfig settings info for error checking later */
+    if(pVdc->stSettings.pMemConfigSettings)
+    {
+        BVDC_MemConfigSettings    *pMemConfigSettings = pVdc->stSettings.pMemConfigSettings;
+
+        for(i = 0; i < BVDC_MAX_DISPLAYS; i++)
+        {
+            for(j = 0; j < BVDC_MAX_VIDEO_WINDOWS; j++)
+            {
+                pVdc->abSyncSlipInMemconfig[i][j] =
+                    pMemConfigSettings->stDisplay[i].stWindow[j].bSyncSlip;
+            }
+        }
+    }
+    else
+    {
+        for(i = 0; i < BVDC_MAX_DISPLAYS; i++)
+        {
+            for(j = 0; j < BVDC_MAX_VIDEO_WINDOWS; j++)
+            {
+                pVdc->abSyncSlipInMemconfig[i][j] = true;
+            }
+        }
+    }
 
     /* Initialize box modes */
     eStatus = BBOX_GetConfig(pVdc->stSettings.hBox, &pVdc->stBoxConfig);
@@ -1252,9 +1277,10 @@ static BERR_Code BVDC_P_CheckApplyChangesStatus
         BDBG_OBJECT_ASSERT(hVdc->ahDisplay[i]->hCompositor, BVDC_CMP);
 
         /* Wait for compositor/display to be applied/destroyed. */
-        if((BVDC_P_STATE_IS_ACTIVE(hVdc->ahDisplay[i]) &&
-            BVDC_P_STATE_IS_ACTIVE(hVdc->ahDisplay[i]->hCompositor) &&
-            hVdc->ahDisplay[i]->bSetEventPending))
+        if((BVDC_P_STATE_IS_SHUTDOWNPENDING(hVdc->ahDisplay[i]) ||
+           (BVDC_P_STATE_IS_ACTIVE(hVdc->ahDisplay[i]) &&
+            BVDC_P_STATE_IS_ACTIVE(hVdc->ahDisplay[i]->hCompositor))) &&
+            hVdc->ahDisplay[i]->bSetEventPending)
         {
             BDBG_MSG(("Waiting for Display%d to be applied", hVdc->ahDisplay[i]->eId));
             eStatus = BKNI_WaitForEvent(hVdc->ahDisplay[i]->hAppliedDoneEvent,

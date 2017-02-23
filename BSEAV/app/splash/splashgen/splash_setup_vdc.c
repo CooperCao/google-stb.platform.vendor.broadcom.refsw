@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -430,10 +430,13 @@ BERR_Code  splash_vdc_setup(
 			/* specify the source surface */
 			BKNI_Memset(&pic, 0, sizeof(pic));
 			pic.pSurface = &(pState->disp[ii].pSurf->surface);
+			splashAddress = BMMA_Lock(pic.pSurface->hPixels);
+
 			TestError( BVDC_Source_SetSurface( hGfxSource, &pic ),
 				"ERROR: BVDC_Source_SetSurface" );
 
 			BDBG_MSG(("uses surface %d", pState->disp[ii].iSurfIdx));
+			BMMA_Unlock(pic.pSurface->hPixels, splashAddress);
 
 #ifdef SPLASH_SUPPORT_HDM
 			if (hdmDspIdx == (uint32_t)ii)
@@ -628,10 +631,16 @@ static BERR_Code ActivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_H
 	TestError(BHDM_EDID_GetPreferredColorimetry(hHDM, &edidParameters, &hdmiSettings.eColorimetry),
 		"BHDM_EDID_GetPreferredColorimetry");
 
+    hdmiSettings.eColorimetry = BAVC_MatrixCoefficients_eItu_R_BT_709;
+    hdmiSettings.stVideoSettings.eColorSpace = BAVC_Colorspace_eYCbCr422;
+
 	TestError(BVDC_Display_GetHdmiSettings(hDisplay, &stVdcHdmiSettings),
 		"BVDC_Display_GetHdmiSettings");
 	stVdcHdmiSettings.ulPortId      = BVDC_Hdmi_0;
 	stVdcHdmiSettings.eMatrixCoeffs = hdmiSettings.eColorimetry;
+    stVdcHdmiSettings.eColorComponent = BAVC_Colorspace_eYCbCr422;
+    stVdcHdmiSettings.eColorRange = BAVC_ColorRange_eLimited;
+    stVdcHdmiSettings.eEotf = BAVC_HDMI_DRM_EOTF_eSDR;
 	TestError(BVDC_Display_SetHdmiSettings(hDisplay, &stVdcHdmiSettings),
 		"BVDC_Display_SetHdmiSettings");
 

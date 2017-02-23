@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,11 +70,11 @@
 /***************************************************************************
  *WKTMR - Wakeup timer
  ***************************************************************************/
-#define BCHP_WKTMR_EVENT                         0x2041a080 /* [RW] Wakeup Timer Register */
-#define BCHP_WKTMR_COUNTER                       0x2041a084 /* [RW] Wakeup Counter */
-#define BCHP_WKTMR_ALARM                         0x2041a088 /* [RW] Wakeup Timer Alarm */
-#define BCHP_WKTMR_PRESCALER                     0x2041a08c /* [RW] Wakeup Timer Prescaler */
-#define BCHP_WKTMR_PRESCALER_VAL                 0x2041a090 /* [RO] Wakeup Timer Prescaler Value */
+#define BCHP_WKTMR_EVENT                         0x2041a080 /* [RW][32] Wakeup Timer Register */
+#define BCHP_WKTMR_COUNTER                       0x2041a084 /* [RW][32] Wakeup Counter */
+#define BCHP_WKTMR_ALARM                         0x2041a088 /* [RW][32] Wakeup Timer Alarm */
+#define BCHP_WKTMR_PRESCALER                     0x2041a08c /* [RW][32] Wakeup Timer Prescaler */
+#define BCHP_WKTMR_PRESCALER_VAL                 0x2041a090 /* [RO][32] Wakeup Timer Prescaler Value */
 
 /***************************************************************************
  *EVENT - Wakeup Timer Register

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *SAGE_UART - Sage UART in the sage UART clock domain
  ***************************************************************************/
-#define BCHP_SAGE_UART_RBR                       0x20312200 /* [RO] Receive Buffer Register */
-#define BCHP_SAGE_UART_THR                       0x20312200 /* [WO] Transmit Holding Register */
-#define BCHP_SAGE_UART_DLL                       0x20312200 /* [RW] Divisor Latch Low */
-#define BCHP_SAGE_UART_DLH                       0x20312204 /* [RW] Divisor Latch High */
-#define BCHP_SAGE_UART_IER                       0x20312204 /* [RW] Interrupt Enable Register */
-#define BCHP_SAGE_UART_IIR                       0x20312208 /* [RO] Interrupt Identity Register */
-#define BCHP_SAGE_UART_FCR                       0x20312208 /* [WO] FIFO Control Register */
-#define BCHP_SAGE_UART_LCR                       0x2031220c /* [RW] Line Control Register */
-#define BCHP_SAGE_UART_MCR                       0x20312210 /* [RW] Modem Control Register */
-#define BCHP_SAGE_UART_LSR                       0x20312214 /* [RO] Line Status Register */
-#define BCHP_SAGE_UART_MSR                       0x20312218 /* [RO] Modem Status Register */
-#define BCHP_SAGE_UART_SCR                       0x2031221c /* [RW] Scratchpad Register */
+#define BCHP_SAGE_UART_RBR                       0x20312200 /* [RO][32] Receive Buffer Register */
+#define BCHP_SAGE_UART_THR                       0x20312200 /* [WO][32] Transmit Holding Register */
+#define BCHP_SAGE_UART_DLL                       0x20312200 /* [RW][32] Divisor Latch Low */
+#define BCHP_SAGE_UART_DLH                       0x20312204 /* [RW][32] Divisor Latch High */
+#define BCHP_SAGE_UART_IER                       0x20312204 /* [RW][32] Interrupt Enable Register */
+#define BCHP_SAGE_UART_IIR                       0x20312208 /* [RO][32] Interrupt Identity Register */
+#define BCHP_SAGE_UART_FCR                       0x20312208 /* [WO][32] FIFO Control Register */
+#define BCHP_SAGE_UART_LCR                       0x2031220c /* [RW][32] Line Control Register */
+#define BCHP_SAGE_UART_MCR                       0x20312210 /* [RW][32] Modem Control Register */
+#define BCHP_SAGE_UART_LSR                       0x20312214 /* [RO][32] Line Status Register */
+#define BCHP_SAGE_UART_MSR                       0x20312218 /* [RO][32] Modem Status Register */
+#define BCHP_SAGE_UART_SCR                       0x2031221c /* [RW][32] Scratchpad Register */
 
 /***************************************************************************
  *RBR - Receive Buffer Register

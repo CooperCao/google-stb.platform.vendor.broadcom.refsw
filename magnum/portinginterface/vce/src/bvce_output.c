@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -195,6 +195,7 @@ BVCE_Output_AllocBuffers(
          return BERR_TRACE( rc );
       }
 
+#ifndef BVCE_PLATFORM_P_SUPPORTS_ITB_NAL
       /* Zero Out Buffer */
       {
          /* Get cached address */
@@ -223,6 +224,7 @@ BVCE_Output_AllocBuffers(
 
          BVCE_P_Buffer_UnlockAddress( hVceOutputBuffers->stCDB.hBuffer );
       }
+#endif
    }
 
    if ( 0 != hVceOutputBuffers->stSettings.stConfig.Itb.Length )
@@ -467,6 +469,18 @@ BVCE_Output_Open(
                    BVCE_P_Buffer_GetSize( hVceOutput->stDescriptors.hDescriptorBuffer )
                    );
 
+      /* Allocate descriptor release metadata */
+      hVceOutput->stDescriptors.astDescriptorReleaseMetadata = (BVCE_P_VideoBufferDescriptorReleaseMetadata *) BKNI_Malloc(
+         ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( BVCE_P_VideoBufferDescriptorReleaseMetadata ) ) );
+
+      if ( NULL == hVceOutput->stDescriptors.astDescriptorReleaseMetadata )
+      {
+         BDBG_ERR(("Error allocating descriptor release metadata"));
+         return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
+      }
+
+      BKNI_Memset( hVceOutput->stDescriptors.astDescriptorReleaseMetadata, 0, ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( BVCE_P_VideoBufferDescriptorReleaseMetadata ) ) );
+
       /* Allocate metadata buffer descriptors */
       stAllocSettings.uiSize = ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( BAVC_VideoMetadataDescriptor ) );
 
@@ -530,18 +544,6 @@ BVCE_Output_Open(
                    );
    }
 
-   /* Allocate shadow length array */
-   hVceOutput->stDescriptors.astShadowDescriptorsLength = (size_t *) BKNI_Malloc(
-      ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( size_t ) ) );
-
-   if ( NULL == hVceOutput->stDescriptors.astShadowDescriptorsLength )
-   {
-      BDBG_ERR(("Error allocating shadow length array"));
-      return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
-   }
-
-   BKNI_Memset( hVceOutput->stDescriptors.astShadowDescriptorsLength, 0, ( hVceOutput->stOpenSettings.uiDescriptorQueueDepth * sizeof( size_t ) ) );
-
    *phVceOutput = hVceOutput;
 
    BVCE_P_FUNCTION_TRACE_LEAVE(0, hVce, pstOutputOpenSettings->uiInstance);
@@ -582,14 +584,13 @@ BVCE_Output_Close(
       BVCE_P_FUNCTION_TRACE_ENTER(0, hVceOutput->hVce, hVceOutput->stOpenSettings.uiInstance);
       BVCE_Output_P_DetachFromChannel( hVceOutput );
 
-      if ( NULL != hVceOutput->stDescriptors.astShadowDescriptorsLength )
-      {
-         BKNI_Free( hVceOutput->stDescriptors.astShadowDescriptorsLength );
-         hVceOutput->stDescriptors.astShadowDescriptorsLength = NULL;
-      }
-
       BVCE_P_Buffer_Free( hVceOutput->stDescriptors.hITBIndexBuffer );
       BVCE_P_Buffer_Free( hVceOutput->stDescriptors.hMetadataBuffer );
+      if ( NULL != hVceOutput->stDescriptors.astDescriptorReleaseMetadata )
+      {
+         BKNI_Free( hVceOutput->stDescriptors.astDescriptorReleaseMetadata );
+         hVceOutput->stDescriptors.astDescriptorReleaseMetadata = NULL;
+      }
       BVCE_P_Buffer_Free( hVceOutput->stDescriptors.hDescriptorBuffer );
       if ( NULL != hVceOutput->stOpenSettings.hDescriptorMem )
       {
@@ -687,14 +688,14 @@ BVCE_OUTPUT_P_ITB_Shadow_CalculateDepth(
    BVCE_Output_Handle hVceOutput
    )
 {
-   if ( hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stITBBuffer.uiShadowReadOffset )
+   if ( hVceOutput->state.stITBBuffer.stOffset.uiValid >= hVceOutput->state.stITBBuffer.stOffset.uiShadowRead )
    {
-      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiShadowReadOffset;
+      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.stOffset.uiShadowRead;
    }
    else
    {
-      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiShadowReadOffset;
-      hVceOutput->state.stITBBuffer.uiShadowDepth += hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiBaseOffset;
+      hVceOutput->state.stITBBuffer.uiShadowDepth = hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiShadowRead;
+      hVceOutput->state.stITBBuffer.uiShadowDepth += hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.stOffset.uiBase;
    }
 }
 
@@ -705,10 +706,10 @@ BVCE_OUTPUT_P_ITB_Shadow_ConsumeEntry(
 {
    BDBG_ASSERT( hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset != hVceOutput->state.stITBBuffer.uiIndexWriteOffset );
 
-   hVceOutput->state.stITBBuffer.uiShadowReadOffset += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset].uiSizeInITB;
-   if ( hVceOutput->state.stITBBuffer.uiShadowReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+   hVceOutput->state.stITBBuffer.stOffset.uiShadowRead += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset].uiSizeInITB;
+   if ( hVceOutput->state.stITBBuffer.stOffset.uiShadowRead >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
    {
-      hVceOutput->state.stITBBuffer.uiShadowReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+      hVceOutput->state.stITBBuffer.stOffset.uiShadowRead -= ( hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiBase );
    }
 
    hVceOutput->state.stITBBuffer.uiIndexShadowReadOffset++;
@@ -724,16 +725,16 @@ BVCE_OUTPUT_P_ITB_ConsumeEntry(
    {
       BDBG_ASSERT( hVceOutput->state.stITBBuffer.uiIndexReadOffset != hVceOutput->state.stITBBuffer.uiIndexWriteOffset );
 
-      hVceOutput->state.stITBBuffer.uiReadOffset += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexReadOffset].uiSizeInITB;
+      hVceOutput->state.stITBBuffer.stOffset.uiRead += hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexReadOffset].uiSizeInITB;
       /* 7425A0: Hack to prevent HW/SW confusion of full vs empty */
       if ( false == hVceOutput->state.stITBBuffer.bReadHackDone )
       {
-         hVceOutput->state.stITBBuffer.uiReadOffset--;
+         hVceOutput->state.stITBBuffer.stOffset.uiRead--;
          hVceOutput->state.stITBBuffer.bReadHackDone = true;
       }
-      if ( hVceOutput->state.stITBBuffer.uiReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+      if ( hVceOutput->state.stITBBuffer.stOffset.uiRead >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
       {
-         hVceOutput->state.stITBBuffer.uiReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+         hVceOutput->state.stITBBuffer.stOffset.uiRead -= ( hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiBase );
       }
 
       hVceOutput->state.stITBBuffer.uiIndexReadOffset++;
@@ -762,20 +763,7 @@ BVCE_Output_P_IsFrameDataAvailable(
    BVCE_Output_Handle hVceOutput
    )
 {
-   if ( ( false == hVceOutput->state.bEOSITBEntrySeen )
-        || ( ( true == hVceOutput->state.bEOSITBEntrySeen )
-              && ( true == hVceOutput->state.bEOSDescriptorSent )
-           )
-      )
-   {
-      /* Check for Available CDB Data */
-      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset == hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
-      {
-         /* We ran out of CDB data */
-         return false;
-      }
-   }
-   return true;
+   return ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset != hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead );
 }
 
 bool
@@ -795,7 +783,8 @@ BVCE_Output_P_IsDescriptorAvailable(
    }
 
    /* Check to make sure we have another descriptor available for the metadata */
-   if ( true == hVceOutput->state.bFrameStart )
+   if ( ( true == hVceOutput->state.bNewITBEntry )
+        && ( 0 != ( pITBIndexEntry->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) ) )
    {
       if ( ( false == hVceOutput->state.bMetadataSent )
            || ( ( pITBIndexEntry->uiMetadata & BVCE_P_NEW_METADATA_MASK ) != ( hVceOutput->state.uiPreviousMetadata & BVCE_P_NEW_METADATA_MASK ) ) ) /* SW7425-5477: Send metadata again if any metadata desc param has changed */
@@ -847,24 +836,24 @@ BVCE_Output_P_CalculateEndOfPictureOffset(
        * may still be in the middle of the current picture, so we need use the depth that is the
        * lesser of depth(cdb_read,cdb_next) depth(cdb_read,cdb_valid)
        */
-      if ( pITBIndexEntryNext->uiCDBAddress >= hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      if ( pITBIndexEntryNext->uiCDBAddress >= hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
       {
-         uiDepthToNext = pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+         uiDepthToNext = pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
       }
       else
       {
-         uiDepthToNext = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-         uiDepthToNext += pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+         uiDepthToNext = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+         uiDepthToNext += pITBIndexEntryNext->uiCDBAddress - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
       }
 
-      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset >= hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset >= hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
       {
-         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
       }
       else
       {
-         uiDepthToValid = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-         uiDepthToValid += hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+         uiDepthToValid = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+         uiDepthToValid += hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
       }
 
       if ( uiDepthToValid < uiDepthToNext )
@@ -895,9 +884,10 @@ BVCE_Output_P_DataUnitDetectReset(
          )
 {
    hVceOutput->state.stDataUnitDetect.eState = BVCE_Output_P_DataUnitDetectState_eLookForNALU;
-   hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.uiValidOffset;
+   hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid;
 }
 
+#ifndef BVCE_PLATFORM_P_SUPPORTS_ITB_NAL
 #define BVCE_DATAUNITDETECT_TYPE_MAX_BYTES 1
 
 typedef struct BVCE_DataUnitDetect_Settings
@@ -1079,8 +1069,8 @@ BVCE_Output_S_DataUnitDetect_Helper(
    BVCE_DataUnitDetect_Results *pstResults
    )
 {
-   pstSettings->uiStartOffset = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
-   pstSettings->uiStopOffset = hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+   pstSettings->uiStartOffset = hVceOutput->state.stCDBBuffer.uiShadowValidOffset - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
+   pstSettings->uiStopOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
 
    BVCE_Output_S_DataUnitDetect(
       pstSettings,
@@ -1088,9 +1078,9 @@ BVCE_Output_S_DataUnitDetect_Helper(
       );
 
    hVceOutput->state.stCDBBuffer.uiShadowValidOffset += pstResults->uiBytesProcessed;
-   if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
+   if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset >= hVceOutput->state.stCDBBuffer.stOffset.uiEnd )
    {
-      hVceOutput->state.stCDBBuffer.uiShadowValidOffset -= ( hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset );
+      hVceOutput->state.stCDBBuffer.uiShadowValidOffset -= ( hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiBase );
    }
 }
 
@@ -1101,11 +1091,12 @@ BVCE_Output_S_DataUnitDetect_SkipToNextFrameStart(
 {
    bool bEndOfFrame;
 
-   hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.uiValidOffset;
+   hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid;
    hVceOutput->state.stCDBBuffer.uiShadowValidOffset = BVCE_Output_P_CalculateEndOfPictureOffset( hVceOutput, &bEndOfFrame );
 
    return bEndOfFrame;
 }
+#endif
 
 void
 BVCE_Output_P_DataUnitDetect(
@@ -1119,8 +1110,54 @@ BVCE_Output_P_DataUnitDetect(
       /* We only want to process new start codes if the all the previous data referenced by the
        * shadow valid offset has been queued. I.e. all the data associated with the previous data unit
        * has been muxed */
-      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset == hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      if ( hVceOutput->state.stCDBBuffer.uiShadowValidOffset == hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
       {
+#ifdef BVCE_PLATFORM_P_SUPPORTS_ITB_NAL
+         /* If there is a next ITB entry, set shadowValid to the lesser of the start of the next NALU of valid offset */
+         if ( BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames( hVceOutput ) > 1 )
+         {
+            BVCE_P_Output_ITB_IndexEntry *pITBIndexEntryLast = BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry( hVceOutput, BVCE_OUTPUT_P_ITB_Shadow_GetNumFrames( hVceOutput ) - 1 );
+            unsigned uiDepthToValid, uiDepthToLastEntry;
+
+            if ( hVceOutput->state.stCDBBuffer.stOffset.uiValid >= hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
+            {
+               uiDepthToValid = hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+            }
+            else
+            {
+               uiDepthToValid = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+               uiDepthToValid += hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
+            }
+
+            if ( pITBIndexEntryLast->uiCDBAddress >= hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
+            {
+               uiDepthToLastEntry = pITBIndexEntryLast->uiCDBAddress - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+            }
+            else
+            {
+               uiDepthToLastEntry = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+               uiDepthToLastEntry += pITBIndexEntryLast->uiCDBAddress - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
+            }
+
+            if ( uiDepthToLastEntry < uiDepthToValid )
+            {
+               hVceOutput->state.stCDBBuffer.uiShadowValidOffset = pITBIndexEntryLast->uiCDBAddress;
+            }
+            else
+            {
+               hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid;
+            }
+         }
+         else
+         {
+            /* If the current ITB entry is an EOS, then set shadowValid = valid */
+            BVCE_P_Output_ITB_IndexEntry *pITBIndexEntry = pITBIndexEntry = BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry( hVceOutput, 0 );
+            if ( 0 != ( pITBIndexEntry->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) )
+            {
+               hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid;
+            }
+         }
+#else
          if ( false == hVceOutput->state.stDataUnitDetect.bFound )
          {
             BVCE_DataUnitDetect_Settings stSettings;
@@ -1192,6 +1229,7 @@ BVCE_Output_P_DataUnitDetect(
 
             BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
          }
+#endif
       }
    }
    else
@@ -1261,20 +1299,20 @@ BVCE_Output_P_BufferCacheUpdate(
 
    if ( 0 == hVceOutput->state.stBufferCache.uiITBCacheValidOffset )
    {
-      hVceOutput->state.stBufferCache.uiITBCacheValidOffset = hVceOutput->state.stITBBuffer.uiBaseOffset;
+      hVceOutput->state.stBufferCache.uiITBCacheValidOffset = hVceOutput->state.stITBBuffer.stOffset.uiBase;
    }
 
-   while ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset != hVceOutput->state.stITBBuffer.uiValidOffset )
+   while ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset != hVceOutput->state.stITBBuffer.stOffset.uiValid )
    {
       void *pBaseAddress;
 
-      if ( hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stBufferCache.uiITBCacheValidOffset )
+      if ( hVceOutput->state.stITBBuffer.stOffset.uiValid >= hVceOutput->state.stBufferCache.uiITBCacheValidOffset )
       {
-         uiLength = hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stBufferCache.uiITBCacheValidOffset;
+         uiLength = hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stBufferCache.uiITBCacheValidOffset;
       }
       else
       {
-         uiLength = hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stBufferCache.uiITBCacheValidOffset;
+         uiLength = hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stBufferCache.uiITBCacheValidOffset;
       }
 
       pBaseAddress = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stITB.hBuffer );
@@ -1284,7 +1322,7 @@ BVCE_Output_P_BufferCacheUpdate(
          break;
       }
 
-      pAddress = (void*) ( (unsigned) pBaseAddress + ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset - hVceOutput->state.stITBBuffer.uiBaseOffset) );
+      pAddress = (void*) ( (uint8_t*) pBaseAddress + ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset - hVceOutput->state.stITBBuffer.stOffset.uiBase) );
 
       BVCE_P_Buffer_FlushCache_isr(
                hVceOutput->hOutputBuffers->stITB.hBuffer,
@@ -1324,29 +1362,30 @@ BVCE_Output_P_BufferCacheUpdate(
 #endif
 
       hVceOutput->state.stBufferCache.uiITBCacheValidOffset += uiLength;
-      if ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+      if ( hVceOutput->state.stBufferCache.uiITBCacheValidOffset >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
       {
-         hVceOutput->state.stBufferCache.uiITBCacheValidOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+         hVceOutput->state.stBufferCache.uiITBCacheValidOffset -= ( hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiBase );
       }
    }
 
    if ( 0 == hVceOutput->state.stBufferCache.uiCDBCacheValidOffset )
    {
-      hVceOutput->state.stBufferCache.uiCDBCacheValidOffset = hVceOutput->state.stCDBBuffer.uiBaseOffset;
+      hVceOutput->state.stBufferCache.uiCDBCacheValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiBase;
    }
 
-   while ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset != hVceOutput->state.stCDBBuffer.uiValidOffset )
+   while ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset != hVceOutput->state.stCDBBuffer.stOffset.uiValid )
    {
-      if ( hVceOutput->state.stCDBBuffer.uiValidOffset >= hVceOutput->state.stBufferCache.uiCDBCacheValidOffset )
+      if ( hVceOutput->state.stCDBBuffer.stOffset.uiValid >= hVceOutput->state.stBufferCache.uiCDBCacheValidOffset )
       {
-         uiLength = hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stBufferCache.uiCDBCacheValidOffset;
+         uiLength = hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stBufferCache.uiCDBCacheValidOffset;
       }
       else
       {
-         uiLength =  hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stBufferCache.uiCDBCacheValidOffset;
+         uiLength =  hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stBufferCache.uiCDBCacheValidOffset;
       }
 
-#if !BVCE_P_DUMP_OUTPUT_CDB
+#if !BVCE_PLATFORM_P_SUPPORTS_ITB_NAL || BVCE_P_DUMP_OUTPUT_CDB || BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
+#if !BVCE_P_DUMP_OUTPUT_CDB && !BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
       /* SW7445-163: Only flush the CDB cache if NAL Data Unit detection is enabled or we are dumping the CDB to file */
       if ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
 #endif
@@ -1360,13 +1399,30 @@ BVCE_Output_P_BufferCacheUpdate(
             break;
          }
 
-         pAddress = (void*) ( (unsigned) pBaseAddress + ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset) );
+         pAddress = (void*) ( (uint8_t*) pBaseAddress + ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset - hVceOutput->state.stCDBBuffer.stOffset.uiBase) );
 
          BVCE_P_Buffer_FlushCache_isr(
                   hVceOutput->hOutputBuffers->stCDB.hBuffer,
                   pAddress,
                   uiLength
                   );
+
+#if BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
+         {
+            unsigned i;
+            for ( i = 0; i < uiLength; i+=4 )
+            {
+               uint32_t* puiWord = (uint32_t*) ((uint8_t*) pAddress + i);
+               *puiWord = ((*puiWord << 24) & 0xFF000000) | ((*puiWord >> 24) & 0x000000FF) | ((*puiWord >> 8) & 0x0000FF00) | ((*puiWord << 8) & 0x00FF0000);
+            }
+
+            BVCE_P_Buffer_FlushCache_isr(
+                     hVceOutput->hOutputBuffers->stCDB.hBuffer,
+                     pAddress,
+                     uiLength
+                     );
+         }
+#endif
 
          BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
 
@@ -1399,11 +1455,11 @@ BVCE_Output_P_BufferCacheUpdate(
                   );
             }
 #endif
-
+#endif
       hVceOutput->state.stBufferCache.uiCDBCacheValidOffset += uiLength;
-      if ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
+      if ( hVceOutput->state.stBufferCache.uiCDBCacheValidOffset >= hVceOutput->state.stCDBBuffer.stOffset.uiEnd )
       {
-         hVceOutput->state.stBufferCache.uiCDBCacheValidOffset -= ( hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset );
+         hVceOutput->state.stBufferCache.uiCDBCacheValidOffset -= ( hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiBase );
       }
    }
 }
@@ -1424,19 +1480,19 @@ BVCE_Output_P_Reset(
 
    if ( NULL != hVceOutput->hOutputBuffers )
    {
-      hVceOutput->state.stITBBuffer.uiShadowReadOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer );
-      hVceOutput->state.stITBBuffer.uiValidOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer );
-      hVceOutput->state.stITBBuffer.uiReadOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer );
+      hVceOutput->state.stITBBuffer.stOffset.uiShadowRead = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer );
+      hVceOutput->state.stITBBuffer.stOffset.uiValid = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer );
+      hVceOutput->state.stITBBuffer.stOffset.uiRead = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer );
 
-      hVceOutput->state.stCDBBuffer.uiShadowReadOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer );
-      hVceOutput->state.stCDBBuffer.uiValidOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer );
-      hVceOutput->state.stCDBBuffer.uiReadOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+      hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+      hVceOutput->state.stCDBBuffer.stOffset.uiValid = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer );
+      hVceOutput->state.stCDBBuffer.stOffset.uiRead = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer );
    }
 
    BVCE_Output_P_DataUnitDetectReset( hVceOutput);
    BVCE_Output_P_BufferCacheReset( hVceOutput );
 
-   hVceOutput->state.bFrameStart = true;
+   hVceOutput->state.bNewITBEntry = true;
 
 #if BVCE_P_POLL_FW_DATAREADY
    BREG_Write32(
@@ -1531,63 +1587,63 @@ BVCE_Output_P_FlushDirect(
    BVCE_Output_Handle hVceOutput
    )
 {
-   unsigned uiCDBValid;
-   unsigned uiITBValid;
-   unsigned uiCDBRead;
-   unsigned uiITBRead;
-   unsigned uiCDBBase;
-   unsigned uiITBBase;
+   uint64_t uiCDBValid;
+   uint64_t uiITBValid;
+   uint64_t uiCDBRead;
+   uint64_t uiITBRead;
+   uint64_t uiCDBBase;
+   uint64_t uiITBBase;
 
    BDBG_OBJECT_ASSERT(hVceOutput, BVCE_P_Output_Context);
 
    /* Simply set read = valid */
-   uiCDBValid = BREG_Read32(
+   uiCDBValid = BREG_ReadAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.CDB_Valid
       );
 
-   uiITBValid = BREG_Read32(
+   uiITBValid = BREG_ReadAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.ITB_Valid
       );
 
-   uiCDBRead = BREG_Read32(
+   uiCDBRead = BREG_ReadAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.CDB_Read
       );
 
 
-   uiITBRead = BREG_Read32(
+   uiITBRead = BREG_ReadAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.ITB_Read
       );
 
-   uiCDBBase = BREG_Read32(
+   uiCDBBase = BREG_ReadAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.CDB_Base
       );
 
-   uiITBBase = BREG_Read32(
+   uiITBBase = BREG_ReadAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.ITB_Base
       );
 
-   BDBG_WRN(("Direct Flush (ITB Read = %08x --> %08x (Base: %08x), CDB Read = %08x --> %08x (Base: %08x)",
-      uiITBRead,
-      uiITBValid,
-      uiITBBase,
-      uiCDBRead,
-      uiCDBValid,
-      uiCDBBase
+   BDBG_WRN(("Direct Flush (ITB Read = "BDBG_UINT64_FMT" --> "BDBG_UINT64_FMT" (Base: "BDBG_UINT64_FMT"), CDB Read = "BDBG_UINT64_FMT" --> "BDBG_UINT64_FMT" (Base: "BDBG_UINT64_FMT")",
+      BDBG_UINT64_ARG(uiITBRead),
+      BDBG_UINT64_ARG(uiITBValid),
+      BDBG_UINT64_ARG(uiITBBase),
+      BDBG_UINT64_ARG(uiCDBRead),
+      BDBG_UINT64_ARG(uiCDBValid),
+      BDBG_UINT64_ARG(uiCDBBase)
    ));
 
-   BREG_Write32(
+   BREG_WriteAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.CDB_Read,
       uiCDBValid
    );
 
-   BREG_Write32(
+   BREG_WriteAddr(
       hVceOutput->hVce->handles.hReg,
       hVceOutput->stRegisters.ITB_Read,
       uiITBValid
@@ -1600,12 +1656,12 @@ BVCE_OUTPUT_P_ITB_UpdatePointers(
    )
 {
    /* ITB Pointers */
-   hVceOutput->state.stITBBuffer.uiBaseOffset = BREG_Read32(
+   hVceOutput->state.stITBBuffer.stOffset.uiBase = BREG_ReadAddr(
             hVceOutput->hVce->handles.hReg,
             hVceOutput->stRegisters.ITB_Base
             );
 
-   hVceOutput->state.stITBBuffer.uiEndOffset = BREG_Read32(
+   hVceOutput->state.stITBBuffer.stOffset.uiEnd = BREG_ReadAddr(
             hVceOutput->hVce->handles.hReg,
             hVceOutput->stRegisters.ITB_End
             );
@@ -1615,55 +1671,73 @@ BVCE_OUTPUT_P_ITB_UpdatePointers(
     * AFTER the last valid byte before WRAP, so we
     * add one here
     */
-   hVceOutput->state.stITBBuffer.uiEndOffset += 1;
+   hVceOutput->state.stITBBuffer.stOffset.uiEnd += 1;
 
-   hVceOutput->state.stITBBuffer.uiValidOffset = BREG_Read32(
+   hVceOutput->state.stITBBuffer.stOffset.uiValid = BREG_ReadAddr(
             hVceOutput->hVce->handles.hReg,
             hVceOutput->stRegisters.ITB_Valid
             );
 
-   hVceOutput->state.stITBBuffer.uiValidOffset += 1;
+   hVceOutput->state.stITBBuffer.stOffset.uiValid += 1;
 
-   if ( hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+   if ( hVceOutput->state.stITBBuffer.stOffset.uiValid >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
    {
-      hVceOutput->state.stITBBuffer.uiValidOffset = hVceOutput->state.stITBBuffer.uiBaseOffset + ( hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiEndOffset );
+      hVceOutput->state.stITBBuffer.stOffset.uiValid = hVceOutput->state.stITBBuffer.stOffset.uiBase + ( hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.stOffset.uiEnd );
    }
 
-   hVceOutput->state.stITBBuffer.uiWriteOffset = BREG_Read32(
+   hVceOutput->state.stITBBuffer.stOffset.uiWrite = BREG_ReadAddr(
            hVceOutput->hVce->handles.hReg,
            hVceOutput->hVce->stPlatformConfig.stOutput[hVceOutput->stOpenSettings.uiInstance].stITB.uiWritePointer
            );
 
-   hVceOutput->state.stITBBuffer.uiReadOffset = BREG_Read32(
+   hVceOutput->state.stITBBuffer.stOffset.uiRead = BREG_ReadAddr(
            hVceOutput->hVce->handles.hReg,
            hVceOutput->stRegisters.ITB_Read
            );
 
-   BDBG_MSG( ("[%d][%d] ITB Base/End/sRead (Read)/Valid/Write = %08x/%08x/%08x (%08x)/%08x/%08x",
+   BDBG_MSG( ("[%d][%d] ITB Base/End/sRead (Read)/Valid/Write = "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" ("BDBG_UINT64_FMT")/"BDBG_UINT64_FMT"/"BDBG_UINT64_FMT,
             hVceOutput->hVce->stOpenSettings.uiInstance, hVceOutput->state.hVceCh->stOpenSettings.uiInstance,
-            hVceOutput->state.stITBBuffer.uiBaseOffset,
-            hVceOutput->state.stITBBuffer.uiEndOffset,
-            hVceOutput->state.stITBBuffer.uiShadowReadOffset,
-            hVceOutput->state.stITBBuffer.uiReadOffset,
-            hVceOutput->state.stITBBuffer.uiValidOffset,
-            BREG_Read32(
+            BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiBase),
+            BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiEnd),
+            BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiShadowRead),
+            BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiRead),
+            BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiValid),
+            BDBG_UINT64_ARG(BREG_ReadAddr(
                      hVceOutput->hVce->handles.hReg,
                      hVceOutput->hVce->stPlatformConfig.stOutput[hVceOutput->stOpenSettings.uiInstance].stITB.uiWritePointer
-                     )
+                     ))
             ));
+
+   if ( NULL != hVceOutput->hVce->stDebugFifo.hDebugFifo )
+   {
+      BVCE_P_DebugFifo_Entry *pstEntry;
+      BDBG_Fifo_Token stToken;
+
+      pstEntry = (BVCE_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( hVceOutput->hVce->stDebugFifo.hDebugFifo, &stToken );
+      if ( NULL != pstEntry )
+      {
+         pstEntry->stMetadata.eType = BVCE_DebugFifo_EntryType_eITBOffsets;
+         pstEntry->stMetadata.uiInstance = hVceOutput->hVce->stOpenSettings.uiInstance;
+         pstEntry->stMetadata.uiChannel = hVceOutput->stOpenSettings.uiInstance;
+         pstEntry->stMetadata.uiTimestamp = 0;
+         ( NULL != hVceOutput->hVce->hTimer ) ? BTMR_ReadTimer( hVceOutput->hVce->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;
+         BKNI_Memcpy(&pstEntry->data.stOffset, &hVceOutput->state.stITBBuffer.stOffset, sizeof( BVCE_P_Buffer_Offsets ));
+         BDBG_Fifo_CommitBuffer( &stToken );
+      }
+   }
 
    if ( true == hVceOutput->state.stITBBuffer.bPreviousValidOffsetValid )
    {
-      BDBG_MODULE_MSG( BVCE_OUTPUT_PARSER, ("%d new ITB entries (sRead (Read)/Valid = %08x (%08x)/%08x)",
-         (hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stITBBuffer.uiPreviousValidOffset) ?
-            (hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiPreviousValidOffset)/16 :
-            ((hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiPreviousValidOffset) + (hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiBaseOffset))/16,
-         hVceOutput->state.stITBBuffer.uiShadowReadOffset,
-         hVceOutput->state.stITBBuffer.uiReadOffset,
-         hVceOutput->state.stITBBuffer.uiValidOffset
+      BDBG_MODULE_MSG( BVCE_OUTPUT_PARSER, ("%u new ITB entries (sRead (Read)/Valid = "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT")/"BDBG_UINT64_FMT")",
+         (unsigned) ((hVceOutput->state.stITBBuffer.stOffset.uiValid >= hVceOutput->state.stITBBuffer.uiPreviousValidOffset) ?
+            (hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.uiPreviousValidOffset)/16 :
+            ((hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.uiPreviousValidOffset) + (hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.stOffset.uiBase))/16),
+         BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiShadowRead),
+         BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiRead),
+         BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiValid)
          ));
    }
-   hVceOutput->state.stITBBuffer.uiPreviousValidOffset = hVceOutput->state.stITBBuffer.uiValidOffset;
+   hVceOutput->state.stITBBuffer.uiPreviousValidOffset = hVceOutput->state.stITBBuffer.stOffset.uiValid;
    hVceOutput->state.stITBBuffer.bPreviousValidOffsetValid = true;
 }
 
@@ -1672,12 +1746,12 @@ void BVCE_OUTPUT_P_CDB_UpdatePointers(
    )
 {
    /* CDB Pointers */
-   hVceOutput->state.stCDBBuffer.uiBaseOffset = BREG_Read32(
+   hVceOutput->state.stCDBBuffer.stOffset.uiBase = BREG_ReadAddr(
             hVceOutput->hVce->handles.hReg,
             hVceOutput->stRegisters.CDB_Base
             );
 
-   hVceOutput->state.stCDBBuffer.uiEndOffset = BREG_Read32(
+   hVceOutput->state.stCDBBuffer.stOffset.uiEnd = BREG_ReadAddr(
             hVceOutput->hVce->handles.hReg,
             hVceOutput->stRegisters.CDB_End
             );
@@ -1686,80 +1760,115 @@ void BVCE_OUTPUT_P_CDB_UpdatePointers(
     * AFTER the last valid byte before WRAP, so we
     * add one here
     */
-   hVceOutput->state.stCDBBuffer.uiEndOffset += 1;
+   hVceOutput->state.stCDBBuffer.stOffset.uiEnd += 1;
 
-   hVceOutput->state.stCDBBuffer.uiValidOffset = BREG_Read32(
+   hVceOutput->state.stCDBBuffer.stOffset.uiValid = BREG_ReadAddr(
             hVceOutput->hVce->handles.hReg,
             hVceOutput->stRegisters.CDB_Valid
             );
 
 #if BVCE_P_DUMP_OUTPUT_ITB_DESC
-   hVceOutput->state.stCDBBuffer.hw.uiValidOffset = hVceOutput->state.stCDBBuffer.uiValidOffset;
+   hVceOutput->state.stCDBBuffer.hw.uiValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid;
 #endif
 
-   hVceOutput->state.stCDBBuffer.uiValidOffset += 1;
+   hVceOutput->state.stCDBBuffer.stOffset.uiValid += 1;
 
-   if ( hVceOutput->state.stCDBBuffer.uiValidOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
+   if ( hVceOutput->state.stCDBBuffer.stOffset.uiValid >= hVceOutput->state.stCDBBuffer.stOffset.uiEnd )
    {
-      hVceOutput->state.stCDBBuffer.uiValidOffset = hVceOutput->state.stCDBBuffer.uiBaseOffset + ( hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiEndOffset );
+      hVceOutput->state.stCDBBuffer.stOffset.uiValid = hVceOutput->state.stCDBBuffer.stOffset.uiBase + ( hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiEnd );
    }
 
-   hVceOutput->state.stCDBBuffer.uiWriteOffset = BREG_Read32(
+#if BVCE_PLATFORM_P_CDB_REQUIRES_BYTESWAP
+   {
+      if ( false == hVceOutput->state.bEOSITBEntryIndexed )
+      {
+         /* Adjust to ensure valid is on a 4 byte boundary to support eventual byte swap */
+         hVceOutput->state.stCDBBuffer.stOffset.uiValid -= ( hVceOutput->state.stCDBBuffer.stOffset.uiValid % 32 );
+         if ( hVceOutput->state.stCDBBuffer.stOffset.uiValid < hVceOutput->state.stCDBBuffer.stOffset.uiBase )
+         {
+            hVceOutput->state.stCDBBuffer.stOffset.uiValid = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - ( hVceOutput->state.stCDBBuffer.stOffset.uiBase - hVceOutput->state.stCDBBuffer.stOffset.uiValid );
+         }
+         BDBG_ASSERT( 0 == ( hVceOutput->state.stCDBBuffer.stOffset.uiValid % 32 ) );
+      }
+   }
+#endif
+
+   hVceOutput->state.stCDBBuffer.stOffset.uiWrite = BREG_ReadAddr(
            hVceOutput->hVce->handles.hReg,
            hVceOutput->hVce->stPlatformConfig.stOutput[hVceOutput->stOpenSettings.uiInstance].stCDB.uiWritePointer
            );
 
 #if BVCE_P_DUMP_OUTPUT_ITB_DESC
-   hVceOutput->state.stCDBBuffer.hw.uiWriteOffset = hVceOutput->state.stCDBBuffer.uiWriteOffset;
+   hVceOutput->state.stCDBBuffer.hw.uiWriteOffset = hVceOutput->state.stCDBBuffer.stOffset.uiWrite;
 #endif
 
-   hVceOutput->state.stCDBBuffer.uiReadOffset = BREG_Read32(
+   hVceOutput->state.stCDBBuffer.stOffset.uiRead = BREG_ReadAddr(
            hVceOutput->hVce->handles.hReg,
            hVceOutput->stRegisters.CDB_Read
            );
 
 #if BVCE_P_DUMP_OUTPUT_ITB_DESC
-   hVceOutput->state.stCDBBuffer.hw.uiReadOffset = hVceOutput->state.stCDBBuffer.uiReadOffset;
+   hVceOutput->state.stCDBBuffer.hw.uiReadOffset = hVceOutput->state.stCDBBuffer.stOffset.uiRead;
 
-   hVceOutput->state.stCDBBuffer.hw.uiDepth = BREG_Read32(
+   hVceOutput->state.stCDBBuffer.hw.uiDepth = BREG_ReadAddr(
        hVceOutput->hVce->handles.hReg,
        hVceOutput->hVce->stPlatformConfig.stDebug.uiCDBDepth[hVceOutput->stOpenSettings.uiInstance] );
 #endif
 
-   BDBG_MSG( ("[%d][%d] CDB Base/End/sRead (Read)/Valid/Write = %08x/%08x/%08x (%08x)/%08x/%08x",
+   BDBG_MSG( ("[%d][%d] CDB Base/End/sRead (Read)/sValid (Valid)/Write = "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" ("BDBG_UINT64_FMT")/"BDBG_UINT64_FMT" ("BDBG_UINT64_FMT")/"BDBG_UINT64_FMT,
             hVceOutput->hVce->stOpenSettings.uiInstance, hVceOutput->state.hVceCh->stOpenSettings.uiInstance,
-            hVceOutput->state.stCDBBuffer.uiBaseOffset,
-            hVceOutput->state.stCDBBuffer.uiEndOffset,
-            hVceOutput->state.stCDBBuffer.uiShadowReadOffset,
-            hVceOutput->state.stCDBBuffer.uiReadOffset,
-            hVceOutput->state.stCDBBuffer.uiValidOffset,
-            BREG_Read32(
+            BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiBase),
+            BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiEnd),
+            BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead),
+            BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiRead),
+            BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.uiShadowValidOffset),
+            BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiValid),
+            BDBG_UINT64_ARG(BREG_ReadAddr(
                      hVceOutput->hVce->handles.hReg,
                      hVceOutput->hVce->stPlatformConfig.stOutput[hVceOutput->stOpenSettings.uiInstance].stCDB.uiWritePointer
-                     )
+                     ))
             ));
+
+   if ( NULL != hVceOutput->hVce->stDebugFifo.hDebugFifo )
+   {
+      BVCE_P_DebugFifo_Entry *pstEntry;
+      BDBG_Fifo_Token stToken;
+
+      pstEntry = (BVCE_P_DebugFifo_Entry *) BDBG_Fifo_GetBuffer( hVceOutput->hVce->stDebugFifo.hDebugFifo, &stToken );
+      if ( NULL != pstEntry )
+      {
+         pstEntry->stMetadata.eType = BVCE_DebugFifo_EntryType_eCDBOffsets;
+         pstEntry->stMetadata.uiInstance = hVceOutput->hVce->stOpenSettings.uiInstance;
+         pstEntry->stMetadata.uiChannel = hVceOutput->stOpenSettings.uiInstance;
+         pstEntry->stMetadata.uiTimestamp = 0;
+         ( NULL != hVceOutput->hVce->hTimer ) ? BTMR_ReadTimer( hVceOutput->hVce->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;
+         BKNI_Memcpy(&pstEntry->data.stOffset, &hVceOutput->state.stCDBBuffer.stOffset, sizeof( BVCE_P_Buffer_Offsets ));
+         BDBG_Fifo_CommitBuffer( &stToken );
+      }
+   }
 
    if ( true == hVceOutput->state.stCDBBuffer.bPreviousValidOffsetValid )
    {
-      BDBG_MODULE_MSG( BVCE_OUTPUT_PARSER, ("%d new CDB bytes (sRead (Read)/Valid = %08x (%08x)/%08x)",
-         (hVceOutput->state.stCDBBuffer.uiValidOffset >= hVceOutput->state.stCDBBuffer.uiPreviousValidOffset) ?
-            (hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiPreviousValidOffset) :
-            ((hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiPreviousValidOffset) + (hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset)),
-         hVceOutput->state.stCDBBuffer.uiShadowReadOffset,
-         hVceOutput->state.stCDBBuffer.uiReadOffset,
-         hVceOutput->state.stCDBBuffer.uiValidOffset
+      BDBG_MODULE_MSG( BVCE_OUTPUT_PARSER, ("%u new CDB bytes (sRead (Read)/sValid (Valid)= "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT")/"BDBG_UINT64_FMT" ("BDBG_UINT64_FMT"))",
+         (unsigned) ((hVceOutput->state.stCDBBuffer.stOffset.uiValid >= hVceOutput->state.stCDBBuffer.uiPreviousValidOffset) ?
+            (hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.uiPreviousValidOffset) :
+            ((hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.uiPreviousValidOffset) + (hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiBase))),
+         BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead),
+         BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiRead),
+         BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.uiShadowValidOffset),
+         BDBG_UINT64_ARG(hVceOutput->state.stCDBBuffer.stOffset.uiValid)
          ));
    }
-   hVceOutput->state.stCDBBuffer.uiPreviousValidOffset = hVceOutput->state.stCDBBuffer.uiValidOffset;
+   hVceOutput->state.stCDBBuffer.uiPreviousValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiValid;
    hVceOutput->state.stCDBBuffer.bPreviousValidOffsetValid = true;
 }
 
+#ifndef BVCE_PLATFORM_P_SUPPORTS_ITB_EOS
 void
 BVCE_OUTPUT_P_ITB_CheckForEOS(
    BAVC_VideoBufferDescriptor *pVideoDescriptor
    )
 {
-
    if ( ( 0 == pVideoDescriptor->stCommon.iSHR )
         && ( 0 == pVideoDescriptor->stCommon.uiTicksPerBit )
         && ( 0 == pVideoDescriptor->stCommon.uiPTS )
@@ -1771,6 +1880,7 @@ BVCE_OUTPUT_P_ITB_CheckForEOS(
       pVideoDescriptor->uiVideoFlags = 0;
    }
 }
+#endif
 
 void
 BVCE_Output_P_VerifyESCR(
@@ -1822,52 +1932,145 @@ BVCE_OUTPUT_P_ITB_DetectNewFrame(
    )
 {
    if ( ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB > 0 )
-        && ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) ) )
+        && ( ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )
+             || ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
+      ))
    {
       BAVC_VideoBufferDescriptor *pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
       unsigned uiSizeInITB = hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB;
-      bool bIsEOS = ( 0 != ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) );
-      bool bIsRAP = ( 0 != ( pVideoDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) );
 
+#ifndef BVCE_PLATFORM_P_SUPPORTS_ITB_EOS
       BVCE_OUTPUT_P_ITB_CheckForEOS(pVideoDescriptor);
-
-      /* Verify ESCR >= DTS - EtsDtsOffset */
-      if ( ( true == hVceOutput->state.bChannelStatusValid )
-           && ( 0 != ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID ) )
-           && ( 0 != ( pVideoDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID ) )
-           && ( false == hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].bHeaderOnly ) )
+#endif
       {
-         BVCE_Output_P_VerifyESCR( hVceOutput, pVideoDescriptor, hVceOutput->state.stChannelStatus.uiEtsDtsOffset );
-      }
+         bool bIsEOS = ( 0 != ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) );
+         bool bIsRAP = ( 0 != ( pVideoDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP ) );
 
-      /* SW7425-5765: In cases when an immediate/normal stop is requested, but the CDB is full,
-       * the EOS may still be pending when the start command is issued.  Depending on timing,
-       * the EOS may incorrectly come as the first descriptor in the new transcode session.
-       * To prevent this, we don't allow an EOS or non-RAP frame to be the first frame we send
-       * after a start encode.
-       */
-      if ( ( true == hVceOutput->state.bFirstFrameSeen )
-           || ( ( false == bIsEOS )
-                && ( true == bIsRAP ) ) )
-      {
-         hVceOutput->state.stITBBuffer.uiIndexWriteOffset++;
-         hVceOutput->state.stITBBuffer.uiIndexWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
-         hVceOutput->state.bFirstFrameSeen = true;
-      }
-
-      BKNI_Memset( &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset], 0, sizeof( BVCE_P_Output_ITB_IndexEntry ) );
-
-      if ( false == hVceOutput->state.bFirstFrameSeen)
-      {
-         if ( true == bIsEOS )
+         /* Verify ESCR >= DTS - EtsDtsOffset */
+         if ( ( true == hVceOutput->state.bChannelStatusValid )
+              && ( 0 != ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID ) )
+              && ( 0 != ( pVideoDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID ) )
+              && ( false == hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].bHeaderOnly ) )
          {
-            BDBG_WRN(("Ignored stale EOS"));
+            BVCE_Output_P_VerifyESCR( hVceOutput, pVideoDescriptor, hVceOutput->state.stChannelStatus.uiEtsDtsOffset );
          }
-         else if ( false == bIsRAP )
+
+         /* SW7425-5765: In cases when an immediate/normal stop is requested, but the CDB is full,
+          * the EOS may still be pending when the start command is issued.  Depending on timing,
+          * the EOS may incorrectly come as the first descriptor in the new transcode session.
+          * To prevent this, we don't allow an EOS or non-RAP frame to be the first frame we send
+          * after a start encode.
+          */
+         if ( ( true == hVceOutput->state.bFirstFrameSeen )
+              || ( ( false == bIsEOS )
+                   && ( true == bIsRAP ) ) )
          {
-            BDBG_WRN(("Ignored stale non-RAP start frame"));
+            hVceOutput->state.stITBBuffer.uiIndexWriteOffset++;
+            hVceOutput->state.stITBBuffer.uiIndexWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
+            hVceOutput->state.bFirstFrameSeen = true;
+            hVceOutput->state.bEOSITBEntryIndexed = bIsEOS;
          }
-         hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB = uiSizeInITB;
+
+         BKNI_Memset( &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset], 0, sizeof( BVCE_P_Output_ITB_IndexEntry ) );
+
+         if ( false == hVceOutput->state.bFirstFrameSeen)
+         {
+            if ( true == bIsEOS )
+            {
+               BDBG_WRN(("Ignored stale EOS"));
+            }
+            else if ( false == bIsRAP )
+            {
+               BDBG_WRN(("Ignored stale non-RAP start frame"));
+            }
+            hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB = uiSizeInITB;
+         }
+      }
+   }
+}
+
+typedef enum BVCE_OUTPUT_P_ITB_IndexingState
+{
+   BVCE_OUTPUT_P_ITB_IndexingState_eBaseEntry = 0x20, /* Indicates start of new frame (0x20) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eBaseOffsetEntry = 0x28, /* Indicates start of new frame (0x28) with offset from beginning of CDB */
+   BVCE_OUTPUT_P_ITB_IndexingState_eTimeStampEntry = 0x21, /* PTS/DTS Entry (0x21) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eBitrateEntry = 0x60, /* Bitrate Entry (0x60) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eESCREntry = 0x61, /* ESCR Entry (0x61) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eCRCEntry = 0x6C, /* CRC Entry (0x6C) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eSTCEntry = 0x68, /* STC Entry (0x68) */
+#if ((BCHP_CHIP == 7278) && (BCHP_VER == BCHP_VER_A0)) /* 7278 A0 Compatibility */
+   BVCE_OUTPUT_P_ITB_IndexingState_eNALAddressDataEntry = 0x6D, /* NAL Address and Data Entry (0x6D) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry = 0x6E, /* NAL Data Entry (0x6E) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eEOSEntry = 0x6F, /* EOS Entry (0x6F) */
+#else
+   BVCE_OUTPUT_P_ITB_IndexingState_eNALAddressDataEntry = 0x62, /* NAL Address and Data Entry (0x62) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry = 0x63, /* NAL Data Entry (0x63) */
+   BVCE_OUTPUT_P_ITB_IndexingState_eEOSEntry = 0x6D, /* EOS Entry (0x6D) */
+#endif
+   BVCE_OUTPUT_P_ITB_IndexingState_eNULLEntry = 0x00 /* NULL Entry (0x00) */
+#if BVCE_P_DUMP_MAU_PERFORMANCE_DATA
+   ,BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance0Entry = 0xF0, /* MAU Performance Data 0 */
+   BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance1Entry = 0xF1, /* MAU Performance Data 1 */
+   BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance2Entry = 0xF2, /* MAU Performance Data 2 */
+   BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance3Entry = 0xF3 /* MAU Performance Data 3 */
+#endif
+} BVCE_OUTPUT_P_ITB_IndexingState;
+
+void
+BVCE_OUTPUT_P_ITB_ExtractNALData(
+   BAVC_VideoBufferDescriptor *pVideoDescriptor,
+   const void* pITBEntry,
+   BAVC_VideoCompressionStd eProtocol
+   )
+{
+   BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("     numDataBytes: %u, start: %u, end: %u",
+                                           BVCE_P_ITBEntry_GetNalData_NumDataBytes(pITBEntry),
+                                           BVCE_P_ITBEntry_GetNalData_NalDataStart(pITBEntry),
+                                           BVCE_P_ITBEntry_GetNalData_NalDataEnd(pITBEntry)
+                       ));
+
+   {
+      unsigned i;
+      unsigned uiEntryType = BVCE_P_ITBEntry_GetEntryType(pITBEntry);
+      unsigned uiMaxData = ( BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry == uiEntryType ) ? 12 : 8;
+      unsigned uiNumBytes = ( 0 != BVCE_P_ITBEntry_GetNalData_NalDataEnd(pITBEntry) ) ? BVCE_P_ITBEntry_GetNalData_NumDataBytes(pITBEntry) : uiMaxData;
+      BDBG_ASSERT(uiNumBytes <= uiMaxData);
+      for ( i = 0; i < uiNumBytes; i++ )
+      {
+#if ((BCHP_CHIP == 7278) && (BCHP_VER == BCHP_VER_A0)) /* 7278 A0 Compatibility */
+         uint32_t uiValue = ((uint32_t*) pITBEntry)[BVCE_P_ITBENTRY_NALDATA_DATA_MAXOFFSET-(i/4)];
+#else
+         unsigned uiDataStartOffset = ( BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry == uiEntryType ) ? BVCE_P_ITBENTRY_NALDATA_DATA_OFFSET : BVCE_P_ITBENTRY_NALADDR_DATA_OFFSET;
+         uint32_t uiValue = ((uint32_t*) pITBEntry)[uiDataStartOffset + (i/4)];
+#endif
+         uint8_t uiByte = (uiValue >> (((i%4))*8)) & 0xFF;
+         if ( ( i == 0 ) && ( 0 != BVCE_P_ITBEntry_GetNalData_NalDataStart(pITBEntry) ) )
+         {
+            uint8_t uiDataUnitType = 0;
+
+            switch ( eProtocol )
+            {
+            case BAVC_VideoCompressionStd_eH264:
+               uiDataUnitType = uiByte & 0x1F;
+               break;
+
+            case BAVC_VideoCompressionStd_eH265:
+               uiDataUnitType = (uiByte >> 1) & 0x3F;
+               break;
+
+            default:
+               uiDataUnitType = uiByte;
+               break;
+            }
+
+            BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("      Data[%u]: %02x (NALU Type: %u)", i, uiByte, uiDataUnitType ) );
+            pVideoDescriptor->uiVideoFlags |= BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START;
+            pVideoDescriptor->uiDataUnitType = uiByte;
+         }
+         else
+         {
+            BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("      Data[%u]: %02x", i, uiByte) );
+         }
       }
    }
 }
@@ -1877,15 +2080,15 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
    BVCE_Output_Handle hVceOutput
    )
 {
-   unsigned uiReadOffset = hVceOutput->state.stITBBuffer.uiReadOffset;
+   uint64_t uiReadOffset = hVceOutput->state.stITBBuffer.stOffset.uiRead;
    void *pITBBufferCached = NULL;
 
    if ( true == hVceOutput->state.stITBBuffer.bReadHackDone )
    {
       uiReadOffset++;
-      if ( uiReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+      if ( uiReadOffset >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
       {
-         uiReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+         uiReadOffset -= ( hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiBase );
       }
    }
 
@@ -1897,9 +2100,9 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
       {
          uiReadOffset += hVceOutput->stDescriptors.astIndex[uiIndexReadOffset].uiSizeInITB;
 
-         if ( uiReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+         if ( uiReadOffset >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
          {
-            uiReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+            uiReadOffset -= ( hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiBase );
          }
 
          uiIndexReadOffset++;
@@ -1909,44 +2112,26 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
 
    /* Scan ITB for entries */
    {
-      typedef enum BVCE_OUTPUT_P_ITB_IndexingState
+      if ( 0 != ( ( hVceOutput->state.stITBBuffer.stOffset.uiValid - uiReadOffset ) % 16 ) )
       {
-         BVCE_OUTPUT_P_ITB_IndexingState_eBaseEntry = 0x20, /* Indicates start of new frame (0x20) */
-         BVCE_OUTPUT_P_ITB_IndexingState_eTimeStampEntry = 0x21, /* PTS/DTS Entry (0x21) */
-         BVCE_OUTPUT_P_ITB_IndexingState_eBitrateEntry = 0x60, /* Bitrate Entry (0x60) */
-         BVCE_OUTPUT_P_ITB_IndexingState_eESCREntry = 0x61, /* ESCR Entry (0x61) */
-         BVCE_OUTPUT_P_ITB_IndexingState_eCRCEntry = 0x6C, /* CRC Entry (0x6C) */
-         BVCE_OUTPUT_P_ITB_IndexingState_eSTCEntry = 0x68, /* STC Entry (0x68) */
-         BVCE_OUTPUT_P_ITB_IndexingState_eNULLEntry = 0x00 /* NULL Entry (0x00) */
-#if BVCE_P_DUMP_MAU_PERFORMANCE_DATA
-         ,BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance0Entry = 0xF0, /* MAU Performance Data 0 */
-         BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance1Entry = 0xF1, /* MAU Performance Data 1 */
-         BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance2Entry = 0xF2, /* MAU Performance Data 2 */
-         BVCE_OUTPUT_P_ITB_IndexingState_eMAUPerformance3Entry = 0xF3 /* MAU Performance Data 3 */
-#endif
-      } BVCE_OUTPUT_P_ITB_IndexingState;
-
-
-      if ( 0 != ( ( hVceOutput->state.stITBBuffer.uiValidOffset - uiReadOffset ) % 16 ) )
-      {
-         BDBG_ERR( ("ITB Base/End/sRead (Read)/Valid/Write = %08x/%08x/%08x (%08x)/%08x/%08x (%08x %d)",
-                  hVceOutput->state.stITBBuffer.uiBaseOffset,
-                  hVceOutput->state.stITBBuffer.uiEndOffset,
-                  hVceOutput->state.stITBBuffer.uiShadowReadOffset,
-                  hVceOutput->state.stITBBuffer.uiReadOffset,
-                  hVceOutput->state.stITBBuffer.uiValidOffset,
-                  BREG_Read32(
+         BDBG_ERR( ("ITB Base/End/sRead (Read)/Valid/Write = "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" ("BDBG_UINT64_FMT")/"BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" ("BDBG_UINT64_FMT" %d)",
+                  BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiBase),
+                  BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiEnd),
+                  BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiShadowRead),
+                  BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiRead),
+                  BDBG_UINT64_ARG(hVceOutput->state.stITBBuffer.stOffset.uiValid),
+                  BDBG_UINT64_ARG(BREG_ReadAddr(
                            hVceOutput->hVce->handles.hReg,
                            hVceOutput->hVce->stPlatformConfig.stOutput[hVceOutput->stOpenSettings.uiInstance].stITB.uiWritePointer
-                           ),
-                  uiReadOffset,
+                           )),
+                  BDBG_UINT64_ARG(uiReadOffset),
                   hVceOutput->state.stITBBuffer.bReadHackDone
                   ));
       }
 
-      BDBG_ASSERT( 0 == ( ( hVceOutput->state.stITBBuffer.uiValidOffset - uiReadOffset ) % 16 ) );
+      BDBG_ASSERT( 0 == ( ( hVceOutput->state.stITBBuffer.stOffset.uiValid - uiReadOffset ) % 16 ) );
 
-      if ( uiReadOffset != hVceOutput->state.stITBBuffer.uiValidOffset )
+      if ( uiReadOffset != hVceOutput->state.stITBBuffer.stOffset.uiValid )
       {
          if ( false == hVceOutput->state.bChannelStatusValid )
          {
@@ -1969,9 +2154,9 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
          return;
       }
 
-      while ( uiReadOffset != hVceOutput->state.stITBBuffer.uiValidOffset ) /* Until end of ITB is reached */
+      while ( uiReadOffset != hVceOutput->state.stITBBuffer.stOffset.uiValid ) /* Until end of ITB is reached */
       {
-         void* pITBEntry = (void*) (((uint8_t *)pITBBufferCached) + (uiReadOffset - hVceOutput->state.stITBBuffer.uiBaseOffset));
+         void* pITBEntry = (void*) (((uint8_t *)pITBBufferCached) + (uiReadOffset - hVceOutput->state.stITBBuffer.stOffset.uiBase));
          BVCE_OUTPUT_P_ITB_IndexingState eIndexState = BVCE_P_ITBEntry_GetEntryType(pITBEntry);
          BAVC_VideoBufferDescriptor *pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
 
@@ -1984,6 +2169,7 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
             }
          }
 
+         if ( NULL != hVceOutput->hVce->stDebugFifo.hDebugFifo )
          {
             BVCE_P_DebugFifo_Entry *pstEntry;
             BDBG_Fifo_Token stToken;
@@ -1996,7 +2182,8 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                pstEntry->stMetadata.uiChannel = hVceOutput->stOpenSettings.uiInstance;
                pstEntry->stMetadata.uiTimestamp = 0;
                ( NULL != hVceOutput->hVce->hTimer ) ? BTMR_ReadTimer( hVceOutput->hVce->hTimer, &pstEntry->stMetadata.uiTimestamp ) : 0;
-               BKNI_Memcpy(pstEntry->data.auiITB, pITBEntry, 16);
+               BKNI_Memcpy(pstEntry->data.stITB.auiEntry, pITBEntry, 16);
+               pstEntry->data.stITB.uiReadOffset = uiReadOffset;
                BDBG_Fifo_CommitBuffer( &stToken );
             }
          }
@@ -2004,11 +2191,17 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
          switch ( eIndexState )
          {
             case BVCE_OUTPUT_P_ITB_IndexingState_eBaseEntry:
+            case BVCE_OUTPUT_P_ITB_IndexingState_eBaseOffsetEntry:
                BVCE_OUTPUT_P_ITB_DetectNewFrame( hVceOutput );
                pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
 
                BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: BASE", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
                hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress = BVCE_P_ITBEntry_GetCDBAddress(pITBEntry);
+#ifdef BVCE_PLATFORM_P_SUPPORTS_64_BIT
+               /* On 64-bit platforms, the CDB Address in the ITB is relative to the start if the CDB (i.e. no longer an absolute offset)
+                  So, to be compatible with the 32-bit parsing code, we add the base CDB offset back in */
+               hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress += hVceOutput->state.stCDBBuffer.stOffset.uiBase;
+#endif
                BDBG_ASSERT( 0 != hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress );
                hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].bError = BVCE_P_ITBEntry_GetError(pITBEntry);
 
@@ -2020,16 +2213,16 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                 */
                if ( false == hVceOutput->state.bReadOffsetInitialized )
                {
-                  if ( hVceOutput->state.stCDBBuffer.uiShadowReadOffset != hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress )
+                  if ( hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead != hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress )
                   {
-                     hVceOutput->state.stCDBBuffer.uiReadOffset = hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress;
-                     hVceOutput->state.stCDBBuffer.uiShadowReadOffset = hVceOutput->state.stCDBBuffer.uiReadOffset;
-                     hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.uiReadOffset;
+                     hVceOutput->state.stCDBBuffer.stOffset.uiRead = hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress;
+                     hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead = hVceOutput->state.stCDBBuffer.stOffset.uiRead;
+                     hVceOutput->state.stCDBBuffer.uiShadowValidOffset = hVceOutput->state.stCDBBuffer.stOffset.uiRead;
 
-                     BREG_Write32(
+                     BREG_WriteAddr(
                               hVceOutput->hVce->handles.hReg,
                               hVceOutput->stRegisters.CDB_Read,
-                              hVceOutput->state.stCDBBuffer.uiReadOffset
+                              hVceOutput->state.stCDBBuffer.stOffset.uiRead
                               );
                   }
 
@@ -2042,7 +2235,6 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                if ( 0 != BVCE_P_ITBEntry_GetIFrame(pITBEntry) )
                {
                   pVideoDescriptor->uiVideoFlags |= BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP;
-#ifndef BVCE_P_PRERELEASE_TEST_MODE
                   if ( ( NULL != hVceOutput->state.hVceCh )
                        && ( false == hVceOutput->state.hVceCh->stStartEncodeSettings.stRateControl.stSegmentMode.bEnable ) )
 
@@ -2051,7 +2243,6 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                      BDBG_MSG(("[%d][%d] Segment Start ITB Seen", hVceOutput->hVce->stOpenSettings.uiInstance, hVceOutput->state.hVceCh->stOpenSettings.uiInstance));
                      pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_SEGMENT_START;
                   }
-#endif
                }
                pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_PTS_VALID;
                pVideoDescriptor->stCommon.uiPTS = BVCE_P_ITBEntry_GetPTS(pITBEntry);
@@ -2169,6 +2360,72 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                }
                break;
 
+            case BVCE_OUTPUT_P_ITB_IndexingState_eNALAddressDataEntry:
+            {
+               /* If the NALU byte stream contains:           0x01 0x02 0x03 0x04 0x05 0x06 0x07 0x08
+                * Then the ITB NALU data is in reverse order: 0x08 0x07 0x06 0x05 0x04 0x03 0x02 0x01
+                */
+               if ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
+               {
+                  /* Don't detect a new frame if we currently have a FRAME_START and the existing CDB address equals the NALU CDB Address */
+                  uint64_t uiCDBAddress = BVCE_P_ITBEntry_GetNalAddr_CDBOffset(pITBEntry);
+#ifdef BVCE_PLATFORM_P_SUPPORTS_64_BIT
+                  /* On 64-bit platforms, the CDB Address in the ITB is relative to the start if the CDB (i.e. no longer an absolute offset)
+                     So, to be compatible with the 32-bit parsing code, we add the base CDB offset back in */
+                  uiCDBAddress += hVceOutput->state.stCDBBuffer.stOffset.uiBase;
+#endif
+                  if (! ( ( 0 != ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )
+                          && ( hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress == uiCDBAddress ) ) )
+                  {
+                     BVCE_OUTPUT_P_ITB_DetectNewFrame( hVceOutput );
+                  }
+                  BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: NAL ADDR/DATA", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
+                  pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
+
+                  hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress = uiCDBAddress;
+
+                  BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("     CDB Offset: %08x, startCodeSize: %u",
+                                                          BVCE_P_ITBEntry_GetNalAddr_CDBOffset(pITBEntry),
+                                                          BVCE_P_ITBEntry_GetNalAddr_NumStartBytes(pITBEntry)
+                                      ));
+
+                  BVCE_OUTPUT_P_ITB_ExtractNALData( pVideoDescriptor, pITBEntry, hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol );
+               }
+               else
+               {
+                  BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: NAL ADDR/DATA", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
+               }
+               break;
+            }
+            case BVCE_OUTPUT_P_ITB_IndexingState_eNALDataEntry:
+               BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: NAL DATA", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
+               if ( true == hVceOutput->stOpenSettings.bEnableDataUnitDetection )
+               {
+                  BVCE_OUTPUT_P_ITB_ExtractNALData( pVideoDescriptor, pITBEntry, hVceOutput->state.stChannelCache.stStartEncodeSettings.stProtocolInfo.eProtocol );
+               }
+               break;
+
+            case BVCE_OUTPUT_P_ITB_IndexingState_eEOSEntry:
+               BVCE_OUTPUT_P_ITB_DetectNewFrame( hVceOutput );
+               pVideoDescriptor = &hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].stFrameDescriptor;
+
+               BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: EOS", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
+               pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START;
+               hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress = BVCE_P_ITBEntry_GetEOSCDBAddress(pITBEntry);
+#ifdef BVCE_PLATFORM_P_SUPPORTS_64_BIT
+               /* On 64-bit platforms, the CDB Address in the ITB is relative to the start if the CDB (i.e. no longer an absolute offset)
+                  So, to be compatible with the 32-bit parsing code, we add the base CDB offset back in */
+               hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress += hVceOutput->state.stCDBBuffer.stOffset.uiBase;
+#endif
+               BDBG_ASSERT( 0 != hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiCDBAddress );
+
+               pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ESCR_VALID;
+               pVideoDescriptor->stCommon.uiESCR = BVCE_P_ITBEntry_GetEOSESCR(pITBEntry);
+
+               pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS;
+               hVceOutput->state.bEOSITBEntryIndexed = true;
+               break;
+
             case BVCE_OUTPUT_P_ITB_IndexingState_eNULLEntry:
                BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: NULL", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
                break;
@@ -2224,6 +2481,7 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
                break;
 #endif
 
+
             default:
                BDBG_MODULE_MSG( BVCE_OUTPUT_ITB_INDEX,("%3d: UNKNOWN", hVceOutput->state.stITBBuffer.uiIndexWriteOffset) );
                break;
@@ -2232,9 +2490,9 @@ BVCE_OUTPUT_P_ITB_UpdateIndex(
          hVceOutput->stDescriptors.astIndex[hVceOutput->state.stITBBuffer.uiIndexWriteOffset].uiSizeInITB += 16;
 
          uiReadOffset += 16;
-         if ( uiReadOffset >= hVceOutput->state.stITBBuffer.uiEndOffset )
+         if ( uiReadOffset >= hVceOutput->state.stITBBuffer.stOffset.uiEnd )
          {
-            uiReadOffset -= ( hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiBaseOffset );
+            uiReadOffset -= ( hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiBase );
          }
       }
 
@@ -2254,10 +2512,11 @@ BVCE_Output_P_DumpDescriptorLegacy(
    BSTD_UNUSED( pITBIndexEntry );
 #endif
 
-   if ( true == hVceOutput->state.bFrameStart )
+   if ( ( true == hVceOutput->state.bNewITBEntry )
+         && ( 0 != ( pITBIndexEntry->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) ) )
    {
-      BDBG_MODULE_MSG( BVCE_OUTPUT_ITB, ("@%08x (%d), I=%d, d="BDBG_UINT64_FMT" (%d), p="BDBG_UINT64_FMT", op=%08x, escr=%08x, tpb=%04x, shr=%6d, metadata=%08x",
-               pITBIndexEntry->uiCDBAddress,
+      BDBG_MODULE_MSG( BVCE_OUTPUT_ITB, ("@"BDBG_UINT64_FMT" (%d), I=%d, d="BDBG_UINT64_FMT" (%d), p="BDBG_UINT64_FMT", op=%08x, escr=%08x, tpb=%04x, shr=%6d, metadata=%08x",
+               BDBG_UINT64_ARG(pITBIndexEntry->uiCDBAddress),
                pITBIndexEntry->bError,
                (0 != ( pITBIndexEntry->stFrameDescriptor.uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP )),
                BDBG_UINT64_ARG(pITBIndexEntry->stFrameDescriptor.uiDTS),
@@ -2296,34 +2555,34 @@ BVCE_Output_P_DumpDescriptorLegacy(
             uint32_t uiITBDepthActual;
             uint32_t uiCDBDepthActual;
 
-            if ( hVceOutput->state.stCDBBuffer.uiValidOffset >= hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+            if ( hVceOutput->state.stCDBBuffer.stOffset.uiValid >= hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
             {
-               uiCDBDepth = hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+               uiCDBDepth = hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
             }
             else
             {
-               uiCDBDepth = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
-               uiCDBDepth += hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+               uiCDBDepth = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
+               uiCDBDepth += hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
             }
 
-            if ( hVceOutput->state.stCDBBuffer.uiValidOffset >= hVceOutput->state.stCDBBuffer.uiReadOffset )
+            if ( hVceOutput->state.stCDBBuffer.stOffset.uiValid >= hVceOutput->state.stCDBBuffer.stOffset.uiRead )
             {
-               uiCDBDepthActual = hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiReadOffset;
+               uiCDBDepthActual = hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiRead;
             }
             else
             {
-               uiCDBDepthActual = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiReadOffset;
-               uiCDBDepthActual += hVceOutput->state.stCDBBuffer.uiValidOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+               uiCDBDepthActual = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiRead;
+               uiCDBDepthActual += hVceOutput->state.stCDBBuffer.stOffset.uiValid - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
             }
 
-            if ( hVceOutput->state.stITBBuffer.uiValidOffset >= hVceOutput->state.stITBBuffer.uiReadOffset )
+            if ( hVceOutput->state.stITBBuffer.stOffset.uiValid >= hVceOutput->state.stITBBuffer.stOffset.uiRead )
             {
-               uiITBDepthActual = hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiReadOffset;
+               uiITBDepthActual = hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.stOffset.uiRead;
             }
             else
             {
-               uiITBDepthActual = hVceOutput->state.stITBBuffer.uiEndOffset - hVceOutput->state.stITBBuffer.uiReadOffset;
-               uiITBDepthActual += hVceOutput->state.stITBBuffer.uiValidOffset - hVceOutput->state.stITBBuffer.uiBaseOffset;
+               uiITBDepthActual = hVceOutput->state.stITBBuffer.stOffset.uiEnd - hVceOutput->state.stITBBuffer.stOffset.uiRead;
+               uiITBDepthActual += hVceOutput->state.stITBBuffer.stOffset.uiValid - hVceOutput->state.stITBBuffer.stOffset.uiBase;
             }
 
             BVCE_Debug_P_WriteLog_isr( hVceOutput->hITBDescDumpFile, "%u,%llu,%d,%llu,%u,%u,%u,%d,%d,%d,%08x,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u\n",
@@ -2421,23 +2680,17 @@ BVCE_Output_P_IsStartOfNewFrame(
    {
       BVCE_P_Output_ITB_IndexEntry *pITBIndexEntryNext = BVCE_OUTPUT_P_ITB_Shadow_GetFrameIndexEntry( hVceOutput, 1 );
 
-      if ( ( 0 != ( pITBIndexEntryNext->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) ) )
-      {
-         hVceOutput->state.bEOSITBEntrySeen = true;
-         BDBG_MSG( ("[%d][%d] EOS ITB Seen", hVceOutput->hVce->stOpenSettings.uiInstance, hVceOutput->stOpenSettings.uiInstance));
-      }
-
-      BDBG_ASSERT( (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer ) <= pITBIndexEntryNext->uiCDBAddress );
-      BDBG_ASSERT( ( (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer ) + hVceOutput->hOutputBuffers->stSettings.stConfig.Cdb.Length ) > pITBIndexEntryNext->uiCDBAddress );
+      BDBG_ASSERT( BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer ) <= pITBIndexEntryNext->uiCDBAddress );
+      BDBG_ASSERT( ( BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer ) + hVceOutput->hOutputBuffers->stSettings.stConfig.Cdb.Length ) > pITBIndexEntryNext->uiCDBAddress );
 
       /* Goto next frame's ITB Entry */
-      if ( pITBIndexEntryNext->uiCDBAddress == hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      if ( pITBIndexEntryNext->uiCDBAddress == hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
       {
          /* We have a next entry, and we've finished with the
           * current entry, so move to the next entry
           */
          BVCE_OUTPUT_P_ITB_Shadow_ConsumeEntry( hVceOutput );
-         hVceOutput->state.bFrameStart = true;
+         hVceOutput->state.bNewITBEntry = true;
          return true;
       }
    }
@@ -2547,14 +2800,14 @@ BVCE_Output_P_CheckCabacReady(
           */
          if ( true == hVceOutput->state.bCabacInitializedActual )
          {
-            unsigned uiITBReadOffset;
+            uint64_t uiITBReadOffset;
 
-            uiITBReadOffset = BREG_Read32(
+            uiITBReadOffset = BREG_ReadAddr(
                        hVceOutput->hVce->handles.hReg,
                        hVceOutput->stRegisters.ITB_Read
                        );
 
-            if ( 0 != ( ( hVceOutput->state.stITBBuffer.uiValidOffset - uiITBReadOffset ) % 16 ) )
+            if ( 0 != ( ( hVceOutput->state.stITBBuffer.stOffset.uiValid - uiITBReadOffset ) % 16 ) )
             {
                /* The new frames have not arrived because of stale descriptors being flushed, so
                 * reset the cabac interrupt and wait
@@ -2590,15 +2843,15 @@ BVCE_Output_P_CheckCabacReady(
 
             /* Compute ITB Depth */
             {
-               unsigned uiBaseOffset;
-               unsigned uiEndOffset;
+               uint64_t uiBaseOffset;
+               uint64_t uiEndOffset;
 
-               uiBaseOffset = BREG_Read32(
+               uiBaseOffset = BREG_ReadAddr(
                           hVceOutput->hVce->handles.hReg,
                           hVceOutput->stRegisters.ITB_Base
                           );
 
-               uiEndOffset = BREG_Read32(
+               uiEndOffset = BREG_ReadAddr(
                           hVceOutput->hVce->handles.hReg,
                           hVceOutput->stRegisters.ITB_End
                           );
@@ -2606,15 +2859,15 @@ BVCE_Output_P_CheckCabacReady(
                uiITBSize = uiEndOffset - uiBaseOffset;
 
                {
-                  unsigned uiReadOffset;
-                  unsigned uiValidOffset;
+                  uint64_t uiReadOffset;
+                  uint64_t uiValidOffset;
 
-                  uiReadOffset = BREG_Read32(
+                  uiReadOffset = BREG_ReadAddr(
                               hVceOutput->hVce->handles.hReg,
                               hVceOutput->stRegisters.ITB_Read
                               );
 
-                  uiValidOffset = BREG_Read32(
+                  uiValidOffset = BREG_ReadAddr(
                              hVceOutput->hVce->handles.hReg,
                              hVceOutput->stRegisters.ITB_Valid
                              );
@@ -2632,15 +2885,15 @@ BVCE_Output_P_CheckCabacReady(
 
             /* Compute CDB Depth */
             {
-               unsigned uiBaseOffset;
-               unsigned uiEndOffset;
+               uint64_t uiBaseOffset;
+               uint64_t uiEndOffset;
 
-               uiBaseOffset = BREG_Read32(
+               uiBaseOffset = BREG_ReadAddr(
                           hVceOutput->hVce->handles.hReg,
                           hVceOutput->stRegisters.CDB_Base
                           );
 
-               uiEndOffset = BREG_Read32(
+               uiEndOffset = BREG_ReadAddr(
                           hVceOutput->hVce->handles.hReg,
                           hVceOutput->stRegisters.CDB_End
                           );
@@ -2648,15 +2901,15 @@ BVCE_Output_P_CheckCabacReady(
                uiCDBSize = uiEndOffset - uiBaseOffset;
 
                {
-                  unsigned uiReadOffset;
-                  unsigned uiValidOffset;
+                  uint64_t uiReadOffset;
+                  uint64_t uiValidOffset;
 
-                  uiReadOffset = BREG_Read32(
+                  uiReadOffset = BREG_ReadAddr(
                               hVceOutput->hVce->handles.hReg,
                               hVceOutput->stRegisters.CDB_Read
                               );
 
-                  uiValidOffset = BREG_Read32(
+                  uiValidOffset = BREG_ReadAddr(
                              hVceOutput->hVce->handles.hReg,
                              hVceOutput->stRegisters.CDB_Valid
                              );
@@ -2730,7 +2983,7 @@ BVCE_Output_P_HandlePicturelessEncode(
                );
 
       pVideoDescriptor->stCommon.uiOffset = BVCE_P_Buffer_GetDeviceBaseOffset( hVceOutput->stDescriptors.hMetadataBuffer );
-      pVideoDescriptor->stCommon.uiOffset += (unsigned) pMetadataDescriptor - (unsigned)&hVceOutput->stDescriptors.astMetadataDescriptors[0];
+      pVideoDescriptor->stCommon.uiOffset += (uint8_t*) pMetadataDescriptor - (uint8_t*) &hVceOutput->stDescriptors.astMetadataDescriptors[0];
 
       pVideoDescriptor->stCommon.uiLength = sizeof( BAVC_VideoMetadataDescriptor );
       pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA;
@@ -2745,7 +2998,7 @@ BVCE_Output_P_HandlePicturelessEncode(
 
       /* Send EOS Descriptor */
       pVideoDescriptor = &hVceOutput->stDescriptors.astDescriptors[hVceOutput->state.uiDescriptorWriteOffset];
-      hVceOutput->stDescriptors.astShadowDescriptorsLength[hVceOutput->state.uiDescriptorWriteOffset] = 0;
+      hVceOutput->stDescriptors.astDescriptorReleaseMetadata[hVceOutput->state.uiDescriptorWriteOffset].uiShadowLength = 0;
       hVceOutput->state.uiDescriptorWriteOffset++;
       hVceOutput->state.uiDescriptorWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
 
@@ -2781,7 +3034,8 @@ BVCE_Output_P_SendMetadataDescriptor(
    BVCE_P_Output_ITB_IndexEntry *pITBIndexEntry
    )
 {
-   if ( ( true == hVceOutput->state.bFrameStart )
+   if ( ( true == hVceOutput->state.bNewITBEntry )
+        && ( 0 != ( pITBIndexEntry->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ) )
         && ( false == pITBIndexEntry->bIgnoreFrame )
         && ( NULL != hVceOutput->state.hVceCh )
         )
@@ -2815,7 +3069,7 @@ BVCE_Output_P_SendMetadataDescriptor(
                   );
 
          pVideoDescriptor->stCommon.uiOffset = BVCE_P_Buffer_GetDeviceBaseOffset( hVceOutput->stDescriptors.hMetadataBuffer );
-         pVideoDescriptor->stCommon.uiOffset += (unsigned) pMetadataDescriptor - (unsigned)&hVceOutput->stDescriptors.astMetadataDescriptors[0];
+         pVideoDescriptor->stCommon.uiOffset += (uint8_t*) pMetadataDescriptor - (uint8_t*) &hVceOutput->stDescriptors.astMetadataDescriptors[0];
 
          pVideoDescriptor->stCommon.uiLength = sizeof( BAVC_VideoMetadataDescriptor );
          pVideoDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA;
@@ -2894,6 +3148,7 @@ BVCE_Output_P_SendMetadataDescriptor(
             );
       #endif
 
+         if ( NULL != hVceOutput->hVce->stDebugFifo.hDebugFifo )
          {
             BVCE_P_DebugFifo_Entry *pstEntry;
             BDBG_Fifo_Token stToken;
@@ -2930,26 +3185,30 @@ void
 BVCE_Output_P_SendVideoDescriptor(
    BVCE_Output_Handle hVceOutput,
    BVCE_P_Output_ITB_IndexEntry *pITBIndexEntry,
-   unsigned uiCDBEndOfPictureOffset
+   uint64_t uiCDBEndOfPictureOffset
    )
 {
    BAVC_VideoBufferDescriptor *pVideoDescriptor = NULL;
-   size_t *puiLength;
+   BVCE_P_VideoBufferDescriptorReleaseMetadata *pVideoDescriptorReleaseMetadata;
 
    /* Get Video Descriptor for this ITB entry */
    pVideoDescriptor = &hVceOutput->stDescriptors.astDescriptors[hVceOutput->state.uiDescriptorWriteOffset];
-   puiLength = &hVceOutput->stDescriptors.astShadowDescriptorsLength[hVceOutput->state.uiDescriptorWriteOffset];
+   pVideoDescriptorReleaseMetadata = &hVceOutput->stDescriptors.astDescriptorReleaseMetadata[hVceOutput->state.uiDescriptorWriteOffset];
    hVceOutput->state.uiDescriptorWriteOffset++;
    hVceOutput->state.uiDescriptorWriteOffset %= hVceOutput->stOpenSettings.uiDescriptorQueueDepth;
 
-   *puiLength = 0;
+   BKNI_Memset( pVideoDescriptorReleaseMetadata,
+                0,
+                sizeof( BVCE_P_VideoBufferDescriptorReleaseMetadata )
+                );
 
-   if ( ( true == hVceOutput->state.bFrameStart )
-        && ( hVceOutput->state.stCDBBuffer.uiShadowReadOffset == pITBIndexEntry->uiCDBAddress )
+   if ( ( true == hVceOutput->state.bNewITBEntry )
+        && ( hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead == pITBIndexEntry->uiCDBAddress )
       )
    {
       *pVideoDescriptor = pITBIndexEntry->stFrameDescriptor;
-      hVceOutput->state.bFrameStart = false;
+      pVideoDescriptorReleaseMetadata->bHasITBEntry = true;
+      hVceOutput->state.bNewITBEntry = false;
    }
    else
    {
@@ -2959,21 +3218,18 @@ BVCE_Output_P_SendVideoDescriptor(
    if ( 0 != ( pVideoDescriptor->stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) )
    {
       hVceOutput->state.bEOSDescriptorSent = true;
-      BDBG_MSG( ("[%d][%d] EOS Video Descriptor Sent",
-         hVceOutput->hVce->stOpenSettings.uiInstance, hVceOutput->state.hVceCh->stOpenSettings.uiInstance
-      ));
    }
    else
    {
       /* Populate LLDInfo for PES */
-      if ( uiCDBEndOfPictureOffset > hVceOutput->state.stCDBBuffer.uiShadowReadOffset )
+      if ( uiCDBEndOfPictureOffset >= hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead )
       {
-         pVideoDescriptor->stCommon.uiLength = uiCDBEndOfPictureOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+         pVideoDescriptor->stCommon.uiLength = uiCDBEndOfPictureOffset - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
       }
       else
       {
          /* CDB Wrap occurs, so we need to split this picture into two descriptors.  We handle the first one here. */
-         pVideoDescriptor->stCommon.uiLength = hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiShadowReadOffset;
+         pVideoDescriptor->stCommon.uiLength = hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead;
       }
 
       if ( true == hVceOutput->state.stDataUnitDetect.bFound )
@@ -2985,15 +3241,15 @@ BVCE_Output_P_SendVideoDescriptor(
 
       /* Normalize the offset to 0 */
       pVideoDescriptor->stCommon.uiOffset = BVCE_P_Buffer_GetDeviceBaseOffset( hVceOutput->hOutputBuffers->stCDB.hBuffer );
-      pVideoDescriptor->stCommon.uiOffset += hVceOutput->state.stCDBBuffer.uiShadowReadOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset;
+      pVideoDescriptor->stCommon.uiOffset += hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead - hVceOutput->state.stCDBBuffer.stOffset.uiBase;
 
-      hVceOutput->state.stCDBBuffer.uiShadowReadOffset += pVideoDescriptor->stCommon.uiLength;
-      if ( hVceOutput->state.stCDBBuffer.uiShadowReadOffset >= hVceOutput->state.stCDBBuffer.uiEndOffset )
+      hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead += pVideoDescriptor->stCommon.uiLength;
+      if ( hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead >= hVceOutput->state.stCDBBuffer.stOffset.uiEnd )
       {
-         hVceOutput->state.stCDBBuffer.uiShadowReadOffset -= ( hVceOutput->state.stCDBBuffer.uiEndOffset - hVceOutput->state.stCDBBuffer.uiBaseOffset );
+         hVceOutput->state.stCDBBuffer.stOffset.uiShadowRead -= ( hVceOutput->state.stCDBBuffer.stOffset.uiEnd - hVceOutput->state.stCDBBuffer.stOffset.uiBase );
       }
 
-      *puiLength = pVideoDescriptor->stCommon.uiLength;
+      pVideoDescriptorReleaseMetadata->uiShadowLength = pVideoDescriptor->stCommon.uiLength;
 
       /* SW7425-5889: If this is a end-of-sequence (h.264 nal_unit_type=10), then treat the nalu as though it came in a header only ITB */
       if ( 0 != ( pVideoDescriptor->uiVideoFlags & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START ) )
@@ -3038,9 +3294,9 @@ BVCE_Output_P_SendVideoDescriptor(
       );
 #endif
 
-   BDBG_MODULE_MSG( BVCE_OUTPUT_DESC, ("@%08x (%08x), f=%08x, p="BDBG_UINT64_FMT", op=%08x, escr=%08x, tpb=%04x, shr=%6d, vf=%08x, d="BDBG_UINT64_FMT" du=%08x",
+   BDBG_MODULE_MSG( BVCE_OUTPUT_DESC, ("@%08x (%08lx), f=%08x, p="BDBG_UINT64_FMT", op=%08x, escr=%08x, tpb=%04x, shr=%6d, vf=%08x, d="BDBG_UINT64_FMT" du=%08x",
             pVideoDescriptor->stCommon.uiOffset,
-            pVideoDescriptor->stCommon.uiLength,
+            (unsigned long) pVideoDescriptor->stCommon.uiLength,
             pVideoDescriptor->stCommon.uiFlags,
             BDBG_UINT64_ARG(pVideoDescriptor->stCommon.uiPTS),
             pVideoDescriptor->stCommon.uiOriginalPTS,
@@ -3052,6 +3308,7 @@ BVCE_Output_P_SendVideoDescriptor(
             pVideoDescriptor->uiDataUnitType
             ));
 
+   if ( NULL != hVceOutput->hVce->stDebugFifo.hDebugFifo )
    {
       BVCE_P_DebugFifo_Entry *pstEntry;
       BDBG_Fifo_Token stToken;
@@ -3137,10 +3394,10 @@ BVCE_Output_P_GetBufferDescriptors(
          /* Update ITB Index */
          BVCE_OUTPUT_P_ITB_UpdateIndex( hVceOutput );
 
-         while ( 1 )
+         while ( false == hVceOutput->state.bEOSDescriptorSent )
          {
             BVCE_P_Output_ITB_IndexEntry *pITBIndexEntry = NULL;
-            uint32_t uiCDBEndOfPictureOffset;
+            uint64_t uiCDBEndOfPictureOffset;
 
             /* Check for Available ITB Entries */
             if ( false == BVCE_Output_P_IsFrameAvailable( hVceOutput ) ) break;
@@ -3150,14 +3407,16 @@ BVCE_Output_P_GetBufferDescriptors(
             /* SW7425-74: Data Unit Detection */
             BVCE_Output_P_DataUnitDetect( hVceOutput );
 
-            if ( false == BVCE_Output_P_IsFrameDataAvailable( hVceOutput ) ) break;
-
-
-            if ( false == BVCE_Output_P_IsDescriptorAvailable( hVceOutput, pITBIndexEntry ) ) break;
-
             BVCE_Output_P_DumpDescriptorLegacy( hVceOutput, pITBIndexEntry );
 
             if ( true == BVCE_Output_P_IsStartOfNewFrame( hVceOutput ) ) continue;
+
+            if ( 0 == ( pITBIndexEntry->stFrameDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ) )
+            {
+               if ( false == BVCE_Output_P_IsFrameDataAvailable( hVceOutput ) ) break;
+            }
+
+            if ( false == BVCE_Output_P_IsDescriptorAvailable( hVceOutput, pITBIndexEntry ) ) break;
 
             uiCDBEndOfPictureOffset = BVCE_Output_P_CalculateEndOfPictureOffset( hVceOutput, NULL );
 
@@ -3188,12 +3447,12 @@ BVCE_Output_P_GetBufferDescriptors(
       }
    }
 
-   BDBG_MODULE_MSG( BVCE_OUTPUT_PARSER, ("New Descriptors: %d", (*puiNumDescriptors0 + *puiNumDescriptors1) - (hVceOutput->state.uiPendingDescriptors - hVceOutput->state.uiConsumedDescriptors)));
+   BDBG_MODULE_MSG( BVCE_OUTPUT_PARSER, ("New Descriptors: %lu", (unsigned long) ((*puiNumDescriptors0 + *puiNumDescriptors1) - (hVceOutput->state.uiPendingDescriptors - hVceOutput->state.uiConsumedDescriptors))));
 
    hVceOutput->state.uiPendingDescriptors = *puiNumDescriptors0 + *puiNumDescriptors1;
    hVceOutput->state.uiConsumedDescriptors = 0;
 
-   if ( ( true == hVceOutput->state.bEOSITBEntrySeen )
+   if ( ( true == hVceOutput->state.bEOSITBEntryIndexed )
         && ( NULL != hVceOutput->state.hVceCh ) )
    {
       BVCE_Channel_GetStatus( hVceOutput->state.hVceCh, NULL );
@@ -3255,25 +3514,25 @@ BVCE_Output_P_ConsumeBufferDescriptors(
    )
 {
    BERR_Code rc = BERR_SUCCESS;
-   uint32_t uiCDBReadOffset;
-   uint32_t uiCDBEndOffset;
-   uint32_t uiCDBBaseOffset;
+   uint64_t uiCDBReadOffset;
+   uint64_t uiCDBEndOffset;
+   uint64_t uiCDBBaseOffset;
 
    if ( hVceOutput->state.uiConsumedDescriptors != hVceOutput->state.uiPendingDescriptors )
    {
-      uiCDBReadOffset = BREG_Read32(
+      uiCDBReadOffset = BREG_ReadAddr(
                hVceOutput->hVce->handles.hReg,
                hVceOutput->stRegisters.CDB_Read
                );
 
-      uiCDBEndOffset = BREG_Read32(
+      uiCDBEndOffset = BREG_ReadAddr(
                hVceOutput->hVce->handles.hReg,
                hVceOutput->stRegisters.CDB_End
                );
 
       uiCDBEndOffset++;
 
-      uiCDBBaseOffset = BREG_Read32(
+      uiCDBBaseOffset = BREG_ReadAddr(
                hVceOutput->hVce->handles.hReg,
                hVceOutput->stRegisters.CDB_Base
                );
@@ -3291,7 +3550,7 @@ BVCE_Output_P_ConsumeBufferDescriptors(
          else
          {
             /* Move CDB Read Offset */
-            uiCDBReadOffset += hVceOutput->stDescriptors.astShadowDescriptorsLength[hVceOutput->state.uiDescriptorReadOffset];
+            uiCDBReadOffset += hVceOutput->stDescriptors.astDescriptorReleaseMetadata[hVceOutput->state.uiDescriptorReadOffset].uiShadowLength;
 
             /* 7425A0: Hack to prevent HW/SW confusion of full vs empty */
             if ( false == hVceOutput->state.bCDBReadHackDone )
@@ -3304,17 +3563,18 @@ BVCE_Output_P_ConsumeBufferDescriptors(
                uiCDBReadOffset -= ( uiCDBEndOffset - uiCDBBaseOffset );
             }
 
-            if ( ( 0 != ( hVceOutput->stDescriptors.astDescriptors[hVceOutput->state.uiDescriptorReadOffset].stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_START ))
-                 || ( 0 != ( hVceOutput->stDescriptors.astDescriptors[hVceOutput->state.uiDescriptorReadOffset].stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS ))
-               )
+            if ( true == hVceOutput->stDescriptors.astDescriptorReleaseMetadata[hVceOutput->state.uiDescriptorReadOffset].bHasITBEntry )
             {
                /* Move ITB Read Offset */
                BVCE_OUTPUT_P_ITB_ConsumeEntry( hVceOutput );
             }
          }
 
-         /* Zero out shadow length */
-         hVceOutput->stDescriptors.astShadowDescriptorsLength[hVceOutput->state.uiDescriptorReadOffset] = 0;
+         /* Zero out descriptor release metadata */
+         BKNI_Memset( &hVceOutput->stDescriptors.astDescriptorReleaseMetadata[hVceOutput->state.uiDescriptorReadOffset],
+                      0,
+                      sizeof( BVCE_P_VideoBufferDescriptorReleaseMetadata )
+                      );
 
          /* Move Descriptor Read Offset */
          hVceOutput->state.uiDescriptorReadOffset++;
@@ -3324,16 +3584,16 @@ BVCE_Output_P_ConsumeBufferDescriptors(
       }
 
       /* Update Actual ITB/CDB Read Pointers */
-      BREG_Write32(
+      BREG_WriteAddr(
                hVceOutput->hVce->handles.hReg,
                hVceOutput->stRegisters.CDB_Read,
                uiCDBReadOffset
                );
 
-      BREG_Write32(
+      BREG_WriteAddr(
                hVceOutput->hVce->handles.hReg,
                hVceOutput->stRegisters.ITB_Read,
-               hVceOutput->state.stITBBuffer.uiReadOffset
+               hVceOutput->state.stITBBuffer.stOffset.uiRead
                );
    }
    else
@@ -3406,15 +3666,15 @@ BVCE_Output_P_GetBufferStatus_impl(
       BDBG_ASSERT( pBufferStatus->stCommon.hIndexBufferBlock );
 
       {
-         unsigned uiBaseOffset, uiEndOffset, uiValidOffset, uiReadOffset;
+         uint64_t uiBaseOffset, uiEndOffset, uiValidOffset, uiReadOffset;
 
          /* Read CDB Pointers */
-         uiBaseOffset = BREG_Read32(
+         uiBaseOffset = BREG_ReadAddr(
                   hVceOutput->hVce->handles.hReg,
                   hVceOutput->stRegisters.CDB_Base
                   );
 
-         uiEndOffset = BREG_Read32(
+         uiEndOffset = BREG_ReadAddr(
                   hVceOutput->hVce->handles.hReg,
                   hVceOutput->stRegisters.CDB_End
                   );
@@ -3426,12 +3686,12 @@ BVCE_Output_P_GetBufferStatus_impl(
           */
          uiEndOffset += 1;
 
-         uiValidOffset = BREG_Read32(
+         uiValidOffset = BREG_ReadAddr(
                   hVceOutput->hVce->handles.hReg,
                   hVceOutput->stRegisters.CDB_Valid
                   );
 
-         uiReadOffset = BREG_Read32(
+         uiReadOffset = BREG_ReadAddr(
                  hVceOutput->hVce->handles.hReg,
                  hVceOutput->stRegisters.CDB_Read
                  );
@@ -3448,12 +3708,12 @@ BVCE_Output_P_GetBufferStatus_impl(
          }
 
          /* Read ITB Pointers */
-         uiBaseOffset = BREG_Read32(
+         uiBaseOffset = BREG_ReadAddr(
                   hVceOutput->hVce->handles.hReg,
                   hVceOutput->stRegisters.ITB_Base
                   );
 
-         uiEndOffset = BREG_Read32(
+         uiEndOffset = BREG_ReadAddr(
                   hVceOutput->hVce->handles.hReg,
                   hVceOutput->stRegisters.ITB_End
                   );
@@ -3465,12 +3725,12 @@ BVCE_Output_P_GetBufferStatus_impl(
           */
          uiEndOffset += 1;
 
-         uiValidOffset = BREG_Read32(
+         uiValidOffset = BREG_ReadAddr(
                   hVceOutput->hVce->handles.hReg,
                   hVceOutput->stRegisters.ITB_Valid
                   );
 
-         uiReadOffset = BREG_Read32(
+         uiReadOffset = BREG_ReadAddr(
                  hVceOutput->hVce->handles.hReg,
                  hVceOutput->stRegisters.ITB_Read
                  );

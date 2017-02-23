@@ -492,6 +492,37 @@ static BXPT_P_ContextHandle * allocContextHandle(
     return ThisCtx;
 }
 
+static void clearContextRegs(BXPT_Rave_Handle hRave, unsigned index)
+{
+   unsigned reg;
+   unsigned BaseAddr = BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR + ( index * RAVE_CONTEXT_REG_STEP );
+
+   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_WRITE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_READ_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_BASE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_END_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_VALID_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + CDB_WRAP_PTR_OFFSET, 0 );
+   BREG_Write32( hRave->hReg, BaseAddr + AV_CDB_THRESHOLD_OFFSET, 0 );
+   BREG_Write32( hRave->hReg, BaseAddr + CDB_DEPTH_OFFSET, 0 );
+
+   BREG_Write32( hRave->hReg, BaseAddr + AV_THRESHOLDS_OFFSET, 0 );
+
+   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_WRITE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_READ_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_BASE_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_END_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_VALID_PTR_OFFSET, 0 );
+   BREG_WriteAddr( hRave->hReg, BaseAddr + ITB_WRAP_PTR_OFFSET, 0 );
+   BREG_Write32( hRave->hReg, BaseAddr + AV_ITB_THRESHOLD_OFFSET, 0 );
+   BREG_Write32( hRave->hReg, BaseAddr + ITB_DEPTH_OFFSET, 0 );
+
+   for (reg = BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL; reg < BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR; reg +=4 )
+   {
+      BREG_Write32(hRave->hReg, BaseAddr + reg - BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR, 0);
+   }
+}
+
 BERR_Code BXPT_Rave_OpenChannel(
     BXPT_Handle hXpt,                                   /* [in] Handle for this transport instance */
     BXPT_Rave_Handle *hRave,                            /* [out] Handle for the RAVE channel */
@@ -601,6 +632,7 @@ BERR_Code BXPT_Rave_OpenChannel(
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
     {
         *(lhRave->ContextTbl + Index) = NULL;
+        clearContextRegs(lhRave, Index);
     }
 
     for( Index = 0; Index < BXPT_P_NUM_SPLICING_QUEUES; Index++ )

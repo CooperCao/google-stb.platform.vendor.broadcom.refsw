@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,6 +102,10 @@ ifneq ($(NEXUS_USERMODE),y)
 NEXUS_FILE_SUPPORT := n
 NEXUS_PLAYBACK_SUPPORT := n
 NEXUS_RECORD_SUPPORT := n
+endif
+
+ifeq ($(BAPE_DSP_SUPPORT),n)
+BDSP_ENCODER_SUPPORT := n
 endif
 
 ifeq ($(BDSP_ENCODER_SUPPORT),y)

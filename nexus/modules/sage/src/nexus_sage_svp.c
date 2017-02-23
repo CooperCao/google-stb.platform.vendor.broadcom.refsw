@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -354,7 +354,7 @@ EXIT:
     return rc;
 }
 
-NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
+static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
 {
     unsigned heapIndex;
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -500,6 +500,10 @@ static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion)
         case 0x00020005: /* Can handle this, but not ideal */
             BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED!"));
             lHandle->apiVer=0x00020005;
+            break;
+        case 0x00020006: /* Can handle this.. no secure hdmi Rx though */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED! Secure HDMI Rx NOT supported"));
+            lHandle->apiVer=0x00020006;
             break;
         default:
             BDBG_ERR(("INCOMPATIBLE SAGE SVP API VERSION SET. SVP WILL NOT BE FUNCTIONAL"));
@@ -1047,6 +1051,7 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     unsigned i;
+    uint32_t coreListSize=sizeof(*pCoreList);
 
     NEXUS_LockModule();
 
@@ -1054,6 +1059,12 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
     if(rc!=NEXUS_SUCCESS)
     {
         goto EXIT;
+    }
+
+    if(lHandle->apiVer<=0x00020006)
+    {
+        /* SAGE will be expecting a smaller list size */
+        coreListSize-=(2*sizeof(__typeof__(pCoreList->aeCores[0])));
     }
 
     for (i=0;i<BAVC_CoreId_eMax;i++) {
@@ -1081,7 +1092,7 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
     BKNI_Memcpy(lHandle->pSharedMem, pCoreList, sizeof(*pCoreList));
     lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
     lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_ADD]=true;
-    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = sizeof(*pCoreList);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = coreListSize;
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].data.ptr = lHandle->pSharedMem;
 
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
@@ -1135,8 +1146,21 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
     NEXUS_Addr offset= 0;
     NEXUS_MemoryBlockHandle hMemBlock=NULL;
     unsigned i;
+    uint32_t coreListSize=sizeof(*pCoreList);
 
     NEXUS_LockModule();
+
+    rc=NEXUS_Sage_SVP_isReady();
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
+
+    if(lHandle->apiVer<=0x00020006)
+    {
+        /* SAGE will be expecting a smaller list size */
+        coreListSize-=(2*sizeof(__typeof__(pCoreList->aeCores[0])));
+    }
 
     for (i=0;i<BAVC_CoreId_eMax;i++) {
         if (pCoreList->aeCores[i]) {
@@ -1149,18 +1173,13 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         }
     }
 
-    rc=NEXUS_Sage_SVP_isReady();
-    if(rc!=NEXUS_SUCCESS)
-    {
-        goto EXIT;
-    }
 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     BKNI_Memset(lHandle->pSharedMem, 0, sizeof(union sageSvpSharedMem));
     BKNI_Memcpy(lHandle->pSharedMem, pCoreList, sizeof(*pCoreList));
     lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
     lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_ADD]=false;
-    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = sizeof(*pCoreList);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = coreListSize;
     lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].data.ptr = lHandle->pSharedMem;
 
     /* Some check on 3D.. must have a secure gfx heap to allow this */

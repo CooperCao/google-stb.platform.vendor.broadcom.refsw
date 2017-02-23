@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,8 +71,8 @@ typedef struct tzioc_msg_hdr {
 #define TZIOC_MEM_REGIONS
 
 typedef struct tzioc_mem_region {
-    uint32_t ulPaddr;
-    uint32_t ulVaddr;
+    uintptr_t ulPaddr;
+    uintptr_t ulVaddr;
     uint32_t ulSize;
     uint32_t ulFlags;
 } tzioc_mem_region;
@@ -107,24 +107,24 @@ struct tzioc_ioctl_client_open_data {
     int retVal;
 
     char name[TZIOC_CLIENT_NAME_LEN_MAX];
-    uint32_t msgQ;
+    uintptr_t msgQ;
 
-    uint32_t hClient;
+    uintptr_t hClient;
     uint32_t id;
-    uint32_t smemStart;
+    uintptr_t smemStart;
     uint32_t smemSize;
 };
 
 struct tzioc_ioctl_client_close_data {
     int retVal;
 
-    uint32_t hClient;
+    uintptr_t hClient;
 };
 
 struct tzioc_ioctl_client_getid_data {
     int retVal;
 
-    uint32_t hClient;
+    uintptr_t hClient;
     char name[TZIOC_CLIENT_NAME_LEN_MAX];
     uint32_t pid;
 
@@ -134,44 +134,44 @@ struct tzioc_ioctl_client_getid_data {
 struct tzioc_ioctl_msg_send_data {
     int retVal;
 
-    uint32_t hClient;
+    uintptr_t hClient;
     struct tzioc_msg_hdr hdr;
-    uint32_t payloadAddr;
+    uintptr_t payloadAddr;
 };
 
 struct tzioc_ioctl_map_paddr_data {
     int retVal;
 
-    uint32_t hClient;
-    uint32_t paddr;
+    uintptr_t hClient;
+    uintptr_t paddr;
     uint32_t size;
     uint32_t flags;
 
-    uint32_t vaddr;
+    uintptr_t vaddr;
 };
 
 struct tzioc_ioctl_unmap_paddr_data {
     int retVal;
 
-    uint32_t hClient;
-    uint32_t paddr;
+    uintptr_t hClient;
+    uintptr_t paddr;
     uint32_t size;
 };
 
 struct tzioc_ioctl_map_paddrs_data {
     int retVal;
 
-    uint32_t hClient;
+    uintptr_t hClient;
     uint32_t count;
-    uint32_t regionsAddr;
+    uintptr_t regionsAddr;
 };
 
 struct tzioc_ioctl_unmap_paddrs_data {
     int retVal;
 
-    uint32_t hClient;
+    uintptr_t hClient;
     uint32_t count;
-    uint32_t regionsAddr;
+    uintptr_t regionsAddr;
 };
 
 #endif /* TZIOC_IOCTLS_H */

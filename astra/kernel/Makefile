@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,25 +36,27 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-# build environment
-TZ_DIR ?= ..
-TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
-TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
-
-# platform and target
-TZ_PLATFORM ?= brcmstb
+# include default defines
+include default.inc
 
 # directories and files
-TZ_IMG := kernel
+TZ_IMG := tz
 TZ_LIB := libkernel
 
 MODULE_DIRS := \
+	arch/$(ARCH_DIR) \
+	arch/$(ARCH_DIR)/timer \
+	arch/$(ARCH_DIR)/gic \
 	boot \
+	boot/arch/$(ARCH_DIR) \
 	memory \
+	memory/arch/$(ARCH_DIR) \
 	interrupts \
 	process \
+	process/arch/$(ARCH_DIR) \
 	ramfs \
 	syscalls \
+	syscalls/arch/$(ARCH_DIR) \
 	ipc \
 	ioc/common \
 	ioc \
@@ -67,51 +69,59 @@ MODULE_DIRS := \
 
 SRC_DIRS := $(MODULE_DIRS)
 INC_DIRS := $(MODULE_DIRS)
-BIN_DIRS := $(addprefix bin/,$(MODULE_DIRS))
+BIN_DIRS := $(addprefix $(B_REFSW_OBJ_ROOT)/bin/,$(MODULE_DIRS))
 
-SOURCES_ASM := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S))
-OBJS        := $(patsubst %.S,bin/%.o,$(SOURCES_ASM))
-DEPS        := $(patsubst %.S,bin/%.d,$(SOURCES_ASM))
+SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S))
+SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S))
+OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM-y))
+DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM-y))
 
 SOURCES_C   := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c))
-OBJS        += $(patsubst %.c,bin/%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,bin/%.d,$(SOURCES_C))
+OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
+DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
 
 SOURCES_CPP := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
-OBJS        += $(patsubst %.cpp,bin/%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
+OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
+DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
 
 # use local init module (to build image)
 INIT_DIRS := init
 INC_DIRS += init
-BIN_DIRS += bin/init
+BIN_DIRS += $(B_REFSW_OBJ_ROOT)/bin/init
 
-INIT_SOURCES_ASM := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.S))
-INIT_OBJS        := $(patsubst %.S,bin/%.o,$(INIT_SOURCES_ASM))
-INIT_DEPS        := $(patsubst %.S,bin/%.d,$(INIT_SOURCES_ASM))
+INIT_SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*_a32.S))
+INIT_SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*_a64.S))
+INIT_OBJS        := $(patsubst %.S,%.o,$(INIT_SOURCES_ASM-y))
+INIT_DEPS        := $(patsubst %.S,%.d,$(INIT_SOURCES_ASM-y))
 
 INIT_SOURCES_C   := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.c))
-INIT_OBJS        += $(patsubst %.c,bin/%.o,$(INIT_SOURCES_C))
-INIT_DEPS        += $(patsubst %.c,bin/%.d,$(INIT_SOURCES_C))
+INIT_OBJS        += $(patsubst %.c,%.o,$(INIT_SOURCES_C))
+INIT_DEPS        += $(patsubst %.c,%.d,$(INIT_SOURCES_C))
 
 INIT_SOURCES_CPP := $(foreach sdir,$(INIT_DIRS),$(wildcard $(sdir)/*.cpp))
-INIT_OBJS        += $(patsubst %.cpp,bin/%.o,$(INIT_SOURCES_CPP))
-INIT_DEPS        += $(patsubst %.cpp,bin/%.d,$(INIT_SOURCES_CPP))
+INIT_OBJS        += $(patsubst %.cpp,%.o,$(INIT_SOURCES_CPP))
+INIT_DEPS        += $(patsubst %.cpp,%.d,$(INIT_SOURCES_CPP))
 
+# Create out of build (OOB) objects
+OOB_OBJS			:= $(patsubst %.o, $(B_REFSW_OBJ_ROOT)/bin/%.o,$(OBJS))
+OOB_DEPS			:= $(patsubst %.d, $(B_REFSW_OBJ_ROOT)/bin/%.d,$(DEPS))
+OOB_INIT_OBJS		:= $(patsubst %.o, $(B_REFSW_OBJ_ROOT)/bin/%.o,$(INIT_OBJS))
+OOB_INIT_DEPS		:= $(patsubst %.d, $(B_REFSW_OBJ_ROOT)/bin/%.d,$(INIT_DEPS))
 
 # build flags
 DEPENDFLAGS := -MD -MP
 
 INCLUDES    := -I. $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -Iinclude
+INCLUDES    += -Iinclude/arm
 INCLUDES    += -Iapi
+INCLUDES    += -Iapi/arch/$(ARCH_DIR)
 INCLUDES    += -I3rd_party/libfdt
 INCLUDES    += -I$(TZ_DIR)/common/include
+INCLUDES    += -Iarch/$(ARCH_DIR)/include
 INCLUDES    += -Iplatform/$(TZ_PLATFORM)
-
-# funcationally and alphabetically ordered
-ARCHFLAGS   := -mcpu=cortex-a15
-ARCHFLAGS   += -mfpu=vfpv3
+INCLUDES    += -I platform/$(TZ_PLATFORM)/include
+INCLUDES    += -Iplatform/$(TZ_PLATFORM)/include/$(ARCH_DIR)
 
 BASEFLAGS   := -O2 -g
 BASEFLAGS   += -nostdlib
@@ -153,11 +163,11 @@ ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
 CFLAGS      += -std=gnu99 -Wimplicit-function-declaration
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0
 CPPFLAGS    += -fno-rtti -fno-exceptions -fno-use-cxa-atexit
 
@@ -179,7 +189,7 @@ endef
 
 all: checkplatform checkdirs $(TZ_IMG)
 
--include $(DEPS) $(INIT_DEPS)
+-include $(OOB_DEPS) $(OOB_INIT_DEPS)
 
 checkplatform:
 	@echo Building for TZ_PLATFORM=$(TZ_PLATFORM)...
@@ -189,21 +199,19 @@ checkdirs: $(BIN_DIRS)
 $(BIN_DIRS):
 	mkdir -p $@
 
-$(TZ_IMG): $(TZ_IMG).bin
+$(TZ_IMG): $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).bin
 
-$(TZ_IMG).bin: $(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(TZ_IMG).elf -O binary $(TZ_IMG).bin
+$(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).bin: $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).elf
+	$(TZ_ARMGNU)-objcopy $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).elf -O binary $(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).bin
 
-$(TZ_IMG).elf: $(TZ_LIB).a $(INIT_OBJS) link_arm_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles $(INIT_OBJS) $(TZ_LIB).a -Tlink_arm_tz.ld -o $@
+$(B_REFSW_OBJ_ROOT)/bin/$(TZ_IMG).elf: $(B_REFSW_OBJ_ROOT)/bin/$(TZ_LIB).a $(OOB_INIT_OBJS) link_$(ARCH)_tz.ld
+	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OOB_INIT_OBJS) $(B_REFSW_OBJ_ROOT)/bin/$(TZ_LIB).a -Tlink_$(ARCH)_tz.ld -o $@
 
-$(TZ_LIB).a: $(OBJS)
-	$(TZ_ARMGNU)-ar -cr $@ $(OBJS)
+$(B_REFSW_OBJ_ROOT)/bin/$(TZ_LIB).a: $(OOB_OBJS)
+	$(TZ_ARMGNU)-ar -cr $@ $(OOB_OBJS)
 
 clean:
-	$(RM) -r bin
-	$(RM) $(TZ_LIB).a
-	$(RM) $(TZ_IMG).bin $(TZ_IMG).elf
+	$(RM) -r $(B_REFSW_OBJ_ROOT)/bin
 
 .PHONY:unit_tests
 

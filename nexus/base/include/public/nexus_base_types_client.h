@@ -138,6 +138,32 @@ typedef struct NEXUS_ClientConfiguration
     NEXUS_ClientResources resources; /* resources granted by the server for untrusted clients */
 } NEXUS_ClientConfiguration;
 
+/***************************************************************************
+Summary:
+Autheticated ID for client/server communication.
+
+Description:
+For non-secure environments, the certificate could be a simple ID.
+For secure environments, this should use encrypted using standard public-key cryptography.
+***************************************************************************/
+typedef struct NEXUS_Certificate
+{
+    unsigned char data[256];
+    unsigned length;
+} NEXUS_Certificate;
+
+/**
+Summary:
+Settings used to identify a client
+**/
+typedef struct NEXUS_ClientAuthenticationSettings
+{
+    NEXUS_Certificate certificate;
+
+    /* TODO: struct {
+    } preferences; */
+} NEXUS_ClientAuthenticationSettings;
+
 #ifdef __cplusplus
 }
 #endif

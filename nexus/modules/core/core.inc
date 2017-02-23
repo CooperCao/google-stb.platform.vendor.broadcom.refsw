@@ -117,6 +117,7 @@ NEXUS_CORE_MAGNUM_MODULES :=  \
     $(MAGNUM)/basemodules/int/bint.inc \
     $(MAGNUM)/basemodules/mma/bmma.inc \
     $(MAGNUM)/basemodules/tmr/btmr.inc \
+    $(MAGNUM)/basemodules/dtu/bdtu.inc \
     $(MAGNUM)/commonutils/avc/bavc.inc \
     $(MAGNUM)/commonutils/fmt/bfmt.inc \
     $(MAGNUM)/commonutils/mrc/bmrc.inc \
@@ -134,6 +135,9 @@ ifeq (${BMMA_USE_STUB}, y)
 NEXUS_CORE_DEFINES += BMMA_STUB_BMEM_ALIAS=0
 NEXUS_CORE_MAGNUM_MODULES +=  \
     $(MAGNUM)/basemodules/mem/bmem.inc
+endif
+ifeq ($(BMEM_DEPRECATED), y)
+NEXUS_CORE_DEFINES += BMEM_DEPRECATED=1
 endif
 
 # Optional profiler support

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,7 +64,9 @@ typedef struct NEXUS_AudioCrc
     } alias;
 } NEXUS_AudioCrc;
 
-static NEXUS_AudioCrc g_crc[NEXUS_NUM_AUDIO_CRCS];
+static NEXUS_AudioCrc g_crc[NEXUS_MAX_AUDIO_CRC_OUTPUTS];
+
+#define min(A,B) ((A)<(B)?(A):(B))
 
 /***************************************************************************
 Summary:
@@ -108,6 +110,8 @@ NEXUS_AudioCrcHandle NEXUS_AudioCrc_Open(
     BAPE_CrcOpenSettings apeOpenSettings;
     BERR_Code errCode;
     unsigned org_index = index;
+    NEXUS_AudioCapabilities audioCapabilities;
+    unsigned outputCount;
 
     BDBG_CASSERT((int)NEXUS_AudioCrcSourceType_ePlaybackBuffer == (int)BAPE_CrcSourceType_ePlaybackBuffer);
     BDBG_CASSERT((int)NEXUS_AudioCrcSourceType_eOutputPort == (int)BAPE_CrcSourceType_eOutputPort);
@@ -117,10 +121,13 @@ NEXUS_AudioCrcHandle NEXUS_AudioCrc_Open(
     BDBG_CASSERT((int)NEXUS_AudioCrcMode_eSingle == (int)BAPE_CrcMode_eSingle);
     BDBG_CASSERT((int)NEXUS_AudioCrcMode_eMax == (int)BAPE_CrcMode_eMax);
 
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    outputCount = min(audioCapabilities.numCrcs, NEXUS_NUM_AUDIO_CRCS);
+
     errCode = NEXUS_CLIENT_RESOURCES_ACQUIRE(audioCrc,IdList,org_index);
     if (errCode) { errCode = BERR_TRACE(errCode); goto err_acquire; }
 
-    if (index >= NEXUS_ALIAS_ID && index-NEXUS_ALIAS_ID < NEXUS_NUM_AUDIO_CRCS) {
+    if (index >= NEXUS_ALIAS_ID && index-NEXUS_ALIAS_ID < outputCount) {
         BDBG_MSG(("%d aliasing %d(%p)", index, index-NEXUS_ALIAS_ID, (void *)&g_crc[index-NEXUS_ALIAS_ID]));
         index -= NEXUS_ALIAS_ID;
         master = &g_crc[index];
@@ -133,7 +140,7 @@ NEXUS_AudioCrcHandle NEXUS_AudioCrc_Open(
             goto err_index;
         }
     }
-    if ( index >= NEXUS_NUM_AUDIO_CRCS )
+    if ( index >= outputCount )
     {
         BDBG_ERR(("index out of range."));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);

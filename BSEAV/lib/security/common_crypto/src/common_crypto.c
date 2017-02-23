@@ -130,11 +130,52 @@ void CommonCrypto_GetDefaultClearKeySettings(
     pSettings->keySlotType = nexusAlgSettings.keyDestEntryType;
 }
 
+#if (NEXUS_SECURITY_HAS_ASKM == 1)
+#define UINT32_MAX__ (0xFFFFFFFF -1)
+static uint32_t strToHex(const char *s)
+{
+   uint32_t result = 0;
+   int c = 0;
+
+   if (NULL == s) {
+       BDBG_ERR(("string is empty"));
+       return UINT32_MAX__;
+   }
+   if ('-' == *s) {
+       BDBG_ERR(("string starts with -"));
+       return UINT32_MAX__;
+   }
+   if ('0' == *s && 'x' == *(s+1)) {
+       s += 2;
+   }
+   while (*s != '\0') {
+          result = result << 4;
+          if (c = (*s-'0'),(c>=0 && c <=9))
+              result |= c;
+          else if (c = (*s-'A'),(c>=0 && c <=5))
+              result |= (c+10);
+          else if (c = (*s-'a'),(c>=0 && c <=5))
+              result |= (c+10);
+          else {
+              BDBG_ERR(("string contains non-hex character: %c", *s));
+              return UINT32_MAX__;
+          }
+          ++s;
+   }
+   return result;
+}
+#endif  /*NEXUS_SECURITY_HAS_ASKM == 1*/
 
 void CommonCrypto_GetDefaultKeyConfigSettings(
     CommonCryptoKeyConfigSettings *pSettings    /* [out] default settings */
     )
 {
+#if (NEXUS_SECURITY_HAS_ASKM == 1)
+    const char* vendorID = NULL;
+    const char* stbOwnerID    = NULL;
+    const char* maskKey2Select = NULL;
+#endif  /*NEXUS_SECURITY_HAS_ASKM == 1*/
+
     NEXUS_SecurityAlgorithmSettings nexusAlgSettings;
     BDBG_ASSERT(pSettings != NULL);
     BKNI_Memset(pSettings, 0, sizeof(CommonCryptoKeyConfigSettings));
@@ -143,13 +184,37 @@ void CommonCrypto_GetDefaultKeyConfigSettings(
     pSettings->settings.keySlotType = nexusAlgSettings.keyDestEntryType;
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
-    pSettings->settings.key2Select      = NEXUS_SecurityKey2Select_eReserved1;
+    pSettings->settings.maskKey2Select  = NEXUS_SecurityKey2Select_eFixedKey;
     pSettings->settings.caVendorID      = 0x1234;
-    pSettings->settings.askmModuleID    = NEXUS_SecurityAskmModuleID_eModuleID_4;
+    pSettings->settings.askmModuleID    = NEXUS_SecurityAskmModuleID_eModuleID_8;
     pSettings->settings.ivMode          = NEXUS_SecurityIVMode_eRegular;
-    pSettings->settings.otpId           = NEXUS_SecurityOtpId_eOtpVal;
-    pSettings->settings.testKey2Select  = 0;
-#endif
+    pSettings->settings.stbOwnerID      = NEXUS_SecurityOtpId_eOneVal;
+    pSettings->settings.enableMaskKey2Select  = false;
+    if (NULL != (vendorID = NEXUS_GetEnv("COMMON_DRM_CA_VENDOR_ID"))) {
+        uint32_t num = strToHex(vendorID);
+        if (num == UINT32_MAX__) {
+            BDBG_ERR(("could not convert vendorID : %s", vendorID));
+        }
+        pSettings->settings.caVendorID = num;
+        BDBG_MSG(("after getenv---%s vendorID is 0x%x", __FUNCTION__, pSettings->settings.caVendorID));
+    }
+    if (NULL != (stbOwnerID = NEXUS_GetEnv("COMMON_DRM_STB_OWNER_ID"))) {
+        uint32_t num = (NEXUS_SecurityOtpId)strToHex(stbOwnerID);
+        if (num == UINT32_MAX__) {
+            BDBG_ERR(("could not convert stbOwnerID : %s", stbOwnerID));
+        }
+        pSettings->settings.stbOwnerID = num;
+        BDBG_MSG(("after getenv---%s otpID is %d", __FUNCTION__, pSettings->settings.stbOwnerID));
+    }
+    if (NULL != (maskKey2Select = NEXUS_GetEnv("COMMON_DRM_MASKKEY2_ID"))) {
+        uint32_t num = (NEXUS_SecurityKey2Select)strToHex(maskKey2Select);
+        if (num == UINT32_MAX__) {
+            BDBG_ERR(("could not convert maskKey2Select : %s", maskKey2Select));
+        }
+        pSettings->settings.maskKey2Select = num;
+        BDBG_MSG(("after getenv---%s maskKey2Select is %d", __FUNCTION__, pSettings->settings.maskKey2Select));
+    }
+#endif /*(NEXUS_SECURITY_HAS_ASKM == 1)*/
 }
 
 void CommonCrypto_GetDefaultKeySettings(
@@ -512,12 +577,12 @@ NEXUS_Error CommonCrypto_P_LoadKeyConfig(
         nexusConfig.solitarySelect		= pSettings->solitaryMode;
 
 #if (NEXUS_SECURITY_HAS_ASKM == 1)
-        nexusConfig.key2Select          = pSettings->key2Select;
+        nexusConfig.key2Select          = pSettings->maskKey2Select;
         nexusConfig.caVendorID          = pSettings->caVendorID;
         nexusConfig.askmModuleID        = pSettings->askmModuleID;
         nexusConfig.ivMode              = pSettings->ivMode;
-        nexusConfig.otpId               = pSettings->otpId;
-        nexusConfig.testKey2Select      = pSettings->testKey2Select;
+        nexusConfig.otpId               = pSettings->stbOwnerID;
+        nexusConfig.testKey2Select      = pSettings->enableMaskKey2Select;
 #endif
 
         /* Configure the keyslot for the particular operation (except when using Sharf Engine) */

@@ -73,9 +73,9 @@ struct signal_data
 struct wait_data
 {
    struct sync_fence *sync_fence;
-   void (*callback)(void *, void *);
+   void (*callback)(void *, uint64_t);
    void *context;
-   void *param;
+   uint64_t param;
 
    struct spinlock lock_signaled;
    int signaled; /* 1 = signaled */
@@ -219,7 +219,7 @@ static void sync_fence_callback(struct sync_fence *sync_fence, struct sync_fence
 
 int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
       int fd,
-      void (*callback)(void *, void *), void *context, void *param,
+      void (*callback)(void *, uint64_t), void *context, uint64_t param,
       void **waitData)
 {
    int status = -1;
@@ -296,8 +296,8 @@ int BVC5_P_FenceWaitAsyncIsSignaled(BVC5_FenceArrayHandle hFenceArr, void *waitD
 }
 
 void BVC5_P_FenceWaitAsyncCleanup( BVC5_FenceArrayHandle  hFenceArr,
-   uint32_t uiClientId, void (*callback)(void *, void *) /*unused*/, void *context /*unused*/,
-   void *param /*unused*/, void *waitData)
+   uint32_t uiClientId, void (*callback)(void *, uint64_t) /*unused*/, void *context /*unused*/,
+   uint64_t param /*unused*/, void *waitData)
 {
    int status;
    unsigned long flags;
@@ -397,13 +397,13 @@ void BVC5_P_FenceSignalFromUser(BVC5_FenceArrayHandle hFenceArr, int iFenceId)
 }
 
 void BVC5_P_FenceAddCallback(BVC5_FenceArrayHandle hFenceArr, int iFenceId,
-      uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext, void *pParam)
+      uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext, uint64_t param)
 {
    BUG_ON(1);
 }
 
 bool BVC5_P_FenceRemoveCallback( BVC5_FenceArrayHandle hFenceArr, int iFenceId,
-      uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext, void *pParam)
+      uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext, uint64_t param)
 {
    BUG_ON(1);
    return true;

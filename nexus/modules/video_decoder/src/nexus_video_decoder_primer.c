@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 #include "nexus_video_decoder_module.h"
 #include "nexus_memory.h"
@@ -60,17 +59,19 @@ struct NEXUS_VideoDecoderPrimer
     NEXUS_TimerHandle timer;
 
     BAVC_XptContextMap cx_map;
-    uint32_t itb_base;          /* copy of itb base register */
+    struct {
+        BSTD_DeviceOffset base;
+    } cdb, itb;
     bool started; /* public Start called. check 'timer' to see if priming. */
     int last_diff;
     bool skipFlushOnStart;
-    uint32_t sitb_read; /* shadow read register */
+    BSTD_DeviceOffset sitb_read; /* shadow read register */
 
     /* read registers */
 #define MAX_GOPS 100
     struct {
-        uint32_t cdb_read;
-        uint32_t itb_read;
+        BSTD_DeviceOffset cdb_read;
+        BSTD_DeviceOffset itb_read;
         uint32_t pts;
         uint32_t pcr_offset;
     } gops[MAX_GOPS];
@@ -83,8 +84,8 @@ struct NEXUS_VideoDecoderPrimer
 
 
     /* last base_address and pcr_offset ITB's seen */
-    uint32_t cdb_base_entry; /* address in cdb pointed by last base_address ITB. if 0, none seen. */
-    uint32_t itb_base_entry;    /* address of base_address itb */
+    BSTD_DeviceOffset cdb_base_entry; /* address in cdb pointed by last base_address ITB. if 0, none seen. */
+    BSTD_DeviceOffset itb_base_entry;    /* address of base_address itb */
     uint32_t pcr_offset;     /* only valid if pcr_offset_set is true */
     bool pcr_offset_set;
     uint32_t last_pts;
@@ -105,7 +106,7 @@ static void NEXUS_VideoDecoderPrimer_P_AcquireStartResources(NEXUS_VideoDecoderP
 static void NEXUS_VideoDecoderPrimer_P_ReleaseStartResources(NEXUS_VideoDecoderPrimerHandle primer);
 
 #if 0
-static void NEXUS_VideoDecoder_P_PrintItb2(NEXUS_VideoDecoderPrimerHandle primer, uint32_t from, uint32_t to)
+static void NEXUS_VideoDecoder_P_PrintItb2(NEXUS_VideoDecoderPrimerHandle primer, BSTD_DeviceOffset from, BSTD_DeviceOffset to)
 {
     struct itb_entry_t *from_itb;
     struct itb_entry_t *to_itb;
@@ -121,7 +122,7 @@ static void NEXUS_VideoDecoder_P_PrintItb2(NEXUS_VideoDecoderPrimerHandle primer
     NEXUS_FlushCache(from_itb, to_itb-from_itb);
     count = 0;
     while (from_itb < to_itb) {
-        BDBG_WRN(("%p: ITB %p: %08x %08x %08x %08x", primer, from_itb, from_itb->word0, from_itb->word1, from_itb->word2, from_itb->word3));
+        BDBG_WRN(("%p: ITB %p: %08x %08x %08x %08x", (void*)primer, (void*)from_itb, from_itb->word0, from_itb->word1, from_itb->word2, from_itb->word3));
         from_itb++;
         if (++count == 20) break;
     }
@@ -129,39 +130,40 @@ static void NEXUS_VideoDecoder_P_PrintItb2(NEXUS_VideoDecoderPrimerHandle primer
 
 static void NEXUS_VideoDecoder_P_PrintItb(NEXUS_VideoDecoderPrimerHandle primer)
 {
-    uint32_t itb_valid, itb_read;
-    itb_valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-    itb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    BSTD_DeviceOffset itb_valid, itb_read;
+    itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    itb_read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
     if (itb_valid < itb_read) {
-        uint32_t itb_wrap, itb_base;
-        itb_wrap = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
-        itb_base = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
-        BDBG_WRN(("PrintItb %08x->%08x, %08x->%08x", itb_read, itb_wrap, itb_base, itb_valid));
+        BSTD_DeviceOffset itb_wrap;
+        itb_wrap = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
+        BDBG_WRN(("PrintItb " BDBG_UINT64_FMT "->" BDBG_UINT64_FMT ", " BDBG_UINT64_FMT "->" BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(itb_read), BDBG_UINT64_ARG(itb_wrap), BDBG_UINT64_ARG(primer->itb.base), BDBG_UINT64_ARG(itb_valid)));
         NEXUS_VideoDecoder_P_PrintItb2(primer, itb_read, itb_wrap);
-        NEXUS_VideoDecoder_P_PrintItb2(primer, itb_base, itb_valid);
+        NEXUS_VideoDecoder_P_PrintItb2(primer, primer->itb.base, itb_valid);
     }
     else {
-        BDBG_WRN(("PrintItb %08x->%08x", itb_read, itb_valid));
+        BDBG_WRN(("PrintItb " BDBG_UINT64_FMT "->" BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(itb_read), BDBG_UINT64_ARG(itb_valid)));
         NEXUS_VideoDecoder_P_PrintItb2(primer, itb_read, itb_valid);
     }
 }
 
 static void NEXUS_VideoDecoder_P_DumpData(NEXUS_VideoDecoderPrimerHandle primer)
 {
-    uint32_t itb_read, itb_valid;
+    BSTD_DeviceOffset itb_read, itb_valid;
     uint8_t *fromptr;
     unsigned i, j;
 
     for (i=0;i<2;i++) {
         if (i == 0) {
-            itb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
-            itb_valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-            BKNI_Printf("ITB read=%08x (depth=%d):\n", itb_read, itb_valid - itb_read);
+            itb_read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+            itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+            BKNI_Printf("ITB read=" BDBG_UINT64_FMT " (depth=%d):\n", BDBG_UINT64_ARG(itb_read), (unsigned)(itb_valid - itb_read));
         }
         else {
-            itb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
-            itb_valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
-            BKNI_Printf("CDB read=%08x (depth=%d):\n", itb_read, itb_valid - itb_read);
+            itb_read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
+            itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
+            BKNI_Printf("CDB read=" BDBG_UINT64_FMT " (depth=%d):\n", BDBG_UINT64_ARG(itb_read), (unsigned)(itb_valid - itb_read));
         }
 
         if (itb_valid < itb_read) {
@@ -173,7 +175,7 @@ static void NEXUS_VideoDecoder_P_DumpData(NEXUS_VideoDecoderPrimerHandle primer)
         NEXUS_FlushCache(fromptr, 64);
         for (j=0;j<64;j++) {
             uint8_t *ptr = &fromptr[j];
-            ptr = ptr - (unsigned)ptr%4 + (3-(unsigned)ptr%4);
+            ptr = ptr - (unsigned long)ptr%4 + (3-(unsigned long)ptr%4);
             BKNI_Printf("%02x ", *ptr); /* host endian/little endian, ITB */
             if ((j+1)%ITB_SIZE == 0) BKNI_Printf("\n");
         }
@@ -185,18 +187,19 @@ static void NEXUS_VideoDecoder_P_SetReadPtr(NEXUS_VideoDecoderPrimerHandle prime
 {
     unsigned i;
     unsigned itbBackup;
-    uint32_t itb_read;
+    BSTD_DeviceOffset itb_read;
 
     /* AVD reads from the ITB in 128 byte blocks. So, we must back up to the previous 128 byte boundary and
     pad it with harmless ITB's */
     itb_read = primer->gops[primer->consumed_gop].itb_read;
 #define ITB_BLOCK_READ_SIZE 128
     itbBackup = itb_read % ITB_BLOCK_READ_SIZE;
-    if (itbBackup == 0 && itb_read != primer->itb_base) {
+    if (itbBackup == 0 && itb_read != primer->itb.base) {
         itbBackup = ITB_BLOCK_READ_SIZE;
     }
-    if (itb_read - itbBackup < primer->itb_base) {
-        BDBG_WRN(("%p: unable to set pcr_offset: base %#x, read %#x, backup %#x", (void*)primer, primer->itb_base, itb_read, itbBackup));
+    if (itb_read - itbBackup < primer->itb.base) {
+        BDBG_WRN(("%p: unable to set pcr_offset: base " BDBG_UINT64_FMT ", read " BDBG_UINT64_FMT ", backup %d", (void*)primer,
+            BDBG_UINT64_ARG(primer->itb.base), BDBG_UINT64_ARG(itb_read), itbBackup));
         itbBackup = 0;
     }
     if (itbBackup) {
@@ -217,12 +220,12 @@ static void NEXUS_VideoDecoder_P_SetReadPtr(NEXUS_VideoDecoderPrimerHandle prime
         NEXUS_FlushCache(itbFlush, itbBackup);
     }
 
-    BDBG_MSG_TRACE(("%p: SetRave GOP %2d, PTS=%08x PCR=%08x, CDB %08x ITB %08x, add %d ITB leading pad", (void*)primer,
+    BDBG_MSG_TRACE(("%p: SetRave GOP %2d, PTS=%08x PCR=%08x, CDB " BDBG_UINT64_FMT " ITB " BDBG_UINT64_FMT ", add %d ITB leading pad", (void*)primer,
         primer->consumed_gop, primer->gops[primer->consumed_gop].pts, primer->gops[primer->consumed_gop].pcr_offset,
-        primer->gops[primer->consumed_gop].cdb_read, itb_read, itbBackup/ITB_SIZE));
+        BDBG_UINT64_ARG(primer->gops[primer->consumed_gop].cdb_read), BDBG_UINT64_ARG(itb_read), itbBackup/ITB_SIZE));
 
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, primer->gops[primer->consumed_gop].cdb_read);
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, itb_read);
+    BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read, primer->gops[primer->consumed_gop].cdb_read);
+    BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read, itb_read);
 }
 
 #define BDBG_MSG_SETRAVE(x) /* BDBG_MSG(x) */
@@ -256,7 +259,8 @@ static void NEXUS_VideoDecoder_P_PrimerSetRave(NEXUS_VideoDecoderPrimerHandle pr
         int diff = primer->gops[i].pts - stc;
 
 #if 0
-        BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x at %#x/%#x", primer, i, stc, primer->gops[i].pts, primer->gops[i].cdb_read, primer->gops[i].itb_read));
+        BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x at " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT,
+            primer, i, stc, primer->gops[i].pts, BDBG_UINT64_ARG(primer->gops[i].cdb_read), BDBG_UINT64_ARG(primer->gops[i].itb_read)));
 #endif
         if (diff <= 0) {
             if (gop_index == -1 || diff > min_diff) {
@@ -284,7 +288,7 @@ static void NEXUS_VideoDecoder_P_PrimerSetRave(NEXUS_VideoDecoderPrimerHandle pr
     }
 }
 
-static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle primer, uint32_t itb_valid)
+static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle primer, BSTD_DeviceOffset itb_valid)
 {
     NEXUS_Error rc;
     struct itb_entry_t * pitb;
@@ -361,7 +365,11 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
 #define CDB_OVERFLOW 0x10000
 #define ITB_OVERFLOW 0x20000
         case 0x20: /* base_address  */
+        case 0x28: /* base_address offset entry (for 40 bit addressing) */
             primer->cdb_base_entry = pitb->word1;
+            if (type == 0x28) {
+                primer->cdb_base_entry += primer->cdb.base;
+            }
             primer->itb_base_entry = NEXUS_AddrToOffset(pitb);
             if (!primer->itb_base_entry) {
                 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -394,26 +402,25 @@ static void NEXUS_VideoDecoder_P_PrimerProcessItb(NEXUS_VideoDecoderPrimerHandle
 
 static void NEXUS_VideoDecoderPrimer_P_Prime(NEXUS_VideoDecoderPrimerHandle primer)
 {
-    uint32_t itb_valid, itb_base, itb_wrap;
+    BSTD_DeviceOffset itb_valid, itb_wrap;
 
     /* convert ITB_Valid and ITB_Wrap to standard ring buffer semantics in this function. instead of pointing to the last byte of the ITB it should point
     to the first byte of the next ITB. Note that RAVE has an exception when valid == base. */
-    itb_valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-    itb_base = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
-    if (itb_valid != itb_base) itb_valid++;
+    itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    if (itb_valid != primer->itb.base) itb_valid++;
     /* check for itb wrap around and handle it */
     if (itb_valid < primer->sitb_read) {
         /* for this to be true, the HW must have wrapped. */
-        itb_wrap = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
+        itb_wrap = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
         if (!itb_wrap) {
-            BDBG_WRN(("invalid wrap: %#x < %#x, but 0 wrap", itb_valid, primer->sitb_read));
+            BDBG_WRN(("invalid wrap: " BDBG_UINT64_FMT " < " BDBG_UINT64_FMT ", but 0 wrap", BDBG_UINT64_ARG(itb_valid), BDBG_UINT64_ARG(primer->sitb_read)));
             return;
         }
         itb_wrap++;
         NEXUS_VideoDecoder_P_PrimerProcessItb(primer, itb_wrap);
         /* if we consumed up to wrap point then wrap */
         if(primer->sitb_read >= itb_wrap){
-            primer->sitb_read = primer->itb_base;
+            primer->sitb_read = primer->itb.base;
             NEXUS_VideoDecoder_P_PrimerProcessItb(primer, itb_valid);
         }
     }
@@ -545,7 +552,7 @@ static void reset_primer(NEXUS_VideoDecoderPrimerHandle primer)
 /* wipe out CDB */
 static void flush_primer(NEXUS_VideoDecoderPrimerHandle primer)
 {
-    uint32_t valid, base;
+    BSTD_DeviceOffset valid;
 
     BDBG_OBJECT_ASSERT(primer, NEXUS_VideoDecoderPrimer);
 
@@ -558,16 +565,15 @@ static void flush_primer(NEXUS_VideoDecoderPrimerHandle primer)
 
     /* empty the buffer */
     /* CDB_READ has exclusive semantics, but CDB_VALID is inclusive, so a conversion is needed. */
-    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
-    base = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Base);
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, (valid == base)?base:valid+1);
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Wrap, 0);
+    valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
+    BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read, (valid == primer->cdb.base)?primer->cdb.base:valid+1);
+    BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Wrap, 0);
 
     /* ITB_READ and ITB_VALID both have inclusive semantics, so we can copy directly to flush. */
-    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
     primer->sitb_read = valid+1;
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, primer->sitb_read);
-    BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap, 0);
+    BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read, primer->sitb_read);
+    BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap, 0);
     reset_primer(primer);
 }
 
@@ -645,12 +651,13 @@ static NEXUS_Error NEXUS_VideoDecoderPrimer_P_Start(NEXUS_VideoDecoderPrimerHand
     if (rc) { BERR_TRACE(rc); goto error; }
 
     primer->cx_map = raveStatus.xptContextMap;
-    primer->itb_base = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
-    primer->sitb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    primer->cdb.base = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Base);
+    primer->itb.base = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
+    primer->sitb_read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
     if (primer->skipFlushOnStart && primer->sitb_read % ITB_SIZE) {
         /* ITB_READ comes back from AVD non-ITB aligned. Touch it up. */
         primer->sitb_read -= (primer->sitb_read % ITB_SIZE);
-        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, primer->sitb_read);
+        BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read, primer->sitb_read);
     }
     primer->cdb_base_entry = 0;
     primer->itb_base_entry = 0;

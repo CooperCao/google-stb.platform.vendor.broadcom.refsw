@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,6 +39,13 @@
  *
  ***************************************************************************/
 
+#if 0
+/* for yuv capture */
+#include <stdio.h>          /* for printf */
+#include <stdlib.h>
+#include <string.h>
+#endif
+
 #include "bstd.h"
 #include "bdbg.h"                /* Dbglib */
 #include "bmth_fix.h"
@@ -70,6 +77,8 @@ BDBG_FILE_MODULE(BXVD_QDBG);
 BDBG_FILE_MODULE(BXVD_QMON);
 BDBG_FILE_MODULE(BXVD_QCTL);
 BDBG_FILE_MODULE(BXVD_QREL);
+BDBG_FILE_MODULE(BXVD_UP);
+BDBG_FILE_MODULE(BXVD_DQT);
 
 /***************************************************************************
  *
@@ -563,6 +572,53 @@ static void BXVD_Decoder_S_DeliveryQ_GetPictureCount_isr(
 
 }
 
+
+/*
+ * SW7425-2686: added for the "sliding window" logic, also used to drop mismatched pictures.
+ */
+static void BXVD_Decoder_S_DeliveryQ_DropPicture_isr(
+   BXVD_ChannelHandle hXvdCh,
+   BXVD_Decoder_P_PictureContext * pstPicCntxt,
+   char * psPrefix
+   )
+{
+   BXVD_Decoder_P_UnifiedPictureContext  stUnifiedContext;
+
+#ifndef BDBG_DEBUG_BUILD
+   BSTD_UNUSED(psPrefix);
+#endif
+   /* During the vetting of the delivery queue, mismatched sets of pictures
+    * will be marked for dropping. The actual drop occurs here.
+    * Also get here from multi-pass DQT as part of the "sliding window" logic. */
+
+   /* Initialize "stUnifiedContext", in particular need to be certain that
+    * "pstDependent" is NULL. For the normal code flow, this reset
+    * is handled in "BXVD_Decoder_S_UnifiedQ_InvalidateElement. */
+
+   BKNI_Memset( &stUnifiedContext, 0, sizeof( BXVD_Decoder_P_UnifiedPictureContext ) );
+
+   BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: drop picture, wr: %d idx: %d",
+                        hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                        psPrefix,
+                        pstPicCntxt->index,
+                        pstPicCntxt->uiIntraGOPIndex ));
+
+   BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr( hXvdCh, pstPicCntxt, &stUnifiedContext, true );
+
+   /* Remove the picture from the delivery queue. This could have been done in the
+    * preceeding loop, but it is done here to keep the manipulation of the deliver
+    * queue in as few places as possible. */
+
+   BXVD_Decoder_S_DeliveryQ_UpdateReadOffset_isr( hXvdCh, 1 );
+
+   /* Add the PPB to the release queue. */
+
+   BXVD_Decoder_S_ReleaseQ_AddPPB_isr( hXvdCh, pstPicCntxt->stPPB.pPPBPhysical );
+
+   return;
+
+}
+
 /****************************************************************************************************
 **
 ** Local "utility" routines.
@@ -867,10 +923,13 @@ static void BXVD_Decoder_S_Print_Queue_isr(
       }
    }
 
-
-   if ( pstDqt->bDqtEnabled == true )
+   if ( true == hXvdCh->stDecoderContext.stDqtCntxt.bMultiPass )
    {
-      BDBG_MODULE_MSG( BXVD_QCTL,("%s:rd/wr:%2d/%2d wr:%2d %08x%08x uQ:%d:%d: %d:%d %02x sr:%d fnd:%d dl:%d cvt:%d off:%2d|%2d|%2d tag:%2d(%d) trn:%d ",
+      bool bUseTargetPTS = ( true == pstDqt->b1stPass1stGop );
+      bUseTargetPTS &= ( BXVD_PTSType_eCoded == pstDqt->eTargetPTSType );
+
+      BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s:rd/wr:%2d/%2d wr:%2d %08x%08x uQ:%d:%d: %d:%d %02x %c%c%c%c%c rRe:%2d|%2d|%2d %s:%08x(%d) mb:%d/%d",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                               psPrefix,
                               iReadOffset,
                               pstContextQueue->uiDeliveryQWriteOffset0Based,
@@ -882,21 +941,55 @@ static void BXVD_Decoder_S_Print_Queue_isr(
                               ( hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstHead == NULL ) ? -1 : (int32_t)hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstHead->uiIndex,
                               ( hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstTail == NULL ) ? -1 : (int32_t)hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstTail->uiIndex,
                               uiUniQMask,
-                              pstDqt->bSearchForStartOfNextGop,
-                              pstDqt->bFoundEndOfGop,
-                              pstDqt->bDeadlock,
-                              pstDqt->bConvertGopToUniPics,
+                              ( pstDqt->bSearchForStartOfNextGop ) ? 's' : '-',
+                              ( pstDqt->bFoundEndOfGop ) ? 'f' : '-',
+                              ( pstDqt->bConvertGopToUniPics ) ? 'c' : '-' ,
+                              ( pstDqt->bTruncatingGop ) ? 't' : '-',
+                              ( pstDqt->bDeadlock ) ? 'd' : '-',
+                              iReadOffset,
+                              pstDqt->uiReverseReadOffset,
+                              pstDqt->uiEndOfGopOffset,
+                              ( bUseTargetPTS ) ? "pts" : "idx",
+                              ( bUseTargetPTS ) ? pstDqt->uiTargetPTS : pstDqt->uiCurrentPicTag,
+                              ( bUseTargetPTS ) ? pstDqt->eTargetPTSType : pstDqt->bValidPicTag,
+                              pstDqt->uiAvailableBuffers,
+                              pstDqt->uiBuffersInUse
+                              ));
+
+   }
+   else if ( pstDqt->bDqtEnabled == true )
+   {
+      BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s:rd/wr:%2d/%2d wr:%2d %08x%08x uQ:%d:%d: %d:%d %02x %c%c%c%c%c rRe:%2d|%2d|%2d tag:%2d(%d) mb:%d/%d",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                              psPrefix,
+                              iReadOffset,
+                              pstContextQueue->uiDeliveryQWriteOffset0Based,
+                              iWriteOffset,
+                              uiMaskHighWord,
+                              uiMaskLowWord,
+                              uiUnifiedQDepth,
+                              hXvdCh->stDecoderContext.stUnifiedPictureQueue.iNumUsedElements,
+                              ( hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstHead == NULL ) ? -1 : (int32_t)hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstHead->uiIndex,
+                              ( hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstTail == NULL ) ? -1 : (int32_t)hXvdCh->stDecoderContext.stUnifiedPictureQueue.pstTail->uiIndex,
+                              uiUniQMask,
+                              ( pstDqt->bSearchForStartOfNextGop ) ? 's' : '-',
+                              ( pstDqt->bFoundEndOfGop ) ? 'f' : '-',
+                              ( pstDqt->bConvertGopToUniPics ) ? 'c' : '-' ,
+                              ( pstDqt->bTruncatingGop ) ? 't' : '-',
+                              ( pstDqt->bDeadlock ) ? 'd' : '-',
                               iReadOffset,
                               pstDqt->uiReverseReadOffset,
                               pstDqt->uiEndOfGopOffset,
                               pstDqt->uiCurrentPicTag,
                               pstDqt->bValidPicTag,
-                              pstDqt->bTruncatingGop
+                              pstDqt->uiAvailableBuffers,
+                              pstDqt->uiBuffersInUse
                               ));
    }
    else
    {
-      BDBG_MODULE_MSG( BXVD_QCTL,("%s:rd/wr:%2d/%2d wr:%2d %08x%08x uQ:%d:%d: %d:%d %02x",
+      BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s:rd/wr:%2d/%2d wr:%2d %08x%08x uQ:%d:%d: %d:%d %02x",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                               psPrefix,
                               iReadOffset,
                               pstContextQueue->uiDeliveryQWriteOffset0Based,
@@ -1181,7 +1274,7 @@ static void BXVD_Decoder_S_ComputeDigitalNoiseReduction_isr(
          if (Divs != 0)
          {
             avg_qp_ref = BMTH_FIX_SIGNED_DIV(Rem, Divs, 16, 15, 31, 0, 16, 15);
-            avg_qp_ref = BMTH_FIX_SIGNED_CONVERT(avg_qp_cur, 16, 15, 26, 5);
+            avg_qp_ref = BMTH_FIX_SIGNED_CONVERT(avg_qp_ref, 16, 15, 26, 5);
 
             avg_qp_ref = avg_qp_ref + Quo;
          }
@@ -1697,19 +1790,30 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    if (pstXdmPicture->stBufferInfo.bValid)
    {
       pstXdmPicture->stBufferInfo.hLuminanceFrameBufferBlock = hXvdCh->hFWPicMemBlock;
-      pstXdmPicture->stBufferInfo.ulLuminanceFrameBufferBlockOffset =  pPPB->luma_video_address - hXvdCh->uiFWPicMemBasePhyAddr;
-
       pstXdmPicture->stBufferInfo.hChrominanceFrameBufferBlock = hXvdCh->hFWPicChromaMemBlock;
-      pstXdmPicture->stBufferInfo.ulChrominanceFrameBufferBlockOffset =  pPPB->chroma_video_address - hXvdCh->uiFWPicChromaBasePhyAddr;
+
+#if BXVD_P_FW_40BIT_API
+      pstXdmPicture->stBufferInfo.ulLuminanceFrameBufferBlockOffset =
+         ((BXVD_P_PHY_ADDR) (pPPB->luma_video_address) | ((BXVD_P_PHY_ADDR) pPPB->luma_video_address_hi << 32)) - hXvdCh->FWPicMemBasePhyAddr;
+
+      pstXdmPicture->stBufferInfo.ulChrominanceFrameBufferBlockOffset =
+         ((BXVD_P_PHY_ADDR) (pPPB->chroma_video_address | ((BXVD_P_PHY_ADDR) pPPB->chroma_video_address_hi << 32))) - hXvdCh->FWPicChromaBasePhyAddr;
+#else
+      pstXdmPicture->stBufferInfo.ulLuminanceFrameBufferBlockOffset = pPPB->luma_video_address - hXvdCh->FWPicMemBasePhyAddr;
+      pstXdmPicture->stBufferInfo.ulChrominanceFrameBufferBlockOffset = pPPB->chroma_video_address - hXvdCh->FWPicChromaBasePhyAddr;
+#endif
+
 #if 0
       BKNI_Printf("Ch:%d, lBlk:0x%x CBlk:0x%x L:0x%0x C:0x%x PicBasePA: 0x%x LOff:0x%0x COff:0x%0x\n",
                   hXvdCh->ulChannelNum, pstXdmPicture->stBufferInfo.hLuminanceFrameBufferBlock,
                   pstXdmPicture->stBufferInfo.hChrominanceFrameBufferBlock,
                   pPPB->luma_video_address,  pPPB->chroma_video_address,
-                  hXvdCh->uiFWPicMemBasePhyAddr,
+                  hXvdCh->FWPicMemBasePhyAddr,
                   pstXdmPicture->stBufferInfo.ulLuminanceFrameBufferBlockOffset,
                   pstXdmPicture->stBufferInfo.ulChrominanceFrameBufferBlockOffset);
 #endif
+
+
    }
 
    /* source size */
@@ -2831,6 +2935,8 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
    /* Use a pre-increment so that the serial numbers start at '1' instead of '0'. */
    pstXdmPicture->uiSerialNumber = ++hXvdCh->uiPPBSerialNumber;
 
+   pstXdmPicture->uiIntraGOPIndex = pstPictureCntxt->uiIntraGOPIndex; /* SW7425-2686: copy the index. */
+
    /************/
    /* CRC Mode */
    /************/
@@ -2873,7 +2979,8 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
 
    if ( pstPictureCntxt->pBasePicture != NULL && pstPictureCntxt->pDependentPicture != NULL  )
    {
-      BDBG_MODULE_MSG( BXVD_QCTL,("%s: poorly formed picture around %3x: index:%d pBase:%lx pDep:%lx",
+      BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: poorly formed picture around %3x: index:%d pBase:%lx pDep:%lx",
+                                                hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                                 __FUNCTION__,
                                                 hXvdCh->uiPPBSerialNumber,
                                                 pstPictureCntxt->index,
@@ -2956,7 +3063,7 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
        || BXVD_P_PPB_Protocol_eMVC == eProtocol
       )
    {
-      uint32_t             uiSEIOffset=0;
+      BXVD_P_PHY_ADDR      uiSEIOffset=0;
       BXVD_P_SEI_Message * pSEIMessage;
 #if BDBG_DEBUG_BUILD
       uint32_t             uiSerialNumber = pstXdmPicture->uiSerialNumber; /* For debug. */
@@ -3012,6 +3119,9 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
             break;
          }
 
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+         uiSEIOffset += hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
+#endif
          pSEIMessage = (BXVD_P_SEI_Message *)BXVD_P_OFFSET_TO_VA(hXvdCh, uiSEIOffset);
 
          BMMA_FlushCache(hXvdCh->hFWGenMemBlock, pSEIMessage, sizeof( BXVD_P_SEI_Message));
@@ -3514,6 +3624,63 @@ static void BXVD_Decoder_S_PPBReceived_isr(
 
 }    /* end of BBXVD_Decoder_S_PPBReceived() */
 
+/*
+ * SW7425-2686: fires when reverse playback of the current chunk begins.
+ */
+static void BXVD_Decoder_S_EndOfGOP_isr(
+   BXVD_ChannelHandle hXvdCh,
+   BXVD_Decoder_P_DQTContext * pstDQT
+   )
+{
+   bool bSignalEOG;
+   BXVD_DQTStatus stDQTStatus;
+
+   BDBG_ENTER(BXVD_Decoder_S_EndOfGOP_isr);
+
+   BDBG_ASSERT( hXvdCh );
+
+   /* First check that a callback function has been registered */
+   bSignalEOG = ( NULL != hXvdCh->stInterruptCallbackInfo[BXVD_Interrupt_eEndOfGOP].BXVD_P_pAppIntCallbackPtr );
+
+   /* Then check that the callback mask bit is set. */
+   /* TODO: do we need an enable bit? */
+   /*bSignalEOG &= ( true == hXvdCh->stCallbackReq.bEndOfGOP );*/
+
+   stDQTStatus.uiIntraGOPIndex = pstDQT->uiTargetIndex;
+   stDQTStatus.uiOpenGopPictures = pstDQT->uiOpenGopPictures;
+
+   /* If all the conditions have been met, execute the callback. */
+
+   if( bSignalEOG )
+   {
+      /*BXVD_DecoderTimer_P_SnapshotCallbackStartTime_isr( hXvdCh, BXVD_DecoderTimer_P_eCbPPBReceived );*/
+
+      BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: trigger index for next pass: %d",
+                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                 __FUNCTION__,
+                                 stDQTStatus.uiIntraGOPIndex ));
+
+      hXvdCh->stInterruptCallbackInfo[BXVD_Interrupt_eEndOfGOP].BXVD_P_pAppIntCallbackPtr (
+                                 hXvdCh->stInterruptCallbackInfo[BXVD_Interrupt_eEndOfGOP].pParm1,
+                                 hXvdCh->stInterruptCallbackInfo[BXVD_Interrupt_eEndOfGOP].parm2,
+                                 &stDQTStatus
+                                 ) ;
+      /*BXVD_DecoderTimer_P_SnapshotCallbackEndTime_isr( hXvdCh, BXVD_DecoderTimer_P_eCbPPBReceived );*/
+   }
+   else
+   {
+      BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: no callback registered, trigger index for next pass: %d",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                              __FUNCTION__,
+                              stDQTStatus.uiIntraGOPIndex ));
+   }
+
+   BDBG_LEAVE(BXVD_Decoder_S_EndOfGOP_isr);
+
+   return;
+
+}    /* end of BBXVD_Decoder_S_PPBReceived() */
+
 static void BXVD_Decoder_S_UnifiedQ_GetSetType_isr(
    BXVD_ChannelHandle hXvdCh,
    BXVD_Decoder_P_LocalState * pstLocalState,
@@ -3532,7 +3699,7 @@ static void BXVD_Decoder_S_UnifiedQ_GetSetType_isr(
    {
       /* If AVC, check the SEI messages to determine if 3D. */
 
-      uint32_t             uiSEIOffset=0;
+      BXVD_P_PHY_ADDR      uiSEIOffset=0;
       BXVD_P_SEI_Message * pSEIMessage;
 
       /* SW7405-4883: set a default of 2D. */
@@ -3546,8 +3713,10 @@ static void BXVD_Decoder_S_UnifiedQ_GetSetType_isr(
 
       while ( 0 != uiSEIOffset )
       {
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+         uiSEIOffset += hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
+#endif
          pSEIMessage = (BXVD_P_SEI_Message *)BXVD_P_OFFSET_TO_VA(hXvdCh, uiSEIOffset);
-
 
          BMMA_FlushCache(hXvdCh->hFWGenMemBlock, pSEIMessage, sizeof( BXVD_P_SEI_Message));
 
@@ -3691,6 +3860,116 @@ static void BXVD_Decoder_S_UnifiedQ_GetSetType_isr(
    return;
 }
 
+/*
+ * SW7425-2686: multi-pass DQT, we've reached the end the current pass of a GOP.
+ */
+
+static void BXVD_Decoder_S_MPDQT_EOG_isr(
+   BXVD_ChannelHandle hXvdCh,
+   BXVD_Decoder_P_DQTContext * pDQTCntxt,
+   BXVD_Decoder_P_PictureContextQueue * pstContextQueue,
+   bool bLastPictureFlag
+   )
+{
+   int32_t iTargetIndex;
+
+   BDBG_ENTER( BXVD_Decoder_S_MPDQT_EOG_isr );
+
+   /* Calculate the trigger index for the next pass.
+    * A value of '0' means we are done with this GOP. */
+
+   BXVD_P_GET_QUEUE_DEPTH(
+      pstContextQueue->uiDeliveryQReadOffset0Based,
+      pstContextQueue->uiWriteOffset,
+      pDQTCntxt->uiSizeOfChunk );
+
+   /* When the EOG is determined based on the target index, the target PPB
+    * needs to be included in the chunk size. */
+
+   pDQTCntxt->uiSizeOfChunk += ( bLastPictureFlag == true ) ? 0 : 1 ;
+
+   iTargetIndex = pstContextQueue->uiIntraGOPIndex - pDQTCntxt->uiSizeOfChunk;
+   pDQTCntxt->uiTargetIndex = ( iTargetIndex < 0 ) ? 0 : iTargetIndex ;
+
+   /* First pass of a GOP if the middleware specified a target index of 0. */
+
+   if( 0 == pDQTCntxt->uiCurrentPicTag /* ( pstPicCntxt->stPPB.pPPB->picture_tag & 0xFFFF )*/ )
+   {
+      pDQTCntxt->uiPassCount=1;
+      pDQTCntxt->uiNumberOfAdditionalPasses=0;
+      pDQTCntxt->uiRemainder=0;
+      pDQTCntxt->uiPicsPerPass=0;
+
+      /* This should never be 0, but check just in case. */
+      if ( 0 != pDQTCntxt->uiAvailableBuffers && 0 != iTargetIndex )
+      {
+         pDQTCntxt->uiNumberOfAdditionalPasses = iTargetIndex / ( pDQTCntxt->uiAvailableBuffers - 1 );
+         pDQTCntxt->uiNumberOfAdditionalPasses += ( iTargetIndex % ( pDQTCntxt->uiAvailableBuffers - 1 ) ) ? 1 : 0;
+
+         if ( 0 == pDQTCntxt->uiNumberOfAdditionalPasses )
+         {
+            BXVD_DBG_ERR( hXvdCh, ("%s: passes:%d index:%d buffs:%d gIndex:%d chunck:%d",
+                        __FUNCTION__,
+                        pDQTCntxt->uiNumberOfAdditionalPasses,
+                        iTargetIndex,
+                        pDQTCntxt->uiAvailableBuffers,
+                        pstContextQueue->uiIntraGOPIndex,
+                        pDQTCntxt->uiSizeOfChunk
+                        ));
+         }
+
+         pDQTCntxt->uiPicsPerPass = iTargetIndex / pDQTCntxt->uiNumberOfAdditionalPasses ;
+         pDQTCntxt->uiRemainder = iTargetIndex % pDQTCntxt->uiNumberOfAdditionalPasses ;
+
+         BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: uiNumberOfAdditionalPasses:%d uiRemainder:%d uiPicsPerPass:%d",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                              __FUNCTION__,
+                              pDQTCntxt->uiNumberOfAdditionalPasses,
+                              pDQTCntxt->uiRemainder,
+                              pDQTCntxt->uiPicsPerPass ));
+
+      }
+   }
+   else
+   {
+      if ( pDQTCntxt->uiRemainder && ( 1 != pDQTCntxt->uiPassCount ) ) pDQTCntxt->uiRemainder--;
+
+      pDQTCntxt->uiPassCount++;
+   }
+
+
+   BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s target:%d = index:%d - chunk size:%d",
+         hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+         __FUNCTION__,
+         iTargetIndex,
+         pstContextQueue->uiIntraGOPIndex,
+         pDQTCntxt->uiSizeOfChunk ));
+
+   BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: mbuffs:%d oPics:%d GOP_len:%d  next_index:%d = current_index:%d - pics_this_pass:%d",
+         hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+         __FUNCTION__,
+         pDQTCntxt->uiAvailableBuffers,
+         pDQTCntxt->uiOpenGopPictures,
+         pDQTCntxt->uiGopLength,
+         iTargetIndex,
+         pstContextQueue->uiIntraGOPIndex,
+         pDQTCntxt->uiSizeOfChunk
+         ));
+
+   /* Fire the EOG callback */
+   BXVD_Decoder_S_EndOfGOP_isr( hXvdCh, pDQTCntxt );
+
+   pDQTCntxt->b1stPass1stGop = false;
+
+   /* Reset the intra-GOP index now that the end of this GOP has been found. */
+   pstContextQueue->uiIntraGOPIndex = 0;
+
+
+   BDBG_LEAVE( BXVD_Decoder_S_MPDQT_EOG_isr );
+
+   return;
+
+} /* end of BXVD_Decoder_S_MPDQT_EOG_isr() */
 
 /*
  *
@@ -3759,7 +4038,22 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
    BXVD_DecoderTimer_P_SnapshotFunctionStartTime_isr( hXvdCh, BXVD_DecoderTimer_P_eFuncUQ_Vet );
 
+#if 0
+   /* Retrieve the read/write offsets for the delivery queue.
+    * Adjust them to be '0' based. */
 
+   BXVD_P_DELIVERY_QUEUE_GET_ADDR( hXvdCh, pstDeliveryQueue );
+
+#if BXVD_P_FW_HIM_API
+   BMMA_FlushCache(hXvdCh->hFWGenMemBlock, (void *)pstDeliveryQueue, sizeof(BXVD_P_PictureReleaseQueue));
+#endif
+
+   BXVD_P_DELIVERY_QUEUE_GET_READ_OFFSET( hXvdCh, pstContextQueue->uiDeliveryQReadOffset0Based );
+
+   pstContextQueue->uiDeliveryQReadOffset0Based -= BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+
+   pstContextQueue->uiDeliveryQWriteOffset0Based = pstLocalState->uiDeliveryQueueWriteOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+#endif
    /* Cleanup pictures at the end of a GOP that are not going to be displayed. */
 
    if ( true == pDQTCntxt->bTruncatingGop )
@@ -3777,7 +4071,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
    pDQTCntxt->bSearchForStartOfNextGop &= ( false == pDQTCntxt->bConvertGopToUniPics );
    pDQTCntxt->bSearchForStartOfNextGop &= ( false == pDQTCntxt->bTruncatingGop );
 
-
+#if 1
    /* Retrieve the read/write offsets for the delivery queue.
     * Adjust them to be '0' based.
     */
@@ -3792,7 +4086,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
    pstContextQueue->uiDeliveryQReadOffset0Based -= BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
 
    pstContextQueue->uiDeliveryQWriteOffset0Based = pstLocalState->uiDeliveryQueueWriteOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
-
+#endif
 
    /* SW7405-3137: calculate the number of pictures on the delivery queue.
     * Hold off the processing of pictures until a complete "set" has
@@ -3830,6 +4124,29 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
    {
       pDQTCntxt->bDeadlock = BXVD_Decoder_S_DeliveryQ_CheckForDeadlock_isr( hXvdCh, uiNumPicturesToProcess );
       pDQTCntxt->bFoundEndOfGop = pDQTCntxt->bDeadlock;
+
+      /* SW7425-2686: when using the "display_n" BTP command, we hit this case when the GOP contained
+       * open GOP pictures.  XVD would specify a target index of "n", but HVD would only deliver
+       * ( n - num_open_gop_pics ).  The fix was to bump the value passed by the "display_n" command
+       * to include the open GOP pics.
+       * We also hit this case for the middle passes of very large GOP's.  The firware was not
+       * pushing out the last picture until the "flush" BTP command was received; the delay was
+       * well within the 4 vsync dead lock timeout.  The fix was to modify the firmware to push
+       * out the last picture when the "display_n" count is reached. */
+
+      if ( true == hXvdCh->stDecoderContext.stDqtCntxt.bMultiPass
+           && true == pDQTCntxt->bDeadlock )
+      {
+         BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: deadlock during multipass DQT",
+                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                 __FUNCTION__ ));
+
+         /* Treat a deadlock the same as any other EOG trigger, i.e fire the EOG
+          * callback and begin reverse playback. */
+
+         BXVD_Decoder_S_MPDQT_EOG_isr( hXvdCh, pDQTCntxt, pstContextQueue, true );
+
+      }
    }
 
    BXVD_Decoder_S_Print_Queue_isr( hXvdCh, "--" );
@@ -3861,7 +4178,7 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
       pstPicCntxt->stPPB.pPPBPhysical = ( pstDeliveryQueue->display_elements[ pstContextQueue->uiWriteOffset ]);
 
 #if BXVD_P_CORE_40BIT_ADDRESSABLE
-      pstPicCntxt->stPPB.pPPBPhysical = pstPicCntxt->stPPB.pPPBPhysical +  hXvdCh->stDecodeFWBaseAddrs.uiFWContextBase;
+      pstPicCntxt->stPPB.pPPBPhysical = pstPicCntxt->stPPB.pPPBPhysical +  hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
 #endif
 
       pstPicCntxt->stPPB.pPPB = (BXVD_P_PPB *)BXVD_P_OFFSET_TO_VA(hXvdCh, (uint32_t)pstPicCntxt->stPPB.pPPBPhysical);
@@ -3905,12 +4222,41 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
          if ( uiNumPicturesOnDeliveryQue < pstPicCntxt->uiSetCount )
          {
-            BDBG_MODULE_MSG( BXVD_QCTL,("%s: break at head, %d pictures left, %d pictures in set.",
-                                                __FUNCTION__,
-                                                uiNumPicturesOnDeliveryQue,
-                                                pstPicCntxt->uiSetCount ));
+            BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: break at head, %d pictures left, %d pictures in set.",
+                                          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                          __FUNCTION__,
+                                          uiNumPicturesOnDeliveryQue,
+                                          pstPicCntxt->uiSetCount ));
             break;
          }
+      }
+
+      /* SW7425-2686: when playing in the forward direction, increment the
+       * intra-GOP picture count for single and base pictures.  Reset
+       * to '1' at the beginning of the GOP. Don't coun't "picture less" PPB's
+       * The purpose of this code is to create an intra-GOP index to be inserted
+       * into the Unified Picture structure.  If it turns out that we never use
+       * that index, remove this code. */
+
+      if ( false == pDQTCntxt->bDqtEnabled )
+      {
+         if (( BXVD_Decoder_P_PictureSet_eDependent != pstPicCntxt->eSetType )
+               && !( pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_FLAG_PICTURE_LESS_PPB ))
+         {
+            if ( pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_FLAG_RAP_PICTURE )
+            {
+               pstContextQueue->uiIntraGOPIndex = 1;
+               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: uiIntraGOPIndex reset to 1",
+                        hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                        __FUNCTION__ ));
+            }
+            else
+            {
+               pstContextQueue->uiIntraGOPIndex++;
+            }
+         }
+
+         pstPicCntxt->uiIntraGOPIndex = pstContextQueue->uiIntraGOPIndex;
       }
 
       /* If DQT is enabled, check for the start of the next GOP.
@@ -3928,28 +4274,322 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
             && true == pDQTCntxt->bDqtEnabled
           )
       {
-         /* If "bValidPicTag" is false, the start of a GOP was detected the previous time
-          * through this loop.  Snapshot the new picture tag.
-          */
-         if ( false == pDQTCntxt->bValidPicTag )
-         {
-            pDQTCntxt->uiCurrentPicTag = pstPicCntxt->stPPB.pPPB->picture_tag;
-            pDQTCntxt->bValidPicTag = true;
-         }
+         /* SW7425-2686: the original and multi-pass DQT have different End-Of-GOP triggers. */
 
-         /* If the new picture tag doesn't match the old one, the start of
-          * the next GOP has been found.  Break out of this loop and begin
-          * displaying the GOP in reverse.
-          */
-         if ( true == pDQTCntxt->bValidPicTag
-               && pDQTCntxt->uiCurrentPicTag != pstPicCntxt->stPPB.pPPB->picture_tag
-            )
+         if ( false == hXvdCh->stDecoderContext.stDqtCntxt.bMultiPass )
          {
-            pDQTCntxt->bFoundEndOfGop = true;
-            break;
+            /* If "bValidPicTag" is false, the start of a GOP was detected on a previous
+             * pass through this loop.  Snapshot the new picture tag. */
+
+            if ( false == pDQTCntxt->bValidPicTag )
+            {
+               pDQTCntxt->uiCurrentPicTag = pstPicCntxt->stPPB.pPPB->picture_tag;
+               pDQTCntxt->bValidPicTag = true;
+            }
+
+            /* If the new picture tag doesn't match the old one, the start of
+             * the next GOP has been found.  Break out of this loop and begin
+             * displaying the GOP in reverse. */
+
+            if ( true == pDQTCntxt->bValidPicTag
+                  && pDQTCntxt->uiCurrentPicTag != pstPicCntxt->stPPB.pPPB->picture_tag
+               )
+            {
+               pDQTCntxt->bFoundEndOfGop = true;
+               break;
+            }
          }
+#if BXVD_P_PPB_EXTENDED
+         else
+         {
+            bool bLastPictureFlag = false; /* This is really clunky, refactor this code. */
+
+            if ( false == pDQTCntxt->bValidPicTag
+                 && pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_FLAG_PIC_TAG_PRESENT
+                 && !(pstPicCntxt->stPPB.pPPB->flags_ext0 & BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE) )
+            {
+               pDQTCntxt->uiCurrentPicTag = pstPicCntxt->stPPB.pPPB->picture_tag & 0xFFFF;
+               pDQTCntxt->bValidPicTag = true;
+            }
+
+            /* SW7425-2686: when playing in the reverse direction, increment the intra-GOP picture
+             * count for single and base pictures. The count will be reset when the end of the
+             * GOP is detected. Don't coun't "picture less" PPB's */
+
+            if ( !(pstPicCntxt->stPPB.pPPB->flags_ext0 & BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE) )
+            {
+               pstContextQueue->uiIntraGOPIndex++;
+               pDQTCntxt->uiOpenGopPictures = ( ( pstPicCntxt->stPPB.pPPB->num_pic_buffers >> 16 ) & 0xFFFF );
+            }
+
+            pstPicCntxt->uiIntraGOPIndex = pstContextQueue->uiIntraGOPIndex;
+
+            /* SW7425-2686: multi-pass DQT, there are three End-Of-GOP triggers.
+             *
+             * 1) "last picture" flag
+             *    - intended only for the first pass of GOP (but not the first GOP)
+             *    - gets XVD to the very end of the GOP
+             *    - also a safe guard if the following triggers don't fire
+             * 2) target PTS
+             *    - intended for the first pass of the first GOP
+             * 3) target intra-GOP index
+             *    - intented for non-first passes of a GOP
+             *    - initiates playback at a picture within the GOP
+             *
+             * Note: this logic won't work for multi-picture protocols like MVC and
+             * full frame 3D.  To support those protocols, the logic will need to be
+             * tweaked to wait for the next picture of the pair, i.e. the logic is
+             * triggering off the base picture, not the dependent picture.  */
+
+            if ( pstPicCntxt->stPPB.pPPB->flags_ext0 & BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE )
+            {
+               pDQTCntxt->bFoundEndOfGop = true;
+               bLastPictureFlag = true;
+
+               pDQTCntxt->uiGopLength = pstPicCntxt->uiIntraGOPIndex; /* just for debug */
+
+               BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: detected last picture flag. target index:%d current index:%d %c",
+                     hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                     __FUNCTION__,
+                     pDQTCntxt->uiCurrentPicTag,
+                     pstContextQueue->uiIntraGOPIndex,
+                     ( pstContextQueue->uiIntraGOPIndex < pDQTCntxt->uiCurrentPicTag ) ? '!' : ' '
+                     ));
+
+               if ( pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_FLAG_PICTURE_LESS_PPB )
+               {
+                  pstPicCntxt->bDropPicture = true;
+               }
+               else
+               {
+                  /* Effectively an EOS flag.  Currently defined to only be delivered with a "picture-less" PPB. */
+
+                  BXVD_DBG_ERR(hXvdCh, ("%s:: BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE set for a standard PPB", __FUNCTION__ ));
+               }
+            }
+            else if ( true == pDQTCntxt->b1stPass1stGop && BXVD_PTSType_eCoded == pDQTCntxt->eTargetPTSType )
+            {
+
+               if (  pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_FLAG_PTS_PRESENT
+                     && pstPicCntxt->stPPB.pPPB->pts == pDQTCntxt->uiTargetPTS )
+               {
+                  pDQTCntxt->bFoundEndOfGop = true;
+
+                  pDQTCntxt->uiGopLength = pstPicCntxt->uiIntraGOPIndex; /* just for debug */
+
+                  BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: hit target PTS:%08x",
+                        hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                        __FUNCTION__,
+                        pDQTCntxt->uiTargetPTS ));
+               }
+            }
+            else
+            {
+               uint32_t uiTargetIndex=0;
+
+               /* Just for debug. Used in the print statements but not the control logic. */
+#if 0
+               pDQTCntxt->bValidPicTag = false;
+               pDQTCntxt->uiCurrentPicTag = 0x12345678;
+
+               if ( pstPicCntxt->stPPB.pPPB->flags & BXVD_P_PPB_FLAG_PIC_TAG_PRESENT )
+               {
+                  pDQTCntxt->bValidPicTag = true;
+                  pDQTCntxt->uiCurrentPicTag = pstPicCntxt->stPPB.pPPB->picture_tag;
+                  uiTargetIndex = pstPicCntxt->stPPB.pPPB->picture_tag & 0xFFFF;
+               }
+#endif
+               uiTargetIndex = pDQTCntxt->uiCurrentPicTag; /* Add a check for being valid? */
+
+               /* TODO: is this redundant?  For the b1stPass1stGop will the BTP command contain
+                * the correct index?  If so, should uiTargetIndex be removed from the DQT context? */
+
+               if ( true == pDQTCntxt->b1stPass1stGop )
+               {
+                  uiTargetIndex = pDQTCntxt->uiTargetIndex;
+               }
+
+               /* If the target index is '0', the EOG will be signaled by the "last picture" flag. */
+
+               if ( uiTargetIndex != 0 && uiTargetIndex == pstPicCntxt->uiIntraGOPIndex )
+               {
+                  pDQTCntxt->bFoundEndOfGop = true;
+                  pDQTCntxt->bTruncatingGop = true;
+
+                  BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: EOG: hit target picture idx:%d queue idx:%d",
+                        hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                        __FUNCTION__,
+                        uiTargetIndex,
+                        pstPicCntxt->index ));
+               }
+
+            }
+
+            if ( true == pDQTCntxt->bFoundEndOfGop  )
+            {
+               BXVD_Decoder_S_MPDQT_EOG_isr( hXvdCh, pDQTCntxt, pstContextQueue, bLastPictureFlag );
+
+               /* Increment PictureContextQueue write offset */
+               BXVD_Decoder_S_Increment_0BasedOffset_isrsafe(
+                        &(pstContextQueue->uiWriteOffset),
+                        1,
+                        BXVD_P_MAX_ELEMENTS_IN_DISPLAY_QUEUE );
+
+               /* Save the pointer to the context in order to link base and dependent pictures.
+                * Since the EOG, this shouldn't apply. */
+               pstPrevPicCntxt = pstPicCntxt;
+
+               break;
+            }
+
+
+         }
+#endif
 
       }  /* end of if( !BXVD_Decoder_P_PictureSet_eDependent && pDQTCntxt->bDqtEnabled ) */
+
+
+#if BXVD_P_PPB_EXTENDED
+      /* SW7425-2686: this is the "sliding window" logic For multipass DQT.  Check if any buffers
+       * need to be returned to AVD to prevent a deadlock condition. */
+
+      if ( true == pDQTCntxt->bDqtEnabled && true == hXvdCh->stDecoderContext.stDqtCntxt.bMultiPass )
+      {
+         bool bReleasePicture = false;
+         pDQTCntxt->uiBuffersInUse = hXvdCh->stDecoderContext.stUnifiedPictureQueue.iNumUsedElements;
+         pDQTCntxt->uiBuffersInUse += uiNumPicturesOnDeliveryQue;
+
+         /* TODO: save here or on the entry into this routine?
+          * Add a debug message if the value has changed?
+          * Add an error message if the value is 0? */
+         pDQTCntxt->uiAvailableBuffers = ( 0xFFFF & pstPicCntxt->stPPB.pPPB->num_pic_buffers );
+
+         /* Wait until there is only one picture on the Unified Picture queue. */
+#if 0
+         if ( hXvdCh->stDecoderContext.stUnifiedPictureQueue.iNumUsedElements > 1 )
+         {
+            break;
+         }
+#endif
+
+         /* There are two different scenarios to consider when returning pictures to AVD,
+          * the first pass of the GOP and subsequent passes of a GOP.
+          *
+          * The first pass is indicated by a target index of 0.  In this case, return
+          * pictures as soon as the number in use is greater than or equal to the number
+          * available.  Based on empirical results, subtracting 1 from the number of available
+          * buffers seems to reduce the number of delivery queue underflows between GOPs.
+          * The downside to "throwing" away this picture is that we may need an additional pass.
+          * The firmware is conservative and may under reported the number of available buffers,
+          * hence the need to check for the buffers in use being greater than the number available.
+          *
+          * For subsequent passes of a GOP.  Calculate the index of the first picture of the
+          * "chunk" that will be displayed, return all the pictures that precede the "chunk".
+          * All the pictures which follow the "chuck" will be returned by the truncation logic.
+          *
+          * There are two blocks of code below which handle the subsequent pass of a GOP.  The
+          * first block (i.e. the "else if") sends roughly the same number of pictures to XDM
+          * on each pass.  The idea being, that we want push as many pictures as we can into
+          * the last pass.  By having a long last pass, Nexus and AVD will have more time to
+          * process the first pass of the next GOP.
+          *
+          * The second block (i.e. the "else") is the original approach.  With this approach,
+          * we try to cram as many pictures as possible into each pass.  However this can
+          * result in the last pass only containing a few pictures, perhaps even just 1.
+          * With the addition of the preceding "averaging" code, we should never hit this
+          * code block.  However leave it as a safety net in case I missed a corner case.
+          *
+          * Only get here when searching for the start of the next GOP.  We will never get here
+          * when converting a GOP in reverse order.  So only need to consider the depth as the
+          * difference between the read and write offsets.
+          *
+          * pstPicCntxt->stPPB.pPPB->num_pic_buffers will on change on a sequence boundary.
+          * What if it changes from a large value to a small.  The large value might mean that we have
+          * a bunch of small outstanding pictures.  Will this cause some funky behavior? */
+
+         if ( 0 == pDQTCntxt->uiTargetIndex )
+         {
+            bReleasePicture = ( pDQTCntxt->uiBuffersInUse >= pDQTCntxt->uiAvailableBuffers - 1 );
+         }
+         else if ( 0 != pDQTCntxt->uiPicsPerPass )
+         {
+            /* uiPicsPerPass and uiRemainder are calculated in the preceding
+             * "bFoundEndOfGop" code block.  */
+
+            int32_t iIndexOfFirstPicture;
+            uint32_t uiAvailableBuffers;
+
+            /* Since the calculation of iIndexOfFirstPicture in inclusive,
+             * subtract 1 from the number of buffers. */
+            uiAvailableBuffers = pDQTCntxt->uiPicsPerPass-1;
+
+            if ( 1 != pDQTCntxt->uiPassCount )
+            {
+               uiAvailableBuffers += ( pDQTCntxt->uiRemainder ) ? 1 : 0 ;
+            }
+
+            iIndexOfFirstPicture = pDQTCntxt->uiTargetIndex - uiAvailableBuffers;
+
+            if ( iIndexOfFirstPicture < 1 ) iIndexOfFirstPicture = 1;
+
+            bReleasePicture = ( pstPicCntxt->uiIntraGOPIndex < (uint32_t)iIndexOfFirstPicture );
+
+         }
+         else
+         {
+            /* When calculating iIndexOfFirstPicture, subtract 2 from the number of available
+             * buffers; 1 so we can't get the next one from AVD and another 1 because the
+             * indices are inclusive. */
+
+            int32_t iIndexOfFirstPicture = pDQTCntxt->uiTargetIndex - ( pDQTCntxt->uiAvailableBuffers - 2 );
+
+            if ( iIndexOfFirstPicture < 1 ) iIndexOfFirstPicture = 1;
+
+            bReleasePicture = ( pstPicCntxt->uiIntraGOPIndex < (uint32_t)iIndexOfFirstPicture );
+         }
+
+         if ( true == bReleasePicture )
+         {
+            /* The firmware may under report the number of available buffers.  Only return pictures to AVD
+             * if we've reached the max number of buffers and all the pictues on the delivery queue have
+             * been processed.  This is determine by looking at the write offsets of the delivery and context
+             * queues.  If all the pictures on the delivery queue have not been process, AVD has more
+             * buffers to work with. */
+
+            /*if ( pstContextQueue->uiWriteOffset == pstContextQueue->uiDeliveryQWriteOffset0Based )*/
+            {
+               BXVD_Decoder_P_PictureContext * pstPicToReturn = &pstContextQueue->astPictureContext[pstContextQueue->uiDeliveryQReadOffset0Based];
+#if 0
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %d:%d:%d %d - ",
+                     hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                     hXvdCh->stDecoderContext.stUnifiedPictureQueue.iNumUsedElements,
+                     uiNumPicturesOnDeliveryQue,
+                     pstContextQueue->uiDeliveryQReadOffset0Based,
+                     pstPicCntxt->index ));
+#endif
+               pstPicToReturn->bDropPicture = true;
+
+               BXVD_Decoder_S_DeliveryQ_DropPicture_isr( hXvdCh, pstPicToReturn, "mp DQT" );
+
+               /* TODO: need to handle set of pictures.
+                * BXVD_Decoder_P_PictureSet_eDependent != pstPicCntxt->eSetType */
+
+               BXVD_P_DELIVERY_QUEUE_GET_READ_OFFSET( hXvdCh, pstContextQueue->uiDeliveryQReadOffset0Based );
+               pstContextQueue->uiDeliveryQReadOffset0Based -= BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+               BXVD_P_GET_QUEUE_DEPTH( pstContextQueue->uiDeliveryQReadOffset0Based, pstContextQueue->uiDeliveryQWriteOffset0Based, uiNumPicturesOnDeliveryQue );
+#if 0
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %d:%d:%d | ",
+                     hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                     hXvdCh->stDecoderContext.stUnifiedPictureQueue.iNumUsedElements,
+                     uiNumPicturesOnDeliveryQue,
+                     pstContextQueue->uiDeliveryQReadOffset0Based ));
+#endif
+            }
+
+         }
+
+      }
+#endif
 
       /* Check for an error sequence.  If the picture sequence is fine,
        * generate the "BXVD_Interrupt_ePPBReceived" callback and
@@ -4012,7 +4652,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                pstTempCntxt->eSetType = BXVD_Decoder_P_PictureSet_eSingle;
                pstTempCntxt->uiSetCount = 1;
 
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: H265 interlaced: bad picture sequence Base followed by %s",
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: H265 interlaced: bad picture sequence Base followed by %s",
+                                          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                           __FUNCTION__,
                                           ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eBase ) ? "Base" : "Single"
                                           ));
@@ -4023,7 +4664,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                pDQTCntxt->bFoundEndOfGop = true;
                pDQTCntxt->bDqtMvcError = true;
 
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: DQT with 3D content: bad picture sequence Base followed by %s",
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: DQT with 3D content: bad picture sequence Base followed by %s",
+                                          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                           __FUNCTION__,
                                           ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eBase ) ? "Base" : "Single"
                                           ));
@@ -4035,7 +4677,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                 * the Unified Pictures ignores this one. */
                pstTempCntxt->bDropPicture = true;
 
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: 3D content: bad picture sequence Base followed by %s",
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: 3D content: bad picture sequence Base followed by %s",
+                                          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                           __FUNCTION__,
                                           ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eBase ) ? "Base" : "Single"
                                           ));
@@ -4050,10 +4693,11 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
              */
             if ( uiNumPicturesToProcess  < BXVD_DECODER_S_PICTURES_PER_SET /*pstPicCntxt->uiSetCount*/ )
             {
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: break at tail, %d pictures left, %d pictures in set.",
-                                                   __FUNCTION__,
-                                                   uiNumPicturesToProcess,
-                                                   BXVD_DECODER_S_PICTURES_PER_SET ));
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: break at tail, %d pictures left, %d pictures in set.",
+                                                hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                                __FUNCTION__,
+                                                uiNumPicturesToProcess,
+                                                BXVD_DECODER_S_PICTURES_PER_SET ));
                break;
             }
          }
@@ -4088,7 +4732,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                pstPicCntxt->eSetType = BXVD_Decoder_P_PictureSet_eSingle;
                pstPicCntxt->uiSetCount = 1;
 
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: H265 interlaced: bad picture sequence %s followed by Dependent",
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: H265 interlaced: bad picture sequence %s followed by Dependent",
+                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                  __FUNCTION__,
                                  ( pstPrevPicCntxt == NULL ) ? "NULL" :
                                     ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eDependent ) ? "Dependent" : "Single"
@@ -4100,7 +4745,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
                pDQTCntxt->bFoundEndOfGop = true;
                pDQTCntxt->bDqtMvcError = true;
 
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: DQT with 3D content: bad picture sequence %s followed by Dependent",
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: DQT with 3D content: bad picture sequence %s followed by Dependent",
+                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                  __FUNCTION__,
                                  ( pstPrevPicCntxt == NULL ) ? "NULL" :
                                     ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eDependent ) ? "Dependent" : "Single"
@@ -4113,7 +4759,8 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
 
                pstPicCntxt->bDropPicture = true;
 
-               BDBG_MODULE_MSG( BXVD_QCTL,("%s: 3D content: bad picture sequence %s followed by Dependent",
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: 3D content: bad picture sequence %s followed by Dependent",
+                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                  __FUNCTION__,
                                  ( pstPrevPicCntxt == NULL ) ? "NULL" :
                                     ( pstPicCntxt->eSetType == BXVD_Decoder_P_PictureSet_eDependent ) ? "Dependent" : "Single"
@@ -4193,8 +4840,12 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
       pDQTCntxt->uiReverseReadOffset = pstContextQueue->uiWriteOffset;
 
       /* Backup to the last picture of this GOP.
-       * Still in picture context queue "domain", use "0" based routines.
-       */
+       * TODO: SW7425-2686:  revisit this code during debug of MP DQT.
+       * For "classic" DQT, will have left off on the first picture of the next GOP.
+       * For multi-pass DQT, we will have to backup if the last-picture flag was detected,
+       * otherwise, we need to include the picture at pstContextQueue->uiWriteOffset.
+       * Still in picture context queue "domain", use "0" based routines. */
+
       BXVD_Decoder_S_Decrement_0BasedOffset_isrsafe( &(pDQTCntxt->uiReverseReadOffset), 1, BXVD_P_MAX_ELEMENTS_IN_DISPLAY_QUEUE );
 
       /* Get the context of this last picture. */
@@ -4233,7 +4884,9 @@ static void BXVD_Decoder_S_UnifiedQ_Update_isr(
          if ( true == pDQTCntxt->bDqtMvcError )
          {
             pDQTCntxt->bTruncatingGop = true;
-            BDBG_MODULE_MSG( BXVD_QCTL,("%s: MVC error", __FUNCTION__ ));
+            BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: MVC error",
+                                           hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                           __FUNCTION__ ));
          }
 
          /* If a deadlock and a multipicture protocol, we may have left off
@@ -4337,6 +4990,11 @@ static void BXVD_Decoder_S_UnifiedQ_PPBToUniPic_isr(
        */
       if ( true == pstPicCntxt->bDropPicture )
       {
+         /* SW7425-2686: dropping can be initiated from several places now.
+          * Move the drop code to a new routine. */
+
+         BXVD_Decoder_S_DeliveryQ_DropPicture_isr( hXvdCh, pstPicCntxt, "drop flag" );
+#if 0
          BXVD_Decoder_P_UnifiedPictureContext  stUnifiedContext;
 
          /* Initialize "stUnifiedContext", in particular need to be certain that
@@ -4358,7 +5016,7 @@ static void BXVD_Decoder_S_UnifiedQ_PPBToUniPic_isr(
          /* Add the PPB to the release queue. */
 
          BXVD_Decoder_S_ReleaseQ_AddPPB_isr( hXvdCh, pstPicCntxt->stPPB.pPPBPhysical );
-
+#endif
       }
       else
       {
@@ -4448,13 +5106,31 @@ static void BXVD_Decoder_S_DeliveryQ_UpdateReadOffset_isr(
       }
       else
       {
-         /* If "bDqtEnabled" is true and "bConvertGopToUniPics" is false,
-          * the entire GOP has not been delivered to the display queue.
-          * Other logic should prevent this case from being reached.
-         */
-         BDBG_MODULE_MSG( BXVD_QCTL,("%s: the entire GOP has not been delivered to the display queue, should not hit this code.",
-                              __FUNCTION__
-                              ));
+         if ( true == pDQTCntxt->bMultiPass )
+         {
+            /* SW7425-2686: can get here if the "sliding window" logic specifies a drop. */
+
+            BXVD_P_INCREMENT_2BASED_OFFSET( uiReadOffset, uiDeltaChange );
+
+            BXVD_P_DELIVERY_QUEUE_SET_READ_OFFSET( hXvdCh, uiReadOffset );
+
+            /* For debug. */
+            hXvdCh->stDecoderContext.stLogData.uiPicturesFromAvd += uiDeltaChange;
+
+            /* Keep these values in lock step to avoid issues when transistioning into DQT. */
+            pDQTCntxt->uiEndOfGopOffset = uiReadOffset;
+            pDQTCntxt->uiReverseReadOffset = uiReadOffset;
+         }
+         else
+         {
+            /* If "bDqtEnabled" is true and "bConvertGopToUniPics" is false,
+             * the entire GOP has not been delivered to the display queue.
+             * Other logic should prevent this case from being reached. */
+
+            BDBG_MODULE_MSG( BXVD_DQT,("%03x: %s:: the entire GOP has not been delivered to the display queue, should not hit this code.",
+                                          hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                          __FUNCTION__ ));
+         }
       }
 
 
@@ -4520,7 +5196,7 @@ static void BXVD_Decoder_S_ReleaseQ_AddPPB_isr(
       /* Add the the element  to the release queue.  */
 
 #if BXVD_P_CORE_40BIT_ADDRESSABLE
-      pPPBPhysical -=  hXvdCh->stDecodeFWBaseAddrs.uiFWContextBase;
+      pPPBPhysical -=  hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
 #endif
       pReleaseQue->display_elements[ uiReleaseWriteOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE ] = pPPBPhysical;
 
@@ -4564,26 +5240,49 @@ Done:
 
 void BXVD_Decoder_S_DqtInit_isr( BXVD_ChannelHandle hXvdCh )
 {
+   BXVD_Decoder_P_DQTContext * pDQT = &(hXvdCh->stDecoderContext.stDqtCntxt);
+
    BDBG_ASSERT(hXvdCh);
 
    /*
     * initialize the DQTM parameters
     */
-   hXvdCh->stDecoderContext.stDqtCntxt.bConvertGopToUniPics = false;
-   /*hXvdCh->stDecoderContext.stDqtCntxt.uiPreviousWrOffset = 0;*/
-   hXvdCh->stDecoderContext.stDqtCntxt.uiTimesOffsetRepeated = 0;
+   pDQT->bConvertGopToUniPics = false;
+   /*pDQT->uiPreviousWrOffset = 0;*/
+   pDQT->uiTimesOffsetRepeated = 0;
 
-   hXvdCh->stDecoderContext.stDqtCntxt.bDqtEnabled =  hXvdCh->stDecoderContext.bReversePlayback;
+   /* SW7425-2686: the internal DQT flag is based on either bReversePlayback or stGopTrickMode.eMode. */
+   pDQT->bDqtEnabled = hXvdCh->stDecoderContext.bReversePlayback;
+   pDQT->bDqtEnabled |= ( hXvdCh->stTrickModeSettings.stGopTrickMode.eMode != BXVD_DQTTrickMode_eDisable );
 
-   hXvdCh->stDecoderContext.stDqtCntxt.uiDeadlockThreshold = BXVD_DECODER_DQT_DEADLOCK_THRESHOLD;
-   hXvdCh->stDecoderContext.stDqtCntxt.bTruncatingGop = false;
-   hXvdCh->stDecoderContext.stDqtCntxt.uiCurrentPicTag = -1;
-   hXvdCh->stDecoderContext.stDqtCntxt.bValidPicTag = false;
+   pDQT->uiDeadlockThreshold = BXVD_DECODER_DQT_DEADLOCK_THRESHOLD;
+   pDQT->bTruncatingGop = false;
+   pDQT->uiCurrentPicTag = -1;
+   pDQT->bValidPicTag = false;
 
-   BXVD_P_DELIVERY_QUEUE_GET_READ_OFFSET(
-                  hXvdCh,
-                  hXvdCh->stDecoderContext.stDqtCntxt.uiReverseReadOffset
-                  );
+   BXVD_P_DELIVERY_QUEUE_GET_READ_OFFSET( hXvdCh, pDQT->uiReverseReadOffset );
+
+#if BXVD_P_PPB_EXTENDED
+
+   /* SW7425-2686: when true the same GOP will may sent multiple times. */
+
+   pDQT->bMultiPass = ( hXvdCh->stTrickModeSettings.stGopTrickMode.eMode == BXVD_DQTTrickMode_eMultiPassDQT ) ? true : false ;
+   pDQT->b1stPass1stGop = ( pDQT->bMultiPass == true )? true : false;
+
+   /* The values for the first pass of the first GOP. */
+   pDQT->uiTargetPTS    = hXvdCh->stTrickModeSettings.stGopTrickMode.uiTargetPTS;
+   pDQT->eTargetPTSType = hXvdCh->stTrickModeSettings.stGopTrickMode.eTargetPTSType;
+   pDQT->uiTargetIndex  = hXvdCh->stTrickModeSettings.stGopTrickMode.uiTargetIndex;
+
+   pDQT->uiAvailableBuffers = 0;
+   pDQT->uiBuffersInUse = 0;
+
+#else
+   /* Multi-pass DQT is dependent on elements in the extended PPB structure.
+    * Don't enable it on systems that don't support the extended PPB. */
+   pDQT->bMultiPass = false;
+#endif
+
    return;
 
 }
@@ -4643,7 +5342,6 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
    )
 {
    bool                    bDoneProcessingGop;
-   bool                    bNonDependentPicture;
    BXVD_P_DisplayElement   stDisplayElement;
    BXVD_Decoder_P_DQTContext *  pDQTCntxt;
 
@@ -4654,6 +5352,8 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
    BXVD_P_PictureDeliveryQueue *          pstDeliveryQueue;
 
    BXVD_Decoder_P_PictureContextQueue *   pstContextQueue = &(hXvdCh->stDecoderContext.stPictureContextQueue);
+
+   bool bPrintState = false; /* for debug */
 
 /*   BXVD_Decoder_P_PictureContext *        pstTempPicCntxt; */
 
@@ -4695,30 +5395,110 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
    */
    while( pDQTCntxt->uiEndOfGopOffset != uiWriteOffset )
    {
+      bool bFoundNextGop;
+      bPrintState = true;
+
+      BXVD_Decoder_S_Print_Queue_isr( hXvdCh, "t1" );
 
       /* Get the address of the PPB */
       stDisplayElement.pPPBPhysical = pstDeliveryQueue->display_elements[ pDQTCntxt->uiEndOfGopOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE];
 
 #if BXVD_P_CORE_40BIT_ADDRESSABLE
-      stDisplayElement.pPPBPhysical = stDisplayElement.pPPBPhysical + hXvdCh->stDecodeFWBaseAddrs.uiFWContextBase;
+      stDisplayElement.pPPBPhysical = stDisplayElement.pPPBPhysical + hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
 #endif
 
       stDisplayElement.pPPB = (BXVD_P_PPB *)BXVD_P_OFFSET_TO_VA(hXvdCh, (uint32_t)stDisplayElement.pPPBPhysical);
 
       BMMA_FlushCache(hXvdCh->hFWGenMemBlock, stDisplayElement.pPPB, sizeof( BXVD_P_PPB));
 
-      /* Determine the picture type; only look at the picture tag for
-       * "non-dependent" pictures.
-       */
+      /* Only look at "non-dependent" pictures when checking for the start of the next GOP. */
+
+      bFoundNextGop = false;
+
       if ( !( stDisplayElement.pPPB->flags & BXVD_P_PPB_MULTIVIEW_FIELD_MASK )
             || ( stDisplayElement.pPPB->flags & BXVD_P_PPB_MULTIVIEW_BASE_FLAG )
          )
       {
-         bNonDependentPicture = true;
-      }
-      else
-      {
-         bNonDependentPicture = false;
+         if ( true == hXvdCh->stDecoderContext.stDqtCntxt.bMultiPass )
+         {
+            bFoundNextGop = (( stDisplayElement.pPPB->flags & BXVD_P_PPB_FLAG_PICTURE_LESS_PPB ) != 0 );
+            bFoundNextGop &= (( stDisplayElement.pPPB->flags_ext0 & BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE ) != 0 );
+
+            if ( bFoundNextGop )
+            {
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: detected last picture: start of next GOP is at offset:%d + 1",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                              __FUNCTION__,
+                              pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE
+                              ));
+
+               /* Release the picture and invalidate the entry in the picture context queue. */
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: release picture que idx:%2d pts:%08x",
+                                       hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                       __FUNCTION__,
+                                       pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
+                                       stDisplayElement.pPPB->pts
+                                       ));
+
+
+               /* Release the picture and invalidate the entry in the picture context queue. */
+               BDBG_MODULE_MSG( BXVD_UP,(" %03x: %s:: release picture que idx:%2d pts:%08x",
+                                       hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                       __FUNCTION__,
+                                       pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
+                                       stDisplayElement.pPPB->pts
+                                       ));
+
+
+               BXVD_Decoder_S_ReleaseQ_AddPPB_isr( hXvdCh, stDisplayElement.pPPBPhysical );
+
+         /*      pstTempPicCntxt = &(pstContextQueue->astPictureContext[ pDQTCntxt->uiEndOfGopOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE ]); */
+
+               /*
+                * Increment the "uiEndOfGopOffset" offset.
+                */
+               BXVD_P_INCREMENT_2BASED_OFFSET( pDQTCntxt->uiEndOfGopOffset, 1 );
+
+               /* For debug. */
+               hXvdCh->stDecoderContext.stLogData.uiPicturesFromAvd++;
+
+               /*
+                * Jump the Picture Context Queue write pointer ahead if it is lagging.
+                * This is the normal mode of operation once "uiEndOfGopOffset" has caught
+                * up to "pstUnifiedQueue->uiWriteOffset".
+                * It can also happen if a PPB is added to the delivery queue between the call
+                * to "BXVD_Decoder_P_UpdatePictureContextQueue() and this routine.
+                */
+               uiTempOffset = pstContextQueue->uiWriteOffset + BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+
+               if ( pDQTCntxt->uiEndOfGopOffset <= uiWriteOffset
+                     && ( uiTempOffset < pDQTCntxt->uiEndOfGopOffset
+                           || uiTempOffset > uiWriteOffset )
+                  )
+               {
+                  pstContextQueue->uiWriteOffset = pDQTCntxt->uiEndOfGopOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+               }
+               else if ( uiTempOffset < pDQTCntxt->uiEndOfGopOffset && uiTempOffset > uiWriteOffset )
+               {
+                  pstContextQueue->uiWriteOffset = pDQTCntxt->uiEndOfGopOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE;
+               }
+
+            }
+         }
+         else
+         {
+            bFoundNextGop = ( pDQTCntxt->uiCurrentPicTag != stDisplayElement.pPPB->picture_tag );
+
+            if ( bFoundNextGop )
+               BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: found start of next GOP at offset: %d, old tag:%d new tag:%d",
+                                 hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                                 __FUNCTION__,
+                                 pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
+                                 pDQTCntxt->uiCurrentPicTag,
+                                 stDisplayElement.pPPB->picture_tag
+                                 ));
+         }
+
       }
 
       /*
@@ -4726,18 +5506,9 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
       ** the next GOP. We're done cleaning up this GOP, update the appropriate offsets.
       ** If a "dependent" picture, simply drop it.  GOPs always start on a "single" or base picture.
       */
-      if ( pDQTCntxt->uiCurrentPicTag != stDisplayElement.pPPB->picture_tag
-            && true == bNonDependentPicture
-         )
+      if ( true == bFoundNextGop )
       {
          pDQTCntxt->bTruncatingGop = false;
-
-         BDBG_MODULE_MSG( BXVD_QCTL,("%s: found start of next GOP at offset: %d, old tag:%d new tag:%d",
-                              __FUNCTION__,
-                              pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
-                              pDQTCntxt->uiCurrentPicTag,
-                              stDisplayElement.pPPB->picture_tag
-                              ));
 
          if ( bDoneProcessingGop )
          {
@@ -4755,9 +5526,18 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
       }
 
       /* Release the picture and invalidate the entry in the picture context queue. */
-      BDBG_MODULE_MSG( BXVD_QCTL,("%s: release picture %2d",
+      BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: release picture que idx:%2d pts:%08x",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                               __FUNCTION__,
-                              pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE
+                              pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
+                              stDisplayElement.pPPB->pts
+                              ));
+
+      BDBG_MODULE_MSG( BXVD_UP,(" %03x: %s:: release picture que idx:%2d pts:%08x",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
+                              __FUNCTION__,
+                              pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE,
+                              stDisplayElement.pPPB->pts
                               ));
 
       BXVD_Decoder_S_ReleaseQ_AddPPB_isr( hXvdCh, stDisplayElement.pPPBPhysical );
@@ -4798,6 +5578,10 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
 
    if ( bDoneProcessingGop && ( pDQTCntxt->uiEndOfGopOffset == uiWriteOffset  ))
    {
+      bPrintState = true;
+
+      BXVD_Decoder_S_Print_Queue_isr( hXvdCh, "t2" );
+
       /*
       ** We'll hit this block if
       ** - the entire "head" of the GOP has been processed
@@ -4815,7 +5599,8 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
       */
       if ( uiDqReadOffset != pDQTCntxt->uiEndOfGopOffset )
       {
-         BDBG_MODULE_MSG( BXVD_QCTL,("%s: jumping reading offsets ahead to match uiEndOfGopOffset: %2d",
+         BDBG_MODULE_MSG( BXVD_QCTL,("%03x %s: jumping reading offsets ahead to match uiEndOfGopOffset: %2d",
+                              hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                               __FUNCTION__,
                               pDQTCntxt->uiEndOfGopOffset-BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE
                               ));
@@ -4826,6 +5611,8 @@ static void BXVD_Decoder_S_DeliveryQ_ReleaseGopTail_isr(
       pDQTCntxt->uiReverseReadOffset = pDQTCntxt->uiEndOfGopOffset;
 
    }
+
+   if (true == bPrintState ) BXVD_Decoder_S_Print_Queue_isr( hXvdCh, "t3" );
 
    return;
 
@@ -4962,7 +5749,7 @@ BERR_Code BXVD_Decoder_GetNextPicture_isr(
       BXVD_P_Userdata_EnqueueDataPointer_isr(
                hXvdCh,
                pstUnifiedContext->stUnifiedPicture.stProtocol.eProtocol,
-               (unsigned long)pstUnifiedContext->pPPB->user_data ,
+               pstUnifiedContext->pPPB->user_data ,
                pstUnifiedContext->pPPB->flags,
                pstUnifiedContext->pPPB->pulldown,
                pstUnifiedContext->pPPB->pts,
@@ -4988,7 +5775,6 @@ BERR_Code BXVD_Decoder_GetNextPicture_isr(
 #endif
 
    BXVD_DecoderTimer_P_SnapshotFunctionEndTime_isr( hXvdCh, BXVD_DecoderTimer_P_eFuncGetNextPic );
-
 
    BDBG_LEAVE( BXVD_Decoder_GetNextPicture_isr );
    return BERR_TRACE( BERR_SUCCESS );
@@ -5231,7 +6017,7 @@ BXVD_Decoder_DisplayInterruptEvent_isr(
          uint32_t uiInstanceId = hXvdCh->ulChannelNum & 0xF;
          uiInstanceId |= ( hXvdCh->pXvd->uDecoderInstance & 0xF ) << 4 ;
 
-         BDBG_MODULE_MSG( BXVD_QDBG, ("%03x:[%02x.xxx] %d pictures on delivery Q, WR offsets: previous::%d current:%d",
+         BDBG_MODULE_MSG( BXVD_QDBG, ("%03X:[%02x.xxx] %d pictures on delivery Q, WR offsets: previous::%d current:%d",
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                  uiInstanceId,
                                  uiWriteOffsetDelta,
@@ -5476,6 +6262,9 @@ BERR_Code BXVD_Decoder_StartDecode_isr(
    /* FWAVD-289: Use the queue index to detect when a picture is being evaluated for the first time. */
    hXvdCh->stDecoderContext.stPictureContextQueue.uiPreviousWriteOffset = -1;
 
+   /* SW7425-2686: reset the intra-GOP picture count */
+   hXvdCh->stDecoderContext.stPictureContextQueue.uiIntraGOPIndex = 0;
+
    /* Need to initialize in case the first PPB(s) don't contain a coded PTS. */
    hXvdCh->stDecoderContext.uiDropCountSnapshot = 0;
 
@@ -5584,6 +6373,9 @@ BERR_Code BXVD_Decoder_StopDecode_isr(
       /* Disable the reverse playback of GOPs */
       hXvdCh->stDecoderContext.bReversePlayback = false;
 
+      /* SW7425-2686: Disable multi-pass DQT. */
+      hXvdCh->stTrickModeSettings.stGopTrickMode.eMode = BXVD_DQTTrickMode_eDisable;
+
       hXvdCh->stDecoderContext.bHostSparseMode = false;
    }
 
@@ -5689,6 +6481,11 @@ static uint32_t BXVD_Decoder_S_Dbg_SwapLong (
  */
 #define BIT_EXTRACT(VALUE, MSB, LSB)  ((VALUE>>LSB) & ((1<<(MSB-LSB+1))-1))
 
+#define LPDDR4 0
+#define DDR_MAP5 1
+
+#define DDR_DWORD_JWORD_SWAP 1
+
 static int32_t BXVD_Decoder_S_Dbg_DestripeSection (
    unsigned char *from,
    unsigned char *to,
@@ -5717,31 +6514,50 @@ static int32_t BXVD_Decoder_S_Dbg_DestripeSection (
    {
       /* apply range mapping equation */
 
-#if 1
+#if DDR_MAP5
       uint32_t mod_addr;
       unsigned char *mod_ptr;
 
       mod_addr = (uint32_t)&(ptr[scol]);
 
-      mod_addr = BIT_EXTRACT(mod_addr, 8, 8)?(mod_addr ^ 0x00000020):mod_addr;
+      if (stripe_wid == 128)
+      {
+         mod_addr = BIT_EXTRACT(mod_addr, 8, 8)?(mod_addr ^ 0x00000020):mod_addr;
+      }
+      else
+      {
+         mod_addr = BIT_EXTRACT(mod_addr, 9, 9)?(mod_addr ^ 0x00000020):mod_addr;
+      }
+#if DDR_DWORD_JWORD_SWAP
+      mod_addr = (mod_addr & (~0x1F)) + (mod_addr & 3) +  0x1C - (mod_addr & 0x1C); /* DWord address within JWord */
+#endif
+
+      mod_ptr = (unsigned char *) mod_addr;
+
+      *to++ = *mod_ptr;
+#elif LPDDR4
+      uint32_t mod_addr;
+      unsigned char *mod_ptr;
+
+      uint32_t temp_addr;
+
+      mod_addr = (uint32_t)&(ptr[scol]);
+
+      /* This is to apply the LPDDR4 modified raster swizzle: */
+      /*   mod_addr = (((mod_addr & 0x300)==0) || ((mod_addr & 0x300)==0x300)) ? mod_addr : (mod_addr ^ 0x00000020); */
+
+      mod_addr = (BIT_EXTRACT(mod_addr, 8, 8) ^ BIT_EXTRACT(mod_addr, 9, 9)) ? (mod_addr ^ 0x00000020) : mod_addr;
+
+      /* This is for SCB8 (such as LPDDR4) to un-swap words inside J word because the whole Jword gets read in
+         little endian by the ARM now, while pixel clients are still big endian words within a jword */
+
+      mod_addr = (mod_addr & (~0x1F)) + (mod_addr & 3) +  0x1C - (mod_addr & 0x1C); /* DWord address within JWord */
 
       mod_ptr = (unsigned char *) mod_addr;
 
       *to++ = *mod_ptr;
 #else
-
-      pel = ptr [scol];
-      if (ulRangeRemapping != 8)
-      {
-         lpel = (uint32_t) pel;
-
-         lpel = ((((lpel - 128) *  (int32_t) ulRangeRemapping) + 4) >> 3) + 128;
-         if (lpel > 255) pel = 255;
-         else if (lpel < 0) pel = 0;
-         else pel = (unsigned char) lpel;
-      }
-
-      *to++ = pel;
+      *to++ = ptr [scol];
 #endif
       /* If we reach the end of a stripe, move down to the
        * next strip to continue this row.
@@ -5859,10 +6675,10 @@ void BXVD_Decoder_S_Dbg_DumpYUV(
    /* Convert the two video buffers to logical addresses */
 
    BDBG_MSG(("Luma:PA: 0x%08x PicMemBase VA: 0x%08x  PA: 0x%08x",
-             ppb->luma_video_address, hXvdCh->uiFWPicMemBaseVirtAddr, hXvdCh->uiFWPicMemBasePhyAddr));
+             ppb->luma_video_address, hXvdCh->uiFWPicMemBaseVirtAddr, hXvdCh->FWPicMemBasePhyAddr));
 
-   pYData =(unsigned char *)(hXvdCh->uiFWPicMemBaseVirtAddr + (ppb->luma_video_address - hXvdCh->uiFWPicMemBasePhyAddr));
-   pUVData = (unsigned char *)(hXvdCh->uiFWPicMemBaseVirtAddr + (ppb->chroma_video_address - hXvdCh->uiFWPicMem1BasePhyAddr));
+   pYData =(unsigned char *)(hXvdCh->uiFWPicMemBaseVirtAddr + (ppb->luma_video_address - hXvdCh->FWPicMemBasePhyAddr));
+   pUVData = (unsigned char *)(hXvdCh->uiFWPicMemBaseVirtAddr + (ppb->chroma_video_address - hXvdCh->FWPicMem1BasePhyAddr));
 
    BDBG_MSG(("pYData VA: 0x%08x ", pYData));
 
@@ -5999,7 +6815,7 @@ void BXVD_Decoder_S_Dbg_DumpRVC(
 
    /* pRVCdata contains a virtual pointer to the data */
 
-   pRVCdata = (unsigned char *)(hXvdCh->uiFWPicMemBaseVirtAddr + (start - hXvdCh->uiFWPicMemBasePhyAddr));
+   pRVCdata = (unsigned char *)(hXvdCh->uiFWPicMemBaseVirtAddr + (start - hXvdCh->FWPicMemBasePhyAddr));
    BMMA_FlushCache(hXvdCh->hFWPicMemBlock, pRVCdata, size);
 
    if (contig)

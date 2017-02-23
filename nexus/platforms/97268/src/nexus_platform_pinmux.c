@@ -55,7 +55,7 @@ Description:
  ***************************************************************************/
 
 #if NEXUS_HAS_SAGE
-void NEXUS_Platform_P_EnableSageDebugPinmux(void)
+static void NEXUS_Platform_P_EnableSageDebugPinmux(void)
 {
     NEXUS_PlatformStatus platformStatus;
     BREG_Handle hReg = g_pCoreHandles->reg;

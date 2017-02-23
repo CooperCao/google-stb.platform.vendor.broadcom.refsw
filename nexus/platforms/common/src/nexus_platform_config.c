@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,7 +118,7 @@ static void NEXUS_Platform_P_StartMonitor(void);
 static void NEXUS_Platform_P_StopMonitor(void);
 
 #if NEXUS_HAS_I2C
-void NEXUS_Platform_P_GetI2CGpioHandles(unsigned index, NEXUS_GpioHandle *gpioClk , NEXUS_GpioHandle *gpioData)
+static void NEXUS_Platform_P_GetI2CGpioHandles(unsigned index, NEXUS_GpioHandle *gpioClk , NEXUS_GpioHandle *gpioData)
 {
     NEXUS_GpioSettings gpioSettings;
     if(index == 0){
@@ -232,6 +232,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 #endif
                 /* HDMI i2c is always run at 100k */
                 i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
+                i2cSettings.use5v = true;
+
             }
             else
             {
@@ -262,8 +264,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
                 i2cSettings.dataGpio = NULL;
             }
 
-            BDBG_MSG(("i = %d, interruptMode = %d, autoI2c = %d, softI2c = %d, fourByteXferMode = %d, burstMode = %d",
-                        i, i2cSettings.interruptMode, i2cSettings.autoI2c.enabled , i2cSettings.softI2c, i2cSettings.fourByteXferMode, i2cSettings.burstMode));
+            BDBG_MSG(("i = %d, interruptMode = %d, autoI2c = %d, softI2c = %d, fourByteXferMode = %d, burstMode = %d, use5V = %d",
+                        i, i2cSettings.interruptMode, i2cSettings.autoI2c.enabled , i2cSettings.softI2c, i2cSettings.fourByteXferMode, i2cSettings.burstMode, i2cSettings.use5v));
             pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
             if (!pConfig->i2c[i]) {
                 /* NEXUS_I2c index is packed, so we can be done */
@@ -441,9 +443,13 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
         }
 #endif
 
-#if NEXUS_NUM_AUDIO_DACS && NEXUS_HAS_AUDIO
+#if NEXUS_HAS_AUDIO
+    {
+        NEXUS_AudioCapabilities audioCapabilities;
+        NEXUS_GetAudioCapabilities(&audioCapabilities);
+
         BDBG_CASSERT(NEXUS_NUM_AUDIO_DACS <= sizeof(pConfig->outputs.audioDacs)/sizeof(pConfig->outputs.audioDacs[0]));
-        for ( i = 0; i < NEXUS_NUM_AUDIO_DACS; i++ )
+        for ( i = 0; i < audioCapabilities.numOutputs.dac; i++ )
         {
             pConfig->outputs.audioDacs[i] = NEXUS_AudioDac_Open(i, NULL);
             if ( NULL == pConfig->outputs.audioDacs[i] )
@@ -453,11 +459,9 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
             NEXUS_OBJECT_REGISTER(NEXUS_AudioDac, pConfig->outputs.audioDacs[i], Create);
         }
-#endif
 
-#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_HAS_AUDIO
-        BDBG_CASSERT(NEXUS_NUM_SPDIF_OUTPUTS<= sizeof(pConfig->outputs.spdif)/sizeof(pConfig->outputs.spdif[0]));
-        for ( i = 0; i < NEXUS_NUM_SPDIF_OUTPUTS; i++ )
+        BDBG_CASSERT(NEXUS_NUM_SPDIF_OUTPUTS <= sizeof(pConfig->outputs.spdif)/sizeof(pConfig->outputs.spdif[0]));
+        for ( i = 0; i < audioCapabilities.numOutputs.spdif; i++ )
         {
             pConfig->outputs.spdif[i] = NEXUS_SpdifOutput_Open(i, NULL);
             if ( NULL == pConfig->outputs.spdif[i] )
@@ -467,11 +471,9 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
             NEXUS_OBJECT_REGISTER(NEXUS_SpdifOutput, pConfig->outputs.spdif[i], Create);
         }
-#endif
 
-#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS && NEXUS_HAS_AUDIO
         BDBG_CASSERT(NEXUS_NUM_AUDIO_DUMMY_OUTPUTS <= sizeof(pConfig->outputs.audioDummy)/sizeof(pConfig->outputs.audioDummy[0]));
-        for ( i = 0; i < NEXUS_NUM_AUDIO_DUMMY_OUTPUTS; i++ )
+        for ( i = 0; i < audioCapabilities.numOutputs.dummy; i++ )
         {
             pConfig->outputs.audioDummy[i] = NEXUS_AudioDummyOutput_Open(i, NULL);
             if ( NULL == pConfig->outputs.audioDummy[i] )
@@ -481,11 +483,9 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
             NEXUS_OBJECT_REGISTER(NEXUS_AudioDummyOutput, pConfig->outputs.audioDummy[i], Create);
         }
-#endif
 
-#if NEXUS_NUM_I2S_OUTPUTS && NEXUS_HAS_AUDIO
         BDBG_CASSERT(NEXUS_NUM_I2S_OUTPUTS<= sizeof(pConfig->outputs.i2s)/sizeof(pConfig->outputs.i2s[0]));
-        for ( i = 0; i < NEXUS_NUM_I2S_OUTPUTS; i++ )
+        for ( i = 0; i < audioCapabilities.numOutputs.i2s; i++ )
         {
             pConfig->outputs.i2s[i] = NEXUS_I2sOutput_Open(i, NULL);
             if ( NULL == pConfig->outputs.i2s[i] )
@@ -495,20 +495,8 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
             }
             NEXUS_OBJECT_REGISTER(NEXUS_I2sOutput, pConfig->outputs.i2s[i], Create);
         }
-#if NEXUS_NUM_I2S_MULTI_OUTPUTS && NEXUS_HAS_AUDIO
-        BDBG_CASSERT(NEXUS_NUM_I2S_MULTI_OUTPUTS<= sizeof(pConfig->outputs.i2sMulti)/sizeof(pConfig->outputs.i2sMulti[0]));
-        for ( i = 0; i < NEXUS_NUM_I2S_MULTI_OUTPUTS; i++ )
-        {
-            pConfig->outputs.i2sMulti[i] = NEXUS_I2sMultiOutput_Open(i, NULL);
-            if ( NULL == pConfig->outputs.i2sMulti[i] )
-            {
-                errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-                goto error;
-            }
-            NEXUS_OBJECT_REGISTER(NEXUS_I2sMultiOutput, pConfig->outputs.i2sMulti[i], Create);
-        }
-#endif
-#endif
+    }
+#endif /* NEXUS_HAS_AUDIO */
 
 #if NEXUS_HAS_HDMI_OUTPUT
         if ( pSettings->openI2c )
@@ -644,72 +632,66 @@ void NEXUS_Platform_P_Shutdown(void)
 #endif
 
 #if NEXUS_HAS_DISPLAY
-#if NEXUS_NUM_I2S_OUTPUTS && NEXUS_HAS_AUDIO
-    for ( i = 0; i < NEXUS_NUM_I2S_OUTPUTS; i++ )
+#if NEXUS_HAS_AUDIO
     {
-        if ( NULL != pConfig->outputs.i2s[i] )
-        {
-            NEXUS_AudioOutput_Shutdown(NEXUS_I2sOutput_GetConnector(pConfig->outputs.i2s[i]));
-            NEXUS_OBJECT_UNREGISTER(NEXUS_I2sOutput, pConfig->outputs.i2s[i], Destroy);
-            NEXUS_I2sOutput_Close(pConfig->outputs.i2s[i]);
-            pConfig->outputs.i2s[i] = NULL;
-        }
-    }
+        NEXUS_AudioCapabilities audioCapabilities;
+        NEXUS_GetAudioCapabilities(&audioCapabilities);
 
-#if NEXUS_NUM_I2S_MULTI_OUTPUTS && NEXUS_HAS_AUDIO
-        for ( i = 0; i < NEXUS_NUM_I2S_MULTI_OUTPUTS; i++ )
+        for ( i = 0; i < audioCapabilities.numOutputs.i2s; i++ )
         {
-            if ( NULL != pConfig->outputs.i2sMulti[i] )
+            if ( NULL != pConfig->outputs.i2s[i] )
             {
-                NEXUS_AudioOutput_Shutdown(NEXUS_I2sMultiOutput_GetConnector(pConfig->outputs.i2sMulti[i]));
-                NEXUS_OBJECT_UNREGISTER(NEXUS_I2sMultiOutput, pConfig->outputs.i2sMulti[i], Destroy);
-                NEXUS_I2sMultiOutput_Close(pConfig->outputs.i2sMulti[i]);
-                pConfig->outputs.i2sMulti[i] = NULL;
+                NEXUS_AudioOutput_Shutdown(NEXUS_I2sOutput_GetConnector(pConfig->outputs.i2s[i]));
+                NEXUS_OBJECT_UNREGISTER(NEXUS_I2sOutput, pConfig->outputs.i2s[i], Destroy);
+                NEXUS_I2sOutput_Close(pConfig->outputs.i2s[i]);
+                pConfig->outputs.i2s[i] = NULL;
             }
         }
-#endif
+        for ( i = 0; i < audioCapabilities.numOutputs.spdif; i++ ) {
+            if (pConfig->outputs.spdif[i]) {
+                NEXUS_AudioOutput_Shutdown(NEXUS_SpdifOutput_GetConnector(pConfig->outputs.spdif[i]));
+                NEXUS_OBJECT_UNREGISTER(NEXUS_SpdifOutput, pConfig->outputs.spdif[i], Destroy);
+                NEXUS_SpdifOutput_Close(pConfig->outputs.spdif[i]);
+                pConfig->outputs.spdif[i] = NULL;
+            }
+        }
 
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_HAS_AUDIO
-    for ( i = 0; i < NEXUS_NUM_SPDIF_OUTPUTS; i++ ) {
-        if (pConfig->outputs.spdif[i]) {
-            NEXUS_AudioOutput_Shutdown(NEXUS_SpdifOutput_GetConnector(pConfig->outputs.spdif[i]));
-            NEXUS_OBJECT_UNREGISTER(NEXUS_SpdifOutput, pConfig->outputs.spdif[i], Destroy);
-            NEXUS_SpdifOutput_Close(pConfig->outputs.spdif[i]);
-            pConfig->outputs.spdif[i] = NULL;
+        for ( i = 0; i < audioCapabilities.numOutputs.dummy; i++ ) {
+            if (pConfig->outputs.audioDummy[i]) {
+                NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pConfig->outputs.audioDummy[i]));
+                NEXUS_OBJECT_UNREGISTER(NEXUS_AudioDummyOutput, pConfig->outputs.audioDummy[i], Destroy);
+                NEXUS_AudioDummyOutput_Close(pConfig->outputs.audioDummy[i]);
+                pConfig->outputs.audioDummy[i] = NULL;
+            }
         }
     }
-#endif
-#if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS && NEXUS_HAS_AUDIO
-    for ( i = 0; i < NEXUS_NUM_AUDIO_DUMMY_OUTPUTS; i++ ) {
-        if (pConfig->outputs.audioDummy[i]) {
-            NEXUS_AudioOutput_Shutdown(NEXUS_AudioDummyOutput_GetConnector(pConfig->outputs.audioDummy[i]));
-            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioDummyOutput, pConfig->outputs.audioDummy[i], Destroy);
-            NEXUS_AudioDummyOutput_Close(pConfig->outputs.audioDummy[i]);
-            pConfig->outputs.audioDummy[i] = NULL;
+    #endif /* NEXUS_HAS_AUDIO */
+
+    #if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
+        if (pConfig->outputs.rfm[0]) {
+            #if NEXUS_HAS_AUDIO
+            NEXUS_AudioOutput_Shutdown(NEXUS_Rfm_GetAudioConnector(pConfig->outputs.rfm[0]));
+            #endif
+            NEXUS_OBJECT_UNREGISTER(NEXUS_Rfm, pConfig->outputs.rfm[0], Destroy);
+            NEXUS_Rfm_Close(pConfig->outputs.rfm[0]);
+            pConfig->outputs.rfm[0] = NULL;
+        }
+    #endif
+    #if NEXUS_HAS_AUDIO
+    {
+        NEXUS_AudioCapabilities audioCapabilities;
+        NEXUS_GetAudioCapabilities(&audioCapabilities);
+        for ( i = 0; i < audioCapabilities.numOutputs.dac; i++ ) {
+            if (pConfig->outputs.audioDacs[i]) {
+                NEXUS_AudioOutput_Shutdown(NEXUS_AudioDac_GetConnector(pConfig->outputs.audioDacs[i]));
+                NEXUS_OBJECT_UNREGISTER(NEXUS_AudioDac, pConfig->outputs.audioDacs[i], Destroy);
+                NEXUS_AudioDac_Close(pConfig->outputs.audioDacs[i]);
+                pConfig->outputs.audioDacs[i] = NULL;
+            }
         }
     }
-#endif
-#if NEXUS_HAS_RFM && NEXUS_NUM_RFM_OUTPUTS
-    if (pConfig->outputs.rfm[0]) {
-        #if NEXUS_HAS_AUDIO
-        NEXUS_AudioOutput_Shutdown(NEXUS_Rfm_GetAudioConnector(pConfig->outputs.rfm[0]));
-        #endif
-        NEXUS_OBJECT_UNREGISTER(NEXUS_Rfm, pConfig->outputs.rfm[0], Destroy);
-        NEXUS_Rfm_Close(pConfig->outputs.rfm[0]);
-        pConfig->outputs.rfm[0] = NULL;
-    }
-#endif
-#if NEXUS_NUM_AUDIO_DACS && NEXUS_HAS_AUDIO
-    for ( i = 0; i < NEXUS_NUM_AUDIO_DACS; i++ ) {
-        if (pConfig->outputs.audioDacs[i]) {
-            NEXUS_AudioOutput_Shutdown(NEXUS_AudioDac_GetConnector(pConfig->outputs.audioDacs[i]));
-            NEXUS_OBJECT_UNREGISTER(NEXUS_AudioDac, pConfig->outputs.audioDacs[i], Destroy);
-            NEXUS_AudioDac_Close(pConfig->outputs.audioDacs[i]);
-            pConfig->outputs.audioDacs[i] = NULL;
-        }
-    }
-#endif
+    #endif
+
 #if NEXUS_NUM_SVIDEO_OUTPUTS
     for ( i = 0; i < NEXUS_NUM_SVIDEO_OUTPUTS; i++ ) {
         if (pConfig->outputs.svideo[i]) {

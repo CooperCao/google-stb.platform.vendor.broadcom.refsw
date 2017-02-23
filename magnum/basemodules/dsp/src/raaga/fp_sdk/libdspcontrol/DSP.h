@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /**
  * @file
@@ -83,6 +80,7 @@
  */
 
 #include "libdspcontrol/CHIP.h"
+#include "fp_sdk_config.h"
 
 #if !FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
 #  include <stddef.h>
@@ -134,7 +132,8 @@ typedef enum
     DSP_BAD_ADDR_OR_SIZE              = 10, /**< A superset of DSP_BAD_ADDRESS_ALIGNMENT or DSP_BAD_SIZE */
     DSP_DEBUG_CONSOLE_NOT_INITIALISED = 11,
     DSP_DEBUG_CONSOLE_NO_DATA         = 12,
-    DSP_DEBUG_CONSOLE_NO_SPACE        = 13
+    DSP_DEBUG_CONSOLE_NO_SPACE        = 13,
+    DSP_UNKNOW_OPTION                 = 14
 } DSP_RET;
 
 
@@ -246,6 +245,32 @@ typedef uint16_t DSP_CORES_BITMAP;
 
 
 /**
+ * DSP cores masks for the #DSP_CORES_BITMAP type.
+ */
+typedef enum
+{
+    DSP_CORES_NONE = 0,
+    DSP_CORES_ALL  = (1 << NUM_CORES) - 1,
+    DSP_CORES_0    = (1 << 0),
+    DSP_CORES_1    = (1 << 1),
+    DSP_CORES_2    = (1 << 2),
+    DSP_CORES_3    = (1 << 3),
+    DSP_CORES_4    = (1 << 4),
+    DSP_CORES_5    = (1 << 5),
+    DSP_CORES_6    = (1 << 6),
+    DSP_CORES_7    = (1 << 7),
+    DSP_CORES_8    = (1 << 8),
+    DSP_CORES_9    = (1 << 9),
+    DSP_CORES_10   = (1 << 10),
+    DSP_CORES_11   = (1 << 11),
+    DSP_CORES_12   = (1 << 12),
+    DSP_CORES_13   = (1 << 13),
+    DSP_CORES_14   = (1 << 14),
+    DSP_CORES_15   = (1 << 15)
+} DSP_CORES_MASK;
+
+
+/**
  * DSP cores enumeration.
  */
 typedef enum
@@ -261,8 +286,17 @@ typedef enum
     DSP_CORE_8  = 8,
     DSP_CORE_9  = 9,
     DSP_CORE_10 = 10,
-    DSP_CORE_11 = 11
+    DSP_CORE_11 = 11,
+    DSP_CORE_12 = 12,
+    DSP_CORE_13 = 13,
+    DSP_CORE_14 = 14,
+    DSP_CORE_15 = 15
 } DSP_CORE;
+
+
+#if NUM_CORES > 16
+#  error "Please update DSP_CORES_BITMAP, DSP_CORES_MASK, DSP_CORE to support the number of cores on this SoC"
+#endif
 
 
 /**
@@ -397,22 +431,24 @@ const DSP_DRAM_MEMORY_AREA *DSP_getVomDRAM(DSP *dsp, size_t size);
  * Translate one address from the address space visible from the DSP to the one
  * offered by the interface used by the Host to communicate with the system.
  *
- * @param[in] dsp  the DSP instance
- * @param[in] addr the address to be translated (DSP address space)
- * @return         the translated address (system address space)
+ * @param[in]  dsp      the DSP instance
+ * @param[in]  dsp_addr the address to be translated (DSP address space)
+ * @param[out] sys_addr the translated address (system address space)
+ * @return              one of the #DSP_RET return values
  */
-uint32_t DSP_addrDsp2System(DSP *dsp, DSP_ADDR addr);
+DSP_RET DSP_addrDsp2System(DSP *dsp, DSP_ADDR dsp_addr, uint32_t *sys_addr);
 
 
 /**
  * Translate one address from the address space offered by the interface used
  * by the Host to communicate with the system to the one visible from the DSP.
  *
- * @param[in] dsp   the DSP instance
- * @param[in] addr  the address to be translated (system address space)
- * @return          the translated address (DSP address space)
+ * @param[in]  dsp   the DSP instance
+ * @param[in]  sys_addr the address to be translated (system address space)
+ * @param[out] dsp_addr the translated address (DSP address space)
+ * @return              one of the #DSP_RET return values
  */
-DSP_ADDR DSP_addrSystem2Dsp(DSP *dsp, uint32_t addr);
+DSP_RET DSP_addrSystem2Dsp(DSP *dsp, uint32_t sys_addr, DSP_ADDR *dsp_addr);
 
 
 /**
@@ -616,40 +652,45 @@ DSP_RET DSP_readDataAsDsp(DSP *dsp, void *dest, DSP_ADDR src, size_t n);
 
 
 /**
- * Reads interrupt bits from the DSP.
+ * Reads interrupt bits from the specified DSP core.
  *
  * @param[in]  dsp         the DSP instance
+ * @param[in]  core        which core to read interrupts for
  * @param[out] interrupts  a structure that will be filled with currently active interrupts information
  */
-void DSP_pollInterrupts(DSP *dsp, DSP_INTERRUPTS *interrupts);
+void DSP_pollInterrupts(DSP *dsp, DSP_CORE core, DSP_INTERRUPTS *interrupts);
 
 
 /**
- * Clear interrupt bits from the DSP.
+ * Clear interrupt bits on the specified DSP core.
  *
  * @param[in] dsp         the DSP instance
+ * @param[in] core        which core to clear interrupts for
  * @param[in] interrupts  a structure with informations about which interrupts to reset
  */
-void DSP_clearInterrupts(DSP *dsp, DSP_INTERRUPTS *interrupts);
+void DSP_clearInterrupts(DSP *dsp, DSP_CORE core, DSP_INTERRUPTS *interrupts);
 
 
 /**
- * Clear all interrupt bits from the DSP.
+ * Clear all interrupt bits from the specified DSP core.
  *
+ * @param[in] core which core to clear all interrupts for
  * @param[in] dsp  the DSP instance
  */
-void DSP_clearAllInterrupts(DSP *dsp);
+void DSP_clearAllInterrupts(DSP *dsp, DSP_CORE core);
 
 
 /**
- * Reads and decodes the Heartbeat word.
+ * Reads and decodes the Heartbeat word for the specified core.
  * Note: some chip don't support the Heartbeat service, in which case its
  *       functionality will be roughly emulated.
  *
  * @param[in]  dsp       the DSP instance
- * @param[out] heartbeat the heartbeat structure to be filled in
+ * @param[in]  core      which core to read the Heartbeat word for
+ * @param[out] heartbeat the heartbeat structure to be filled in; output value is undefined if the function doesn't succeed
+ * @return               one of the #DSP_RET return values
  */
-void DSP_pollHeartbeat(DSP *dsp, DSP_HEARTBEAT *heartbeat);
+DSP_RET DSP_pollHeartbeat(DSP *dsp, DSP_CORE core, DSP_HEARTBEAT *heartbeat);
 
 
 /**
@@ -657,16 +698,36 @@ void DSP_pollHeartbeat(DSP *dsp, DSP_HEARTBEAT *heartbeat);
  * Note: some chip don't support the Heartbeat service, in which case its
  *       functionality will be roughly emulated.
  *
- * @param dsp  the DSP instance
+ * @param[in] dsp   the DSP instance
+ * @param[in] core  which core to clear the Heartbeat word for
+ * @return          one of the #DSP_RET return values
  */
-void DSP_clearHeartbeat(DSP *dsp);
+DSP_RET DSP_clearHeartbeat(DSP *dsp, DSP_CORE core);
+
+
+/**
+ * Abstract way to set options regarding the DSP object.
+ *
+ * @param[in] dsp    the DSP instance
+ * @param[in] option which option to set
+ * @param[in] value  the new value for the option; pointed type is option-dependent
+ * @return           DSP_SUCCESS if the options was set successfully, DSP_UNKNOW_OPTION otherwise
+ */
+DSP_RET DSP_setOption(DSP *dsp, DSP_OPTION option, void *value);
+
+
+/**
+ * Abstract way to get options regarding the DSP object.
+ *
+ * @param[in]  dsp    the DSP instance
+ * @param[in]  option which option to get
+ * @param[out] value  out parameter to store the value associated to the requested option; pointed type is option-dependent
+ * @return            DSP_SUCCESS if the options was retrieved successfully, DSP_UNKNOW_OPTION otherwise
+ */
+DSP_RET DSP_getOption(DSP *dsp, DSP_OPTION option, void *value);
 
 
 #ifndef __FP4014_ONWARDS__
-/* FIXME: this should really be disabled also for FP2012. Let's keep this for
- *        now until the DBG module sorts out a different communication
- *        abstraction for this machine. */
-
 /**
  * Query if data is available in the debug console read buffer
  * for the specified core.

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* Nexus example app: play and decode MP3 file to audio dacs */
@@ -86,6 +78,8 @@ int main(int argc, char **argv) {
     BKNI_EventHandle event;
     NEXUS_PlaybackStartSettings playbackStartSettings;
     const char *fname = "audio/test.mp3";
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
 
     if (argc > 1) {
         fname = argv[1];
@@ -95,6 +89,18 @@ int main(int argc, char **argv) {
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform (needs decoders)!\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
 
     BKNI_CreateEvent(&event);
 
@@ -117,12 +123,12 @@ int main(int argc, char **argv) {
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
+    if (audioDacHandle) {
     NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+        audioDacHandle,
         NEXUS_AudioDecoder_GetConnector(pcmDecoder,
-        NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+                                        NEXUS_AudioDecoderConnectorType_eStereo));
+    }
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
     audioProgram.codec = NEXUS_AudioCodec_eMp3;
 
@@ -158,9 +164,9 @@ int main(int argc, char **argv) {
 
     NEXUS_AudioDecoder_Stop(pcmDecoder);
     NEXUS_Playback_Stop(playback);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
+    if (audioDacHandle) {
+    NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
     NEXUS_Playback_ClosePidChannel(playback, audioProgram.pidChannel);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);

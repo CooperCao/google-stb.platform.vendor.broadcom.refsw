@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2007-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
@@ -154,7 +143,7 @@ NEXUS_Error NEXUS_VideoWindow_SetDnrSettings( NEXUS_VideoWindowHandle window, co
     return NEXUS_VideoWindow_SetCustomDnrSettings(window, pSettings, NULL, 0);
 }
 
-int nexus_videoadj_p_dnr_alloc(BAVC_SourceId id)
+static int nexus_videoadj_p_dnr_alloc(BAVC_SourceId id)
 {
     if (id > BAVC_SourceId_eMpegMax) {
         return -1;

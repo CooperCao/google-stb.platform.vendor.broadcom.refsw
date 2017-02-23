@@ -257,7 +257,8 @@ typedef struct NEXUS_PidChannelStatus
         unsigned itbOverflowErrors;
     } raveStatus;
     struct {
-        unsigned overflowErrors;
+        unsigned overflowErrors; /* Cumulative sum of the various input band parser destination overflow errors.
+                                    Reset when PID channel is disabled or NEXUS_PidChannel_ResetStatus() */
     } xcBufferStatus;
 } NEXUS_PidChannelStatus;
 

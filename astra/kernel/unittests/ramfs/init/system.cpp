@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,14 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * system.cpp
- *
- *  Created on: Feb 18, 2015
- *      Author: gambhire
- */
-
 #include <stdint.h>
 
 #include "arm/arm.h"
@@ -53,6 +45,7 @@
 #include "libfdt.h"
 #include "parse_utils.h"
 
+#include "platform.h"
 #include "kernel.h"
 #include "tzmemory.h"
 #include "pgtable.h"
@@ -87,6 +80,7 @@ void System::init(const void *devTree) {
     }
 
     PageTable::init();
+    Platform::init(tzDevTree);
     TzMem::init(tzDevTree);
     RamFS::init();
 
@@ -103,6 +97,9 @@ void System::init(const void *devTree) {
 
     PageTable::kernelPageTable()->dump();
     printf("System init done\n");
+}
+
+void System::initSecondaryCpu() {
 }
 
 IDirectory *System::root() {

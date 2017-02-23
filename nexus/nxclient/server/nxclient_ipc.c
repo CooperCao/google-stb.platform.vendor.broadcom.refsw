@@ -50,6 +50,8 @@
 #include <fcntl.h>
 #include <signal.h>
 
+BDBG_MODULE(nxclient_ipc);
+
 static const bipc_interface_descriptor * const client_interfaces [] = {
     &bipc_nxclient_p_descriptor
 };
@@ -220,7 +222,7 @@ void NxClient_Uninit(void)
     LOCK();
     if (--nxclient_state.refcnt == 0) {
         NEXUS_Platform_Uninit();
-        NxClient_P_Uninit(nxclient_ipc_thread_regular);
+        NxClient_P_Uninit(nxclient_ipc_thread_regular); /* must close regular first, since restricted calls get blocked if in standby */
         NxClient_P_Uninit(nxclient_ipc_thread_restricted);
         BKNI_Uninit();
     }

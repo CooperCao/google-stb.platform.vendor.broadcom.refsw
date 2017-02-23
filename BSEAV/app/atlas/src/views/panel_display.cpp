@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -60,9 +60,12 @@ CPanelDisplay::CPanelDisplay(
     _ContentMode(NULL),
     _ContentModeLabel(NULL),
     _ContentModePopup(NULL),
-    _Color(NULL),
-    _ColorLabel(NULL),
-    _ColorPopup(NULL),
+    _ColorSpace(NULL),
+    _ColorSpaceLabel(NULL),
+    _ColorSpacePopup(NULL),
+    _ColorDepth(NULL),
+    _ColorDepthLabel(NULL),
+    _ColorDepthPopup(NULL),
     _Deinterlacer(NULL),
     _BoxDetect(NULL),
     _MpaaDecimation(NULL),
@@ -99,7 +102,7 @@ eRet CPanelDisplay::initialize(
     uint32_t    graphicsWidth  = 0;
     uint32_t    graphicsHeight = 0;
     int         menuWidth      = 266;
-    int         menuHeight     = 290;
+    int         menuHeight     = 310;
     MRect       rectPanel;
 
     BDBG_ASSERT(NULL != pModel);
@@ -136,7 +139,7 @@ eRet CPanelDisplay::initialize(
         MRect                rectPopup;
 
         /* Format */
-        ret = addLabelPopupButton(_pDisplayMenu, "Format", &_Format, &_FormatLabel, &_FormatPopup, font12, 25);
+        ret = _pDisplayMenu->addLabelPopupButton(this, "Format", &_Format, &_FormatLabel, &_FormatPopup, font12, 25);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _Format->setFocusable(false);
         _FormatLabel->setText("Format:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -157,7 +160,7 @@ eRet CPanelDisplay::initialize(
         _AutoFormat->setCheck(false);
 
         /* Content Mode */
-        ret = addLabelPopupButton(_pDisplayMenu, "ContentMode", &_ContentMode, &_ContentModeLabel, &_ContentModePopup, font12, 40);
+        ret = _pDisplayMenu->addLabelPopupButton(this, "ContentMode", &_ContentMode, &_ContentModeLabel, &_ContentModePopup, font12, 40);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _ContentMode->setFocusable(false);
         _ContentModeLabel->setText("Content Mode:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -173,29 +176,48 @@ eRet CPanelDisplay::initialize(
         _ContentModePopup->sort();
         _ContentModePopup->select(NEXUS_VideoWindowContentMode_eBox);
 
-        /* COLOR */
-        ret = addLabelPopupButton(_pDisplayMenu, "Colorspace", &_Color, &_ColorLabel, &_ColorPopup, font12);
+        /* COLOR SPACE */
+        ret = _pDisplayMenu->addLabelPopupButton(this, "Colorspace", &_ColorSpace, &_ColorSpaceLabel, &_ColorSpacePopup, font12);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
-        _Color->setFocusable(false);
-        _ColorLabel->setText("Colorspace:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
-        _ColorPopup->setText("", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
-        rectPopup = _ColorPopup->getGeometry();
+        _ColorSpace->setFocusable(false);
+        _ColorSpaceLabel->setText("Colorspace:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
+        _ColorSpacePopup->setText("", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
+        rectPopup = _ColorSpacePopup->getGeometry();
 
-        pButton = _ColorPopup->addButton("Auto", rectPopup.width(), rectPopup.height());
+        pButton = _ColorSpacePopup->addButton("Auto", rectPopup.width(), rectPopup.height());
         CHECK_PTR_ERROR_GOTO("unable to add color space Auto button to popup list", pButton, ret, eRet_OutOfMemory, error);
         pButton->setValue(NEXUS_ColorSpace_eAuto);
-        pButton = _ColorPopup->addButton("RGB", rectPopup.width(), rectPopup.height());
+        pButton = _ColorSpacePopup->addButton("RGB", rectPopup.width(), rectPopup.height());
         CHECK_PTR_ERROR_GOTO("unable to add color space RGB button to popup list", pButton, ret, eRet_OutOfMemory, error);
         pButton->setValue(NEXUS_ColorSpace_eRgb);
-        pButton = _ColorPopup->addButton("YPrPb422", rectPopup.width(), rectPopup.height());
+        pButton = _ColorSpacePopup->addButton("YPrPb422", rectPopup.width(), rectPopup.height());
         CHECK_PTR_ERROR_GOTO("unable to add color space YPrPb422 button to popup list", pButton, ret, eRet_OutOfMemory, error);
         pButton->setValue(NEXUS_ColorSpace_eYCbCr422);
-        pButton = _ColorPopup->addButton("YPrPb444", rectPopup.width(), rectPopup.height());
+        pButton = _ColorSpacePopup->addButton("YPrPb444", rectPopup.width(), rectPopup.height());
         CHECK_PTR_ERROR_GOTO("unable to add color space YPrPb444 button to popup list", pButton, ret, eRet_OutOfMemory, error);
         pButton->setValue(NEXUS_ColorSpace_eYCbCr444);
-        pButton = _ColorPopup->addButton("YPrPb420", rectPopup.width(), rectPopup.height());
+        pButton = _ColorSpacePopup->addButton("YPrPb420", rectPopup.width(), rectPopup.height());
         CHECK_PTR_ERROR_GOTO("unable to add color space YPrPb420 button to popup list", pButton, ret, eRet_OutOfMemory, error);
         pButton->setValue(NEXUS_ColorSpace_eYCbCr420);
+
+        /* COLOR DEPTH */
+        ret = _pDisplayMenu->addLabelPopupButton(this, "ColorDepth", &_ColorDepth, &_ColorDepthLabel, &_ColorDepthPopup, font12);
+        CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
+        _ColorDepth->setFocusable(false);
+        _ColorDepthLabel->setText("ColorDepth:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
+        _ColorDepthPopup->setText("", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
+        rectPopup = _ColorDepthPopup->getGeometry();
+
+        pButton = _ColorDepthPopup->addButton("8 bit", rectPopup.width(), rectPopup.height());
+        CHECK_PTR_ERROR_GOTO("unable to add color depth 8bit button to popup list", pButton, ret, eRet_OutOfMemory, error);
+        pButton->setValue(8);
+        pButton = _ColorDepthPopup->addButton("10 bit", rectPopup.width(), rectPopup.height());
+        CHECK_PTR_ERROR_GOTO("unable to add color depth 10bit button to popup list", pButton, ret, eRet_OutOfMemory, error);
+        pButton->setValue(10);
+        pButton = _ColorDepthPopup->addButton("12 bit", rectPopup.width(), rectPopup.height());
+        CHECK_PTR_ERROR_GOTO("unable to add color depth 12bit button to popup list", pButton, ret, eRet_OutOfMemory, error);
+        pButton->setValue(12);
+        _ColorDepthPopup->select(GET_INT(_pCfg, DECODER_COLOR_DEPTH));
 
         /* DEINTERLACER */
         _Deinterlacer = new CWidgetCheckButton("CPanelDisplay::_Deinterlacer", getEngine(), this, MRect(0, 0, 0, 22), font12, _pDisplayMenu->getWin());
@@ -227,7 +249,7 @@ eRet CPanelDisplay::initialize(
         _MpaaDecimation->setCheck(false);
 
         /* ASPECT RATIO */
-        ret = addLabelPopupButton(_pDisplayMenu, "Aspect Ratio", &_AspectRatio, &_AspectRatioLabel, &_AspectRatioPopup, font12, 60);
+        ret = _pDisplayMenu->addLabelPopupButton(this, "Aspect Ratio", &_AspectRatio, &_AspectRatioLabel, &_AspectRatioPopup, font12, 60);
         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
         _AspectRatio->setFocusable(false);
         _AspectRatioLabel->setText("Aspect Ratio:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -335,9 +357,12 @@ void CPanelDisplay::uninitialize()
     DEL(_MpaaDecimation);
     DEL(_BoxDetect);
     DEL(_Deinterlacer);
-    DEL(_ColorPopup);
-    DEL(_ColorLabel);
-    DEL(_Color);
+    DEL(_ColorDepthPopup);
+    DEL(_ColorDepthLabel);
+    DEL(_ColorDepth);
+    DEL(_ColorSpacePopup);
+    DEL(_ColorSpaceLabel);
+    DEL(_ColorSpace);
     DEL(_ContentModePopup);
     DEL(_ContentModeLabel);
     DEL(_ContentMode);
@@ -404,11 +429,18 @@ void CPanelDisplay::onClick(bwidget_t widget)
         }
     }
     else
-    if (0 <= _ColorPopup->getItemListIndex(pWidget->getWidget()))
+    if (0 <= _ColorSpacePopup->getItemListIndex(pWidget->getWidget()))
     {
         NEXUS_ColorSpace colorSpace = (NEXUS_ColorSpace)pWidget->getValue();
 
         notifyObservers(eNotify_SetColorSpace, &colorSpace);
+    }
+    else
+    if (0 <= _ColorDepthPopup->getItemListIndex(pWidget->getWidget()))
+    {
+        uint8_t colorDepth = (uint8_t)pWidget->getValue();
+
+        notifyObservers(eNotify_SetColorDepth, &colorDepth);
     }
     else
     if (_MpaaDecimation == pWidget)
@@ -615,11 +647,19 @@ void CPanelDisplay::processNotification(CNotification & notification)
     break;
 
     case eNotify_ColorSpaceChanged:
+    case eNotify_ColorSpaceFailure:
     {
         NEXUS_ColorSpace * pColorSpace = (NEXUS_ColorSpace *)notification.getData();
 
-        BDBG_WRN(("TTTTTTTTTTTTTTTTTTTTTTT colorspace:%s (%d)", colorSpaceToString(*pColorSpace).s(), *pColorSpace));
-        _ColorPopup->select(*pColorSpace);
+        _ColorSpacePopup->select(*pColorSpace);
+    }
+    break;
+
+    case eNotify_ColorDepthChanged:
+    case eNotify_ColorDepthFailure:
+    {
+        uint8_t * pColorDepth = (uint8_t *)notification.getData();
+        _ColorDepthPopup->select(*pColorDepth);
     }
     break;
 

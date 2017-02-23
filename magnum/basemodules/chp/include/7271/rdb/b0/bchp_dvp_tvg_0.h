@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,41 +70,41 @@
 /***************************************************************************
  *DVP_TVG_0 - VEC DVP TVG  Controls
  ***************************************************************************/
-#define BCHP_DVP_TVG_0_TVG_CFG_0                 0x206e8300 /* [RW] Test Video Generator Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_CFG_1                 0x206e8304 /* [RW] Test Video Generator Configuration Register 1 */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG               0x206e8308 /* [RW] Test Video Generator Color Bar Configuration Register */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_0A            0x206e830c /* [RW] Test Video Generator Color Bar Configuration Register 0A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_0B            0x206e8310 /* [RW] Test Video Generator Color Bar Configuration Register 0B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_1A            0x206e8314 /* [RW] Test Video Generator Color Bar Configuration Register 1A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_1B            0x206e8318 /* [RW] Test Video Generator Color Bar Configuration Register 1B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_2A            0x206e831c /* [RW] Test Video Generator Color Bar Configuration Register 2A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_2B            0x206e8320 /* [RW] Test Video Generator Color Bar Configuration Register 2B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_3A            0x206e8324 /* [RW] Test Video Generator Color Bar Configuration Register 3A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_3B            0x206e8328 /* [RW] Test Video Generator Color Bar Configuration Register 3B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_4A            0x206e832c /* [RW] Test Video Generator Color Bar Configuration Register 4A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_4B            0x206e8330 /* [RW] Test Video Generator Color Bar Configuration Register 4B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_5A            0x206e8334 /* [RW] Test Video Generator Color Bar Configuration Register 5A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_5B            0x206e8338 /* [RW] Test Video Generator Color Bar Configuration Register 5B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_6A            0x206e833c /* [RW] Test Video Generator Color Bar Configuration Register 6A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_6B            0x206e8340 /* [RW] Test Video Generator Color Bar Configuration Register 6B */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_7A            0x206e8344 /* [RW] Test Video Generator Color Bar Configuration Register 7A */
-#define BCHP_DVP_TVG_0_TVG_BAR_CFG_7B            0x206e8348 /* [RW] Test Video Generator Color Bar Configuration Register 7B */
-#define BCHP_DVP_TVG_0_TVG_PATTERN_CFG_0         0x206e834c /* [RW] Test Video Generator Pattern Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_PATTERN_CFG_1         0x206e8350 /* [RW] Test Video Generator Pattern Configuration Register 1 */
-#define BCHP_DVP_TVG_0_TVG_OUTPUT_REMAP          0x206e8354 /* [RW] Test Video Generator Output Re-map Register */
-#define BCHP_DVP_TVG_0_TVG_GRID_CFG_0            0x206e8358 /* [RW] Test Video Generator Grid Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_GRID_CFG_1            0x206e835c /* [RW] Test Video Generator Grid Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_3D_BAR_CFG_0          0x206e8360 /* [RW] Test Video Generator 3D Color Bar Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_0          0x206e8364 /* [RW] Test Video Generator Format Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_1          0x206e8368 /* [RW] Test Video Generator Format Configuration Register 1 */
-#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_2          0x206e836c /* [RW] Test Video Generator Format Configuration Register 2 */
-#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_3          0x206e8370 /* [RW] Test Video Generator Format Configuration Register 3 */
-#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_4          0x206e8374 /* [RW] Test Video Generator Format Configuration Register 4 */
-#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_5          0x206e8378 /* [RW] Test Video Generator Format Configuration Register 5 */
-#define BCHP_DVP_TVG_0_TVG_3D_CFG_0              0x206e837c /* [RW] Test Video Generator 3D Configuration Register 0 */
-#define BCHP_DVP_TVG_0_TVG_3D_CFG_1              0x206e8380 /* [RW] Test Video Generator 3D Configuration Register 1 */
-#define BCHP_DVP_TVG_0_TVG_3D_CFG_2              0x206e8384 /* [RW] Test Video Generator 3D Configuration Register 2 */
-#define BCHP_DVP_TVG_0_TVG_3D_CFG_3              0x206e8388 /* [RW] Test Video Generator 3D Configuration Register 3 */
+#define BCHP_DVP_TVG_0_TVG_CFG_0                 0x206e8300 /* [RW][32] Test Video Generator Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_CFG_1                 0x206e8304 /* [RW][32] Test Video Generator Configuration Register 1 */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG               0x206e8308 /* [RW][32] Test Video Generator Color Bar Configuration Register */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_0A            0x206e830c /* [RW][32] Test Video Generator Color Bar Configuration Register 0A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_0B            0x206e8310 /* [RW][32] Test Video Generator Color Bar Configuration Register 0B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_1A            0x206e8314 /* [RW][32] Test Video Generator Color Bar Configuration Register 1A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_1B            0x206e8318 /* [RW][32] Test Video Generator Color Bar Configuration Register 1B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_2A            0x206e831c /* [RW][32] Test Video Generator Color Bar Configuration Register 2A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_2B            0x206e8320 /* [RW][32] Test Video Generator Color Bar Configuration Register 2B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_3A            0x206e8324 /* [RW][32] Test Video Generator Color Bar Configuration Register 3A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_3B            0x206e8328 /* [RW][32] Test Video Generator Color Bar Configuration Register 3B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_4A            0x206e832c /* [RW][32] Test Video Generator Color Bar Configuration Register 4A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_4B            0x206e8330 /* [RW][32] Test Video Generator Color Bar Configuration Register 4B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_5A            0x206e8334 /* [RW][32] Test Video Generator Color Bar Configuration Register 5A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_5B            0x206e8338 /* [RW][32] Test Video Generator Color Bar Configuration Register 5B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_6A            0x206e833c /* [RW][32] Test Video Generator Color Bar Configuration Register 6A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_6B            0x206e8340 /* [RW][32] Test Video Generator Color Bar Configuration Register 6B */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_7A            0x206e8344 /* [RW][32] Test Video Generator Color Bar Configuration Register 7A */
+#define BCHP_DVP_TVG_0_TVG_BAR_CFG_7B            0x206e8348 /* [RW][32] Test Video Generator Color Bar Configuration Register 7B */
+#define BCHP_DVP_TVG_0_TVG_PATTERN_CFG_0         0x206e834c /* [RW][32] Test Video Generator Pattern Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_PATTERN_CFG_1         0x206e8350 /* [RW][32] Test Video Generator Pattern Configuration Register 1 */
+#define BCHP_DVP_TVG_0_TVG_OUTPUT_REMAP          0x206e8354 /* [RW][32] Test Video Generator Output Re-map Register */
+#define BCHP_DVP_TVG_0_TVG_GRID_CFG_0            0x206e8358 /* [RW][32] Test Video Generator Grid Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_GRID_CFG_1            0x206e835c /* [RW][32] Test Video Generator Grid Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_3D_BAR_CFG_0          0x206e8360 /* [RW][32] Test Video Generator 3D Color Bar Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_0          0x206e8364 /* [RW][32] Test Video Generator Format Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_1          0x206e8368 /* [RW][32] Test Video Generator Format Configuration Register 1 */
+#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_2          0x206e836c /* [RW][32] Test Video Generator Format Configuration Register 2 */
+#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_3          0x206e8370 /* [RW][32] Test Video Generator Format Configuration Register 3 */
+#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_4          0x206e8374 /* [RW][32] Test Video Generator Format Configuration Register 4 */
+#define BCHP_DVP_TVG_0_TVG_FORMAT_CFG_5          0x206e8378 /* [RW][32] Test Video Generator Format Configuration Register 5 */
+#define BCHP_DVP_TVG_0_TVG_3D_CFG_0              0x206e837c /* [RW][32] Test Video Generator 3D Configuration Register 0 */
+#define BCHP_DVP_TVG_0_TVG_3D_CFG_1              0x206e8380 /* [RW][32] Test Video Generator 3D Configuration Register 1 */
+#define BCHP_DVP_TVG_0_TVG_3D_CFG_2              0x206e8384 /* [RW][32] Test Video Generator 3D Configuration Register 2 */
+#define BCHP_DVP_TVG_0_TVG_3D_CFG_3              0x206e8388 /* [RW][32] Test Video Generator 3D Configuration Register 3 */
 
 /***************************************************************************
  *TVG_CFG_0 - Test Video Generator Configuration Register 0

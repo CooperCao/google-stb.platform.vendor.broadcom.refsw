@@ -53,7 +53,7 @@ B_PLAYBACK_IP_BUILD_FILES += $(B_OS_LIB_BUILD_FILES)
 B_OS_LIB_TARGET_MAKEFLAGS += $(B_PLAYBACK_IP_TARGET_MAKEFLAGS)
 
 ifneq ($(LIVEMEDIA_SUPPORT),n)
-include $(BSEAV)/lib/livemedia/b_livemedia_targets.inc
+include $(BSEAV)/opensource/livemedia/b_livemedia_targets.inc
 B_PLAYBACK_IP_OTHER_BUILDS += b_livemedia_target_build
 B_PLAYBACK_IP_OTHER_CLEANS += b_livemedia_target_clean
 B_PLAYBACK_IP_OTHER_CLEAN_ALL += b_livemedia_target_clean_all
@@ -62,7 +62,7 @@ B_LIVEMEDIA_TARGET_MAKEFLAGS += $(B_PLAYBACK_IP_TARGET_MAKEFLAGS)
 endif
 
 ifneq ($(SSL_SUPPORT),n)
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 B_PLAYBACK_IP_OTHER_BUILDS += b_openssl_target_build
 B_PLAYBACK_IP_OTHER_CLEANS += b_openssl_target_clean
 B_PLAYBACK_IP_OTHER_CLEAN_ALL += b_openssl_target_clean_all

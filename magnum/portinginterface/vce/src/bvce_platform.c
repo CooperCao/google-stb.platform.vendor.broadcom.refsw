@@ -60,37 +60,81 @@ BVCE_Platform_P_WriteRegisterList(
          )
 {
    uint32_t i;
-   uint32_t uiRegValue;
+   uint64_t uiRegValue;
 
    BDBG_ENTER( BVCE_P_WriteRegisterList );
 
    for ( i = 0; i < uiCount; i++ )
    {
+#if BCHP_REGISTER_HAS_64_BIT
+      if ( true == astRegisterList[i].bIs64Bit )
+      {
+         uiRegValue = BREG_Read64(
+                  hReg,
+                  astRegisterList[i].uiAddress
+                  );
+      }
+      else
+      {
+#endif
       uiRegValue = BREG_Read32(
                hReg,
                astRegisterList[i].uiAddress
                );
+#if BCHP_REGISTER_HAS_64_BIT
+      }
+#endif
 
       uiRegValue &= ~astRegisterList[i].uiMask;
       uiRegValue |= astRegisterList[i].uiValue & astRegisterList[i].uiMask;
-
+#if BCHP_REGISTER_HAS_64_BIT
+      if ( true == astRegisterList[i].bIs64Bit )
+      {
+         BREG_Write64(
+                  hReg,
+                  astRegisterList[i].uiAddress,
+                  uiRegValue
+                  );
+      }
+      else
+      {
+#endif
       BREG_Write32(
                hReg,
                astRegisterList[i].uiAddress,
                uiRegValue
                );
+#if BCHP_REGISTER_HAS_64_BIT
+      }
+#endif
 
 #if BDBG_DEBUG_BUILD
       {
-        uint32_t uiRegValueActual = BREG_Read32(
-                                                hReg,
-                                                astRegisterList[i].uiAddress
-                                                );
+        uint64_t uiRegValueActual;
 
-        BDBG_MSG(("@0x%08x <-- 0x%08x (0x%08x) - %s",
+#if BCHP_REGISTER_HAS_64_BIT
+        if ( true == astRegisterList[i].bIs64Bit )
+        {
+           uiRegValueActual = BREG_Read64(
+                 hReg,
+                 astRegisterList[i].uiAddress
+           );
+        }
+        else
+        {
+#endif
+        uiRegValueActual = BREG_Read32(
+              hReg,
+              astRegisterList[i].uiAddress
+        );
+#if BCHP_REGISTER_HAS_64_BIT
+        }
+#endif
+
+        BDBG_MSG(("@0x%08x <-- "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT") - %s",
                   astRegisterList[i].uiAddress,
-                  uiRegValue,
-                  uiRegValueActual,
+                  BDBG_UINT64_ARG(uiRegValue),
+                  BDBG_UINT64_ARG(uiRegValueActual),
                   astRegisterList[i].szDescription
                   ));
       }
@@ -115,12 +159,25 @@ BVCE_Platform_P_DumpRegisterList(
    for ( i = 0; i < astRegisterList->uiCount; i++ )
    {
       unsigned uiAddress = astRegisterList->astRegisters[i].uiAddress + astRegisterList->iInstanceOffset;
+      uint64_t uiRegValue;
 
 #if !BDBG_DEBUG_BUILD
       BSTD_UNUSED( uiAddress );
       BSTD_UNUSED( hReg );
 #endif
-      BDBG_LOG(("@%08x = %08x (%s)", uiAddress, BREG_Read32( hReg, uiAddress ), astRegisterList->astRegisters[i].szName));
+#if BCHP_REGISTER_HAS_64_BIT
+     if ( true == astRegisterList->astRegisters[i].bIs64Bit )
+     {
+        uiRegValue = BREG_Read64( hReg, uiAddress );
+     }
+     else
+     {
+#endif
+      uiRegValue = BREG_Read32( hReg, uiAddress );
+#if BCHP_REGISTER_HAS_64_BIT
+     }
+#endif
+      BDBG_LOG(("@%08x = "BDBG_UINT64_FMT" (%s)", uiAddress, BDBG_UINT64_ARG(uiRegValue), astRegisterList->astRegisters[i].szName));
    }
 
    BDBG_LEAVE( BVCE_Platform_P_DumpRegisterRangeList );

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
-#include "nexus_platform_generic_features_priv.h"
+#include "bstd.h"
 
 /*  NEXUS_PLATFORM_MEMC0_ONLY */
 
@@ -64,38 +64,7 @@
 #endif
 #define NEXUS_NUM_VIDEO_DECODERS 2         /* 2 each for HEVD */
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 2
 #define NEXUS_NUM_VIDEO_ENCODERS 1
-#endif
-
-/* Audio Features */
-#if defined(NEXUS_USE_7250_DGL)
-#define NEXUS_NUM_AUDIO_DECODERS 3
-#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 0 /* Number of external inputs active at a time */
-#define NEXUS_NUM_AUDIO_DACS 0
-#define NEXUS_NUM_SPDIF_INPUTS 0
-#define NEXUS_NUM_SPDIF_OUTPUTS 0
-#define NEXUS_NUM_AUDIO_MIXERS 2
-#define NEXUS_NUM_I2S_INPUTS 0
-#define NEXUS_NUM_I2S_OUTPUTS 0
-#define NEXUS_NUM_AUDIO_PLAYBACKS 2
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-#else
-#define NEXUS_NUM_AUDIO_DECODERS 6
-#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 1 /* Number of external inputs active at a time */
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_INPUTS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#if defined(NEXUS_USE_7250_USFF) || defined(NEXUS_USE_72501_SFF)
-#define NEXUS_NUM_I2S_INPUTS 0
-#define NEXUS_NUM_I2S_OUTPUTS 0
-#else
-#define NEXUS_NUM_I2S_INPUTS 1
-#define NEXUS_NUM_I2S_OUTPUTS 1
-#endif
-#define NEXUS_NUM_AUDIO_MIXERS 8
-#define NEXUS_NUM_AUDIO_PLAYBACKS 3
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
 #endif
 
 /* Display Features */
@@ -152,21 +121,10 @@ upon the chip usage. See below */
 /* Memory features */
 #define NEXUS_NUM_MEMC 1
 
-/* default heap indices, refer to memory map document  */
-#define NEXUS_MEMC0_MAIN_HEAP           0 /* Main Heap */
-#define NEXUS_SAGE_SECURE_HEAP          1 /* SAGE HEAP - 32 MB */
-#define NEXUS_MEMC0_DRIVER_HEAP         2
-#define NEXUS_VIDEO_SECURE_HEAP         3 /* CABAC, CDB, RS and XC buffers for encoder */
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 4 /* XVD/VDC buffers for 2 decode/encode*/
-#define NEXUS_MEMC0_GRAPHICS_HEAP       5 /* Single large graphics heap*/
-#define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 6
-#define NEXUS_EXPORT_HEAP 7
-#define NEXUS_MEMC0_SECURE_GRAPHICS_HEAP 8
-
-
 #define NEXUS_AVS_MONITOR           0
 
 #define NEXUS_NUM_SPI_CHANNELS 2
 
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

@@ -117,6 +117,13 @@ HAS_BOX_MODES = y
 endif
 endif
 
+ifeq ($(filter $(BCHP_CHIP),7278), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_VER),A0), $(BCHP_VER))
+HAS_BOX_MODES = y
+endif
+endif
+
+
 BCHP_VER_LOWER := $(shell echo $(BCHP_VER) | tr A-Z a-z)
 
 # Define this module

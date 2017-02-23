@@ -342,6 +342,7 @@ typedef struct NEXUS_HdmiOutputStatus
     NEXUS_VideoFormat videoFormat;
     NEXUS_AspectRatio aspectRatio;
     NEXUS_ColorSpace colorSpace;
+    unsigned colorDepth;
 
     NEXUS_AudioCodec audioFormat;
     unsigned audioSamplingRate; /* in units of Hz */

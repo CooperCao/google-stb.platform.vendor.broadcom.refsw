@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 
 
@@ -42,48 +41,40 @@
 NEXUS_Error NEXUS_Gpio_P_GetPinMux(NEXUS_GpioType type, unsigned pin, uint32_t *pAddr, uint32_t *pMask, unsigned *pShift )
 {
     const NEXUS_GpioTable *pEntry=NULL;
+    unsigned total, i;
 
     switch (type)
     {
         case NEXUS_GpioType_eStandard:
-            if ( pin >= NEXUS_NUM_GPIO_PINS)
-            {
-                return BERR_TRACE(BERR_INVALID_PARAMETER);
-            }
-            pEntry = g_gpioTable+pin;
+            total = sizeof(g_gpioTable)/sizeof(g_gpioTable[0]);
+            pEntry = g_gpioTable;
             break;
-        case NEXUS_GpioType_eSpecial:
 #ifdef NEXUS_SGPIO_PINS
-            if ( pin >= NEXUS_NUM_SGPIO_PINS )
-            {
-                return BERR_TRACE(BERR_INVALID_PARAMETER);
-            }
-            pEntry = g_sgpioTable+pin;
+        case NEXUS_GpioType_eSpecial:
+            total = sizeof(g_sgpioTable)/sizeof(g_sgpioTable[0]);
+            pEntry = g_sgpioTable;
             break;
 #endif
         case NEXUS_GpioType_eAonStandard:
-            if ( pin >= NEXUS_NUM_AON_GPIO_PINS)
-            {
-                return BERR_TRACE(BERR_INVALID_PARAMETER);
-            }
-            pEntry = g_aonGpioTable+pin;
+            total = sizeof(g_aonGpioTable)/sizeof(g_aonGpioTable[0]);
+            pEntry = g_aonGpioTable;
             break;
         case NEXUS_GpioType_eAonSpecial:
-            if ( pin >= NEXUS_NUM_AON_SGPIO_PINS)
-            {
-                return BERR_TRACE(BERR_INVALID_PARAMETER);
-            }
-            pEntry = g_aonSgpioTable+pin;
+            total = sizeof(g_aonSgpioTable)/sizeof(g_aonSgpioTable[0]);
+            pEntry = g_aonSgpioTable;
             break;
         default:
             return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-
-    *pAddr = pEntry->addr;
-    *pMask = pEntry->mask;
-    *pShift = pEntry->shift;
-
-    return BERR_SUCCESS;
+    for (i=0;i<total;i++) {
+        if (pEntry[i].pin == pin) {
+            *pAddr = pEntry[i].addr;
+            *pMask = pEntry[i].mask;
+            *pShift = pEntry[i].shift;
+            return BERR_SUCCESS;
+        }
+    }
+    return BERR_TRACE(BERR_INVALID_PARAMETER);
 }
 
 NEXUS_Error NEXUS_Gpio_P_CheckPinmux(NEXUS_GpioType type, unsigned pin)

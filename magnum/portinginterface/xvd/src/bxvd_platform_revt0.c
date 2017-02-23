@@ -152,22 +152,9 @@ static const BXVD_P_PlatformReg_RevT0 s_stPlatformReg_HVD0RevT0 =
    (uint32_t) 0,   /* Inner2CPUAux doesn't exist */
 #endif
 
-#if 0
-   BCHP_REG_CABAC2BINS2_0_REG_CABAC2BINS_CHANNEL_WR_POSITION_i_ARRAY_BASE,    /* CabacBinDepth */
-
-   BCHP_REG_CABAC2BINS2_0_REG_CABAC2BINS_CTL,            /* uiDecode_CabacBinCtl */
-   BCHP_REG_CABAC2BINS2_0_REG_CABAC2BINS_CTL_Reset_MASK, /* uiDecode_CabacBinCtl_ResetMask */
-
-   BCHP_DECODE_SINT_0_REG_SINT_STRM_STAT,                /* uiDecode_SintStrmSts */
-   BCHP_DECODE_SINT_0_REG_SINT_STRM_STAT_Rst_MASK,       /* uiDecode_SintStrmSts_ResetMask */
-#endif
    BCHP_HEVD_OL_SINT_0_STRM_STAT,                        /* OLSintStrmSts */
    BCHP_HEVD_OL_SINT_0_STRM_STAT_Rst_MASK,               /* OLSintStrmSts_ResetMask */
 
-#if 0
-   BCHP_DECODE_MAIN_0_REG_MAINCTL,                       /* uiDecode_MainCtl */
-   BCHP_DECODE_MAIN_0_REG_MAINCTL_Rst_MASK,              /* uiDecode_MainCtl_ResetMask */
-#endif
    BCHP_DCD_PIPE_CTL_0_SW_RESET_REG,                     /* SWReset */
    BCHP_DCD_PIPE_CTL_0_SW_RESET_REG_ILSI_reset_MASK,     /* SWReset_ILSIResetMask */
 
@@ -293,27 +280,23 @@ static const BXVD_P_PlatformReg_RevT0 s_stPlatformReg_HVD1RevT0 =
    BCHP_HEVD_OL_CPU_REGS_1_HST2CPU_MBX,         /* OuterHost2CPUMailbox */
    BCHP_HEVD_OL_CPU_REGS_1_CPU2HST_STAT,        /* OuterCPU2HostStatus */
 
-   (uint32_t) 0,   /* BaseInstructionBase doesn't exist on AVD only decoder */
-   (uint32_t) 0,   /* BaseEndOfCode doesn't exist on AVD only decoder */
-   (uint32_t) 0,   /* BaseGlobalIOBase doesn't exist on AVD only decoder */
-   (uint32_t) 0,   /* BaseCPUDebug doesn't exist on AVD only decoder */
-   (uint32_t) 0,   /* BaseCPUAux doesn't exist on AVD only decoder */
-#if 0
-   BCHP_REG_CABAC2BINS2_1_REG_CABAC2BINS_CHANNEL_WR_POSITION_i_ARRAY_BASE,    /* CabacBinDepth */
-
-   BCHP_REG_CABAC2BINS2_1_REG_CABAC2BINS_CTL,            /* uiDecode_CabacBinCtl */
-   BCHP_REG_CABAC2BINS2_0_REG_CABAC2BINS_CTL_Reset_MASK, /* uiDecode_CabacBinCtl_ResetMask */
-
-   BCHP_DECODE_SINT_1_REG_SINT_STRM_STAT,                /* uiDecode_SintStrmSts */
-   BCHP_DECODE_SINT_0_REG_SINT_STRM_STAT_Rst_MASK,       /* uiDecode_SintStrmSts_ResetMask */
+#if BXVD_P_HEVD_DUAL_PIPE_PRESENT
+   BCHP_HEVD_IL_CPU_REGS_2_1_INST_BASE,            /* Inner2InstructionBase */
+   BCHP_HEVD_IL_CPU_REGS_2_1_END_OF_CODE,          /* Inner2EndOfCode */
+   BCHP_HEVD_IL_CPU_REGS_2_1_GLOBAL_IO_BASE,       /* Inner2GlobalIOBase */
+   BCHP_HEVD_IL_CPU_REGS_2_1_DEBUG_CTL,            /* Inner2CPUDebug */
+   BCHP_HEVD_IL_CPU_DEBUG_2_1_AUX_REGi_ARRAY_BASE, /* Inner2CPUAux */
+#else
+   (uint32_t) 0,   /* Inner2InstructionInnerBase doesn't exist */
+   (uint32_t) 0,   /* Inner2EndOfCode doesn't exist */
+   (uint32_t) 0,   /* Inner2GlobalIOInnerBase doesn't exist */
+   (uint32_t) 0,   /* Inner2CPUDebug doesn't */
+   (uint32_t) 0,   /* Inner2CPUAux doesn't exist */
 #endif
+
    BCHP_HEVD_OL_SINT_1_STRM_STAT,                        /* OLSintStrmSts */
    BCHP_HEVD_OL_SINT_0_STRM_STAT_Rst_MASK,               /* OLSintStrmSts_ResetMask */
 
-#if 0
-   BCHP_DECODE_MAIN_1_REG_MAINCTL,                       /* uiDecode_MainCtl */
-   BCHP_DECODE_MAIN_0_REG_MAINCTL_Rst_MASK,              /* uiDecode_MainCtl_ResetMask */
-#endif
    BCHP_DCD_PIPE_CTL_1_SW_RESET_REG,                     /* SWReset */
    BCHP_DCD_PIPE_CTL_0_SW_RESET_REG_ILSI_reset_MASK,     /* SWReset_ILSIResetMask */
 
@@ -348,9 +331,15 @@ static const BXVD_P_PlatformReg_RevT0 s_stPlatformReg_HVD1RevT0 =
    BCHP_HEVD_PCACHE_0_MODE0_Xgran_SHIFT, /* uiAVD_PcacheModeXGranShift */
 
    /* 2nd pipe PFRI and stripe registers */
+#if BXVD_P_HEVD_DUAL_PIPE_PRESENT
+   BCHP_HEVD_PFRI_2_1_STRIPE_WIDTH,      /* StripeWidth_P2 */
+   BCHP_HEVD_PFRI_2_1_INFO,              /* PFRIInfo_P2 */
+   BCHP_HEVD_PCACHE_2_1_MODE0,           /* uiAVD_PcacheMode */
+#else
    (uint32_t) 0,
    (uint32_t) 0,
    (uint32_t) 0,
+#endif
 
    BCHP_RVC_1_CTL,   /* RVC Control */
    BCHP_RVC_1_PUT,   /* RVC Put */
@@ -1473,10 +1462,10 @@ BERR_Code BXVD_P_ChipEnable_RevT0(BXVD_Handle hXvd)
     * Write to VectorTB, CpuDbg registers and AuxRegs
     * in THIS ORDER to start Outer Loop ARC
     */
-   BDBG_MSG(("OL Ibase: %0lx", hXvd->uiOuterLoopInstructionBase));
+   BDBG_MSG(("OL Ibase: " BDBG_UINT64_FMT, BDBG_UINT64_ARG(hXvd->uiOuterLoopInstructionBase)));
    BDBG_MSG(("OL EOC: %0x", hXvd->uiOuterLoopEOC));
 
-   BDBG_MSG(("IL Ibase: %0lx",hXvd->uiInnerLoopInstructionBase));
+   BDBG_MSG(("IL Ibase: " BDBG_UINT64_FMT, BDBG_UINT64_ARG(hXvd->uiInnerLoopInstructionBase)));
    BDBG_MSG(("IL EOC: %0x", hXvd->uiInnerLoopEOC));
 
 #if BXVD_P_CORE_40BIT_ADDRESSABLE
@@ -1559,7 +1548,7 @@ BERR_Code BXVD_P_ChipEnable_RevT0(BXVD_Handle hXvd)
       /* Program global IO base register - Inner */
       BXVD_Reg_Write64(hXvd,
                        hXvd->stPlatformInfo.stReg.uiDecode_Inner2GlobalIOBase,
-                       (uint64_t)(BCHP_PHYSICAL_OFFSET));
+                       (BCHP_PHYSICAL_OFFSET+BXVD_P_STB_REG_BASE));
 #else
       /* Program the relocation base address for inner-loop */
       BXVD_Reg_Write32(hXvd,

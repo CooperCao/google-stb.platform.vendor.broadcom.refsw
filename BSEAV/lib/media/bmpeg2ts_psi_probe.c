@@ -837,7 +837,7 @@ b_mpeg2ts_psi_probe_destroy(bmedia_probe_base_t probe_)
     return;
 }
 
-const bmedia_probe_stream *
+static const bmedia_probe_stream *
 b_mpeg2ts_psi_probe_parse(bmedia_probe_base_t probe_, bfile_buffer_t buf, batom_pipe_t pipe, const bmedia_probe_parser_config *config)
 {
     bmpeg2ts_psi_probe_t probe = (bmpeg2ts_psi_probe_t)probe_;

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 
 #ifndef NEXUS_FRONTEND_STANDBY_PRIV_H__
@@ -70,19 +62,30 @@ NEXUS_Error NEXUS_Frontend_Standby_priv(
 Summary: Standby/Resume display module
 **/
 NEXUS_Error NEXUS_FrontendModule_Standby_priv(
-    bool enabled, 
+    bool enabled,
     const NEXUS_StandbySettings *pSettings
     );
 
 /**
 Summary: Standby/Resume Tuner  module. Power down the devices that not powered down by standard untune function
 **/
-NEXUS_Error NEXUS_Tuner_Standby_priv( 
-	NEXUS_TunerHandle tuner, 
-	bool enabled, 
-	const NEXUS_StandbySettings *pSettings
-	);
+NEXUS_Error NEXUS_Tuner_Standby_priv(
+    NEXUS_TunerHandle tuner,
+    bool enabled,
+    const NEXUS_StandbySettings *pSettings
+    );
 
+typedef struct NEXUS_FrontendStandbySettings {
+    bool enabled;
+    const NEXUS_StandbySettings *pSettings;
+} NEXUS_FrontendStandbySettings;
+
+typedef struct NEXUS_FrontendStandbyCallback {
+    NEXUS_Error (*platformStandby)(NEXUS_FrontendDeviceHandle handle, void *context, const NEXUS_FrontendStandbySettings *pSettings);
+    void *context;
+} NEXUS_FrontendStandbyCallback;
+
+void NEXUS_Frontend_SetStandbyCallback_priv(NEXUS_FrontendDeviceHandle handle, NEXUS_FrontendStandbyCallback *callback);
 #ifdef __cplusplus
 }
 #endif

@@ -754,7 +754,7 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    retCode = BWFE_P_LoSearchDiv(freqKhz, freqRefKhz, &p, &n, &m, &outsel);
    if (retCode != BERR_SUCCESS)
       return retCode;
-   BKNI_Printf("BWFE_P_LoSearchDiv: p=%d, n=%d, m=%d, outsel=%d\n", p, n, m, outsel);
+   BDBG_MSG(("BWFE_P_LoSearchDiv: p=%d, n=%d, m=%d, outsel=%d", p, n, m, outsel));
 
    /* set pdiv, ndiv, and outsel */
    /* To select FVCO/3 output, OUTPUT_SEL = 4 (first MUX), TEST_SEL = 5 (second MUX) */
@@ -800,7 +800,7 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
       hChn->dpmQddfsN /= gcd;
    }
    hChn->dpmQddfsM = hChn->dpmQddfsM % hChn->dpmQddfsN;
-   BKNI_Printf("BWFE_P_SetDpmPilotFreq(%dkHz): dpmQddfsN=%d, dpmQddfsM=%d\n", freqKhz, hChn->dpmQddfsN, hChn->dpmQddfsM);
+   BDBG_MSG(("BWFE_P_SetDpmPilotFreq(%dkHz): dpmQddfsN=%d, dpmQddfsM=%d", freqKhz, hChn->dpmQddfsN, hChn->dpmQddfsM));
 
    return retCode;
 }

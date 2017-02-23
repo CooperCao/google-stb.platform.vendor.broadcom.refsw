@@ -83,7 +83,7 @@ PLAYREADY_TEST := y
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
 include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
@@ -183,7 +183,7 @@ LDFLAGS += $(LDFLAGS_THIRDPARTY_LIB)
 
 LDFLAGS += $(COMMON_DRM_LDFLAGS)
 LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
-LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
+LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
            -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
@@ -216,7 +216,7 @@ all: $(target)_dif
 
 prep_dif:
 	@echo [..... prep_dif target ]
-	@if [ ! -d $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/dif/$(DIF_LIBDIR) ]; then \
+	@if [ ! -d ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/dif/$(DIF_LIBDIR) ]; then \
 		echo [ building dif .... ]; \
 		$(MAKE) -C $(BSEAV_TOP)/lib/security/dif  > $(LOG_REDIRECT_FILE); \
 	fi

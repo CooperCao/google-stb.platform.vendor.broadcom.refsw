@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -90,13 +90,17 @@ int main(void)
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle vdecode;
     NEXUS_VideoDecoderStartSettings videoProgram;
-    NEXUS_AudioDecoderHandle audioDecoder;
+    NEXUS_AudioDecoderHandle audioDecoder = NULL;
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
     NEXUS_AudioDecoderStartSettings audioProgram;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if NEXUS_CVOICE
-    NEXUS_CustomVoiceHandle customVoice;
+    NEXUS_CustomVoiceHandle customVoice = NULL;
 #else
-    NEXUS_TruVolumeHandle truVolume;
+    NEXUS_TruVolumeHandle truVolume = NULL;
 #endif
     NEXUS_AudioInputHandle processedConnector;
 #if NEXUS_NUM_HDMI_OUTPUTS
@@ -109,6 +113,17 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    #if NEXUS_CVOICE
+    if (audioCapabilities.numDecoders == 0)
+    #else
+    if (audioCapabilities.numDecoders == 0 || !audioCapabilities.dsp.truVolume)
+    #endif
+    {
+        printf("This application is not supported on this platform!\n");
+        return 0;
+    }
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -158,23 +173,38 @@ int main(void)
     processedConnector = NEXUS_TruVolume_GetConnector(truVolume);
 #endif
 
-#if NEXUS_NUM_AUDIO_DACS
-    /* Send processed stereo output to DAC */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        processedConnector);
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    /* Send processed stereo output to HDMI */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        processedConnector);
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    /* Send raw PCM data to SPDIF */
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                               NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioCapabilities.numOutputs.dac > 0) {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioDacHandle) {
+        /* Send processed stereo output to DAC */
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   processedConnector);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0) {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+
+    if (audioHdmiHandle) {
+        /* Send processed stereo output to HDMI */
+        NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                   processedConnector);
+    }
+    #endif
+
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+        /* Send raw PCM data to SPDIF */
+    }
+
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                   NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+
     /* Bring up video display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
@@ -197,7 +227,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 

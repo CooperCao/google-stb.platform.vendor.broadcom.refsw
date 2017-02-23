@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,6 +45,7 @@
 #include "tzioc_ioctl.h"
 #include "tzioc_sys_msg.h"
 
+#include "plat_config.h"
 #include "kernel.h"
 #include "pgtable.h"
 #include "arm/gic.h"
@@ -58,11 +59,11 @@
 #include <bits/errno.h>
 
 // Static non-const data from TzIoc class
-uint32_t TzIoc::smemStart;
-uint32_t TzIoc::smemSize;
+uintptr_t TzIoc::smemStart;
+uintptr_t TzIoc::smemSize;
 uint32_t TzIoc::sysIrq;
 struct tzioc_client *TzIoc::psysClient;
-spinlock_t TzIoc::lock;
+SpinLock TzIoc::lock;
 struct tzioc_shared_mem *TzIoc::psmem = NULL;
 bool TzIoc::peerUp = false;
 
@@ -124,7 +125,7 @@ void TzIoc::init(void *devTree)
         kernelHalt("Invalid memory range found in device tree tzioc node.");
 
     const char *rangeData = fpMemRanges->data;
-    smemStart = (uint32_t)((adCellSize == 1) ?
+    smemStart = (uintptr_t)((adCellSize == 1) ?
          parseInt(rangeData, adByteSize) :
          parseInt64(rangeData, adByteSize));
     rangeData += adByteSize;
@@ -134,7 +135,7 @@ void TzIoc::init(void *devTree)
          parseInt64(rangeData, szByteSize));
     rangeData += szByteSize;
 
-    printf("TzIoc shared memory at 0x%x, size 0x%x\n",
+    printf("TzIoc shared memory at phys address 0x%x, size 0x%x\n",
            (unsigned int)smemStart, (unsigned int)smemSize);
 
     // Parse 'irq' property
@@ -152,10 +153,11 @@ void TzIoc::init(void *devTree)
     PageTable *kernPageTable = PageTable::kernelPageTable();
 
     void *pageStart = PAGE_START_4K(smemStart);
-    void *pageEnd   = PAGE_START_4K(smemStart + smemSize - 1);
+    void *virtPageStart = ARCH_SHMEM_BASE ? (void *)(ARCH_SHMEM_BASE) : pageStart;
+    void *virtPageEnd   = (void *)((uintptr_t)virtPageStart + smemSize - 1);
     kernPageTable->mapPageRange(
-        pageStart,             // virtual start
-        pageEnd,               // virtual end
+        virtPageStart,             // virtual start
+        virtPageEnd,               // virtual end
         pageStart,             // physical start
         MAIR_MEMORY,           // cached memory
         MEMORY_ACCESS_RW_USER, // user read/write
@@ -164,7 +166,9 @@ void TzIoc::init(void *devTree)
         true);                 // non-secure
 
     // Shared memory could be mapped to a different virtual address
-    psmem = (struct tzioc_shared_mem *)smemStart;
+    psmem = (struct tzioc_shared_mem *)(uintptr_t)virtPageStart;
+    printf("TzIoc shared memory virt address 0x%zx\n",
+           (size_t)psmem);
 
     if (!psmem)
         kernelHalt("Failed to map shared memory");
@@ -174,7 +178,7 @@ void TzIoc::init(void *devTree)
     psmem->ulMagic = ASTRA_VERSION_WORD;
 
     // Init spinlock
-    spinlock_init("TzIoc.lock", &lock);
+    spinLockInit(&lock);
 
     // Init ioctl module
     TzIocIoctl::init(devTree);
@@ -202,8 +206,6 @@ void TzIoc::init(void *devTree)
 
 void TzIoc::proc()
 {
-    // printf("TzIoc processing\n");
-
     // Return if not initialized
     if (!psmem) return;
 
@@ -251,7 +253,7 @@ void TzIoc::proc()
             }
             else {
                 // Send to user msg queue
-                TzTask *pTask = (TzTask *)pClient->task;
+                TzTask *pTask = (TzTask *)(uintptr_t)pClient->task;
                 pTask->mqSend(
                     pClient->msgQ,
                     (const char *)pHdr,
@@ -373,7 +375,7 @@ int TzIoc::echoMsgProc(
 }
 #endif
 
-int TzIoc::ioctl(uint32_t fd, uint32_t cmd, uint32_t arg)
+int TzIoc::ioctl(uint32_t fd, unsigned long cmd, uintptr_t arg)
 {
     // Return if not initialized
     if (!psmem) return -ENODEV;
@@ -397,12 +399,12 @@ int TzIoc::ioctl(uint32_t fd, uint32_t cmd, uint32_t arg)
 extern "C" {
 #endif
 
-uint32_t _tzioc_offset2addr(uint32_t ulOffset)
+uintptr_t _tzioc_offset2addr(uintptr_t ulOffset)
 {
     return TzIoc::offset2addr(ulOffset);
 }
 
-uint32_t _tzioc_addr2offset(uint32_t ulAddr)
+uintptr_t _tzioc_addr2offset(uintptr_t ulAddr)
 {
     return TzIoc::addr2offset(ulAddr);
 }

@@ -699,7 +699,7 @@ typedef enum _BHDM_EDID_HDR_DB_EOTF_SUPPORT_
 	BHDM_EDID_HdrDbEotfSupport_eSDR,
 	BHDM_EDID_HdrDbEotfSupport_eHDR,
 	BHDM_EDID_HdrDbEotfSupport_eSMPTESt2084,
-	BHDM_EDID_HdrDbEotfSupport_eFuture,
+	BHDM_EDID_HdrDbEotfSupport_eHLG,
 	BHDM_EDID_HdrDbEotfSupport_eMax
 }  BHDM_EDID_HDR_DB_EOTF_SUPPORT ;
 

@@ -44,6 +44,7 @@
 #include "nexus_platform_server.h"
 #include "nexus_display.h"
 #if NEXUS_HAS_VIDEO_DECODER
+#include "nexus_video_decoder.h"
 #else
 typedef void *NEXUS_VideoDecoderCapabilities;
 #endif
@@ -56,10 +57,8 @@ typedef void *NEXUS_VideoDecoderCapabilities;
 #include "nexus_spdif_output.h"
 #include "nexus_audio_capture.h"
 #include "nexus_audio_crc.h"
-#else
-typedef void *NEXUS_AudioCaptureHandle;
-typedef void *NEXUS_AudioMixerHandle;
 #endif
+#include "nexus_core_compat.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #include "nexus_hdmi_output_extra.h"
@@ -72,6 +71,7 @@ typedef void *NEXUS_HdmiOutputHdcpVersion;
 #include "nexus_simple_audio_decoder_server.h"
 #include "nexus_simple_encoder_server.h"
 #else
+#undef NEXUS_HAS_VIDEO_DECODER
 typedef void *NEXUS_SimpleAudioDecoderServerSettings;
 typedef void *NEXUS_SimpleVideoDecoderServerSettings;
 typedef void *NEXUS_SimpleAudioDecoderHandle;
@@ -124,9 +124,6 @@ typedef unsigned NEXUS_InputRouterCode;
 #endif
 #ifndef NEXUS_HAS_HDMI_OUTPUT
 #undef NEXUS_NUM_HDMI_OUTPUTS
-#endif
-#ifndef NEXUS_HAS_AUDIO
-#undef NEXUS_NUM_SPDIF_OUTPUTS
 #endif
 
 enum b_resource {
@@ -318,6 +315,9 @@ struct b_session {
             NEXUS_HdmiOutputEdidRxHdrdb hdrdb;
             NEXUS_VideoEotf lastInputEotf;
         } drm;
+        struct {
+            nxclient_t client;
+        } repeater;
     } hdmi;
 #endif
     struct {
@@ -465,6 +465,7 @@ struct b_client {
     BLST_D_HEAD(b_req_list, b_req) requests;
     BLST_D_HEAD(b_connect_list, b_connect) connects;
     NxClient_HdcpLevel hdcp;
+    bool hdmiInputRepeater;
     bool zombie;
     struct {
         BLST_S_HEAD(b_client_standby_acklist, b_client_standby_ack) acks;

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "nexus_platform.h"
@@ -124,6 +116,9 @@ int main(void)
     NEXUS_AudioPlaybackHandle handle;
     NEXUS_AudioPlaybackStartSettings settings;
     NEXUS_AudioPlaybackSettings pbSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
 
     unsigned i, offset=0;
     int16_t *pBuffer;
@@ -132,6 +127,20 @@ int main(void)
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&config);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numPlaybacks == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0) {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
+    }
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]);
+    }
 
     NEXUS_AudioPlayback_GetDefaultOpenSettings(&openSettings);
     openSettings.fifoSize = fifoSize;
@@ -143,14 +152,14 @@ int main(void)
     }
 
     /* Connect DAC to plaback */
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
-                               NEXUS_AudioPlayback_GetConnector(handle));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
-                               NEXUS_AudioPlayback_GetConnector(handle));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+    }
 
     NEXUS_AudioPlayback_GetDefaultStartSettings(&settings);
     settings.sampleRate = 0;    /* Allow changes */
@@ -221,4 +230,3 @@ int main(int argc, char **argv)
     return 0;
 }
 #endif
-

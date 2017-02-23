@@ -319,6 +319,13 @@ static int wakeup_ioctl(struct inode *inode, struct file * file, unsigned int cm
     return result;
 }
 
+#ifdef CONFIG_COMPAT
+static long  wakeup_compat_ioctl(struct file * file, unsigned int cmd, unsigned long arg)
+{
+    return wakeup_ioctl(file, cmd, arg);
+}
+#endif
+
 static int wakeup_open(struct inode *inode, struct file *file)
 {
     return 0;
@@ -335,6 +342,9 @@ static struct file_operations wakeup_fops = {
     unlocked_ioctl:      wakeup_ioctl,
 #else
     ioctl:      wakeup_ioctl,
+#endif
+#ifdef CONFIG_COMPAT
+    compat_ioctl: wakeup_compat_ioctl,
 #endif
     open:       wakeup_open,
     release:    wakeup_close,
@@ -407,26 +417,24 @@ static int __init wakeup_init(void)
         /* Save IRQ info . Save this first so we
            can get correct wakeup status in S5.
          */
-		info->irq_masks[i] = mask;
-		info->wakeups_present |= mask;
+#if defined(CONFIG_GPIO_BRCMSTB)
+        /* If wake-gpio is handled by kernel, then skip request_irq */
+        if (strcasecmp(resources[i].name, "GPIO"))
+#endif
+        {
+            info->irq_masks[i] = mask;
+            info->wakeups_present |= mask;
 
-		ret = request_irq(info->irqs[i], wakeup_irq, 0, DRV_NAME,
-				  info);
+            ret = request_irq(info->irqs[i], wakeup_irq, 0, DRV_NAME,
+                    info);
 
-		if (ret) {
-		    /*
-		     * if source is not gpio, print error
-		     * otherwise, just means linux has consumed gpio int and is
-		     * managing it
-		     */
-		    if (strcasecmp(resources[i].name, "GPIO"))
-		    {
-		        pr_err("request_irq failed for '%s'\n", resources[i].name);
-		    }
-            info->irq_masks[i] = 0;
-            info->wakeups_present &= ~mask;
+            if (ret) {
+                pr_err("request_irq failed for '%s'\n", resources[i].name);
+                info->irq_masks[i] = 0;
+                info->wakeups_present &= ~mask;
+            }
         }
-	}
+    }
 
 #ifdef B_REFSW_ANDROID
     misc_register(&wake_miscdevice);

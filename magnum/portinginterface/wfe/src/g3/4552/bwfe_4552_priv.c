@@ -135,6 +135,10 @@ BERR_Code BWFE_P_InitConfig(BWFE_ChannelHandle h)
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode = BERR_SUCCESS;
 
+   /* limit xtal to [49.5, 50.5]MHz */
+   if ((h->pDevice->settings.xtalFreqKhz < 49500) || (h->pDevice->settings.xtalFreqKhz > 50500))
+      return BERR_INVALID_PARAMETER;
+
    /* set default sample rate */
    hChn->adcSampleFreqKhz = h->pDevice->settings.xtalFreqKhz * 100;
    
@@ -792,62 +796,78 @@ BERR_Code BWFE_P_SetAdcSampleFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    static const uint8_t kp[4] = {3, 2, 1, 2};
    static const uint8_t ki[4] = {1, 1, 0, 0};
 #endif
+
+   /* fpll_chan = 100 / 16 * f_xtal = 313.895 */
+   /* fpll_band = 8 * f_xtal = 401.7856 */
+   uint32_t fsChanHiKhz = h->pDevice->settings.xtalFreqKhz * 100;             /* fs_hi_chan = 16 * fpll_chan = 5022.32 */
+   uint32_t fsChanLoKhz = (h->pDevice->settings.xtalFreqKhz * 125 + 1) / 2;   /* fs_lo_chan = 10 * fpll_chan = 3138.95 */
+   uint32_t fsBandHiKhz = h->pDevice->settings.xtalFreqKhz * 96;              /* fs_hi_band = 12 * fpll_band = 4821.4272 */
+   uint32_t fsBandLoKhz = h->pDevice->settings.xtalFreqKhz * 64;              /* fs_lo_band = 8 * fpll_band = 3214.2848 */
+
+   /* use MHz to account for user input error */
+   uint32_t freqMhz = freqKhz / 1000;
+   uint32_t fsChanHiMhz = fsChanHiKhz / 1000;
+   uint32_t fsChanLoMhz = fsChanLoKhz / 1000;
+   uint32_t fsBandHiMhz = fsBandHiKhz / 1000;
+   uint32_t fsBandLoMhz = fsBandLoKhz / 1000;
+
+#if 0
+   BKNI_Printf("BWFE_P_SetAdcSampleFreq(%d -> %d)\n", freqKhz, freqMhz);
+   BKNI_Printf("fs_hi_chan=%d -> %d\n", fsChanHiKhz, fsChanHiMhz);
+   BKNI_Printf("fs_lo_chan=%d -> %d\n", fsChanLoKhz, fsChanLoMhz);
+   BKNI_Printf("fs_hi_band=%d -> %d\n", fsBandHiKhz, fsBandHiMhz);
+   BKNI_Printf("fs_lo_band=%d -> %d\n", fsBandLoKhz, fsBandLoMhz);
+   BKNI_Printf("-----\n");
+#endif
    
    /* set ch5 divider to 2 for sub-sampled modes */
    BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_PLL_CNTL7, ~0x0000FF00, 0x00000200);
-   
-   switch(freqKhz)
+
+   if ((freqMhz == fsChanHiMhz) || (freqMhz == fsBandHiMhz))
    {
-      case BWFE_DEF_CHAN_HI_FS_ADC_KHZ:
-      case BWFE_DEF_BAND_HI_FS_ADC_KHZ:
-         /* Fs_adc = F_ref / pdiv * ndiv_int *2 */
-         /* calculate ndiv_int from freqKhz, ndiv_int = Fs_adc / (F_ref * 2) */
-         ndiv_int = (freqKhz >> 1) / BWFE_XTAL_FREQ_KHZ;
-         break;
-      
-      case BWFE_DEF_CHAN_HI_FS_ADC_KHZ >> 1:
-      case BWFE_DEF_BAND_HI_FS_ADC_KHZ >> 1:
-         /* Fs_adc = F_ref / pdiv * ndiv_int */
-         /* calculate ndiv_int from freqKhz, ndiv_int = Fs_adc / F_ref */
-         ndiv_int = freqKhz / BWFE_XTAL_FREQ_KHZ;
+      /* Fs_adc = F_ref / pdiv * ndiv_int *2 */
+      /* calculate ndiv_int from freqKhz, ndiv_int = Fs_adc / (F_ref * 2) */
+      ndiv_int = (freqKhz >> 1) / h->pDevice->settings.xtalFreqKhz;
+   }
+   else if ((freqMhz == (fsChanHiMhz >> 1)) || (freqMhz == (fsBandHiMhz >> 1)))
+   {
+      /* Fs_adc = F_ref / pdiv * ndiv_int for sub-sampled rates */
+      /* calculate ndiv_int from freqKhz, ndiv_int = Fs_adc / F_ref */
+      ndiv_int = freqKhz / h->pDevice->settings.xtalFreqKhz;
+      outsel = 0;    /* select Fdco/2 */
+   }
+   else if ((freqMhz == fsChanLoMhz) || (freqMhz == (fsChanLoMhz >> 1)))
+   {
+      /* channelizer low sample rate, note 4.8GHz < Fdco < 7GHz */
+      pdiv = 2;
+      ndiv_int = 125;
+      BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_PLL_CNTL0, ~0x00000F00, 0x00000400); /* lower phase tracking gain */
+
+      if (freqMhz == fsChanLoMhz)
          outsel = 0;    /* select Fdco/2 */
-         break;
-      
-      case BWFE_DEF_CHAN_LO_FS_ADC_KHZ:
-      case BWFE_DEF_CHAN_LO_FS_ADC_KHZ >> 1:
-         /* channelizer low sample rate, note 4.8GHz < Fdco < 7GHz */
-         pdiv = 2;
-         ndiv_int = 125;
-         
-         BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_PLL_CNTL0, ~0x00000F00, 0x00000400); /* lower phase tracking gain */
-         
-         if (freqKhz == BWFE_DEF_CHAN_LO_FS_ADC_KHZ)
-            outsel = 0;    /* select Fdco/2 */
-         else
-            outsel = 5;    /* select post-divider channel 5 for sub-sampled */
-         break;
-      
-      case BWFE_DEF_BAND_LO_FS_ADC_KHZ:
-      case BWFE_DEF_BAND_LO_FS_ADC_KHZ >> 1:
-         /* bandelizer low sample rate, note 4.8GHz < Fdco < 7GHz */
-         ndiv_int = 64;
-         
-         BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_PLL_CNTL0, ~0x00000F00, 0x00000400); /* lower phase tracking gain */
-         
-         if (freqKhz == BWFE_DEF_BAND_LO_FS_ADC_KHZ)
-            outsel = 0;    /* select Fdco/2 */
-         else
-            outsel = 5;    /* select post-divider channel 5 for sub-sampled */
-         break;
-      
-      default:
-         return BERR_INVALID_PARAMETER;
+      else
+         outsel = 5;    /* select post-divider channel 5 for sub-sampled */
+   }
+   else if ((freqMhz == fsBandLoMhz) || (freqMhz == (fsBandLoMhz >> 1)))
+   {
+      /* bandelizer low sample rate, note 4.8GHz < Fdco < 7GHz */
+      ndiv_int = 64;
+      BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_PLL_CNTL0, ~0x00000F00, 0x00000400); /* lower phase tracking gain */
+
+      if (freqMhz == fsBandLoMhz)
+         outsel = 0;    /* select Fdco/2 */
+      else
+         outsel = 5;    /* select post-divider channel 5 for sub-sampled */
+   }
+   else
+   {
+      return BERR_INVALID_PARAMETER;
    }
 
    /* adc pll uses ANA_PLL3_WBADC vco limited to 6.8GHz */
 #if (BCHP_VER==BCHP_VER_A0)
    /* search for freq_eff range */
-   freqRefEffKhz = BWFE_XTAL_FREQ_KHZ / pdiv;
+   freqRefEffKhz = h->pDevice->settings.xtalFreqKhz / pdiv;
    for (i = 0; i < 3; i++)
    {
       if (freqRefEffKhz < freq_kpki[i])
@@ -889,7 +909,7 @@ BERR_Code BWFE_P_GetAdcSampleFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
    ndiv_int = val & 0x3FF;
 
    /* Fs_adc = F_ref / pdiv * ndiv_int *2 */
-   *freqKhz = (BWFE_XTAL_FREQ_KHZ * (ndiv_int << 1) + pdiv/2) / pdiv;   /* round by adding pdiv/2 */
+   *freqKhz = (h->pDevice->settings.xtalFreqKhz * (ndiv_int << 1) + pdiv/2) / pdiv;   /* round by adding pdiv/2 */
 
    /* check pll output select */
    BWFE_P_ReadRegister(h, BCHP_WFE_ANA_PLL_CNTL0, &val);
@@ -1097,7 +1117,7 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    outsel = 0; /* select CH5 postdiv output as output of master PLL */
 
    /* calculate stage1 reference freq = f_xtal / pdiv * ndiv_int / mdiv_ch5 */
-   freqRefKhz = ((BWFE_XTAL_FREQ_KHZ << 1) * n) / p;
+   freqRefKhz = ((h->pDevice->settings.xtalFreqKhz << 1) * n) / p;
    freqRefKhz = ((freqRefKhz / m) + 1) >> 1;    /* round */
 
    /* set loPLL1 pdiv, ndiv, and outsel */
@@ -1147,9 +1167,9 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    }
 
    /* calculate QDDFS ratio */
-   gcd = BWFE_P_GCF(BWFE_DEF_FS_ADC_KHZ, BWFE_XTAL_FREQ_KHZ);
+   gcd = BWFE_P_GCF(BWFE_DEF_FS_ADC_KHZ, h->pDevice->settings.xtalFreqKhz);
    n_xtal = BWFE_DEF_FS_ADC_KHZ / gcd;
-   m_xtal = BWFE_XTAL_FREQ_KHZ / gcd;
+   m_xtal = h->pDevice->settings.xtalFreqKhz / gcd;
 
    /* M = N2 x N1 = 2912 */
    /* N = 100 x Mdiv1 x Mdiv2 = 5900 */
@@ -1191,7 +1211,7 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
    mdiv = (val >> 1) & 0xFF;
 
    /* calculate stage1 reference freq = f_xtal / pdiv * ndiv_int / mdiv_ch5 */
-   *freqKhz = ((BWFE_XTAL_FREQ_KHZ << 1) * ndiv) / pdiv;
+   *freqKhz = ((h->pDevice->settings.xtalFreqKhz << 1) * ndiv) / pdiv;
    *freqKhz = ((*freqKhz / mdiv) + 1) >> 1;  /* round */
    /*BKNI_Printf("lo1: %d\n", *freqKhz);*/
 

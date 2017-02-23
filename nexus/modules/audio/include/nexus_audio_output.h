@@ -45,12 +45,6 @@
 extern "C" {
 #endif
 
-#define NEXUS_MAX_AUDIO_DUMMY_OUTPUTS 8
-#define NEXUS_MAX_AUDIO_SPDIF_OUTPUTS 2
-#define NEXUS_MAX_AUDIO_DAC_OUTPUTS 3
-#define NEXUS_MAX_AUDIO_I2S_OUTPUTS 2
-#define NEXUS_MAX_AUDIO_HDMI_OUTPUTS 2
-
 /*=************************************
 Interface: AudioOutput
 
@@ -145,6 +139,7 @@ typedef struct NEXUS_AudioOutputEnabledOutputs
     unsigned i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
     unsigned i2sMulti[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
     unsigned hdmi[NEXUS_MAX_AUDIO_HDMI_OUTPUTS];
+    unsigned audioCapture[NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS];
 } NEXUS_AudioOutputEnabledOutputs;
 
 
@@ -169,6 +164,7 @@ typedef struct NEXUS_AudioOutputClockConfig
     NEXUS_AudioOutputClockSource i2s[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
     NEXUS_AudioOutputClockSource i2sMulti[NEXUS_MAX_AUDIO_I2S_OUTPUTS];
     NEXUS_AudioOutputClockSource hdmi[NEXUS_MAX_AUDIO_HDMI_OUTPUTS];
+    NEXUS_AudioOutputClockSource audioCapture[NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS];
 } NEXUS_AudioOutputClockConfig;
 
 

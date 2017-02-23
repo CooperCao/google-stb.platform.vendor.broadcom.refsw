@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 #ifndef _HEARTBEAT_INTERNAL_H_
 #define _HEARTBEAT_INTERNAL_H_
@@ -51,6 +48,8 @@
 
 #include "fp_sdk_config.h"
 
+#include "libsyschip/memmap.h"
+
 
 
 /* ----------------
@@ -63,6 +62,7 @@
 #define HB_PHASE_ENTRY_SETUP                        0x10
 #define     HB_SUBPHASE_ENTRY_SETUP_BEGINNING           0x00
 #define     HB_SUBPHASE_BEFORE_STACK_INIT               0x10
+#define     HB_SUBPHASE_BEFORE_CTXT_INIT                0x18
 #define     HB_SUBPHASE_BEFORE_ENABLE_SIRQS             0x20
 
 #define HB_PHASE_RUNTIME_INIT                       0x30
@@ -81,10 +81,12 @@
 
 #define HB_PHASE_DBA_COREDUMP                       0xB0
 #define     HB_SUBPHASE_DUMP_GLOBAL_HEADER              0x20
+#define     HB_SUBPHASE_DUMP_REGION_HEADER_MEM          0x30
 #define     HB_SUBPHASE_DUMP_REGION_HEADER_IMEM         0x31
 #define     HB_SUBPHASE_DUMP_REGION_HEADER_DMEM         0x32
 #define     HB_SUBPHASE_DUMP_REGION_HEADER_PMEM         0x33
 #define     HB_SUBPHASE_DUMP_REGION_HEADER_METADATA     0x34
+#define     HB_SUBPHASE_DUMP_REGION_MEM                 0x40
 #define     HB_SUBPHASE_DUMP_REGION_IMEM                0x41
 #define     HB_SUBPHASE_DUMP_REGION_DMEM                0x42
 #define     HB_SUBPHASE_DUMP_REGION_PMEM                0x43
@@ -100,17 +102,45 @@
 #define     HB_SUBPHASE_DBA_WAIT_FOR_THE_END            0xF0
 
 
+/* -----------------------------
+ * Heartbeat scenario assessment
+ * ----------------------------- */
+/* We can't rely simply on NUM_CORES to understand where and in how many places
+ * the heartbeat word has to be stored, so we compute here what is the scenario
+ * we are facing.
+ * Also, we might get included when building host code, which needs the above
+ * constants, so cope with this possibility. */
+#if !defined(ENABLE_HEARTBEAT) || !defined(__FIREPATH__)
+/* Do nothing - no scenario will be defined */
+#elif NUM_CORES == 1 && !defined(MCPHY)
+#  define HEARTBEAT_SCENARIO_1_CORE
+#elif NUM_CORES == 2 || (NUM_CORES == 1 && defined(MCPHY))
+#  define HEARTBEAT_SCENARIO_2_CORES
+#else
+#  error "Unsupported Heartbeat scenario"
+#endif
+
+#if defined(HEARTBEAT_SCENARIO_1_CORE) && !defined(HEARTBEAT_SHARED_ADDRESS)
+#  error "Please define HEARTBEAT_SHARED_ADDRESS"
+#elif defined(HEARTBEAT_SCENARIO_2_CORES) && !(defined(HEARTBEAT_SHARED_ADDRESS_CORE0) && defined(HEARTBEAT_SHARED_ADDRESS_CORE1))
+#  error "Please define HEARTBEAT_SHARED_ADDRESS_CORE0 and HEARTBEAT_SHARED_ADDRESS_CORE1"
+#endif
+
+
 /* --------------------
  * Inter-language macro
  * -------------------- */
 /**
  * @def HEARTBEAT_INT_UPDATE(phase, subphase, argument)
  * Updates the whole Heartbeat status word. Usable from both the assembler
- * and C world, invoking this macro will squash r0, r1 and r2 content.
+ * and C world, invoking this macro will squash r0, r1, r2 and link (r58) content.
  */
 #ifdef ENABLE_HEARTBEAT
-#  ifdef ASMCPP
+#  if   defined(ASMCPP)
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   heartbeat_int_update phase, subphase, argument
+
+#  elif defined(__RALL2__) && defined(__FP4014_ONWARDS__)
+#    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   mb heartbeat_int_update<! 3> : movb r0, phase : movb r1, subphase : movh r2, argument
 #  else
 #    define HEARTBEAT_INT_UPDATE(phase, subphase, argument)   heartbeat_int_update(phase, subphase, argument)
 #  endif
@@ -132,6 +162,7 @@
     bl          heartbeat_int_update, r58
 .endm
 #endif
+
 
 
 /* ------------------

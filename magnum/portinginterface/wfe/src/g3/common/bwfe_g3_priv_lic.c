@@ -120,7 +120,7 @@ BERR_Code BWFE_g3_Lic_P_PowerUp(BWFE_ChannelHandle h)
    }
 
    BKNI_EnterCriticalSection();
-   retCode = BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e0, 50000, BWFE_g3_Lic_P_NrDcoTracking);
+   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 50000, BWFE_g3_Lic_P_NrDcoTracking);
    BKNI_LeaveCriticalSection();
 #endif
 

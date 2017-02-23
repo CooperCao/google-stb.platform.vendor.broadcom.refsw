@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -104,8 +104,19 @@ NEXUS_VideoEncoderModule_GetDefaultSettings( NEXUS_VideoEncoderModuleSettings *p
     return;
 }
 
+void
+NEXUS_VideoEncoderModule_GetDefaultInternalSettings( NEXUS_VideoEncoderModuleInternalSettings *pSettings )
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+
+    return;
+}
+
 NEXUS_ModuleHandle
-NEXUS_VideoEncoderModule_Init(const NEXUS_VideoEncoderModuleSettings *pSettings)
+NEXUS_VideoEncoderModule_Init(
+                            const NEXUS_VideoEncoderModuleInternalSettings *pInternalSettings,
+                            const NEXUS_VideoEncoderModuleSettings *pSettings
+                              )
 {
     NEXUS_ModuleSettings moduleSettings;
     NEXUS_VideoEncoder_P_Device *device = &g_NEXUS_VideoEncoder_P_State.device;
@@ -115,11 +126,12 @@ NEXUS_VideoEncoderModule_Init(const NEXUS_VideoEncoderModuleSettings *pSettings)
     BDBG_ASSERT(pSettings);
 
     BDBG_ASSERT(g_NEXUS_VideoEncoder_P_State.module==NULL);
-    BDBG_ASSERT(pSettings->display);
-    BDBG_ASSERT(pSettings->transport);
-    BDBG_ASSERT(pSettings->audio);
+    BDBG_ASSERT(pInternalSettings->display);
+    BDBG_ASSERT(pInternalSettings->transport);
+    BDBG_ASSERT(pInternalSettings->audio);
     BKNI_Memset(&g_NEXUS_VideoEncoder_P_State, 0, sizeof(g_NEXUS_VideoEncoder_P_State));
-    g_NEXUS_VideoEncoder_P_State.config = *pSettings;
+    g_NEXUS_VideoEncoder_P_State.config = *pInternalSettings;
+    g_NEXUS_VideoEncoder_P_State.settings = *pSettings;
 
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
@@ -439,14 +451,16 @@ error:
 NEXUS_Error
 NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEncoderStartSettings *pSettings)
 {
-    BERR_Code rc;
+    BERR_Code rc = BERR_SUCCESS;
     NEXUS_DspVideoEncoderStartSettings startSettings;
     NEXUS_DisplayEncoderSettings displaySettings;
 
     LOCK_AUDIO();
     NEXUS_DspVideoEncoder_GetDefaultStartSettings_priv(&startSettings);
     NEXUS_DspVideoEncoder_GetUserDataSettings_priv(encoder->encoder, &startSettings.userDataSettings);
+#if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     rc = NEXUS_DspVideoEncoder_GetExtInterruptInfo_priv(encoder->encoder, &startSettings.extIntInfo);
+#endif
     UNLOCK_AUDIO();
     if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc); goto error;}
     startSettings.nonRealTime = pSettings->nonRealTime;
@@ -467,8 +481,6 @@ NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEnco
     displaySettings.dequeueCb_isr = NEXUS_VideoEncoder_P_DequeueCb_isr;
     displaySettings.context = encoder;
     displaySettings.encodeRate = encoder->settings.frameRate;
-    displaySettings.extIntAddress = startSettings.extIntInfo.address;
-    displaySettings.extIntBitNum = startSettings.extIntInfo.bit_num;
 #if NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     rc = NEXUS_VideoEncoder_P_OpenStcSnapshot(encoder, pSettings, &displaySettings);
     if (rc) {rc=BERR_TRACE(rc); goto error;}
@@ -477,6 +489,9 @@ NEXUS_VideoEncoder_Start(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEnco
     displaySettings.vip.stMemSettings.ulMemcId = 0; /* TODO: this is fishy */
     displaySettings.vip.stMemSettings.ulMaxHeight = pSettings->bounds.inputDimension.max.height;
     displaySettings.vip.stMemSettings.ulMaxWidth = pSettings->bounds.inputDimension.max.width;
+#else
+    displaySettings.extIntAddress = startSettings.extIntInfo.address;
+    displaySettings.extIntBitNum = startSettings.extIntInfo.bit_num;
 #endif
 
     LOCK_TRANSPORT();

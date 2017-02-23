@@ -54,18 +54,6 @@ struct NEXUS_Tsmf
     NEXUS_OBJECT(NEXUS_Tsmf);
 };
 
-NEXUS_Error NEXUS_Tsmf_SetOutput_priv(void *parserBandHandle)
-{
-    BSTD_UNUSED(parserBandHandle);
-    return NEXUS_NOT_SUPPORTED;
-}
-
-void NEXUS_Tsmf_ReadSettings_priv(NEXUS_TsmfHandle tsmf, struct NEXUS_MtsifParserBandSettings *pSettings)
-{
-    BSTD_UNUSED(tsmf);
-    BSTD_UNUSED(pSettings);
-}
-
 void NEXUS_Tsmf_GetDefaultOpenSettings(NEXUS_TsmfOpenSettings *pOpenSettings)
 {
     BSTD_UNUSED(pOpenSettings);

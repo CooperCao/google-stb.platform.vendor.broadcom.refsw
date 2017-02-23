@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +47,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <fcntl.h>
 
 #include "bsysperf_wifi.h"
 #include "bmemperf_lib.h"
@@ -236,26 +237,26 @@ int Bsysperf_WifiGetRevs(
             #if 0
             printf( "******************************* \n" );
             printf( "WiFi Driver Version Info: \n" );
-            printf( "Chip Number:       %d (%x) \n", tRevInfo.ulChipNum, tRevInfo.ulChipNum );
+            printf( "Chip Number:       %d (%x) \n", tRevInfo->ulChipNum, tRevInfo->ulChipNum );
             printf( "Driver Version:    %d.%d.%d.%d \n",
-                (uint8_t)( tRevInfo.ulDriverRev>>24 ),
-                (uint8_t)( tRevInfo.ulDriverRev>>16 ),
-                (uint8_t)( tRevInfo.ulDriverRev>>8 ),
-                (uint8_t)tRevInfo.ulDriverRev );
-            printf( "PCI vendor id:     0x%08x \n", tRevInfo.ulVendorId );
-            printf( "Device id of chip: 0x%08x \n", tRevInfo.ulDeviceId );
-            printf( "Radio Revision:    0x%08x \n", tRevInfo.ulRadioRev );
-            printf( "Chip Revision:     0x%08x \n", tRevInfo.ulChipRev );
-            printf( "Core Revision:     0x%08x \n", tRevInfo.ulCoreRev );
-            printf( "Board Identifier:  0x%08x \n", tRevInfo.ulBoardId );
-            printf( "Board Vendor:      0x%08x \n", tRevInfo.ulBoardVendor );
-            printf( "Board Revision:    0x%08x \n", tRevInfo.ulBoardRev );
-            printf( "Microcode Version: 0x%08x \n", tRevInfo.ulUcodeRev );
-            printf( "Bus Type:          0x%08x \n", tRevInfo.ulBus );
-            printf( "Phy Type:          0x%08x \n", tRevInfo.ulPhyType );
-            printf( "Phy Revision:      0x%08x \n", tRevInfo.ulPhyRev );
-            printf( "Anacore Rev:       0x%08x \n", tRevInfo.ulAnaRev );
-            printf( "Chip Package Info: 0x%08x \n", tRevInfo.ulChipPkg );
+                (uint8_t)( tRevInfo->ulDriverRev>>24 ),
+                (uint8_t)( tRevInfo->ulDriverRev>>16 ),
+                (uint8_t)( tRevInfo->ulDriverRev>>8 ),
+                (uint8_t)tRevInfo->ulDriverRev );
+            printf( "PCI vendor id:     0x%08x \n", tRevInfo->ulVendorId );
+            printf( "Device id of chip: 0x%08x \n", tRevInfo->ulDeviceId );
+            printf( "Radio Revision:    0x%08x \n", tRevInfo->ulRadioRev );
+            printf( "Chip Revision:     0x%08x \n", tRevInfo->ulChipRev );
+            printf( "Core Revision:     0x%08x \n", tRevInfo->ulCoreRev );
+            printf( "Board Identifier:  0x%08x \n", tRevInfo->ulBoardId );
+            printf( "Board Vendor:      0x%08x \n", tRevInfo->ulBoardVendor );
+            printf( "Board Revision:    0x%08x \n", tRevInfo->ulBoardRev );
+            printf( "Microcode Version: 0x%08x \n", tRevInfo->ulUcodeRev );
+            printf( "Bus Type:          0x%08x \n", tRevInfo->ulBus );
+            printf( "Phy Type:          0x%08x \n", tRevInfo->ulPhyType );
+            printf( "Phy Revision:      0x%08x \n", tRevInfo->ulPhyRev );
+            printf( "Anacore Rev:       0x%08x \n", tRevInfo->ulAnaRev );
+            printf( "Chip Package Info-> 0x%08x \n", tRevInfo->ulChipPkg );
             #endif /* if 0 */
         }
         Bsysperf_WifiUninit();
@@ -918,10 +919,15 @@ static int Bsysperf_WifiAmpdu_WriteToFile(
  *  tot_mpdus, tot_ampdus, and mpduperampdu. Once the line is found, the values associated with these
  *  three tags will be scanned and written into the provided filename. The values in the provided file will
  *  eventually be read by the bsysperf.cgi when the user has checked the AMPDU Graph checkbox.
+ *
+ *  For TX, the line looks like this: tot_mpdus 0 tot_ampdus 0 mpduperampdu 0
+ *  For RX, the line looks like this: rxampdu 0 rxmpdu 0 rxmpduperampdu 0 rxht 0 rxlegacy 0
  **/
-static char *Bsysperf_WifiAmpdu_ParseTot(
+static char *Bsysperf_WifiAmpdu_ParseForTotals(
     const char *buffer,
-    const char *filename
+    const char *filename,
+    int         RxOrTx /* RX==0 ... TX==1 */
+
     )
 {
     char *pos = (char*) buffer;
@@ -936,20 +942,39 @@ static char *Bsysperf_WifiAmpdu_ParseTot(
     noprintf("%s:%u: buffer len (%u); filename (%s) \n", __FUNCTION__, __LINE__, strlen(buffer), filename );
 
     /* look for a line like this ... tot_mpdus 10000 tot_ampdus 20000 mpduperampdu 30000 */
-    pos = strstr(buffer, "tot_mpdus ");
+    if ( RxOrTx == 0 )
+    {
+        pos = strstr(buffer, "rxampdu ");
+    }
+    else
+    {
+        pos = strstr(buffer, "tot_mpdus ");
+    }
     if ( pos ) {
-        unsigned int tot_mpdus = 0;
-        unsigned int tot_ampdus = 0;
-        unsigned int mpduperampdu = 0;
+        unsigned long int tot_mpdus = 0;
+        unsigned long int tot_ampdus = 0;
+        unsigned long int mpduperampdu = 0;
         eol = strstr(pos, "\n");
         if ( eol ) {
             *eol = '\0';
         }
-        /*printf("%s:%u: found line (%s)(%p) ... len %u \n", __FUNCTION__, __LINE__, pos, (void*) pos, strlen(pos) );*/
-        sscanf( pos, "tot_mpdus %u tot_ampdus %u mpduperampdu %u", &tot_mpdus, &tot_ampdus, &mpduperampdu );
 
         memset( output_line, 0, sizeof(output_line) );
-        snprintf(output_line, sizeof(output_line), "tot_mpdus\t%u\ttot_ampdus\t%u\tmpduperampdu\t%u\n", tot_mpdus, tot_ampdus, mpduperampdu );
+
+        /*printflog("~DEBUG~%s:%u: found line (%s)(%p) ... len %u~", __FUNCTION__, __LINE__, pos, (void*) pos, strlen(pos) );*/
+        if ( RxOrTx == 0 )
+        {
+            sscanf( pos, "rxampdu %lu rxmpdu %lu rxmpduperampdu %lu", &tot_ampdus, &tot_mpdus, &mpduperampdu );
+            snprintf(output_line, sizeof(output_line), "rx_mpdus\t%lu\trx_ampdus\t%lu\trx_mpduperampdu\t%lu\n", tot_mpdus, tot_ampdus, mpduperampdu );
+            /*printflog("~DEBUG~%s:%u: rxampdu %lu rxmpdu %lu rxmpduperampdu %lu\n", __FUNCTION__, __LINE__, tot_ampdus, tot_mpdus, mpduperampdu );*/
+        }
+        else
+        {
+            sscanf( pos, "tot_mpdus %lu tot_ampdus %lu mpduperampdu %lu", &tot_mpdus, &tot_ampdus, &mpduperampdu );
+            snprintf(output_line, sizeof(output_line), "tx_mpdus\t%lu\ttx_ampdus\t%lu\ttx_mpduperampdu\t%lu\n", tot_mpdus, tot_ampdus, mpduperampdu );
+            /*printflog("~DEBUG~%s:%u: txampdu %lu txmpdu %lu txmpduperampdu %lu\n", __FUNCTION__, __LINE__, tot_ampdus, tot_mpdus, mpduperampdu );*/
+        }
+
         Bsysperf_WifiAmpdu_WriteToFile( output_line, filename );
 
         pos += strlen(pos);
@@ -1029,7 +1054,7 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
             bValidLineFound = false;
 
             /* TX VHT  :  33(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)  0(0%)                       */
-            pos = strchr( line, ':' );
+            pos = strchr( tempLine, ':' );
             if(debug) printf( "%s:%u: tempLine (%s) pos (%p) \n", __FUNCTION__, __LINE__, tempLine, pos );
             if (pos)
             {
@@ -1121,11 +1146,12 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
             {
                 if(debug) printf( "%s:%u: could not find colon after beg_of_section (%s) \n", __FUNCTION__, __LINE__, beg_of_section );
             }
-            if(debug) printf( "%s:%u: endwhile: pos %p;  line %p ... line[0] (%c) \n", __FUNCTION__, __LINE__, pos, line, line[0] );
+            if(debug) printf( "%s:%u: endwhile: pos %p;  line %p \n", __FUNCTION__, __LINE__, pos, line );
+            if(debug && line) printf( "%s:%u: endwhile: line[0] (%02x)\n", __FUNCTION__, __LINE__, line[0] );
 
             /* each TX/RX section may have 2, 3, or 4 more lines that begin with a space.
-               If we encounter a blank line or a line that does NOT start with a space, we have found the end of the TX/RX section */
-        } while ( bValidLineFound && line && line[0] == ' ');
+               If we encounter a line that does NOT start with a space, we have found the end of the TX/RX section */
+        } while ( bValidLineFound && line && line[0] == ' ' );
 
         if (line)
         {
@@ -1143,13 +1169,13 @@ static char *Bsysperf_WifiAmpdu_ParseVht(
     return( line );
 }                                                          /* Bsysperf_WifiAmpdu_ParseVht */
 
-int Bsysperf_WifiAmpduClear(
+int Bsysperf_WifiClearAmpdu(
     const char *ifname
     )
 {
     int   tRetCode = 0;
 
-    noprintf( "%s:%u: hBwl #%p \n", __FILE__, __LINE__, hBwl );
+    noprintf( "%s:%u: hBwl #%p; ifname (%s) \n", __FILE__, __LINE__, hBwl, ifname );
     do
     {
         Bsysperf_WifiInit( ifname );
@@ -1169,7 +1195,7 @@ int Bsysperf_WifiAmpduClear(
 
 err_out:
     return( tRetCode );
-}                                                          /* Bsysperf_WifiAmpduClear */
+}                                                          /* Bsysperf_WifiClearAmpdu */
 
 /**
  *  Function: This function will call a BWL function to dump the AMPDU data similiar to the 'wl dump ampdu'
@@ -1231,8 +1257,11 @@ int Bsysperf_WifiAmpdu_GetReport(
                 noprintf("\n\n%s:%u: ampdu buffer len (%d) \n", __FUNCTION__, __LINE__, strlen(ampdu) );
                 noprintf( "%s", ampdu );
 
-                Bsysperf_WifiAmpdu_ParseTot( pos, tempFilename );
-                noprintf("%s:%u: after ParseTot, buffer is (%s) (%p) \n", __FUNCTION__, __LINE__, pos, (void*) pos );
+                Bsysperf_WifiAmpdu_ParseForTotals( pos, tempFilename, 1 /* TX==1 */ );
+                noprintf("%s:%u: after ParseForTotals, buffer is (%s) (%p) \n", __FUNCTION__, __LINE__, pos, (void*) pos );
+
+                Bsysperf_WifiAmpdu_ParseForTotals( pos, tempFilename, 0 /* RX==0 */ );
+                noprintf("%s:%u: after ParseForTotals, buffer is (%s) (%p) \n", __FUNCTION__, __LINE__, pos, (void*) pos );
 
                 memset( values, 0, sizeof( values ));
                 memset( percentages, 0, sizeof( percentages ));
@@ -1274,7 +1303,7 @@ int Bsysperf_WifiReadAmpduData(
 
     contents = GetFileContents( tempFilename );
 
-    /*printf( "~DEBUG~%s:%u: filename (%s); len (%d) ~\n", __FUNCTION__, __LINE__, tempFilename, (int) strlen(contents) );*/
+    /*printflog( "~DEBUG~%s:%u: filename (%s); contents (%p) ~\n", __FUNCTION__, __LINE__, tempFilename, contents );*/
 
     /*
 1465563108	20160610-125148
@@ -1308,14 +1337,24 @@ RX VHT SGI 1x1	0			RX VHT SGI 1x1 %	0
                 *eol = '\0';                               /* null-terminate the line */
             }
 
-            /* look for a line like this ... tot_mpdus 10000 tot_ampdus 20000 mpduperampdu 30000 */
-            tot_mpdus = strstr(pos, "tot_mpdus");
+            /* TX: look for a line like this ... tot_mpdus 10000 tot_ampdus 20000 mpduperampdu 30000 */
+            tot_mpdus = strstr(pos, "tx_mpdus");
             if ( tot_mpdus )
             {
-                /*printf("~DEBUG~%s:%u: found line (%s) ~", __FUNCTION__, __LINE__, tot_mpdus );*/
-                sscanf( tot_mpdus, "tot_mpdus %u tot_ampdus %u mpduperampdu %u", &pAmpduData->tot_mpdus, &pAmpduData->tot_ampdus, &pAmpduData->mpduperampdu );
+                /*printflog("~DEBUG~%s:%u: found line (%s) \n", __FUNCTION__, __LINE__, tot_mpdus );*/
+                sscanf( tot_mpdus, "tx_mpdus %lu tx_ampdus %lu tx_mpduperampdu %lu", &pAmpduData->tx_mpdus, &pAmpduData->tx_ampdus, &pAmpduData->tx_mpduperampdu );
 
-                /*printf("tot_mpdus %u tot_ampdus %u mpduperampdu %u \n", pAmpduData->tot_mpdus, pAmpduData->tot_ampdus, pAmpduData->mpduperampdu );*/
+                /*printflog("tx_mpdus %u tx_ampdus %u mpduperampdu %u \n", pAmpduData->tx_mpdus, pAmpduData->tx_ampdus, pAmpduData->tx_mpduperampdu );*/
+            }
+
+            /* RX: look for a line like this ... rx_mpdus 10000 rx_ampdus 20000 rx_mpduperampdu 30000 */
+            tot_mpdus = strstr(pos, "rx_mpdus");
+            if ( tot_mpdus )
+            {
+                /*printflog("~DEBUG~%s:%u: found line (%s) \n", __FUNCTION__, __LINE__, tot_mpdus );*/
+                sscanf( tot_mpdus, "rx_mpdus %lu rx_ampdus %lu rx_mpduperampdu %lu", &pAmpduData->rx_mpdus, &pAmpduData->rx_ampdus, &pAmpduData->rx_mpduperampdu );
+
+                /*printflog("rx_mpdus %u rx_ampdus %u mpduperampdu %u \n", pAmpduData->rx_mpdus, pAmpduData->rx_ampdus, pAmpduData->rx_mpduperampdu );*/
             }
 
             tab2 = strstr( pos, "\t\t" );
@@ -1445,7 +1484,7 @@ int Bsysperf_WifiOutputAntennasHtml(
     char        *visibilityStr[2]  = { "hidden", "display" };
     int          visibilitySetting = 0;
 
-    printf( "<table border=0 cellpadding=0 cellspacing=0 style=\"border-collapse:collapse;\" />" );
+    printf( "<div id=AntennasHtml style=\"visibility:hidden;\" ><table border=0 cellpadding=0 cellspacing=0 style=\"border-collapse:collapse;\" />" );
     printf( "<tr><th>&nbsp;</th>" );
     for (j = 0; j<ANTENNA_MAX_LEVELS; j++)
     {
@@ -1525,7 +1564,7 @@ int Bsysperf_WifiOutputAntennasHtml(
     printf( "<th><input type='button' onClick='ClearGrid()' style='width:44' value='Clear' /></th><th><input type='button' onClick='DrawScene()' style='width:44' value='Draw' /></th>" );
     printf( "</tr>" );
     #endif
-    printf( "</table>" );
+    printf( "</table></div>" );
 
     return( 0 );
 } /* Bsysperf_WifiOutputAntennasHtml */
@@ -1682,3 +1721,31 @@ int Bsysperf_WifiGetDriverVersion(
 
     return( tRetCode );
 }
+
+int Bsysperf_WifiClearCounters(
+    const char *ifname
+    )
+{
+    int   tRetCode = 0;
+
+    noprintf( "%s:%u: hBwl #%p; ifname (%s) \n", __FILE__, __LINE__, hBwl, ifname );
+    do
+    {
+        Bsysperf_WifiInit( ifname );
+
+        if (hBwl == NULL)
+        {
+            printf( "%s() Failed to Init BWL! \n", __FUNCTION__ );
+            tRetCode = -1;
+            break;
+        }
+        else
+        {
+            BWL_API_CHECK( BWL_ClearCounters( hBwl ), tRetCode );
+        }
+        Bsysperf_WifiUninit();
+    } while (0);
+
+err_out:
+    return( tRetCode );
+}                                                          /* Bsysperf_WifiClearCounters */

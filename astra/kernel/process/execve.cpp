@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,12 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * execve.cpp
- *
- *  Created on: Feb 18, 2015
- *      Author: gambhire
- */
 #include "hwtimer.h"
 #include "arm/arm.h"
 #include "arm/spinlock.h"
@@ -66,26 +60,18 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
     // Destroy the current elf image
     if (image != nullptr) {
         delete image;
+        image = NULL;
     }
 
     /*
      * Load the new image.
      */
-    image = new ElfImage(tid, exeFile);
-    if (image == nullptr){
+    image = ElfImage::loadElf(id(), exeFile, exeDir);
+    if (image == NULL) {
         err_msg("Could not load elf image\n");
         return -ENOEXEC;
     }
-    if (image->status != ElfImage::Valid) {
-        err_msg("Could not load elf image. status %d\n", image->status);
-        return -ENOEXEC;
-    }
 
-    pageTable = &image->userPageTable;
-
-    /*
-     * Populate the user mode stack
-     */
     int numArgs = 0;
     int numEnvs = 0;
     if (argv != nullptr) {
@@ -97,23 +83,22 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
         for (int i=0; envp[i] != 0; i++)
             numEnvs++;
     }
-
+    /*
+     * Populate the user mode stack
+     */
     unsigned long imageStackTop = (unsigned long)image->stackBase();
     TzMem::VirtAddr userStackVa = image->stackTopPageVA();
 
-    TaskStartInfo tsInfo(image, taskName, numArgs, argv, numEnvs, envp);
-    if (!tsInfo.constructed())
-        return -ENOMEM;
-
-    int numBytesWritten = tsInfo.prepareUserStack(userStackVa);
+    TaskStartInfo tslinkInfo(image, taskName, numArgs, argv, numEnvs, envp);
+    if (!tslinkInfo.constructed())
+            return -ENOMEM;
+    int numBytesWritten = tslinkInfo.prepareUserStack(userStackVa);
     unsigned long userStackTop = imageStackTop - numBytesWritten;
-
     image->unmapStackFromKernel();
-
     /*
-     * Point user space to the new image. Reset the stack.
+     * Point user space to the new image. Reset the stack
      */
-    savedRegs[SAVED_REG_LR] = (unsigned long)image->entry();
+    savedRegs[SAVED_REG_LR] = (unsigned long)image->entry(); // Linker entry point is already adjusted
     savedRegs[SAVED_REG_SP] = (unsigned long)stackKernel;
     savedRegs[SAVED_REG_SP_USR] = userStackTop;
     savedRegs[SAVED_REG_LR_USR] = (unsigned long)image->entry();
@@ -124,6 +109,8 @@ int TzTask::execve(IFile *exeFile, IDirectory *exeDir, char **argv, char **envp)
         spsr |= 0x20;
     }
     savedRegs[SAVED_REG_SPSR] = spsr;
+
+    pageTable = &image->userPageTable;
 
     // Close file descriptors marked for closeOnExec
     for (int i=0; i<MAX_FD; i++) {

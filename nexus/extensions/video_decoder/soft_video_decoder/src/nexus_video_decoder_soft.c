@@ -1329,7 +1329,6 @@ static const NEXUS_VideoDecoder_P_Interface NEXUS_VideoDecoder_P_Interface_Soft 
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_CreateStripedSurface_Soft),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_DestroyStripedSurface_Soft),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_CreateStripedMosaicSurfaces_Soft),
-    NOT_SUPPORTED(NEXUS_VideoDecoder_P_DestroyStripedMosaicSurfaces_Soft),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_GetMostRecentPts_Soft),
     NEXUS_VideoDecoder_P_GetTrickState_Common,
     NEXUS_VideoDecoder_P_SetTrickState_Soft,

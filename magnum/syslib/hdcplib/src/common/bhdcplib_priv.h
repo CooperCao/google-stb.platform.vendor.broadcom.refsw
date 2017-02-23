@@ -72,9 +72,16 @@ typedef enum BHDCPlib_Hdcp2xState
 	BHDCPlib_Hdcp2xState_eAuthenticating,
 	BHDCPlib_Hdcp2xState_eSessionKeyLoaded,
 	BHDCPlib_Hdcp2xState_eAuthenticated,
+	BHDCPlib_Hdcp2xState_eRepeaterAuthenticated,
 	BHDCPlib_Hdcp2xState_eSystemCannotInitialize
 } BHDCPlib_Hdcp2xState;
 
+typedef enum BHDCPlib_Hdcp2xEncryptionState
+{
+	BHDCPlib_Hdcp2xEncryptionState_eUnencrypted = 200,
+	BHDCPlib_Hdcp2xEncryptionState_eEncrypting,
+	BHDCPlib_Hdcp2xEncryptionState_eEncrypted
+} BHDCPlib_Hdcp2xEncryptionState;
 
 typedef enum BHDCPlib_P_Hdcp2xRequest
 {
@@ -136,6 +143,7 @@ typedef struct BHDCPlib_P_Handle
 	uint32_t uiGetReceiverIdListId;
 	BHDCPlib_ReceiverIdListData stReceiverIdListData;
 	BHDCPlib_Hdcp2xState currentHdcp2xState;
+	BHDCPlib_Hdcp2xEncryptionState currentHdcp2xEncryptionState;
 	BHDCPlib_HdcpError lastAuthenticationError;
 	BHDCPlib_SageIndicationData stIndicationData;
 	uint8_t uiInitRetryCounter;

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,6 +67,9 @@
 #include "playlist.h"
 #include "playlist_db.h"
 #include "discovery.h"
+#ifdef CPUTEST_SUPPORT
+#include "cputest.h"
+#endif
 
 #include "nexus_parser_band.h"
 #include "nexus_video_decoder.h"
@@ -593,10 +596,8 @@ eRet CControl::stopAllRecordings()
     CChannel * pChannel = NULL;
     eRet       ret      = eRet_Ok;
 
-    MListItr<CChannel> itr(&_recordingChannels);
-
     /* stop all records */
-    for (pChannel = itr.first(); pChannel; pChannel = itr.next())
+    for (pChannel = _recordingChannels.first(); pChannel; pChannel = _recordingChannels.next())
     {
         if (true == pChannel->isRecording())
         {
@@ -642,8 +643,8 @@ void CControl::onIdle()
     if (true == GET_BOOL(_pCfg, EXIT_APPLICATION))
     {
         showPip(false);
-        stopAllPlaybacks();
         stopAllRecordings();
+        stopAllPlaybacks();
         stopAllEncodings();
         unTuneAllChannels();
 
@@ -1127,6 +1128,17 @@ void CControl::processNotification(CNotification & notification)
     }
     break;
 
+#ifdef CPUTEST_SUPPORT
+    case eNotify_SetCpuTestLevel:
+    {
+        int * pLevel = (int *)notification.getData();
+        CHECK_PTR_ERROR_GOTO("Cpu Test Level not specified in setCpuTestLevel notification", pLevel, ret, eRet_InvalidParameter, error);
+
+        setCpuTestLevel(*pLevel);
+    }
+    break;
+#endif /* ifdef CPUTEST_SUPPORT */
+
     case eNotify_SetSpdifInput:
     {
         eSpdifInput * pSpdifInput = (eSpdifInput *)notification.getData();
@@ -1196,6 +1208,15 @@ void CControl::processNotification(CNotification & notification)
         CHECK_PTR_ERROR_GOTO("Color space not specified in setColorSpace notification", pColorSpace, ret, eRet_InvalidParameter, error);
 
         setColorSpace(*pColorSpace);
+    }
+    break;
+
+    case eNotify_SetColorDepth:
+    {
+        uint8_t * pColorDepth = (uint8_t *)notification.getData();
+        CHECK_PTR_ERROR_GOTO("Color depth not specified in setColorDepth notification", pColorDepth, ret, eRet_InvalidParameter, error);
+
+        setColorDepth(*pColorDepth);
     }
     break;
 
@@ -1655,19 +1676,44 @@ void CControl::processNotification(CNotification & notification)
 
         case eNotify_NetworkWifiConnect:
         {
+            CNetworkWifiConnectData * pConnectData = (CNetworkWifiConnectData *)notification.getData();
+
             pNetwork->stopScanWifi();
 
-            CNetworkWifiConnectData * pConnectData = (CNetworkWifiConnectData *)notification.getData();
-            ret = pNetwork->connectWifi(pConnectData->_strSsid, pConnectData->_strPassword);
-            CHECK_ERROR_GOTO("unable to connect to wifi", ret, errorWifi);
+#ifdef WPA_SUPPLICANT_SUPPORT
+            if (true == pConnectData->isWps())
+            {
+                ret = pNetwork->connectWps();
+                CHECK_ERROR_GOTO("unable to connect to wifi wps", ret, errorWifi);
+            }
+            else
+#endif
+            {
+                ret = pNetwork->connectWifi(pConnectData->_strSsid, pConnectData->_strPassword);
+                CHECK_ERROR_GOTO("unable to connect to wifi", ret, errorWifi);
+            }
         }
         break;
 
         case eNotify_NetworkWifiDisconnect:
-            pNetwork->stopScanWifi();
-            ret = pNetwork->disconnectWifi();
-            CHECK_ERROR_GOTO("unable to disconnect from wifi", ret, errorWifi);
-            break;
+        {
+            CNetworkWifiConnectData * pConnectData = (CNetworkWifiConnectData *)notification.getData();
+
+#ifdef WPA_SUPPLICANT_SUPPORT
+            if (true == pConnectData->isWps())
+            {
+                ret = pNetwork->disconnectWps();
+                CHECK_ERROR_GOTO("unable to disconnect to wifi wps", ret, errorWifi);
+            }
+            else
+#endif
+            {
+                pNetwork->stopScanWifi();
+                ret = pNetwork->disconnectWifi();
+                CHECK_ERROR_GOTO("unable to disconnect from wifi", ret, errorWifi);
+            }
+        }
+        break;
 
         case eNotify_NetworkWifiConnectionStatus:
         {
@@ -1983,8 +2029,10 @@ eRet CControl::unTuneChannel(
 
     if (false == pChannel->isTuned())
     {
+        /* We should return OK because Channels may fail to tune and may untune themselves. Specially Channels
+           that are use ASYNC calls. */
         BDBG_WRN((" Already untuned channel"));
-        ret = eRet_InvalidState;
+        ret = eRet_Ok;
         goto error;
     }
 #ifdef MPOD_SUPPORT
@@ -2776,7 +2824,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     pPlaybackList->addVideo(video, 0);
     pPlaybackList->createInfo(video);
     pPlaybackList->sync();
-    BDBG_MSG(("Added a Channel"));
+    BDBG_MSG(("Added a Record and a video to the playlist"));
 
 done:
     return(ret);
@@ -3788,20 +3836,25 @@ eRet CControl::setAudioProgram(uint16_t pid)
         CChannel * pCurrentCh = _pModel->getCurrentChannel();
         BDBG_ASSERT(NULL != pCurrentCh);
 
-        /* find pid object matching given pid num */
-        pPidNew = pCurrentCh->findPid(pid, ePidType_Audio);
-        CHECK_PTR_ERROR_GOTO("unable to find given pid number in current channel", pPidNew, ret, eRet_InvalidParameter, error);
-
-        if (pPidNew != pAudioDecode->getPid())
+        /* give the channel object a chance to set the audio program.
+           if it chooses not to, handle it here */
+        if (eRet_Ok != pCurrentCh->setAudioProgram(pid))
         {
-            /* newly requested pid is different than current so change to it */
-            pPidOld = pAudioDecode->stop();
-            pPidOld->close();
+            /* find pid object matching given pid num */
+            pPidNew = pCurrentCh->findPid(pid, ePidType_Audio);
+            CHECK_PTR_ERROR_GOTO("unable to find given pid number in current channel", pPidNew, ret, eRet_InvalidParameter, error);
 
-            ret = pPidNew->open(pCurrentCh->getParserBand());
-            CHECK_ERROR_GOTO("unable to open pid channel", ret, error);
-            ret = pAudioDecode->start(pPidNew, pStc);
-            CHECK_ERROR_GOTO("unable to start audio decoder", ret, error);
+            if (pPidNew != pAudioDecode->getPid())
+            {
+                /* newly requested pid is different than current so change to it */
+                pPidOld = pAudioDecode->stop();
+                pPidOld->close();
+
+                ret = pPidNew->open(pCurrentCh->getParserBand());
+                CHECK_ERROR_GOTO("unable to open pid channel", ret, error);
+                ret = pAudioDecode->start(pPidNew, pStc);
+                CHECK_ERROR_GOTO("unable to start audio decoder", ret, error);
+            }
         }
     }
     break;
@@ -3880,6 +3933,32 @@ eRet CControl::setAudioProcessing(eAudioProcessing audioProcessing)
 error:
     return(ret);
 } /* setAudioProcessing */
+
+#ifdef CPUTEST_SUPPORT
+/* percent: 0-100 */
+eRet CControl::setCpuTestLevel(int nLevel)
+{
+    CCpuTest * pCpuTest = _pModel->getCpuTest();
+    uint32_t   nDelay   = 0;
+    eRet       ret      = eRet_Ok;
+
+    BDBG_ASSERT(NULL != pCpuTest);
+    BDBG_ASSERT(0 <= nLevel);
+    BDBG_ASSERT(100 >= nLevel);
+
+    if (0 < nLevel)
+    {
+        pCpuTest->start(nLevel);
+    }
+    else
+    {
+        pCpuTest->stop();
+    }
+error:
+    return(ret);
+} /* setCpuTestLevel */
+
+#endif /* ifdef CPUTEST_SUPPORT */
 
 eRet CControl::setSpdifInput(eSpdifInput spdifInput)
 {
@@ -4023,7 +4102,7 @@ eRet CControl::setColorSpace(NEXUS_ColorSpace colorSpace)
         pDisplay = _pModel->getDisplay(i);
         if (NULL != pDisplay)
         {
-            ret = pDisplay->setColorSpace(colorSpace);
+            ret = pDisplay->setColorSpace(&colorSpace);
             CHECK_ERROR_GOTO("unable to set color space", ret, error);
         }
     }
@@ -4031,6 +4110,26 @@ eRet CControl::setColorSpace(NEXUS_ColorSpace colorSpace)
 error:
     return(ret);
 } /* setColorSpace */
+
+/* set HDMI output color depth.  video decoder color depth is determined by
+ * the atlas.cfg setting: DECODER_COLOR_DEPTH and is set when the main video
+ * decoder is initialized (see CAtlas::videoDecodeInitialize()
+ */
+eRet CControl::setColorDepth(uint8_t colorDepth)
+{
+    eRet       ret        = eRet_NotSupported;
+    CDisplay * pDisplayHD = _pModel->getDisplay(0);
+
+    /* set color depth in hdmi output if it exists */
+    if (NULL != pDisplayHD)
+    {
+        ret = pDisplayHD->setColorDepth(&colorDepth);
+        CHECK_ERROR_GOTO("unable to set color depth", ret, error);
+    }
+
+error:
+    return(ret);
+} /* setColorDepth */
 
 eRet CControl::setMpaaDecimation(bool bMpaaDecimation)
 {
@@ -4630,6 +4729,67 @@ ePowerMode CControl::getPowerMode()
     return(mode);
 }
 
+eRet CControl::ipServerStart()
+{
+    eRet                   ret                  = eRet_Ok;
+    CServerMgr *           pServerMgr           = _pModel->getServerMgr();
+    CAutoDiscoveryClient * pAutoDiscoveryClient = _pModel->getAutoDiscoveryClient();
+
+    ATLAS_MEMLEAK_TRACE("BEGIN");
+
+    /* start atlas server manager */
+    if (NULL != pServerMgr)
+    {
+        ret = pServerMgr->startHttpServer();
+        CHECK_ERROR_GOTO("unable to start ip http server", ret, error);
+        ret = pServerMgr->startPlaylistServer();
+        CHECK_ERROR_GOTO("unable to start ip playlist server", ret, error);
+
+        /* Start UDP Streamer, optional */
+        pServerMgr->startUdpServer();
+    }
+
+    /* start auto discovery client */
+    if (NULL != pAutoDiscoveryClient)
+    {
+        ret = pAutoDiscoveryClient->start();
+        CHECK_ERROR_GOTO("unable to start auto discovery client object", ret, error);
+    }
+
+error:
+    ATLAS_MEMLEAK_TRACE("END");
+    return(ret);
+} /* ipServerStart */
+
+eRet CControl::ipServerStop()
+{
+    eRet                   ret                  = eRet_Ok;
+    CServerMgr *           pServerMgr           = _pModel->getServerMgr();
+    CAutoDiscoveryClient * pAutoDiscoveryClient = _pModel->getAutoDiscoveryClient();
+
+    /* stop atlas server manager */
+    if (NULL != pServerMgr)
+    {
+        ret = pServerMgr->stopHttpServer();
+        CHECK_ERROR("unable to stop ip http server", ret);
+        ret = pServerMgr->stopPlaylistServer();
+        CHECK_ERROR("unable to stop ip playlist server", ret);
+
+        /* optional */
+        pServerMgr->stopUdpServer();
+    }
+
+    /* stop auto discovery client */
+    if (NULL != pAutoDiscoveryClient)
+    {
+        ret = pAutoDiscoveryClient->stop();
+        CHECK_ERROR_GOTO("unable to stop auto discovery client object", ret, error);
+    }
+
+error:
+    return(ret);
+} /* ipServerStop */
+
 eRet CControl::setPowerMode(ePowerMode mode)
 {
     eRet              ret             = eRet_Ok;
@@ -4673,6 +4833,8 @@ eRet CControl::setPowerMode(ePowerMode mode)
         /* enabling outputs only happens on vsync so add slight delay */
         BKNI_Sleep(100);
 
+        ipServerStart();
+
         SET(_pCfg, FIRST_TUNE, "true");
     }
     break;
@@ -4692,6 +4854,7 @@ eRet CControl::setPowerMode(ePowerMode mode)
         stopAllRecordings();
         stopAllEncodings();
         unTuneAllChannels();
+        ipServerStop();
     }
     /* fall-through */
 

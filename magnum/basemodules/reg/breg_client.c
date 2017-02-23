@@ -349,9 +349,6 @@ uint64_t BREG_Read64_isrsafe(BREG_Handle regHandle, uint32_t reg)
 void BREG_Write64_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
 {
     BDBG_ASSERT(reg < regHandle->MaxRegOffset);
-    if(reg%8!=0) { /* only allow access to low 32-bits */
-        BDBG_ASSERT(0);
-    }
     BEMU_Client_WriteRegister(reg, (uint32_t)data);
     return;
 }
@@ -360,9 +357,6 @@ uint64_t BREG_Read64_isrsafe(BREG_Handle regHandle, uint32_t reg)
 {
     uint64_t data;
     BDBG_ASSERT(reg < regHandle->MaxRegOffset);
-    if(reg%8!=0) { /* only allow access to low 32-bits */
-        BDBG_ASSERT(0);
-    }
     BEMU_Client_ReadRegister(reg, &data);
     return data;
 }

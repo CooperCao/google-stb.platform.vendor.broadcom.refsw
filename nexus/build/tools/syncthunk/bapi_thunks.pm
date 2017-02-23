@@ -93,7 +93,7 @@ sub get_thunked_funcs
     my $func;
     my @thunked_funcs;
 
-    for $func (sort @{$funcs}) {
+    for $func (@{$funcs}) {
         next if(exists $func->{ATTR}->{'local'});
         if(exists $func->{ATTR}->{'thunk'}) {
             next if($func->{ATTR}->{'thunk'} eq 'false');
@@ -137,7 +137,7 @@ sub build_thunks
     print FILE "#define NEXUS_THUNKS_TRACE(x) (x)\n";
     print FILE "#endif\n";
     print FILE "/* use local static function in order to reduce size of compiled code, size would reduce since NEXUS_XXXModule expanded to function call with three arguments (where at least one is a global symbol) */\n";
-    print FILE "static void module_lock(void) { NEXUS_LockModule();}\n";
+    print FILE "static void module_lock(const char *func) { if (!NEXUS_TryLockModule()) {NEXUS_Module_SetPendingCaller(NEXUS_MODULE_SELF,func);NEXUS_LockModule();NEXUS_Module_ClearPendingCaller(NEXUS_MODULE_SELF,func);}}\n";
     print FILE "static void module_unlock(void) { NEXUS_UnlockModule();}\n";
 
     my $thunked_funcs = get_thunked_funcs($funcs);
@@ -195,7 +195,7 @@ sub build_thunks
         }
 
         # make call
-        print FILE "  module_lock();\n";
+        print FILE "  module_lock(__FUNCTION__);\n";
 
         if (scalar @{$generated_code->{'server_post_lock'}}) {
             my $file = \*FILE;

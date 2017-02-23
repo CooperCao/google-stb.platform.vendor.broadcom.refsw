@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -278,7 +278,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
 		{
 			0x00000da1,
-			0x00000e72,
+			0x00000e73,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
@@ -638,7 +638,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eDDPEncode */
 		{
 			0x00000b4e,
-			0x00000bd1,
+			0x00000bd4,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eEndOfAudioEncodeAlgos */
@@ -650,7 +650,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_VF_P_AlgoId_eH264Encode */
 		{
 			0x000007f4,
-			0x00000831,
+			0x00000832,
 			0x00000000,
 		},
 		/* BDSP_VF_P_AlgoId_eX264Encode */

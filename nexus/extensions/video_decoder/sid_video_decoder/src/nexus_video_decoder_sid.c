@@ -384,7 +384,6 @@ const NEXUS_VideoDecoder_P_Interface NEXUS_VideoDecoder_P_Interface_Sid = {
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_CreateStripedSurface_Sid),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_DestroyStripedSurface_Sid),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_CreateStripedMosaicSurfaces_Sid),
-    NOT_SUPPORTED(NEXUS_VideoDecoder_P_DestroyStripedMosaicSurfaces_Sid),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_GetMostRecentPts_Sid),
     NEXUS_VideoDecoder_P_GetTrickState_Common,
     NEXUS_VideoDecoder_P_SetTrickState_Sid,

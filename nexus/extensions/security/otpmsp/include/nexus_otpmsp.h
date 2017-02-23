@@ -706,6 +706,7 @@ Summary:
 typedef struct NEXUS_ReadDataSectIO {
     unsigned char       dataSectBuf[NEXUS_OTP_DATASECTION_LEN]; /* Buffer to hold DataSection data for the current DataSect read request */
     unsigned int        dataSectSize;                           /* Actual size of data section read */
+    bool                isShaOfData;                            /* True is the value in dataSectBuf is sha */
 } NEXUS_ReadDataSectIO;
 
 

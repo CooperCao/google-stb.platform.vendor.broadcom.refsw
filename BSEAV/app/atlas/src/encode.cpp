@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -128,12 +128,6 @@ void CEncode::simple_encoder_destroy(void)
         }
     }
 
-    if (_encoderServerSettings.streamMux)
-    {
-        NEXUS_StreamMux_Destroy(_encoderServerSettings.streamMux);
-        _encoderServerSettings.streamMux = NULL;
-    }
-
     if (_pTranscodeStc != NULL)
     {
         _pTranscodeStc->close();
@@ -157,7 +151,6 @@ void CEncode::simple_encoder_destroy(void)
 eRet CEncode::simple_encoder_create()
 {
     NEXUS_DisplaySettings         displaySettings;
-    NEXUS_StreamMuxCreateSettings streamMuxCreateSettings;
     unsigned                      i;
     eRet                           ret    = eRet_Ok;
     NEXUS_Error                    nerror = NEXUS_SUCCESS;
@@ -231,9 +224,6 @@ eRet CEncode::simple_encoder_create()
     }
 
     /* Needs its own class */
-    NEXUS_StreamMux_GetDefaultCreateSettings(&streamMuxCreateSettings);
-    _encoderServerSettings.streamMux = NEXUS_StreamMux_Create(&streamMuxCreateSettings);
-
     _encoderServerSettings.stcChannelTranscode = _pTranscodeStc->getStcChannel();
     _encoderServerSettings.nonRealTime         = false;
 
@@ -643,6 +633,7 @@ void CEncode::dupPidMgr(CPidMgr * pPidMgr)
     _pidMgr.dump();
 }
 
+/* coverity[pass_by_value] */
 eRet CEncode::setSettings(NEXUS_SimpleEncoderSettings encoderSettings)
 {
     NEXUS_Error nerror    = NEXUS_SUCCESS;

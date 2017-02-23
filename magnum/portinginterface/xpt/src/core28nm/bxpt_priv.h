@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -348,7 +348,8 @@ typedef enum brave_itb_types {
     brave_itb_rts =                  0x25,
     brave_itb_pcr =                  0x26,
     brave_itb_ip_stream_out =        0x30,
-    brave_itb_termination =          0x70
+    brave_itb_termination =          0x70,
+    brave_itb_base_address_40bit =   0x28
 } brave_itb_types;
 
 typedef enum eDynamic_splice_btp_marker_commands
@@ -424,6 +425,9 @@ typedef struct SoftRaveData
 
     unsigned SrcContextIndex;
     bool SrcIsHeld;
+
+    /* SWSTB-3582: The BASE opcode was changed for the 40-bit support in RAVE ITB */
+    unsigned BaseOpCode;
 }
 SoftRaveData;
 
@@ -586,7 +590,11 @@ The handle for the transport module. Users should not directly access the
 contents.
 ****************************************************************************/
 
-#define BXPT_P_MINIMUM_BUF_SIZE            (256)
+#ifdef BXPT_P_HAS_224B_SLOT_SIZE
+   #define BXPT_P_MINIMUM_BUF_SIZE            (4 * 224)
+#else
+   #define BXPT_P_MINIMUM_BUF_SIZE            (256)
+#endif
 
 typedef struct BXPT_P_TransportData
 {

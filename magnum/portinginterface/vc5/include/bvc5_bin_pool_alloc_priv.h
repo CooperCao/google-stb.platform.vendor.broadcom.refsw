@@ -40,18 +40,7 @@
 #ifndef BVC5_BIN_POOL_ALLOC_PRIV_H__
 #define BVC5_BIN_POOL_ALLOC_PRIV_H__
 
-#include "bmma.h"
-
-typedef struct BVC5_P_BinPool *BVC5_BinPoolHandle;
-
-typedef struct BVC5_BinPoolBlock_MemInterface
-{
-   BMMA_Block_Handle (*BinPoolBlock_Alloc)(BMMA_Heap_Handle hHeap, size_t size, uint32_t align);
-   void (*BinPoolBlock_Free)(BMMA_Block_Handle hBlock);
-   void (*BinPoolBlock_Lock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset *lockOffset, uint32_t *physOffset);
-   void (*BinPoolBlock_Unlock)(BMMA_Block_Handle hBlock, BMMA_DeviceOffset lockOffset);
-
-} BVC5_BinPoolBlock_MemInterface;
+#include "../src/bvc5_bin_pool_priv.h"
 
 BERR_Code BVC5_RegisterAlternateMemInterface(
    struct module                  *psModule,

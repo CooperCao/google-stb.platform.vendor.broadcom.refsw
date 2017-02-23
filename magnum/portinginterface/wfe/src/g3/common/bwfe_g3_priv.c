@@ -287,6 +287,8 @@ BERR_Code BWFE_g3_P_OpenChannel(
    /* initialize chip specific parameters e.g. adc sample rate */
    chnHandle->pImpl = (void*)chG3;
    retCode = BWFE_P_InitConfig(chnHandle);
+   if (retCode)
+      return retCode;
 
 #if (BCHP_CHIP==7364)
    /* acquire aif clock for interrupts */
@@ -580,8 +582,8 @@ BERR_Code BWFE_g3_P_DisableChannelInterrupts(BWFE_ChannelHandle h)
 
    /* disable timers */
    BKNI_EnterCriticalSection();
-   BWFE_g3_P_DisableTimer(h, BWFE_g3_TimerSelect_e0);
-   BWFE_g3_P_DisableTimer(h, BWFE_g3_TimerSelect_e1);
+   BWFE_g3_P_DisableTimer_isr(h, BWFE_g3_TimerSelect_e0);
+   BWFE_g3_P_DisableTimer_isr(h, BWFE_g3_TimerSelect_e1);
    BKNI_LeaveCriticalSection();
    
    if (!h->bReference)
@@ -1457,9 +1459,9 @@ BERR_Code BWFE_g3_P_CalibrateAdcPhase(BWFE_ChannelHandle h)
 
 
 /******************************************************************************
- BWFE_g3_P_DisableTimer() - ISR context
+ BWFE_g3_P_DisableTimer_isr() - ISR context
 ******************************************************************************/
-BERR_Code BWFE_g3_P_DisableTimer(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t)
+BERR_Code BWFE_g3_P_DisableTimer_isr(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t)
 {
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    BINT_CallbackHandle hCb = NULL;
@@ -1494,9 +1496,9 @@ BERR_Code BWFE_g3_P_DisableTimer(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t)
 
 
 /******************************************************************************
- BWFE_g3_P_EnableTimer() - ISR context
+ BWFE_g3_P_EnableTimer_isr() - ISR context
 ******************************************************************************/
-BERR_Code BWFE_g3_P_EnableTimer(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t, uint32_t delay_usec, BWFE_FUNCT func)
+BERR_Code BWFE_g3_P_EnableTimer_isr(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t, uint32_t delay_usec, BWFE_FUNCT func)
 {
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    BINT_CallbackHandle hCb = NULL;
@@ -1505,7 +1507,7 @@ BERR_Code BWFE_g3_P_EnableTimer(BWFE_ChannelHandle h, BWFE_g3_TimerSelect t, uin
    if (delay_usec == 0)
       return BERR_INVALID_PARAMETER;
    
-   BWFE_g3_P_DisableTimer(h, t);
+   BWFE_g3_P_DisableTimer_isr(h, t);
    
    switch (t)
    {
@@ -1568,7 +1570,7 @@ void BWFE_g3_P_Timer0_isr(void *p, int param)
 
    /* BDBG_MSG(("in BWFE_P_Timer0_isr()")); */
    funct = hChn->timer0Isr;
-   BWFE_g3_P_DisableTimer(h, BWFE_g3_TimerSelect_e0);
+   BWFE_g3_P_DisableTimer_isr(h, BWFE_g3_TimerSelect_e0);
    if (funct)
       funct(h);
 }
@@ -1587,7 +1589,7 @@ void BWFE_g3_P_Timer1_isr(void *p, int param)
    
    /* BDBG_MSG(("in BWFE_P_Timer1_isr()")); */
    funct = hChn->timer1Isr;
-   BWFE_g3_P_DisableTimer(h, BWFE_g3_TimerSelect_e1);
+   BWFE_g3_P_DisableTimer_isr(h, BWFE_g3_TimerSelect_e1);
    if (funct)
       funct(h);
 }

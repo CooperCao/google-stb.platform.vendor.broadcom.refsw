@@ -1,42 +1,40 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+//  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 //
-// This program is the proprietary software of Broadcom and/or its
-// licensors, and may only be used, duplicated, modified or distributed pursuant
-// to the terms and conditions of a separate, written license agreement executed
-// between you and Broadcom (an "Authorized License").  Except as set forth in
-// an Authorized License, Broadcom grants no license (express or implied), right
-// to use, or waiver of any kind with respect to the Software, and Broadcom
-// expressly reserves all rights in and to the Software and all intellectual
-// property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-// HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-// NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+//  This program is the proprietary software of Broadcom and/or its licensors,
+//  and may only be used, duplicated, modified or distributed pursuant to the terms and
+//  conditions of a separate, written license agreement executed between you and Broadcom
+//  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+//  no license (express or implied), right to use, or waiver of any kind with respect to the
+//  Software, and Broadcom expressly reserves all rights in and to the Software and all
+//  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+//  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+//  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 //
-// Except as expressly set forth in the Authorized License,
+//  Except as expressly set forth in the Authorized License,
 //
-// 1. This program, including its structure, sequence and organization,
-//    constitutes the valuable trade secrets of Broadcom, and you shall use all
-//    reasonable efforts to protect the confidentiality thereof, and to use
-//    this information only in connection with your use of Broadcom integrated
-//    circuit products.
+//  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+//  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+//  and to use this information only in connection with your use of Broadcom integrated circuit products.
 //
-// 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-//    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-//    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-//    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-//    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-//    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-//    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-//    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+//  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+//  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+//  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+//  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+//  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+//  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+//  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+//  USE OR PERFORMANCE OF THE SOFTWARE.
 //
-// 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-//    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-//    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-//    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-//    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-//    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-//    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-//    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+//  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+//  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+//  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+//  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+//  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+//  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+//  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+//  ANY LIMITED REMEDY.
+//
 ////////////////////////////////////////////////////////////////////////////////
 var MasterDebug=0;
 
@@ -89,6 +87,8 @@ var GetWifiScanState = { UNINIT:0 ,SCANNING:1 };
 var GetWifiAmpduGraph =  {Value: 0, FirstTime:0 };
 var HIDE = false;
 var SHOW = true;
+var RX = 0; // RxTx index
+var TX = 1; // RxTx index
 var GetHeapStats =  {Value: 0};
 var GetSataUsb =  {Value: 0, Stop:0 };
 var GetProfiling =  {Value: 0};
@@ -129,6 +129,13 @@ var cpuUsageLongAverage = [0,0,0,0,0,0,0,0,0,0]; // 10-second average CPU utiliz
 var CPU_USAGE_LONG_AVERAGE_MAX = 5; // 10-second window
 var cpuUsageLongAverageIdx = 0; // index into 10-second average CPU utilization array (cpuUsageLongAverage)
 var cpuUsageLongAverageCount = 0; // number of 10-second average CPU utilization array (cpuUsageLongAverage)
+var NetTuning = false;
+var NetTuningDefaults = ""; // initialized to default values and used to reset back to defaults when user checks checkboxNetTuningReset
+var GetNetTuningInit = true; // set to true when user checks the checkbox; then set to false
+var checkboxNetTuningRow = HIDE;
+var g_ProcFileFullname = "";
+var g_ProcFileContents = "";
+var GetNetworkTuning =  {Value: HIDE};
 var iperfStateEnum = { UNINIT:0, INIT:1, RUNNING:2, STOP:3 };
 var iperfStateClient = iperfStateEnum.UNINIT;
 var iperfStateServer = iperfStateEnum.UNINIT;
@@ -539,6 +546,8 @@ function MyLoad()
 
         //console.log( "MyLoad: calling sendCgiRequest()");
         CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
+
+        processDebugOutputBox( document.getElementById("debugoutputbox") ); // hide or show the debugoutputbox
 
         //alert("pass 0 done");
     } else {
@@ -978,6 +987,38 @@ function checkboxSelected ( fieldName, fieldValue )
             iperfClientServerRow = 1;
             hideOrShow("row_iperf_client_server", SHOW );
         }
+    } else if (fieldName == "checkboxNetTuningRow" ) {
+        checkboxNetTuningRow = fieldValue;
+        hideOrShow("row_NetTuning", checkboxNetTuningRow );
+        GetNetworkTuning.Value = fieldValue;
+    } else if (fieldName == "checkboxNetTuningReset" ) {
+        //alert( fieldName + " = " + NetTuningDefaults );
+        if ( fieldValue ) {
+            // loop through all of the entries and see if any need to be reset
+            var name_values = NetTuningDefaults.split( "," );
+            for( var idx=0; idx<name_values.length; idx++ ) {
+                var entries = name_values[idx].split( "=" );
+                if ( entries.length == 2 && entries[0].length && entries[1].length ) {
+                    var obj=document.getElementById( entries[0] );
+                    if ( obj ) {
+                        // if the value in the entry box is different from the default value, issue a reset
+                        if ( obj.value != entries[1] ) {
+                            // reset the entry box to the default
+                            //alert("resetting (" + entries[0] + ") from (" + obj.value + ") to (" + entries[1] + ")" );
+                            obj.value = entries[1];
+
+                            // tell CGI to reset the proc file system entry
+                            CheckForEnter ( 13, entries[0] );
+                        }
+                    }
+                }
+            }
+
+            // now that the reset has been done, uncheck the checkbox
+            var obj = document.getElementById( "checkboxNetTuningReset" );
+            if ( obj ) obj.checked = false;
+        } else {
+        }
     } else if ( fieldName.indexOf ( "checkbox_netgfx" ) == 0 ) {
         var idx = fieldName.substr(15);
         if ( idx < 10 ) {
@@ -1059,6 +1100,15 @@ function setButtonImage ( fieldName, newImageName )
     var obj = document.getElementById( fieldName );
     if ( obj ) {
         obj.src = newImageName;
+    }
+}
+
+function processDebugOutputBox( debugobj )
+{
+    if (MasterDebug==1) {
+        if (debugobj) { debugobj.style.visibility = ""; debugobj.style.display= ""; }
+    } else {
+        if (debugobj) { debugobj.style.visibility = "hidden"; debugobj.style.display= "none"; }
     }
 }
 
@@ -1320,16 +1370,9 @@ function setVariable(fieldName)
         if (fieldName == "h1bsysperf") {
             MasterDebug = 1-MasterDebug;
             //alert("MasterDebug " + MasterDebug + "; objdebug " + objdebug );
-            if (MasterDebug==1) {
-                if (objdebug) {
-                    objdebug.style.visibility = "";
-                    GlobalDebug = 0;
-                }
-            } else {
-                if (objdebug) {
-                    objdebug.style.visibility = "hidden";
-                    GlobalDebug = 0;
-                }
+            processDebugOutputBox( document.getElementById("debugoutputbox") ); // hide or show the debugoutputbox
+            GlobalDebug = 0;
+            if (MasterDebug==0) {
                 var CgiCountObj = document.getElementById('cgicount');
                 if (CgiCountObj) {
                     CgiCountObj.innerHTML = "";
@@ -1403,6 +1446,16 @@ function sendCgiRequest( )
         }
         if ( checkboxiperf && checkboxiperf.checked == true ) {
             url += "&iperfRunningClient=1&iperfRunningServer=1";
+        }
+        if ( GetNetTuningInit ) {
+            url += "&NetTuningInit=1";
+            GetNetTuningInit = false;
+        }
+
+        if ( g_ProcFileFullname.length && g_ProcFileContents.length ) {
+            url += "&ProcFileFullname=" + g_ProcFileFullname + "&ProcFileContents=" + g_ProcFileContents;
+            g_ProcFileFullname = "";
+            g_ProcFileContents = "";
         }
     }
 
@@ -1933,11 +1986,45 @@ function UpdateDashTickText ( svg_text_id, max_value )
 function ComputeNewNetGfxDivisor ( RxTxIndex, netIfIdx, newValue )
 {
     var prev_divisor = NetGfxDivisor[RxTxIndex][netIfIdx];
-    var temp = Number ( newValue / 100 );
+    var next_divisor = Number ( newValue / 100 );
     var newValueStr = newValue.toString();
-    var log10 = Math.max ( 1, Number ( newValueStr.length - 2 ) ); // Math.ceil ( Math.log10 ( temp ));
-    //var log10_chrome_ff_safari = Math.ceil ( Math.log10 ( temp )); // fails on IE9 and Safari Windows
-    NetGfxDivisor[RxTxIndex][netIfIdx] = temp = Number ( Math.pow ( 10, log10 ) );
+    var log10 = Math.max ( 1, Number ( newValueStr.length - 2 ) ); // Math.ceil ( Math.log10 ( next_divisor ));
+    //var log10_chrome_ff_safari = Math.ceil ( Math.log10 ( next_divisor )); // fails on IE9 and Safari Windows
+    NetGfxDivisor[RxTxIndex][netIfIdx] = next_divisor = Number ( Math.pow ( 10, log10 ) );
+    var newMaxValue = "";
+    var firstDigit = '0';
+
+    // We want to determine a reasonable Y-value for the graph. Values that start with 2xxxx will go up to 3000.
+    // Values that start with 5xxxxx will go up to 600000. Special cases: values that start with 10xxxx ... we
+    // do not want these values to go up to 20000 because then the graph is only half used. For these cases,
+    // values that are between 10xxxx and 18xxxx will go up to 11xxxx and 19xxxx respectively. Values that
+    // begin with 19xxxx will simply go up to 20xxxx. The logic is the same whether you are talking about
+    // thousands, hundreds of thousands, millions, or hundreds of millions.
+    for ( var idx =0; idx<newValueStr.length; idx++ ) {
+        if ( idx == 0 ) {
+            firstDigit = Number(newValueStr.charAt(idx));
+            if ( firstDigit == '1' ) {
+                if ( newValueStr.charAt(idx+1) == '9' ) {
+                    firstDigit++; // 1900 goes to 2000, 390000 goes to 400000
+                } else {
+                }
+            } else {
+                firstDigit++; // 2 increases to 3; 5 goes to 6; 8 goes to 9, etc
+            }
+            newMaxValue += firstDigit.toString();
+        } else {
+            if ( firstDigit == '1' && idx == 1 && newValueStr.charAt(idx) != '9' ) {
+                var secondDigit = Number(newValueStr.charAt(idx));
+                secondDigit++;
+                newMaxValue += secondDigit.toString();
+            } else {
+                newMaxValue += '0';
+            }
+        }
+    }
+    NetGfxDivisor[RxTxIndex][netIfIdx] = next_divisor = Number ( newMaxValue ) / 100;
+    //console.log("For (" + newValueStr + ") ... log10 (" + log10 + ") ... NetGfxDivisor (" + next_divisor +
+    //    ") newMaxValue (" + newMaxValue + ") for (" + RxTxIndex + ")");
 
     return [ prev_divisor, NetGfxDivisor[RxTxIndex][netIfIdx] ];
 }
@@ -2238,7 +2325,7 @@ function ProcessResponses ( oResponses )
             i++;
         } else if (entry == "STBTIME") {
             PlaybackSTBTIME = oResponses[i+1];
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
             var obj2=document.getElementById("stbtime");
             if (obj2) {
@@ -2251,7 +2338,7 @@ function ProcessResponses ( oResponses )
         } else if (entry == "CPUPERCENTS") {
             AddToDebugOutput ( entry + ": len of entry " + oResponses[i+1].length + eol );
             PlaybackCPUPERCENTS = oResponses[i+1];
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var obj2=document.getElementById("CPUPERCENTS");
             if (obj2) {
                 obj2.innerHTML = oResponses[i+1];
@@ -2261,7 +2348,7 @@ function ProcessResponses ( oResponses )
                 alert("id=CPUPERCENTS not found");
             }
         } else if (entry == "CPUINFO") { // CPUINFO:4  99.97 100.0  100.0  100.0   99.98    0.1  ;
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var objCheckboxCpus = document.getElementById("checkboxcpus");
             if (objCheckboxCpus) {
                 // if the checkbox to show CPU utilization is checked
@@ -2357,7 +2444,7 @@ function ProcessResponses ( oResponses )
             }
             i++;
         } else if (entry == "CPUFREQUENCY") {
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var response = oResponses[i+1];
             //AddToDebugOutput ( entry + ":" + response + ";" + eol );
             var objCheckboxCpus = document.getElementById("checkboxcpus");
@@ -2381,7 +2468,7 @@ function ProcessResponses ( oResponses )
             i++;
         } else if (entry == "IRQDETAILS") {
             var response = oResponses[i+1];
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var obj2=document.getElementById("IRQDETAILS");
             if (obj2) {
                 obj2.innerHTML = oResponses[i+1];
@@ -2405,7 +2492,7 @@ function ProcessResponses ( oResponses )
             i++;
         } else if (entry == "netStatsInit") { // only return when user first checks the Network Stats checkbox
             PlaybacknetStatsInit = oResponses[i+1];
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var obj2 = document.getElementById("checkboxnets");
             if (obj2) {
                 if (obj2.checked) {
@@ -2433,6 +2520,9 @@ function ProcessResponses ( oResponses )
                             }
                         }
                     }
+
+                    hideOrShow("row_NetTuning", checkboxNetTuningRow );
+                    SetCheckboxStatus ( "checkboxNetTuningRow", GetNetworkTuning );
                 } else {
                     AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
                 }
@@ -2441,12 +2531,12 @@ function ProcessResponses ( oResponses )
 
         } else if (entry == "netStatsUpdate") {
             if(debug) console.log ( entry + ":" + oResponses[i+1] + eol );
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             i++;
             var num_interfaces = oResponses[i];
             i++;
             for ( var idx=0; idx<num_interfaces; idx++ ) {
-                if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + oResponses[i];
+                if( RecordControl.Value > 0 ) RecordFileContents += "~" + oResponses[i];
                 var splits = oResponses[i].split('|'); // rx_bytes|tx_bytes|rx_error|tx_error
                 if(debug) console.log ( entry + ":" + idx + " - " + oResponses[i] + ": splits.length=" + splits.length + eol );
                 if ( splits.length == 4 ) {
@@ -2475,7 +2565,7 @@ function ProcessResponses ( oResponses )
             // after loop above finishes, the index "i" is pointing to the wrong entry
             i--;
 
-            // because the checkboxbox gets updated every second, we have to remember the status of the previous second
+            // because the checkbox gets updated every second, we have to remember the status of the previous second
             if ( iperfClientServerRow == 1 ) { // if the previous status was checked, set current status to same
                 var objbox=document.getElementById('checkboxiperfrow');
                 if (objbox) {
@@ -2492,7 +2582,7 @@ function ProcessResponses ( oResponses )
             }
 
         } else if (entry == "NETBYTES") {
-            if( RecordControl.Value > 0 ) RecordFileContents +=  "~" + entry + "~" + oResponses[i+1];
+            if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var obj2 = document.getElementById("checkboxnets");
             var Mbps = 0;
             var Bits = 0;
@@ -2524,10 +2614,10 @@ function ProcessResponses ( oResponses )
                             }
 
                             // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                            Mbps =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) / 128 / 1024);
-                            Bits =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) * 8 );
+                            Mbps =  Number( (oRxTx[RX] - NetBytesPrev[idx][RX]) / 128 / 1024);
+                            Bits =  Number( (oRxTx[RX] - NetBytesPrev[idx][RX]) * 8 );
 
-                            if (NetBytesPrev[idx][0] > 0 && (oRxTx[0] >= NetBytesPrev[idx][0]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
+                            if (NetBytesPrev[idx][RX] > 0 && (oRxTx[RX] >= NetBytesPrev[idx][RX]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
                                 // if the array has filled up
                                 if (NetBytesRx10SecondsCount[idx] == 10) {
                                     for (idx2=0; idx2<(NetBytesRx10SecondsCount[idx]-1); idx2++) {
@@ -2541,19 +2631,19 @@ function ProcessResponses ( oResponses )
                                     // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
                                     // convert bytes to megabits
                                     // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                    objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 ) + ")"; // 0 for RX and 1 for TX
+                                    objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, RX ) + ")"; // 0 for RX and 1 for TX
                                 }
                             } else {
                                 objRx.innerHTML = "0.000 (0.000)";
                             }
-                            UpdateNetGfxElements ( idx, 0/*RX*/, NetBytesPrev[idx][0], oRxTx[0] );
-                            NetBytesPrev[idx][0] = oRxTx[0];
+                            UpdateNetGfxElements ( idx, RX, NetBytesPrev[idx][RX], oRxTx[RX] );
+                            NetBytesPrev[idx][RX] = oRxTx[RX];
 
                             // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                            Mbps =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) / 128 / 1024);
-                            Bits =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) * 8 );
+                            Mbps =  Number( (oRxTx[TX] - NetBytesPrev[idx][TX]) / 128 / 1024);
+                            Bits =  Number( (oRxTx[TX] - NetBytesPrev[idx][TX]) * 8 );
 
-                            if (NetBytesPrev[idx][1] > 0 && (oRxTx[1] >= NetBytesPrev[idx][1]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
+                            if (NetBytesPrev[idx][TX] > 0 && (oRxTx[TX] >= NetBytesPrev[idx][TX]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
                                 // if the array has filled up, move the entries left one position and add new entry to the very end
                                 if (NetBytesTx10SecondsCount[idx] == 10) {
                                     for (idx2=0; idx2<(NetBytesTx10SecondsCount[idx]-1); idx2++) {
@@ -2567,13 +2657,13 @@ function ProcessResponses ( oResponses )
                                     // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
                                     // convert bytes to megabits
                                     // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                    objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 ) + ")"; // 0 for RX and 1 for TX
+                                    objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, TX ) + ")"; // 0 for RX and 1 for TX
                                 }
                             } else {
                                 objTx.innerHTML = "0.000 (0.000)";
                             }
-                            UpdateNetGfxElements ( idx, 1/*TX*/, NetBytesPrev[idx][1], oRxTx[1] );
-                            NetBytesPrev[idx][1] = oRxTx[1];
+                            UpdateNetGfxElements ( idx, TX, NetBytesPrev[idx][TX], oRxTx[TX] );
+                            NetBytesPrev[idx][TX] = oRxTx[TX];
                         }
                     }
                 } else {
@@ -2685,7 +2775,8 @@ function ProcessResponses ( oResponses )
                                 set_iperf_cmd ( iperfRunningClient.substr(iperfRunningClient.indexOf('iperf ')), entry );
                                 set_iperf_count_value(entry, get_unix_seconds( iperfRunningClient ) ); // if we loaded the page and iperf is already running, set the start time
                             }
-                            setButtonDisabled( 'iperf_start_stop_c', true ); // will be enabled if browser received iperfClientRate
+                            //In earlier versions, we prevented other browsers from stopping my thread. Removed feature on 2017-01-13.
+                            //setButtonDisabled( 'iperf_start_stop_c', true ); // will be enabled if browser received iperfClientRate
                         }
                     }
                 } else {
@@ -2704,13 +2795,13 @@ function ProcessResponses ( oResponses )
                         var obj=document.getElementById("iperf_start_stop_s");
                         if (obj && obj.value == "START") {
                             // if the running iperf was started by bsysperf (i.e. it has the special -Q option)
-                            if ( oResponses[i+1].indexOf(" iperf -s -Q ") > 0 ) {
+                            if ( iperfRunningServer.indexOf("iperf -s -Q ") >= 0 ) {
                                 obj.value = "STOP";
                                 iperfStateServer = iperfStateEnum.RUNNING;
                                 set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
                                 set_iperf_count_value(entry, get_unix_seconds( iperfRunningServer ) ); // if we loaded the page and iperf is already running, set the start time
                             } else {
-                                if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -s running, make sure the START button is enabled
+                                if ( iperfRunningServer == "NONE" ) { // if there is no iperf -s running, make sure the START button is enabled
                                     setButtonDisabled( 'iperf_start_stop_s', false );
                                     //set_iperf_cmd ( "", entry ); // if we clear this out, what user is typing gets cleared BEFORE START button pressed
                                 } else {
@@ -2869,6 +2960,8 @@ function ProcessResponses ( oResponses )
                                 }
                             }
                         }
+
+                        hideOrShow ( "AntennasHtml", HIDE ); // hide the table that shows AMPDU details
 
                         hideOrShow("row_wifi_ampdu", SHOW );
                         DrawScene(0);
@@ -3309,6 +3402,40 @@ function ProcessResponses ( oResponses )
                 }
             }
             i++;
+        } else if (entry == "NetTuningInit") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var obj2 = document.getElementById("checkboxnets");
+            if (obj2) {
+                if (obj2.checked) {
+                    var response = oResponses[i+1];
+                    var obj2=document.getElementById("NetTuning");
+                    if (obj2) {
+                        obj2.innerHTML = oResponses[i+1];
+                    }
+                } else {
+                    AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                }
+            }
+            i++;
+        } else if (entry == "NetTuningDefaults") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            //rmem_max=1,wmem_max=1,tcp_limit_output_bytes=1,flush=1,tcp_timestamps=1,tcp_sack=1,tcp_window_scaling=1,tcp_congestion_control=1,tcp_low_latency=1,tcp_rmem=4096,8388608,8388608,tcp_wmem=4096,8388608,8388608
+            NetTuningDefaults = oResponses[i+1];
+            i++;
+        } else if (entry == "NetTuningError") {
+            //alert(entry + " is (" + oResponses[i+1] + ")" );
+            var entries=oResponses[i+1].split(","); // response similar to /proc/sys/net/ipv4/route/flush,4,
+            if ( entries.length == 3 ) {
+                var filenames=entries[0].split("/");
+                if ( filenames.length ) {
+                    var lTargetId = filenames[filenames.length-1];
+                    var obj = document.getElementById ( lTargetId );
+                    if ( obj ) obj.value = entries[2];
+                    SetBackgroundColor( lTargetId );
+                    alert( "Could not set " + lTargetId + " to (" + entries[1] + "); current value is (" + entries[2] + ")" );
+                }
+            }
+            i++;
         } else {
             if (entry.length > 1 ) {
                 AddToDebugOutput ( entry + eol );
@@ -3548,6 +3675,82 @@ function set_iperf_cmd( cmd, clientOrServer )
     return true;
 }
 
+function SetProcFile( ProcFileFullname, new_value )
+{
+    g_ProcFileFullname = ProcFileFullname;
+    g_ProcFileContents = new_value;
+
+    sendCgiRequest();
+}
+
+// If the current value differs from the default, change background color to orange
+function SetBackgroundColor( lTargetId )
+{
+    var name_values = NetTuningDefaults.split( "," );
+    for( var idx=0; idx<name_values.length; idx++ ) {
+        var entries = name_values[idx].split( "=" );
+        if ( entries.length == 2 && entries[0].length && entries[1].length ) {
+            var obj=document.getElementById( entries[0] );
+            if ( obj ) {
+                // if the value in the entry box is different from the default value
+                if ( obj.value != entries[1] ) {
+                    // set background color to orange
+                    obj.style.backgroundColor = "orange";
+                } else {
+                    obj.style.backgroundColor = "khaki";
+                }
+            }
+        }
+    }
+}
+
+function CheckForEnter ( lKeyCode, lTargetId )
+{
+    if ( lKeyCode == 13 && lTargetId.length ) {
+        var obj=document.getElementById( lTargetId );
+        if ( obj ) {
+            //console.log( "User hit enter on field " + lTargetId + "; value is (" + obj.value + ")" );
+            if ( lTargetId == "rmem_max" ) {
+               SetProcFile( "/proc/sys/net/core/rmem_max", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "wmem_max" ) {
+               SetProcFile( "/proc/sys/net/core/wmem_max", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_rmem1" || lTargetId == "tcp_rmem2" || lTargetId == "tcp_rmem3" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_rmem", document.getElementById('tcp_rmem1').value + "," +
+                   document.getElementById('tcp_rmem2').value + "," + document.getElementById('tcp_rmem3').value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_wmem1" || lTargetId == "tcp_wmem2" || lTargetId == "tcp_wmem3" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_wmem", document.getElementById('tcp_wmem1').value + "," +
+                   document.getElementById('tcp_wmem2').value + "," + document.getElementById('tcp_wmem3').value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_limit_output_bytes" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_limit_output_bytes", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "flush" ) {
+               SetProcFile( "/proc/sys/net/ipv4/route/flush", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_timestamps" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_timestamps", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_sack" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_sack", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_window_scaling" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_window_scaling", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_congestion_control" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_congestion_control", obj.value );
+               SetBackgroundColor( lTargetId );
+            } else if ( lTargetId == "tcp_low_latency" ) {
+               SetProcFile( "/proc/sys/net/ipv4/tcp_low_latency", obj.value );
+               SetBackgroundColor( lTargetId );
+            }
+
+        }
+    }
+}
+
 // event is triggered from onkeyup event ... or could be from "iperf_start_stop_s" or "iperf_start_stop_c"
 function KeyupEntryBox(event)
 {
@@ -3566,6 +3769,8 @@ function KeyupEntryBox(event)
         } else if ( event.target.id.indexOf("Server") > 0 || event.target.id.indexOf("iperf_options_s") >= 0 ) {
             iperfCmd=CreateIperfString( "iperf_start_stop_s" );
             clientOrServer = "Server";
+        } else {
+            CheckForEnter ( event.keyCode, event.target.id );
         }
     }
     set_iperf_cmd(iperfCmd, clientOrServer );
@@ -3925,6 +4130,8 @@ function ExportCpuStatsListener ()
 {
     var link = document.createElement('a');
     var csv = "";
+    var time_element_prev = 0;
+    var unixtime = 0;
 
     link.setAttribute('download', 'bsysperf_cpustats_' + UUID + '.csv' );
 
@@ -3954,7 +4161,24 @@ function ExportCpuStatsListener ()
                             csv += "\n";
                         }
                         var with_commas = CPUINFO_trimmed.substr(2,99).replace(/ /g, ","); // replace every space with a comma
-                        csv += time_elements[0] + "," + with_commas;
+                        // We should have ... 000096,000099,000023,000045
+                        var idle_numbers = with_commas.split(",");
+
+                        unixtime = time_elements[0];
+
+                        // check to see if the unixtime has jumped by 2 seconds
+                        //if ( time_element_prev > 0 && Number(time_elements[0] - time_element_prev) > 1 ) {
+                        //    var temp = Number( time_element_prev ) + 1;
+                        //    unixtime = temp.toString();
+                        //}
+
+                        csv += unixtime;
+                        time_element_prev = unixtime;
+
+                        // Instead of CPU "idle" values, add CPU "usage" values to the CSV file
+                        for(var cpu=0; cpu<idle_numbers.length; cpu++ ) {
+                            csv += "," + Number( 100 - idle_numbers[cpu]).toString();
+                        }
                     }
                 }
             }

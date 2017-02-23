@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,7 +45,6 @@
 #endif
 #include "b_os_lib.h"
 
-#include "b_psip_lib.h"
 #include "ip_psi.h"
 #include "b_playback_ip_priv.h"
 #include "b_playback_ip_utils.h"
@@ -1662,7 +1661,7 @@ int main(int argc, char *argv[])
             psi.mpegType = NEXUS_TransportType_eEs;
         }
         else if (psi.psiValid == false) {
-            /* For non-HTTP protocols, apps will need to use psip library to do the psi discovery */
+            /* For non-HTTP protocols, apps will need to use tspsi2 library to do the psi discovery */
             memset(&collectionData, 0, sizeof(psiCollectionDataType));
             collectionData.playpump = playpump;
             collectionData.live = true;

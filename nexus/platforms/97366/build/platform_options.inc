@@ -43,7 +43,6 @@
 # only A0 has Ragga based encoder, Also make them overwritable at command line
 ifeq ($(BCHP_VER), A0)
 #Raaga encoder support flags
-VIDEO_ENCODER_SUPPORT ?= y
 BDSP_ENCODER_SUPPORT  ?= y
 else
 VIDEO_ENCODER_SUPPORT ?= y

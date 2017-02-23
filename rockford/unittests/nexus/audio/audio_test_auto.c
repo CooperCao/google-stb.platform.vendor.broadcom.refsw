@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,7 @@
  *****************************************************************************/
 /* automated audio module unittest. mostly based on audio_test.c unittest, but automated */
 #include "nexus_platform.h"
-#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_NUM_AUDIO_DACS
+#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_NUM_AUDIO_DACS && NEXUS_HAS_AUDIO
 #include "nexus_audio_input.h"
 #include "nexus_audio_output.h"
 #include "nexus_audio_decoder.h"
@@ -571,6 +571,6 @@ static void SetOutputSettings(void)
 int main(void)
 {
     printf("This application is not supported on this platform\n");
-    return -1;
+    return 0;
 }
 #endif

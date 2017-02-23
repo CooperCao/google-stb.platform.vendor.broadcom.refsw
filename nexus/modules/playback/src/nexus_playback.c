@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_playback_module.h"
@@ -906,7 +898,12 @@ NEXUS_Playback_P_ConvertPlayerDecodeMode(NEXUS_PlaybackHandle p, const bmedia_pl
              trick_settings->state = b_trick_state_brcm_trick_mode;
              trick_settings->decode_rate = (abs_time_scale * (NEXUS_NORMAL_PLAY_SPEED/BMEDIA_TIME_SCALE_BASE));
         } else if(mode->dqt) {
-             trick_settings->state = b_trick_state_display_queue_trick_mode;
+             if (params && (params->mode == NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqt || params->mode == NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP)) {
+                trick_settings->state = b_trick_state_mdqt_mode;
+            }
+            else {
+                trick_settings->state = b_trick_state_dqt_mode;
+            }
         } else if(mode->tsm) {
             trick_settings->decode_rate = mode->time_scale * (NEXUS_NORMAL_PLAY_SPEED/BMEDIA_TIME_SCALE_BASE);
             trick_settings->state = b_trick_state_host_paced;
@@ -1334,8 +1331,10 @@ b_play_set_media_player_config(NEXUS_PlaybackHandle p, const NEXUS_PlaybackTrick
     BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayIP == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_IP);
     BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlaySkipP == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_skipP);
     BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayBrcm == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_brcm);
-    BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayGop == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_gop);
-    BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayGopIP == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_gop_IP);
+    BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayDqt == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_gop);
+    BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayDqtIP == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_gop_IP);
+    BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqt == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_mdqt);
+    BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_mdqt_IP);
     BDBG_CASSERT( NEXUS_PlaybackHostTrickMode_eTimeSkip == (NEXUS_PlaybackHostTrickMode)bmedia_player_host_trick_mode_time_skip);
 
     bmedia_player_get_decoder_config(p->media_player, &config);

@@ -1184,7 +1184,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     BERR_Code rc;
     NEXUS_HdmiOutputHandle hdmiOutput = output;
     NEXUS_HdmiOutputSettings settings;
-    NEXUS_HdmiOutputDisplaySettings stHdmiOutputDisplaySettings ;
 
     BFMT_VideoFmt videoFmt, hdmiFmt;
     BFMT_AspectRatio aspectRatioVdc;
@@ -1212,7 +1211,6 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     }
     BDBG_ASSERT(display->hdmi.outputNotify == hdmiOutput);
 
-    BKNI_Memset(&stHdmiOutputDisplaySettings, 0, sizeof(NEXUS_HdmiOutputDisplaySettings)) ;
     NEXUS_HdmiOutput_GetSettings(hdmiOutput, &settings);
 
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
@@ -1390,6 +1388,8 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
     }
 
     NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
+    {
+        NEXUS_HdmiOutputDisplaySettings stHdmiOutputDisplaySettings ;
         rc = NEXUS_HdmiOutput_GetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
         if (rc) return BERR_TRACE(rc);
 
@@ -1403,6 +1403,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         stHdmiOutputDisplaySettings.colorRange = nexusColorRange ;
 
         NEXUS_HdmiOutput_SetDisplaySettings_priv(hdmiOutput, &stHdmiOutputDisplaySettings) ;
+    }
     NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
 
     rc = BVDC_Display_SetHdmiSyncOnly(display->displayVdc, settings.syncOnly);

@@ -1,0 +1,170 @@
+/*=============================================================================
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
+All rights reserved.
+
+Project  :  khronos
+Module   :  Header file
+
+FILE DESCRIPTION
+Declaration of implementation-dependent configuration properties.
+=============================================================================*/
+
+#ifndef GLXX_INT_CONFIG_H
+#define GLXX_INT_CONFIG_H
+
+#include "libs/core/v3d/v3d_common.h"
+#include "libs/core/v3d/v3d_limits.h"
+
+#define GLXX_HAS_COMPUTE      KHRN_GLES31_DRIVER
+#define GLXX_HAS_TNG (KHRN_GLES32_DRIVER || (KHRN_GLES31_DRIVER && V3D_VER_AT_LEAST(4,0,2,0)))
+
+#define GLXX_CONFIG_ALLOW_VERTEX_OBJECTS 0 // set to 1 to allow SSBOs, atomics, etc in vertex pipeline
+
+// Need this many for OpenGL ES 3.2, glsl/backend isn't aware what version we're compiling.
+#define GLXX_CONFIG_MAX_SHADER_TYPES 6u
+#define GLXX_CONFIG_MAX_PROGRAM_SHADER_TYPES 5u
+
+#define GLXX_CONFIG_MAX_UNIFORM_VECTORS 300u           /* Must be at least 246 to run Electopia */
+#define GLXX_CONFIG_MAX_UNIFORM_SCALARS (GLXX_CONFIG_MAX_UNIFORM_VECTORS*4u)
+#define GLXX_CONFIG_MAX_UNIFORM_LOCATIONS GLXX_CONFIG_MAX_UNIFORM_SCALARS
+
+#define GLXX_CONFIG_MAX_VARYING_VECTORS 16u
+#define GLXX_CONFIG_MAX_VARYING_SCALARS (GLXX_CONFIG_MAX_VARYING_VECTORS*4u)
+
+#define GLXX_CONFIG_MIN_ALIASED_POINT_SIZE 0.125f
+#define GLXX_CONFIG_MAX_ALIASED_POINT_SIZE 256.0f
+#define GLXX_CONFIG_MIN_ALIASED_LINE_WIDTH 0.125f
+#define GLXX_CONFIG_MAX_ALIASED_LINE_WIDTH 32.0f
+
+#define GLXX_CONFIG_MIN_MULTISAMPLE_LINE_WIDTH 0.125f
+#define GLXX_CONFIG_MAX_MULTISAMPLE_LINE_WIDTH 32.0f
+#define GLXX_CONFIG_MULTISAMPLE_LINE_WIDTH_GRANULARITY 0.125f
+
+#define GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS    16u
+#define GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS  (GLXX_CONFIG_MAX_SHADER_TEXTURE_IMAGE_UNITS * GLXX_CONFIG_MAX_SHADER_TYPES)
+
+#define GLXX_CONFIG_MAX_IMAGE_UNITS                   8u
+#define GLXX_CONFIG_MAX_SHADER_IMAGE_UNIFORMS         8u
+#define GLXX_CONFIG_MAX_VERTEX_IMAGE_UNIFORMS         (GLXX_CONFIG_ALLOW_VERTEX_OBJECTS ? GLXX_CONFIG_MAX_SHADER_IMAGE_UNIFORMS : 0u)
+#define GLXX_CONFIG_MAX_COMBINED_IMAGE_UNIFORMS       8u
+
+#define GLXX_CONFIG_MAX_SHADER_ATOMIC_COUNTERS        8u
+#define GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTERS        (GLXX_CONFIG_ALLOW_VERTEX_OBJECTS ? GLXX_CONFIG_MAX_SHADER_ATOMIC_COUNTERS : 0u)
+#define GLXX_CONFIG_MAX_COMBINED_ATOMIC_COUNTERS      8u
+
+#define GLXX_CONFIG_MAX_SHADER_ATOMIC_COUNTER_BUFFERS       1u
+#define GLXX_CONFIG_MAX_VERTEX_ATOMIC_COUNTER_BUFFERS       (GLXX_CONFIG_ALLOW_VERTEX_OBJECTS ? GLXX_CONFIG_MAX_SHADER_ATOMIC_COUNTER_BUFFERS : 0u)
+#define GLXX_CONFIG_MAX_COMBINED_ATOMIC_COUNTER_BUFFERS     1u
+#define GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS      4u
+#define GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_SIZE          32u
+
+#define GLXX_CONFIG_MAX_COMBINED_SHADER_OUTPUTS (GLXX_CONFIG_MAX_IMAGE_UNITS + GLXX_MAX_RENDER_TARGETS)
+
+#define GLXX_CONFIG_MAX_VERTEX_ATTRIBS            16
+/* Bindings are flattened at draw time so there is no separate binding limit */
+#define GLXX_CONFIG_MAX_VERTEX_ATTRIB_BINDINGS    (GLXX_CONFIG_MAX_VERTEX_ATTRIBS)
+/* These are the minimums for GLES3.1, we have a full 32bits for the stride in
+ * the command list shader record format so could go higher if required */
+#define GLXX_CONFIG_MAX_VERTEX_ATTRIB_STRIDE      2048
+/* There is no separate limitation on the relative offset of a vertex attribute
+ * as each attribute has a separate base pointer (offset as appropriate) */
+#define GLXX_CONFIG_MAX_VERTEX_ATTRIB_RELATIVE_OFFSET (GLXX_CONFIG_MAX_VERTEX_ATTRIB_STRIDE - 1)
+
+#define GLXX_CONFIG_MAX_SAMPLES         4u
+#define GLXX_CONFIG_SUBPIXEL_BITS       4u
+#define GLXX_CONFIG_MAX_SAMPLE_WORDS    1u
+#define GLXX_CONFIG_MAX_INTEGER_SAMPLES (KHRN_GLES31_DRIVER ? GLXX_CONFIG_MAX_SAMPLES : 0u)
+
+#define GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE        4096
+#define GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS       256
+
+static_assrt(GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE <= V3D_MAX_CLIP_WIDTH);
+static_assrt(GLXX_CONFIG_MAX_FRAMEBUFFER_SIZE <= V3D_MAX_CLIP_HEIGHT);
+
+// TODO These are currently from the spec. Figure out
+//      our real limits
+#define GLXX_CONFIG_MAX_TF_INTERLEAVED_COMPONENTS  64
+#define GLXX_CONFIG_MAX_TF_SEPARATE_ATTRIBS         4
+#define GLXX_CONFIG_MAX_TF_SEPARATE_COMPONENTS      4
+
+#define GLXX_MAX_RENDER_TARGETS  4
+static_assrt(GLXX_MAX_RENDER_TARGETS <= V3D_MAX_RENDER_TARGETS);
+
+#if V3D_VER_AT_LEAST(4,0,2,0)
+#define GLXX_CONFIG_MAX_ELEMENT_INDEX              0xffffffff
+#else
+#define GLXX_CONFIG_MAX_ELEMENT_INDEX              0x00ffffff
+#endif
+
+// These are recommended values, not maximum values.
+// Greater values will have less performance
+#define GLXX_CONFIG_RECOMMENDED_ELEMENTS_INDICES   GLXX_CONFIG_MAX_ELEMENT_INDEX // All perform the same
+#define GLXX_CONFIG_RECOMMENDED_ELEMENTS_VERTICES  0xffff      // shorts are faster than ints
+
+// Shader supplies mipmap level directly, so there is no limit
+#define GLXX_CONFIG_MAX_TEXTURE_LOD_BIAS           16.0f
+
+#define GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS         12u
+#define GLXX_CONFIG_MAX_UNIFORM_BLOCK_SIZE            16384u
+#define GLXX_CONFIG_UNIFORM_BUFFER_OFFSET_ALIGNMENT   16u
+#define GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS       (GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS * GLXX_CONFIG_MAX_SHADER_TYPES)
+#define GLXX_CONFIG_MAX_COMBINED_UNIFORM_BLOCKS       (GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS * GLXX_CONFIG_MAX_PROGRAM_SHADER_TYPES)
+
+#define GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCKS               8u
+#define GLXX_CONFIG_MAX_VERTEX_STORAGE_BLOCKS               (GLXX_CONFIG_ALLOW_VERTEX_OBJECTS ? GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCKS : 0u)
+#define GLXX_CONFIG_MAX_COMBINED_STORAGE_BLOCKS             8u
+#define GLXX_CONFIG_MAX_SHADER_STORAGE_BUFFER_BINDINGS      8u
+#define GLXX_CONFIG_MAX_SHADER_STORAGE_BLOCK_SIZE           (1<<27)
+#define GLXX_CONFIG_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT  16u
+
+#define GLXX_CONFIG_MIN_TEXEL_OFFSET               -8
+#define GLXX_CONFIG_MAX_TEXEL_OFFSET                7
+
+#define GLXX_CONFIG_MAX_COMPUTE_GROUP_COUNT            65535
+#define GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X             128
+#define GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y             128
+#define GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z              64
+#define GLXX_CONFIG_MAX_COMPUTE_WORK_GROUP_INVOCATIONS   128
+#define GLXX_CONFIG_MAX_COMPUTE_SHARED_MEM_SIZE        16384
+
+#define GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS         64u   // GL min value
+#define GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS                  120u  // GL min value
+#define GLXX_CONFIG_MAX_TESS_CONTROL_TOTAL_OUTPUT_COMPONENTS   2048u // GL min valuu
+#define GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS      64u   // GL min value
+#define GLXX_CONFIG_MAX_TESS_CONTROL_INPUT_COMPONENTS          64u   // GL min value
+#define GLXX_CONFIG_MAX_TESS_EVALUATION_INPUT_COMPONENTS       64u   // GL min value
+
+#define GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_COMPONENTS             64u   // GL min value
+#define GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES               256u  // GL min value
+#define GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS       1024u // GL min value
+#define GLXX_CONFIG_MAX_GEOMETRY_INPUT_COMPONENTS              64u   // GL min value
+
+#define GLXX_CONFIG_MAX_DEBUG_MESSAGE_LENGTH      1024
+#define GLXX_CONFIG_MAX_DEBUG_LOGGED_MESSAGES       16
+#define GLXX_CONFIG_MAX_DEBUG_GROUP_STACK_DEPTH     64
+#define GLXX_CONFIG_MAX_LABEL_LENGTH               256
+
+//must be a multiple of V3D_TMU_ML_ALIGN
+#define GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES 256u
+#define GLXX_CONFIG_TEXTURE_BUFFER_OFFSET_ALIGNMENT GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES
+//maximum texel size for accepted texbuffer formats is 16 bytes
+#define GLXX_CONFIG_MAX_TEXTURE_BUFFER_SIZE ((GLXX_CONFIG_TEXBUFFER_ARR_ELEM_BYTES/16u) * V3D_MAX_TEXTURE_DEPTH)
+
+/*
+See Table 6.27. Implementation Dependent Values.
+See tables 6.31, 6.32 and 6.33 for vertex, fragment and combined shader limits
+
+Texture limits are given in glxx_texture_defines.h:
+
+COMPRESSED_TEXTURE_FORMATS          -
+NUM_COMPRESSED_TEXTURE_FORMATS     10
+
+TODO: Not sure about these:
+PROGRAM_BINARY_FORMATS              -
+NUM_PROGRAM_BINARY_FORMATS          0
+SHADER_BINARY_FORMATS               -
+NUM_SHADER_BINARY_FORMATS           0
+MAX_SERVER_WAIT_TIMEOUT             0
+
+*/
+#endif

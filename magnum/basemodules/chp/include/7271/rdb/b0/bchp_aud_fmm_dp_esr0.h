@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *AUD_FMM_DP_ESR0 - Audio DP Module Error Status Registers
  ***************************************************************************/
-#define BCHP_AUD_FMM_DP_ESR0_ESR0_STATUS         0x20ca7c00 /* [RO] Error Status Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR0_STATUS_SET     0x20ca7c04 /* [WO] Error Set Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR0_STATUS_CLEAR   0x20ca7c08 /* [WO] Error Clear Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR0_MASK           0x20ca7c0c /* [RO] Mask Status Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR0_MASK_SET       0x20ca7c10 /* [WO] Mask Set Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR0_MASK_CLEAR     0x20ca7c14 /* [WO] Mask Clear Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR1_STATUS         0x20ca7c18 /* [RO] Error Status Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR1_STATUS_SET     0x20ca7c1c /* [WO] Error Set Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR1_STATUS_CLEAR   0x20ca7c20 /* [WO] Error Clear Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR1_MASK           0x20ca7c24 /* [RO] Mask Status Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR1_MASK_SET       0x20ca7c28 /* [WO] Mask Set Register */
-#define BCHP_AUD_FMM_DP_ESR0_ESR1_MASK_CLEAR     0x20ca7c2c /* [WO] Mask Clear Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR0_STATUS         0x20ca7c00 /* [RO][32] Error Status Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR0_STATUS_SET     0x20ca7c04 /* [WO][32] Error Set Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR0_STATUS_CLEAR   0x20ca7c08 /* [WO][32] Error Clear Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR0_MASK           0x20ca7c0c /* [RO][32] Mask Status Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR0_MASK_SET       0x20ca7c10 /* [WO][32] Mask Set Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR0_MASK_CLEAR     0x20ca7c14 /* [WO][32] Mask Clear Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR1_STATUS         0x20ca7c18 /* [RO][32] Error Status Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR1_STATUS_SET     0x20ca7c1c /* [WO][32] Error Set Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR1_STATUS_CLEAR   0x20ca7c20 /* [WO][32] Error Clear Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR1_MASK           0x20ca7c24 /* [RO][32] Mask Status Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR1_MASK_SET       0x20ca7c28 /* [WO][32] Mask Set Register */
+#define BCHP_AUD_FMM_DP_ESR0_ESR1_MASK_CLEAR     0x20ca7c2c /* [WO][32] Mask Clear Register */
 
 /***************************************************************************
  *ESR0_STATUS - Error Status Register

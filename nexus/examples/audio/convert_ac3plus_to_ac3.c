@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: Decode and convert AC3 Plus to AC3 from a live in put band */
@@ -82,12 +74,31 @@ int main(void)
     NEXUS_PidChannelHandle pcrPidChannel, audioPidChannel;
     NEXUS_AudioDecoderHandle pcmDecoder, compressedDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 2)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -119,34 +130,34 @@ int main(void)
     /* Bring up audio decoders and outputs */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3Plus )
-    {
-        /* AC3Plus converted to AC3 on SPDIF */
+    if (audioDacHandle) {
         NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-    }
-    else if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
-    {
-        /* AC3 Passthrough to SPDIF */
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-            NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-    }
-    else
-    {
-        /* PCM on SPDIF */
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            audioDacHandle,
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
-#endif
+    if (audioSpdifHandle) {
+        if ( audioProgram.codec == NEXUS_AudioCodec_eAc3Plus )
+        {
+            /* AC3Plus converted to AC3 on SPDIF */
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
+        {
+            /* AC3 Passthrough to SPDIF */
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else
+        {
+            /* PCM on SPDIF */
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
+    }
     /* Start Decoders */
     NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
     if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,11 +41,14 @@
 #include "bkni.h"
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_MAX_DECODERS
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_decoder_settings);
 BDBG_FILE_MODULE(bape_loudness);
 
+#if BAPE_CHIP_MAX_DECODERS
 static bool BAPE_Decoder_P_HasMultichannelOutput(
     BAPE_DecoderHandle handle
     )
@@ -151,10 +154,10 @@ static void BAPE_Decoder_P_GetAFDecoderType(BAPE_DecoderHandle handle, BDSP_AF_P
 
 static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
 {
-#if BAPE_DSP_LEGACY_DDP_ALGO
-    BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eAc3Decode;
-#else
+#if BDSP_MS12_SUPPORT
     BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eUdcDecode;
+#else
+    BDSP_Algorithm bdspAlgo = BDSP_Algorithm_eAc3Decode;
 #endif
 
     if ( !BAPE_DSP_P_AlgorithmSupported(handle->deviceHandle, bdspAlgo) )
@@ -2957,3 +2960,4 @@ BERR_Code BAPE_Decoder_P_ApplyCodecSettings(BAPE_DecoderHandle handle)
 
     return BERR_SUCCESS;
 }
+#endif

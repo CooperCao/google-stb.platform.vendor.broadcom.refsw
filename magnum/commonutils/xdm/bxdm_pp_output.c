@@ -282,26 +282,36 @@ static void BXDM_PPOUT_S_ApplySPODisplayFieldMode_isr(
 
          case BXDM_PictureProvider_DisplayFieldMode_eBothField:
          default:
-            /* Keep track of display polarity failures for reporting via GetChannelStatus */
-            if (BAVC_Polarity_eFrame != pMFDPicture->eSourcePolarity)
             {
-               /* SW7405-3586: If source interlaced, and display is progressive, only increment parity
-                  failure count if two fields in a row (or more) are the same polarity.
-                  So, T0 T0r B0 and T0 T1 B1 should each increment the value by 1, but T0 B0 T1 should not. */
-               if (BAVC_Polarity_eFrame == pMFDPicture->eInterruptPolarity)
+               bool bPaused;
+
+               /* SW7445-3642: Check for a STC trick mode or decoder trick mode of pause.
+                * Don't increment uiDisplayedParityFailureCount when the system is paused. */
+
+               bPaused = ( BXDM_PictureProvider_P_STCTrickMode_ePause == pLocalState->eSTCTrickMode );
+               bPaused |= ( 0 == pLocalState->uiSlowMotionRate );
+
+               /* Keep track of display polarity failures for reporting via GetChannelStatus */
+               if ( BAVC_Polarity_eFrame != pMFDPicture->eSourcePolarity && false == bPaused )
                {
-                  /* interlaced content on progressive display ... */
-                  if (pMFDPicture->eSourcePolarity == hXdmPP->stDMState.stChannel.ePrevSourcePolarity)
+                  /* SW7405-3586: If source interlaced, and display is progressive, only increment parity
+                     failure count if two fields in a row (or more) are the same polarity.
+                     So, T0 T0r B0 and T0 T1 B1 should each increment the value by 1, but T0 B0 T1 should not. */
+                  if (BAVC_Polarity_eFrame == pMFDPicture->eInterruptPolarity)
                   {
-                     hXdmPP->stDMStatus.stCounters.uiDisplayedParityFailureCount++;
+                     /* interlaced content on progressive display ... */
+                     if (pMFDPicture->eSourcePolarity == hXdmPP->stDMState.stChannel.ePrevSourcePolarity)
+                     {
+                        hXdmPP->stDMStatus.stCounters.uiDisplayedParityFailureCount++;
+                     }
                   }
-               }
-               else
-               {
-                  /* if interlaced content on interlaced display, verify interrupt polarity matches source polarity */
-                  if (pMFDPicture->eSourcePolarity != pMFDPicture->eInterruptPolarity)
+                  else
                   {
-                     hXdmPP->stDMStatus.stCounters.uiDisplayedParityFailureCount++;
+                     /* if interlaced content on interlaced display, verify interrupt polarity matches source polarity */
+                     if (pMFDPicture->eSourcePolarity != pMFDPicture->eInterruptPolarity)
+                     {
+                        hXdmPP->stDMStatus.stCounters.uiDisplayedParityFailureCount++;
+                     }
                   }
                }
             }
@@ -894,20 +904,98 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
    pPicture->eTransferCharacteristics = pDefaultParams->eTransferCharacteristics;
    pPicture->ePreferredTransferCharacteristics = pDefaultParams->ePreferredTransferCharacteristics; /* SWSTB-1629 */
 
+   /* SWSTB-3450: initialize the HDR parameters */
+   pPicture->ulAvgContentLight      = pDefaultParams->ulAvgContentLight;
+   pPicture->ulMaxContentLight      = pDefaultParams->ulMaxContentLight;
+   pPicture->stDisplayPrimaries[0]  = pDefaultParams->stDisplayPrimaries[0];
+   pPicture->stDisplayPrimaries[1]  = pDefaultParams->stDisplayPrimaries[1];
+   pPicture->stDisplayPrimaries[2]  = pDefaultParams->stDisplayPrimaries[2];
+   pPicture->stWhitePoint           = pDefaultParams->stWhitePoint;
+   pPicture->ulMaxDispMasteringLuma = pDefaultParams->ulMaxDispMasteringLuma;
+   pPicture->ulMinDispMasteringLuma = pDefaultParams->ulMinDispMasteringLuma;
+
    if ( pUnifiedPicture )
    {
       if ( true == pUnifiedPicture->stDisplayInfo.bValid )
       {
-         /* Extract values from Picture */
+         BXDM_PictureProvider_ColorOverride * pOverride  = &hXdmPP->stDMConfig.stColorOverride;
+         const BXDM_Picture_DisplayInfo * pDisplayInfo = &pUnifiedPicture->stDisplayInfo;
+         const BXDM_Picture_HDR * pHDRInfo = &pUnifiedPicture->stHDR;
+
+         bool bUseStreamParameters; /* SWSTB-3450: use the override parameters or the values from the stream? */
+
+         /* Always extract these values from the stream. */
          pPicture->eMatrixCoefficients = pUnifiedPicture->stDisplayInfo.eMatrixCoefficients;
          pPicture->eColorPrimaries = pUnifiedPicture->stDisplayInfo.eColorPrimaries;
+
+#if 0
          pPicture->eTransferCharacteristics = pUnifiedPicture->stDisplayInfo.eTransferCharacteristics;
          pPicture->ePreferredTransferCharacteristics = pUnifiedPicture->stHDR.uiTransferCharacteristics; /* SWSTB-1629 */
+#endif
+
+         /* SWSTB-3450: check the HDR transfer characteristic */
+         bUseStreamParameters = ( pHDRInfo->uiTransferCharacteristics == BAVC_TransferCharacteristics_eArib_STD_B67 );
+
+         /* SWSTB-3450: check the transfer characteristic */
+         bUseStreamParameters |= ( pDisplayInfo->eTransferCharacteristics == BAVC_TransferCharacteristics_eArib_STD_B67  );
+         bUseStreamParameters |= ( pDisplayInfo->eTransferCharacteristics == BAVC_TransferCharacteristics_eSmpte_ST_2084 );
+
+         /* SWSTB-3450: check the user specified values. */
+         bUseStreamParameters |= ( pOverride->eOverrideMode == BXDM_PictureProvider_ColorOverrideMode_eNone );
+         bUseStreamParameters |= (( pOverride->eOverrideMode == BXDM_PictureProvider_ColorOverrideMode_eForce )
+                                   && ( pOverride->stSDR.eTransferCharacteristics == BAVC_TransferCharacteristics_eUnknown )
+                                   && ( pOverride->stHDR.eTransferCharacteristics == BAVC_TransferCharacteristics_eUnknown ));
+
+         /* SWSTB-3450: select the transfer characterstics based on the preceding. */
+         if ( bUseStreamParameters == true )
+         {
+            pPicture->eTransferCharacteristics          = pDisplayInfo->eTransferCharacteristics;
+            pPicture->ePreferredTransferCharacteristics = pHDRInfo->uiTransferCharacteristics;
+         }
+         else
+         {
+            pPicture->eTransferCharacteristics          = pOverride->stSDR.eTransferCharacteristics;
+            pPicture->ePreferredTransferCharacteristics = pOverride->stHDR.eTransferCharacteristics;
+         }
+
+         /* SWSTB-3450: the remaining parameters are handled as follows.
+          * If the user specified HDR override parameters copy these into the MFD structure.
+          * Else if the content is H265, use the data provided in the stream.
+          * Otherwise use the defaults values, these were set up above. */
+
+         if ( BXDM_PictureProvider_ColorOverrideMode_eForce == pOverride->eOverrideMode )
+         {
+            pPicture->ulAvgContentLight    = pOverride->stHDR.ulAvgContentLight;
+            pPicture->ulMaxContentLight    = pOverride->stHDR.ulMaxContentLight;
+
+            pPicture->stDisplayPrimaries[0]    = pOverride->stHDR.stDisplayPrimaries[0];
+            pPicture->stDisplayPrimaries[1]    = pOverride->stHDR.stDisplayPrimaries[1];
+            pPicture->stDisplayPrimaries[2]    = pOverride->stHDR.stDisplayPrimaries[2];
+            pPicture->stWhitePoint             = pOverride->stHDR.stWhitePoint;
+            pPicture->ulMaxDispMasteringLuma   = pOverride->stHDR.ulMaxDispMasteringLuma;
+            pPicture->ulMinDispMasteringLuma   = pOverride->stHDR.ulMinDispMasteringLuma;
+         }
+         else if ( BAVC_VideoCompressionStd_eH265 == pUnifiedPicture->stProtocol.eProtocol )
+         {
+            pPicture->ulAvgContentLight    = pHDRInfo->ulAvgContentLight;
+            pPicture->ulMaxContentLight    = pHDRInfo->ulMaxContentLight;
+
+            pPicture->stDisplayPrimaries[0]    = pHDRInfo->stDisplayPrimaries[0];
+            pPicture->stDisplayPrimaries[1]    = pHDRInfo->stDisplayPrimaries[1];
+            pPicture->stDisplayPrimaries[2]    = pHDRInfo->stDisplayPrimaries[2];
+            pPicture->stWhitePoint             = pHDRInfo->stWhitePoint;
+            pPicture->ulMaxDispMasteringLuma   = pHDRInfo->ulMaxDispMasteringLuma;
+            pPicture->ulMinDispMasteringLuma   = pHDRInfo->ulMinDispMasteringLuma;
+         }
+
       }
+
    }
 
    BDBG_LEAVE(BXDM_PPOUT_S_SetDisplayParameters_isr);
+
    return;
+
 } /* end of BXDM_PPOUT_S_SetDisplayParameters_isr() */
 
 BERR_Code BXDM_PPOUT_P_ComputeSARScaling_isr(
@@ -2240,6 +2328,7 @@ void BXDM_PPOUT_P_CalculateVdcData_isr(
       pCurrentMFDPicture->bChannelChange = ( BXDM_PictureProvider_P_DecodeState_eStopped == hXdmPP->stDMState.stChannel.eDecodeState );
       pCurrentMFDPicture->bChannelChange |= ( false == hXdmPP->stDMState.stDecode.bFirstPPBHasBeenDisplayed );
 
+#if 0 /* SWSTB-3450: add display/HDR parameter override. */
       /* Copy HDR info */
       pCurrentMFDPicture->ulAvgContentLight = pUnifiedPicture->stHDR.ulAvgContentLight;
       pCurrentMFDPicture->ulMaxContentLight = pUnifiedPicture->stHDR.ulMaxContentLight;
@@ -2252,6 +2341,7 @@ void BXDM_PPOUT_P_CalculateVdcData_isr(
 
       pCurrentMFDPicture->ulMaxDispMasteringLuma = pUnifiedPicture->stHDR.ulMaxDispMasteringLuma;
       pCurrentMFDPicture->ulMinDispMasteringLuma = pUnifiedPicture->stHDR.ulMinDispMasteringLuma;
+#endif
    }
 
    /* SW7425-2915: added for issues at startup in NRT mode. */
@@ -2381,6 +2471,20 @@ void BXDM_PPOUT_P_OpenChannel(
    /* SW7445-744: add support for 10 bit picture buffers. */
    pDefaultParams->eBitDepth = BAVC_VideoBitDepth_e8Bit;
    pDefaultParams->eChromaBitDepth = BAVC_VideoBitDepth_e8Bit;
+
+   /* SWSTB-3450: HDR parameters */
+   pDefaultParams->ulAvgContentLight = 0;
+   pDefaultParams->ulMaxContentLight = 0;
+   pDefaultParams->stDisplayPrimaries[0].ulX = 0xFFFFFFFF;
+   pDefaultParams->stDisplayPrimaries[0].ulY = 0xFFFFFFFF;
+   pDefaultParams->stDisplayPrimaries[1].ulX = 0xFFFFFFFF;
+   pDefaultParams->stDisplayPrimaries[1].ulY = 0xFFFFFFFF;
+   pDefaultParams->stDisplayPrimaries[2].ulX = 0xFFFFFFFF;
+   pDefaultParams->stDisplayPrimaries[2].ulY = 0xFFFFFFFF;
+   pDefaultParams->stWhitePoint.ulX          = 0xFFFFFFFF;
+   pDefaultParams->stWhitePoint.ulY          = 0xFFFFFFFF;
+   pDefaultParams->ulMaxDispMasteringLuma    = 0xFFFFFFFF;
+   pDefaultParams->ulMinDispMasteringLuma    = 0xFFFFFFFF;
 
    return;
 

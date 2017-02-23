@@ -324,6 +324,10 @@ typedef struct BXPT_Rave_RecordSettings
 
     /* Enables the indexer for single channel mux usage, needed for transcoding MUXlib usage. Default is false (disabled). */
     bool EnableSingleChannelMuxCapableIndexer;
+
+    /* Set bipIndexing to true and specify bipPidChannel when using RAVE context for generic channel bonding index generation */
+    bool bipIndexing;
+    unsigned bipPidChannel; /* PID channel that will carry the BIP packets. */
 }
 BXPT_Rave_RecordSettings;
 

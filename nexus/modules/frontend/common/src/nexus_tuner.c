@@ -47,7 +47,7 @@ BDBG_MODULE(nexus_tuner);
 
 extern NEXUS_TunerList g_tunerList;
 
-NEXUS_Error NEXUS_Tuner_P_CheckDeviceOpen(NEXUS_TunerHandle handle)
+static NEXUS_Error NEXUS_Tuner_P_CheckDeviceOpen(NEXUS_TunerHandle handle)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_FrontendDeviceHandle deviceHandle = NULL;
@@ -385,26 +385,6 @@ void NEXUS_Tuner_GetDefaultTuneSettings(
     NEXUS_CallbackDesc_Init(&pSettings->asyncStatusReadyCallback);
     /* TODO: If specifics are required per-mode, set them here */
     /* TODO: If each tuner really needs its own GetDefaultTuneSettings, we need a handle passed into this function also. */
-}
-
-void *NEXUS_Tuner_P_GetAgcScript(NEXUS_TunerHandle tuner)
-{
-    BDBG_OBJECT_ASSERT(tuner, NEXUS_Tuner);
-
-    if(NEXUS_Tuner_P_CheckDeviceOpen(tuner)){
-        BDBG_ERR(("Device open failed. Cannot get agc script."));
-        BERR_TRACE(NEXUS_NOT_INITIALIZED);
-        return NULL;
-    }
-
-    if ( tuner->getAgcScript )
-    {
-        return tuner->getAgcScript(tuner->pDeviceHandle);
-    }
-    else
-    {
-        return NULL;
-    }
 }
 
 NEXUS_Error NEXUS_Tuner_Tune(

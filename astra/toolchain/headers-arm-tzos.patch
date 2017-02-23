@@ -1,0 +1,48 @@
+diff -ruN install/arm-tzos-musleabi/include/c++/5.3.0/arm-tzos-musleabi/bits/c++config.h install-arm-tzos/arm-tzos-musleabi/include/c++/5.3.0/arm-tzos-musleabi/bits/c++config.h
+--- install/arm-tzos-musleabi/include/c++/5.3.0/arm-tzos-musleabi/bits/c++config.h	2016-12-10 22:46:16.267828469 -0500
++++ install-arm-tzos/arm-tzos-musleabi/include/c++/5.3.0/arm-tzos-musleabi/bits/c++config.h	2016-12-11 22:41:19.377527136 -0500
+@@ -129,7 +129,7 @@
+ #endif
+
+ #ifndef _GLIBCXX_THROW_OR_ABORT
+-# if __cpp_exceptions
++# if (defined __cpp_exceptions && __cpp_exceptions)
+ #  define _GLIBCXX_THROW_OR_ABORT(_EXC) (throw (_EXC))
+ # else
+ #  define _GLIBCXX_THROW_OR_ABORT(_EXC) (__builtin_abort())
+diff -ruN install/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h install-arm-tzos/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h
+--- install/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h	2016-12-10 22:46:16.751828456 -0500
++++ install-arm-tzos/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_defines.h	2016-12-12 13:27:50.401287179 -0500
+@@ -30,7 +30,7 @@
+ #ifndef _EXCEPTION_DEFINES_H
+ #define _EXCEPTION_DEFINES_H 1
+
+-#if ! __cpp_exceptions
++#if ! (defined __cpp_exceptions && __cpp_exceptions)
+ // Iff -fno-exceptions, transform error handling code to work without it.
+ # define __try      if (true)
+ # define __catch(X) if (false)
+diff -ruN install/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h install-arm-tzos/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h
+--- install/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h	2016-12-10 22:46:16.787828455 -0500
++++ install-arm-tzos/arm-tzos-musleabi/include/c++/5.3.0/bits/exception_ptr.h	2016-12-11 22:43:27.482162372 -0500
+@@ -168,7 +168,7 @@
+     exception_ptr 
+     make_exception_ptr(_Ex __ex) _GLIBCXX_USE_NOEXCEPT
+     {
+-#if __cpp_exceptions
++#if (defined __cpp_exceptions && __cpp_exceptions)
+       try
+ 	{
+ 	  throw __ex;
+diff -ruN install/arm-tzos-musleabi/include/stddef.h install-arm-tzos/arm-tzos-musleabi/include/stddef.h
+--- install/arm-tzos-musleabi/include/stddef.h	2016-12-10 22:10:52.411885692 -0500
++++ install-arm-tzos/arm-tzos-musleabi/include/stddef.h	2016-12-11 22:30:16.094238092 -0500
+@@ -10,7 +10,7 @@
+ #define __NEED_ptrdiff_t
+ #define __NEED_size_t
+ #define __NEED_wchar_t
+-#if __STDC_VERSION__ >= 201112L || __cplusplus >= 201103L
++#if (defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L) || (defined __cplusplus && __cplusplus >= 201103L)
+ #define __NEED_max_align_t
+ #endif
+

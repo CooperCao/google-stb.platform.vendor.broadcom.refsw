@@ -275,9 +275,8 @@ const namevalue_t g_audioCodecStrs[] = {
     {"ilbc", NEXUS_AudioCodec_eIlbc},
     {"isac", NEXUS_AudioCodec_eIsac},
     {"opus", NEXUS_AudioCodec_eOpus},
-	{"als", NEXUS_AudioCodec_eAls},
-	{"als_loas", NEXUS_AudioCodec_eAlsLoas},
-	{"ac4", NEXUS_AudioCodec_eAc4},
+    {"als", NEXUS_AudioCodec_eAls},
+    {"als_loas", NEXUS_AudioCodec_eAlsLoas},
     {"none", NEXUS_AudioCodec_eUnknown},
     {NULL, 0}
 };
@@ -603,7 +602,13 @@ void print_list(const namevalue_t *table)
 
 void print_list_option(const char *name, const namevalue_t *list)
 {
-    printf("  -%s ", name);
+    /* allow caller to prefix it */
+    if (name[0] == ' ' || name[0] == '-') {
+        printf("%s", name);
+    }
+    else {
+        printf("  -%s", name);
+    }
     print_list(list);
     printf("\n");
 }
@@ -674,7 +679,6 @@ struct {
    {NEXUS_AudioCodec_eOpus, baudio_format_opus},
    {NEXUS_AudioCodec_eAls, baudio_format_als},
    {NEXUS_AudioCodec_eAlsLoas, baudio_format_als_loas},
-   {NEXUS_AudioCodec_eAc4, baudio_format_ac4}
 };
 
 const namevalue_t g_audioChannelModeStrs[] = {

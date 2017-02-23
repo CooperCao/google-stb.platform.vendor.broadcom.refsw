@@ -76,19 +76,6 @@ extern "C" {
 #define BVDC_P_MCVP_VER_6                       (6) /* 7364 Ax 7439 B0 MVP_TOP_1_DITHER_CTR*/
 
 
-/****************************************************************************
-* Mcvp dirty bits to makr RUL building and executing dirty.
-*/
-typedef union
-{
-    struct {
-        uint32_t                           bCompress       : 1;
-    } stBits;
-
-    uint32_t aulInts [BVDC_P_DIRTY_INT_ARRAY_SIZE];
-} BVDC_P_McvpDirtyBits;
-
-
 /*-------------------------------------------------------------------------
 * mcvp main context
 */
@@ -141,7 +128,6 @@ typedef struct BVDC_P_McvpContext
 
     /*compression*/
     BVDC_P_Compression_Settings        stMvpCompression;
-    BVDC_P_McvpDirtyBits               stDirty;
 
     /* sub-struct to manage vnet and rul build opreations */
     BVDC_P_SubRulContext               SubRul;

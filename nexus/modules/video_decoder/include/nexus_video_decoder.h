@@ -415,6 +415,21 @@ void NEXUS_GetVideoDecoderCapabilities(
     NEXUS_VideoDecoderCapabilities *pCapabilities
     );
 
+typedef struct NEXUS_VideoDecoderMultiPassDqtData
+{
+    unsigned intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
+    unsigned openGopPictures;
+} NEXUS_VideoDecoderMultiPassDqtData;
+
+/**
+For NEXUS_VideoDecoderDqtMode_eMultiPass, read metadata from decoder which must be returned to host player.
+Returns non-zero if none available.
+**/
+NEXUS_Error NEXUS_VideoDecoder_ReadMultiPassDqtData(
+    NEXUS_VideoDecoderHandle handle,
+    NEXUS_VideoDecoderMultiPassDqtData *pData
+    );
+
 #ifdef __cplusplus
 }
 #endif

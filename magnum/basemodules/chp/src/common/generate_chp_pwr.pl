@@ -1,24 +1,40 @@
 #!/usr/bin/perl -w
 #############################################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#     Copyright (c) 2006-2014, Broadcom Corporation*
-#     All Rights Reserved*
-#     Confidential Property of Broadcom Corporation*
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+#  Except as expressly set forth in the Authorized License,
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# Module Description:
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# Revision History:
-#
-# $brcm_Log: $
-#
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
 #############################################################################
 
 use strict;
@@ -243,7 +259,7 @@ sub verify_graph {
         if (/^HW_/ && (exists $graph->{$_})) {
             foreach my $dep (@{$graph->{$_}}) {
                 # HW nodes can only have other HW nodes as dependencies
-                if ($dep !~ /^HW_/) {
+                if ($dep !~ /^(HW|MX|DV)_/) {
                     die "HW node \"$_\" has non-HW dependency \"$dep\". Unable to proceed\n";
                 }
                 # a HW_ -> HW_ dependency must have a non-HW parent. otherwise neither HW_ node is acquirable
@@ -259,7 +275,7 @@ sub verify_graph {
     # check for leaf nodes that are not prefixed with "HW_"
     foreach (@$nodes) {
         # a non-HW leaf node serves no purpose; print a warning
-        if ($_ !~ /^HW_/ && (!exists $graph->{$_})) {
+        if ($_ !~ /^(HW|DV)_/ && (!exists $graph->{$_})) {
             print "*** Warning: Found Non-HW leaf node \"$_\". All leaf nodes should be HW nodes\n";
         }
     }
@@ -309,26 +325,45 @@ sub generate_brcm_copyright_header
 {
     my @lines;
 
-    push @lines, "/***************************************************************************\n";
-    push @lines, "*     Copyright (c) 2006-2014, Broadcom Corporation*\n";
-    push @lines, "*     All Rights Reserved*\n";
-    push @lines, "*     Confidential Property of Broadcom Corporation*\n";
-    push @lines, "*\n";
-    push @lines, "*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE\n";
-    push @lines, "*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR\n";
-    push @lines, "*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.\n";
-    push @lines, "*\n";
-    push @lines, "* \$brcm_Workfile: \$\n";
-    push @lines, "* \$brcm_Revision: \$\n";
-    push @lines, "* \$brcm_Date: \$\n";
-    push @lines, "*\n";
-    push @lines, "* Module Description:\n";
-    push @lines, "*\n";
-    push @lines, "* Revision History:\n";
-    push @lines, "*\n";
-    push @lines, "* \$brcm_Log: \$\n";
-    push @lines, "*\n";
-    push @lines, "***************************************************************************/\n";
+    push @lines, " /******************************************************************************\n";
+    push @lines, " *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.\n";
+    push @lines, " *\n";
+    push @lines, " *  This program is the proprietary software of Broadcom and/or its licensors,\n";
+    push @lines, " *  and may only be used, duplicated, modified or distributed pursuant to the terms and\n";
+    push @lines, " *  conditions of a separate, written license agreement executed between you and Broadcom\n";
+    push @lines, " *  (an ".'"Authorized License"'.").  Except as set forth in an Authorized License, Broadcom grants\n";
+    push @lines, " *  no license (express or implied), right to use, or waiver of any kind with respect to the\n";
+    push @lines, " *  Software, and Broadcom expressly reserves all rights in and to the Software and all\n";
+    push @lines, " *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU\n";
+    push @lines, " *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY\n";
+    push @lines, " *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.\n";
+    push @lines, " *\n";
+    push @lines, " *  Except as expressly set forth in the Authorized License,\n";
+    push @lines, " *\n";
+    push @lines, " *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade\n";
+    push @lines, " *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,\n";
+    push @lines, " *  and to use this information only in connection with your use of Broadcom integrated circuit products.\n";
+    push @lines, " *\n";
+    push @lines, " *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED".' "AS IS"'."\n";
+    push @lines, " *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR\n";
+    push @lines, " *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO\n";
+    push @lines, " *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES\n";
+    push @lines, " *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,\n";
+    push @lines, " *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION\n";
+    push @lines, " *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF\n";
+    push @lines, " *  USE OR PERFORMANCE OF THE SOFTWARE.\n";
+    push @lines, " *\n";
+    push @lines, " *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS\n";
+    push @lines, " *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR\n";
+    push @lines, " *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR\n";
+    push @lines, " *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF\n";
+    push @lines, " *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT\n";
+    push @lines, " *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S.".' $1'.", WHICHEVER IS GREATER. THESE\n";
+    push @lines, " *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF\n";
+    push @lines, " *  ANY LIMITED REMEDY.\n";
+    push @lines, "\n";
+    push @lines, " ******************************************************************************/\n";
+    push @lines, "\n";
 
     return @lines;
 }
@@ -361,7 +396,7 @@ sub generate_public_headerfile
     # get the length of the longest node string
     my $maxlen = 0;
     foreach (@$nodes) {
-        if ($_ !~ /^HW_/) {
+        if ($_ !~ /^(HW|MX|DV)_/) {
             if (length > $maxlen) {
                 $maxlen = length;
             }
@@ -371,7 +406,7 @@ sub generate_public_headerfile
 
     my $idx = 1;
     foreach (@$nodes) {
-        if ($_ !~ /^HW_/) {
+        if ($_ !~ /^(HW|MX|DV)_/) {
             printf OUTFILE ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_RESOURCE_$_", $idx++);
         }
     }
@@ -389,7 +424,7 @@ sub generate_priv_headerfile
     my $graph = shift;
     my $nodes = shift;
     my @lines;
-    my (@leafs, @nonleafs, @nonleafshw, @HW_all);
+    my (@leafs, @nonleafs, @nonleafshw, @HW_all, @MX_all, @DV_all);
 
     foreach (@$nodes) {
         if (/^HW_/) {
@@ -400,6 +435,12 @@ sub generate_priv_headerfile
             else {
                 push @leafs, $_;
             }
+        }
+        elsif (/^MX_/) {
+            push @MX_all, $_;
+        }
+        elsif (/^DV_/) {
+            push @DV_all, $_;
         }
         else {
             push @nonleafs, $_;
@@ -431,7 +472,7 @@ sub generate_priv_headerfile
 
     # get the length of the longest node string
     my $maxlen = 0;
-    foreach (@HW_all) {
+    foreach (@HW_all, @MX_all, @DV_all) {
         if (length > $maxlen) {
             $maxlen = length;
         }
@@ -442,17 +483,27 @@ sub generate_priv_headerfile
     foreach (@HW_all) {
         printf OUTFILE ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_$_", 0xff000000+$idx++);
     }
+    foreach (@MX_all) {
+        printf OUTFILE ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_$_", 0xff000000+$idx++);
+    }
+    foreach (@DV_all) {
+        printf OUTFILE ("#define %-${maxlen}s 0x%08x\n", "BCHP_PWR_$_", 0xff000000+$idx++);
+    }
 
     print OUTFILE "\n";
     print OUTFILE "/* This is the link between the public and private interface */\n";
     print OUTFILE "void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);\n";
-     print OUTFILE "void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);\n";
+    print OUTFILE "void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);\n";
+    print OUTFILE "void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set);\n";
+    print OUTFILE "void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);\n";
     print OUTFILE "\n";
 
     print OUTFILE "#define BCHP_PWR_P_NUM_NONLEAFS   ", scalar(@nonleafs), "\n";
     print OUTFILE "#define BCHP_PWR_P_NUM_NONLEAFSHW ", scalar(@nonleafshw), "\n";
     print OUTFILE "#define BCHP_PWR_P_NUM_LEAFS      ", scalar(@leafs), "\n";
-    print OUTFILE "#define BCHP_PWR_P_NUM_ALLNODES   ", scalar(@nonleafs)+scalar(@leafs)+scalar(@nonleafshw), "\n";
+    print OUTFILE "#define BCHP_PWR_P_NUM_MUXES      ", scalar(@MX_all), "\n";
+    print OUTFILE "#define BCHP_PWR_P_NUM_DIVS       ", scalar(@DV_all), "\n";
+    print OUTFILE "#define BCHP_PWR_P_NUM_ALLNODES   ", scalar(@nonleafs)+scalar(@leafs)+scalar(@nonleafshw)+scalar(@MX_all)+scalar(@DV_all), "\n";
     print OUTFILE "\n";
 
     print OUTFILE "#endif\n";
@@ -553,6 +604,93 @@ sub generate_hwcontrol_function_string
     return @lines;
 }
 
+sub generate_mxcontrol_function_string
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $nodes = shift;
+    my @lines;
+
+    push @lines, "\n";
+    push @lines, "void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set)\n";
+    push @lines, "{\n";
+    if(scalar(@$nodes) == 0) {
+        push @lines, "    BSTD_UNUSED(handle);\n";
+        push @lines, "    BSTD_UNUSED(mux);\n";
+        push @lines, "    BSTD_UNUSED(set);\n";
+    }
+    push @lines, "\n";
+    push @lines, "    switch(resource->id) {\n";
+    foreach (@$nodes) {
+        push @lines, "        case ${prefix1}_${_}:\n";
+        push @lines, "            ${prefix2}_${_}_Control(handle, mux, set);\n";
+        push @lines, "            break;\n";
+    }
+    push @lines, "        default:\n";
+    push @lines, "            BDBG_ASSERT(0);\n";
+    push @lines, "            break;\n";
+    push @lines, "    }\n";
+    push @lines, "}\n";
+
+    return @lines;
+}
+
+sub generate_dvcontrol_function_string
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $nodes = shift;
+    my @lines;
+
+    push @lines, "\n";
+    push @lines, "void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)\n";
+    push @lines, "{\n";
+    if(scalar(@$nodes) == 0) {
+        push @lines, "    BSTD_UNUSED(handle);\n";
+        push @lines, "    BSTD_UNUSED(mult);\n";
+        push @lines, "    BSTD_UNUSED(prediv);\n";
+        push @lines, "    BSTD_UNUSED(postdiv);\n";
+        push @lines, "    BSTD_UNUSED(set);\n";
+    }
+    push @lines, "\n";
+    push @lines, "    switch(resource->id) {\n";
+    foreach (@$nodes) {
+        push @lines, "        case ${prefix1}_${_}:\n";
+        push @lines, "            ${prefix2}_${_}_Control(handle, mult, prediv, postdiv, set);\n";
+        push @lines, "            break;\n";
+    }
+    push @lines, "        default:\n";
+    push @lines, "            BDBG_ASSERT(0);\n";
+    push @lines, "            break;\n";
+    push @lines, "    }\n";
+    push @lines, "}\n";
+
+    return @lines;
+}
+
+sub generate_dv_table
+{
+    my $prefix1 = shift;
+    my $prefix2 = shift;
+    my $prefix3 = shift;
+    my $nodes = shift;
+    my (@lines1, @lines2, @lines);
+
+    push @lines, "\n";
+    push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_DIVS] = {\n";
+    foreach (sort @$nodes) {
+        push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {};\n";
+        push @lines2, "    {${prefix1}_${_}, ${prefix2}_${_}},\n";
+    }
+    push @lines2, "};\n";
+
+    push @lines, @lines1;
+    push @lines, "\n";
+    push @lines, @lines2;
+
+    return @lines;
+}
+
 sub generate_impl_hwcontrol_function_string
 {
     my $prefix = shift;
@@ -560,17 +698,32 @@ sub generate_impl_hwcontrol_function_string
     my @lines;
 
     foreach (@$nodes) {
-        if ($_ !~ /^HW_/) {
-            next;
+        if ($_ =~ /^HW/) {
+            my $str = substr($_, 3);
+            push @lines, "static void ${prefix}_${_}_Control(BCHP_Handle handle, bool activate)\n";
+            push @lines, "{\n";
+            push @lines, "    uint32_t mask, reg;\n";
+            push @lines, "\n";
+            push @lines, "    BDBG_MSG((\"${_}: %s\", activate?\"on\":\"off\"));\n";
+            push @lines, "\n";
+            push @lines, "}\n\n";
+        } elsif ($_ =~ /^MX/) {
+            push @lines, "static void ${prefix}_${_}_Control(BCHP_Handle handle, unsigned *mux, bool set)\n";
+            push @lines, "{\n";
+            push @lines, "    uint32_t reg;\n";
+            push @lines, "\n";
+            push @lines, "    BDBG_MSG((\"${_}: %s\", set?\"write\":\"read\"));\n";
+            push @lines, "\n";
+            push @lines, "}\n\n";
+        } elsif ($_ =~ /^DV/) {
+            push @lines, "static void ${prefix}_${_}_Control(BCHP_Handle handle, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set)\n";
+            push @lines, "{\n";
+            push @lines, "    uint32_t reg;\n";
+            push @lines, "\n";
+            push @lines, "    BDBG_MSG((\"${_}: %s\", set?\"write\":\"read\"));\n";
+            push @lines, "\n";
+            push @lines, "}\n\n";
         }
-        my $str = substr($_, 3);
-        push @lines, "static void ${prefix}_${_}_Control(BCHP_Handle handle, bool activate)\n";
-        push @lines, "{\n";
-        push @lines, "    uint32_t mask, reg;\n";
-        push @lines, "\n";
-        push @lines, "    BDBG_MSG((\"${_}: %s\", activate?\"on\":\"off\"));\n";
-        push @lines, "\n";
-        push @lines, "}\n\n";
     }
 
     return @lines;
@@ -582,7 +735,7 @@ sub generate_resources_sourcefile
     my $graph = shift;
     my $nodes = shift;
     my @lines;
-    my (@leafs, @nonleafs, @nonleafshw, @HW_all);
+    my (@leafs, @nonleafs, @nonleafshw, @HW_all, @MX_all, @leafsdv, @nonleafsdv, @DV_all);
 
     foreach (@$nodes) {
         if (/^HW_/) { # a HW node can either be a leaf or a non-leaf
@@ -592,6 +745,18 @@ sub generate_resources_sourcefile
             }
             else {
                 push @leafs, $_;
+            }
+        }
+        elsif (/^MX_/) {
+            push @MX_all, $_;
+        }
+        elsif (/^DV_/) {
+            push @DV_all, $_;
+            if (exists $graph->{$_}) {
+                push @nonleafsdv, $_;
+            }
+            else {
+                push @leafsdv, $_;
             }
         }
         else {
@@ -630,8 +795,14 @@ sub generate_resources_sourcefile
     @lines = generate_resource_string("BCHP_PWR_P_Resource", "BCHP_PWR", "NonLeafHw", \@nonleafshw);
     print OUTFILE @lines;
 
+    @lines = generate_resource_string("BCHP_PWR_P_Resource", "BCHP_PWR", "Mux", \@MX_all);
+    print OUTFILE @lines;
+
+    @lines = generate_resource_string("BCHP_PWR_P_Resource", "BCHP_PWR", "Div", \@DV_all);
+    print OUTFILE @lines;
+
     my @resources;
-    push @resources, @nonleafs, @HW_all;
+    push @resources, @nonleafs, @HW_all, @MX_all, @DV_all;
     print OUTFILE "/* List of resources */\n";
     @lines = generate_array_string("BCHP_PWR_P_Resource* const", "BCHP_PWR_P_ResourceList",
         "BCHP_PWR_P_NUM_ALLNODES", "BCHP_PWR_P_Resource_", \@resources);
@@ -643,6 +814,12 @@ sub generate_resources_sourcefile
 
     # NonLeafHw nodes are tacked-on at the end
     @lines = generate_dependency_string("BCHP_PWR_P_Resource", "BCHP_PWR_P_Depend_", $graph, \@nonleafshw);
+    print OUTFILE @lines;
+
+    @lines = generate_dependency_string("BCHP_PWR_P_Resource", "BCHP_PWR_P_Depend_", $graph, \@MX_all);
+    print OUTFILE @lines;
+
+    @lines = generate_dependency_string("BCHP_PWR_P_Resource", "BCHP_PWR_P_Depend_", $graph, \@nonleafsdv);
     print OUTFILE @lines;
 
     foreach (@resources) {
@@ -657,6 +834,16 @@ sub generate_resources_sourcefile
 
     @lines = generate_hwcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@HW_all);
     print OUTFILE @lines;
+
+    @lines = generate_mxcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@MX_all);
+    print OUTFILE @lines;
+
+    @lines = generate_dvcontrol_function_string("BCHP_PWR", "BCHP_PWR_P", \@DV_all);
+    print OUTFILE @lines;
+
+    @lines = generate_dv_table("BCHP_PWR", "BCHP_PWR_P_DivTable", "BCHP_PWR_P_FreqMap", \@DV_all);
+    print OUTFILE @lines;
+
     close OUTFILE;
 
     print "Output: $filename\n";

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,6 +51,8 @@
 
 #include "system.h"
 
+extern "C" void tzKernelSecondary();
+
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 static WaitQueue wq;
@@ -76,8 +78,8 @@ int idleTask(void *task, void *ctx) {
     UNUSED(ctx);
 
     printf("starting idler\n");
-    asm volatile("cpsie aif":::);
-
+    ARCH_SPECIFIC_ENABLE_INTERRUPTS;
+    ARCH_SPECIFIC_MEMORY_BARRIER;
     while (true) {
         asm volatile("wfi": : :);
     }
@@ -101,7 +103,7 @@ int testTask(void *task, void *ctx) {
             activeTimers++;
         }
 
-        printf("await: task %p\n", task);
+        printf("wait for task %p to awake\n", task);
         wq.wait((TzTask *)task);
         printf("woken up\n");
 
@@ -144,6 +146,11 @@ void tzKernelInit(const void *devTree) {
 
     printf("%s: Interrupt and timer subsystem unit tests\n", __FUNCTION__);
 
+    if (arm::smpCpuNum() != 0) {
+        tzKernelSecondary();
+        return;
+    }
+
     System::init(devTree);
 
     timerCreationTests();
@@ -158,7 +165,16 @@ void tzKernelInit(const void *devTree) {
     Scheduler::addTask(idler);
     Scheduler::addTask(testT);
 
-    asm volatile("cpsid if":::);
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+
+    schedule();
+}
+
+void tzKernelSecondary() {
+
+    System::initSecondaryCpu();
+
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
     schedule();
 }

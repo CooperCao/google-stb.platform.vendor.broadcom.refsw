@@ -47,7 +47,7 @@ include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
 include $(NEXUS_TOP)/nxclient/include/nxclient.inc
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
 # Convert include paths into single variable

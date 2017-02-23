@@ -763,6 +763,7 @@ BERR_Code BAPE_Crc_GetBuffer(
         size = BAPE_MIN(size, BAPE_Buffer_Read_isr(handle->resources[i].buffer, &(descriptors[i])));
         bufferSize = BAPE_MIN(bufferSize, descriptors[i].bufferSize);
         wrapBufferSize = BAPE_MIN(bufferSize, descriptors[i].wrapBufferSize);
+        /* TBDBMMA need BMMA block here? */
         pBuffers->buffers[i].pBuffer = descriptors[i].pBuffer;
         pBuffers->buffers[i].pWrapBuffer = descriptors[i].pWrapBuffer;
         BDBG_MSG(("read %d bytes, bufferSize %d, wrapBufferSize %d", size, bufferSize, wrapBufferSize));

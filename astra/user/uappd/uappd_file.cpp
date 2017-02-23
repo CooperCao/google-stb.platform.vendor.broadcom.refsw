@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,6 +136,10 @@ void UserAppDmon::ufileOpenProc(
         }
         err = exception;
     }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
+    }
 
     // Caution: reused the cmd buffer for rpy. This only works if:
     // * rpy is smaller then cmd buffer (true if static buffer is used);
@@ -178,7 +182,7 @@ void UserAppDmon::ufileCloseProc(
 
         if (!pUFile) {
             LOGE("Failed to find existing user file %s", pCmd->path);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing user file %s", pCmd->path);
@@ -188,7 +192,7 @@ void UserAppDmon::ufileCloseProc(
 
         if (!pPFile) {
             LOGE("Failed to find existing peer file for user file %s", pCmd->path);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing peer file for user file %s", pCmd->path);
@@ -216,6 +220,10 @@ void UserAppDmon::ufileCloseProc(
     catch (int exception) {
         err = exception;
     }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
+    }
 
     // Caution: reused the cmd buffer for rpy
     struct uappd_msg_file_close_rpy *pRpy =
@@ -235,13 +243,13 @@ void UserAppDmon::ufileCloseProc(
 void UserAppDmon::ufileWriteProc(
     struct tzioc_msg_hdr *pHdr)
 {
-    int ret = 0;
+    int err = 0;
 
     struct uappd_msg_file_write_cmd *pCmd =
         (struct uappd_msg_file_write_cmd *)TZIOC_MSG_PAYLOAD(pHdr);
 
     if (pHdr->ulLen != sizeof(*pCmd)) {
-        LOGE("Invalid user file get id cmd received");
+        LOGE("Invalid user file write cmd received");
         return;
     }
 
@@ -256,7 +264,7 @@ void UserAppDmon::ufileWriteProc(
 
         if (!pUFile) {
             LOGE("Failed to find existing user file %s", pCmd->path);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing user file %s", pCmd->path);
@@ -266,22 +274,26 @@ void UserAppDmon::ufileWriteProc(
 
         if (!pPFile) {
             LOGE("Failed to find existing peer file for user file %s", pCmd->path);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing peer file for user file %s", pCmd->path);
 
         // Write to file
-        ret = pUFile->fileWrite(pPFile, pCmd->paddr, pCmd->bytes);
-        if (ret < 0) {
+        err = pUFile->fileWrite(pPFile, pCmd->paddr, pCmd->bytes);
+        if (err < 0) {
             LOGE("Failed to write to user file %s", pCmd->path);
-            throw(ret);
+            throw(err);
         }
 
         LOGD("Wrote to user file %s", pCmd->path);
     }
     catch (int exception) {
-        ret = exception;
+        err = exception;
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
     }
 
     // Caution: reused the cmd buffer for rpy
@@ -290,7 +302,7 @@ void UserAppDmon::ufileWriteProc(
 
     // pRpy->cookie = pCmd->cookie
     // pRpy->path = pCmd->path
-    pRpy->retVal = ret;
+    pRpy->retVal = err;
 
     pHdr->ucDest = pHdr->ucOrig;
     pHdr->ucOrig = TZIOC_CLIENT_ID_UAPPD;
@@ -302,7 +314,7 @@ void UserAppDmon::ufileWriteProc(
 void UserAppDmon::ufileReadProc(
     struct tzioc_msg_hdr *pHdr)
 {
-    int ret = 0;
+    int err = 0;
 
     struct uappd_msg_file_read_cmd *pCmd =
         (struct uappd_msg_file_read_cmd *)TZIOC_MSG_PAYLOAD(pHdr);
@@ -323,7 +335,7 @@ void UserAppDmon::ufileReadProc(
 
         if (!pUFile) {
             LOGE("Failed to find existing user file %s", pCmd->path);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing user file %s", pCmd->path);
@@ -333,22 +345,26 @@ void UserAppDmon::ufileReadProc(
 
         if (!pPFile) {
             LOGE("Failed to find existing peer file for user file %s", pCmd->path);
-            throw(-ENOENT);
+            throw((int)-ENOENT);
         }
 
         LOGD("Found existing peer file for user file %s", pCmd->path);
 
         // Read from file
-        ret = pUFile->fileRead(pPFile, pCmd->paddr, pCmd->bytes);
-        if (ret < 0) {
+        err = pUFile->fileRead(pPFile, pCmd->paddr, pCmd->bytes);
+        if (err < 0) {
             LOGE("Failed to write to user file %s", pCmd->path);
-            throw(ret);
+            throw(err);
         }
 
         LOGD("Read from user file %s", pCmd->path);
     }
     catch (int exception) {
-        ret = exception;
+        err = exception;
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        err = -ENOENT;
     }
 
     // Caution: reused the cmd buffer for rpy
@@ -357,7 +373,7 @@ void UserAppDmon::ufileReadProc(
 
     // pRpy->cookie = pCmd->cookie
     // pRpy->path = pCmd->path
-    pRpy->retVal = ret;
+    pRpy->retVal = err;
 
     pHdr->ucDest = pHdr->ucOrig;
     pHdr->ucOrig = TZIOC_CLIENT_ID_UAPPD;
@@ -423,7 +439,7 @@ int UserAppDmon::UserFile::fileClose()
 
 int UserAppDmon::UserFile::fileWrite(
     UserAppDmon::PeerFile *pPFile,
-    uint32_t paddr,
+    uintptr_t paddr,
     size_t bytes)
 {
     int ret = 0;
@@ -439,7 +455,7 @@ int UserAppDmon::UserFile::fileWrite(
         TZIOC_MEM_RD_ONLY);
 
     if (!pBuff) {
-        LOGE("Failed to map physical addr 0x%x, bytes 0x%x",
+        LOGE("Failed to map physical addr 0x%zx, bytes 0x%zx",
              paddr, bytes);
         return -ENOMEM;
     }
@@ -471,7 +487,7 @@ int UserAppDmon::UserFile::fileWrite(
 
 int UserAppDmon::UserFile::fileRead(
     UserAppDmon::PeerFile *pPFile,
-    uint32_t paddr,
+    uintptr_t paddr,
     size_t bytes)
 {
     int ret = 0;
@@ -487,7 +503,7 @@ int UserAppDmon::UserFile::fileRead(
         0);
 
     if (!pBuff) {
-        LOGE("Failed to map physical addr 0x%x, bytes 0x%x",
+        LOGE("Failed to map physical addr 0x%zx, bytes 0x%zx",
              paddr, bytes);
         return -ENOMEM;
     }
@@ -543,7 +559,7 @@ int UserAppDmon::UserFile::pfileRmv(PeerFile *pPFile)
 
 UserAppDmon::PeerFile *UserAppDmon::UserFile::pfileFind(
     uint8_t id,
-    uint32_t cookie)
+    uintptr_t cookie)
 {
     for (uint32_t i = 0; i < PFILE_NUM_MAX; i++) {
         if (pPFiles[i] &&

@@ -511,10 +511,10 @@ static const uint8_t ucHdcpSpecTestAnValues[NUM_TEST_AN_VALUES][BHDM_HDCP_AN_LEN
 
     /* For platforms with both HDCP 1.x and HDCP 2.x capable. Make sure to select HDCP 1.x cipher */
 #if BHDM_CONFIG_HAS_HDCP22
-    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
-        Register &= ~(BCHP_MASK(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT));
-        Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT, 0x0);
-    BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset, Register) ;
+	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
+		Register &= ~(BCHP_MASK(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT));
+		Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT, 0x0);
+	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset, Register) ;
 #endif
 
 
@@ -2302,6 +2302,9 @@ BERR_Code BHDM_HDCP_IsLinkAuthenticated(const BHDM_Handle hHDMI, bool *bAuthenti
         uiHdcp2Authenticated = BCHP_GET_FIELD_DATA(Register, HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
 
         *bAuthenticated = (uiAuthenticatedOK && uiHdcp2Authenticated);
+
+	BDBG_MSG(("hdcp2tx_status.authenticated_ok: %d ", uiAuthenticatedOK)) ;
+	BDBG_MSG(("hdcp2tx_auth_ctl.hdcp2_authenticated: %d", uiHdcp2Authenticated)) ;
     }
     else {
         *bAuthenticated = hHDMI->HDCP_AuthenticatedLink == 1 ;
@@ -2969,8 +2972,15 @@ static BERR_Code BHDM_HDCP_P_DisableAutoRiPjChecking (const BHDM_Handle hHDMI)
 #endif
 
 
-void BHDM_HDCP_P_ResetSettings_isr(BHDM_Handle hHDMI)
+void BHDM_HDCP_P_ResetSettings_isr(const BHDM_Handle hHDMI)
 {
+	BREG_Handle hRegister ;
+	uint32_t Register ;
+	uint32_t ulOffset ;
+
+	hRegister = hHDMI->hRegister ;
+	ulOffset = hHDMI->ulOffset ;
+
     BDBG_ENTER(BHDM_HDCP_P_ResetSettings_isr);
 
     hHDMI->AbortHdcpAuthRequest = 1 ;
@@ -2982,6 +2992,42 @@ void BHDM_HDCP_P_ResetSettings_isr(BHDM_Handle hHDMI)
     /* enable HDCP Pj Checking by default */
     hHDMI->HdcpOptions.PjChecking = true ;
 
+
+/************/
+/* HDCP 1.x */
+/************/
+#ifndef BHDM_FOR_BOOTUPDATER
+#if BHDM_CONFIG_HDCP_AUTO_RI_PJ_CHECKING_SUPPORT
+	/* Ensure HDMI is not in control of BSCC (I2C) block. This is to prevent I2C got locked
+		by HDMI core in the case ctrl-c was use to terminate the software AND
+		HW Ri/Pj checking was enabled */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset) ;
+	Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE, 1);
+	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
+	Register &= ~(BCHP_MASK(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE));
+	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
+#endif
+#endif
+
+	/* write 1 (writing 0 first is not needed) to force core unauthenticated */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP_CTL  + ulOffset) ;
+	Register |= BCHP_FIELD_DATA(HDMI_HDCP_CTL, I_FORCE_CORE_UNAUTHENTICATED, 1) ;
+	Register |= BCHP_FIELD_DATA(HDMI_HDCP_CTL,  I_CLEAR_RDB_AUTHENTICATED, 1) ;
+	BREG_Write32(hRegister, BCHP_HDMI_HDCP_CTL + ulOffset, Register) ;
+
+/************/
+/* HDCP 2.2 */
+/************/
+#if BHDM_CONFIG_HAS_HDCP22
+	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset) ;
+	Register &= ~ BCHP_MASK(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT) ;
+	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0 + ulOffset, Register) ;
+
+	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL  + ulOffset) ;
+	Register &= ~ BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, HDCP2_AUTHENTICATED) ;
+	Register &= ~ BCHP_MASK(HDMI_HDCP2TX_AUTH_CTL, ENABLE_HDCP2_ENCRYPTION) ;
+	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset, Register) ;
+#endif
     BDBG_LEAVE(BHDM_HDCP_P_ResetSettings_isr);
 }
 
@@ -3300,11 +3346,11 @@ BERR_Code BHDM_HDCP_KickStartHdcp2xCipher(const BHDM_Handle hHDMI)
     hRegister = hHDMI->hRegister;
     ulOffset = hHDMI->ulOffset;
 
-    /* Set HDCP_VERSION_SELECT */
-    Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
-        Register &= ~(BCHP_MASK(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT));
-        Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT, 0x1);
-    BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset, Register) ;
+	/* Set HDCP_VERSION_SELECT */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset);
+		Register &= ~(BCHP_MASK(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT));
+		Register |= BCHP_FIELD_DATA(HDMI_HDCP2TX_CFG0, HDCP_VERSION_SELECT, 0x1);
+	BREG_Write32(hRegister, BCHP_HDMI_HDCP2TX_CFG0  + ulOffset, Register) ;
 
     BKNI_EnterCriticalSection();
         Register = BREG_Read32(hRegister, BCHP_HDMI_HDCP2TX_AUTH_CTL + ulOffset);

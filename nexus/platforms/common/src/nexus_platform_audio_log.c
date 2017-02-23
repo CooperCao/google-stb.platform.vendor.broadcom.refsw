@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2014 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ************************************************************/
 #include "nexus_platform_module.h"
@@ -119,6 +111,13 @@ static void *NEXUS_Platform_P_AudioLogThread(void *pParam)
             if ( NULL == pEnv && NEXUS_GetEnv("audio_logs_enabled") )
             {
                 pEnv = "audio_core";
+            }
+            break;
+        case NEXUS_AudioDspDebugType_eTargetPrint:
+            pEnv = NEXUS_GetEnv("audio_target_print_file");
+            if ( NULL == pEnv && NEXUS_GetEnv("audio_logs_enabled") )
+            {
+                pEnv = "audio_target_print";
             }
             break;
         }
@@ -216,6 +215,7 @@ NEXUS_Error NEXUS_Platform_P_InitAudioLog(void)
     if ( NEXUS_GetEnv("audio_uart_file") ||
          NEXUS_GetEnv("audio_debug_file") ||
          NEXUS_GetEnv("audio_core_file") ||
+         NEXUS_GetEnv("audio_target_print_file") ||
          NEXUS_GetEnv("audio_logs_enabled") )
     {
         if ( pthread_create(&g_audioLogThread, NULL, NEXUS_Platform_P_AudioLogThread, NULL) )
@@ -240,4 +240,3 @@ void NEXUS_Platform_P_UninitAudioLog(void)
     }
 #endif
 }
-

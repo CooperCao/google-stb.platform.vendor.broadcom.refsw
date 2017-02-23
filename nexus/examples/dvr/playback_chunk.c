@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,24 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
-/* Nexus example app: playback and decode */
 
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_AUDIO && NEXUS_HAS_PLAYBACK
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
 #include "nexus_display.h"
@@ -66,15 +54,15 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
-#if NEXUS_HAS_PLAYBACK
 #include "nexus_playback.h"
 #include "nexus_file.h"
 #include "nexus_file_chunk.h"
-#endif
 
 #include <assert.h>
 #include "bstd.h"
 #include "bkni.h"
+
+BDBG_MODULE(playback_chunk);
 
 /* the following define the input file and its characteristics -- these will vary by input file */
 #define FILE_NAME "videos/chunk_stream.mpg"
@@ -82,12 +70,61 @@
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
 #define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
 #define AUDIO_CODEC NEXUS_AudioCodec_eAc3
-#define VIDEO_PID 0x21
-#define AUDIO_PID 0x24
+#define VIDEO_PID 0x31
+#define AUDIO_PID 0x34
+
+#include <glob.h>
+#include <sys/stat.h>
+#include <string.h>
+
+static int glob_errfunc(const char *epath, int eerrno)
+{
+    BDBG_ERR(("glob_errfunc %s %d", epath, eerrno));
+    return -1;
+}
+
+static int detect_chunk(const char *fname, off_t *chunk_size, unsigned *first_chunk_number)
+{
+    char path[64];
+    int rc;
+    glob_t glb;
+    unsigned i;
+
+    snprintf(path, sizeof(path), "%s_*", fname);
+    rc = glob(path, 0, glob_errfunc, &glb);
+    if (rc) {
+        BDBG_ERR(("no chunk files found with name %s", fname));
+        return -1;
+    }
+    if (glb.gl_pathc) {
+        /* TODO: first file may not be first chunk more than 9*64 */
+        unsigned fname_len = strlen(fname);
+        unsigned len = strlen(glb.gl_pathv[0]);
+        struct stat st;
+        unsigned n;
+
+        if (len <= fname_len) {
+            rc = BERR_TRACE(-1);
+            goto done;
+        }
+
+        n = atoi(&glb.gl_pathv[0][fname_len+1]);
+        *first_chunk_number = ((n/1000)*64) + n%1000;
+
+        rc = stat(glb.gl_pathv[0], &st);
+        if (rc) {BERR_TRACE(rc); goto done;}
+        *chunk_size = st.st_size;
+        printf("found file %s with chunk size %u, first chunk %u\n", glb.gl_pathv[0], (unsigned)*chunk_size, *first_chunk_number);
+        rc = 0;
+    }
+done:
+    globfree(&glb);
+    return rc;
+}
+
 
 int main(void)
 {
-#if NEXUS_HAS_PLAYBACK
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
@@ -110,7 +147,9 @@ int main(void)
     NEXUS_Error rc;
 #endif
     const char *fname = FILE_NAME;
-    /*const char *index = INDEX_NAME;*/
+    const char *indexname = INDEX_NAME;
+    NEXUS_ChunkedFilePlayOpenSettings chunkedFilePlayOpenSettings;
+    struct stat st;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
@@ -122,9 +161,19 @@ int main(void)
     playback = NEXUS_Playback_Create();
     assert(playback);
 
-    file = NEXUS_ChunkedFilePlay_Open(fname, NULL, NULL);
+    /* test if index exists */
+    if (stat(indexname, &st)) {
+        indexname = NULL;
+    }
+
+    NEXUS_ChunkedFilePlay_GetDefaultOpenSettings(&chunkedFilePlayOpenSettings);
+    /* firstChunkNumber can be obtained from NEXUS_ChunkedFifoRecordExportStatus.last.chunkNumber in an integrated app.
+    For modular examples, we detect it. */
+    detect_chunk(fname, &chunkedFilePlayOpenSettings.chunkSize, &chunkedFilePlayOpenSettings.firstChunkNumber);
+    strcpy(chunkedFilePlayOpenSettings.chunkTemplate, "%s_%04u");
+    file = NEXUS_ChunkedFilePlay_Open(fname, indexname, &chunkedFilePlayOpenSettings);
     if (!file) {
-        fprintf(stderr, "can't open file:%s\n", fname);
+        BDBG_ERR(("can't open file:%s", fname));
         return -1;
     }
 
@@ -176,7 +225,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -242,16 +291,12 @@ int main(void)
     NEXUS_Display_Close(display);
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_Platform_Uninit();
-
-#else
-	printf("This application is not supported on this platform!\n");
-#endif
     return 0;
 }
-#else /* NEXUS_HAS_VIDEO_DECODER */
+#else
 int main(void)
 {
-    printf("This application is not supported on this platform (needs video decoder)!\n");
+    printf("This application is not supported on this platform\n");
     return 0;
 }
 #endif

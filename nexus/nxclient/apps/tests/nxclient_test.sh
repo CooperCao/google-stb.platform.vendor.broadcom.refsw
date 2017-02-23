@@ -196,8 +196,9 @@ case $1 in
         record -program 1&
         record -program 0&
         record -program 1&
-        transcode $PLAYFILE2&
-        transcode $PLAYFILE3
+        transcode $PLAYFILE2 &
+        transcode $PLAYFILE3 &
+        sleep 30
         killall transcode picviewer record
     done
     ;;
@@ -210,8 +211,9 @@ case $1 in
         record -program 1 -timeout 50 &
         record -program 0 -timeout 70 &
         record -program 1 -timeout 90 &
-        transcode $PLAYFILE3&
-        transcode $PLAYFILE4
+        transcode $PLAYFILE3 &
+        transcode $PLAYFILE4 &
+        sleep 30
         killall play record transcode
     done
     ;;

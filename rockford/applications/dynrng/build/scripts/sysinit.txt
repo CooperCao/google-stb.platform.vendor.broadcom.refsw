@@ -1,0 +1,1 @@
+boot usbdisk0:vmlinuz-arm 'rootwait root=/dev/sda1 rw'

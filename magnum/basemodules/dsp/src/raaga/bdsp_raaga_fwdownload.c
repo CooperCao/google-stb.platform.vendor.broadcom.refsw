@@ -1,44 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
-
 
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_fw_algo.h"
@@ -61,9 +57,8 @@ Summary:
 BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
         const BIMG_Interface *iface,
         void *pImgContext,
-        void *pAddress,     /* NULL , If its a offline utility */
-        unsigned firmware_id,
-        BMEM_Handle hHeap
+        BDSP_MMA_Memory *pMemory,
+        unsigned firmware_id
         )
 {
     void *image = NULL;
@@ -74,12 +69,22 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
     uint32_t ui32Size = 0, ui32numOfChunks = 0,ui32ChunkLen = 0;
     uint32_t ui32Count = 0;
     uint32_t uiSizeCopied=0;
-
     BERR_Code rc = BERR_SUCCESS;
+
+#if (BCHP_CHIP == 7278)
+#ifdef FIREPATH_BM
+    uint32_t myval = 0;
+
+    /* AJ BM Debug : Hack to get the regHandle */
+    BREG_Handle pHandle = (BREG_Handle) (((uint8_t *)pMemory->hBlock) - 0x100B4);
+    BDBG_MSG(("pHandle : %llp", pHandle));
+#endif
+#endif
+
     BDBG_ASSERT(iface);
     BDBG_ASSERT(pImgContext);
 
-    rc = iface->open(context, &image, firmware_id);
+     rc = iface->open(context, &image, firmware_id);
     if (rc != BERR_SUCCESS)
     {
       BDBG_ERR(("Error in Opening the Image Interface"));
@@ -96,8 +101,7 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
 
     ui32Size =((uint32_t *) data)[0];
     ui32numOfChunks = ((uint32_t *) data)[1];
-
-    pMemAddr = (uint8_t *)pAddress;
+    pMemAddr = (uint8_t *)pMemory->pAddr;
 
     /*BDBG_MSG(("Total Size = %d",ui32Size));*/
     for (ui32Count = 1;ui32Count <= ui32numOfChunks; ui32Count++)
@@ -123,14 +127,25 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
           iface->close(image);
           return BERR_TRACE(rc);
       }
-
+#if (BCHP_CHIP == 7278)
+#ifdef FIREPATH_BM
+      myval = BDSP_Read32(pHandle, BCHP_RAAGA_DSP_PERI_SW_MAILBOX6);
+      BDSP_Write32(pHandle,   BCHP_RAAGA_DSP_PERI_SW_MAILBOX6, myval);
+#endif
+#endif
 
       BKNI_Memcpy((void *)pMemAddr,data,ui32ChunkLen);
+
+#if (BCHP_CHIP == 7278)
+#ifdef FIREPATH_BM
+      myval = BDSP_Read32(pHandle,   BCHP_RAAGA_DSP_PERI_SW_MAILBOX6);
+      BDSP_Write32(pHandle,   BCHP_RAAGA_DSP_PERI_SW_MAILBOX6, myval);
+#endif
+#endif
+
       pMemAddr +=ui32ChunkLen;
       uiSizeCopied +=  ui32ChunkLen;
     }
-
-    BDSP_MEM_P_FlushCache(hHeap,pAddress,uiSizeCopied);
 
     if(uiSizeCopied != ui32Size)
     {
@@ -148,9 +163,8 @@ BERR_Code BDSP_Raaga_P_RequestImg(
     BDSP_RaagaImgCacheEntry *imgCache,
     unsigned imageId,
     bool bDownload,
-    void * memHandle,
-    void * ptr
-    )
+    BDSP_MMA_Memory *pMemory
+)
 {
     BERR_Code errCode=BERR_SUCCESS;
 
@@ -159,21 +173,15 @@ BERR_Code BDSP_Raaga_P_RequestImg(
 
     if ( imgCache[imageId].size > 0 )
     {
-    BDBG_ASSERT( ptr != NULL );
-
-
-        imgCache[imageId].pMemory = ptr;
-
-            BDSP_MEM_P_ConvertAddressToOffset((BMEM_Handle )memHandle,
-                                            imgCache[imageId].pMemory,
-                                            &imgCache[imageId].offset);
+            BDBG_ASSERT( pMemory->pAddr != NULL );
+            imgCache[imageId].pMemory = pMemory->pAddr;
+            imgCache[imageId].offset  = pMemory->offset;
         if( bDownload == true )
         {
             errCode = BDSP_Raaga_P_CopyFWImageToMem(pImageInterface,
                                                     pImageContext,
-                                                    imgCache[imageId].pMemory,
-                                                    imageId,
-                                                    (BMEM_Handle )memHandle);
+                                                    pMemory,
+                                                    imageId);
             if ( errCode )
             {
                 imgCache[imageId].pMemory = NULL;
@@ -188,12 +196,12 @@ BERR_Code BDSP_Raaga_P_RequestImg(
 BERR_Code BDSP_Raaga_P_PreLoadFwImages(const BIMG_Interface *pImageInterface,
                                             void **pImageContext,
                                             BDSP_RaagaImgCacheEntry *imgCache,
-                                            void *ptr,
-                                            uint32_t ui32AllocatedSize,
-                                            void *memHandle)
+                                            BDSP_MMA_Memory *pMemory,
+                                            unsigned ui32AllocatedSize
+)
 {
     unsigned imageId;
-    void *ptrInit = ptr;
+    BDSP_MMA_Memory MemoryInit = *pMemory;
     bool bDownload = true;
     size_t size_check=0;
     BERR_Code errCode=BERR_SUCCESS;
@@ -204,22 +212,22 @@ BERR_Code BDSP_Raaga_P_PreLoadFwImages(const BIMG_Interface *pImageInterface,
         if(imgCache[imageId].size == 0 ){
             continue;
         }
-        errCode = BDSP_Raaga_P_RequestImg(pImageInterface,pImageContext, imgCache, imageId, bDownload, memHandle, ptr);
-        ptr = (void *)((uint8_t *)ptr + imgCache[imageId].size);
+        errCode = BDSP_Raaga_P_RequestImg(pImageInterface,pImageContext, imgCache, imageId, bDownload, pMemory);
+        pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + imgCache[imageId].size);
+        pMemory->offset = pMemory->offset + imgCache[imageId].size;
         if ( errCode ){
             errCode = BERR_TRACE(errCode);
             goto error;
         }
         size_check+=imgCache[imageId].size;
-
     }
 
     /* Error Check */
-    if(ptr > (void *)((uint8_t *) ptrInit + ui32AllocatedSize))
+    if(pMemory->pAddr > (void *)((uint8_t *)MemoryInit.pAddr + ui32AllocatedSize))
     {
         BDBG_ERR(("Used memory more than allocated memory.MemInfo size parameter might be corrupted.\
-        Used till %p Allocated till %p -- exclusive", ptr, \
-        (void *)((uint8_t *)ptrInit + ui32AllocatedSize)));
+        Used till %p Allocated till %p -- exclusive", pMemory->pAddr, \
+        (void *)((uint8_t *)MemoryInit.pAddr + ui32AllocatedSize)));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
         goto error;
     }
@@ -248,6 +256,7 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
     /* Compute system image requirements */
     for ( i = 0; i < BDSP_SystemImgId_eMax; i++ )
     {
+#if (BCHP_CHIP != 7278)
         /* TODO: There should be a better way to do this. This should probably be handled
         like SCM nodes. However in the current design this might require it to be present in
         the algo ID enumeration which will have implications to vom parse and such. */
@@ -263,6 +272,7 @@ unsigned BDSP_Raaga_P_AssignAlgoSizes(
             if (pInfo->supported == false)
                 continue;
         }
+#endif
         if(UseBDSPMacro)
         {
             /* Normal Path */

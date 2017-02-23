@@ -829,6 +829,26 @@ unsigned NEXUS_P_StripeWidth_FromMagnum_isrsafe(BAVC_StripeWidth stripeWidth)
     }
 }
 
+void
+NEXUS_P_EotfToTransferCharacteristics_isrsafe(const NEXUS_VideoEotf eotf, NEXUS_TransferCharacteristics *tc, NEXUS_TransferCharacteristics *preferredTc)
+{
+    switch (eotf) {
+        case NEXUS_VideoEotf_eSdr:
+        default:
+            *tc = NEXUS_TransferCharacteristics_eUnknown;
+            *preferredTc = NEXUS_TransferCharacteristics_eUnknown;
+            break;
+        case NEXUS_VideoEotf_eHdr10:
+            *tc = NEXUS_TransferCharacteristics_eSmpte_ST_2084;
+            *preferredTc = NEXUS_TransferCharacteristics_eUnknown;
+            break;
+        case NEXUS_VideoEotf_eHlg:
+            *tc = NEXUS_TransferCharacteristics_eUnknown;
+            *preferredTc = NEXUS_TransferCharacteristics_eArib_STD_B67;
+            break;
+    }
+}
+
 NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(NEXUS_TransferCharacteristics tc, NEXUS_TransferCharacteristics preferredTc)
 {
     NEXUS_VideoEotf eotf = NEXUS_VideoEotf_eMax;
@@ -873,6 +893,16 @@ NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(NEXUS_TransferChar
 }
 
 void
+NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(
+    NEXUS_ContentLightLevel * pCll,
+    uint32_t *ulMaxContentLight,
+    uint32_t *ulAvgContentLight)
+{
+    *ulMaxContentLight = pCll->max;
+    *ulAvgContentLight = pCll->maxFrameAverage;
+}
+
+void
 NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
     NEXUS_ContentLightLevel * pCll,
     uint32_t ulMaxContentLight,
@@ -880,6 +910,34 @@ NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
 {
     pCll->max = ulMaxContentLight;
     pCll->maxFrameAverage = ulAvgContentLight;
+}
+
+void
+NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(
+    const NEXUS_MasteringDisplayColorVolume * pMdcv,
+    BAVC_Point * pstDisplayPrimaries,
+    BAVC_Point * pstWhitePoint,
+    uint32_t *ulMaxDispMasteringLuma,
+    uint32_t *ulMinDispMasteringLuma)
+{
+    const NEXUS_Point * primaries[3];
+    unsigned i = 0;
+
+    primaries[0] = &pMdcv->greenPrimary;
+    primaries[1] = &pMdcv->bluePrimary;
+    primaries[2] = &pMdcv->redPrimary;
+
+    for (i = 0; i < 3; i++)
+    {
+        pstDisplayPrimaries[i].ulX = primaries[i]->x;
+        pstDisplayPrimaries[i].ulY = primaries[i]->y;
+    }
+
+    pstWhitePoint->ulX = pMdcv->whitePoint.x;
+    pstWhitePoint->ulY = pMdcv->whitePoint.y;
+
+    *ulMaxDispMasteringLuma = pMdcv->luminance.max*10000;
+    *ulMinDispMasteringLuma = pMdcv->luminance.min;
 }
 
 void
@@ -900,26 +958,26 @@ NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
     for (i = 0; i < 3; i++)
     {
         primaries[i]->x = pstDisplayPrimaries[i].ulX;
-        if (primaries[i]->x > 50000)
+        if (primaries[i]->x > 50000 || primaries[i]->x < 0)
         {
             primaries[i]->x = 0;
         }
 
         primaries[i]->y = pstDisplayPrimaries[i].ulY;
-        if (primaries[i]->y  > 50000)
+        if (primaries[i]->y  > 50000 || primaries[i]->y < 0)
         {
             primaries[i]->y  = 0;
         }
     }
 
     pMdcv->whitePoint.x = pstWhitePoint->ulX;
-    if (pMdcv->whitePoint.x > 50000)
+    if (pMdcv->whitePoint.x > 50000 || pMdcv->whitePoint.x < 0)
     {
         pMdcv->whitePoint.x = 0;
     }
 
     pMdcv->whitePoint.y = pstWhitePoint->ulY;
-    if (pMdcv->whitePoint.y > 50000)
+    if (pMdcv->whitePoint.y > 50000 || pMdcv->whitePoint.y < 0)
     {
         pMdcv->whitePoint.y = 0;
     }

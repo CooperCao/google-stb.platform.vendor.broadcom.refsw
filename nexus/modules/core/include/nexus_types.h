@@ -663,20 +663,8 @@ typedef unsigned NEXUS_MemoryType;
 #define NEXUS_HEAP_TYPE_EXPORT_REGION                0x00040
 #define NEXUS_HEAP_TYPE_SECURE_GRAPHICS              0x00080
 #define NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT           0x00100
+#define NEXUS_HEAP_TYPE_DTU                          0x00200
 
-/***************************************************************************
-Summary:
-Autheticated ID for client/server communication.
-
-Description:
-For non-secure environments, the certificate could be a simple ID.
-For secure environments, this should use encrypted using standard public-key cryptography.
-***************************************************************************/
-typedef struct NEXUS_Certificate
-{
-    unsigned char data[256];
-    unsigned length;
-} NEXUS_Certificate;
 
 /***************************************************************************
 Summary:

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
 ******************************************************************************/
 
  #include "bstd.h"
@@ -550,7 +549,9 @@ BERR_Code BVEE_Channel_P_CreateQueue(BVEE_ChannelHandle handle)
     queueSettings.dataType = BDSP_DataType_eRdbCdb;
     queueSettings.numBuffers = 1;
     queueSettings.bufferInfo[0].bufferSize = BVEE_H264_ENCODE_OUTPUT_CDB_SIZE;
-    queueSettings.bufferInfo[0].bufferAddress = handle->outputbuffer.uiCDBBufferOffset;
+	queueSettings.bufferInfo[0].buffer.hBlock = handle->outputbuffer.hCDBBufferMmaBlock;
+	queueSettings.bufferInfo[0].buffer.pAddr  = handle->outputbuffer.pCDBBufferCached;
+	queueSettings.bufferInfo[0].buffer.offset = handle->outputbuffer.uiCDBBufferOffset;
 
     errCode = BDSP_Queue_Create(
             handle->devicehandle->dspContext,
@@ -576,7 +577,9 @@ BERR_Code BVEE_Channel_P_CreateQueue(BVEE_ChannelHandle handle)
     queueSettings.dataType = BDSP_DataType_eRdbItb;
     queueSettings.numBuffers = 1;
     queueSettings.bufferInfo[0].bufferSize = BVEE_H264_ENCODE_OUTPUT_ITB_SIZE;
-    queueSettings.bufferInfo[0].bufferAddress = handle->outputbuffer.uiITBBufferOffset;
+	queueSettings.bufferInfo[0].buffer.hBlock = handle->outputbuffer.hITBBufferMmaBlock;
+	queueSettings.bufferInfo[0].buffer.pAddr  = handle->outputbuffer.pITBBufferCached;
+	queueSettings.bufferInfo[0].buffer.offset = handle->outputbuffer.uiITBBufferOffset;
 
     errCode = BDSP_Queue_Create(
             handle->devicehandle->dspContext,

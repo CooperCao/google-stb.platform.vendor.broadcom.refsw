@@ -193,7 +193,7 @@ sub print_status_funcs
             my $base_name = $1;
             my $status_name = $base_name."Status";
             my $handle_name;
-            if ($base_name eq "NEXUS_ParserBand" || $base_name eq "NEXUS_Timebase" || $base_name eq "NEXUS_InputBand" || $base_name eq "NEXUS_AudioOutput" || $base_name eq "NEXUS_VideoOutput") {
+            if ($base_name eq "NEXUS_ParserBand" || $base_name eq "NEXUS_Timebase" || $base_name eq "NEXUS_InputBand") {
                 $handle_name =  $base_name;
             }
             else {

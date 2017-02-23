@@ -1,41 +1,40 @@
-/***************************************************************************
-*  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
-*
-*  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-***************************************************************************/
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 NEXUS_Error NxClient_Alloc(const NxClient_AllocSettings *pSettings, NxClient_AllocResults *pResults)
 {
     NEXUS_Error rc;
@@ -121,24 +120,16 @@ NEXUS_Error NxClient_GetDisplayStatus( NxClient_DisplayStatus *pStatus )
 
 void NxClient_GetSurfaceClientComposition( unsigned surfaceClientId, NEXUS_SurfaceComposition *pSettings )
 {
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.get_composition.surfaceClientId = surfaceClientId;
     LOCK();
-    nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_get_composition, &param, &output);
+    nxclient_p_get_composition(NXCLIENT_STATE_RESTRICTED, surfaceClientId, pSettings);
     UNLOCK();
-    *pSettings = output.get_composition.composition;
 }
 
 NEXUS_Error NxClient_SetSurfaceClientComposition( unsigned surfaceClientId, const NEXUS_SurfaceComposition *pSettings )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.set_composition.surfaceClientId = surfaceClientId;
-    param.set_composition.composition = *pSettings;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_set_composition, &param, &output);
+    rc = nxclient_p_set_composition(NXCLIENT_STATE_RESTRICTED, surfaceClientId, pSettings);
     UNLOCK();
     return rc;
 }
@@ -155,10 +146,9 @@ NEXUS_Error NxClient_GetStandbyStatus(NxClient_StandbyStatus *pStatus)
 static unsigned NxClient_P_RegisterAcknowledgeStandby(void)
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    rc = nxclient_p_general(NXCLIENT_STATE_REGULAR, nxclient_p_general_param_type_register_acknowledge_standby, &param, &output);
-    return rc ? 0 : output.register_acknowledge_standby.id;
+    unsigned id;
+    rc = nxclient_p_register_acknowledge_standby(NXCLIENT_STATE_REGULAR, &id);
+    return rc ? 0 : id;
 }
 
 unsigned NxClient_RegisterAcknowledgeStandby(void)
@@ -178,28 +168,21 @@ unsigned NxClient_RegisterAcknowledgeStandby(void)
 
 void NxClient_UnregisterAcknowledgeStandby( unsigned id )
 {
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.unregister_acknowledge_standby.id = id;
     LOCK_STANDBY();
-    (void)nxclient_p_general(NXCLIENT_STATE_REGULAR, nxclient_p_general_param_type_unregister_acknowledge_standby, &param, &output);
+    nxclient_p_unregister_acknowledge_standby(NXCLIENT_STATE_REGULAR, id);
     UNLOCK_STANDBY();
 }
 
 void NxClient_AcknowledgeStandby(unsigned id)
 {
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
     LOCK_STANDBY();
     if (nxclient_state.implicitAckStandby.id && !nxclient_state.implicitAckStandby.used) {
         /* if NxClient_RegisterAcknowledgeStandby was never called, then for backward compat we ignore the id given. */
-        param.acknowledge_standby.id = nxclient_state.implicitAckStandby.id;
+        id = nxclient_state.implicitAckStandby.id;
     }
-    else {
-        param.acknowledge_standby.id = id;
-    }
-    (void)nxclient_p_general(NXCLIENT_STATE_REGULAR, nxclient_p_general_param_type_acknowledge_standby, &param, &output);
+    nxclient_p_acknowledge_standby(NXCLIENT_STATE_REGULAR, id);
     UNLOCK_STANDBY();
+    return;
 }
 
 NEXUS_Error NxClient_SetStandbySettings(const NxClient_StandbySettings *pSettings)
@@ -317,39 +300,34 @@ NEXUS_Error NxClient_GetAudioStatus( NxClient_AudioStatus *pStatus )
 NEXUS_Error NxClient_Display_WriteTeletext( const NEXUS_TeletextLine *pLines, size_t numLines, size_t *pNumLinesWritten )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.write_teletext.numLines = MIN(numLines, sizeof(param.write_teletext.lines)/sizeof(param.write_teletext.lines[0]));
-    memcpy(param.write_teletext.lines, pLines, param.write_teletext.numLines * sizeof(param.write_teletext.lines[0]));
+    nxclient_p_teletext_data data;
+
+    numLines = MIN(numLines, sizeof(data.lines)/sizeof(data.lines[0]));
+    memcpy(data.lines, pLines, numLines * sizeof(*pLines));
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_write_teletext, &param, &output);
+    rc = nxclient_p_write_teletext(NXCLIENT_STATE_RESTRICTED, &data, numLines, pNumLinesWritten);
     UNLOCK();
-    *pNumLinesWritten = output.write_teletext.numLinesWritten;
     return rc;
 }
 
 NEXUS_Error NxClient_Display_WriteClosedCaption( const NEXUS_ClosedCaptionData *pEntries, size_t numEntries, size_t *pNumEntriesWritten )
 {
+    nxclient_p_closecaption_data data;
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.write_closed_caption.numEntries = MIN(numEntries, sizeof(param.write_closed_caption.entries)/sizeof(param.write_closed_caption.entries[0]));
-    memcpy(param.write_closed_caption.entries, pEntries, param.write_closed_caption.numEntries * sizeof(param.write_closed_caption.entries[0]));
+
+    numEntries = MIN(numEntries, sizeof(data.entries)/sizeof(data.entries[0]));
+    memcpy(data.entries, pEntries, numEntries * sizeof(*pEntries));
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_write_closed_caption, &param, &output);
+    rc = nxclient_p_write_closedcaption(NXCLIENT_STATE_RESTRICTED, &data, numEntries, pNumEntriesWritten);
     UNLOCK();
-    *pNumEntriesWritten = output.write_closed_caption.numEntriesWritten;
     return rc;
 }
 
 NEXUS_Error NxClient_Display_SetWss( uint16_t wssData )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.set_wss.data = wssData;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_set_wss, &param, &output);
+    rc = nxclient_p_display_set_wss(NXCLIENT_STATE_RESTRICTED, wssData);
     UNLOCK();
     return rc;
 }
@@ -357,33 +335,24 @@ NEXUS_Error NxClient_Display_SetWss( uint16_t wssData )
 NEXUS_Error NxClient_Display_SetCgms( uint32_t cgmsData )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.set_cgms.data = cgmsData;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_set_cgms, &param, &output);
+    rc = nxclient_p_display_set_cgms(NXCLIENT_STATE_RESTRICTED, cgmsData);
     UNLOCK();
     return rc;
 }
 
 void NxClient_GetAudioProcessingSettings( NxClient_AudioProcessingSettings *pSettings )
 {
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
     LOCK();
-    nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_get_audio_processing_settings, &param, &output);
+    nxclient_p_get_audio_processing_settings(NXCLIENT_STATE_RESTRICTED, pSettings);
     UNLOCK();
-    *pSettings = output.get_audio_processing_settings.settings;
 }
 
 NEXUS_Error NxClient_SetAudioProcessingSettings( const NxClient_AudioProcessingSettings *pSettings )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.set_audio_processing_settings.settings = *pSettings;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_set_audio_processing_settings, &param, &output);
+    rc = nxclient_p_set_audio_processing_settings(NXCLIENT_STATE_RESTRICTED, pSettings);
     UNLOCK();
     return rc;
 }
@@ -391,11 +360,8 @@ NEXUS_Error NxClient_SetAudioProcessingSettings( const NxClient_AudioProcessingS
 NEXUS_Error NxClient_Reconfig( const NxClient_ReconfigSettings *pSettings )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.reconfig.settings = *pSettings;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_reconfig, &param, &output);
+    rc = nxclient_p_reconfig(NXCLIENT_STATE_RESTRICTED, pSettings);
     UNLOCK();
     return rc;
 }
@@ -403,17 +369,16 @@ NEXUS_Error NxClient_Reconfig( const NxClient_ReconfigSettings *pSettings )
 NEXUS_Error NxClient_Screenshot( const NxClient_ScreenshotSettings *pSettings, NEXUS_SurfaceHandle surface )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
+    NxClient_ScreenshotSettings settings;
+
     if (pSettings) {
-        param.screenshot.settings = *pSettings;
+        settings = *pSettings;
     }
     else {
-        NxClient_GetDefaultScreenshotSettings(&param.screenshot.settings);
+        NxClient_GetDefaultScreenshotSettings(&settings);
     }
-    param.screenshot.surface = surface;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_screenshot, &param, &output);
+    rc = nxclient_p_screenshot(NXCLIENT_STATE_RESTRICTED, &settings, surface);
     UNLOCK();
     return rc;
 }
@@ -421,15 +386,16 @@ NEXUS_Error NxClient_Screenshot( const NxClient_ScreenshotSettings *pSettings, N
 NEXUS_Error NxClient_Display_SetMacrovision( NEXUS_DisplayMacrovisionType type, const NEXUS_DisplayMacrovisionTables *pTable )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.set_macrovision.type = type;
-    param.set_macrovision.table_isnull = pTable == NULL;
-    if (pTable) {
-        param.set_macrovision.table = *pTable;
+    NEXUS_DisplayMacrovisionTables  table;
+    bool pTable_isNull = false;
+
+    if (pTable==NULL) {
+        pTable = &table;
+        pTable_isNull = true;
+        BKNI_Memset(&table, 0, sizeof(table));
     }
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_set_macrovision, &param, &output);
+    rc = nxclient_p_display_set_macrovision(NXCLIENT_STATE_RESTRICTED, type, pTable_isNull, pTable);
     UNLOCK();
     return rc;
 }
@@ -437,86 +403,70 @@ NEXUS_Error NxClient_Display_SetMacrovision( NEXUS_DisplayMacrovisionType type, 
 NEXUS_Error NxClient_GrowHeap( unsigned heapIndex )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.grow_heap.heapIndex = heapIndex;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_grow_heap, &param, &output);
+    rc = nxclient_p_grow_heap(NXCLIENT_STATE_RESTRICTED, heapIndex);
     UNLOCK();
     return rc;
 }
 
 void NxClient_ShrinkHeap( unsigned heapIndex )
 {
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.shrink_heap.heapIndex = heapIndex;
     LOCK();
-    nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_shrink_heap, &param, &output);
+    nxclient_p_shrink_heap(NXCLIENT_STATE_RESTRICTED, heapIndex);
     UNLOCK();
 }
 
 NEXUS_ClientHandle NxClient_Config_LookupClient( unsigned pid )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.lookup_client.pid = pid;
+    NEXUS_ClientHandle handle;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_lookup_client, &param, &output);
+    rc = nxclient_p_config_lookup_client(NXCLIENT_STATE_RESTRICTED, pid, &handle);
     UNLOCK();
-    return rc ? NULL : output.lookup_client.handle;
+    return rc ? NULL : handle;
 }
 
 NEXUS_Error NxClient_Display_GetCrcData( unsigned displayIndex, NxClient_DisplayCrcData *pData )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.display_get_crc_data.displayIndex = displayIndex;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_display_get_crc_data, &param, &output);
+    rc = nxclient_p_display_get_crc_data(NXCLIENT_STATE_RESTRICTED, displayIndex, pData);
     UNLOCK();
-    if (!rc) *pData = output.display_get_crc_data.data;
     return rc;
 }
 
 NEXUS_Error NxClient_HdmiOutput_GetCrcData( NxClient_HdmiOutputCrcData *pData )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_hdmi_output_get_crc_data, &param, &output);
+    rc = nxclient_p_hdmi_output_get_crc_data(NXCLIENT_STATE_RESTRICTED, pData);
     UNLOCK();
-    if (!rc) *pData = output.hdmi_output_get_crc_data.data;
     return rc;
 }
 
 NEXUS_Error NxClient_LoadHdcpKeys( NxClient_HdcpType hdcpType, NEXUS_MemoryBlockHandle block, unsigned blockOffset, unsigned size )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.load_hdcp_keys.hdcpType = hdcpType;
-    param.load_hdcp_keys.block = block;
-    param.load_hdcp_keys.blockOffset = blockOffset;
-    param.load_hdcp_keys.size = size;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_load_hdcp_keys, &param, &output);
+    rc = nxclient_p_load_hdcp_keys(NXCLIENT_STATE_RESTRICTED, hdcpType, block, blockOffset, size);
     UNLOCK();
     return rc;
 }
 
+NEXUS_Error NxClient_SetHdmiInputRepeater(NEXUS_HdmiInputHandle hdmiInput){
+    NEXUS_Error rc;
+    LOCK();
+    rc = nxclient_p_set_hdmi_input_repeater(NXCLIENT_STATE_RESTRICTED, hdmiInput);
+    UNLOCK();
+    return rc;
+}
+
+
 NEXUS_Error NxClient_SetSlaveDisplayGraphics( unsigned slaveDisplay, NEXUS_SurfaceHandle surface )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
-    param.set_slave_display_graphics.slaveDisplay = slaveDisplay;
-    param.set_slave_display_graphics.surface = surface;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_set_slave_display_graphics, &param, &output);
+    rc = nxclient_p_set_slave_display_graphics(NXCLIENT_STATE_RESTRICTED, slaveDisplay, surface);
     UNLOCK();
     return rc;
 }
@@ -524,11 +474,8 @@ NEXUS_Error NxClient_SetSlaveDisplayGraphics( unsigned slaveDisplay, NEXUS_Surfa
 NEXUS_Error NxClient_GetStatus( NxClient_Status *pStatus )
 {
     NEXUS_Error rc;
-    nxclient_p_general_param param;
-    nxclient_p_general_output output;
     LOCK();
-    rc = nxclient_p_general(NXCLIENT_STATE_RESTRICTED, nxclient_p_general_param_type_get_status, &param, &output);
+    rc = nxclient_p_get_status(NXCLIENT_STATE_RESTRICTED, pStatus);
     UNLOCK();
-    if (!rc) *pStatus = output.get_status.status;
     return rc;
 }

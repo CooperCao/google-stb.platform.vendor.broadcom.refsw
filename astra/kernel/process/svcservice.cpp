@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,7 +47,7 @@ extern "C" void svcService();
 
 void svcService() {
 
-    // ARM EABI: System call number is in register R7. Registers R0 thru R6 contain system call
+    // ARM EABI: System call number is in register R7 (x8 in aarch64). Registers R0 thru R6 contain system call
     // parameters. Return value of system call should be put in register R0.
 
     TzTask *curr = TzTask::current();

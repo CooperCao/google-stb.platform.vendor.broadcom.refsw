@@ -53,11 +53,12 @@ void BVC5_P_WaitForJobCompletion(
 
 /* BVC5_P_MarkJobsFlushedV3D
 
-   Mark all jobs as not requiring V3D flushes
+   Mark all jobs as not requiring V3D flushes on the specified core.
 
  */
 void BVC5_P_MarkJobsFlushedV3D(
-   BVC5_Handle hVC5
+   BVC5_Handle hVC5,
+   uint32_t uiCoreIndex
 );
 
 /* BVC5_P_SchedulerPump

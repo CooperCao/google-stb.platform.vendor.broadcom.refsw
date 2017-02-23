@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
 #
 ############################################################
 # Nexus examples
@@ -69,6 +59,7 @@ THEAPPS = \
 	playback_chunk \
 	playback_customfile \
 	playback_divx \
+	playback_dtu \
 	playback_message_paced_pes \
 	playback_mkv \
 	playback_pcr_indexing \
@@ -94,8 +85,7 @@ THEAPPS = \
 	recpump_with_wrap_and_dma \
 	remap \
 	stream_editing \
-	timeshift \
-	timeshift_chunk
+	timeshift
 
 # The following app can't be build in prebuilt binary mode
 ifneq ($(NEXUS_PREBUILT_BINARY),y)

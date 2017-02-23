@@ -51,14 +51,6 @@ extern "C"
 {
 #endif
 
-typedef enum NEXUS_MemoryMapType {
-    NEXUS_MemoryMapType_eUncached,
-    NEXUS_MemoryMapType_eCached,
-    NEXUS_MemoryMapType_eFake,
-    NEXUS_MemoryMapType_eMax
-} NEXUS_MemoryMapType;
-
-
 /***************************************************************************
 Summary:
 Structure used by Platform to instruct Core how to create magnum heaps and their accompanying Nexus heap handles
@@ -75,8 +67,8 @@ typedef struct NEXUS_Core_MemoryRegion
     unsigned alignment;     /* required alignment (in bytes) of allocations in this region */
     bool locked;            /* nexus does not allow new allocations from a locked heap. */
     bool guardBanding;      /* [deprecated] if true, use guard bands if possible. if false, force no guard banding for higher performance. */
-    NEXUS_MemoryMapType cachedMapType;
-    NEXUS_MemoryMapType uncachedMapType;
+    NEXUS_AddrType cachedMapType;
+    NEXUS_AddrType uncachedMapType;
 } NEXUS_Core_MemoryRegion;
 
 /***************************************************************************
@@ -165,6 +157,10 @@ typedef struct NEXUS_Core_Settings
     BCHP_MemoryLayout memoryLayout;
     unsigned defaultHeapIndex;
     BTEE_InstanceHandle teeHandle;
+    struct {
+        NEXUS_Addr (*alloc)(unsigned memcIndex, unsigned numBytes, unsigned alignment);
+        void (*free)(unsigned memcIndex, NEXUS_Addr addr, unsigned size);
+    } cma;
 } NEXUS_Core_Settings;
 
 /***************************************************************************

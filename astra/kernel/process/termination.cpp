@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,12 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * termination.cpp
- *
- *  Created on: Feb 8, 2015
- *      Author: gambhire
- */
 #include <hwtimer.h>
 #include "arm/arm.h"
 #include "arm/spinlock.h"
@@ -68,26 +62,31 @@ TzTask::~TzTask() {
 
     PageTable *kernPageTable = PageTable::kernelPageTable();
 
-    // Destroy the kernel mode stack.
+    // Destroy the kernel mode stack
     if (stackKernel != nullptr) {
-        TzMem::VirtAddr stackVa = (uint8_t *)stackKernel - PAGE_SIZE_4K_BYTES;
-        TzMem::PhysAddr stackPa = kernPageTable->lookUp(stackVa);
-
-        kernPageTable->unmapPage(stackVa);
-        TzMem::freePage(stackPa);
+        uint8_t *currVa = (uint8_t *)PAGE_START_4K((uint8_t *)stackKernel - stackKernelSize);
+        while (currVa < (uint8_t *)stackKernel) {
+            TzMem::PhysAddr currPa = kernPageTable->lookUp(currVa);
+            if (currPa) {
+                kernPageTable->unmapPage(currVa);
+                TzMem::freePage(currPa);
+            }
+            currVa += PAGE_SIZE_4K_BYTES;
+        }
     }
 
     if (quickPages != nullptr) {
         kernPageTable->releaseAddrRange(quickPages, PAGE_SIZE_4K_BYTES*2);
     }
 
-    // Destroy the TLS region
+    // Destroy the kernel TLS region if mapped
     if (threadInfo != nullptr) {
         TzMem::VirtAddr tiVa = PAGE_START_4K(threadInfo);
         TzMem::PhysAddr tiPa = kernPageTable->lookUp(tiVa);
-
-        kernPageTable->unmapPage(tiVa);
-        TzMem::freePage(tiPa);
+        if (tiPa) {
+            kernPageTable->unmapPage(tiVa);
+            TzMem::freePage(tiPa);
+        }
     }
 
     //printf("Task %d %p collected\n", tid, this);
@@ -317,7 +316,7 @@ int TzTask::waitAnyChild(int *status, int options) {
 }
 
 typedef struct coredump_memregion {
-    unsigned int startAddr,endAddr, offset,flags;
+    uintptr_t startAddr,endAddr, offset,flags;
 } coredump_memregion;
 
 void TzTask::doCoreDump() {
@@ -350,12 +349,15 @@ void TzTask::doCoreDump() {
     /* Copy CPU Registers */
     unsigned long *regBase = savedRegBase - NUM_SAVED_CPU_REGS;
     uint64_t file_offset=0;
-    unsigned long reg[20];
+    unsigned long reg[NUM_SAVED_CPU_REGS];
     memcpy(reg,regBase,NUM_SAVED_CPU_REGS*sizeof(unsigned long));
 
     /* Overwrite Kernel space pointers with respective User space values*/
     reg[SAVED_REG_SP]=reg[SAVED_REG_SP_USR];
+// TODO: Need to look at this on ARMv8
+#ifndef __aarch64__
     reg[SAVED_REG_PC]=reg[SAVED_REG_LR];
+#endif
     reg[SAVED_REG_LR]=reg[SAVED_REG_LR_USR];
 
     core->write(reg,NUM_SAVED_CPU_REGS*sizeof(unsigned long),file_offset);

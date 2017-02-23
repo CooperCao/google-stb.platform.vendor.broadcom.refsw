@@ -72,7 +72,7 @@ B_LIB_CFLAGS += -Os
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 B_LIB_OBJ_PREFIX ?= nexus/lib/
-B_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/$(B_LIB_OBJ_PREFIX)$(B_LIB_OUTPUT_NAME)
+B_LIB_OBJ_DIR ?= ${B_REFSW_OBJ_ROOT}/$(B_LIB_OBJ_PREFIX)$(B_LIB_OUTPUT_NAME)
 
 # Handle static vs. shared library differences
 ifneq ($(findstring $(B_REFSW_OS),linuxuser vxworks),)
@@ -138,7 +138,7 @@ all: install
 
 # Install Binaries
 install: $(B_LIB_SHARED_LIB) $(B_LIB_STATIC_LIB)
-	@echo [Install... $(B_LIB_OUTPUT_NAME) library]
+	@echo [Install... $(B_LIB_OUTPUT_NAME) library to $(realpath $(B_LIB_INSTALL_DIR))]
 	$(Q_)$(MKDIR) $(B_LIB_INSTALL_DIR)
 ifdef B_LIB_SHARED_LIB
 	@$(CP) $(B_LIB_SHARED_LIB) $(B_LIB_INSTALL_DIR)

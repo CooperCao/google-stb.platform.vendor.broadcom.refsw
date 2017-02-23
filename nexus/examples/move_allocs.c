@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2015 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -46,7 +45,7 @@
 
 BDBG_MODULE(move_allocs);
 
-#if defined NEXUS_MEMC0_PICTURE_BUFFER_HEAP && defined NEXUS_MEMC0_MAIN_HEAP && NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_VIDEO_DECODER
 int main(void)
 {
     NEXUS_PlatformSettings platformSettings;

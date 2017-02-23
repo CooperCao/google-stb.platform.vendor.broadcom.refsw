@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bchp_common.h"
@@ -70,12 +61,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
        bmem=192M@64M bmem=256M@512M for the boards with 512 Mbytes of memory */
     NEXUS_PlatformMemory *pMemory = &g_platformMemory;
     bool osRegion1Available = (pMemory->osRegion[1].base && pMemory->osRegion[1].length) ? true : false;
-
-#if defined(NEXUS_SAGE_SECURE_HEAP) || defined (NEXUS_VIDEO_SECURE_HEAP)
     bool secure_heap = (NEXUS_GetEnv("secure_heap")!=NULL);
-#else
-    bool secure_heap = false;
-#endif
 
     BSTD_UNUSED(boxMode);
 
@@ -97,13 +83,10 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType = NEXUS_MemoryType_eFull;
 
     if (secure_heap) {
-#ifdef NEXUS_VIDEO_SECURE_HEAP
-        /* video secure heap. */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memcIndex = 0;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].subIndex = 1;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 128 * 1024 * 1024;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
-#endif
     }
 
     pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].memcIndex = 0;

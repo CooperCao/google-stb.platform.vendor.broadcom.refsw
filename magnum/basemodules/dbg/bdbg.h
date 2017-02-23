@@ -1048,8 +1048,10 @@ they can be used to avoid unused code warnings. */
 
 #ifdef BDBG_NO_MSG
 #define BDBG_ENTER(function) BDBG_NOP()
+#define BDBG_ENTER_F() BDBG_NOP()
 #define BDBG_MODULE_ENTER(module,function) BDBG_NOP()
 #define BDBG_LEAVE(function) BDBG_NOP()
+#define BDBG_LEAVE_F() BDBG_NOP()
 #define BDBG_MODULE_LEAVE(module,function) BDBG_NOP()
 #define BDBG_MSG(format) BDBG_NOP()
 #define BDBG_MODULE_MSG(module, format) BDBG_NOP()
@@ -1057,8 +1059,10 @@ they can be used to avoid unused code warnings. */
 #define BDBG_MODULE_INSTANCE_MSG(module, instance, format) BDBG_NOP()
 #else
 #define BDBG_ENTER(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, #function)  : (void)0)
+#define BDBG_ENTER_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_EnterFunction(&b_dbg_module, __FUNCTION__)  : (void)0)
 #define BDBG_MODULE_ENTER(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_EnterFunction(&b_dbg_module_##module, #function)  : (void)0)
 #define BDBG_LEAVE(function) ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, #function)  : (void)0)
+#define BDBG_LEAVE_F() ((BDBG_eTrace >= b_dbg_module.level)? BDBG_LeaveFunction(&b_dbg_module, __FUNCTION__)  : (void)0)
 #define BDBG_MODULE_LEAVE(module, function) ((BDBG_eTrace >= b_dbg_module_##module.level)? BDBG_LeaveFunction(&b_dbg_module_##module, #function)  : (void)0)
 #define BDBG_MSG(format) BDBG_P_PRINTMSG(BDBG_eMsg, format)
 #define BDBG_MODULE_MSG(module, format) BDBG_P_MODULE_PRINTMSG(module, BDBG_eMsg, format)

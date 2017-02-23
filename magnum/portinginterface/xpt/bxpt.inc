@@ -109,6 +109,15 @@ ifeq ($(findstring $(BCHP_CHIP), 7366 7145 74371 7439 7445 7364 7250 7271 7268 7
                 ifneq ($(wildcard $(RDB_DIR)/bchp_xpt_memdma_mcpb.h),)
                     BXPT_DEFINES += BXPT_DMA_HAS_MEMDMA_MCPB
                 endif
+
+                ifneq ($(wildcard $(RDB_DIR)/bchp_xpt_wdma.h),)
+                    BXPT_DEFINES += BXPT_DMA_HAS_WDMA_CHX
+                    BXPT_DEFINES += BXPT_DMA_HAS_WDMA_SINGLE_CHX_HEADER
+                endif
+
+                ifneq ($(wildcard $(RDB_DIR)/bchp_xpt_memdma_mcpb_host_intr_aggregator.h),)
+                    BXPT_DEFINES += BXPT_DMA_USE_HOST_AGGREGATOR
+                endif
 endif
 
 ifeq ($(findstring $(BCHP_CHIP), 7425 7422 7358 7552 7543 7344 7640 7360 7362 73625 7228 7435 7231 7346 7429 7584 7563 75635 75845 74295 73465 75525), $(BCHP_CHIP))

@@ -66,6 +66,7 @@
 #include "bbox_vdc_box4_config.h"
 #include "bbox_vdc_box5_config.h"
 #include "bbox_vdc_box6_config.h"
+#include "bbox_vdc_box8_config.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -116,6 +117,9 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 6:
             BBOX_P_Vdc_SetBox6SourceCapabilities(pSourceCap);
             break;
+        case 8:
+            BBOX_P_Vdc_SetBox8SourceCapabilities(pSourceCap);
+            break;
     }
 }
 
@@ -143,6 +147,10 @@ void BBOX_P_Vdc_SetDisplayCapabilities
         case 6:
             BBOX_P_Vdc_SetBox6DisplayCapabilities(pDisplayCap);
             break;
+        case 8:
+            BBOX_P_Vdc_SetBox8DisplayCapabilities(pDisplayCap);
+            break;
+
         }
 }
 
@@ -170,6 +178,10 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 6:
             BBOX_P_Vdc_SetBox6DeinterlacerCapabilities(pDeinterlacerCap);
             break;
+        case 8:
+            BBOX_P_Vdc_SetBox8DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
+
     }
 }
 
@@ -196,6 +208,9 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 6:
             BBOX_P_Vdc_SetBox6XcodeCapabilities(pXcodeCap);
+            break;
+        case 8:
+            BBOX_P_Vdc_SetBox8XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -230,6 +245,9 @@ BERR_Code BBOX_P_GetMemConfig
         case 6:
             BBOX_P_GetBox6MemConfig(pBoxMemConfig);
             break;
+        case 8:
+            BBOX_P_GetBox8MemConfig(pBoxMemConfig);
+            break;
     }
 
     return BERR_SUCCESS;
@@ -258,6 +276,9 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 6:
             BBOX_P_GetBox6Rts(pBoxRts);
+            break;
+        case 8:
+            BBOX_P_GetBox8Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -886,7 +886,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_GetCapturedSurfaces(NEXUS_SimpleVideoDecode
         }
         else if (cap->state == nexus_captured_surface_destriped) {
             pSurface[i] = cap->surface;
-            pStatus[i] = cap->status;
+            if (pStatus) pStatus[i] = cap->status;
             cap->state = nexus_captured_surface_user;
             i++;
         }
@@ -1288,6 +1288,9 @@ void NEXUS_SimpleVideoDecoder_Stop( NEXUS_SimpleVideoDecoderHandle handle )
         NEXUS_SimpleVideoDecoder_StopCapture(handle);
     }
     nexus_simplevideodecoder_p_stop(handle);
+    if (handle->encoder.handle) {
+        nexus_simpleencoder_p_stop_videoencoder(handle->encoder.handle, false);
+    }
     nexus_p_stop_epilogue(handle);
 }
 
@@ -2072,6 +2075,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_setwindowpq(NEXUS_SimpleVideoDecod
     if (g_pCoreHandles->boxConfig->stBox.ulBoxId == 0) {
         if (handle->startSettings.smoothResolutionChange && firstWindow ) {
             if (!windowSettings.minimumDisplayFormat) {
+                windowSettings.minimumSourceFormat = NEXUS_VideoFormat_e1080p;
                 NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &windowSettings.minimumDisplayFormat);
                 windowSettings.allocateFullScreen = true;
                 change = true;
@@ -2079,6 +2083,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_setwindowpq(NEXUS_SimpleVideoDecod
         }
         else {
             if (windowSettings.minimumDisplayFormat) {
+                windowSettings.minimumSourceFormat = NEXUS_VideoFormat_eUnknown;
                 windowSettings.minimumDisplayFormat = NEXUS_VideoFormat_eUnknown;
                 windowSettings.allocateFullScreen = false;
                 change = true;
@@ -2481,4 +2486,16 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetSdOverride( NEXUS_SimpleVideoDecoderHand
         }
     }
     return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_SimpleVideoDecoder_ReadMultiPassDqtData( NEXUS_SimpleVideoDecoderHandle handle, NEXUS_VideoDecoderMultiPassDqtData *pData )
+{
+    NEXUS_Error rc;
+    BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleVideoDecoder);
+    if (nexus_simplevideodecoder_has_resource(handle, &rc)) {
+        BKNI_Memset(pData, 0, sizeof(*pData));
+        return rc;
+    }
+    rc = NEXUS_VideoDecoder_ReadMultiPassDqtData(handle->serverSettings.videoDecoder, pData);
+    return rc; /* no BERR_TRACE */
 }

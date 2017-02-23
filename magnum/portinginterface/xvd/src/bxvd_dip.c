@@ -40,7 +40,6 @@
  ***************************************************************************/
 #include "bstd.h"
 #include "bkni.h"          /* For malloc */
-#include "bmem.h"
 #include "bxvd.h"
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"

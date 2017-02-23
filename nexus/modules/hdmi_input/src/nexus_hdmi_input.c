@@ -572,14 +572,6 @@ void NEXUS_HdmiInput_P_PacketChange_isr(void *context, int param2, void *data)
     }
 }
 
-
-void NEXUS_HdmiInput_GetIndex_priv(NEXUS_HdmiInputHandle hdmiInput, unsigned *pIndex)
-{
-    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
-    NEXUS_ASSERT_MODULE();
-    *pIndex = hdmiInput->index;
-}
-
 void NEXUS_HdmiInput_GetSourceId_priv(NEXUS_HdmiInputHandle hdmiInput, BAVC_SourceId *id)
 {
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);

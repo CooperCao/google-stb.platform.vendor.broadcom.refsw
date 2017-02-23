@@ -60,8 +60,17 @@ static bool          s_withBackdrop = true;
 static bool          s_peelOffLongScrollAnim = true;
 static bool          s_demo = false;
 
+float Metrics::m_pointScale = 1.0f;
 
 // Implement metrics in cpp for now as it reduces compilation times
+void Metrics::SetPointScale(float scale)
+{
+   if (scale > 1.0f)
+      m_pointScale = scale;
+   else
+      m_pointScale = 1.0f;
+}
+
 Vec4 Metrics::GetBackgroundColour()       { return Vec4(0.012f, 0.231f, 0.298f, 1.0f); }
 
 Vec2  Metrics::GetCurrentTimePositionOld(){ return Vec2(0.036f, 0.97f);                }
@@ -73,18 +82,18 @@ Vec4  Metrics::GetPanelColourEven()       { return Vec4(0.098f, 0.58f, 0.722f, 1
 Vec4  Metrics::GetPanelColourOdd()        { return Vec4(0.020f, 0.325f, 0.416f, 1.0f); }
 
 float Metrics::GetPanelTextScale()        { return 0.7f;                               }
-float Metrics::GetPanelTextPoints()       { return 29.0f;                              }
+float Metrics::GetPanelTextPoints()       { return 29.0f * m_pointScale;               }
 Vec2  Metrics::GetPanelTextPosition()     { return Vec2(0.2f, 0.35f);                  }
 Vec4  Metrics::GetPanelTextColour()       { return Vec4(1.0f);                         }
 
 float Metrics::GetDescTextHeight()        { return 0.6f;                               }
 float Metrics::GetDescTextLimit()         { return 27.0f;                              }
-float Metrics::GetDescTextPoints()        { return 25.0f;                              }
+float Metrics::GetDescTextPoints()        { return 25.0f * m_pointScale;               }
 Vec2  Metrics::GetDescTextPosition()      { return Vec2(-11.2f, -7.7f);                }
 Vec4  Metrics::GetDescTextColour()        { return Vec3(0.9f).Lift(1.0f);              }
 
 float Metrics::GetTitleTextHeight()       { return 0.7f;                               }
-float Metrics::GetTitleTextPoints()       { return 29.0f;                              }
+float Metrics::GetTitleTextPoints()       { return 29.0f * m_pointScale;               }
 Vec2  Metrics::GetTitleTextPosition()     { return Vec2(-11.2f, -6.9f);                }
 Vec4  Metrics::GetTitleTextColour()       { return Vec4(1.0f);                         }
 
@@ -93,7 +102,7 @@ float Metrics::GetMetaTextSize()          { return 0.5f;                        
 Vec4  Metrics::GetMetaTextColour()        { return Vec3(0.9f).Lift(1.0f);              }
 
 float Metrics::GetInfoTextHeight()        { return 0.6f;                               }
-float Metrics::GetInfoTextPoints()        { return 27.0f;                              }
+float Metrics::GetInfoTextPoints()        { return 27.0f * m_pointScale;               }
 float Metrics::GetInfoTextLimit()         { return 10.5f;                              }
 Vec2  Metrics::GetInfoTextPosition()      { return Vec2(-16.3f, -6.9f);                }
 Vec4  Metrics::GetInfoTextColour()        { return Vec4(0.85f);                        }
@@ -102,14 +111,14 @@ float Metrics::GetPanelWidthForOneHour()  { return 11.0f;                       
 Time  Metrics::GetActiveRegionDuration()  { return Time(2.5f, Time::eHOURS);           }
 
 float Metrics::GetTimeTextScale()         { return 0.6f;                               }
-float Metrics::GetTimeTextPoints()        { return 29.0f;                              }
+float Metrics::GetTimeTextPoints()        { return 29.0f * m_pointScale;               }
 Vec2  Metrics::GetTimeTextPosition()      { return Vec2(-0.06f, 0.42f);                }
 Vec4  Metrics::GetTimeTextColour()        { return Vec4(1.0f);                         }
 Vec2  Metrics::GetTimeTickSize()          { return Vec2(0.2f, 0.2f);                   }
 Vec4  Metrics::GetTimeTickColour()        { return Vec4(0.8f, 0.8f, 0.8f, 1.0f);       }
 
 float Metrics::GetChannelTextScale()      { return 0.6f;                               }
-float Metrics::GetChannelTextPoints()     { return 29.0f;                              }
+float Metrics::GetChannelTextPoints()     { return 29.0f * m_pointScale;               }
 Vec2  Metrics::GetChannelTextPosition()   { return Vec2(0.0f, 0.35f);                  }
 Vec4  Metrics::GetChannelTextColour()     { return Vec4(1.0f);                         }
 float Metrics::GetChannelTextWidth()      { return 4.9f;                               }
@@ -518,6 +527,9 @@ App::App(Platform &platform) :
    m_helpMenu(0)
 {
    theApp = this;
+
+   Metrics::SetPointScale(GetWindowWidth() / 1920.0f);
+
    m_controller = new Controller();
    LongScrolling::SetPeelOffAnimation(s_peelOffLongScrollAnim);
 

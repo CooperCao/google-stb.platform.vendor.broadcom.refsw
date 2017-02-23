@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,7 @@
 #define TRACELOG_H_
 
 #include <stdint.h>
+#include "arm/arm.h"
 #include "tzmemory.h"
 #include "brcmstb.h"
 
@@ -52,18 +53,18 @@ public:
 
     inline static void start(void) {
         if (enabled)
-            REG_WR(commandReg, 1);
+            STB_REG_WR(commandReg, 1);
     }
 
     inline static void stop(void)  {
         if (enabled)
-            REG_WR(commandReg, 4);
+            STB_REG_WR(commandReg, 4);
     }
 
     inline static void add(uint32_t event, uint32_t index = 0) {
         if (enabled &&
             index < sentinelSize)
-            REG_WR(sentinelBase + index * 4, event);
+            STB_REG_WR(sentinelBase + index * 4, event);
     }
 
     static void inval(void);
@@ -77,11 +78,11 @@ public:
 private:
     static bool enabled;
 
-    static uint32_t tracelogBase;
-    static uint32_t commandReg;
+    static uintptr_t tracelogBase;
+    static uintptr_t commandReg;
 
-    static uint32_t sentinelBase;
-    static uint32_t sentinelSize;
+    static uintptr_t sentinelBase;
+    static uintptr_t sentinelSize;
 
     static TzMem::PhysAddr traceBuffPaddr;
     static TzMem::VirtAddr traceBuffVaddr;

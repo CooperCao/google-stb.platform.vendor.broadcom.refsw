@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -537,7 +537,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x034fe000,
 
 		/* BDSP_AF_P_AlgoId_eScm3 */
-		0x02002c4c,
+		0x02002c60,
 
 		/* BDSP_AF_P_AlgoId_eEndOfScmAlgos */
 		0x00000000,

@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "thumbdecoder.h"
+#include "picdecoder.h"
 
 BDBG_MODULE(thumbnail);
 
@@ -54,6 +55,8 @@ static void print_usage(void)
     "  --help or -h for help\n"
     "  -rect x,y,width,height   position in default 1920x1080 coordinates\n"
     "  -zorder #\n"
+    "  -gui off\n"
+    "  -output FILE  file to save bmp of thumbnail when running gui off mode\n"
     );
 }
 
@@ -67,7 +70,12 @@ int main(int argc, const char **argv)
     NEXUS_Rect rect = {0,0,0,0};
     unsigned zorder = 0, timeout = 0;
     const char *filename = NULL;
+    const char *outputname = NULL;
     thumbdecoder_t thumb;
+    bool use_gui = true;
+    NEXUS_SurfaceMemory mem;
+    NEXUS_SurfaceHandle surface = NULL;
+    NEXUS_SurfaceCreateSettings createSettings;
 
     while (argc > curarg) {
         if (!strcmp(argv[curarg], "--help") || !strcmp(argv[curarg], "-h")) {
@@ -89,6 +97,12 @@ int main(int argc, const char **argv)
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
             timeout = atoi(argv[++curarg]);
         }
+        else if (!strcmp(argv[curarg], "-gui") && argc>curarg+1) {
+            use_gui = strcmp(argv[++curarg], "off");
+        }
+        else if (!strcmp(argv[curarg], "-output") && argc>curarg+1) {
+            outputname = argv[++curarg];
+        }
         else if (!filename) {
             filename = argv[curarg];
         }
@@ -109,39 +123,61 @@ int main(int argc, const char **argv)
     rc = NxClient_Join(&joinSettings);
     if (rc) return -1;
 
-    bgui_get_default_settings(&gui_settings);
-    gui_settings.width = rect.width?rect.width:1280;
-    gui_settings.height = rect.height?rect.height:720;
-    gui = bgui_create(&gui_settings);
+    if (use_gui) {
+        bgui_get_default_settings(&gui_settings);
+        gui_settings.width = rect.width?rect.width:1280;
+        gui_settings.height = rect.height?rect.height:720;
+        gui = bgui_create(&gui_settings);
 
-    if (rect.width || zorder) {
-        NEXUS_SurfaceComposition comp;
-        NxClient_GetSurfaceClientComposition(bgui_surface_client_id(gui), &comp);
-        if (rect.width) {
-            comp.position = rect;
+        if (rect.width || zorder) {
+            NEXUS_SurfaceComposition comp;
+            NxClient_GetSurfaceClientComposition(bgui_surface_client_id(gui), &comp);
+            if (rect.width) {
+                comp.position = rect;
+            }
+            comp.zorder = zorder;
+            NxClient_SetSurfaceClientComposition(bgui_surface_client_id(gui), &comp);
         }
-        comp.zorder = zorder;
-        NxClient_SetSurfaceClientComposition(bgui_surface_client_id(gui), &comp);
+    } else {
+        NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
+        createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
+        createSettings.width = rect.width?rect.width:1280;
+        createSettings.height = rect.height?rect.height:720;
+        surface = NEXUS_Surface_Create(&createSettings);
     }
 
     thumb = thumbdecoder_open();
     rc = thumbdecoder_open_file(thumb, filename, NULL);
     if (rc) {BERR_TRACE(rc); goto done;}
-    rc = thumbdecoder_decode_still(thumb, 0, bgui_surface(gui));
+    rc = thumbdecoder_decode_still(thumb, 0, use_gui?bgui_surface(gui):surface);
     if (rc) {BERR_TRACE(rc); goto done;}
 
-    bgui_submit(gui);
-
-    if (timeout) {
-        BKNI_Sleep(timeout * 1000);
+    if (use_gui) {
+        bgui_submit(gui);
+    } else {
+        if (outputname) {
+            NEXUS_Surface_GetMemory(surface, &mem); /* only needed for flush */
+            NEXUS_Surface_Flush(surface);
+            picdecoder_write_bmp(outputname, surface, 24);
+        }
     }
-    else {
-        while (1) BKNI_Sleep(1000);
+
+    if (use_gui) {
+        if (timeout) {
+            BKNI_Sleep(timeout * 1000);
+        }
+        else {
+            while (1) BKNI_Sleep(1000);
+        }
     }
 
 done:
     thumbdecoder_close(thumb);
-    bgui_destroy(gui);
+    if (use_gui) {
+        bgui_destroy(gui);
+    } else if (surface) {
+        NEXUS_Surface_Destroy(surface);
+    }
     NxClient_Uninit();
     return 0;
 }

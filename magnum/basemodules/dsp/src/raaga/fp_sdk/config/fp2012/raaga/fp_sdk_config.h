@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ************************************************************************/
 
 /************************************************************************
  *                                                                      *
@@ -63,18 +60,49 @@
 /* Number of cores on target */
 #define NUM_CORES 1
 
+/* Are we a shared-memory multicore machine where all cores must access their
+ * data at different virtual addresses? */
+#if 0
+#  define SHARED_MEMORY_MULTICORE 1
+#endif
+
+/************************************************************************
+ * VOM support
+ ************************************************************************/
+
+/* Does the subsystem support VOM? (and do we want to support it?) */
+#if 1
+#  define CHIP_HAS_VOM 1
+#endif
+
 /*
   The bit that governs whether an address is treated as virtual when
   fetching an instruction
 */
 #define VOM_ADDRESS_BIT 28
 
+/* The number of address bits in a page. This is the number of bits to shift an
+ * address right by to get the page number and corresponds to the vom_page_bits
+ * BM parameter. */
+#define VOM_PAGE_SHIFT 11
+
+/* Size of the virtual memory space */
+#define VMEM_SIZE 8388608
+
+/* Derived figures */
+#define VOM_PAGE_SIZE       (1 << VOM_PAGE_SHIFT)
+#define VMEM_PAGES          (VMEM_SIZE/VOM_PAGE_SIZE)
+
+
 /************************************************************************
  * Interrupt configuration
  ************************************************************************/
 
+/* Are FATAL/DEBUG exceptions fully handled or should only stubs be provided? */
+#define EXCEPTIONS_HANDLING 1
+
 /* Interrupt vector version */
-#define IRQ_VECTOR_VERSION 2
+#define IRQ_VECTOR_VERSION 3
 
 #if IRQ_VECTOR_VERSION >= 3
 /* Define the maximum pririty level */
@@ -83,7 +111,28 @@
 #  if 1
 #    define INTERRUPT_NESTING_ENABLED 1
 #  endif
+
+/* Use the same stack for IRQ and main threads? */
+#  if 0
+#    define IRQ_USES_APP_STACK 1
+#  endif
 #endif
+
+/************************************************************************
+ * Debug agent version
+ ************************************************************************/
+#define DBA_VERSION 1
+
+#if DBA_VERSION == 1
+/************************************************************************
+ * Soft breakpoint support available
+ ************************************************************************/
+/* Enable soft breakpoint support  */
+#  if 1
+#    define CHIP_HAS_SOFTBPT 1
+#  endif
+#endif
+
 
 /************************************************************************
  * Instrumentation configuration
@@ -149,7 +198,7 @@
 #    define INSTR_LOG_THREADX_TIMER_EVENTS 1
 #  endif
 /* Enables the support for recording interrupt events*/
-#  if 0
+#  if 1
 #    define INSTR_LOG_INTERRUPT_EVENTS 1
 #  endif
 /* Enables the support for recording overlay events*/
@@ -167,7 +216,7 @@
 #    define INSTR_HANDLE_THREADX_CPULOAD_EVENTS 1
 #  endif
 /* Enables the support for handling interrupt events */
-#  if 0
+#  if 1
 #    define INSTR_HANDLE_INTERRUPT_EVENTS 1
 #  endif
 
@@ -198,25 +247,16 @@
 #endif
 
 /************************************************************************
- * FP2011+ memory protection config
- ************************************************************************/
-
-/* Disable fp2011+ memory protection */
-#if ! 1
-#  define MEMORY_PROTECTION_NOT_CONFIGURED 1
-#endif
-
-/************************************************************************
  * Parity checking config
  ************************************************************************/
 
 /* Enable memory parity checking support  */
 #if 0
-#  define HAVE_PARITY 1
+#  define CHIP_HAS_PARITY 1
 #endif
 
 /************************************************************************
- * ICache manipulaition
+ * ICache manipulation
  ************************************************************************/
 
 #if 1
@@ -232,21 +272,37 @@
 #endif
 
 /************************************************************************
+ * Host Port available
+ ************************************************************************/
+
+#if 0
+#  define CHIP_HAS_HOST_PORT 1
+#endif
+
+/************************************************************************
  * Bit Read Buffer available
  ************************************************************************/
 
 /* Enable mBit Read Buffer support  */
 #if 1
-#  define HAVE_BRB 1
+#  define CHIP_HAS_BRB 1
 #endif
 
 /************************************************************************
- * Soft breakpoint support available
+ * DTCM is attached to the core (fp4015+/fpm1015+)
  ************************************************************************/
 
-/* Enable soft breakpoint support  */
-#if 1
-#  define CHIP_HAS_SOFTBPT 1
+#if 0
+#  define CHIP_HAS_DTCM 1
+#endif
+
+/************************************************************************
+ * An address translation unit is attached to the core (typically with an
+ * L2 cache)
+ ************************************************************************/
+
+#if 0
+#  define CHIP_HAS_ATU 1
 #endif
 
 /************************************************************************
@@ -288,6 +344,30 @@
 #  define CORE_HAS_DIR_REG_REG 1
 #endif
 
+/* Core has banked general purpose registers */
+#if 1
+#  define CORE_HAS_BANKED_REGS 1
+#endif
+
+/* FP2006/FP2008 memory protection */
+#if 0
+#  define CORE_HAS_MEM_PROT_FP2006 1
+#endif
+
+/* FP2011+ memory protection */
+#if 1
+#  define CORE_HAS_MEM_PROT_FP2011 1
+#endif
+
+/* Octave v2 / Maestro v1 memory protection */
+#if 0
+#  define CORE_HAS_MEM_PROT_FP4015 1
+#endif
+
+/* Core fetched addresses FNSC bitmask */
+#define PC_FETCHING_COMPRESSED_MASK 0
+
+
 /************************************************************************
  * Define behaviour at init time.
  ************************************************************************/
@@ -304,24 +384,63 @@
 #endif
 
 /************************************************************************
+ * Define memory protection behaviour.
+ ************************************************************************/
+/* Do we provide the "classic" protection style, where sensitive SDK and
+ * read-only data/bss are placed in a protected region, while the rest
+ * lives in an unprotected region? */
+#if 1
+#  define CLASSIC_MEMORY_PROTECTION 1
+#endif
+
+/* Is the __init_mpu_state hook (called from __init_core_state) mechanism
+ * available? */
+#if 0
+#  define MEMORY_PROTECTION_INIT_HOOK 1
+#endif
+
+/************************************************************************
  * Define derived architecture version macros.
+ *
+ * Below macros are based on the assumption that two lines of cores
+ * exist, the Firepath DSP one:
+ *   fp2006 -> fp2008 -> fp2011 -> fp2012 -> fp4014 -> fp4015 -> ...
+ * and the Firepath Maestro one:
+ *   fpm1015 -> ...
  ************************************************************************/
 
+#if defined(__FP2006__) || defined(__FP2008__) || \
+    defined(__FP2011__) || defined(__FP2012__) || \
+    defined(__FP4014__) || defined(__FP4015__)
+#  define __FP2006_ONWARDS__
+#endif
+
 #if defined(__FP2008__) || defined(__FP2011__) || \
-    defined(__FP2012__) || defined(__FP4014__)
+    defined(__FP2012__) || defined(__FP4014__) || \
+    defined(__FP4015__)
 #  define __FP2008_ONWARDS__
 #endif
 
-#if defined(__FP2011__) || defined(__FP2012__) || defined(__FP4014__)
+#if defined(__FP2011__) || defined(__FP2012__) || \
+    defined(__FP4014__) || defined(__FP4015__)
 #  define __FP2011_ONWARDS__
 #endif
 
-#if defined(__FP2012__) || defined(__FP4014__)
+#if defined(__FP2012__) || defined(__FP4014__) || \
+    defined(__FP4015__)
 #  define __FP2012_ONWARDS__
 #endif
 
-#if defined(__FP4014__)
+#if defined(__FP4014__) || defined(__FP4015__)
 #  define __FP4014_ONWARDS__
+#endif
+
+#if defined(__FP4015__)
+#  define __FP4015_ONWARDS__
+#endif
+
+#if defined(__FPM1015__)
+#  define __FPM1015_ONWARDS__
 #endif
 
 /************************************************************************
@@ -354,7 +473,6 @@
 #  define TARGET_BUFFER_MUX_SERVICES
 #endif
 
-
 /************************************************************************
  * Heartbeat support
  ************************************************************************/
@@ -368,6 +486,26 @@
 #if 0
 #  define ENABLE_STITCHING
 #endif
+
+/************************************************************************
+ * Power management support
+ ************************************************************************/
+#if 0
+#  define POWER_MANAGEMENT_SUPPORT
+#endif
+
+/************************************************************************
+ * ThreadX features
+ ************************************************************************/
+#if 0
+#  define TX_PREEMPTION_THRESHOLD 1
+#endif
+
+/************************************************************************
+ * FPOS (libthreadxp) specific settings
+ ************************************************************************/
+/* Maximum size of the ROM filesystem image. */
+#define TX_ROMFS_MAX_SIZE 8388608
 
 /************************************************************************
  * Context save / restore
@@ -396,5 +534,12 @@
 #  define TRELLIS_STATE_CONTEXT
 #endif
 
+/************************************************************************
+ * Some chips define stub DBA_memProtection{On,Off}Fp macros instead of
+ * a proper implementation.
+ ************************************************************************/
+#if 0
+#  define MEMORY_PROTECTION_STUB_API 1
+#endif
 
 #endif /* _FP_SDK_CONFIG_H_ */

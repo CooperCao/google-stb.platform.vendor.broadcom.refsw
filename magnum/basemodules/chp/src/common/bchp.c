@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -1135,6 +1132,10 @@ bool BCHP_OffsetOnMemc( BCHP_Handle chp, BSTD_DeviceOffset offset, unsigned memc
 {
 #if BCHP_UNIFIED_IMPL
     unsigned i;
+
+    if (memcIndex > 2) {
+       return false; /* There are a max of 3 mem controllers supported. */
+    }
     for (i=0;i<BCHP_MAX_MEMC_REGIONS;i++) {
         if (offset >= chp->openSettings.memoryLayout.memc[memcIndex].region[i].addr &&
             offset < chp->openSettings.memoryLayout.memc[memcIndex].region[i].addr + chp->openSettings.memoryLayout.memc[memcIndex].region[i].size) return true;
@@ -1147,6 +1148,47 @@ bool BCHP_OffsetOnMemc( BCHP_Handle chp, BSTD_DeviceOffset offset, unsigned memc
     /* can't know */
     return true;
 #endif
+}
+
+#include "bchp_memc_arb_0.h"
+#ifdef BCHP_MEMC_ARB_1_REG_START
+#include "bchp_memc_arb_1.h"
+#endif
+#ifdef BCHP_MEMC_ARB_2_REG_START
+#include "bchp_memc_arb_2.h"
+#endif
+
+BERR_Code BCHP_GetMemcClientConfig(
+   BCHP_Handle hChp,
+   unsigned memcIndex,
+   unsigned clientIndex,
+   BCHP_MemClientConfig *cfg
+   )
+{
+   uint32_t reg, addr;
+
+   BDBG_ASSERT(cfg);
+
+   BKNI_Memset(cfg, 0, sizeof(*cfg));
+   switch(memcIndex)
+   {
+      case 0: addr = BCHP_MEMC_ARB_0_CLIENT_INFO_0 + 4 * clientIndex; break;
+
+      #ifdef BCHP_MEMC_ARB_1_CLIENT_INFO_0
+      case 1: addr = BCHP_MEMC_ARB_1_CLIENT_INFO_0 + 4 * clientIndex; break;
+      #endif
+
+      #ifdef BCHP_MEMC_ARB_2_CLIENT_INFO_0
+      case 2: addr = BCHP_MEMC_ARB_2_CLIENT_INFO_0 + 4 * clientIndex; break;
+      #endif
+
+      default: BDBG_ERR(("Unknown MEMC")); return BERR_TRACE(BERR_INVALID_PARAMETER);
+   }
+
+   reg = BREG_Read32(hChp->regHandle, addr);
+   cfg->roundRobinEn = BCHP_GET_FIELD_DATA(reg, MEMC_ARB_0_CLIENT_INFO_0, RR_EN);
+   cfg->blockout = BCHP_GET_FIELD_DATA(reg, MEMC_ARB_0_CLIENT_INFO_0, BO_VAL);
+   return BERR_SUCCESS;
 }
 
 /* end of file */

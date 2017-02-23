@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,13 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * csprng.h
- *
- *  Created on: May 15, 2015
- *      Author: gambhire
- */
-
 #ifndef INCLUDE_CRYPTO_CSPRNG_H_
 #define INCLUDE_CRYPTO_CSPRNG_H_
 
@@ -63,7 +56,7 @@ private:
     ChaCha20 streamCipher;
 
     static CryptoPRNG *prng;
-    static spinlock_t lock;
+    static SpinLock lock;
 
 private:
     CryptoPRNG(ChaCha20::Key256& key, uint64_t nonce);

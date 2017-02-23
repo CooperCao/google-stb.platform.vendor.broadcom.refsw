@@ -434,6 +434,20 @@ BERR_Code BMUXlib_File_IVF_P_ProcessInputDescriptors(BMUXlib_File_IVF_Handle hIV
                         hIVFMux->stFileHeader.auiBytes[11] = 'V';
                         break;
 
+                     case BAVC_VideoCompressionStd_eH265:
+                        hIVFMux->stFileHeader.auiBytes[8] =  'H';
+                        hIVFMux->stFileHeader.auiBytes[9] =  '2';
+                        hIVFMux->stFileHeader.auiBytes[10] = '6';
+                        hIVFMux->stFileHeader.auiBytes[11] = '5';
+                        break;
+
+                     case BAVC_VideoCompressionStd_eVP9:
+                        hIVFMux->stFileHeader.auiBytes[8]  = 'V';
+                        hIVFMux->stFileHeader.auiBytes[9]  = 'P';
+                        hIVFMux->stFileHeader.auiBytes[10] = '9';
+                        hIVFMux->stFileHeader.auiBytes[11] = '0';
+                        break;
+
                      default:
                         BDBG_ERR(("Video Input %d: Unsupported Video Protocol (%d)", 0, eProtocol));
                         rc = BERR_TRACE(BERR_INVALID_PARAMETER);

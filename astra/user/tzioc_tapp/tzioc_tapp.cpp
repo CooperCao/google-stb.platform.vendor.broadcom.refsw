@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -207,15 +207,15 @@ void TziocTapp::memAllocProc(
         return;
     }
 
-    LOGD("mem alloc cmd: offset 0x%x, size 0x%x",
-         pCmd->offset, pCmd->size);
+    LOGD("mem alloc cmd: offset 0x%zx, size 0x%x",
+         (size_t)pCmd->offset, pCmd->size);
 
     // map physical address
     void *vaddr = (void *)tzioc_offset2vaddr(
         hClient,
         pCmd->offset);
 
-    if ((uint32_t)vaddr == (uint32_t)-1) {
+    if ((uintptr_t)vaddr == (uintptr_t)-1) {
         LOGE("failed to convert offset to virtual address");
         return;
     }
@@ -223,7 +223,7 @@ void TziocTapp::memAllocProc(
     // calculate simple checksum
     uint32_t checksum = 0;
     for (uint32_t i = 0; i < pCmd->size; i += sizeof(uint32_t)) {
-        checksum += *(uint32_t *)((uint32_t)vaddr + i);
+        checksum += *(uint32_t *)((uintptr_t)vaddr + i);
     }
 
     // Caution: reused the cmd buffer for rpy.
@@ -250,8 +250,8 @@ void TziocTapp::mapPaddrProc(
         return;
     }
 
-    LOGD("map paddr cmd: paddr 0x%x, size 0x%x",
-         pCmd->paddr, pCmd->size);
+    LOGD("map paddr cmd: paddr 0x%zx, size 0x%x",
+         (size_t)pCmd->paddr, pCmd->size);
 
     // map physical address
     void *vaddr = tzioc_map_paddr(
@@ -268,7 +268,7 @@ void TziocTapp::mapPaddrProc(
     // calculate simple checksum
     uint32_t checksum = 0;
     for (uint32_t i = 0; i < pCmd->size; i += sizeof(uint32_t)) {
-        checksum += *(uint32_t *)((uint32_t)vaddr + i);
+        checksum += *(uint32_t *)((uintptr_t)vaddr + i);
     }
 
     // unmap physical address
@@ -306,8 +306,8 @@ void TziocTapp::mapPaddrsProc(
 
     struct tzioc_mem_region regions[TZIOC_MEM_REGION_MAX];
     for (int idx = 0; idx < count; idx++) {
-        LOGD("\t%d: paddr 0x%x, size 0x%x", idx,
-             pCmd->paddrs[idx], pCmd->sizes[idx]);
+        LOGD("\t%d: paddr 0x%zx, size 0x%x", idx,
+             (size_t)pCmd->paddrs[idx], pCmd->sizes[idx]);
 
         regions[idx].ulPaddr = pCmd->paddrs[idx];
         regions[idx].ulSize  = pCmd->sizes[idx];
@@ -330,7 +330,7 @@ void TziocTapp::mapPaddrsProc(
     uint32_t checksum = 0;
     for (int idx = 0; idx < count; idx++) {
         for (uint32_t i = 0; i < regions[idx].ulSize; i += sizeof(uint32_t)) {
-            checksum += *(uint32_t *)((uint32_t)regions[idx].ulVaddr + i);
+            checksum += *(uint32_t *)((uintptr_t)regions[idx].ulVaddr + i);
         }
     }
 
@@ -364,6 +364,10 @@ int main(int argc, char **argv)
         LOGE("fatal error %d", exception);
         LOGI("TZIOC test app terminated abnormally");
         exit(exception);
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        exit(-1);
     }
     return 0;
 }

@@ -1,5 +1,6 @@
 #################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#
+# Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +35,8 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
+#
 #################################################
-
 
 #
 # Conditional Options for this Makefile
@@ -97,6 +98,7 @@ BBOX_SOURCES += \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_vdc_box17_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_rts_box17.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_memc_box17_config.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_vdc_box18_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_rts_box18.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_memc_box18_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_vdc_box19_config.c \

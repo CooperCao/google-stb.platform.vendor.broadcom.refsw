@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,7 +76,7 @@ void AstraTapp::init()
 
     if (!hClient) {
         LOGE("failed to open TZIOC client");
-        throw(-EIO);
+        throw((int)-EIO);
     }
 
     LOGI("Astra test app initialized!");
@@ -210,12 +210,12 @@ void AstraTapp::memAllocProc(
         (struct astra_test_msg_mem_alloc_cmd *)ASTRA_TEST_MSG_PAYLOAD(pAHdr);
 
     if (pHdr->ulLen != sizeof(*pAHdr) + sizeof(*pCmd)) {
-        LOGE("invalid hello cmd received");
+        LOGE("invalid memAlloc cmd received");
         return;
     }
 
-    LOGD("mem alloc cmd: offset 0x%x, size 0x%x",
-         pCmd->offset, pCmd->size);
+    LOGD("mem alloc cmd: offset 0x%zx, size 0x%x",
+         (size_t) pCmd->offset, pCmd->size);
 
     // map physical address
     void *vaddr = (void *)tzioc_offset2vaddr(
@@ -230,7 +230,7 @@ void AstraTapp::memAllocProc(
     // calculate simple checksum
     uint32_t checksum = 0;
     for (uint32_t i = 0; i < pCmd->size; i += sizeof(uint32_t)) {
-        checksum += *(uint32_t *)((uint32_t)vaddr + i);
+        checksum += *(uint32_t *)((uintptr_t)vaddr + i);
     }
 
     LOGD("mem alloc cmd: checksum 0x%x", checksum);
@@ -259,8 +259,8 @@ void AstraTapp::mapPaddrProc(
         return;
     }
 
-    LOGD("map paddr cmd: paddr 0x%x, size 0x%x",
-         pCmd->paddr, pCmd->size);
+    LOGD("map paddr cmd: paddr 0x%zx, size 0x%x",
+         (size_t)pCmd->paddr, pCmd->size);
 
     // map physical address
     void *vaddr = tzioc_map_paddr(
@@ -277,7 +277,7 @@ void AstraTapp::mapPaddrProc(
     // calculate simple checksum
     uint32_t checksum = 0;
     for (uint32_t i = 0; i < pCmd->size; i += sizeof(uint32_t)) {
-        checksum += *(uint32_t *)((uint32_t)vaddr + i);
+        checksum += *(uint32_t *)((uintptr_t)vaddr + i);
     }
 
     // unmap physical address
@@ -315,8 +315,8 @@ void AstraTapp::mapPaddrsProc(
 
     struct tzioc_mem_region regions[TZIOC_MEM_REGION_MAX];
     for (int idx = 0; idx < count; idx++) {
-        LOGD("\t%d: paddr 0x%x, size 0x%x", idx,
-             pCmd->paddrs[idx], pCmd->sizes[idx]);
+        LOGD("\t%d: paddr 0x%zx, size 0x%x", idx,
+             (size_t)pCmd->paddrs[idx], pCmd->sizes[idx]);
 
         regions[idx].ulPaddr = pCmd->paddrs[idx];
         regions[idx].ulSize  = pCmd->sizes[idx];
@@ -339,7 +339,7 @@ void AstraTapp::mapPaddrsProc(
     uint32_t checksum = 0;
     for (int idx = 0; idx < count; idx++) {
         for (uint32_t i = 0; i < regions[idx].ulSize; i += sizeof(uint32_t)) {
-            checksum += *(uint32_t *)((uint32_t)regions[idx].ulVaddr + i);
+            checksum += *(uint32_t *)((uintptr_t)regions[idx].ulVaddr + i);
         }
     }
 
@@ -373,6 +373,10 @@ int main(int argc, char **argv)
         LOGE("fatal error %d", exception);
         LOGI("Astra test app terminated abnormally");
         exit(exception);
+    }
+    catch (...) {
+        LOGI("Unhandled exception");
+        exit(-1);
     }
     return 0;
 }

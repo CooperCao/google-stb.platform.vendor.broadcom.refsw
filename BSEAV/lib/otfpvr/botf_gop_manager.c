@@ -1524,13 +1524,3 @@ unsigned long bpvr_gop_manager_get_pts(bpvr_gop_manager manager)
 {
     return manager->last_pts;
 }
-
-unsigned bpvr_gop_manager_get_complete_count(bpvr_gop_manager manager)
-{
-     const struct bpvr_gop * gop;
-     unsigned count;
-     for(count = 0, gop = BLST_SQ_FIRST(&manager->complete); NULL != (gop = BLST_SQ_NEXT(gop, queue)); count++) { }
-     return count;
-}
-
-

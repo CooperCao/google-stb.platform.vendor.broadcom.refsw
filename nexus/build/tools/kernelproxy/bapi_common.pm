@@ -397,6 +397,9 @@ sub process_function_attributes {
                         push @driver_post_success, "NEXUS_DRIVER_SEND_ADDR($driver_arg.$name, cached);";
                     }
                 }
+                elsif($attr eq 'handle_verify' && $value eq 'no') {
+                    next;
+                }
                 else {
                     print STDERR "ERROR: Unsupported attribute $attr = $value for $param->{NAME} in $func->{FUNCNAME}\n";
                 }

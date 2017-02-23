@@ -65,9 +65,7 @@ ifndef NEXUS_DEFS_INCLUDED
 $(error nexus_defs.inc was not included first.)
 endif
 
-ifneq ($(B_REFSW_OS),vxworks)
 BSTD_OMIT_DEFAULT_CONFIG := 1
-endif
 
 # Create NEXUS_SOURCE_DIRS from all modules in NEXUS_MODULES
 NEXUS_SOURCE_DIRS := $(sort $(foreach module,$(NEXUS_MODULES),$(dir $(NEXUS_$(module)_SOURCES)) $(dir $(NEXUS_$(module)_LOCAL_SOURCES))))
@@ -79,6 +77,11 @@ NEXUS_CFLAGS_BPROFILE = -DB_HAS_BPROFILE=1 -finstrument-functions
 endif
 ifeq ($(NEXUS_ABICOMPAT_MODE),y)
 NEXUS_CFLAGS += -DNEXUS_ABICOMPAT_MODE=1
+endif
+
+ifeq (${NEXUS_COMPAT_32ABI},y)
+NEXUS_P_QEMU_ABIVERIFY ?= $(shell qemu-arm  -version >/dev/null 2>&1 && echo y)
+NEXUS_CFLAGS += -DNEXUS_COMPAT_32ABI=1
 endif
 
 # Create NEXUS CFLAGS from base include path and defines
@@ -155,12 +158,7 @@ MAGNUM_DEFINES := $(sort $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINE
 MAGNUM_CFLAGS := $(addprefix -D,$(MAGNUM_DEFINES)) $(addprefix -I,$(MAGNUM_INCLUDES))
 MAGNUM_SOURCE_DIRS := $(foreach module,$(MAGNUM_MODULES),$(dir $($(module)_SOURCES)))
 MAGNUM_NOPROFILE_SRCS += bdbg.c bdbg_output.c bdbg_os_priv.c bkni.c
-ifeq ($(B_REFSW_OS), linuxemu)
-NEXUS_CFLAGS += $(addprefix -I,$(NEXUS_PLATFORM_PRIVATE_INCLUDES))
-MAGNUM_NOPROFILE_SRCS += breg_client.c
-else
 MAGNUM_NOPROFILE_SRCS += breg_mem.c
-endif
 MAGNUM_STATIC_LIBS := $(sort $(foreach module,$(MAGNUM_MODULES),$($(module)_STATIC_LIBS)))
 
 #MAGNUM_NO_STRICT_ALIASING_SRCS lists files which will be compile with -fno-strict-aliasing.  strict-aliasing is a useful and
@@ -172,16 +170,8 @@ MAGNUM_NO_STRICT_ALIASING_SRCS := brpc_socket.c
 # Set other makes
 NEXUS_OTHER_MAKES := $(sort $(foreach module, $(NEXUS_MODULES),$(NEXUS_$(module)_MAKES))) $(sort $(foreach module, $(MAGNUM_MODULES), $($(module)_MAKES)))
 
-# Remove pre-compiled files from the build
-MAGNUM_PRECOMPILED_DIR := $(NEXUS_BUILD_DIR)/libmagnum.$(B_REFSW_OS).$(B_REFSW_ARCH)
-MAGNUM_PRECOMPILED_SOURCES := $(patsubst %.$(NEXUS_OBJ_SUFFIX),%.c,$(notdir $(wildcard $(MAGNUM_PRECOMPILED_DIR)/*)))
-
-# Check that all precompiled files are actually being requested by the build.  Otherwise, flags are probably mismatched somewhere.
-$(foreach precomp,$(MAGNUM_PRECOMPILED_SOURCES),$(if $(filter $(precomp),$(notdir $(MAGNUM_SOURCES))),,$(warning precompiled file $(precomp) is not being used in your build)))
-
 MAGNUM_OBJECTS := $(addprefix $(NEXUS_OBJ_DIR)/MAGNUM/,$(patsubst %.c,%.$(NEXUS_OBJ_SUFFIX),$(filter-out $(notdir $(MAGNUM_OS_ABSTRACTION)) $(MAGNUM_PRECOMPILED_SOURCES),$(notdir $(MAGNUM_SOURCES)))))
 MAGNUM_OS_ABSTRACTION := $(filter $(addprefix MAGNUM/,$(notdir $(MAGNUM_SOURCES))), $(MAGNUM_OS_ABSTRACTION))
-MAGNUM_PRECOMPILED_OBJECTS += $(wildcard $(MAGNUM_PRECOMPILED_DIR)/*)
 
 # Add the magnum source dirs to the search path for .c files.
 vpath %.c $(MAGNUM_SOURCE_DIRS)
@@ -207,6 +197,15 @@ reverse = $(if $(1),$(call reverse,$(wordlist 2,$(words $(1)),$(1)))) $(firstwor
 
 NEXUS_REVERSE_SORTED_MODULES = PLATFORM $(filter-out PLATFORM,$(call reverse, $(NEXUS_MODULES)))
 
+NEXUS_DRIVER_MODULES :=$(filter-out $(NEXUS_CLIENT_MODULES),$(NEXUS_REVERSE_SORTED_MODULES))
+
+PUBLIC_INCLUDES := $(foreach module, ${NEXUS_DRIVER_MODULES},  $(addsuffix /*.h, $(NEXUS_$(module)_PUBLIC_INCLUDES)))
+
+# Generate nexus class list using PERL
+CLASS_LIST=$(NEXUS_SYNCTHUNK_DIR)/class_list.inc
+$(CLASS_LIST): ${NEXUS_SYNCTHUNK_DIR}/exists
+	$(Q_)$(PERL) -I$(NEXUS_TOP)/build/tools/common -I$(NEXUS_TOP)/build/tools/kernelproxy $(NEXUS_TOP)/build/tools/kernelproxy/class_list.pl $(CLASS_LIST) -headers $(PUBLIC_INCLUDES) -modules $(NEXUS_DRIVER_MODULES)
+
 ifneq ($(MAKECMDGOALS),clean)
 $(NEXUS_BUILD_DIR)/module_rules_${NEXUS_MODE}.inc:${NEXUS_BUILD_DIR}/exists
 	${Q_}$(PERL) $(NEXUS_BUILD_OS_DIR)/module_rules.pl $@ $(MODULE_RULES_OPTIONS) $(NEXUS_REVERSE_SORTED_MODULES)
@@ -216,6 +215,12 @@ endif
 
 # Create single list of all nexus objects for convenience
 NEXUS_OBJECTS := $(foreach module,$(NEXUS_MODULES),$(NEXUS_$(module)_OBJECTS) $(NEXUS_$(module)_OS_OBJECTS))
+
+
+${NEXUS_OBJECTS}: $(NEXUS_SYNCTHUNK_DIR)/nexus_driver_modules.h
+# Generate nexus_driver_modules.h using PERL
+$(NEXUS_SYNCTHUNK_DIR)/nexus_driver_modules.h: ${NEXUS_SYNCTHUNK_DIR}/exists
+	${Q_}$(PERL) $(NEXUS_TOP)/build/tools/common/generate_nexus_driver_modules.pl $@ $(NEXUS_DRIVER_MODULES)
 
 # Include OS-specific rules
 include $(NEXUS_BUILD_OS_DIR)/os_rules.inc

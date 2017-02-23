@@ -970,24 +970,23 @@ BERR_Code BSAT_g1_P_QpskAcquire_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   uint32_t val;
 
    /* set agc tracking bw */
    BSAT_g1_P_SetAgcTrackingBw_isr(h);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FEC_FSYN, 0x04003020);
-#ifndef BSAT_HAS_WFE
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_AGC_ABW, 0x03030000); /* TBD set AGC and DCO tracking bandwidths per Steve */
-#endif
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, ~0x0000FF00);  /* EQBLND=0 */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLTD, 0x16000000);
 
    BSAT_g1_P_ConfigPlc_isr(h, false); /* set tracking PLC */
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_VLCTL, 0x00040704);
+
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLTD, 0x28000000);
 
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x000000EF, 0x000000A1);  /* CLMISC=0xA1 but retain bit 4 */
-   BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x0C481000);  /* CLPDCTL=0x10, CLQCFD=0x40 */
+   BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x08481000);
 
    BSAT_g1_P_QpskSetOqpsk_isr(h);
 
@@ -1002,8 +1001,18 @@ BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 
    BSAT_g1_P_QpskSetFinalFlBw_isr(h);
 
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0x22060271); /* set main tap to 6 */
-   BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, ~0x00000001);  /* clear eq reset */
+#if 0
+    /* BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0x001F0000, 0x22000271);  per Xiaofen */
+    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0x22060271);
+    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, ~0x00000001);
+#else
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_update_rate, 3);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_reset, 1);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, val);
+   BCHP_SET_FIELD_DATA(val, SDS_EQ_0_EQFFECTL, ffe_reset, 0);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, val);
+#endif
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_SNR_SNRCTL, 0x03);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_SNR_SNORECTL, 0x8A);

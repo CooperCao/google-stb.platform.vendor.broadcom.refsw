@@ -169,6 +169,7 @@ void NEXUS_DspVideoEncoder_Close_priv(NEXUS_DspVideoEncoderHandle encoder)
     return;
 }
 
+#if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
 NEXUS_Error NEXUS_DspVideoEncoder_GetExtInterruptInfo_priv(NEXUS_DspVideoEncoderHandle encoder, NEXUS_DspVideoEncoderExtInterruptInfo *extIntInfo)
 {
     BERR_Code rc=NEXUS_SUCCESS;
@@ -183,6 +184,7 @@ NEXUS_Error NEXUS_DspVideoEncoder_GetExtInterruptInfo_priv(NEXUS_DspVideoEncoder
 error:
     return rc;
 }
+#endif
 
 void NEXUS_DspVideoEncoder_GetUserDataSettings_priv(NEXUS_DspVideoEncoderHandle encoder, NEXUS_DspVideoEncoderUserDataSettings *userDataSettings)
 {
@@ -250,9 +252,10 @@ NEXUS_Error NEXUS_DspVideoEncoder_Start_priv(NEXUS_DspVideoEncoderHandle encoder
     /*External Interrupt Info */
     encoder->veeStartSettings.extIntCfg.enableInterrupts = true;
     encoder->veeStartSettings.extIntCfg.numInterrupts = 1;
+#if !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
     encoder->veeStartSettings.extIntCfg.interruptInfo[0].interruptRegAddr = startSettings->extIntInfo.address;
     encoder->veeStartSettings.extIntCfg.interruptInfo[0].interruptBit = startSettings->extIntInfo.bit_num;
-
+#endif
     encoder->veeStartSettings.sendMetadata = true;
     encoder->veeStartSettings.bSendCC = startSettings->userDataSettings.encodeUserData;
 

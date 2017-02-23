@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_SIMPLE_AUDIO_DECODER_SERVER_H__
 #define NEXUS_SIMPLE_AUDIO_DECODER_SERVER_H__
@@ -50,17 +49,10 @@
 #include "nexus_audio_playback.h"
 #include "nexus_i2s_input.h"
 #include "nexus_audio_capture.h"
-#else
-#include "../../audio/include/nexus_audio_decoder.h"
-#include "../../audio/include/nexus_spdif_output.h"
-#include "../../audio/include/nexus_audio_playback.h"
-#include "../../audio/include/nexus_i2s_input.h"
-#include "../../audio/include/nexus_audio_capture.h"
+#include "nexus_audio_mixer.h"
 #endif
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
-#else
-typedef void *NEXUS_HdmiOutputHandle;
 #endif
 
 #ifdef __cplusplus
@@ -97,6 +89,11 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
     NEXUS_AudioPlaybackHandle passthroughPlayback; /* For passthroughBuffer mode */
 
     struct {
+        bool ms11;
+        bool ms12;
+    } capabilities; /* allows the server to specify this simple decoder's capabilities */
+
+    struct {
         NEXUS_AudioMixerHandle stereo, multichannel, persistent;
     } mixers;
 
@@ -104,17 +101,17 @@ typedef struct NEXUS_SimpleAudioDecoderServerSettings
     
     struct {
         NEXUS_SpdifOutputHandle outputs[NEXUS_MAX_SIMPLE_DECODER_SPDIF_OUTPUTS];
-        NEXUS_AudioInputHandle input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to spdif.
+        NEXUS_AudioInputHandle input[NEXUS_MAX_AUDIOCODECS]; /* per codec, specify the final stage to be connected to spdif.
             use NEXUS_AudioCodec_eUnknown to specify default configuration for playback-only. */
     } spdif;
     struct {
         NEXUS_HdmiOutputHandle outputs[NEXUS_MAX_SIMPLE_DECODER_HDMI_OUTPUTS];
-        NEXUS_AudioInputHandle input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to hdmi.
+        NEXUS_AudioInputHandle input[NEXUS_MAX_AUDIOCODECS]; /* per codec, specify the final stage to be connected to hdmi.
             use NEXUS_AudioCodec_eUnknown to specify default configuration for playback-only. */
     } hdmi;
     struct {
         NEXUS_AudioCaptureHandle output;
-        NEXUS_AudioInputHandle input[NEXUS_AudioCodec_eMax]; /* per codec, specify the final stage to be connected to audio capture. */
+        NEXUS_AudioInputHandle input[NEXUS_MAX_AUDIOCODECS]; /* per codec, specify the final stage to be connected to audio capture. */
     } capture;
 } NEXUS_SimpleAudioDecoderServerSettings;
 

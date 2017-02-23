@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2005-2011 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,30 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $old_brcm_Log: /BSEAV/api/include/bsettop_fileio_fifo.h $
- *
- * 5   4/12/06 2:16p vsilyaev
- * PR 20680: Promoted bsettop_fileio_fifo API
- *
- * 4   12/23/05 4:10p vsilyaev
- * PR 18183: Renamed API functions
- *
- * 2   11/21/05 3:42p vsilyaev
- * PR 18183: Renamed size function to bounds, so it would remain useful
- * with trimmed files
- *
- * 1   11/17/05 4:22p vsilyaev
- * PR 18183: Added circular(FIFO) file
- *
  ***************************************************************************/
 #ifndef NEXUS_FILE_FIFO_H__
 #define NEXUS_FILE_FIFO_H__

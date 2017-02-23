@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
+ *
  ******************************************************************************/
 
 #include <string.h>
@@ -348,6 +348,10 @@ int SAGE_Manufacturing_BinFile_ParseAndDisplay(uint8_t* pBinData, uint32_t binFi
         {
             *validationCommand |= VALIDATION_COMMAND_ValidateDtcpIp;
         }
+        else if(!strcmp(pString, "MEDIAROOM"))
+        {
+            *validationCommand |= VALIDATION_COMMAND_ValidateMediaroom;
+        }
         BDBG_LOG(("\t\t>>>> %s (0x%08x)\n", pString, current_drm_type));
     }
 
@@ -375,6 +379,10 @@ int SAGE_Manufacturing_VerifyDrmBinFileType(uint8_t* pBinData, int validationCom
         if((validationCommand & VALIDATION_COMMAND_ValidateDtcpIp) & 0xF)
         {
             BDBG_LOG(("\t*** DTCP-IP keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        if((validationCommand & VALIDATION_COMMAND_ValidateMediaroom) & 0x1F)
+        {
+            BDBG_LOG(("\t*** Mediaroom keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
         }
         BDBG_LOG(("\n\n"));
         return DRM_BIN_FILE_TYPE_3;
@@ -476,6 +484,14 @@ int SAGE_Manufacturing_ValidateDRM(int *pStatus, int validationCommand)
             *pStatus = -1;
         }
     }
+    if ((validationCommand & VALIDATION_COMMAND_ValidateMediaroom) & 0xF) {
+        if (((container->basicOut[2] & MEDIAROOM_MASK) >> 3 == OPERATION_SUCCESSFULLY_OCCURRED) && validationErrorFlag != -1)
+            *pStatus = 0;
+        else {
+            BDBG_ERR(("\tError validating Mediaroom (return value: %u)!!!", (container->basicOut[2] & MEDIAROOM_MASK)));
+            *pStatus = -1;
+        }
+    }
 handle_error:
     return rc;
 }
@@ -527,6 +543,8 @@ static const char * _MapDrmEnumToString(uint32_t drm_type)
            return "ECC";
     case BSAGElib_BinFileDrmType_ePlayready30:
            return "PLAYREADY 3.0";
+    case BSAGElib_BinFileDrmType_eMediaroom:
+           return "MEDIAROOM";
     case BSAGElib_BinFileDrmType_eMax:
            return NULL;
     default:

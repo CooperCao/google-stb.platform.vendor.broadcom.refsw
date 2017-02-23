@@ -61,7 +61,6 @@ NEXUS_PLATFORM_DEFINES += NEXUS_USE_7268_VMS=1
 endif
 
 B_REFSW_STRICT_PRINTF_FORMAT ?= y
-NEXUS_ABIVERIFY_MODULES ?= $(filter-out ${NEXUS_CLIENT_MODULES}, ${NEXUS_MODULES})
 #
 # by default, we include the following
 #

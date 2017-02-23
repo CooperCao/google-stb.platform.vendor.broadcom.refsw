@@ -47,8 +47,10 @@
 #include "platform.h"
 #include "platform_priv.h"
 #include "platform_display_priv.h"
+#include "bchp_hdr_cmp_0.h"
 #include "bkni.h"
 #include "bdbg.h"
+#include "assert.h"
 
 BDBG_MODULE(platform_display);
 
@@ -68,6 +70,47 @@ void platform_display_close(PlatformDisplayHandle display)
     if (!display) return;
     display->platform->display = NULL;
     BKNI_Free(display);
+}
+
+void platform_display_load_nl2l_lut(size_t len, uint32_t * data)
+{
+    unsigned i;
+    for (i=0; i<len; i++)
+    {
+        NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_NL2L_TF_LUTi_ARRAY_BASE + i*4, data[i]);
+    }
+}
+
+void platform_display_set_nl2l_source(unsigned source)
+{
+    #define SIZE (BCHP_HDR_CMP_0_V0_NL_LUT_SEG_CTRLi_ARRAY_END+1)
+    const unsigned segEnd[SIZE] =     {128, 256, 512, 0, 0, 0};
+    const unsigned segOffset[SIZE] =  {0,   256, 768, 0, 0, 0};
+    const unsigned setIntBits[SIZE] = {8,   9,   10,  0, 0, 0};
+    uint32_t val;
+    unsigned i;
+
+    assert(source <= BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_RECT0_SEL_NL2L_BYPASS);
+
+    NEXUS_Platform_ReadRegister(BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE, &val);
+    BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi, RECT0_SEL_NL2L, source);
+    NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_R00_TO_R15_NL_CONFIGi_ARRAY_BASE, val);
+
+    if (source != BCHP_HDR_CMP_0_V1_R00_TO_R15_NL_CONFIGi_RECT0_SEL_NL2L_RAM) return;
+
+    NEXUS_Platform_ReadRegister(BCHP_HDR_CMP_0_V0_NL_LUT_CTRL, &val);
+    BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_NL_LUT_CTRL, NL_LUT_NUM_SEG, 3);
+    BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_NL_LUT_CTRL, NL_LUT_XSCL, 0x4); /* 1.000000 => b100 in U1.2 */
+    NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_NL_LUT_CTRL, val);
+
+    for (i=0; i<SIZE; i++)
+    {
+        NEXUS_Platform_ReadRegister(BCHP_HDR_CMP_0_V0_NL_LUT_SEG_CTRLi_ARRAY_BASE + i*4, &val);
+        BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_NL_LUT_SEG_CTRLi, NL_LUT_SEG_END, segEnd[i]);
+        BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_NL_LUT_SEG_CTRLi, NL_LUT_SEG_INT_OFFSET, segOffset[i]);
+        BCHP_SET_FIELD_DATA(val, HDR_CMP_0_V0_NL_LUT_SEG_CTRLi, NL_LUT_SEG_INT_BITS, setIntBits[i]);
+        NEXUS_Platform_WriteRegister(BCHP_HDR_CMP_0_V0_NL_LUT_SEG_CTRLi_ARRAY_BASE + i*4, val);
+    }
 }
 
 const PlatformPictureInfo * platform_display_get_picture_info(PlatformDisplayHandle display)

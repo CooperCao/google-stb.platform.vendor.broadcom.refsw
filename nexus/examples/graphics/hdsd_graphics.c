@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,11 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  * This example creates 2 frame buffer surfaces of SD size in heap 1 and fills the SD buffer with purple color
  * using fill operation and then sets the SD buffer as the frame buffer for SD display and then for all the
  * video formats available in HD display, the SD buffer is blit_copied to HD buffer and set as frame buffer
  * for HD display.
- *
- * Revision History:
- *
- * $brcm_Log: $
  * 
  *****************************************************************************************************************/
 
@@ -151,11 +143,7 @@ int main(void)
     NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
     createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
     createSettings.width = 720;
-#if NEXUS_HAS_GFD_VERTICAL_UPSCALE
     createSettings.height = 480; /* The height is fixed to 480 and will be upscaled */
-#else
-    createSettings.height = 1080; /* The maximum height is 1080. For formats with height<1080, we clip. */
-#endif
     createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
     framebufferHD = NEXUS_Surface_Create(&createSettings);
 
@@ -221,11 +209,7 @@ int main(void)
 
         /* the clipping is the portion of the framebuffer we will use. */
         graphicsSettings.clip.width = 720; /* the difference between clip.width and position.width will trigger a GFD horizontal upscale. */
-#if NEXUS_HAS_GFD_VERTICAL_UPSCALE
         graphicsSettings.clip.height = 480; /* the difference between clip.height and position.height will trigger a GFD vertical upscale. */
-#else
-        graphicsSettings.clip.height = videoFormatInfo.height; /* there is no GFD vertical upscale, so this must equal position.height. */
-#endif
         rc = NEXUS_Display_SetGraphicsSettings(displayHD, &graphicsSettings);
         BDBG_ASSERT(!rc);
 

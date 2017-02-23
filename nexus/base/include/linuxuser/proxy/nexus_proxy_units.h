@@ -45,7 +45,7 @@
 #endif
 
 #define B_IPC_FIELD(api, dir, field) __data.dir.field
-#define B_IPC_CLIENT_PROLOGUE(module, MODULE, function, api) NEXUS_Error __rc=NEXUS_SUCCESS; MODULE##api##_data __data;NEXUS_PROXY_ENTER(function);if(nexus_proxy_module_state.fd < 0) {  __rc=BERR_TRACE(NEXUS_OS_ERROR);goto done;}
+#define B_IPC_CLIENT_PROLOGUE(module, MODULE, function, api) NEXUS_Error __rc=NEXUS_SUCCESS; MODULE##api##_ioctl_data __data;NEXUS_PROXY_ENTER(function);if(nexus_proxy_module_state.fd < 0) {  __rc=BERR_TRACE(NEXUS_OS_ERROR);goto done;}
 
 #define B_IPC_CLIENT_MODULE_BEGIN(module, MODULE)
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -109,7 +109,6 @@ typedef struct NEXUS_VideoDecoder_P_Interface {
     NEXUS_StripedSurfaceHandle (*CreateStripedSurface)( NEXUS_VideoDecoderHandle handle);
     void (*DestroyStripedSurface)( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_StripedSurfaceHandle stripedSurface);
     NEXUS_Error (*CreateStripedMosaicSurfaces)( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_StripedSurfaceHandle *pStripedSurfaces, unsigned int maxSurfaces, unsigned int *pSurfaceCount) ;
-    void (*DestroyStripedMosaicSurfaces)( NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_StripedSurfaceHandle *pStripedSurfaces, unsigned int surfaceCount);
     NEXUS_Error (*GetMostRecentPts)( NEXUS_VideoDecoderHandle handle, uint32_t *pPts);
     void (*GetTrickState)( NEXUS_VideoDecoderHandle handle, NEXUS_VideoDecoderTrickState *pState);
     NEXUS_Error (*SetTrickState)( NEXUS_VideoDecoderHandle handle, const NEXUS_VideoDecoderTrickState *pState);
@@ -305,6 +304,10 @@ struct NEXUS_VideoDecoder {
     NEXUS_IsrCallbackHandle decodeErrorCallback;
     NEXUS_IsrCallbackHandle fnrtChunkDoneCallback;
     struct {
+        BXVD_DQTStatus status;
+        bool set;
+    } dqt;
+    struct {
         NEXUS_IsrCallbackHandle firstPtsCallback;
         NEXUS_IsrCallbackHandle firstPtsPassedCallback;
         NEXUS_VideoDecoderPlaybackSettings videoDecoderPlaybackSettings;
@@ -378,8 +381,8 @@ struct NEXUS_VideoDecoder {
     struct
     {
         unsigned count;  /* we believe the fifo is empty. this requires extra logic because internal buffers might cause false detect */
-        uint32_t lastCdbValidPointer;
-        uint32_t lastCdbReadPointer;
+        uint64_t lastCdbValidPointer;
+        uint64_t lastCdbReadPointer;
         NEXUS_IsrCallbackHandle callback;
         unsigned emptyCount;
         unsigned noLongerEmptyCount;
@@ -391,8 +394,8 @@ struct NEXUS_VideoDecoder {
     {
         unsigned staticCount; /* fifo has not moved */
         unsigned lastPictureDeliveryCount;
-        uint32_t lastCdbValidPointer;
-        uint32_t lastCdbReadPointer;
+        uint64_t lastCdbValidPointer;
+        uint64_t lastCdbReadPointer;
         uint32_t lastPts;
         uint32_t lastPtsValid;
         NEXUS_TimerHandle timer;
@@ -519,6 +522,7 @@ extern NEXUS_ModuleHandle g_NEXUS_videoDecoderModule;
 extern NEXUS_VideoDecoderModuleSettings g_NEXUS_videoDecoderModuleSettings;
 extern NEXUS_VideoDecoderModuleInternalSettings g_NEXUS_videoDecoderModuleInternalSettings;
 extern struct NEXUS_VideoDecoderDevice g_NEXUS_videoDecoderXvdDevices[NEXUS_MAX_XVD_DEVICES];
+extern NEXUS_VideoDecoderCapabilities g_NEXUS_videoDecoderCapabilities;
 
 #define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_videoDecoderModuleInternalSettings.transport)
 #define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_videoDecoderModuleInternalSettings.transport)
@@ -544,6 +548,7 @@ void NEXUS_VideoDecoder_P_3DTVTimer(void* context);
 void NEXUS_VideoDecoder_P_Jp3dSignal_isr(NEXUS_VideoDecoderHandle videoDecoder, uint16_t type);
 void NEXUS_VideoDecoder_P_PictureExtensionData_isr(void *data, int unused, void *pData);
 void NEXUS_VideoDecoder_P_FnrtChunkDone_isr(void *data, int unused, void *unused2);
+void NEXUS_VideoDecoder_P_EndOfGOP_isr(void *data, int unused, void *param);
 BERR_Code NEXUS_VideoDecoder_P_GetCdbLevelCallback_isr(void *pContext, unsigned *pCdbLevel);
 BERR_Code NEXUS_VideoDecoder_P_GetPtsCallback_isr(void *pContext, BAVC_PTSInfo *pPTSInfo);
 BERR_Code NEXUS_VideoDecoder_P_StcValidCallback_isr(void *pContext);
@@ -605,7 +610,6 @@ NEXUS_Error NEXUS_VideoDecoder_P_GetStripedSurfaceCreateSettings( NEXUS_VideoDec
 NEXUS_StripedSurfaceHandle NEXUS_VideoDecoder_P_CreateStripedSurface_Avd( NEXUS_VideoDecoderHandle handle);
 void NEXUS_VideoDecoder_P_DestroyStripedSurface_Avd( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_StripedSurfaceHandle stripedSurface);
 NEXUS_Error NEXUS_VideoDecoder_P_CreateStripedMosaicSurfaces_Avd( NEXUS_VideoDecoderHandle videoDecoder, NEXUS_StripedSurfaceHandle *pStripedSurfaces, unsigned int maxSurfaces, unsigned int *pSurfaceCount) ;
-void NEXUS_VideoDecoder_P_DestroyStripedMosaicSurfaces_Avd( NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_StripedSurfaceHandle *pStripedSurfaces, unsigned int surfaceCount);
 NEXUS_Error NEXUS_VideoDecoder_P_GetMostRecentPts_Avd( NEXUS_VideoDecoderHandle handle, uint32_t *pPts);
 
 NEXUS_Error NEXUS_VideoDecoder_P_SetTrickState_Avd( NEXUS_VideoDecoderHandle handle, const NEXUS_VideoDecoderTrickState *pState);

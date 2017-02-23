@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2004-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *   See code
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"                /* standard types */
@@ -90,6 +110,7 @@ void BXVD_P_AVD_StillPictureRdy_isr(void *pvXvd, int iParam2)
    BXVD_P_PictureDeliveryQueue *pPictureDeliveryQueue;
    BXVD_P_PPB *pPPB = NULL;
    BXVD_StillPictureBuffers stAppStillPictBuffers;
+   BXVD_P_PHY_ADDR pDisplayElementOffsetTemp;
 
 #if BXVD_P_PPB_EXTENDED
    uint32_t  uiFlagsExt0;
@@ -126,7 +147,13 @@ void BXVD_P_AVD_StillPictureRdy_isr(void *pvXvd, int iParam2)
       hXvdCh->bStillPictureToRelease = true;
       hXvdCh->uiStillDisplayElementOffset = (uint32_t)pPictureDeliveryQueue->display_elements[uiDeliveryQReadOffset - BXVD_P_INITIAL_OFFSET_DISPLAY_QUEUE];
 
-      pPPB = (BXVD_P_PPB *)BXVD_P_OFFSET_TO_VA(hXvdCh, (uint32_t)hXvdCh->uiStillDisplayElementOffset);
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+      pDisplayElementOffsetTemp = hXvdCh->uiStillDisplayElementOffset + hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
+#else
+      pDisplayElementOffsetTemp = hXvdCh->uiStillDisplayElementOffset;
+#endif
+
+      pPPB = (BXVD_P_PPB *)BXVD_P_OFFSET_TO_VA(hXvdCh, pDisplayElementOffsetTemp);
 
       BMMA_FlushCache(hXvdCh->hFWGenMemBlock, (void *)pPPB, sizeof(BXVD_P_PPB));
 
@@ -234,11 +261,20 @@ void BXVD_P_AVD_StillPictureRdy_isr(void *pvXvd, int iParam2)
          stAppStillPictBuffers.hLuminanceFrameBufferBlock =  hXvdCh->hFWPicMemBlock;
          stAppStillPictBuffers.hChrominanceFrameBufferBlock = hXvdCh->hFWPicChromaMemBlock;
 
-         stAppStillPictBuffers.ulLuminanceFrameBufferBlockOffset = (uint32_t)(pPPB->luma_video_address) - hXvdCh->uiFWPicMemBasePhyAddr ;
-         stAppStillPictBuffers.ulChrominanceFrameBufferBlockOffset = (uint32_t)(pPPB->chroma_video_address) - hXvdCh->uiFWPicChromaBasePhyAddr;
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+         stAppStillPictBuffers.ulLuminanceFrameBufferBlockOffset =
+         ((BXVD_P_PHY_ADDR) (pPPB->luma_video_address) | ((BXVD_P_PHY_ADDR) pPPB->luma_video_address_hi << 32)) - hXvdCh->FWPicMemBasePhyAddr;
 
-         BXVD_DBG_MSG(hXvdCh, ("PicBasePA: 0x%0lx PPB Luma: 0x%0x, Chroma: 0x%0x",
-                               hXvdCh->uiFWPicMemBasePhyAddr, pPPB->luma_video_address, pPPB->chroma_video_address));
+         stAppStillPictBuffers.ulChrominanceFrameBufferBlockOffset =
+         ((BXVD_P_PHY_ADDR) (pPPB->chroma_video_address | ((BXVD_P_PHY_ADDR) pPPB->chroma_video_address_hi << 32))) - hXvdCh->FWPicChromaBasePhyAddr;
+#else
+         stAppStillPictBuffers.ulLuminanceFrameBufferBlockOffset = (uint32_t)(pPPB->luma_video_address) - hXvdCh->FWPicMemBasePhyAddr ;
+         stAppStillPictBuffers.ulChrominanceFrameBufferBlockOffset = (uint32_t)(pPPB->chroma_video_address) - hXvdCh->FWPicChromaBasePhyAddr;
+#endif
+
+         BXVD_DBG_MSG(hXvdCh, ("PicBasePA: " BDBG_UINT64_FMT " PPB Luma: 0x%0x, Chroma: 0x%0x",
+                               BDBG_UINT64_ARG((BMMA_DeviceOffset)hXvdCh->FWPicMemBasePhyAddr),
+                               pPPB->luma_video_address, pPPB->chroma_video_address));
 
          BXVD_DBG_MSG(hXvdCh, ("LumaOffset:0x%0x ChromsOffset:0x%0x",
                                stAppStillPictBuffers.ulLuminanceFrameBufferBlockOffset, stAppStillPictBuffers.ulChrominanceFrameBufferBlockOffset));
@@ -308,12 +344,12 @@ void BXVD_P_WatchdogInterrupt_isr(void *pvXvd, int param2)
          /* Notify application if watchdog callback is registered */
          pCallback = &hXvd->stDeviceInterruptCallbackInfo[BXVD_DeviceInterrupt_eWatchdog];
 
-	 if (pCallback->BXVD_P_pAppIntCallbackPtr)
-	 {
-	    pCallback->BXVD_P_pAppIntCallbackPtr(pCallback->pParm1,
-						 pCallback->parm2,
-						 0);
-	 }
+         if (pCallback->BXVD_P_pAppIntCallbackPtr)
+         {
+            pCallback->BXVD_P_pAppIntCallbackPtr(pCallback->pParm1,
+                                                 pCallback->parm2,
+                                                 0);
+         }
       }
    }
    BDBG_LEAVE(BXVD_P_WatchdogInterrupt_isr);

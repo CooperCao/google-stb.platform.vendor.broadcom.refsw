@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,13 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * ioctl.cpp
- *
- *  Created on: Jan 29, 2015
- *      Author: gambhire
- */
 
 #include <cstdint>
 #include "tzerrno.h"
@@ -105,7 +98,19 @@ void SysCalls::doIoctl(TzTask *currTask) {
                 return;
             }
             break;
-
+        case TIOCGWINSZ:
+            {
+                struct winsize win;
+                win.ws_col = 80;
+                win.ws_row = 40;
+                win.ws_xpixel = 480;
+                win.ws_ypixel = 360;
+                struct winsize *userWin = (struct winsize *)arg2;
+                copyToUser(userWin, &win);
+                currTask->writeUserReg(TzTask::UserRegs::r0, 0);
+                return;
+            }
+            break;
         default:
             currTask->writeUserReg(TzTask::UserRegs::r0, -ENOTTY);
             break;

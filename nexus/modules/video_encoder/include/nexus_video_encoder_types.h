@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_ENCODER_TYPES_H__
 #define NEXUS_VIDEO_ENCODER_TYPES_H__
@@ -148,6 +145,12 @@ typedef struct NEXUS_VideoEncoderMemory {
     unsigned maxWidth, maxHeight;
     NEXUS_VideoFrameRate maxFrameRate;
 } NEXUS_VideoEncoderMemory;
+
+typedef struct NEXUS_VideoEncoderModuleSettings
+{
+    bool deferInit; /* if set to true, HW and FW initialization will be deferred until actually used */
+} NEXUS_VideoEncoderModuleSettings;
+
 
 #ifdef __cplusplus
 }

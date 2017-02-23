@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -151,6 +151,7 @@ int main(int argc, char **argv)
     NEXUS_VideoCodec videoCodec = VIDEO_CODEC;
     NEXUS_TransportType transportType = TRANSPORT_TYPE;
     NEXUS_AudioDecoderLatencyMode latencyMode = NEXUS_AudioDecoderLatencyMode_eLow;
+    NEXUS_AudioCapabilities audioCapabilities;
     char * fileName = (char*)fname;
 
     int i;
@@ -205,6 +206,13 @@ int main(int argc, char **argv)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform (requires decoder).\n");
+        return 0;
+    }
 
     /* bring up decoders and connect to display */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);

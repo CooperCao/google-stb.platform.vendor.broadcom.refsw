@@ -936,7 +936,9 @@ typedef struct
    /* SWSTB-439: the ratio of macro blocks with an error. 8 bit value with a range of 0 to 255. */
    uint32_t     error_level;
 
-   uint32_t      reserved[1];     /* may be removed if protocol-specific PPB requires more bytes */
+   /* SW7425-2686: multi-pass DQT, number of picture buffers that can be outstanding. */
+   uint32_t     num_pic_buffers;
+
 
    /* Protocol-specific extensions. */
    union
@@ -993,14 +995,14 @@ typedef struct
 #elif BXVD_P_DECODER_REVN1
 #define BXVD_P_CURRENT_MAJOR_VERSION 3
 
+#elif BXVD_P_DECODER_REVT
+#define  BXVD_P_CURRENT_MAJOR_VERSION 1
+
 #else
 #define BXVD_P_CURRENT_MAJOR_VERSION 2
 #endif
 
 #define BXVD_P_STC_MAX 16
-
-#elif BXVD_P_DECODER_REVT
-#define  BXVD_P_CURRENT_MAJOR_VERSION 1
 
 #else
 /* Aphrodite */

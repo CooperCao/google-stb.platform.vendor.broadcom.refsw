@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,7 +37,11 @@
 *
 ***************************************************************************/
 
+#if BDBG_DEBUG_BUILD
 #define NEXUS_P_SERVER_ERROR_TRACE(x)   BERR_TRACE(x)
+#else
+#define NEXUS_P_SERVER_ERROR_TRACE(x)   (x)
+#endif
 
 #define NEXUS_DRIVER_CALLBACK_TO_DRIVER(callback, handle, id)  nexus_driver_callback_to_driver(module_header, (callback), (void *)(handle), (id), __vout_data->client, __slave_scheduler)
 #define NEXUS_DRIVER_CALLBACK_TO_CLIENT(callback, handle, id) nexus_driver_callback_to_user(module_header, (callback), (void*)(handle), (id))
@@ -45,32 +49,46 @@
 #define NEXUS_DRIVER_CALLBACK_TO_DRIVER_COMMIT(callback, handle, id)  nexus_driver_callback_to_driver_commit(module_header, (callback), (void *)(handle),(id))
 #define NEXUS_DRIVER_CALLBACK_TO_DRIVER_CANCEL(callback, handle, id)  nexus_driver_callback_to_driver_cancel(module_header, (callback), (void *)(handle),(id))
 
-#define NEXUS_DRIVER_CREATE_OBJECT(type, object) NEXUS_BaseObject_P_RegisterUnregister(object, &NEXUS_OBJECT_DESCRIPTOR(type), NEXUS_Object_P_RegisterUnregister_eAutoCreate, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF)
-#define NEXUS_DRIVER_DESTROY_OBJECT(type, object) NEXUS_BaseObject_P_RegisterUnregister(object, &NEXUS_OBJECT_DESCRIPTOR(type), NEXUS_Object_P_RegisterUnregister_eAutoDestroy, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF)
-#define NEXUS_DRIVER_ACQUIRE_OBJECT(type, object) NEXUS_BaseObject_P_RegisterUnregister(object, &NEXUS_OBJECT_DESCRIPTOR(type), NEXUS_Object_P_RegisterUnregister_eAutoAcquire, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF)
-#define NEXUS_DRIVER_RELEASE_OBJECT(type, object) NEXUS_BaseObject_P_RegisterUnregister(object, &NEXUS_OBJECT_DESCRIPTOR(type), NEXUS_Object_P_RegisterUnregister_eAutoRelease, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF)
+#define NEXUS_DRIVER_CREATE_OBJECT(module, type, object) NEXUS_P_##module##_Create_Object(object, &NEXUS_OBJECT_DESCRIPTOR(type));
+#define NEXUS_DRIVER_DESTROY_OBJECT(module, type, object) NEXUS_P_##module##_Destroy_Object(object, &NEXUS_OBJECT_DESCRIPTOR(type));
+#define NEXUS_DRIVER_ACQUIRE_OBJECT(module, type, object) NEXUS_P_##module##_Acquire_Object(object, &NEXUS_OBJECT_DESCRIPTOR(type));
+#define NEXUS_DRIVER_RELEASE_OBJECT(module, type, object) NEXUS_P_##module##_Release_Object(object, &NEXUS_OBJECT_DESCRIPTOR(type));
 
 
 #define B_IPC_FIELD(api, dir, field) __##dir##_data->api.field
 
-#define B_IPC_SERVER_PROLOGUE(module) NEXUS_Error nexus_p_driver_##module##_process(unsigned function, b_##module##_module_ipc_in *__in_data, unsigned in_data_size, NEXUS_P_ServerOutVarArg_State *__vout_data, struct nexus_driver_module_header *module_header, struct nexus_driver_slave_scheduler *__slave_scheduler)  {\
+#if __COVERITY__
+#define B_IPC_SERVER_COVERITY_STACK() __coverity_stack_depth__(20000)
+#else
+#define B_IPC_SERVER_COVERITY_STACK()
+#endif
+
+#define B_IPC_SERVER_PROLOGUE(module)  static void nexus_p_##module##_api_call_completed(const NEXUS_P_ServerOutVarArg_State *__vout_data, const struct api_function_descriptor *function, void *in_data, void *out_data) { \
+    nexus_p_api_call_completed(__vout_data->client, NEXUS_MODULE_SELF, function, in_data, out_data);return;} \
+    static void NEXUS_P_##module##_Create_Object(void *object, const NEXUS_BaseClassDescriptor *descriptor) {NEXUS_BaseObject_P_RegisterUnregister(object, descriptor, NEXUS_Object_P_RegisterUnregister_eAutoCreate, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF);return;} \
+    static void NEXUS_P_##module##_Destroy_Object(void *object, const NEXUS_BaseClassDescriptor *descriptor) {NEXUS_BaseObject_P_RegisterUnregister(object, descriptor, NEXUS_Object_P_RegisterUnregister_eAutoDestroy, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF);return;} \
+    static void NEXUS_P_##module##_Acquire_Object(void *object, const NEXUS_BaseClassDescriptor *descriptor) {NEXUS_BaseObject_P_RegisterUnregister(object, descriptor, NEXUS_Object_P_RegisterUnregister_eAutoAcquire, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF);return;} \
+    static void NEXUS_P_##module##_Release_Object(void *object, const NEXUS_BaseClassDescriptor *descriptor) {NEXUS_BaseObject_P_RegisterUnregister(object, descriptor, NEXUS_Object_P_RegisterUnregister_eAutoRelease, NEXUS_MODULE_SELF, NEXUS_MODULE_SELF);return;} \
+    static NEXUS_Error nexus_p_##module##_api_call_verify(const NEXUS_P_ServerOutVarArg_State *__vout_data, const struct api_function_descriptor *function, void *__in_data, unsigned in_data_size) {\
+    return nexus_p_api_call_verify(__vout_data->client, NEXUS_MODULE_SELF, function, __in_data, in_data_size, __vout_data->size);} \
+    NEXUS_Error nexus_p_driver_##module##_process(unsigned function, b_##module##_module_ipc_in *__in_data, unsigned in_data_size, NEXUS_P_ServerOutVarArg_State *__vout_data, struct nexus_driver_module_header *module_header, struct nexus_driver_slave_scheduler *__slave_scheduler)  {\
     NEXUS_Error __rc = NEXUS_SUCCESS; b_##module##_module_ipc_out *__out_data = (void *)((uint8_t *)__vout_data->data + __vout_data->header);\
-    BSTD_UNUSED(module_header); BSTD_UNUSED(__slave_scheduler);
+    BSTD_UNUSED(module_header); BSTD_UNUSED(__slave_scheduler);B_IPC_SERVER_COVERITY_STACK();
 #define B_IPC_SERVER_DISPATCH(module) switch(function) {default:__rc=NEXUS_P_SERVER_ERROR_TRACE(NEXUS_NOT_SUPPORTED);break;goto err_alloc;goto err_fault;
 #define B_IPC_SERVER_EPILOGUE(module) } done: return __rc; err_fault: return BERR_OS_ERROR; err_alloc: return NEXUS_OUT_OF_SYSTEM_MEMORY; goto done; }
 
 #define B_IPC_SERVER_BEGIN(module, api) case NEXUS_P_API_ID(module,api): __vout_data->varargs_begin = ((uint8_t *)&__out_data->api - (uint8_t *)__out_data) + sizeof(__out_data->api); {
-#define B_IPC_SERVER_VERIFY(module, api) __rc = nexus_p_api_call_verify(__vout_data->client, NEXUS_MODULE_SELF, &_api##api, __in_data, in_data_size, __vout_data->size); if(__rc!=NEXUS_SUCCESS) {NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto err_fault;}
-#define B_IPC_SERVER_COMPLETED(module, api) __rc = NEXUS_SUCCESS ; api##_done: nexus_p_api_call_completed(__vout_data->client,  NEXUS_MODULE_SELF, &_api##api, __in_data, __out_data);
+#define B_IPC_SERVER_VERIFY(module, api) __rc = nexus_p_##module##_api_call_verify(__vout_data, &_api##api, __in_data, in_data_size); if(__rc!=NEXUS_SUCCESS) {NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto err_fault;}
+#define B_IPC_SERVER_COMPLETED(module, api) __rc = NEXUS_SUCCESS ; api##_done: nexus_p_##module##_api_call_completed(__vout_data, &_api##api, __in_data, __out_data);
 #define B_IPC_SERVER_END(module, api) }  break; goto api##_done;
 #define B_IPC_SERVER_PARAM(type, name)  type name;
 #define B_IPC_SERVER_CALL(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(B_IPC_FIELD(api, out, ret.__retval) !=NEXUS_SUCCESS) {__rc=NEXUS_UNKNOWN;};
-#define B_IPC_SERVER_CONSTRUCTOR(api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(_class, B_IPC_FIELD(api, out, ret.__retval));}
-#define B_IPC_SERVER_CONSTRUCTOR_ENUM(api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(_class, (void *)B_IPC_FIELD(api, out, ret.__retval));}
-#define B_IPC_SERVER_ACQUIRE(api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_ACQUIRE_OBJECT(_class, B_IPC_FIELD(api, out, ret.__retval));}
-#define B_IPC_SERVER_DESTROY(api, _class, first_arg) NEXUS_DRIVER_DESTROY_OBJECT(_class, first_arg);
-#define B_IPC_SERVER_DESTROY_ENUM(api, _class, first_arg) NEXUS_DRIVER_DESTROY_OBJECT(_class, (void *)first_arg);
-#define B_IPC_SERVER_RELEASE(api, _class, first_arg) NEXUS_DRIVER_RELEASE_OBJECT(_class, B_IPC_FIELD(api, in, args.first_arg));
+#define B_IPC_SERVER_CONSTRUCTOR(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(module, _class, B_IPC_FIELD(api, out, ret.__retval));}
+#define B_IPC_SERVER_CONSTRUCTOR_ENUM(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_CREATE_OBJECT(module, _class, (void *)B_IPC_FIELD(api, out, ret.__retval));}
+#define B_IPC_SERVER_ACQUIRE(module, api, _class, funcname) if(__rc==NEXUS_SUCCESS) {NEXUS_DRIVER_ACQUIRE_OBJECT(module, _class, B_IPC_FIELD(api, out, ret.__retval));}
+#define B_IPC_SERVER_DESTROY(module, api, _class, first_arg) NEXUS_DRIVER_DESTROY_OBJECT(module,_class, first_arg);
+#define B_IPC_SERVER_DESTROY_ENUM(module, api, _class, first_arg) NEXUS_DRIVER_DESTROY_OBJECT(module, _class, (void *)first_arg);
+#define B_IPC_SERVER_RELEASE(module, api, _class, first_arg) NEXUS_DRIVER_RELEASE_OBJECT(module, _class, B_IPC_FIELD(api, in, args.first_arg));
 #define B_IPC_SERVER_SHUTDOWN(api, _class, first_arg) nexus_driver_shutdown_close_##_class(B_IPC_FIELD(api, in, args.first_arg));
 #define B_IPC_SERVER_CALL_HANDLE(api, funcname, args) __result = B_IPC_FIELD(api, out, ret.__retval) = funcname args; if(!__result) {__rc=NEXUS_UNKNOWN;}
 #define B_IPC_SERVER_CALL_VOID(api, funcname, args) funcname args;
@@ -91,7 +109,7 @@
 #define B_IPC_SERVER_BEGIN_OUT_VARARG(api) {unsigned __varags_size = 0;
 #define B_IPC_SERVER_SIZE_OUT_VARARG(api, arg,  type, length) __varags_size += B_IPC_DATA_ALIGN(sizeof(type) * length); B_IPC_FIELD(api, out, vararg.arg)=-1;
 #define B_IPC_SERVER_ALLOCATE_OUT_VARARG(api)  __rc = NEXUS_P_ServerCall_OutVarArg_Allocate(__vout_data, __varags_size);if(__rc!=NEXUS_SUCCESS) { __rc = NEXUS_P_SERVER_ERROR_TRACE(__rc);goto api##_done; } __out_data=(void *)((uint8_t *)__vout_data->data+__vout_data->header);
-#define B_IPC_SERVER_PLACE_OUT_VARARG(api, arg,  type, length) arg=NEXUS_P_ServerCall_OutVarArg_Place(__vout_data, sizeof(type) * length);if(arg) {B_IPC_FIELD(api, out, vararg.arg)=(uint8_t *)arg - (uint8_t *)__out_data;} else {B_IPC_FIELD(api, out, vararg.arg)=-1; __rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto api##_done;}
+#define B_IPC_SERVER_PLACE_OUT_VARARG(api, arg,  type, length) if (B_IPC_FIELD(api, in, pointer.out_is_null.arg)) { arg = NULL; } else { arg=NEXUS_P_ServerCall_OutVarArg_Place(__vout_data, sizeof(type) * length, &B_IPC_FIELD(api, out, vararg.arg));if(arg==NULL) { __rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto api##_done;}}
 #define B_IPC_SERVER_END_OUT_VARARG(api) }
 
 #define B_IPC_CALLBACK_CONSTRUCTOR_FIELD_IN_PREPARE(api, arg, field, first_arg, id) if(arg) { NEXUS_DRIVER_CALLBACK_TO_DRIVER(&B_IPC_FIELD(api, in, pointer.arg.field), NULL, id);}

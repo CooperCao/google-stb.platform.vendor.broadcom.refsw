@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,6 +55,7 @@ public:
     virtual eRet    setDeinterlacer(bool bDeinterlacer);
     virtual eRet    setContentMode(NEXUS_VideoWindowContentMode contentMode);
     virtual eRet    setColorSpace(NEXUS_ColorSpace colorSpace);
+    virtual eRet    setColorDepth(uint8_t colorDepth);
     virtual eRet    setMpaaDecimation(bool bMpaaDecimation);
     virtual eRet    swapPip(void);
     virtual eRet    showPip(bool bShow = true);

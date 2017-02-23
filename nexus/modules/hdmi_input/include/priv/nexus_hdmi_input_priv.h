@@ -75,14 +75,6 @@ void NEXUS_HdmiInput_VideoConnected_priv(
     );
 
 /**
-Called by Audio
-**/
-void NEXUS_HdmiInput_GetIndex_priv(
-    NEXUS_HdmiInputHandle hdmiInput,
-    unsigned *pIndex /* [out] */
-    );
-
-/**
 Pass HdmiInput status which can only be obtained by the Display module
 **/
 void NEXUS_HdmiInput_SetStatus_priv(

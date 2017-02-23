@@ -1382,9 +1382,9 @@ BERR_Code BAPE_PathNode_P_GetDecodersDownstreamDspMixer(BAPE_PathNode * pSourceN
             {
                 if ( pSourceNode->type == BAPE_PathNodeType_eDecoder )
                 {
+                    #if BAPE_DSP_SUPPORT
                     BAPE_DecoderHandle hDecoder;
                     hDecoder = (BAPE_DecoderHandle) pSourceNode->pHandle;
-                    #if BAPE_DSP_SUPPORT
                     BDBG_ERR(("Multiple DSP mixer consumers found downstream from decoder %u.  This is not supported.", hDecoder->index));
                     #endif
                 }

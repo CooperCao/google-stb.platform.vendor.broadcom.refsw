@@ -801,6 +801,7 @@ static void NEXUS_Frontend_P_UnInit3128(NEXUS_3128 *pDevice)
             BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
             pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
         }
+        BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
     }
 #endif
     if ( pDevice->updateGainAppCallback ) NEXUS_IsrCallback_Destroy(pDevice->updateGainAppCallback);
@@ -3816,6 +3817,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3128_GetDeviceAmplifierStatus(void *ha
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
+#if 0
     rc = BHAB_GetLnaStatus(pDevice->hab, &lnaStatus);
     if (rc) { BERR_TRACE(rc); }
     else {
@@ -3827,5 +3829,22 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3128_GetDeviceAmplifierStatus(void *ha
             rc = BERR_TRACE(NEXUS_UNKNOWN);
         }
     }
+#else
+    BSTD_UNUSED(lnaStatus);
+    {
+        unsigned i, numPowered = 0;
+        for (i=0; i < pDevice->numChannels; i++) {
+            if (pDevice->isPoweredOn[i])
+                numPowered++;
+        }
+        if (numPowered) {
+            unsigned val;
+            rc = BHAB_ReadRegister(pDevice->hab, 0x000c00f0, &val);
+            pStatus->externalFixedGain = (((val >> 2) & 0x0001) == 0x0001) ? NEXUS_FrontendDeviceAmplifierState_eEnabled : NEXUS_FrontendDeviceAmplifierState_eBypass;
+        } else {
+            rc = NEXUS_UNKNOWN;
+        }
+    }
+#endif
     return rc;
 }

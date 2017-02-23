@@ -49,11 +49,8 @@
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder.h"
 #include "nexus_audio_decoder_primer.h"
-#else
-/* audio headers present, but module not compiled in */
-#include "../../audio/include/nexus_audio_decoder.h"
-#include "../../audio/include/nexus_audio_decoder_primer.h"
 #endif
+#include "nexus_core_compat.h"
 #if NEXUS_HAS_SIMPLE_DECODER
 #include "nexus_simple_video_decoder.h"
 #include "nexus_simple_audio_decoder.h"
@@ -191,14 +188,20 @@ typedef enum NEXUS_PlaybackHostTrickMode
     NEXUS_PlaybackHostTrickMode_ePlaySkipP, /* Plays all I's and some P's. mode_modifier specifies the # of P's per GOP to decode.
                                                Only supported for NEXUS_PlaybackSkipControl_eHost. */
     NEXUS_PlaybackHostTrickMode_ePlayBrcm,  /* BRCM trick mode. mode_modifier is the rate in integer units of frames (e.g. -1 is 1x rewind, 2x is 2x fast-forward). */
-    NEXUS_PlaybackHostTrickMode_ePlayGop,   /* DQT/GOP trick mode. mode_modifier has three parts:
+    NEXUS_PlaybackHostTrickMode_ePlayDqt,   /* DQT/GOP trick mode. mode_modifier has three parts:
                                                  mode_modifier % 100 is the number of frames per GOP to send to the decoder.
                                                  mode_modifier / 100 is the number of GOPs to skip.
                                                  the sign is the direction: negative is reverse, positive is forward. */
-    NEXUS_PlaybackHostTrickMode_ePlayGopIP, /* Like ePlayGop, but drop all B's. */
+    NEXUS_PlaybackHostTrickMode_ePlayDqtIP, /* Like ePlayDqt, but drop all B's. */
+    NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqt,  /* smooth rewind for MPEG/AVC/HEVC. mode_modifier should be -1. */
+    NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP,/* smooth rewind for MPEG/AVC/HEVC, IP only for better performance. mode_modifier should be -1. */
     NEXUS_PlaybackHostTrickMode_eTimeSkip,  /* Host trick mode that attempts to give a constant trick mode rate by adapting to GOP size changes.
                                                mode_modifier is the number of milliseconds between pictures that bcmplayer should try to output. */
-    NEXUS_PlaybackHostTrickMode_eMax
+    NEXUS_PlaybackHostTrickMode_eMax,
+
+    /* aliases */
+    NEXUS_PlaybackHostTrickMode_ePlayGop = NEXUS_PlaybackHostTrickMode_ePlayDqt,
+    NEXUS_PlaybackHostTrickMode_ePlayGopIP = NEXUS_PlaybackHostTrickMode_ePlayDqtIP
 } NEXUS_PlaybackHostTrickMode;
 
 /*

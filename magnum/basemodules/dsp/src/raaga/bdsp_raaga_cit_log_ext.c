@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- ******************************************************************************/
+ *****************************************************************************/
 
 #include "bdsp_raaga_priv.h"
 #include "bdsp_raaga_fw_cit.h"
@@ -155,17 +155,16 @@ void BDSP_Raaga_P_Analyse_CIT_Scm_GlobalTaskConfig( BDSP_SCM_P_sGLOBAL_TASK_CONF
 	BDBG_MSG(("-------------------------------------------- "));
 
 	/*	Dram Scratch buffer Address and Size */
-	BDBG_MSG(("Scratch Buffer \t\tAddress: 0x%x \tSize Allocated: %d Bytes",psScmGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress,
-									psScmGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
+	BDBG_MSG(("Scratch Buffer \t\tAddress: " BDSP_MSG_FMT "\tSize Allocated: %d Bytes",
+                                                                BDSP_MSG_ARG(psScmGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress),
+								psScmGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
 	BDBG_MSG(("-------------------------------------------- "));
 }
-
-void BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(BMEM_Handle       hHeap,
-								  BDSP_AF_P_sGLOBAL_TASK_CONFIG          *psGblTaskCfg)
+void BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(BDSP_RaagaTask  *pRaagaTask)
 {
-
-    BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG    *psTaskFmmGateOpenConfig;
-	void *pAddr = NULL;
+	BDSP_AF_P_sGLOBAL_TASK_CONFIG           *psGblTaskCfg;
+	BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG	*psTaskFmmGateOpenConfig;
+	psGblTaskCfg = &pRaagaTask->citOutput.sCit.sGlobalTaskConfig;
 
 	BDBG_MSG(("Global Task Configuration"));
 	BDBG_MSG(("-------------------------------------------- "));
@@ -174,32 +173,32 @@ void BDSP_Raaga_P_Analyse_CIT_Audio_GlobalTaskConfig(BMEM_Handle       hHeap,
 	BDBG_MSG(("--"));
 
 	/*	Dram Scratch buffer Address and Size */
-	BDBG_MSG(("Scratch Buffer \t\tAddress: 0x%x \tSize Allocated: %d Bytes",psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress,
-									psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
+	BDBG_MSG(("Scratch Buffer \t\tAddress: " BDSP_MSG_FMT "\tSize Allocated: %d Bytes",
+                                                                BDSP_MSG_ARG(psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress),
+								psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
 	/* DRAM port Configuration */
-	BDBG_MSG(("Port Configuration \tAddress: 0x%x	",psGblTaskCfg->ui32FmmDestCfgAddr));
+	BDBG_MSG(("Port Configuration \tAddress: " BDSP_MSG_FMT, BDSP_MSG_ARG(psGblTaskCfg->ui32FmmDestCfgAddr)));
 	BDBG_MSG(("--"));
 
 	/* DRAM Gate Open Configuration */
-	BDSP_MEM_P_ConvertOffsetToCacheAddress(hHeap,psGblTaskCfg->ui32FmmGateOpenConfigAddr,&pAddr);
-	psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)pAddr;
+	psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)((uint8_t *)pRaagaTask->taskMemGrants.sTaskCfgBufInfo.Buffer.pAddr+
+	                               (psGblTaskCfg->ui32FmmGateOpenConfigAddr - pRaagaTask->taskMemGrants.sTaskCfgBufInfo.Buffer.offset));
 	BDBG_MSG(("Number of Ports for Gate Open = %d  ",psTaskFmmGateOpenConfig->ui32NumPorts));
 	BDBG_MSG(("Maximum Independent Delay = %dms  ",psTaskFmmGateOpenConfig->ui32MaxIndepDelay));
-	BDBG_MSG(("Gate Open Configuration address 0x%x  ",psGblTaskCfg->ui32FmmGateOpenConfigAddr));
+	BDBG_MSG(("Gate Open Configuration address " BDSP_MSG_FMT, BDSP_MSG_ARG(psGblTaskCfg->ui32FmmGateOpenConfigAddr)));
 	BDBG_MSG(("-------------------------------------------- "));
 }
 
-void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
-								  BDSP_AF_P_sNODE_CONFIG          *psNodeCfg)
+void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BDSP_AF_P_sNODE_CONFIG  *psNodeCfg)
 {
-	uint32_t    ui32NumSrc, ui32NumDest;
+	uint32_t	ui32NumSrc, ui32NumDest;
 	BDSP_AF_P_sIO_BUFFER			sIoBuffer;
 	BDSP_AF_P_sIO_GENERIC_BUFFER	sIoGenericBuffer;
 	BDBG_MSG(("--"));
 	BDBG_MSG(("eCollectResidual : %s ",DisableEnable[psNodeCfg->eCollectResidual]));
 
 	/*	Code Address and Size */
-	BDBG_MSG(("Code Buffer \t\tAddress: 0x%x \t Size: %d Bytes",psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress,
+	BDBG_MSG(("Code Buffer \t\tAddress: " BDSP_MSG_FMT "\t Size: %d Bytes", BDSP_MSG_ARG(psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress),
 				psNodeCfg->sDramAlgoCodeBuffer.ui32BufferSizeInBytes));
 
 	/*	Lookup Table Address and Size */
@@ -210,7 +209,8 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 	}
 	else
 	{
-		BDBG_MSG(("Lookup Table Buffer \tAddress: 0x%x \t Size: %d Bytes",psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress,
+		BDBG_MSG(("Lookup Table Buffer \tAddress: " BDSP_MSG_FMT "\t Size: %d Bytes",
+                                        BDSP_MSG_ARG(psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress),
 					psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes));
 	}
 
@@ -222,7 +222,8 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 	}
 	else
 	{
-		BDBG_MSG(("Inter-Frame Buffer \tAddress: 0x%x  \t Size: %d Bytes",psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress,
+		BDBG_MSG(("Inter-Frame Buffer \tAddress: " BDSP_MSG_FMT "\t Size: %d Bytes",
+                                        BDSP_MSG_ARG(psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress),
 					psNodeCfg->sDramInterFrameBuffer.ui32BufferSizeInBytes));
 	}
 
@@ -234,7 +235,8 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 	}
 	else
 	{
-		BDBG_MSG(("Node Status Buffer \tAddress: 0x%x \t Size: %d Bytes",psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress,
+		BDBG_MSG(("Node Status Buffer \tAddress: " BDSP_MSG_FMT "\t Size: %d Bytes",
+                                        BDSP_MSG_ARG(psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress),
 					psNodeCfg->sDramStatusBuffer.ui32BufferSizeInBytes));
 	}
 
@@ -246,10 +248,10 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 	}
 	else
 	{
-		BDBG_MSG(("User Config Buffer \tAddress: 0x%x \t Size: %d Bytes",psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress,
+		BDBG_MSG(("User Config Buffer \tAddress: " BDSP_MSG_FMT "\t Size: %d Bytes",
+                                        BDSP_MSG_ARG(psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress),
 					psNodeCfg->sDramUserConfigBuffer.ui32BufferSizeInBytes));
 	}
-
 	/*	Input buffer configuration details */
 	BDBG_MSG(("--"));
 	BDBG_MSG(("Num Source feeding data to this node: %d", psNodeCfg->ui32NumSrc));
@@ -259,7 +261,9 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 		if(psNodeCfg->eNodeIpValidFlag[ui32NumSrc] == BDSP_AF_P_eValid)
 		{
 			/* IO BUFFER CONFIGURATION */
-			/*BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));*/
+			BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: " BDSP_MSG_FMT,ui32NumSrc,
+                                                                BDSP_MSG_ARG(psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc])));
+#if 0
 			if(0 != psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc])
 			{
 				/* Getting the Virtual Address */
@@ -276,9 +280,13 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 					BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoBuffer ,BDSP_P_IO_BufferType_IO);
 				}
 			}
-
+#else
+			BSTD_UNUSED(sIoBuffer);
+#endif /* 0 */
 			/* IOGENERIC BUFFER CONFIGURATION */
-			/*BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));*/
+			BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: " BDSP_MSG_FMT,ui32NumSrc,
+                                                                 BDSP_MSG_ARG(psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc])));
+#if 0
 			if(0 != psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc])
 			{
 				BDSP_P_ReadFromOffset(hHeap,
@@ -294,6 +302,9 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 					BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoGenericBuffer ,BDSP_P_IO_BufferType_IOGen);
 				}
 			}
+#else
+			BSTD_UNUSED(sIoGenericBuffer);
+#endif /* 0 */
 		}
 	}
 
@@ -307,12 +318,14 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 		/* IO BUFFER CONFIGURATION */
 		/*-------------------------*/
 		/*Printing Output Buffer Cfg Structure Address */
-		/*BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));*/
+		BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: " BDSP_MSG_FMT, ui32NumDest,
+                                                                    BDSP_MSG_ARG(psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest])));
+#if 0
 		if(0 != psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest])
 		{
 			/* Getting contents of the Destination IO buffer */
 			/* Getting the Virtual Address */
-		    BDSP_P_ReadFromOffset(hHeap,
+			BDSP_P_ReadFromOffset(hHeap,
 					psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest],
 					(void *)&sIoBuffer,
 					(uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
@@ -325,10 +338,15 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 				BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoBuffer ,BDSP_P_IO_BufferType_IO);
 			}
 		}
+#else
+		BSTD_UNUSED(sIoBuffer);
+#endif /* 0 */
 
 		/* IOGENERIC BUFFER CONFIGURATION */
 		/*--------------------------------*/
-		/*BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",	ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));*/
+		BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address:" BDSP_MSG_FMT, ui32NumDest,
+                                                              BDSP_MSG_ARG(psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest])));
+#if 0
 		/*	Getting contents of the IO Generic buffer */
 		if(0 != psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest])
 		{
@@ -346,5 +364,8 @@ void BDSP_Raaga_P_Analyse_CIT_NodeConfig(BMEM_Handle       hHeap,
 				BDSP_P_Analyse_CIT_BuffCfgStruct(&sIoGenericBuffer ,BDSP_P_IO_BufferType_IOGen);
 			}
 		}
+#else
+		BSTD_UNUSED(sIoGenericBuffer);
+#endif /* 0 */
 	}
 }

@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /**
  * @file
@@ -55,16 +52,18 @@
  *       any warning.
  */
 
-#include "fp_sdk_config.h"
-
 #include "libdspcontrol/CHIP.h"
 
+#include "fp_sdk_config.h"
+
 #if !(FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))
-#  include <stdbool.h>
+#  ifndef __cplusplus
+#    include <stdbool.h>
+#  endif
 #  include <stdint.h>
 #else
 #  include "bstd.h"
-#  include "bmem.h"
+#  include "bdsp_common_priv.h"
 #endif
 #if defined(MCPHY)
 #  include "DMA_Drv.h"
@@ -73,7 +72,7 @@
 #    include "semphr.h"
 #  endif
 #endif
-#if defined(PIKE) && IS_HOST(SILICON)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
 #  include "umrbus.h"
 #endif
 
@@ -89,15 +88,32 @@ extern "C" {
 #endif
 
 
+/* In a multicore SoC, which cores should be brought out of reset by the host? */
+#if NUM_CORES == 1
+#  define DSP_BOOT_CORES    (DSP_CORES_0)
+#elif defined(DUNA)
+#  define DSP_BOOT_CORES    (DSP_CORES_0 | DSP_CORES_1)
+#elif defined(RAAGA) && defined(__FP4015__)
+#  define DSP_BOOT_CORES    (DSP_CORES_0)
+#elif defined(YELLOWSTONE)
+#  define DSP_BOOT_CORES    (DSP_CORES_0)
+#else
+#  error "Please define which cores must be brought out of reset by the host on this chip"
+#endif
+
+
 #if defined(DUNA) && IS_HOST(SILICON)
 /* Known to work parameters */
 #  define DSP_DUNA_DEFAULT_READ_BLOCK_SIZE      64
 #  define DSP_DUNA_DEFAULT_WRITE_BLOCK_SIZE     64
 #  define DSP_DUNA_DEFAULT_SPI_FREQUENCY        4000000
 #endif
+#if IS_TARGET(RaagaFP4015_haps)
+#  define RAAGA_HAPS_MEMC_ARB_CLIENT_INFO_NUM_ENTRIES   2
+#endif
 
 
-#if defined(CELIVERO) && IS_HOST(SILICON)
+#if defined(CELIVERO) || defined(CELTRIX)
 
 /* Default memory allocation figures */
 #  define DSP_CELIVERO_DEFAULT_TRANSFERS_MEM_SIZE               (1024 * 1024)
@@ -141,7 +157,55 @@ typedef struct
 #endif
 
 
-#if IS_TARGET(Pike_haps)
+#if defined(RAAGA) && defined(__FP4015_ONWARDS__)
+#  if defined(RAAGA) && defined(__FP4015__)
+#    define DSP_RAAGA_ATU_CONFIG_NUM_ENTRIES    16
+#  else
+#    error "How many ATU entries in this SoC?"
+#  endif
+
+/** Local copy of an ATU entry. */
+typedef struct
+{
+    DSP_ADDR virtual_start;     /**< region start virtual address */
+    uint64_t physical_start;    /**< region start physical address */
+    uint32_t length;            /**< region length */
+    bool     enabled;           /**< address translation is enabled for this region */
+} DSP_RAAGA_ATU_ENTRY;
+
+/** Local copy of the ATU state. */
+typedef struct
+{
+    /** all entries */
+    DSP_RAAGA_ATU_ENTRY entries[DSP_RAAGA_ATU_CONFIG_NUM_ENTRIES];
+} DSP_RAAGA_ATU;
+
+/** Support structure for DSP_RAAGA_ATU, optimised for searches. */
+typedef struct
+{
+    /** list of enabled entries */
+    const DSP_RAAGA_ATU_ENTRY *entries[DSP_RAAGA_ATU_CONFIG_NUM_ENTRIES];
+    /** number of valid entries in the array */
+    unsigned entries_count;
+} DSP_RAAGA_ATU_INDEX;
+#endif
+
+
+#if defined(RAAGA) && FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+/** One of the Raaga host memory regions */
+typedef struct
+{
+    BMMA_Block_Handle block_handle; /*!< BMMA memory block where this region comes from */
+    void             *virt_base;    /*!< block virtual base address */
+    uint32_t          phys_base;    /*!< block physical base address */
+    size_t            size;         /*!< block size */
+} DSP_RAAGA_MEM_REGION;
+
+#  define DSP_RAAGA_MEM_REGIONS_NUM_ENTRIES     4
+#endif
+
+
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
 /** The (device, bus, address) coordinates describing an HAPS CAPIM */
 typedef struct
 {
@@ -162,11 +226,13 @@ typedef struct
     int port;
 #endif
 
-#if defined(CELIVERO) && IS_HOST(SILICON)
+#if defined(CELIVERO) || defined(CELTRIX)
+#  if IS_HOST(SILICON)
     /** call brcm_mmap_shared_flush before each brcm_read_physical invocation */
     bool     flush_cache_before_read     : 1;
     /** call brcm_mmap_shared_flush after each brcm_write_physical invocation */
     bool     flush_cache_after_write     : 1;
+#  endif
     /** true if memory used for Target Buffers and data transfers (code loading) should overlap */
     bool     mem_transfer_mem_overlap_tb : 1;
     /** true if memory should be allocated from CPUH/CPUL shared area of memory (brcm_mmap_ipc_*) */
@@ -192,11 +258,17 @@ typedef struct
     unsigned mem_tb_coredump_size;
 #endif
 
-#if defined(RAAGA) && IS_HOST(SILICON)
+#if defined(RAAGA) && (FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))
     /** Magnum BREG memory mapped registers handle */
     BREG_Handle hReg;
-    /** Magnum BMEM device memory handle */
-    BMEM_Heap_Handle hMem;
+    /** Magnum BMMA heap handle */
+    BMMA_Heap_Handle hMem;
+#  if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+    /** BMMA buffers, user provided, that libdspcontrol is allowed to access */
+    BDSP_P_FwBuffer sMmaBuffer[DSP_RAAGA_MEM_REGIONS_NUM_ENTRIES];
+    /** Number of valid entries in sMmaBuffer */
+    uint32_t ui32MmaBufferValidEntries;
+#  endif
 #endif
 
 #if defined(DUNA) && IS_HOST(SILICON)
@@ -273,26 +345,48 @@ typedef struct
     DmaHandle_T *dmem2mcphy_dst_dma_handle;
 #endif
 
-#if IS_TARGET(Pike_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
     /** CAPIM to drive the 'data' bus */
     DSP_HAPS_COORDS data_capim;
     /** CAPIM to drive the 'control' bus */
     DSP_HAPS_COORDS control_capim;
-    /** Reset the UMRBUS - OBUS bridge when calling DSP_init */
+    /** Reset the UMRBUS bridge when calling DSP_init */
     bool reset_bridge_on_init;
-    /** Reset the UMRBUS - OBUS bridge if a transaction ends with an error */
+    /** Reset the UMRBUS bridge if a transaction ends with an error */
     bool reset_bridge_on_error;
-    /** Reset the UMRBUS - OBUS bridge after the end of every transaction */
+    /** Reset the UMRBUS bridge after the end of every transaction */
     bool reset_bridge_on_transaction;
+#endif
+#if IS_TARGET(RaagaFP4015_haps)
+    /** Reset the design when calling DSP_init */
+    bool reset_design_on_init;
+    /** Init-time configuration for the MEMC_ARB_CLIENT_INFO_i registers */
+    struct
+    {
+        bool     valid;               /*!< if this entry contains valid data */
+        uint32_t pr_tag : 8;
+        uint32_t bo_val : 18;
+        uint32_t rr_en  : 1;
+    } memc_arb_client_info[RAAGA_HAPS_MEMC_ARB_CLIENT_INFO_NUM_ENTRIES];
+    /** Virtual address of the first byte of the secure region. */
+    uint32_t secure_region_start;
+    /** Virtual address of the first byte after the end of the secure region. */
+    uint32_t secure_region_end;
+#endif
+
+#if IS_TARGET(RaagaFP4015_barebone)
+    /** At which address the Misc Block of core 0 is reachable from the host */
+    uint32_t misc_block_addr_fp0;
+    /** At which address the Misc Block of core 1 is reachable from the host */
+    uint32_t misc_block_addr_fp1;
 #endif
 } DSP_PARAMETERS;
 
 
 typedef struct
 {
-#if (defined(CELIVERO) && IS_HOST(SILICON)) || \
-    defined(MCPHY)                          || \
-    (defined(DUNA) && IS_HOST(SILICON))
+#if (defined(CELIVERO) || defined(CELTRIX) || defined(MCPHY) || \
+     (defined(DUNA) && IS_HOST(SILICON)))
     /** Local copy of the user-provided DSP_PARAMETERS */
     DSP_PARAMETERS parameters;
 #endif
@@ -301,7 +395,7 @@ typedef struct
      *  We have to keep track if the structure has been initialised. */
     bool debug_console_initialised;
 #endif
-#if defined(CELIVERO) && IS_HOST(SILICON)
+#if defined(CELIVERO) || defined(CELTRIX)
     /** Layout of the allocated DRAM, in virtual and physical forms. */
     DSP_CELIVERO_MEMORY_LAYOUT memory_layout;
 #endif
@@ -310,11 +404,17 @@ typedef struct
      *  pointer in a C context. */
     void *spi;
 #endif
-#if defined(RAAGA) && IS_HOST(SILICON)
+#if defined(RAAGA) && (FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))
     /** Magnum BREG memory mapped registers handle */
-    BREG_Handle hReg;
-    /** Magnum BMEM device memory handle */
-    BMEM_Heap_Handle hMem;
+    BREG_Handle reg;
+    /** Magnum BMMA heap handle */
+    BMMA_Heap_Handle heap;
+#  if FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+    /** BMMA memory regions, user provided, that libdspcontrol is allowed to access */
+    DSP_RAAGA_MEM_REGION mem_regions[DSP_RAAGA_MEM_REGIONS_NUM_ENTRIES];
+    /** Number of valid entries in mem_regions */
+    unsigned mem_regions_count;
+#  endif
 #endif
 #if defined(MCPHY) && IS_HOST(BM)
     /** This mutex will be used to protect the SCP request/response socket I/O.
@@ -322,62 +422,79 @@ typedef struct
      *  as we are in a simulated world on RHEL, not on silicon. */
     xSemaphoreHandle scp_mutex;
 #endif
-#if IS_TARGET(Pike_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
     UMR_HANDLE data_capim;
     UMR_HANDLE control_capim;
     bool reset_bridge_on_init;
     bool reset_bridge_on_error;
     bool reset_bridge_on_transaction;
 #endif
+#if IS_TARGET(RaagaFP4015_haps)
+    bool reset_design_on_init;
+    /** Init-time configuration for the MEMC_ARB_CLIENT_INFO_i registers. We have to keep
+     * this around as we might initialise the MEMC more than once (e.g. in DSP_reset). */
+    struct
+    {
+        bool     valid;
+        uint32_t pr_tag : 8;
+        uint32_t bo_val : 18;
+        uint32_t rr_en  : 1;
+    } memc_arb_client_info[RAAGA_HAPS_MEMC_ARB_CLIENT_INFO_NUM_ENTRIES];
+    /** Virtual address of the first byte of the secure region. */
+    uint32_t secure_region_start;
+    /** Virtual address of the first byte after the end of the secure region. */
+    uint32_t secure_region_end;
+#endif
+#if IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_haps_bm)
+    /** Cache of HW ATU entries. */
+    DSP_RAAGA_ATU atu_cache;
+    /** Index of local copy of ATU entries. */
+    DSP_RAAGA_ATU_INDEX atu_index;
+#endif
+#if IS_TARGET(RaagaFP4015_barebone)
+    /** At which address the Misc Block of core 0 is reachable from the host */
+    uint32_t misc_block_addr_fp0;
+    /** At which address the Misc Block of core 1 is reachable from the host */
+    uint32_t misc_block_addr_fp1;
+#endif
+#if IS_TARGET(YellowstoneA0_si)
+    /** Pointer to C++ object in HostManager */
+    void *proxy;
+#endif
+#if IS_HOST(BM)
+    /** Dummy entry to avoid "struct has no members" warnings */
+    void *dummy;
+#endif
 } DSP;
 
 
 typedef struct
 {
-#if defined(RAAGA) && !defined(__FP4014__)
+#if defined(RAAGA) && !defined(__FP4015_ONWARDS__)
     uint32_t dsp_inth_host_status;
     uint32_t dsp_fw_inth_host_status;
     uint32_t dsp_mem_subsystem_memsub_error_status;
 #endif
-#if defined(__FP4014__) && !defined(RAAGA)
+#if defined(__FP4014_ONWARDS__) || defined(__FPM1015__)
     uint32_t host_intc_host_irq;
+#if defined(__FP4015_ONWARDS__) || defined(__FPM1015__)
+    uint32_t obus_fault;
+    uint32_t obus_fault_address;
+#endif
 #endif
 } DSP_INTERRUPTS;
 
 
-/**
- * Retrieve the number of FP cores in the DSP subsystem.
- *
- * @param[in] dsp  the DSP instance
- * @return         the number of FP cores
- */
-#if defined(DUNA)
-#  define DSP_numCores(dsp) (2)
-#else
-#  define DSP_numCores(dsp) (1)
+typedef enum
+{
+#if IS_TARGET(RaagaFP4015_si_magnum) || IS_TARGET(RaagaFP4015_bm) || IS_TARGET(RaagaFP4015_haps_bm)
+    /** Pseudo-option that, when set, triggers a refresh of the cached ATU status. */
+    DSP_OPTION_REFRESH_ATU_INDEX,
 #endif
 
-
-/**
- * Return the size of the DSP instruction memory.
- * FIXME: this has to go!
- *
- * @param[in] dsp  the DSP instance
- * @return         the size of the DSP instruction memory, in bytes
- */
-#if defined(CELIVERO)
-#  define DSP_imemSize(dsp)   (256*1024)
-#elif defined(RAAGA)
-#  define DSP_imemSize(dsp)   (192*1024)
-#elif defined(DUNA)
-#  define DSP_imemSize(dsp)   (1536*1024)
-#elif defined(MCPHY)
-#  define DSP_imemSize(dsp)   (128*1024)
-#elif defined(PIKE)
-#  define DSP_imemSize(dsp)   (192*1024)
-#else
-#  error "Please define DSP_imemSize for this chip"
-#endif
+    /* To ensure the enum has always at least one element */
+    DSP_OPTION_DUMMY
+} DSP_OPTION;
 
 
 #ifdef __cplusplus

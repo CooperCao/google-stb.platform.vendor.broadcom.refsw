@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2005-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  ***************************************************************************/
 #include "nexus_file_module.h"
 #include "bstd.h"
@@ -59,6 +49,8 @@
 #include "nexus_file_posix.h"
 
 BDBG_MODULE(nexus_file_fifo_chunk);
+
+#define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
 
 struct bpvrfifo_entry {
     off_t size; /* size of the entry */
@@ -194,7 +186,7 @@ struct bfile_io_read_fifo {
 #define B_DATA_ALIGN  (188)
 #endif
 
-static const char b_file_chunkTemplate[]="%s_%d%03d";
+static const char b_file_chunkTemplate[]="%s_%04u";
 
 void NEXUS_ChunkedFifoRecord_GetDefaultSettings(
     NEXUS_ChunkedFifoRecordSettings *pSettings /* [out] */
@@ -208,7 +200,7 @@ void NEXUS_ChunkedFifoRecord_GetDefaultSettings(
     pSettings->data.hard -= pSettings->data.hard % B_DATA_ALIGN;
     pSettings->index.soft = 4*1024*1024;
     pSettings->index.hard = 8*1024*1024;
-    BKNI_Snprintf(pSettings->chunkTemplate,TEMPLATE_SIZE,"%s",b_file_chunkTemplate);
+    b_strncpy(pSettings->chunkTemplate,b_file_chunkTemplate,sizeof(pSettings->chunkTemplate));
 }
 
 static ssize_t
@@ -331,7 +323,8 @@ b_pvrfifo_write_next_unit(struct bfile_io_write_fifo *file)
 static const char *
 b_pvrfifo_make_chunk_name(char *buf, size_t buf_size, const char *template, const char *file_name, unsigned chunk_no)
 {
-    BKNI_Snprintf(buf, buf_size, template,  file_name, chunk_no/64, chunk_no%64);
+    /* if someone needs to play old ChunkedFifo files with metadata templates with %s%u%u, we must vary the snprintf */
+    BKNI_Snprintf(buf, buf_size, template,  file_name, chunk_no);
     return buf;
 }
 
@@ -908,7 +901,7 @@ b_pvrfifo_header_init(struct bpvrfifo_header *header)
 
 
 
-int
+static int
 b_file_strcpy(char *dest, size_t buf_len, const char *src)
 {
     return BKNI_Snprintf(dest, buf_len, "%s", src);
@@ -1034,7 +1027,7 @@ bpvrfifo_read_open(const char *fname, bool direct, struct bfile_io_write_fifo *w
     file->chunk_data = file->chunk_data_;
     file->chunk_data_no = BFIFO_INVALID_CHUNK;
     rc = bfile_io_read_posix_open(&file->data, fname, direct);
-    if (rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto err_open_data; }
+    if (rc!=NEXUS_SUCCESS) { goto err_open_data; }
     file->writer = writer;
     if (writer) {
         b_lock(writer);
@@ -1087,6 +1080,9 @@ err_meta:
 err_rseek:
 err_lock:
     if(!writer) {
+        if (file->header->lock) {
+            BKNI_DestroyMutex(file->header->lock);
+        }
         BKNI_Free(file->header);
     }
 err_hdr_alloc:
@@ -1142,6 +1138,9 @@ struct NEXUS_ChunkedFifoRecord {
     NEXUS_TimerHandle timer; /* currently active timer  or NULL */
     NEXUS_Time lastSnapshotTime;
     NEXUS_ChunkedFifoRecordSettings cfg;
+#define MAX_FILENAME 128
+    char filename[MAX_FILENAME];
+    char indexname[MAX_FILENAME];
 };
 
 struct bfile_in_fifo {
@@ -1311,10 +1310,10 @@ NEXUS_ChunkedFifoPlay_Open(const char *fname, const char *indexname, NEXUS_Chunk
     BKNI_Memset(file, 0, sizeof(*file));
 
     file->index = bpvrfifo_read_open(indexname, false, writer?writer->index.file:NULL, NULL, 0);
-    if (!file->index) { goto err_index;}
+    if (!file->index) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_index;}
 
     file->data = bpvrfifo_read_open(fname, true, writer?writer->data.file:NULL, file->index, sizeof(file->index->header->data));
-    if (!file->data) { goto err_data;}
+    if (!file->data) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_data;}
 
     if (writer==NULL) {
         struct bpvrfifo_header *buf;
@@ -1679,6 +1678,8 @@ NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
 
     file->cfg.index.chunkSize = 0;
     BKNI_Memcpy(file->cfg.chunkTemplate, b_file_chunkTemplate, sizeof(b_file_chunkTemplate));
+    b_strncpy(file->filename, fname, sizeof(file->filename));
+    b_strncpy(file->indexname, indexname, sizeof(file->indexname));
 
     NEXUS_Time_Get(&file->lastSnapshotTime);
 
@@ -1689,7 +1690,7 @@ NEXUS_ChunkedFifoRecord_Create(const char *fname, const char *indexname)
 
     /* Do not set O_DIRECT flag for index */
     file->rd_index = bpvrfifo_read_open(indexname, false, file->index.file, NULL, 0);
-    if (!file->rd_index) { goto err_rd_index;}
+    if (!file->rd_index) { BERR_TRACE(NEXUS_INVALID_PARAMETER); goto err_rd_index;}
 
     file->data.trim_count = 0;
     /* we save meta data in the index file, it's used because data usually is O_DIRECT, e.g. meta writes are slower and it puts constraints on the alligment of in memory meta buffer */
@@ -1726,7 +1727,7 @@ err_alloc:
     return NULL;
 }
 
-NEXUS_Error
+static NEXUS_Error
 bfile_io_write_set(struct bfile_io_write_fifo *file, const NEXUS_ChunkedFifoRecordLimit *cfg, const char *template)
 {
     BDBG_ASSERT(file);
@@ -1869,3 +1870,253 @@ err_index:
     return rc;
 }
 
+BDBG_OBJECT_ID(NEXUS_ChunkedFifoRecordExport);
+
+struct NEXUS_ChunkedFifoRecordExport
+{
+    BDBG_OBJECT(NEXUS_ChunkedFifoRecordExport)
+    NEXUS_ChunkedFifoRecordHandle filefifo;
+    NEXUS_ChunkedFifoRecordExportSettings settings;
+    NEXUS_ChunkedFifoRecordExportStatus status;
+    NEXUS_FilePosition curPos; /* initial position and updated as we export */
+    NEXUS_Addr targetOffset;
+    NEXUS_TimerHandle timer;
+    char buffer[1024];
+    bool firstTimestampFound, lastTimestampFound;
+    bool firstChunkWritten;
+    struct bfile_io_write_posix indexfile;
+    bool indexopen;
+    char filename[MAX_FILENAME];
+};
+
+static void nexus_p_chunkedfiforecord_timer(void *context);
+
+void NEXUS_ChunkedFifoRecord_GetDefaultExportSettings( NEXUS_ChunkedFifoRecordExportSettings *pSettings )
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    b_strncpy(pSettings->chunkTemplate,b_file_chunkTemplate,sizeof(pSettings->chunkTemplate));
+}
+
+NEXUS_ChunkedFifoRecordExportHandle NEXUS_ChunkedFifoRecord_StartExport( NEXUS_ChunkedFifoRecordHandle filefifo, const NEXUS_ChunkedFifoRecordExportSettings *pSettings )
+{
+    NEXUS_ChunkedFifoRecordExportHandle handle;
+
+    handle = BKNI_Malloc(sizeof(*handle));
+    if (!handle) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    BKNI_Memset(handle, 0, sizeof(*handle));
+    BDBG_OBJECT_SET(handle, NEXUS_ChunkedFifoRecordExport);
+    handle->filefifo = filefifo;
+    handle->settings = *pSettings;
+    handle->status.state = NEXUS_ChunkedFifoRecordExportState_eStarted;
+    b_strncpy(handle->filename, pSettings->filename, sizeof(handle->filename));
+
+    /* try once and kick off timer if more is needed */
+    nexus_p_chunkedfiforecord_timer(handle);
+    return handle;
+}
+
+static NEXUS_Error nexus_p_chunkedfiforecord_getlocation( NEXUS_ChunkedFifoRecordHandle file, unsigned long timestamp, NEXUS_FilePosition *pPosition )
+{
+    int rc;
+    BNAV_Player_Position pos;
+    long index;
+
+    index = BNAV_Player_FindIndexFromTimestamp(file->bcm_player, timestamp);
+    if (index<0) return NEXUS_NOT_AVAILABLE;
+    rc = BNAV_Player_GetPositionInformation(file->bcm_player, index, &pos);
+    if (rc) return NEXUS_NOT_AVAILABLE;
+    pPosition->indexOffset = pos.index;
+    pPosition->timestamp = pos.timestamp;
+    pPosition->mpegFileOffset = B_GET_OFF_T(&pos);
+    return 0;
+}
+
+static void nexus_p_chunkedfiforecord_timer(void *context)
+{
+    NEXUS_ChunkedFifoRecordExportHandle handle = context;
+    struct bfile_io_write_fifo *file;
+    unsigned i;
+    int rc = 0;
+
+    handle->timer = NULL;
+
+    BDBG_WRN(("export timer: target %u..%u, status %u..%u",
+        handle->settings.first.timestamp, handle->settings.last.timestamp,
+        handle->status.first.timestamp, handle->status.last.timestamp));
+
+    b_trim_try_player(handle->filefifo);
+
+    if (!handle->firstTimestampFound) {
+        NEXUS_FilePosition first, last;
+        rc = NEXUS_ChunkedFifoRecord_GetPosition(handle->filefifo, &first, &last);
+        if (rc) {rc = BERR_TRACE(rc); goto done;}
+        if (handle->settings.last.timestamp < first.timestamp) {
+            /* timeshift already past target, so nothing to get */
+            handle->status.state = NEXUS_ChunkedFifoRecordExportState_eDone;
+            goto done;
+        }
+        if (last.timestamp < handle->settings.first.timestamp) {
+            /* timeshift not at target yet, so wait. */
+            goto done;
+        }
+        /* we can start */
+        if (handle->settings.first.timestamp > first.timestamp) {
+            first.timestamp = handle->settings.first.timestamp;
+        }
+        rc = nexus_p_chunkedfiforecord_getlocation(handle->filefifo, first.timestamp, &handle->curPos);
+        if (rc) {
+            BERR_TRACE(rc);
+            goto done;
+        }
+        handle->firstTimestampFound = true;
+        /* curPos.mpegFileOffset begins as start offset of first desired chunk. it is updated as end offset last chunk. */
+    }
+
+    file = handle->filefifo->index.file;
+    if (!rc && !handle->lastTimestampFound) {
+        unsigned index_entrysize = b_pvrfifo_get_index_entrysize(handle->filefifo);
+        unsigned total = 0;
+
+        rc = b_pvrfifo_trim_bp_seek(handle->filefifo, index_entrysize * handle->curPos.indexOffset, SEEK_SET);
+        if (rc) { rc = BERR_TRACE(rc); }
+
+        /* on the first timer call, we may get a very large write.
+        limit to 512 so we don't starve other callers into the File module. */
+        while (!rc && !handle->lastTimestampFound && total < 1024) {
+            long n;
+            const BNAV_Entry *nav;
+            n = b_pvrfifo_trim_bp_read(handle->buffer, index_entrysize, sizeof(handle->buffer)/index_entrysize, handle->filefifo);
+            if (n <= 0) {
+                rc = BERR_TRACE(n);
+                break;
+            }
+            BDBG_ASSERT(n % index_entrysize == 0); /* whole entries */
+
+            /* trim to the exact last index entry */
+            for (i=0;i<(unsigned)n;i+=index_entrysize) {
+                unsigned long timestamp;
+                nav = (const BNAV_Entry *)&handle->buffer[i];
+                timestamp = BNAV_get_timestamp(nav);
+
+                if (!handle->status.first.timestamp) {
+                    handle->status.first.timestamp = timestamp;
+                }
+
+               if (timestamp <= handle->settings.last.timestamp) {
+                    handle->status.last.timestamp = timestamp;
+                    handle->targetOffset = BNAV_get_frameOffset(nav);
+                }
+                else {
+                    /* we're done with the index */
+                    n = i;
+                    handle->lastTimestampFound = true;
+                    break;
+                }
+            }
+
+            if (handle->settings.indexname) {
+                if (!handle->indexopen) {
+                    rc = bfile_io_write_posix_open(&handle->indexfile, handle->settings.indexname, false);
+                    if (rc) {
+                        BERR_TRACE(rc);
+                        break;
+                    }
+                    handle->indexopen = true;
+                }
+                n = handle->indexfile.self.write(&handle->indexfile.self, handle->buffer, n);
+                if (n < 0) {
+                    rc = BERR_TRACE(n);
+                    break;
+                }
+            }
+            total += n/index_entrysize;
+            handle->curPos.indexOffset += n/index_entrysize;
+        }
+    }
+    if (rc) goto done;
+
+    BDBG_WRN(("  curent offset " BDBG_UINT64_FMT ", target offset " BDBG_UINT64_FMT,
+        BDBG_UINT64_ARG(handle->curPos.mpegFileOffset), BDBG_UINT64_ARG(handle->targetOffset)));
+
+    if (!handle->targetOffset) goto done;
+
+    file = handle->filefifo->data.file;
+    b_lock(file);
+    for(i=0;i<BFIFO_N_ENTRYS;i++) {
+        uint64_t off;
+        unsigned chunkNumber;
+        struct bpvrfifo_entry *entry;
+        char oldname[MAX_FILENAME], newname[MAX_FILENAME];
+
+        entry = B_ENTRY(file, i);
+
+        BDBG_MSG_TRACE(("%u: chunk %u, %#x %u", i, entry->no, (unsigned)entry->voff, (unsigned)entry->size));
+        if (entry->no == BFIFO_INVALID_CHUNK) break;
+
+        /* look for chunks after what we're already linked */
+        /* even if the chunk is not done, we can act as if it's done for purposes of making the hardlink */
+        off = entry->voff;
+        if (off + handle->filefifo->cfg.data.chunkSize <= (uint64_t)handle->curPos.mpegFileOffset) continue;
+        if (off > handle->targetOffset) break;
+
+        chunkNumber = entry->no;
+
+        b_pvrfifo_make_chunk_name(oldname, sizeof(oldname), handle->filefifo->cfg.chunkTemplate, handle->filefifo->filename, chunkNumber);
+        b_pvrfifo_make_chunk_name(newname, sizeof(newname), handle->settings.chunkTemplate, handle->filename, chunkNumber);
+        BDBG_WRN(("hardlink %s -> %s: chunk %u, offset " BDBG_UINT64_FMT, oldname, newname, chunkNumber, BDBG_UINT64_ARG(entry->voff)));
+
+        rc = bfile_io_posix_link(oldname, newname);
+        if (rc) { BERR_TRACE(rc); break; }
+
+        handle->curPos.mpegFileOffset = off + handle->filefifo->cfg.data.chunkSize;
+
+        if (!handle->firstChunkWritten) {
+            handle->status.first.chunkNumber = chunkNumber;
+            handle->status.first.offset = entry->voff;
+            handle->firstChunkWritten = true;
+        }
+        handle->status.last.chunkNumber = chunkNumber;
+        handle->status.last.offset = handle->curPos.mpegFileOffset;
+
+    }
+    b_unlock(file);
+
+done:
+    if (handle->status.state != NEXUS_ChunkedFifoRecordExportState_eStarted) {
+        /* final state already set. */
+    }
+    else if (rc) {
+        handle->status.state = NEXUS_ChunkedFifoRecordExportState_eFailed;
+    }
+    else {
+        if (handle->lastTimestampFound && (uint64_t)handle->curPos.mpegFileOffset >= handle->targetOffset) {
+            handle->status.state = NEXUS_ChunkedFifoRecordExportState_eDone;
+        }
+        else {
+            handle->timer = NEXUS_ScheduleTimer(1000, nexus_p_chunkedfiforecord_timer, handle);
+        }
+    }
+}
+
+void NEXUS_ChunkedFifoRecord_StopExport(NEXUS_ChunkedFifoRecordExportHandle handle)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_ChunkedFifoRecordExport);
+    if (handle->timer) {
+        NEXUS_CancelTimer(handle->timer);
+    }
+    if (handle->indexopen) {
+        bfile_io_write_posix_close(&handle->indexfile);
+    }
+    BDBG_OBJECT_DESTROY(handle, NEXUS_ChunkedFifoRecordExport);
+    BKNI_Free(handle);
+}
+
+NEXUS_Error NEXUS_ChunkedFifoRecord_GetExportStatus(NEXUS_ChunkedFifoRecordExportHandle handle, NEXUS_ChunkedFifoRecordExportStatus *pStatus)
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_ChunkedFifoRecordExport);
+    *pStatus = handle->status;
+    return NEXUS_SUCCESS;
+}

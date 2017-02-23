@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -716,6 +716,11 @@ Print a warning to the console for all ARC's that are blocking reads or writes.
 If user doesn't open MRC, blocking ARC's may cause silent loss of function.
 **************************************************************************/
 void BMRC_PrintBlockingArcs(BREG_Handle reg);
+
+int BMRC_P_GetClientId (
+    BMRC_Client eClient,   /* [in]  The client to get the info of */
+    unsigned memc         /* [in] memory controller number */
+  );
 
 #ifdef __cplusplus
 }

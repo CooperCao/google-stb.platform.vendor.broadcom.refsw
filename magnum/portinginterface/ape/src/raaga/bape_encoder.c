@@ -43,11 +43,15 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_encoder);
 
 BDBG_OBJECT_ID(BAPE_Encoder);
+
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_Encoder
 {
     BDBG_OBJECT(BAPE_Encoder)
@@ -1811,3 +1815,124 @@ static void BAPE_Encoder_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BAPE
 {
     (void)BAPE_Encoder_RemoveInput(pNode->pHandle, pConnector);
 }
+#else
+typedef struct BAPE_Encoder
+{
+    BDBG_OBJECT(BAPE_Encoder)
+} BAPE_Encoder;
+
+void BAPE_Encoder_GetDefaultSettings(
+    BAPE_EncoderSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Encoder_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_EncoderSettings *pSettings,
+    BAPE_EncoderHandle *pHandle             /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Encoder_Destroy(
+    BAPE_EncoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_Encoder_GetSettings(
+    BAPE_EncoderHandle handle,
+    BAPE_EncoderSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+BERR_Code BAPE_Encoder_SetSettings(
+    BAPE_EncoderHandle handle,
+    const BAPE_EncoderSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Encoder_GetDefaultCodecSettings(
+    BAPE_Handle deviceHandle,
+    BAVC_AudioCompressionStd codec,
+    BAPE_EncoderCodecSettings *pSettings)
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(codec);
+    BSTD_UNUSED(pSettings);
+}
+
+void BAPE_Encoder_GetCodecSettings(
+    BAPE_EncoderHandle handle,
+    BAVC_AudioCompressionStd codec,              /* the codec for which you are retrieving settings. */
+    BAPE_EncoderCodecSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(codec);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_Encoder_SetCodecSettings(
+    BAPE_EncoderHandle handle,
+    const BAPE_EncoderCodecSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_Encoder_GetConnector(
+    BAPE_EncoderHandle handle,
+    BAPE_ConnectorFormat format,
+    BAPE_Connector *pConnector /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(format);
+    BSTD_UNUSED(pConnector);
+}
+
+BERR_Code BAPE_Encoder_AddInput(
+    BAPE_EncoderHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_Encoder_RemoveInput(
+    BAPE_EncoderHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_Encoder_RemoveAllInputs(
+    BAPE_EncoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

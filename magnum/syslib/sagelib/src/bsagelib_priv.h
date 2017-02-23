@@ -115,6 +115,8 @@ struct BSAGElib_P_Client {
     uint16_t moduleNum;
     BSAGElib_RpcRemoteHandle system_platform;
     BSAGElib_RpcRemoteHandle system_module;
+    BSAGElib_RpcRemoteHandle antirollback_platform;
+    BSAGElib_RpcRemoteHandle antirollback_module;
 };
 
 typedef struct BSAGElib_Management_CallbackItem {

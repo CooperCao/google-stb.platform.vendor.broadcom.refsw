@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
     hdCreateSettings.width = min(displayCap.display[0].graphics.width, info.width);
     hdCreateSettings.height = min(displayCap.display[0].graphics.height, info.height);
     hdCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    framebuffer0 = NEXUS_Surface_Create(&hdCreateSettings);
+    framebuffer0 = NEXUS_Display_CreateFramebuffer(display0, &hdCreateSettings);
 
     if (sd_display) {
         NEXUS_Display_GetDefaultSettings(&displaySettings);
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         sdCreateSettings.width = min(displayCap.display[1].graphics.width, info.width);
         sdCreateSettings.height = min(displayCap.display[1].graphics.height, info.height);
         sdCreateSettings.heap = NEXUS_Platform_GetFramebufferHeap(1);
-        framebuffer1 = NEXUS_Surface_Create(&sdCreateSettings);
+        framebuffer1 = NEXUS_Display_CreateFramebuffer(display1, &sdCreateSettings);
     }
         
     gfx = NEXUS_Graphics2D_Open(0, NULL);

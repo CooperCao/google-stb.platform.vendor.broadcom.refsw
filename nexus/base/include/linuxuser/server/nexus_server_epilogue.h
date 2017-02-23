@@ -45,7 +45,7 @@
     } /* end of switch */
 done:
     b_objdb_set_client(NULL);
-#if NEXUS_P_ABIVERIFY_SERVER
+#if NEXUS_ABICOMPAT_MODE
     out->data = (uint8_t *) __varargs.data;
     out->size = __varargs.varargs_begin + __varargs.varargs_offset + __varargs.header;
 #else

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Copyright (C) 2010-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  **************************************************************************/
 #ifndef NEXUS_VIDEO_ENCODER_INIT_H__
 #define NEXUS_VIDEO_ENCODER_INIT_H__
@@ -69,7 +58,7 @@ NEXUS_VideoEncoderModule_GetDefaultSettings
 NEXUS_VideoEncoderModule_Init
 **/
 
-typedef struct NEXUS_VideoEncoderModuleSettings
+typedef struct NEXUS_VideoEncoderModuleInternalSettings
 {
     NEXUS_VideoEncoder_MemoryConfig heapSize[NEXUS_MAX_VCE_DEVICES];
     struct {
@@ -92,9 +81,7 @@ typedef struct NEXUS_VideoEncoderModuleSettings
     struct {
         NEXUS_VideoEncoderMemory memory;
     } videoEncoder[NEXUS_MAX_VIDEO_ENCODERS]; /* index of NEXUS_VideoEncoder */
-    
-    bool deferInit; /* if set to true, HW and FW initialization will be deferred until actually used */
-} NEXUS_VideoEncoderModuleSettings;
+} NEXUS_VideoEncoderModuleInternalSettings;
 
 /**
 Summary:
@@ -125,6 +112,7 @@ through NEXUS_PlatformSettings as follows:
 
 **/
 NEXUS_ModuleHandle NEXUS_VideoEncoderModule_Init(
+    const NEXUS_VideoEncoderModuleInternalSettings *pInternalSettings,
     const NEXUS_VideoEncoderModuleSettings *pSettings
     );
 
@@ -136,6 +124,12 @@ Description:
 Called by NEXUS_Platform_Uninit
 **/
 void NEXUS_VideoEncoderModule_Uninit(void);
+
+void NEXUS_VideoEncoderModule_GetDefaultInternalSettings(
+    NEXUS_VideoEncoderModuleInternalSettings *pSettings
+    );
+
+
 
 
 #ifdef __cplusplus

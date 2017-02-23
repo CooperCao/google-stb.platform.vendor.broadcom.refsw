@@ -267,7 +267,7 @@ static void NEXUS_Display_P_RdcReadCapture(void *data)
     }
 #endif
 
-    if (rdc) {
+    if (rdc && g_rdc_capture_fifo) {
         do {
             /* read from RDC is variable sized, write to disk is variables sized, write to BDBG_Fifo is fixed size */
             BKNI_EnterCriticalSection();
@@ -306,7 +306,7 @@ static void NEXUS_Display_P_RdcReadCapture(void *data)
    }
 #endif
 
-    if (rdc) {
+    if (rdc && g_rdc_capture_fifo) {
         g_rdc_capture.timer = NEXUS_ScheduleTimer(1000, NEXUS_Display_P_RdcReadCapture, rdc);
     }
 }
@@ -448,7 +448,7 @@ void nexus_display_p_uninit_buflogcapture(void)
 }
 #endif /* BVDC_BUF_LOG && NEXUS_BASE_OS_linuxuser */
 
-void NEXUS_DisplayModule_Print(void)
+static void NEXUS_DisplayModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
     unsigned i;
@@ -464,6 +464,7 @@ void NEXUS_DisplayModule_Print(void)
         NEXUS_DisplayHandle display = g_NEXUS_DisplayModule_State.displays[i];
         NEXUS_VideoFormatInfo formatInfo;
         static const char *g_contentModeStr[NEXUS_VideoWindowContentMode_eMax] = {"zoom","box","panscan","full","nonlinear","panscan_no_corr"};
+        char str[32];
 
         if (!display) continue;
 
@@ -472,7 +473,13 @@ void NEXUS_DisplayModule_Print(void)
         BDBG_MODULE_LOG(display_proc, ("display %d: format=%dx%d%c(%d) %d.%02dhz", i,
             display->displayRect.width,display->displayRect.height,formatInfo.interlaced?'i':'p', display->cfg.format,
             display->status.refreshRate/1000, display->status.refreshRate%1000));
-        BDBG_MODULE_LOG(display_proc, ("  graphics: %s fb=%p %dx%d pixelFormat=%d", display->graphics.windowVdc?"enabled":"disabled", (void *)display->graphics.frameBuffer3D.main,
+        if (display->graphics.frameBuffer3D.right) {
+            BKNI_Snprintf(str, sizeof(str), "%p(%p)", (void *)display->graphics.frameBuffer3D.main, (void *)display->graphics.frameBuffer3D.right);
+        }
+        else {
+            BKNI_Snprintf(str, sizeof(str), "%p", (void *)display->graphics.frameBuffer3D.main);
+        }
+        BDBG_MODULE_LOG(display_proc, ("  graphics: %s fb=%s %dx%d pixelFormat=%d", display->graphics.windowVdc?"enabled":"disabled", str,
             display->graphics.cfg.clip.width?display->graphics.cfg.clip.width:display->graphics.frameBufferWidth,
             display->graphics.cfg.clip.height?display->graphics.cfg.clip.height:display->graphics.frameBufferHeight,
             display->graphics.frameBufferPixelFormat));
@@ -536,6 +543,12 @@ void NEXUS_DisplayModule_Print(void)
     }
 #endif
 
+}
+
+static BVDC_MemConfigSettings g_NEXUS_vdcMemConfig;
+void NEXUS_Display_P_SetVdcMemConfig(const BVDC_MemConfigSettings *pVdcMemConfig)
+{
+    g_NEXUS_vdcMemConfig = *pVdcMemConfig;
 }
 
 NEXUS_ModuleHandle
@@ -694,6 +707,7 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
     vdcCfg.bDisableMosaic = !pSettings->memconfig.mosaic;
     vdcCfg.bDisable656Input = !pSettings->memconfig.ccir656;
     vdcCfg.bDisableHddviInput = !pSettings->memconfig.hdDvi;
+    vdcCfg.pMemConfigSettings = &g_NEXUS_vdcMemConfig;
 
     rc = BVDC_Open(&state->vdc, g_pCoreHandles->chp, g_pCoreHandles->reg, mmaHeap, g_pCoreHandles->bint, state->rdc, g_pCoreHandles->tmr, &vdcCfg);
     if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vdc; }
@@ -1042,6 +1056,8 @@ static void NEXUS_P_SetDisplayCapabilities(void)
                     pCapabilities->display[j].graphics.width =  sourceCap->stSizeLimits.ulWidth;
                     pCapabilities->display[j].graphics.height = sourceCap->stSizeLimits.ulHeight;
                 }
+                /* TODO: need eAllowed information from BBOX */
+                pCapabilities->display[j].graphics.compression = sourceCap->bCompressed ? NEXUS_GraphicsCompression_eRequired : NEXUS_GraphicsCompression_eNone;
             }
         }
     }

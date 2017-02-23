@@ -323,6 +323,14 @@ static void NEXUS_AudioMuxOutput_P_Finalizer(
     BKNI_Free(handle);
 }
 
+static void NEXUS_AudioMuxOutput_P_Release(NEXUS_AudioMuxOutputHandle handle)
+{
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioOutput, &handle->connector, Close);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioMuxOutput, NEXUS_AudioMuxOutput_Destroy);
+
 /***************************************************************************
 Summary:
 Get the NEXUS_AudioOutputHandle connector to make upstream connection
@@ -795,6 +803,14 @@ static void NEXUS_AudioMuxOutput_P_Finalizer(
     BSTD_UNUSED(handle);
 }
 
+static void NEXUS_AudioMuxOutput_P_Release(NEXUS_AudioMuxOutputHandle handle)
+{
+    BSTD_UNUSED(handle);
+    return;
+}
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioMuxOutput, NEXUS_AudioMuxOutput_Destroy);
+
 /***************************************************************************
 Summary:
 Get the NEXUS_AudioOutputHandle connector to make upstream connection
@@ -958,16 +974,24 @@ NEXUS_Error NEXUS_AudioMuxOutput_SetSettings(
     return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
-#endif /* #if NEXUS_HAS_AUDIO_MUX_OUTPUT */
-
-static void NEXUS_AudioMuxOutput_P_Release(NEXUS_AudioMuxOutputHandle handle)
+NEXUS_Error NEXUS_AudioMuxOutput_P_AddInput(
+    NEXUS_AudioMuxOutputHandle handle,
+    NEXUS_AudioInputHandle input
+    )
 {
-#if NEXUS_HAS_AUDIO_MUX_OUTPUT
-    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioOutput, &handle->connector, Close);
-#else
     BSTD_UNUSED(handle);
-#endif
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void NEXUS_AudioMuxOutput_P_RemoveInput(
+    NEXUS_AudioMuxOutputHandle handle,
+    NEXUS_AudioInputHandle input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
     return;
 }
 
-NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioMuxOutput, NEXUS_AudioMuxOutput_Destroy);
+#endif /* #if NEXUS_HAS_AUDIO_MUX_OUTPUT */

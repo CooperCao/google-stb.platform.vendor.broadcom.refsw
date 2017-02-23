@@ -42,6 +42,7 @@
 #include "nexus_playpump_impl.h"
 #include "bsink_playback.h"
 #include "blst_squeue.h"
+#include "blst_slist.h"
 
 #if B_HAS_MEDIA
 /* saving PES dara to file is controlled in the  BSEAV/lib/utils/bsink_playback.c */
@@ -53,6 +54,18 @@ BDBG_MODULE(nexus_playpump_media);
 BDBG_OBJECT_ID(b_pump_demux_t);
 /* Must be 10K for proper WMA audio flushing */
 #define B_PUMP_DEMUX_FILLER_SIZE    10240
+
+struct b_pump_demux_alloc_entry {
+    BLST_S_ENTRY(b_pump_demux_alloc_entry) link;
+    BMMA_Block_Handle block;
+    void *addr;
+};
+
+struct b_pump_demux_alloc_iface {
+    struct balloc_iface iface; /* must be first */
+    BLST_S_HEAD(b_pump_demux_alloc_allocations, b_pump_demux_alloc_entry) blocks;
+};
+
 struct b_pump_demux {
     BDBG_OBJECT(b_pump_demux_t)
     NEXUS_PlaypumpHandle pump;
@@ -69,48 +82,61 @@ struct b_pump_demux {
         batom_pipe_t pipe_in; /* pipe from the bmedia_filter */
     } pes_feed;
     bmedia_filter_t filter;
-    void *eos_filler;
+    struct {
+        void *ptr;
+        BMMA_Block_Handle block;
+    } eos_filler;
     void *dcrypt_ctx;      /* drm context, may be used by asf and others */
     void *drm_ctx;
     b_pid_map video_map;
     b_pid_map audio_map;
     b_pid_map other_map;
+    struct b_pump_demux_alloc_iface alloc_iface;
 };
 
 static void *
-b_mem_alloc(balloc_iface_t alloc, size_t size)
+b_mma_alloc(balloc_iface_t alloc, size_t size)
 {
-    void *buf, *buf_cached;
-    BERR_Code rc;
-    BSTD_UNUSED(alloc);
-    buf = BMEM_Alloc(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, size);
-    if(!buf) {rc = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);goto err_alloc;}
-    rc = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, buf, &buf_cached); /* map memory to the cached region */
-    if (rc) {rc = BERR_TRACE(rc); goto err_cached;}
-    return buf_cached;
+    struct b_pump_demux_alloc_iface *iface = (void *)alloc;
+    struct b_pump_demux_alloc_entry *entry;
 
-err_cached:
-    BMEM_Free(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, buf);
-err_alloc:
+    entry = BKNI_Malloc(sizeof(*entry));
+    if(entry==NULL) { (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto err_malloc;}
+
+    entry->block = BMMA_Alloc(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mma, size, 0, NULL);
+    if(entry->block==NULL) { (void)BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);goto err_bmma_alloc;}
+
+    entry->addr = BMMA_Lock(entry->block);
+    if(entry->addr == NULL) { (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto err_lock;}
+
+    BLST_S_DICT_ADD(&iface->blocks, entry, b_pump_demux_alloc_entry, addr, link, err_duplicate);
+
+    return entry->addr;
+
+err_duplicate:
+    BMMA_Unlock(entry->block, entry->addr);
+err_lock:
+    BMMA_Free(entry->block);
+err_bmma_alloc:
+    BKNI_Free(entry);
+err_malloc:
     return NULL;
 }
 
 static void
-b_mem_free(balloc_iface_t alloc, void *ptr)
+b_mma_free(balloc_iface_t alloc, void *ptr)
 {
-    uint32_t offset;
-    void *buf;
+    struct b_pump_demux_alloc_iface *iface = (void *)alloc;
+    struct b_pump_demux_alloc_entry *entry;
 
-    BSTD_UNUSED(alloc);
-    offset = NEXUS_AddrToOffset(ptr);
-    buf = NEXUS_OffsetToUncachedAddr(offset);
-    BMEM_Free(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, buf);
+    BLST_S_DICT_REMOVE(&iface->blocks, entry, ptr, b_pump_demux_alloc_entry, addr, link);
+    if(entry==NULL) { (void)BERR_TRACE(NEXUS_UNKNOWN); return; }
+
+    BMMA_Unlock(entry->block, entry->addr);
+    BMMA_Free(entry->block);
+    BKNI_Free(entry);
     return;
 }
-
-static const struct balloc_iface bmem_alloc[] = {
-    {b_mem_alloc, b_mem_free}
-};
 
 #define B_PUMP_DEMUX_FACTORY_ATOMS  128
 #define B_PUMP_DEMUX_POOL_BLOCKS    64
@@ -143,7 +169,6 @@ b_pump_demux_create(NEXUS_PlaypumpHandle pump)
     bmedia_filter_cfg filter_cfg;
     bsink_playback_cfg sink_cfg;
     BERR_Code rc;
-    void *addr;
 
     BDBG_MSG_TRACE(("b_pump_demux_create>:"));
     demux = BKNI_Malloc(sizeof(*demux));
@@ -154,6 +179,10 @@ b_pump_demux_create(NEXUS_PlaypumpHandle pump)
     }
     BDBG_OBJECT_INIT(demux, b_pump_demux_t);
     demux->pump = pump;
+    demux->alloc_iface.iface.bmem_alloc  = b_mma_alloc;
+    demux->alloc_iface.iface.bmem_free = b_mma_free;
+    BLST_S_INIT(&demux->alloc_iface.blocks);
+
 
     b_pump_reset_pes_feed(demux);
     demux->pes_feed.pipe_in = NULL;
@@ -178,21 +207,25 @@ b_pump_demux_create(NEXUS_PlaypumpHandle pump)
     if(!demux->pipe_demux) {
         goto err_pipe_demux;
     }
-    demux->eos_filler = BMEM_Alloc(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, B_PUMP_DEMUX_FILLER_SIZE);
-    if(!demux->eos_filler) {
-        goto err_eos_filler;
+    demux->eos_filler.block = BMMA_Alloc(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mma, B_PUMP_DEMUX_FILLER_SIZE, 0, NULL);
+    if(demux->eos_filler.block==NULL) {
+        (void)BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+        goto err_eos_filler_block;
+    }
+    demux->eos_filler.ptr = BMMA_Lock(demux->eos_filler.block);
+    if(demux->eos_filler.ptr==NULL) {
+        (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        goto err_eos_filler_ptr;
     }
 
     bmedia_filter_default_cfg(&filter_cfg);
-    rc = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, demux->eos_filler, &addr);
-    if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto err_cached_addr;}
-    filter_cfg.eos_data = addr;
+    filter_cfg.eos_data = demux->eos_filler.ptr;
     filter_cfg.eos_len = B_PUMP_DEMUX_FILLER_SIZE;
     filter_cfg.application_cnxt = demux;
     filter_cfg.stream_error = b_pump_demux_stream_error;
 
     BKNI_Memset((void *)filter_cfg.eos_data, 0, filter_cfg.eos_len);
-    demux->filter = bmedia_filter_create(demux->factory, bmem_alloc, &filter_cfg);
+    demux->filter = bmedia_filter_create(demux->factory, &demux->alloc_iface.iface, &filter_cfg);
 
     if(!demux->filter) {
         goto err_filter;
@@ -201,10 +234,11 @@ b_pump_demux_create(NEXUS_PlaypumpHandle pump)
     BDBG_MSG_TRACE(("b_pump_demux_create>: %#lx", (unsigned long)demux));
     return demux;
 
-err_eos_filler:
-    BMEM_Free(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, demux->eos_filler);
-err_cached_addr:
 err_filter:
+    BMMA_Unlock(demux->eos_filler.block, demux->eos_filler.ptr);
+err_eos_filler_ptr:
+    BMMA_Free(demux->eos_filler.block);
+err_eos_filler_block:
     batom_pipe_destroy(demux->pipe_demux);
 err_pipe_demux:
     bsink_playback_destroy(demux->sink);
@@ -225,7 +259,8 @@ b_pump_demux_destroy(b_pump_demux_t demux)
     bsink_playback_destroy(demux->sink);
     batom_pipe_destroy(demux->pipe_demux);
     batom_factory_destroy(demux->factory);
-    BMEM_Free(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, demux->eos_filler);
+    BMMA_Unlock(demux->eos_filler.block, demux->eos_filler.ptr);
+    BMMA_Free(demux->eos_filler.block);
     BDBG_OBJECT_DESTROY(demux, b_pump_demux_t);
     BDBG_MSG_TRACE(("b_pump_demux_destroy<: %#lx", (unsigned long)demux));
     BKNI_Free(demux);

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -266,6 +266,7 @@ NEXUS_PidChannelHandle NEXUS_PidChannel_Open(NEXUS_ParserBand parserBand, uint16
 {
     NEXUS_PidChannelHandle handle = NULL;
     NEXUS_ParserBandHandle band = NEXUS_ParserBand_Resolve_priv(parserBand);
+
     if (band)
     {
         NEXUS_P_HwPidChannel *hwPidChannel = NULL;
@@ -1093,6 +1094,9 @@ static NEXUS_Error NEXUS_P_HwPidChannel_ResetStatus( NEXUS_P_HwPidChannel *pidCh
 {
     NEXUS_OBJECT_ASSERT(NEXUS_P_HwPidChannel, pidChannel);
     pidChannel->status.continuityCountErrors = 0;
+    if (pidChannel->parserBand != NULL)
+        NEXUS_ParserBand_P_ResetOverflowCounts(pidChannel->parserBand);
+
     return NEXUS_SUCCESS;
 }
 

@@ -566,7 +566,7 @@ public:
 
    enum
    {
-      ALL = 0xffffffff
+      ALL = -1
    };
 
    //! Invoked by the application in the main thread to handle any callbacks

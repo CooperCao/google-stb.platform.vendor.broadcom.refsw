@@ -66,6 +66,9 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
             if (display && display->display) {
                 BDBG_LOG(("display %d: %p, canvas %dx%d, %d compositions, %d fills", display->index, (void *)display->display, display->formatInfo.canvas.width, display->formatInfo.canvas.height,
                     display->stats.compose, display->stats.fill));
+                if (display->formatInfo.orientation != NEXUS_VideoOrientation_e2D) {
+                    BDBG_LOG(("        3D %s%s", display->formatInfo.native3D?"native ":"", display->formatInfo.orientation==NEXUS_VideoOrientation_e3D_OverUnder?"O/U":"L/R"));
+                }
             }
         }
         for (client = BLST_Q_FIRST(&server->clients); client; client = BLST_Q_NEXT(client, link)) {
@@ -77,6 +80,9 @@ void NEXUS_SurfaceCompositorModule_P_Print(void)
                 client->serverSettings.composition.position.height,
                 client->serverSettings.composition.visible?'y':'n',
                 client->serverSettings.composition.zorder));
+            if (client->settings.orientation != NEXUS_VideoOrientation_e2D) {
+                BDBG_LOG(("  3D %s", client->settings.orientation==NEXUS_VideoOrientation_e3D_OverUnder?"O/U":"L/R"));
+            }
             if (client == server->bypass_compose.client) {
                 BDBG_LOG(("  bypass client"));
             }
@@ -493,7 +499,7 @@ static NEXUS_Error nexus_surface_compositor_p_alloc_framebuffers(struct NEXUS_Su
             createSettings.heap = pSettings->framebuffer.heap;
             createSettings.pixelFormat = pSettings->framebuffer.pixelFormat;
             createSettings.pMemory = NULL;
-            framebuffer->surface = NEXUS_Surface_Create(&createSettings);
+            framebuffer->surface = NEXUS_Display_CreateFramebuffer(cmpDisplay->display, &createSettings);
             if (!framebuffer->surface) {
                 rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
                 goto create_error;
@@ -516,10 +522,10 @@ static NEXUS_Error nexus_surface_compositor_p_alloc_framebuffers(struct NEXUS_Su
                 createSettings.height = cmpDisplay->canvas.height;
                 createSettings.pitch = memory.pitch;
                 createSettings.pMemory = memory.buffer;
-                framebuffer->view3D.left = NEXUS_Surface_Create(&createSettings);
+                framebuffer->view3D.left = NEXUS_Display_CreateFramebuffer(cmpDisplay->display, &createSettings);
                 if (!framebuffer->view3D.left) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto create_error; }
                 createSettings.pMemory = (void *)((uint8_t *)memory.buffer + pixelInfo->info.bpp/8 * cmpDisplay->offset3DRight.x + memory.pitch * cmpDisplay->offset3DRight.y);
-                framebuffer->view3D.right = NEXUS_Surface_Create(&createSettings);
+                framebuffer->view3D.right = NEXUS_Display_CreateFramebuffer(cmpDisplay->display, &createSettings);
                 if (!framebuffer->view3D.right) { rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY); goto create_error; }
         }
     }
@@ -720,8 +726,8 @@ static NEXUS_Error nexus_surface_compositor_p_update_display( NEXUS_SurfaceCompo
             }
             cmpDisplay->canvas.width = graphicsSettings.clip.width;
             cmpDisplay->canvas.height = graphicsSettings.clip.height;
-            cmpDisplay->formatInfo.canvas.width = graphicsSettings.position.width;
-            cmpDisplay->formatInfo.canvas.height = graphicsSettings.position.height;
+            cmpDisplay->formatInfo.canvas.width = formatInfo.width;
+            cmpDisplay->formatInfo.canvas.height = formatInfo.height;
             cmpDisplay->formatInfo.orientation = NEXUS_VideoOrientation_e2D;
             cmpDisplay->formatInfo.native3D = false;
             cmpDisplay->formatInfo.verticalFreq = formatInfo.verticalFreq;

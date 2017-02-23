@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -147,6 +147,8 @@ int main(int argc, char **argv)
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_StcChannelSettings stcSettings;
     dataCallbackParameters dataCBParams;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
 
     size_t bytesToPlay = 48000*4*20;    /* 48 kHz, 4 bytes/sample, 20 seconds */
     size_t bytesPlayed=0;
@@ -167,6 +169,20 @@ int main(int argc, char **argv)
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&config);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 ||
+        audioCapabilities.numPlaybacks == 0 ||
+        audioCapabilities.numMixers == 0)
+    {
+        printf("This application is not supported on this platform (requires decoder, playbacks and mixers).\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
+    }
 
     BKNI_CreateEvent(&event);
 
@@ -196,10 +212,10 @@ int main(int argc, char **argv)
     NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(decoder, NEXUS_AudioDecoderConnectorType_eStereo));
 
     /* Connect DAC to mixer */
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
-                               NEXUS_AudioMixer_GetConnector(mixer));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioMixer_GetConnector(mixer));
+    }
     /* Setup transport */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
     /* Map a parser band to the streamer input band. */

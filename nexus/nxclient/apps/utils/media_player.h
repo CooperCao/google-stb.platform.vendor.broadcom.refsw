@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,6 +41,10 @@
 #include "nexus_types.h"
 #if NEXUS_HAS_PLAYBACK
 #include "nexus_playback.h"
+#if NEXUS_HAS_SIMPLE_DECODER
+#else
+typedef unsigned NEXUS_SimpleStcChannelSyncMode;
+#endif
 #else
 typedef unsigned NEXUS_PlaybackLoopMode;
 typedef unsigned NEXUS_PlaybackSettings;
@@ -48,6 +52,7 @@ typedef unsigned NEXUS_PlaybackStatus;
 typedef unsigned NEXUS_AudioDecoderDolbyDrcMode;
 typedef unsigned NEXUS_SimpleStcChannelSyncMode;
 typedef void *NEXUS_SimpleVideoDecoderHandle;
+typedef unsigned NEXUS_VideoDecoderScanMode;
 #endif
 #include "dvr_crypto.h"
 #include "nxclient.h"
@@ -128,6 +133,7 @@ typedef struct media_player_start_settings
     bool stcTrick;
     unsigned dqtFrameReverse;
     bool pacing;
+    bool chunked;
     enum {
         source3d_none, /* 2D or force 2D for MVC */
         source3d_lr,
@@ -259,6 +265,11 @@ int media_player_frame_advance(
 Summary:
 **/
 int media_player_get_playback_status( media_player_t handle, NEXUS_PlaybackStatus *pstatus );
+
+/**
+Summary:
+**/
+void media_player_get_trick_mode( media_player_t handle, NEXUS_PlaybackTrickModeSettings *trickMode );
 
 /**
 Summary:

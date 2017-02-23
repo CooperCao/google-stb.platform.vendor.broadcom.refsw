@@ -344,6 +344,75 @@ static void NEXUS_Frontend_P_3158_IsrEvent(void *pParam)
     }
 }
 
+static unsigned NEXUS_FrontendDevice_P_3158_GetChipRev(NEXUS_3158Device *pDevice)
+{
+    unsigned rc = 0;
+    unsigned rev = 0;
+
+    if (pDevice->openSettings.i2cDevice) {
+        BREG_I2C_Handle i2cHandle;
+        uint8_t buf[5];
+        uint8_t subAddr;
+
+        i2cHandle = NEXUS_I2c_GetRegHandle(pDevice->openSettings.i2cDevice, NULL);
+        buf[0]= 0x0;
+        subAddr = 0x4;
+        BREG_I2C_WriteNoAddr(i2cHandle, pDevice->openSettings.i2cAddress, (uint8_t *)&subAddr, 1);
+        BREG_I2C_ReadNoAddr(i2cHandle, pDevice->openSettings.i2cAddress, buf, 1);
+        rc = buf[0];
+    }
+#if NEXUS_HAS_SPI
+#define NUM_SPI_BYTES 8
+#define NUM_SPI_ADDRESSES 1
+    else if (pDevice->openSettings.spiDevice) {
+        uint8_t wData[2], rData[NUM_SPI_BYTES];
+        NEXUS_Error rc;
+        uint8_t spiAddr[NUM_SPI_ADDRESSES] = { 0x20 };
+        unsigned i = 0;
+
+        while (i < NUM_SPI_ADDRESSES && (rev == 0 || rev == 0xFFFF)) {
+
+            wData[0] = spiAddr[i]<<1;
+            wData[1] = 0x00;
+#if DEBUG_SPI_READS
+            {
+                int i;
+                for (i=0; i < 2; i++) {
+                    BDBG_MSG(("wData[%d]: 0x%02x",i,wData[i]));
+                }
+            }
+#endif
+
+            rc = NEXUS_Spi_Read(pDevice->openSettings.spiDevice, wData, rData, NUM_SPI_BYTES);
+            if(rc) {rc = BERR_TRACE(rc);}
+
+#if DEBUG_SPI_READS
+            {
+                int i;
+                for (i=0; i < NUM_SPI_BYTES; i++) {
+                    BDBG_MSG(("rData[%d]: 0x%02x",i,rData[i]));
+                }
+            }
+#endif
+
+            rev = rData[6];
+
+            i++;
+        }
+    }
+#endif
+
+    if (rev == 0x10)
+        rc = 0xB0;
+    else if (rev == 0x01)
+        rc = 0xA0;
+    else
+        BDBG_WRN(("Unrecognized 3158 revision (%X)...", rev));
+
+    return rc;
+}
+
+
 static NEXUS_Error NEXUS_Frontend_P_3158_WriteRegister(void *handle, unsigned address, uint32_t value)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
@@ -1987,6 +2056,30 @@ NEXUS_Error NEXUS_FrontendDevice_P_3158_InitAp(NEXUS_FrontendDeviceHandle device
         BSTD_UNUSED(fw);
         fw_image = bcm3158_leap_image;
 #endif
+
+        {
+            unsigned magic;
+            unsigned family;
+            unsigned chip;
+            unsigned rev;
+            unsigned probedRev;
+
+            magic  = (fw_image[ 0] << 24) + (fw_image[ 1] << 16) + (fw_image[ 2] << 8) + (fw_image[ 3]);
+            family = (fw_image[36] << 24) + (fw_image[37] << 16) + (fw_image[38] << 8) + (fw_image[39]);
+            chip   = (fw_image[40] << 24) + (fw_image[41] << 16) + (fw_image[42] << 8) + (fw_image[43]);
+            rev    = (fw_image[44] << 24) + (fw_image[45] << 16) + (fw_image[46] << 8) + (fw_image[47]);
+
+            if ((magic != 0xaaaaaaaa) || (family != 0x3158) || (chip != 0x3158)) {
+                BDBG_WRN(("Possible 3158 firmware corruption, expected values not matched."));
+            }
+            probedRev = NEXUS_FrontendDevice_P_3158_GetChipRev(pDevice);
+            if (probedRev != 0x00000000) {
+                if (probedRev != rev) {
+                    BDBG_WRN(("Chip revision does not match firmware revision. Does NEXUS_FRONTEND_3158_VER=%X need to be set?", probedRev));
+                }
+            }
+        }
+
         BDBG_MSG(("BHAB_InitAp"));
         rc = BHAB_InitAp(pDevice->hab, fw_image);
         BDBG_MSG(("...done BHAB_InitAp"));
@@ -2225,6 +2318,7 @@ static void NEXUS_Frontend_P_Uninit3158(NEXUS_3158Device *pDevice, bool uninitHa
             BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
             pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
         }
+        BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
     }
 #endif
     if (uninitHab && pDevice->hab) {
@@ -2242,9 +2336,11 @@ void NEXUS_FrontendDevice_P_3158_S3Standby(NEXUS_3158Device *pDevice, bool unini
     BHAB_3158_StandbySettings standbySettings;
     NEXUS_Frontend_P_Uninit3158(pDevice, uninitHab);
 
-    BHAB_3158_P_GetStandbySettings(pDevice->hab, &standbySettings);
-    standbySettings.mode = BHAB_3158_StandbyMode_eDeepSleep;
-    BHAB_3158_P_SetStandbySettings(pDevice->hab, &standbySettings);
+    if (pDevice->hab) {
+        BHAB_3158_P_GetStandbySettings(pDevice->hab, &standbySettings);
+        standbySettings.mode = BHAB_3158_StandbyMode_eDeepSleep;
+        BHAB_3158_P_SetStandbySettings(pDevice->hab, &standbySettings);
+    }
 }
 
 static NEXUS_Error NEXUS_Frontend_P_3158_RestoreCallbacks(NEXUS_3158Device *pDevice) {
@@ -2294,7 +2390,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3158_Standby(void *handle, const NEXUS
 
         BDBG_MSG(("NEXUS_FrontendDevice_P_3158_Standby: Entering deep sleep..."));
 
-        NEXUS_FrontendDevice_P_3158_S3Standby(pDevice, false);
+        NEXUS_FrontendDevice_P_3158_S3Standby(pDevice, !pDevice->wakeupSettings.enabled);
 
         BKNI_EnterCriticalSection();
         pDevice->pGenericDeviceHandle->openPending = true;
@@ -2306,7 +2402,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3158_Standby(void *handle, const NEXUS
 
         BDBG_MSG(("NEXUS_FrontendDevice_P_3158_Standby: Waking up..."));
 
-        {
+        if (pDevice->hab) {
             BHAB_3158_StandbySettings standbySettings;
             BHAB_3158_P_GetStandbySettings(pDevice->hab, &standbySettings);
             standbySettings.mode = BHAB_3158_StandbyMode_eOn;
@@ -2314,7 +2410,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3158_Standby(void *handle, const NEXUS
         }
 
         BDBG_MSG(("NEXUS_FrontendDevice_P_3158_Standby: reinitializing..."));
-        rc = NEXUS_FrontendDevice_P_Init3158(pDevice, false);
+        rc = NEXUS_FrontendDevice_P_Init3158(pDevice, !pDevice->wakeupSettings.enabled);
         if (rc) { rc = BERR_TRACE(rc); goto done;}
 
         NEXUS_Frontend_P_3158_RestoreCallbacks(pDevice);

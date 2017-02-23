@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform (private)
 *    Common part of all kernel drivers
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -55,7 +47,6 @@
 #include "nexus_types.h"
 #include "nexus_memory.h"
 #include "nexus_base_ioctl.h"
-#include "priv/nexus_core_driver.h"
 #include "nexus_platform_client.h"
 #include "bkni.h"
 #include "b_objdb.h"
@@ -113,8 +104,11 @@ struct nexus_driver_module_driver_state {
     char process_name[NEXUS_MAX_PROCESS_NAME];
 };
 
+#if !defined(NEXUS_ABICOMPAT_MODE)
 void nexus_driver_send_addr(void **paddr); /* inplace convert address from virtual to physical */
 void nexus_driver_recv_addr_cached(void **paddr); /* inplace convert address from physical to virtual */
+#endif
+
 void nexus_driver_free(void *addr); /* special version of BKNI_Free which is safe to use for free NULL pointer */
 
 /* nexus_driver_callbacks */

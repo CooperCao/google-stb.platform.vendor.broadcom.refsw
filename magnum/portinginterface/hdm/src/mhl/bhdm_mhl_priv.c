@@ -2231,7 +2231,8 @@ BERR_Code BHDM_MHL_P_OpenMhl
 #if BCHP_MPM_CPU_CTRL_STATUS_STRAP_MHL_POWERUP_MASK
     hHdm->bMhlMode = (BCHP_GET_FIELD_DATA(ulData, MPM_CPU_CTRL_STATUS, STRAP_MHL_POWERUP)) ? true : false;
 #else
-    hHdm->bMhlMode = (BCHP_GET_FIELD_DATA(ulData, MPM_CPU_CTRL_STATUS, STRAP_POWERUP_IN_S3)) ? true : false;
+    hHdm->bMhlMode = (BCHP_GET_FIELD_DATA(ulData, MPM_CPU_CTRL_STATUS, STRAP_POWERUP_IN_S3) &&
+                      (BCHP_GET_FIELD_DATA(ulData, MPM_CPU_CTRL_STATUS, STRAP_MPM_RUNMODE_0)==0)) ? true : false;
 #endif
 #endif
 

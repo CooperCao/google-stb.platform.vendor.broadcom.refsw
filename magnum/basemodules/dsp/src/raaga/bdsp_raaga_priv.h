@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -44,10 +41,8 @@
 #define BDSP_RAAGA_PRIV_H_
 
 #include "bdsp.h"
-#include "../src/bdsp_priv.h" /* FIXME: Remove the priv file dependency */
 #include "bdsp_raaga.h"
 #include "blst_slist.h"
-#include "bdsp_raaga_img.h"
 #include "bdsp_raaga_fw.h"
 #include "bdsp_raaga_types.h"
 #include "bdsp_raaga_fwinterface_priv.h"
@@ -152,7 +147,7 @@ typedef enum BDSP_P_RbufType
 
 typedef struct BDSP_P_RbufCapture
 {
-    uint8_t (*rbuf_init)(BREG_Handle hRegister, BMEM_Handle hMem);
+    uint8_t (*rbuf_init)(BREG_Handle hRegister, BMMA_Heap_Handle hMem);
     uint8_t (*rbuf_uninit)(void);
     uint8_t (*rbuf_capture_channel_start)(uint32_t ui32Channel, uint32_t ui32Path, uint32_t ui32RbufId, BDSP_P_RbufType eRbufType);
     uint8_t (*rbuf_capture_stop_channel)(uint32_t ui32Channel, uint32_t ui32Path, uint32_t ui32RbufId, BDSP_P_RbufType eRbufType);
@@ -218,7 +213,7 @@ typedef struct BDSP_Raaga
     BDSP_RaagaSettings settings;
     BCHP_Handle chpHandle;
     BREG_Handle regHandle;
-    BMEM_Handle memHandle;
+    BMMA_Heap_Handle memHandle;
     BINT_Handle intHandle;
     BBOX_Handle boxHandle;
     uint32_t dspOffset[BDSP_RAAGA_MAX_DSP];
@@ -226,9 +221,8 @@ typedef struct BDSP_Raaga
     BDSP_Raaga_P_DPM dpmInfo;
 
     void *pFwHeapMemory;
+    dramaddr_t FwHeapOffset;
     size_t fwHeapSize;
-    BMEM_ModuleHandle hFwMemModule;
-    BMEM_Handle hFwHeap;
     BDSP_RaagaImgCacheEntry imgCache[BDSP_IMG_ID_MAX];
     BDSP_Raaga_P_MemoryGrant memInfo;
 
@@ -317,7 +311,7 @@ typedef struct BDSP_Raaga_P_TaskCallBacks
     BDSP_Raaga_P_TaskMemoryInfo taskMemGrants;                  /* Memory for contiguous Async Msgs */
     uint32_t        eventEnabledMask;  /* Contains information abt. event ids already enabled */
     BDSP_TaskSchedulingMode schedulingMode;
-    void                                *pFeedbackBuffer;               /* Feedback buffer between Tasks(Master writes-Slaves read) */
+    BDSP_MMA_Memory                  FeedbackBuffer;                /* Feedback buffer between Tasks(Master writes-Slaves read) */
     BDSP_Raaga_P_MsgQueueHandle      hPDQueue;      /* Picture Delivery queue(PDQ)*/
     BDSP_Raaga_P_MsgQueueHandle      hPRQueue;      /* Picture Release queue(PRQ)*/
     BDSP_Raaga_P_MsgQueueHandle      hDSQueue;      /* Display queue(DSQ)*/
@@ -328,6 +322,7 @@ typedef struct BDSP_Raaga_P_TaskCallBacks
 /* PAUSE-UNPAUSE */
     bool frozen;
 /* PAUSE-UNPAUSE */
+	BDSP_AF_P_eSchedulingGroup 		 eSchedulingGroup; /* Scheduling Group*/
 } BDSP_RaagaTask;
 
 /***************************************************************************
@@ -342,8 +337,10 @@ typedef struct BDSP_RaagaCapturePointerInfo
 
     BDSP_AF_P_CIRCULAR_BUFFER captureBufferPtr; /* Structure containing the pointers to the intermediate
                                                     buffer into which the captured data is written */
-    uint32_t shadowRead; /* The shadow read pointer for the output buffer */
-    uint32_t lastWrite; /* The last value of the write pointer; will be used for capture error detection*/
+    dramaddr_t shadowRead; /* The shadow read pointer for the output buffer */
+    dramaddr_t lastWrite; /* The last value of the write pointer; will be used for capture error detection*/
+    BDSP_MMA_Memory CaptureBufferMemory;
+	BDSP_MMA_Memory OutputBufferMemory;
 } BDSP_RaagaCapturePointerInfo;
 
 struct BDSP_RaagaStage;
@@ -358,9 +355,7 @@ typedef struct BDSP_RaagaCapture
     BDSP_Raaga      *pDevice;
 
     BLST_S_ENTRY(BDSP_RaagaCapture) node;
-
-    BMEM_Handle     hHeap; /* Heap from which the capture buffers need to be allocated */
-
+    BMMA_Heap_Handle hHeap; /* Heap from which the capture buffers need to be allocated */
     BDSP_AF_P_BufferType eBuffType; /* The buffer type of the the output buffer (RAVE, FMM, DRAM etc ...) */
     bool updateRead; /* If true then the read pointers of the output buffer are updated in the capture
                           thread. This can be set to true when there is not consumer for the output data */
@@ -369,7 +364,7 @@ typedef struct BDSP_RaagaCapture
     uint8_t maxBuffers; /* Maximum number of buffers */
 
     bool StartCapture;
-
+    BDSP_MMA_Memory captureBuffer;
     BDSP_RaagaCapturePointerInfo capPtrs[BDSP_AF_P_MAX_CHANNELS]; /* Capture pointer info for all the output capture ports */
 } BDSP_RaagaCapture;
 
@@ -393,16 +388,14 @@ typedef struct BDSP_RaagaStage
     unsigned ui32BranchId;/*stores the branch information during traversing; can be used for filling in node network*/
 
     /*Alloc these buffers during Stage create*/
-    BDSP_AF_P_sDRAM_BUFFER_isr   sDramUserConfigBuffer;
-    BDSP_AF_P_sDRAM_BUFFER       sDramInterFrameBuffer;
-    BDSP_AF_P_sDRAM_BUFFER_isr   sDramStatusBuffer;
-
+    BDSP_P_FwBuffer  sDramUserConfigBuffer;
+    BDSP_P_FwBuffer  sDramInterFrameBuffer;
+    BDSP_P_FwBuffer  sDramStatusBuffer;
     /* The offsets to the interframe, status and user cfg buffer for the framsync node */
     BDSP_P_AlgoBufferOffsets     sFrameSyncOffset;
 
     /* Extra buffer to on-the-fly program cfg params */
-    BDSP_AF_P_sDRAM_BUFFER_isr   sDramUserConfigSpareBuffer;
-
+    BDSP_P_FwBuffer  sDramUserConfigSpareBuffer;
     unsigned                     totalInputs;
     unsigned                     totalOutputs; /* Outputs of any type */
     unsigned                     numOutputs[BDSP_ConnectionType_eMax]; /* Outputs of each particular type */
@@ -523,9 +516,8 @@ void BDSP_Raaga_P_GetDefaultTaskStartSettings(
     );
 
 void BDSP_Raaga_P_GetAlgorithmDefaultSettings(
-    void *pDeviceHandle,
     BDSP_Algorithm algorithm,
-    void *pSettingsBuffer,        /* [out] */
+    BDSP_MMA_Memory *pMemory,           /* [out] */
     size_t settingsBufferSize
     );
 
@@ -625,10 +617,7 @@ BERR_Code BDSP_Raaga_P_AddInterTaskBufferOutput(
     const BDSP_InterTaskBuffer *pBufferHandle,
     unsigned *pOutputIndex);
 
-BERR_Code BDSP_Raaga_P_SendCitReconfigCommand(
-    BDSP_RaagaTask *pRaagaTask,
-    BDSP_AF_P_sTASK_CONFIG  *psWorkingTaskCitBuffAddr
-    );
+BERR_Code BDSP_Raaga_P_SendCitReconfigCommand(BDSP_RaagaTask *pRaagaTask);
 
 BERR_Code BDSP_Raaga_P_GetDatasyncSettings(
     void *pStageHandle,
@@ -699,7 +688,6 @@ BERR_Code BDSP_Raaga_P_AddQueueOutput(
                                     );
 BERR_Code BDSP_Raaga_P_CreateMsgQueueHandle(
                                     BDSP_Raaga_P_MsgQueueParams     *psMsgQueueParams,  /* [in]*/
-                                    BMEM_Handle                      hHeap,             /* [in] */
                                     BREG_Handle                      hRegister,         /* [in] */
                                     uint32_t                         ui32DspOffset,     /* [in] */
                                     BDSP_Raaga_P_MsgQueueHandle     *hMsgQueue,         /* [out]*/
@@ -749,7 +737,7 @@ BERR_Code BDSP_Raaga_P_GetPictureCount_isr(
 BERR_Code BDSP_Raaga_P_PeekAtPicture_isr(
     void *pTaskHandle,
     unsigned index,
-    uint32_t **pUnifiedPicture);
+    dramaddr_t **pUnifiedPicture);
 
 BERR_Code BDSP_Raaga_P_GetNextPicture_isr(
     void *pTaskHandle,
@@ -1042,6 +1030,14 @@ BERR_Code BDSP_Raaga_P_UnFreeze(
 void BDSP_Raaga_P_InitDeviceSettings(
     void * pDeviceHandle
     );
+
+#if (BCHP_CHIP == 7278)
+BERR_Code BDSP_Raaga_P_PrepareInitProcessCmd(
+        void *pDeviceHandle,
+        BDSP_Raaga_P_Command *sCommand,
+        int32_t i32DspIndex
+    );
+#endif
 
 /* PAUSE-UNPAUSE */
 

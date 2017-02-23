@@ -701,6 +701,18 @@ typedef enum NEXUS_SecurityCustomerMode {
     NEXUS_SecurityCustomerMode_eDvbCsa
 } NEXUS_SecurityCustomerMode;
 
+
+typedef enum NEXUS_SecurityFirmwareType{
+    NEXUS_SecurityFirmwareType_eTransport,      /* RAVE */
+    NEXUS_SecurityFirmwareType_eVideoDecoder,   /* HVD */
+    NEXUS_SecurityFirmwareType_eAudioDecoder,   /* RAAGA */
+    NEXUS_SecurityFirmwareType_ePictureDecoder, /* SID */
+    NEXUS_SecurityFirmwareType_eVideoEncoder,   /* VCE */
+    NEXUS_SecurityFirmwareType_eMax
+}NEXUS_SecurityFirmwareType;
+
+
+
 /**
 Summary:
 Settings used to configure the Security module.
@@ -722,6 +734,9 @@ typedef struct NEXUS_SecurityModuleSettings
         bool valid;
         uint8_t data[NEXUS_SECURITY_IP_LICENCE_SIZE];
     }ipLicense;
+
+    bool enforceAuthentication[NEXUS_SecurityFirmwareType_eMax];
+
 } NEXUS_SecurityModuleSettings;
 
 

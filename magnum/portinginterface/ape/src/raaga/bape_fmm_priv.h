@@ -373,11 +373,13 @@ typedef struct BAPE_SfifoGroupSettings
     unsigned defaultSampleRate; /* Expected sample rate - can be overridden later by BAPE_SfifoGroup_P_SetSampleRate_isr */
     struct
     {
-        uint32_t base;          /* Base offset of the buffer */
-        uint32_t length;        /* Length of the buffer in bytes */
-        uint32_t writeOffset;   /* Initial write pointer value will be base+writeOffset */
-        uint32_t watermark;     /* Watermark interrupt threshold in bytes */
-        uint32_t wrpoint;       /* Start write point (ignored unless wrpointEnabled is true) */
+        BMMA_Block_Handle block;/* BMMA block */
+        void* pBuffer;          /* cached buffer */
+        BMMA_DeviceOffset base; /* Base offset of the buffer */
+        unsigned length;        /* Length of the buffer in bytes */
+        BMMA_DeviceOffset writeOffset;   /* Initial write pointer value will be base+writeOffset */
+        unsigned watermark;     /* Watermark interrupt threshold in bytes */
+        BMMA_DeviceOffset wrpoint;       /* Start write point (ignored unless wrpointEnabled is true) */
     } bufferInfo[BAPE_Channel_eMax];
 } BAPE_SfifoGroupSettings;
 
@@ -505,7 +507,7 @@ void BAPE_SfifoGroup_P_GetReadAddress(
     BAPE_SfifoGroupHandle handle,
     unsigned chPair,       /*0,1,2,3*/
     unsigned bufferNum,     /*0,1*/
-    uint32_t *pReadPtr
+    BMMA_DeviceOffset *pReadPtr
     );
 
 /***************************************************************************
@@ -603,9 +605,11 @@ typedef struct BAPE_DfifoGroupSettings
     unsigned dataWidth;                 /* Data width in bits.  32 is supported on all platforms, 16 if BAPE_CHIP_DFIFO_SUPPORTS_16BIT_CAPTURE is defined to 1 */
     struct
     {
-        uint32_t base;                  /* Base offset of the buffer */
-        uint32_t length;                /* Length of the buffer in bytes */
-        uint32_t watermark;             /* Watermark interrupt threshold in bytes */
+        BMMA_Block_Handle block;        /* BMMA block */
+        void* pBuffer;                  /* cached buffer */
+        BMMA_DeviceOffset base;         /* Base offset of the buffer */
+        unsigned length;                /* Length of the buffer in bytes */
+        unsigned watermark;             /* Watermark interrupt threshold in bytes */
     } bufferInfo[BAPE_Channel_eMax];
 } BAPE_DfifoGroupSettings;
 

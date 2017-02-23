@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -188,6 +188,21 @@ typedef enum NEXUS_AudioAc3Acmod
     NEXUS_AudioAc3Acmod_eFourChannel_3_1_L_C_R_S,
     NEXUS_AudioAc3Acmod_eFourChannel_2_2_L_R_SL_SR,
     NEXUS_AudioAc3Acmod_eFiveChannel_3_2_L_C_R_SL_SR,
+    NEXUS_AudioAc3Acmod_eFourChannel_4_0_L_C_R_CVH,
+    NEXUS_AudioAc3Acmod_eFiveChannel_2_3_L_R_LS_RS_TS,
+    NEXUS_AudioAc3Acmod_eSixChannel_3_3_L_R_C_LS_RS_TS,
+    NEXUS_AudioAc3Acmod_eSixChannel_4_2_L_R_C_LS_RS_CVH,
+    NEXUS_AudioAc3Acmod_eFiveChannel_5_0_L_R_C_LC_RC,
+    NEXUS_AudioAc3Acmod_eSixChannel_2_4_L_R_LS_RS_LW_RW,
+    NEXUS_AudioAc3Acmod_eSixChannel_4_2_L_R_LS_RS_LVH_RVH,
+    NEXUS_AudioAc3Acmod_eSixChannel_2_4_L_R_LS_RS_LSD_RSD,
+    NEXUS_AudioAc3Acmod_eSixChannel_2_4_L_R_LS_RS_LRS_RRS,
+    NEXUS_AudioAc3Acmod_eSevenChannel_5_2_L_R_C_LS_RS_LC_RC,
+    NEXUS_AudioAc3Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LW_RW,
+    NEXUS_AudioAc3Acmod_eSevenChannel_5_2_L_R_C_LS_RS_LVH_RVH,
+    NEXUS_AudioAc3Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LSD_RSD,
+    NEXUS_AudioAc3Acmod_eSevenChannel_3_4_L_R_C_LS_RS_LRS_RRS,
+    NEXUS_AudioAc3Acmod_eSevenChannel_4_3_L_R_C_LS_RS_TS_CVH,
     NEXUS_AudioAc3Acmod_eMax
 } NEXUS_AudioAc3Acmod;
 
@@ -464,6 +479,7 @@ Audio decoder status
 ***************************************************************************/
 typedef struct NEXUS_AudioDecoderStatus
 {
+    bool valid; /* true successfully acquired decoder status */
     bool    started; /* true if decoder was started */
 
     bool tsm;        /* AudioDecoder is in TSM (time stamp managed) mode. TSM may be not applicable (e.g. ES streams), may be disabled directly

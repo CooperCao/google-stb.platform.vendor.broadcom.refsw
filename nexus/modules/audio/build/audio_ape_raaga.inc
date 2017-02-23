@@ -1,5 +1,5 @@
 ##############################################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,6 +59,7 @@ NEXUS_AUDIO_MAGNUM_MODULES = \
 
 NEXUS_FW_SIGN_MODULES += BDSP
 
+ifneq ($(BAPE_DSP_SUPPORT),n)
 #####################
 # Module Extensions #
 #####################
@@ -74,4 +75,4 @@ endif
 ifeq ($(BDSP_ENCODER_SUPPORT),y)
 include $(NEXUS_TOP)/extensions/audio/dsp_video_encoder/dsp_video_encoder.inc
 endif
-
+endif

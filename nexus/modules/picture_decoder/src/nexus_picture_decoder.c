@@ -364,7 +364,7 @@ NEXUS_PictureDecoder_P_Callback_isr(BSID_ChannelHandle hSid, const BSID_EventInf
 }
 
 
-void NEXUS_PictureDecoder_P_ProcessSidError( NEXUS_PictureDecoderHandle decoder ) {
+static void NEXUS_PictureDecoder_P_ProcessSidError( NEXUS_PictureDecoderHandle decoder ) {
 
     unsigned imgIdx = 0;
     const char imageType[][6] = { "UKWN" , "JPEG" , "PNG " , "GIF " , "RLE " };
@@ -680,7 +680,7 @@ NEXUS_PictureDecoder_P_WatchdogHandler(void *cntx)
 }
 
 
-NEXUS_Error
+static NEXUS_Error
 NEXUS_PictureDecoder_P_ParseHeader(NEXUS_PictureDecoderHandle decoder)
 {
     BSID_StartDecodeSettings startDecodeSettings;

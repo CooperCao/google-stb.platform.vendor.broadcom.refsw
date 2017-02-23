@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -242,6 +242,7 @@ NEXUS_Error NEXUS_Frontend_RequestDvbt2AsyncStatus(
         return handle->requestDvbt2AsyncStatus(handle->pDeviceHandle, type);
     }
 }
+
 /***************************************************************************
 Summary:
     Get the dvbt2 asynchronous status ready type.
@@ -273,27 +274,28 @@ NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncStatusReady(
         return handle->getDvbt2AsyncStatusReady(handle->pDeviceHandle, pAsyncStatusReady);
     }
 }
+
 /***************************************************************************
 Summary:
-    Get the dvbt2 asynchronous status.
+    Get the dvbt2 asynchronous FEC statisitics
  ***************************************************************************/
-NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncStatus(
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncFecStatistics (
     NEXUS_FrontendHandle handle,
-    NEXUS_FrontendDvbt2StatusType type, 
-    NEXUS_FrontendDvbt2Status *pStatus
+    NEXUS_FrontendDvbt2StatusType type,
+    NEXUS_FrontendDvbt2FecStatistics *pStatistics /* [out] */
     )
 {
-    BDBG_ASSERT(NULL != handle);
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
 
     if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
     }
 
-    if ( NULL == handle->getDvbt2AsyncStatus )
+    if ( NULL == handle->getDvbt2AsyncFecStatistics )
     {
         if ( handle->pParentFrontend )
         {
-            return NEXUS_Frontend_GetDvbt2AsyncStatus(handle->pParentFrontend, type, pStatus);
+            return NEXUS_Frontend_GetDvbt2AsyncFecStatistics(handle->pParentFrontend, type, pStatistics);
         }
         else
         {
@@ -302,7 +304,167 @@ NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncStatus(
     }
     else
     {
-        return handle->getDvbt2AsyncStatus(handle->pDeviceHandle, type, pStatus);
+        return handle->getDvbt2AsyncFecStatistics(handle->pDeviceHandle, type, pStatistics);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 asynchronous L1 PRE status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncL1PreStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PreStatus   *pStatus
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbt2AsyncL1PreStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbt2AsyncL1PreStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbt2AsyncL1PreStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 L1 asynchronous Post Configurable status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncL1PostConfigurableStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PostConfigurableStatus *pStatus   /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbt2AsyncL1PostConfigurableStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbt2AsyncL1PostConfigurableStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbt2AsyncL1PostConfigurableStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 asynchronous Post Dynamic status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncPostDynamicStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PostDynamicStatus *pStatus   /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbt2AsyncPostDynamicStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbt2AsyncPostDynamicStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbt2AsyncPostDynamicStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 asynchronous L1 PLP status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncL1PlpStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PlpStatus *pStatus   /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbt2AsyncL1PlpStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbt2AsyncL1PlpStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbt2AsyncL1PlpStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 asynchronous basic status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncBasicStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2BasicStatus *pStatus
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbt2AsyncBasicStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbt2AsyncBasicStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbt2AsyncBasicStatus(handle->pDeviceHandle, pStatus);
     }
 }
 
@@ -368,27 +530,28 @@ NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncStatusReady(
         return handle->getDvbc2AsyncStatusReady(handle->pDeviceHandle, pAsyncStatusReady);
     }
 }
+
 /***************************************************************************
 Summary:
-    Get the dvbc2 asynchronous status.
+    Get the dvbc2 asynchronous FEC statistics
  ***************************************************************************/
-NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncStatus(
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncFecStatistics (
     NEXUS_FrontendHandle handle,
-    NEXUS_FrontendDvbc2StatusType type, 
-    NEXUS_FrontendDvbc2Status *pStatus
+    NEXUS_FrontendDvbc2StatusType type,
+    NEXUS_FrontendDvbc2FecStatistics *pStatistics /* [out] */
     )
 {
-    BDBG_ASSERT(NULL != handle);
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
 
     if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
         return BERR_TRACE(NEXUS_NOT_INITIALIZED);
     }
 
-    if ( NULL == handle->getDvbc2AsyncStatus )
+    if ( NULL == handle->getDvbc2AsyncFecStatistics )
     {
         if ( handle->pParentFrontend )
         {
-            return NEXUS_Frontend_GetDvbc2AsyncStatus(handle->pParentFrontend, type, pStatus);
+            return NEXUS_Frontend_GetDvbc2AsyncFecStatistics(handle->pParentFrontend, type, pStatistics);
         }
         else
         {
@@ -397,7 +560,167 @@ NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncStatus(
     }
     else
     {
-        return handle->getDvbc2AsyncStatus(handle->pDeviceHandle, type, pStatus);
+        return handle->getDvbc2AsyncFecStatistics (handle->pDeviceHandle, type, pStatistics);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbc2 asynchronous L1 Part2 asynchronous status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1Part2Status(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1Part2Status   *pStatus
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbc2AsyncL1Part2Status )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbc2AsyncL1Part2Status(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbc2AsyncL1Part2Status(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbc2 asynchronous L1 Dslice asynchronous status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1DsliceStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1DsliceStatus *pStatus   /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbc2AsyncL1DsliceStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbc2AsyncL1DsliceStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbc2AsyncL1DsliceStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbc2 asynchronous L1 Notch asynchronous status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1NotchStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1NotchStatus *pStatus   /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbc2AsyncL1NotchStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbc2AsyncL1NotchStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbc2AsyncL1NotchStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 asynchronous L1 PLP status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1PlpStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1PlpStatus *pStatus   /* [out] */
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbc2AsyncL1PlpStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbc2AsyncL1PlpStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbc2AsyncL1PlpStatus(handle->pDeviceHandle, pStatus);
+    }
+}
+
+/***************************************************************************
+Summary:
+    Get the dvbt2 asynchronous basic status
+ ***************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncBasicStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2BasicStatus *pStatus
+    )
+{
+    BDBG_OBJECT_ASSERT(handle, NEXUS_Frontend);
+
+    if(NEXUS_Frontend_P_CheckDeviceOpen(handle)){
+        return BERR_TRACE(NEXUS_NOT_INITIALIZED);
+    }
+
+    if ( NULL == handle->getDvbc2AsyncBasicStatus )
+    {
+        if ( handle->pParentFrontend )
+        {
+            return NEXUS_Frontend_GetDvbc2AsyncBasicStatus(handle->pParentFrontend, pStatus);
+        }
+        else
+        {
+            return BERR_TRACE(BERR_NOT_SUPPORTED);
+        }
+    }
+    else
+    {
+        return handle->getDvbc2AsyncBasicStatus(handle->pDeviceHandle, pStatus);
     }
 }
 

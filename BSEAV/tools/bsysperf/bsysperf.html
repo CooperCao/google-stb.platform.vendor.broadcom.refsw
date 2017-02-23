@@ -1,44 +1,43 @@
 <meta charset="utf-8"/>
 <!--
- * (c) 2014 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 -->
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>Broadcom System Performance</title>
@@ -121,7 +120,7 @@
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
-<tr id=row_DvfsControl style="visibility:display;" ><th align=left valign=top id=DvfsControl colspan=2 >DVFS goes here</th></tr>
+<tr id=row_DvfsControl style="visibility:display;" ><th align=left valign=top id=DvfsControl colspan=2 ></th></tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
@@ -133,6 +132,7 @@
     <tr><th align=left valign=top id=NETSTATS  ></th></tr>
     <tr id=row_netgfx_all style="visibility:hidden;" ><th align=left valign=top id=th_netgfx ></th></tr>
     <tr id=row_iperf_client_server ><th align=left valign=top id=iperfInit ></th></tr>
+    <tr id=row_NetTuning           ><th align=left valign=top id=NetTuning ></th></tr>
     </table></td>
 </tr>
 
@@ -187,4 +187,5 @@
 </table>
 <textarea id=debugoutputbox rows=200 cols=150 readonly style="visibility:hidden;border:solid 1px black;" ></textarea>
 <div id="popupdiv" style="display:none;position:absolute;left=100px;top=100px;border:2px solid gray;background:lightyellow;opacity:0.9;filter:alpha(opacity=60);" class=popupdiv ></div>
+<div id=value_popup style="display:none;position:absolute;visibility:hidden;border:solid 1ps black;background-color:lightgray;width:70px;height:20px;-moz-border-radius:5px;border-radius:5px;" ></div>
 </body></html>

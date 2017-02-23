@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,27 +49,30 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyUp).s(), "eNotify_KeyUp")              
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyDown).s(), "eNotify_KeyDown")               /* keypress - key pressed down */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VirtualKeyDown).s(), "eNotify_VirtualKeyDown") /* keypress - virtual key pressed down */
 
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_Tune).s(), "eNotify_Tune")                                         /* command  - tune */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChUp).s(), "eNotify_ChUp")                                         /* command  - change channel up */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChDown).s(), "eNotify_ChDown")                                     /* command  - change channel down */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStart).s(), "eNotify_ScanStart")                               /* command  - start channel scan */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStop).s(), "eNotify_ScanStop")                                 /* command  - stop channel scan */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackListDump).s(), "eNotify_PlaybackListDump")                 /* command  - dump playback list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStart).s(), "eNotify_PlaybackStart")                       /* command  - start a playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStop).s(), "eNotify_PlaybackStop")                         /* command  - stop a playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackTrickMode).s(), "eNotify_PlaybackTrickMode")               /* command  - do trickmode playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVolume).s(), "eNotify_SetVolume")                               /* command  - change volume level */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMute).s(), "eNotify_SetMute")                                   /* command  - change mute state */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStart).s(), "eNotify_RecordStart")                           /* command  - start a record */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStop).s(), "eNotify_RecordStop")                             /* command  - stop a record */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStart).s(), "eNotify_EncodeStart")                           /* command  - start an encode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStop).s(), "eNotify_EncodeStop")                             /* command  - stop an encode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RefreshPlaybackList).s(), "eNotify_RefreshPlaybackList")           /* command  - stop a playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListLoad).s(), "eNotify_ChannelListLoad")                   /* command  - load channel list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListSave).s(), "eNotify_ChannelListSave")                   /* command  - save channel list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListDump).s(), "eNotify_ChannelListDump")                   /* command  - dump channel list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProgram).s(), "eNotify_SetAudioProgram")                   /* command  - change current audio pid */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProcessing).s(), "eNotify_SetAudioProcessing")             /* command  - change audio processing type*/
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_Tune).s(), "eNotify_Tune")                               /* command  - tune */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChUp).s(), "eNotify_ChUp")                               /* command  - change channel up */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChDown).s(), "eNotify_ChDown")                           /* command  - change channel down */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStart).s(), "eNotify_ScanStart")                     /* command  - start channel scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStop).s(), "eNotify_ScanStop")                       /* command  - stop channel scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackListDump).s(), "eNotify_PlaybackListDump")       /* command  - dump playback list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStart).s(), "eNotify_PlaybackStart")             /* command  - start a playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStop).s(), "eNotify_PlaybackStop")               /* command  - stop a playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackTrickMode).s(), "eNotify_PlaybackTrickMode")     /* command  - do trickmode playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVolume).s(), "eNotify_SetVolume")                     /* command  - change volume level */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMute).s(), "eNotify_SetMute")                         /* command  - change mute state */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStart).s(), "eNotify_RecordStart")                 /* command  - start a record */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStop).s(), "eNotify_RecordStop")                   /* command  - stop a record */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStart).s(), "eNotify_EncodeStart")                 /* command  - start an encode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStop).s(), "eNotify_EncodeStop")                   /* command  - stop an encode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RefreshPlaybackList).s(), "eNotify_RefreshPlaybackList") /* command  - stop a playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListLoad).s(), "eNotify_ChannelListLoad")         /* command  - load channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListSave).s(), "eNotify_ChannelListSave")         /* command  - save channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListDump).s(), "eNotify_ChannelListDump")         /* command  - dump channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProgram).s(), "eNotify_SetAudioProgram")         /* command  - change current audio pid */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProcessing).s(), "eNotify_SetAudioProcessing")   /* command  - change audio processing type*/
+#ifdef CPUTEST_SUPPORT
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetCpuTestLevel).s(), "eNotify_SetCpuTestLevel") /* command  - change cpu test level */
+#endif
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetSpdifInput).s(), "eNotify_SetSpdifInput")                       /* command  - change spdif input type */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetHdmiAudioInput).s(), "eNotify_SetHdmiAudioInput")               /* command  - change hdmi audio input type */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioDownmix).s(), "eNotify_SetAudioDownmix")                   /* command  - change audio downmix */
@@ -79,6 +82,7 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDolbyDialogNorm).s(), "eNotify_SetDolby
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVideoFormat).s(), "eNotify_SetVideoFormat")                     /* command  - change video format and graphics */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetContentMode).s(), "eNotify_SetContentMode")                     /* command  - change video content mode */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetColorSpace).s(), "eNotify_SetColorSpace")                       /* command  - change video colorspace */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetColorDepth).s(), "eNotify_SetColorDepth")                       /* command  - change video color depth for main decoder */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMpaaDecimation).s(), "eNotify_SetMpaaDecimation")               /* command  - change mpaa decimation state */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDeinterlacer).s(), "eNotify_SetDeinterlacer")                   /* command  - change MAD deinterlacer state */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetBoxDetect).s(), "eNotify_SetBoxDetect")                         /* command  - change box detect state */
@@ -154,6 +158,9 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_AudioDecodeStopped).s(), "eNotify_AudioDec
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VideoFormatChanged).s(), "eNotify_VideoFormatChanged")                   /* status   - video format has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ContentModeChanged).s(), "eNotify_ContentModeChanged")                   /* status   - video content mode has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_ColorSpaceChanged).s(), "eNotify_ColorSpaceChanged")                     /* status   - video colorspace has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ColorSpaceFailure).s(), "eNotify_ColorSpaceFailure")                     /* status   - failure changing video colorspace */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ColorDepthChanged).s(), "eNotify_ColorDepthChanged")                     /* status   - video color depth has changed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ColorDepthFailure).s(), "eNotify_ColorDepthFailure")                     /* status   - failure changing video color depth */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_MpaaDecimationChanged).s(), "eNotify_MpaaDecimationChanged")             /* status   - video component mpaa decimation has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_DeinterlacerChanged).s(), "eNotify_DeinterlacerChanged")                 /* status   - video deinterlacer setting has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BoxDetectChanged).s(), "eNotify_BoxDetectChanged")                       /* status   - video box detect setting has changed */
@@ -170,18 +177,23 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_DigitalClosedCaptionChanged).s(), "eNotify
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_Capabilities).s(), "eNotify_Capabilities")                               /* status   - nexus capabilites */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_TunerLockStatus).s(), "eNotify_TunerLockStatus")                         /* status   - tuner lock status has changed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NonTunerLockStatus).s(), "eNotify_NonTunerLockStatus")                   /* status   - non tuner lock status has changed like IP or Streamer */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiRssiResult).s(), "eNotify_NetworkWifiRssiResult")             /* status   - wifi network RSSI status */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStarted).s(), "eNotify_NetworkWifiScanStarted")           /* status   - wifi network scan started */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStopped).s(), "eNotify_NetworkWifiScanStopped")           /* status   - wifi network scan stopped */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanFailure).s(), "eNotify_NetworkWifiScanFailure")             /* status   - wifi network scan failed */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResult).s(), "eNotify_NetworkWifiScanResult")             /* status   - results of wifi network scan are available */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectionStatus).s(), "eNotify_NetworkWifiConnectionStatus") /* status   - wifi network connection status is available */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnected).s(), "eNotify_NetworkWifiConnected")               /* status   - wifi network connected */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailure).s(), "eNotify_NetworkWifiConnectFailure")     /* status   - wifi network connection attempt failure */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureWrongKey).s(), "eNotify_NetworkWifiConnectFailureWrongKey")  /* status   - wifi network connection attempt failture because of incorrect key */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureNetworkNotFound).s(), "eNotify_NetworkWifiConnectFailureNetworkNotFound")  /* status   - wifi network connection attempt failture because of missing network */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureAssocReject).s(), "eNotify_NetworkWifiConnectFailureAssocReject")  /* status   - wifi network connection attempt failture because of a rejected association with AP */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnected).s(), "eNotify_NetworkWifiDisconnected")         /* status   - wifi network disconnected */
+#ifdef CPUTEST_SUPPORT
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_CpuTestStarted).s(), "eNotify_CpuTestStarted") /* status   - cpu stress test started */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_CpuTestStopped).s(), "eNotify_CpuTestStopped") /* status   - cpu stress test stopped */
+#endif
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiRssiResult).s(), "eNotify_NetworkWifiRssiResult")                                       /* status   - wifi network RSSI status */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStarted).s(), "eNotify_NetworkWifiScanStarted")                                     /* status   - wifi network scan started */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStopped).s(), "eNotify_NetworkWifiScanStopped")                                     /* status   - wifi network scan stopped */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanFailure).s(), "eNotify_NetworkWifiScanFailure")                                     /* status   - wifi network scan failed */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResult).s(), "eNotify_NetworkWifiScanResult")                                       /* status   - results of wifi network scan are available */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectionStatus).s(), "eNotify_NetworkWifiConnectionStatus")                           /* status   - wifi network connection status is available */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnected).s(), "eNotify_NetworkWifiConnected")                                         /* status   - wifi network connected */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectAssocStart).s(), "eNotify_NetworkWifiConnectAssocStart")                         /* status   - wifi network connection association with AP started */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailure).s(), "eNotify_NetworkWifiConnectFailure")                               /* status   - wifi network connection attempt failure */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureWrongKey).s(), "eNotify_NetworkWifiConnectFailureWrongKey")               /* status   - wifi network connection attempt failture because of incorrect key */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureNetworkNotFound).s(), "eNotify_NetworkWifiConnectFailureNetworkNotFound") /* status   - wifi network connection attempt failture because of missing network */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailureAssocReject).s(), "eNotify_NetworkWifiConnectFailureAssocReject")         /* status   - wifi network connection attempt failture because of a rejected association with AP */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnected).s(), "eNotify_NetworkWifiDisconnected")                                   /* status   - wifi network disconnected */
 #ifdef WPA_SUPPLICANT_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiListUpdated).s(), "eNotify_NetworkWifiListUpdated") /* status   - updated list currently known wifi networks*/
 #endif

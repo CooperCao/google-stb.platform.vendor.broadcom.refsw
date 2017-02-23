@@ -46,18 +46,6 @@
 extern "C" {
 #endif
 
-/**
-Summary:
-Settings used to identify a client
-**/
-typedef struct NEXUS_ClientAuthenticationSettings
-{
-    NEXUS_Certificate certificate;
-
-    /* TODO: struct {
-    } preferences; */
-} NEXUS_ClientAuthenticationSettings;
-
 typedef struct NEXUS_PlatformObjectInstance {
     bool readOnly; /* set true for handles not owned by this client */
     NEXUS_AnyObject object;

@@ -57,11 +57,14 @@ void args_p_print_usage(ArgsHandle args)
     printf("-gs path    path to directory containing graphics sdr2hdr luma settings\n");
     printf("-vh path    path to directory containing video sdr2hdr luma settings\n");
     printf("-vs path    path to directory containing video hdr2sdr luma settings\n");
+    printf("-vhh path   path to directory containing video hlg2hdr luma settings\n");
     printf("-sc path    path to directory containing scenario files\n");
     printf("-ss path    path to directory containing SDR streams\n");
     printf("-sh path    path to directory containing HDR streams\n");
     printf("-sg path    path to directory containing HLG streams\n");
     printf("-sm path    path to directory containing mixed SDR/HDR streams\n");
+    printf("-cfg path   path to config root directory (contains all cfg files in defined hierarchy)\n");
+    printf("-rc path    path to shared resource root directory (contains streams and images in defined hierarchy)\n");
     printf("-ct color   hex constant specifying text fg color incl alpha, e.g. 0xff000000 is black 100% opaque\n");
     printf("-cm color   hex constant specifying main panel bg color incl alpha\n");
     printf("-cg color   hex constant specifying instruction panel bg color incl alpha\n");
@@ -71,6 +74,34 @@ void args_p_print_usage(ArgsHandle args)
     printf("--demo      run in demo mode, where all settings are reset on each change\n");
 }
 
+static const struct
+{
+    const char * const gfxSdr2HdrPath;
+    const char * const vidSdr2HdrPath;
+    const char * const vidHdr2SdrPath;
+    const char * const vidHlg2HdrPath;
+    const char * const scenarioPath;
+    const char * const sdrStreamPath;
+    const char * const hdrStreamPath;
+    const char * const hlgStreamPath;
+    const char * const mixStreamPath;
+    const char * const sdrThumbnailPath;
+    const char * const sdrBackgroundPath;
+} defaultRelativePaths =
+{
+    "gfx/sdr2hdr",
+    "vid/sdr2hdr",
+    "vid/hdr2sdr",
+    "vid/hlg2hdr",
+    "scenarios",
+    "streams/sdr",
+    "streams/hdr",
+    "streams/hlg",
+    "streams/mix",
+    "images/sdr",
+    "backgrounds/sdr"
+};
+
 static const Args defaultArgs =
 {
     PlatformInputMethod_eRemote,
@@ -78,6 +109,7 @@ static const Args defaultArgs =
     "../etc/dynrng/gfx/sdr2hdr",
     "../etc/dynrng/vid/sdr2hdr",
     "../etc/dynrng/vid/hdr2sdr",
+    "../etc/dynrng/vid/hlg2hdr",
     "../etc/dynrng/scenarios",
     "../share/dynrng/streams/sdr",
     "../share/dynrng/streams/hdr",
@@ -85,6 +117,8 @@ static const Args defaultArgs =
     "../share/dynrng/streams/mix",
     "../share/dynrng/images/sdr",
     "../share/dynrng/backgrounds/sdr",
+    "../etc/dynrng",
+    "../share/dynrng",
     {
         { /* dims */
             1920,
@@ -104,8 +138,45 @@ static const Args defaultArgs =
 void args_p_get_default(ArgsHandle args)
 {
     assert(args);
-    memcpy(args, &defaultArgs, sizeof(*args));
+    memset(args, 0, sizeof(*args));
+    args->method = defaultArgs.method;
+    memcpy(&args->osd, &defaultArgs.osd, sizeof(args->osd));
+    args->demo = defaultArgs.demo;
 }
+
+static char * args_p_make_abs_path(const char * const root, const char * const rel)
+{
+    char * path;
+    unsigned len;
+
+    len = strlen(root) + 1 + strlen(rel) + 1;
+    path = malloc(len);
+    memset(path, 0, len);
+    strcat(path, root);
+    strcat(path, "/");
+    strcat(path, rel);
+
+    return path;
+}
+
+static char * args_p_get_path(char * path, const char * const root, const char * const rel, const char * const def)
+{
+    char * newPath = path;
+    if (!newPath)
+    {
+        if (root)
+        {
+            newPath = args_p_make_abs_path(root, rel);
+        }
+        else
+        {
+            newPath = strdup(def);
+        }
+    }
+    return newPath;
+}
+
+#define ARGS_P_GET_PATH(NAME, ROOT) args->NAME = args_p_get_path(args->NAME, args->ROOT, defaultRelativePaths.NAME, defaultArgs.NAME)
 
 ArgsHandle args_create(int argc, char **argv)
 {
@@ -137,31 +208,43 @@ ArgsHandle args_create(int argc, char **argv)
             }
         }
         else if (!strcmp(argv[curarg], "-is") && argc>curarg+1) {
-            args->sdrThumbnailPath = argv[++curarg];
+            args->sdrThumbnailPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-bs") && argc>curarg+1) {
-            args->sdrBackgroundPath = argv[++curarg];
+            args->sdrBackgroundPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-gs") && argc>curarg+1) {
-            args->gfxSdr2HdrPath = argv[++curarg];
+            args->gfxSdr2HdrPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-vs") && argc>curarg+1) {
-            args->vidSdr2HdrPath = argv[++curarg];
+            args->vidSdr2HdrPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-vh") && argc>curarg+1) {
-            args->vidHdr2SdrPath = argv[++curarg];
+            args->vidHdr2SdrPath = strdup(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-vhh") && argc>curarg+1) {
+            args->vidHlg2HdrPath = strdup(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-sc") && argc>curarg+1) {
+            args->scenarioPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-ss") && argc>curarg+1) {
-            args->sdrStreamPath = argv[++curarg];
+            args->sdrStreamPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-sh") && argc>curarg+1) {
-            args->hdrStreamPath = argv[++curarg];
+            args->hdrStreamPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-sg") && argc>curarg+1) {
-            args->hlgStreamPath = argv[++curarg];
+            args->hlgStreamPath = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-sm") && argc>curarg+1) {
-            args->mixStreamPath = argv[++curarg];
+            args->mixStreamPath = strdup(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-cfg") && argc>curarg+1) {
+            args->configRoot = strdup(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-rc") && argc>curarg+1) {
+            args->sharedResourceRoot = strdup(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-ct") && argc>curarg+1) {
             args->osd.colors.textFg = strtoul(argv[++curarg], NULL, 0);
@@ -196,6 +279,19 @@ ArgsHandle args_create(int argc, char **argv)
         curarg++;
     }
 
+    /* fixup paths */
+    ARGS_P_GET_PATH(sdrThumbnailPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(sdrBackgroundPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(sdrStreamPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(hdrStreamPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(hlgStreamPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(mixStreamPath, sharedResourceRoot);
+    ARGS_P_GET_PATH(scenarioPath, configRoot);
+    ARGS_P_GET_PATH(gfxSdr2HdrPath, configRoot);
+    ARGS_P_GET_PATH(vidSdr2HdrPath, configRoot);
+    ARGS_P_GET_PATH(vidHdr2SdrPath, configRoot);
+    ARGS_P_GET_PATH(vidHlg2HdrPath, configRoot);
+
     return args;
 
 error:
@@ -206,5 +302,18 @@ error:
 void args_destroy(ArgsHandle args)
 {
     if (!args) return;
+    if (args->gfxSdr2HdrPath) free(args->gfxSdr2HdrPath);
+    if (args->vidSdr2HdrPath) free(args->vidSdr2HdrPath);
+    if (args->vidHdr2SdrPath) free(args->vidHdr2SdrPath);
+    if (args->vidHlg2HdrPath) free(args->vidHlg2HdrPath);
+    if (args->scenarioPath) free(args->scenarioPath);
+    if (args->sdrStreamPath) free(args->sdrStreamPath);
+    if (args->hdrStreamPath) free(args->hdrStreamPath);
+    if (args->hlgStreamPath) free(args->hlgStreamPath);
+    if (args->mixStreamPath) free(args->mixStreamPath);
+    if (args->sdrThumbnailPath) free(args->sdrThumbnailPath);
+    if (args->sdrBackgroundPath) free(args->sdrBackgroundPath);
+    if (args->configRoot) free(args->configRoot);
+    if (args->sharedResourceRoot) free(args->sharedResourceRoot);
     free(args);
 }

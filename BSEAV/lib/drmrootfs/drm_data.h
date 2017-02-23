@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+ *
  ******************************************************************************/
 
 #ifndef DRM_DATA_H
@@ -248,6 +249,24 @@ char * bdrm_get_ta_wv_dev_bin_file_path(void);
 ******************************************************************************/
 char * bdrm_get_ta_adobe_bin_file_path(void);
 char * bdrm_get_ta_adobe_dev_bin_file_path(void);
+
+/******************************************************************************
+** FUNCTION:
+**   bdrm_get_ta_mediaroom_bin_file_path
+**   bdrm_get_ta_mediaroom_dev_bin_file_path
+**
+** DESCRIPTION:
+**   This function is used to retrieve the string representing the file path
+**   of the MEDIAROOM DRM TA bin file in rootfs
+**
+** PARAMETERS: N/A
+**
+** RETURNS: N/A
+**
+******************************************************************************/
+char * bdrm_get_ta_mediaroom_bin_file_path(void);
+char * bdrm_get_ta_mediaroom_dev_bin_file_path(void);
+
 
 _DRM_SHORT_WCHAR_ * bdrm_get_revocation_fname(void);
 uint32_t  bdrm_get_revocation_fname_lgth(void);

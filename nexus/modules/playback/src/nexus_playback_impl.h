@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -25,7 +25,7 @@
  *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
  *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
-
+ *
  *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_PLAYBACK_IMPL_H__
 #define NEXUS_PLAYBACK_IMPL_H__
@@ -123,7 +115,8 @@ typedef enum b_trick_state {
     b_trick_state_host_trick_mode, /* Host manipulates the stream before sending to decoder for vsync decode */
     b_trick_state_brcm_trick_mode, /* Host manipulates the stream, including embedded BTP's, before sending to decoder for vsync decode */
     b_trick_state_host_paced,      /* Host manipulates the stream and the PTS's before sending to decoder for TSM decode */
-    b_trick_state_display_queue_trick_mode /* Host sends beginning of GOP for decode and post-decode reordering */
+    b_trick_state_dqt_mode,        /* Host sends beginning of GOP for decode and post-decode reordering */
+    b_trick_state_mdqt_mode
 } b_trick_state;
 
 typedef struct b_trick_settings {
@@ -295,7 +288,7 @@ struct NEXUS_Playback {
 #define B_LAST(s,val,str) (((s)==(val)?(str):("#Invalid#")))
 #define B_BOOL_STR(v,tr,fl) ((v)?(tr):(fl))
 
-#define B_TRICK_STATE_STR(s) B_ONE(s, b_trick_state_normal,"normal",B_ONE(s, b_trick_state_host_paced,"host_paced", B_ONE(s, b_trick_state_host_trick_mode,"host",B_ONE(s, b_trick_state_display_queue_trick_mode,"dqt",B_LAST(s, b_trick_state_brcm_trick_mode, "BRCM")))))
+#define B_TRICK_STATE_STR(s) B_ONE(s, b_trick_state_normal,"normal",B_ONE(s, b_trick_state_host_paced,"host_paced", B_ONE(s, b_trick_state_host_trick_mode,"host",B_ONE(s, b_trick_state_dqt_mode,"dqt",B_ONE(s, b_trick_state_mdqt_mode,"mdqt",B_LAST(s, b_trick_state_brcm_trick_mode, "BRCM"))))))
 #define B_FORWARD_STR(s) B_BOOL_STR(s,"forward","reverse")
 #define B_DECODE_MODE_STR(s) B_ONE(s, NEXUS_VideoDecoderDecodeMode_eAll, "all",B_ONE(s, NEXUS_VideoDecoderDecodeMode_eI, "I", B_LAST(s, NEXUS_VideoDecoderDecodeMode_eIP, "IP")))
 

@@ -250,11 +250,11 @@ void burl_to_encoding (
 /* HTTP CLIENT APIs
 */
 
-/* 'http post' wrapper function
+/* 'http 1.0 post' wrapper function
 */
 int32_t PRDY_HTTP_Client_Post (
     PRDY_HTTP_Engine* http,             /* [in] http engine instance */
-    char *url                       /* [in] url to post to */
+    char *url                           /* [in] url to post to */
     );
 
 /* handling function for the headers coming inbound from the server
@@ -291,8 +291,98 @@ int32_t PRDY_HTTP_Client_LicensePostSoap (
     uint32_t* resp_len              /* [out] drm response length */
     );
 
-/* drm secure time challenge post function; feeds a SOAP drm secure time challenge
-   to a server, return the response.
+/* Get secure time forward link URL request; feeds an http GET petition request
+   to the Azure server and returns the response from the server.  Secure Time
+   replaced Secure Clock in PlayReady v3.2 and beyond.
+
+   This is the first step in submitting a SecureTime challenge to the Azure
+   server.
+
+   The request is a plain HTTP/1.1 GET request, which must contain the
+   following in the header:
+
+   GET http://go.microsoft.com/fwlink/?LinkID=746259 HTTP/1.1
+   User-Agent: Client-User-Agent
+   Connection: close
+
+*/
+int32_t PRDY_HTTP_Client_GetForwardLinkUrl (
+    char* forward_link,             /* [in] forward link */
+    uint32_t *petition_response,    /* [out] either 301 or 302 */
+    char** forward_link_url         /* [out] the  forward link url */
+    );
+
+/* Get secure time URL request; feeds an http GET petition request
+   to the Azure server and returns the response from the server.  Secure Time
+   replaced Secure Clock in PlayReady v3.2 and beyond.
+
+   This is the second step in submitting a SecureTime challenge to the Azure
+   server.
+
+   The request is a plain HTTP/1.1 GET request, which contains the forward_link_url
+   obtained during a previous call PRDY_HTTP_Client_GetForwardLinkUrl in the following
+   header format:
+
+   GET forward_link_url HTTP/1.1
+   Host: playreadysecuretime.azurewebsites.net
+   User-Agent: Client-User-Agent
+   Connection: close
+
+*/
+
+int32_t PRDY_HTTP_Client_GetSecureTimeUrl (
+    char* forward_link_url,             /* [in] forward link */
+    uint32_t *petition_response,        /* [out] either 200, 301 or 302 */
+    char** secure_time_url              /* [out] the  secure time url */
+    );
+
+/* Secure Time challenge post function; feeds a SOAP drm secure time challenge
+   to a server, return the response.  Secure Time replaced Secure Clock in
+   PlayReady v3.2 and beyond.
+
+   This is the third and final step in submitting a SecureTime challenge to the Azure
+   server.
+
+   The secure clock challenge request is an HTTP/1.1 POST request as shown below:
+
+   POST secure_time_url HTTP/1.1
+   Host: securetime.playready.microsoft.com
+   Content-Type: application/xml
+   Content-Length: 141
+   Connection: close
+
+*/
+
+int32_t PRDY_HTTP_Client_SecureTimeChallengePost (
+    char* url,                      /* [in] secure time url to post to */
+    char* chall,                    /* [in] drm challenge */
+    uint8_t non_quiet,              /* [in] indicates acq quietness */
+    uint32_t app_sec,               /* [in] application security level */
+    unsigned char** resp,           /* [out] drm response */
+    uint32_t* offset,               /* [out] ptr to license response start */
+    uint32_t* resp_len              /* [out] drm response length */
+    );
+
+/* Secure Clock petition get request; feeds a http GET petition request
+   to a server, return the response from the server.  Secure Clock was
+   replaced by Secure Time in PlayReady v3.2.
+
+
+   The petition request is a plain HTTP/1.0 GET request, which must contain the
+   following in the header:
+
+   GET PetitionPath HTTP/1.0
+   User-Agent: Client-User-Agent
+*/
+int32_t PRDY_HTTP_Client_GetPetition (
+    char* petition_url,             /* [in] petition url */
+    uint32_t *petition_response,    /* [out] either 200, 301 or 302 */
+    char** time_chall_url           /* [out] the time challenge URL or redirect url */
+    );
+
+/* Secure Clock challenge post function; feeds a SOAP drm secure clock challenge
+   to a server, return the response.  Secure Clock was replaced by Secure Time in
+   PlayReady v3.2.
 
    The secure clock challenge request is an HTTP/1.0 POST request as shown below:
 
@@ -303,29 +393,14 @@ int32_t PRDY_HTTP_Client_LicensePostSoap (
    Proxy-Connection: Keep-Alive
    Pragma: no-cache
 */
-int32_t PRDY_HTTP_Client_TimeChallengePost (
+int32_t PRDY_HTTP_Client_SecureClockChallengePost (
     char* url,                      /* [in] url to post to */
     char* chall,                    /* [in] drm challenge */
     uint8_t non_quiet,              /* [in] indicates acq quietness */
     uint32_t app_sec,               /* [in] application security level */
     unsigned char** resp,           /* [out] drm response */
-    uint32_t* offset,     /* [out] ptr to license response start */
+    uint32_t* offset,               /* [out] ptr to license response start */
     uint32_t* resp_len              /* [out] drm response length */
-    );
-
-/* drm secure time petition get request; feeds a http GET petition request
-   to a server, return the response from the server
-
-   The petition request is a plain HTTP/1.0 GET request, which must have contain the
-   following in the header:
-
-   GET PetitionPath HTTP/1.0
-   User-Agent: Client-User-Agent
-*/
-int32_t PRDY_HTTP_Client_GetPetition (
-    char* petition_url,             /* [in] petition url */
-    uint32_t *petition_response,    /* [out] either 200, 301 or 302 */
-    char** time_chall_url           /* [out] the time challenge URL or redirect url */
     );
 
 #ifdef __cplusplus

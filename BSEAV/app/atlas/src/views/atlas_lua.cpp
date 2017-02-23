@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -765,6 +765,64 @@ done:
     LUA_RETURN(err);
 } /* atlasLua_SetContentMode */
 
+/* atlas.setColorDepth(
+ *      --- required ---
+ *      color depth,   8, 10, or 12 bit color
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetColorDepth(lua_State * pLua)
+{
+    CLua *    pThis       = getCLua(pLua);
+    eRet      err         = eRet_Ok;
+    uint8_t   argNum      = 1;
+    uint8_t   numArgTotal = lua_gettop(pLua) - 1;
+    uint8_t   colorDepth  = 8;
+    uint8_t * pColorDepth = NULL;
+
+    CDataAction <uint8_t> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [colorDepth 8|10|12]", error);
+    }
+
+    /* get arguments */
+    colorDepth = luaL_checknumber(pLua, argNum++);
+
+    /* error checking for arguments */
+    if ((12 != colorDepth) && (10 != colorDepth) && (8 != colorDepth))
+    {
+        LUA_ERROR(pLua, "Invalid color depth - specify 8 or 10 or 12", error);
+    }
+
+    pColorDepth  = new uint8_t;
+    *pColorDepth = colorDepth;
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <uint8_t>(eNotify_SetColorDepth, pColorDepth, eNotify_ColorDepthChanged, 2000);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pColorDepth);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetColorDepth */
+
 /* atlas.setColorSpace(
  *      --- required ---
  *      color space type,   NEXUS color space type to switch to
@@ -807,7 +865,7 @@ static int atlasLua_SetColorSpace(lua_State * pLua)
     *pColorSpace = (NEXUS_ColorSpace)formatType;
 
     /* create lua action and give it data */
-    pAction = new CDataAction <NEXUS_ColorSpace>(eNotify_SetColorSpace, pColorSpace, eNotify_ColorSpaceChanged, DEFAULT_LUA_EVENT_TIMEOUT);
+    pAction = new CDataAction <NEXUS_ColorSpace>(eNotify_SetColorSpace, pColorSpace, eNotify_ColorSpaceChanged, 2000);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* save lua action to queue - this action will be serviced when we get the bwin io callback:
@@ -1400,6 +1458,10 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
 
     CDataAction <CPlaybackTrickData> * pAction            = NULL;
     CPlaybackTrickData *               pPlaybackTrickData = NULL;
+
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_ASSERT(pThis);
 
@@ -2812,6 +2874,69 @@ done:
     LUA_RETURN(err);
 } /* atlasLua_SetAudioProcessing */
 
+#ifdef CPUTEST_SUPPORT
+/* atlas.setCpuTestLevel(
+ *      --- required ---
+ *      level,   set 0-10 level
+ *      --- optional ---
+ *      none
+ */
+static int atlasLua_SetCpuTestLevel(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t argNum      = 1;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+    int     level       = 0;
+    int *   pLevel      = NULL;
+
+    CDataAction <int> * pAction = NULL;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "Wrong number of arguments: [0-10]", error);
+    }
+
+    /* get arguments */
+    level = luaL_checknumber(pLua, argNum++);
+
+    /* check if selection is valid and available */
+    if ((0 > level) || (10 < level))
+    {
+        LUA_ERROR(pLua, "Cpu Test level must be 0-10", error);
+    }
+
+    pLevel = new int;
+
+    /* add required arguments to cpu test level data */
+    *pLevel = level * 10; /* convert to 0 - 100 */
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <int>(eNotify_SetCpuTestLevel, pLevel, (0 == level) ? eNotify_CpuTestStopped : eNotify_CpuTestStarted, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pLevel);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_SetCpuTestLevel */
+
+#endif /* ifdef CPUTEST_SUPPORT */
+
 /* atlas.showPip(
  *      --- required ---
  *      PIP state,   if true, show PIP window
@@ -3739,6 +3864,64 @@ done:
     LUA_RETURN(err);
 } /* atlasLua_WifiDisconnect */
 
+static int atlasLua_WifiWps(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+    bool    bConnect    = false;
+
+    CDataAction <CNetworkWifiConnectData> * pAction                 = NULL;
+    CNetworkWifiConnectData *               pNetworkWifiConnectData = NULL;
+    uint8_t argNum = 1;
+
+    BDBG_ASSERT(pThis);
+
+    /* check number of lua arguments on stack */
+    if (1 != numArgTotal)
+    {
+        /* wrong number of arguments */
+        LUA_ERROR(pLua, "wrong number of arguments: [bool]", error);
+    }
+
+    bConnect = lua_toboolean(pLua, argNum++);
+
+    /* add required arguments to VBI data */
+    pNetworkWifiConnectData = new CNetworkWifiConnectData();
+
+    if (true == bConnect)
+    {
+        /* create lua action and give it data to connect which starts
+           a WPS button press request. */
+        pNetworkWifiConnectData->_bWps = true;
+        pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData);
+        CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    }
+    else
+    {
+        /* create lua action and give it data to disconnect which cancels
+           a previous WPS request. */
+        pNetworkWifiConnectData->_bWps = true;
+        pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiDisconnect, pNetworkWifiConnectData);
+        CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+    }
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pNetworkWifiConnectData);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_WifiWps */
+
 #ifdef  NETAPP_SUPPORT
 static int atlasLua_BluetoothDiscoveryStart(lua_State * pLua)
 {
@@ -4611,6 +4794,7 @@ static const struct luaL_Reg atlasLua[] = {
     { "setVideoFormat",                atlasLua_SetVideoFormat                        }, /* set the video format */
     { "setContentMode",                atlasLua_SetContentMode                        }, /* set the video content mode */
     { "setColorSpace",                 atlasLua_SetColorSpace                         }, /* set the color space */
+    { "setColorDepth",                 atlasLua_SetColorDepth                         }, /* set the color depth of the main decoder */
     { "setMpaaDecimation",             atlasLua_SetMpaaDecimation                     }, /* set mpaa decimation */
     { "setDeinterlacer",               atlasLua_SetDeinterlacer                       }, /* set MAD deinterlacer */
     { "setBoxDetect",                  atlasLua_SetBoxDetect                          }, /* set box detect */
@@ -4641,6 +4825,9 @@ static const struct luaL_Reg atlasLua[] = {
     { "setSpdifInput",                 atlasLua_SetSpdifInput                         }, /* set the spdif input (see eSpdifInput) */
     { "setHdmiInput",                  atlasLua_SetHdmiInput                          }, /* set the hdmi input (see eHdmiAudioInput) */
     { "setAudioProcessing",            atlasLua_SetAudioProcessing                    }, /* set the pcm audio proccessing (see eAudioProcessing) */
+#ifdef CPUTEST_SUPPORT
+    { "setCpuTestLevel",               atlasLua_SetCpuTestLevel                       }, /* set the cpu test level */
+#endif
     { "showPip",                       atlasLua_ShowPip                               }, /* show/hide the pip window */
     { "swapPip",                       atlasLua_SwapPip                               }, /* swap the main and pip window */
     { "ipClientTranscodeEnable",       atlasLua_ipClientTranscodeEnable               }, /* enable/disable BIP transcoding for a given client */
@@ -4667,6 +4854,7 @@ static const struct luaL_Reg atlasLua[] = {
     { "wifiScanStart",                 atlasLua_WifiScanStart                         }, /* wifi network scan start */
     { "wifiConnect",                   atlasLua_WifiConnect                           }, /* wifi network connect */
     { "wifiDisconnect",                atlasLua_WifiDisconnect                        }, /* wifi network disconnect */
+    { "wifiWps",                       atlasLua_WifiWps                               }, /* simulate Wifi Protected Setup button press */
 #ifdef NETAPP_SUPPORT
     { "bluetoothDiscoveryStart",       atlasLua_BluetoothDiscoveryStart               }, /* bluetooth discovery start */
     { "bluetoothDisconnect",           atlasLua_BluetoothDisconnect                   }, /* bluetooth disconnect */

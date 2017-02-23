@@ -40,7 +40,7 @@
  *****************************************************************************/
 /* Nexus example app: play and decode MP3 file to audio dacs */
 #include "nexus_platform.h"
-#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_NUM_AUDIO_DACS
+#if NEXUS_NUM_SPDIF_OUTPUTS && NEXUS_NUM_AUDIO_DACS && NEXUS_HAS_AUDIO
 #include "nexus_memory.h"
 #include "nexus_pid_channel.h"
 #include "nexus_playpump.h"
@@ -9948,6 +9948,6 @@ void brbuf_init_ringbuf_capture(void)
 int main(void)
 {
     printf("This application is not supported on this platform\n");
-    return -1;
+    return 0;
 }
 #endif

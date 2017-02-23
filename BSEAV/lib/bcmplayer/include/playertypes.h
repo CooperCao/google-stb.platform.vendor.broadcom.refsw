@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2002-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: Common types for bcmplayer and tsplayer
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 #ifndef PLAYERTYPES_H
 #define PLAYERTYPES_H
@@ -262,6 +282,8 @@ typedef enum
                         "value"%100 is the number of GOP's to skip between each GOP. 0 means every GOP, 1 means every other GOP, etc.
                         The sign of "value" indicates the direction. -8 would play 8 frames per GOP in reverse. */
     eBpPlayDecoderGOPIPTrick, /* like eBpPlayDecoderGOPTrick, but drop B frames */
+    eBpPlayDecoderMDqtTrick,
+    eBpPlayDecoderMDqtIPTrick,
     eBpPlayTimeSkip, /* bcmplayer attempts to output I frames based on the time interval specified by "value" in milliseconds.
                         "value" can be positive or negative.
                         bcmplayer may skip I frames, but will never repeat I frames. */
@@ -337,5 +359,7 @@ These are the supported values in word[0] of a BTP or BUD
 #define TT_MODE_INLINE_FLUSH        0x0A /* also known as Trick Play Discontinuity (TPD) */
 #define TT_MODE_TIMING_MARKER       0x0C
 #define TT_MODE_PICTURE_TAG         0x0D
+#define TT_MODE_PICTURE_LAST        0x82
+#define TT_MODE_OUTPUT_N            0x1C
 
 #endif /* PLAYERTYPES_H */

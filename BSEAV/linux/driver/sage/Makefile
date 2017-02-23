@@ -129,8 +129,8 @@ endif
 
 vpath %.c ./
 
-SAGE_DRIVER := $(BCM_OBJ_PATH)/sagedriver.ko
-SAGE_DRIVER_CFLAGS += -DKBUILD_MODNAME=sagedriver -DLINUX -D__KERNEL__ -DMODULE
+SAGE_DRIVER := $(BCM_OBJ_PATH)/sage.ko
+SAGE_DRIVER_CFLAGS += -DKBUILD_MODNAME=sage -DLINUX -D__KERNEL__ -DMODULE
 SAGE_DRIVER_CFLAGS += -I$(LINUX)/include -I$(LINUX)/arch/$(B_REFSW_LINUX_ARCH)/include
 
 ifneq ($(B_REFSW_LINUX_ARCH),arm64)
@@ -172,7 +172,7 @@ ifeq ($(B_REFSW_LINUX_ARCH),arm64)
 SAGE_DRIVER_SRCS_AS = bcmdriver_arm_v8.S
 endif
 
-SAGE_DRIVER_SRCS_AS += arm_eabi.S
+SAGE_DRIVER_SRCS_AS += nexus_driver_arm_eabi.S
 
 BRCMSTB_MEGA_BARRIER := $(shell grep -o 'brcmstb_mega_barrier' ${LINUX}/Module.symvers)
 ifeq ($(BRCMSTB_MEGA_BARRIER),brcmstb_mega_barrier)
@@ -208,9 +208,15 @@ SAGE_DRIVER_CFLAGS += $(addprefix -D, $(foreach module, $(MAGNUM_MODULES), $($(m
 SAGE_DRIVER_SRCS += $(foreach module, $(MAGNUM_MODULES), $($(module)_SOURCES))
 SAGE_DRIVER_CFLAGS += $(SAGE_DRIVER_INCLUDES) -DBDBG_DEBUG_BUILD=1 -DBCHP_DEBUG_OVERFLOW=0 -DBSTD_CPU_ENDIAN=BSTD_ENDIAN_LITTLE -DBSAGELIB_HARDEN_MMAP=0
 
+SAGE_DRIVER_INCLUDES += -I${B_REFSW_ROOT}/nexus/platforms/common/src/support/libgcc
+SAGE_DRIVER_INCLUDES += -I${B_REFSW_ROOT}/BSEAV/linux/driver/usermode
+SAGE_DRIVER_INCLUDES += -I${B_REFSW_ROOT}/nexus/platforms/common/src/linuxkernel
+
 vpath %.c $(dir $(SAGE_DRIVER_SRCS))
-vpath %.h $(dir $(SAGE_DRIVER_SRCS))
-vpath %.h $(dir $(SAGE_DRIVER_INCLUDES))
+vpath %.c ${B_REFSW_ROOT}/BSEAV/linux/driver/usermode
+vpath %.S ${B_REFSW_ROOT}/BSEAV/linux/driver/usermode
+vpath %.S ${B_REFSW_ROOT}/nexus/platforms/common/src/linuxkernel
+vpath %.c ${B_REFSW_ROOT}/nexus/platforms/common/src/support/libgcc
 
 SAGE_DRIVER_CFLAGS += -I$(B_REFSW_ROOT)/magnum/basemodules/mem/
 SAGE_DRIVER_CFLAGS += -I$(B_REFSW_ROOT)/magnum/commonutils/lst/
@@ -234,9 +240,9 @@ ${SAGE_DRIVER}: ${SAGE_DRIVER_SRCS} $(BCM_OBJ_PATH)/Kbuild_flags
 
 else
 $(SAGE_DRIVER): $(SAGE_DRIVER_OBJS) $(SAGE_DRIVER_OBJS_AS)
-	@echo [Link...... sagedriver.ko]
+	@echo [Link...... sage.ko]
 ifeq ($(LINUX_VER_GE_2_6_31),y)
-	$(Q_)cd ${LINUX} && $(LD) -Map $(SAGE_DRIVER).map $(SAGE_DRIVER_LDFLAGS) $(BCM_KBUILD_LDFLAGS) $(SAGE_DRIVER_EXTRALDFLAGS) --strip-debug --build-id=none -r $^  -o $(BCM_OBJ_PATH)/sagedriver.o_shipped
+	$(Q_)cd ${LINUX} && $(LD) -Map $(SAGE_DRIVER).map $(SAGE_DRIVER_LDFLAGS) $(BCM_KBUILD_LDFLAGS) $(SAGE_DRIVER_EXTRALDFLAGS) --strip-debug --build-id=none -r $^  -o $(BCM_OBJ_PATH)/sage.o_shipped
 	${Q_}$(MAKE) -C $(LINUX) M=$(BCM_OBJ_PATH) ARCH=$(B_REFSW_LINUX_ARCH) modules PLATFORM=$(NEXUS_PLATFORM) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 else
 	@# do not use kbuild for 2.6.18
@@ -244,7 +250,7 @@ else
 endif
 	@# disable MODVERSIONS if kernel symvers are missing
 	@if [ -s $(LINUX)/Modules.symvers ]; then \
-		$(OBJCOPY) --remove-section __versions $(BCM_OBJ_PATH)/sagedriver.ko ; \
+		$(OBJCOPY) --remove-section __versions $(BCM_OBJ_PATH)/sage.ko ; \
 	fi
 endif # BCM_KBUILD_CFLAGS
 
@@ -259,15 +265,15 @@ $(BCM_OBJ_PATH)/%.o: %.S
 
 clean: $(BCM_OBJ_PATH)/Kbuild
 	${Q_}$(MAKE) -C $(LINUX) M=$(BCM_OBJ_PATH) ARCH=$(B_REFSW_LINUX_ARCH) clean
-	${Q_}$(RM) $(SAGE_DRIVER) $(SAGE_DRIVER).map $(BCM_OBJ_PATH)/Kbuild_flags $(BCM_OBJ_PATH)/sagedriver.o_shipped $(SAGE_DRIVER_OBJS) $(SAGE_DRIVER_OBJS_AS)
+	${Q_}$(RM) $(SAGE_DRIVER) $(SAGE_DRIVER).map $(BCM_OBJ_PATH)/Kbuild_flags $(BCM_OBJ_PATH)/sage.o_shipped $(SAGE_DRIVER_OBJS) $(SAGE_DRIVER_OBJS_AS)
 
 ifeq ($(INSTALL_DIR),)
 install:
 	$(error INSTALL_DIR is undefined)
 else
 install: all
-	@echo "[Install... sagedriver.ko]"
-	${Q_}$(CP) $(BCM_OBJ_PATH)/sagedriver.ko $(INSTALL_DIR)
+	@echo "[Install... sage.ko]"
+	${Q_}$(CP) $(BCM_OBJ_PATH)/sage.ko $(INSTALL_DIR)
 endif
 
 $(BCM_OBJ_PATH)/Kbuild: Kbuild $(BCM_OBJ_PATH)/exists

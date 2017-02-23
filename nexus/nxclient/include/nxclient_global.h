@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,21 +48,12 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #include "nexus_hdmi_output_hdcp.h"
-#else
-typedef void *NEXUS_HdmiOutputStatus;
-typedef void *NEXUS_HdmiOutputHdcpStatus;
-typedef unsigned NEXUS_HdmiOutputCrcData;
 #endif
 #if NEXUS_HAS_AUDIO
 #include "nexus_audio_processing_types.h"
 #include "nexus_audio_mixer.h"
-#else
-typedef unsigned NEXUS_AutoVolumeLevelSettings;
-typedef unsigned NEXUS_TruVolumeSettings;
-typedef unsigned NEXUS_DolbyDigitalReencodeSettings;
-typedef unsigned NEXUS_AudioMixerDolbySettings;
-typedef unsigned NEXUS_DolbyVolume258Settings;
 #endif
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -219,8 +210,8 @@ NEXUS_Error NxClient_GetAudioStatus(
 typedef enum NxClient_HdcpLevel
 {
     NxClient_HdcpLevel_eNone,      /* No HDCP requested by this client. */
-    NxClient_HdcpLevel_eOptional,  /* Authentication failure will only result in a callback. Video and audio will not be muted. */
-    NxClient_HdcpLevel_eMandatory, /* Authentication failure will cause server to mute video and audio in addition to firing a callback. */
+    NxClient_HdcpLevel_eOptional,  /* Enable HDCP but do not mute video, even on authentication failure. */
+    NxClient_HdcpLevel_eMandatory, /* Enable HDCP and mute video until authentication success. */
     NxClient_HdcpLevel_eMax
 } NxClient_HdcpLevel;
 
@@ -532,6 +523,12 @@ NEXUS_Error NxClient_LoadHdcpKeys(
                                       Memory must be CPU accessible in server. */
     unsigned blockOffset, /* offset into preceeding block for start of keys */
     unsigned size /* Size of keys in bytes */
+    );
+
+/* Set this HDMI input as a repeater to the HDMI output, and trigger a new hdcp authentication attempt
+(after hdcp authentication has already been enabled). */
+NEXUS_Error NxClient_SetHdmiInputRepeater(
+    NEXUS_HdmiInputHandle hdmiInput
     );
 
 #ifdef __cplusplus

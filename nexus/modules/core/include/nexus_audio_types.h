@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -104,6 +104,8 @@ typedef enum NEXUS_AudioCodec
     NEXUS_AudioCodec_eMax
 } NEXUS_AudioCodec;
 
+#define NEXUS_MAX_AUDIOCODECS    43
+
 /***************************************************************************
 Summary:
 Audio Connector Format/Type
@@ -162,6 +164,8 @@ typedef enum NEXUS_AudioChannelPair
     NEXUS_AudioChannelPair_eLeftRightRear,      /* Rear Left and Right (7.1 only) */
     NEXUS_AudioChannelPair_eMax
 } NEXUS_AudioChannelPair;
+
+#define NEXUS_MAX_AUDIO_CHANNEL_PAIR    4
 
 /***************************************************************************
 Summary:
@@ -396,6 +400,9 @@ typedef enum
     NEXUS_AudioOutputNco_e1,
     NEXUS_AudioOutputNco_e2,
     NEXUS_AudioOutputNco_e3,
+    NEXUS_AudioOutputNco_e4,
+    NEXUS_AudioOutputNco_e5,
+    NEXUS_AudioOutputNco_e6,
     NEXUS_AudioOutputNco_eMax
 } NEXUS_AudioOutputNco;
 
@@ -554,6 +561,22 @@ typedef struct NEXUS_AudioMixerStatus
 {
     NEXUS_AudioFadeStatus mainDecodeFade;
 } NEXUS_AudioMixerStatus;
+
+#define NEXUS_MAX_AUDIO_DECODERS 12
+#define NEXUS_MAX_AUDIO_PLAYBACKS 4
+#define NEXUS_MAX_AUDIO_MIXERS 14
+
+#define NEXUS_MAX_AUDIO_DUMMY_OUTPUTS 8
+#define NEXUS_MAX_AUDIO_SPDIF_OUTPUTS 2
+#define NEXUS_MAX_AUDIO_DAC_OUTPUTS 3
+#define NEXUS_MAX_AUDIO_I2S_OUTPUTS 2
+#define NEXUS_MAX_AUDIO_HDMI_OUTPUTS 2
+#define NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS 4
+#define NEXUS_MAX_AUDIO_CRC_OUTPUTS 4
+
+#define NEXUS_MAX_AUDIO_I2S_INPUTS 1
+#define NEXUS_MAX_AUDIO_SPDIF_INPUTS 1
+#define NEXUS_MAX_AUDIO_INPUT_CAPTURES 6
 
 #ifdef __cplusplus
 }

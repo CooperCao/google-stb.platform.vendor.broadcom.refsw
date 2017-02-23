@@ -77,7 +77,7 @@ THEAPPS += \
     m2m_aes_ecb_keyladder_askm_global_key \
     m2m_aes_cbc_keyladder_askm_key5 \
     m2m_3des_aba_ecb_keyladder_askm_key5 \
-    m2m_3des_aba_cbc_keyladder_askm_key5 \
+    m2m_3des_aba_cbc_keyladder_askm_key5
 
 endif
 

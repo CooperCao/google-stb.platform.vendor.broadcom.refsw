@@ -177,6 +177,7 @@ void binput_get_default_settings(struct binput_settings *psettings)
 #if NEXUS_HAS_IR_INPUT && !NXCLIENT_SUPPORT
     psettings->irInputMode = NEXUS_IrInputMode_eCirNec;
 #endif
+    NEXUS_CallbackDesc_Init(&psettings->codeAvailable);
 }
 
 static void binput_p_callback(void *context, int param)

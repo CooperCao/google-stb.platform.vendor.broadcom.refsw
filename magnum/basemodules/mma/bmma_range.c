@@ -751,7 +751,7 @@ static bool BMMA_P_RangeAllocator_TestRelocatable(BMMA_RangeAllocator_Handle a, 
     return true;
 }
 
-BERR_Code BMMA_P_RangeAllocator_Relocate(BMMA_RangeAllocator_Handle a,  BMMA_RangeAllocator_Block_Handle first, BMMA_RangeAllocator_Block_Handle last, BMMA_RangeAllocator_CompactionStatus *status)
+static BERR_Code BMMA_P_RangeAllocator_Relocate(BMMA_RangeAllocator_Handle a,  BMMA_RangeAllocator_Block_Handle first, BMMA_RangeAllocator_Block_Handle last, BMMA_RangeAllocator_CompactionStatus *status)
 {
     BMMA_RangeAllocator_Block_Handle b;
     BMMA_RangeAllocator_Block_Handle free = BLST_D_PREV(first, link);

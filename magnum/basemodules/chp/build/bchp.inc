@@ -71,6 +71,7 @@ include $(MAGNUM)/basemodules/chp/build/bchp_pwr.inc
 
 # BCHP_AVS code.  More extensive AVS solution is being included in the newer 40nm parts.
 ifeq ($(filter $(BCHP_CHIP), 7425 7435 7344 7346 73465 7358 7231 7552 75525 7360 7429 74295 7563 75635 7584 75845 7543 7362 73625 7228), $(BCHP_CHIP))
+BCHP_DEFINES += BCHP_40NM
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_avs_40nm.c
 
 # Use the unified approach for 7563[5]/7584[5]/7362[5] to use 5 digit chip IDs.

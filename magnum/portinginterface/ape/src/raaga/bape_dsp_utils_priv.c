@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,24 +37,15 @@
  *****************************************************************************/
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_MAX_DECODERS || BAPE_CHIP_MAX_DSP_MIXERS
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_dsp_utils);
 
-#define DISABLE_MPEG_DRA_PASSTHRU 0
 
-/* MS10/11 and FP2008 (7358) require legacy DDP decoder. Everything else uses UDC */
-#if BAPE_DSP_LEGACY_DDP_ALGO
-#define BAPE_DSP_AC3_ALGO       BDSP_Algorithm_eAc3Decode
-#define BAPE_DSP_DDP_ALGO       BDSP_Algorithm_eAc3PlusDecode
-#define BAPE_DSP_AC3_PT_ALGO    BDSP_Algorithm_eAc3Passthrough
-#define BAPE_DSP_DDP_PT_ALGO    BDSP_Algorithm_eAc3PlusPassthrough
-#else /* MS12 or Legacy Standalone decode */
-#define BAPE_DSP_AC3_ALGO       BDSP_Algorithm_eUdcDecode
-#define BAPE_DSP_DDP_ALGO       BDSP_Algorithm_eUdcDecode
-#define BAPE_DSP_AC3_PT_ALGO    BDSP_Algorithm_eUdcPassthrough
-#define BAPE_DSP_DDP_PT_ALGO    BDSP_Algorithm_eUdcPassthrough
-#endif
+#if BAPE_CHIP_MAX_DECODERS
+#define DISABLE_MPEG_DRA_PASSTHRU 0
 
 static const BAPE_CodecAttributes g_codecAttributes[] =
 {
@@ -69,23 +60,23 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eMpegL3,      BDSP_Algorithm_eMpegAudioDecode,      BDSP_Algorithm_eMpegAudioPassthrough, BDSP_Algorithm_eMpegAudioEncode,  "MPEG",         BAPE_MultichannelFormat_e2_0, true,  true,  true,          true,   false,   false,   false},
 #endif
 #if BDSP_MS12_SUPPORT
-    {BAVC_AudioCompressionStd_eAc3,         BAPE_DSP_AC3_ALGO,                    BAPE_DSP_AC3_PT_ALGO,                 BDSP_Algorithm_eDDPEncode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-    {BAVC_AudioCompressionStd_eAc3Plus,     BAPE_DSP_DDP_ALGO,                    BAPE_DSP_DDP_PT_ALGO,                 BDSP_Algorithm_eDDPEncode,        "AC3+",         BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eUdcDecode,            BDSP_Algorithm_eUdcPassthrough,       BDSP_Algorithm_eDDPEncode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eUdcDecode,            BDSP_Algorithm_eUdcPassthrough,       BDSP_Algorithm_eDDPEncode,        "AC3+",         BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   true,    false},
     {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eDolbyAacheAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eDolbyAacheLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eDolbyAacheAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyAacheLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAc4,         BDSP_Algorithm_eAC4Decode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "AC4",          BAPE_MultichannelFormat_e7_1, true,  false, false,         true,   false,   false,   false},
 #elif BDSP_MS10_SUPPORT
-    {BAVC_AudioCompressionStd_eAc3,         BAPE_DSP_AC3_ALGO,                    BAPE_DSP_AC3_PT_ALGO,                 BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-    {BAVC_AudioCompressionStd_eAc3Plus,     BAPE_DSP_DDP_ALGO,                    BAPE_DSP_DDP_PT_ALGO,                 BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eAc3Decode,            BDSP_Algorithm_eAc3Passthrough,       BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eAc3PlusDecode,        BDSP_Algorithm_eAc3PlusPassthrough,   BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
     {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eDolbyPulseAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eDolbyPulseAdtsDecode, BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusLoas, BDSP_Algorithm_eDolbyPulseLoasDecode, BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ LOAS",    BAPE_MultichannelFormat_e5_1, true,  false, true,          false,  false,   false,   false},
 #else
-    {BAVC_AudioCompressionStd_eAc3,         BAPE_DSP_AC3_ALGO,                    BAPE_DSP_AC3_PT_ALGO,                 BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
-    {BAVC_AudioCompressionStd_eAc3Plus,     BAPE_DSP_DDP_ALGO,                    BAPE_DSP_DDP_PT_ALGO,                 BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
+    {BAVC_AudioCompressionStd_eAc3,         BDSP_Algorithm_eAc3Decode,            BDSP_Algorithm_eAc3Passthrough,       BDSP_Algorithm_eAc3Encode,        "AC3",          BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   false,   false},
+    {BAVC_AudioCompressionStd_eAc3Plus,     BDSP_Algorithm_eAc3PlusDecode,        BDSP_Algorithm_eAc3PlusPassthrough,   BDSP_Algorithm_eMax,              "AC3+",         BAPE_MultichannelFormat_e5_1, true,  false, false,         true,   false,   true,    false},
     {BAVC_AudioCompressionStd_eAacAdts,     BDSP_Algorithm_eAacAdtsDecode,        BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC ADTS",     BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eAacLoas,     BDSP_Algorithm_eAacLoasDecode,        BDSP_Algorithm_eAacLoasPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC LOAS",     BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
     {BAVC_AudioCompressionStd_eAacPlusAdts, BDSP_Algorithm_eAacAdtsDecode,        BDSP_Algorithm_eAacAdtsPassthrough,   BDSP_Algorithm_eAacEncode,        "AAC+ ADTS",    BAPE_MultichannelFormat_e5_1, true,  true,  true,          true,   false,   false,   false},
@@ -194,16 +185,6 @@ BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void)
     }
 
     return BAPE_DolbyMs12Config_eNone;
-}
-
-BDSP_Algorithm BAPE_P_GetCodecMixer_isrsafe(void)
-{
-    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
-    {
-        return BDSP_Algorithm_eMixerDapv2;
-    }
-
-    return BDSP_Algorithm_eMixer;
 }
 
 BAPE_ChannelMode BAPE_DSP_P_GetChannelMode(BAVC_AudioCompressionStd codec, BAPE_ChannelMode outputMode, bool multichannelOutput, BAPE_MultichannelFormat maxFormat)
@@ -683,6 +664,7 @@ uint32_t BAPE_P_FloatToQ428(uint32_t floatVar, unsigned int uiRange)
     return temp;
 }
 #endif
+
 /***************************************************************************
 Summary:
 Add FMM Buffer Output to a stage
@@ -1011,10 +993,14 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
                 unsigned bufferId = 2*i;
                 BAPE_BufferNode *pBuffer = pSource->pBuffers[i];
                 BDBG_ASSERT(NULL != pBuffer);
+                sfifoSettings.bufferInfo[bufferId].block = pBuffer->block;
+                sfifoSettings.bufferInfo[bufferId].pBuffer = pBuffer->pMemory;
                 sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
                 sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize;
                 sfifoSettings.bufferInfo[bufferId].wrpoint = pBuffer->offset+pBuffer->bufferSize-1;
                 bufferId++;
+                sfifoSettings.bufferInfo[bufferId].block = NULL;
+                sfifoSettings.bufferInfo[bufferId].pBuffer = NULL;
                 sfifoSettings.bufferInfo[bufferId].base = 0;
                 sfifoSettings.bufferInfo[bufferId].length = 0;
                 sfifoSettings.bufferInfo[bufferId].wrpoint = 0;
@@ -1092,7 +1078,6 @@ void BAPE_DSP_P_StopPathToOutput(
     }
 }
 
-#if BAPE_DSP_SUPPORT
 bool BAPE_DSP_P_AlgorithmSupported(BAPE_Handle hApe, BDSP_Algorithm algorithm)
 {
     BDSP_AlgorithmInfo algoInfo;
@@ -1107,15 +1092,7 @@ bool BAPE_DSP_P_AlgorithmSupported(BAPE_Handle hApe, BDSP_Algorithm algorithm)
 
     return true;
 }
-#else
-bool BAPE_DSP_P_AlgorithmSupported(BAPE_Handle hApe, BDSP_Algorithm algorithm)
-{
-    BSTD_UNUSED(hApe);
-    BSTD_UNUSED(algorithm);
 
-    return false;
-}
-#endif
 
 bool BAPE_DSP_P_AlgorithmSupportedByApe(BAPE_Handle hApe, BDSP_Algorithm algorithm)
 {
@@ -1199,3 +1176,16 @@ BERR_Code BAPE_DSP_P_DeriveTaskStartSettings(
 
     return BERR_SUCCESS;
 }
+#endif /* #if BAPE_CHIP_MAX_DECODERS */
+
+#if BAPE_CHIP_MAX_DSP_MIXERS
+BDSP_Algorithm BAPE_P_GetCodecMixer_isrsafe(void)
+{
+    if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
+    {
+        return BDSP_Algorithm_eMixerDapv2;
+    }
+
+    return BDSP_Algorithm_eMixer;
+}
+#endif /* #if BAPE_CHIP_MAX_DSP_MIXERS */

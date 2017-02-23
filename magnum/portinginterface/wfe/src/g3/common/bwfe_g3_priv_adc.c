@@ -416,7 +416,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac(BWFE_ChannelHandle h)
 
    /* enter EqualizeMdac1() in ISR context */
    BKNI_EnterCriticalSection();
-   retCode = BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 5, BWFE_g3_Adc_P_EqualizeMdac1);
+   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, 5, BWFE_g3_Adc_P_EqualizeMdac1);
    BKNI_LeaveCriticalSection();
 
    return retCode;
@@ -445,7 +445,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
 
             /* after delay, run cvar on both slices before mdac cal */
             hChn->equState = 1;
-            return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 2000, BWFE_g3_Adc_P_EqualizeMdac1);
+            return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, 2000, BWFE_g3_Adc_P_EqualizeMdac1);
 
          case 1:
             /* reset cvar to default midpoint */
@@ -475,7 +475,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
             /* after delay, proceed to mdac cal */
             hChn->equCurrSlice = 0;
             hChn->equState = 2;
-            return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 2000, BWFE_g3_Adc_P_EqualizeMdac1);
+            return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, 2000, BWFE_g3_Adc_P_EqualizeMdac1);
 
          case 2:
             /* start of slice loop */
@@ -539,7 +539,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
 
                /* run for specified time */
                hChn->equState = 4;
-               return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, hChn->equRuntimeMs * 1000, BWFE_g3_Adc_P_EqualizeMdac1);
+               return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, hChn->equRuntimeMs * 1000, BWFE_g3_Adc_P_EqualizeMdac1);
             }
             else
             {
@@ -624,7 +624,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
 
             /* run for 3400ms */
             hChn->equState = 7;
-            return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 1000000, BWFE_g3_Adc_P_EqualizeMdac1);
+            return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, 1000000, BWFE_g3_Adc_P_EqualizeMdac1);
 
          case 7:
             BWFE_DEBUG_EQU(BDBG_MSG(("disable PN gain calibration")));
@@ -795,7 +795,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac(BWFE_ChannelHandle h)
    
    /* enter EqualizeMdac1() in ISR context */
    BKNI_EnterCriticalSection();
-   retCode = BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, 5, BWFE_g3_Adc_P_EqualizeMdac1);
+   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, 5, BWFE_g3_Adc_P_EqualizeMdac1);
    BKNI_LeaveCriticalSection();
    
    return retCode;
@@ -890,7 +890,7 @@ BERR_Code BWFE_g3_Adc_P_EqualizeMdac1(BWFE_ChannelHandle h)
                
                /* run for specified time */
                hChn->equState = 3;
-               return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e1, hChn->equRuntimeMs * 1000, BWFE_g3_Adc_P_EqualizeMdac1);
+               return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e1, hChn->equRuntimeMs * 1000, BWFE_g3_Adc_P_EqualizeMdac1);
             }
             else
             {

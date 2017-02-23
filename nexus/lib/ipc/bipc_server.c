@@ -120,10 +120,10 @@ static void b_ipc_server_clean_client(bipc_t ipc, bipc_server_client_t client)
             }
         }
         if(newest_instance) {
-            size_t send_offset, send_size;
+            bipc_send_data send_data;
 
             BDBG_MSG(("bipc_server_destroy:%#lx cleaning up object %#lx(%d,%d):%s(%#lx)",(unsigned long)ipc, (unsigned long)client, client->create_settings.recv_fd, client->create_settings.send_fd, newest_instance->interface->interface.name, (unsigned long)newest_instance->object));
-            newest_instance->interface->process(&newest_instance->object, newest_instance->interface->destructor_entry, ipc->t.server.buf, sizeof(unsigned), &send_offset, &send_size);
+            newest_instance->interface->process(sizeof(void*)/8,&newest_instance->object, newest_instance->interface->destructor_entry, ipc->t.server.buf, sizeof(unsigned), &send_data);
             newest_instance->interface = NULL;
             newest_instance->object = NULL;
         } else {
@@ -219,8 +219,7 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
     const bipc_server_descriptor *descriptor=NULL;
     b_ipc_server_instance *instance=NULL;
     void *process_object;
-    size_t send_offset;
-    size_t send_size;
+    bipc_send_data send_data;
 
     BDBG_OBJECT_ASSERT(&ipc->t.server, bipc_server);
     BDBG_OBJECT_ASSERT(client, bipc_server_client);
@@ -269,7 +268,7 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
         for(i=0;i<client->max_instances;i++) {
             if(client->instances[i].interface==NULL) {
                 instance = &client->instances[i];
-                send_offset = i; /* used as object ID communicated back to the client */
+                send_data.offset = i; /* used as object ID communicated back to the client */
                 break;
             }
         }
@@ -297,12 +296,21 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
     }
     BDBG_ASSERT(descriptor);
     BDBG_ASSERT(instance);
-    rc  =  descriptor->process(&process_object, in->method, ipc->t.server.buf+sizeof(*in),  payload, &send_offset, &send_size);
+    if(in->abi==sizeof(void *)*8
+#if B_IPC_COMPAT_SUPPORT
+       || in->abi==32
+#endif
+      ) {
+        rc  =  descriptor->process(in->abi, &process_object, in->method, ipc->t.server.buf+sizeof(*in),  payload, &send_data);
+    } else {
+        BDBG_ERR(("%u-bit ABI is not supported", in->abi));
+        rc = -1;
+    }
     if(rc!=0) {
-        BDBG_WRN(("process:%#lx error executing method %s:%u client:%#lx", (unsigned long)ipc, descriptor->interface.name, in->method, (unsigned long)client));
+        BDBG_WRN(("process:%p error executing method %s:%u client:%p(%u)", (void *)ipc, descriptor->interface.name, in->method, (void *)client, in->abi));
         goto error;
     }
-    out.pkt_size = send_size + sizeof(out);
+    out.pkt_size = send_data.size + sizeof(out);
     rc =  b_safe_write(client->create_settings.send_fd, &out, sizeof(out));
     if(rc!=sizeof(out)) { BDBG_WRN(("process:%#lx invalid b_ipc_pkt_out write %d != %d", (unsigned long)ipc, rc, (unsigned)sizeof(out))); goto error; }
     if(in->method == descriptor->constructor_entry) {
@@ -314,9 +322,9 @@ int bipc_server_client_process(bipc_t ipc, bipc_server_client_t client)
         instance->interface = NULL;
         instance->object = NULL;
     }
-    if(send_size) {
-        rc = b_safe_write(client->create_settings.send_fd, ipc->t.server.buf + sizeof(*in) + send_offset , send_size);
-        if(rc!=(int)send_size) { BDBG_WRN(("process:%#lx invalid variable write %d != %d", (unsigned long)ipc, rc, (unsigned)send_size)); goto error; }
+    if(send_data.size) {
+        rc = b_safe_write(client->create_settings.send_fd, ipc->t.server.buf + sizeof(*in) + send_data.offset , send_data.size);
+        if(rc!=(int)send_data.size) { BDBG_WRN(("process:%#lx invalid variable write %d != %d", (unsigned long)ipc, rc, (unsigned)send_data.size)); goto error; }
     }
 done:
     BKNI_ReleaseMutex(ipc->t.server.lock);

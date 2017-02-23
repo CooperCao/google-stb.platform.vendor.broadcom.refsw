@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -153,7 +153,7 @@ static void BXPT_P_FreeSharedXcRsBuffer(
     )
 {
     BMMA_Block_Handle block;
-    uint32_t Offset = 0;
+    BMMA_DeviceOffset Offset;
 
     block = BMMA_Alloc(hXpt->mmaHeap, BXPT_P_MINIMUM_BUF_SIZE, 1 << 8, 0);
     if (!block) {
@@ -265,6 +265,9 @@ static void BXPT_P_PMUMemPwr_Control(BREG_Handle hReg, bool powerOn, const BXPT_
 #ifdef BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL
     BREG_Write32(hReg, BCHP_XPT_PMU_XCBUFF_SP_PD_MEM_PWR_DN_CTRL, val);
 #endif
+#ifdef BCHP_XPT_PMU_OCXC_SP_PD_MEM_PWR_DN_CTRL
+    BREG_Write32(hReg, BCHP_XPT_PMU_OCXC_SP_PD_MEM_PWR_DN_CTRL, val);
+#endif
     if (pStandbySettings && pStandbySettings->UseWakeupPacket) {
         BREG_Write32(hReg, BCHP_XPT_PMU_WAKEUP_SP_PD_MEM_PWR_DN_CTRL, 0);
     }
@@ -282,7 +285,12 @@ static void BXPT_P_PMUHwg_Control(BREG_Handle hReg, bool enable)
 {
 #ifdef BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_EN
     if (enable) {
+#if (BCHP_CHIP == 7278 && BCHP_VER < BCHP_VER_B0)
+        /* SWSTB-3648 */
+        BREG_Write32(hReg, BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_EN, 0x1bf); /* HW clock gating enabled for all modules, except RS */
+#else
         BREG_Write32(hReg, BCHP_XPT_PMU_HWG_CLK_GATE_SUB_MODULE_EN, 0x1ff); /* HW clock gating enabled for all modules */
+#endif
         BREG_Write32(hReg, BCHP_XPT_PMU_HWG_PDA_SUB_MODULE_EN, 0xf); /* HW controlled PDA enabled for packet buffers */
         BREG_Write32(hReg, BCHP_XPT_PMU_SCB_SCB_HWG_CLK_GATE_SUB_MODULE_EN, 0x3); /* HW clock gating for all modules */
     }
@@ -523,8 +531,12 @@ BERR_Code BXPT_Open(
 
         BREG_Write32( hRegister, BCHP_XPT_MSG_BUF_CTRL1_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
         BREG_Write32( hRegister, BCHP_XPT_MSG_BUF_CTRL2_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
+#ifdef BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE
+        BREG_Write32( hRegister, BCHP_XPT_MSG_BUF_CTRL3_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
+#endif
         BREG_Write32( hRegister, BCHP_XPT_MSG_DMA_BP_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
         BREG_Write32( hRegister, BCHP_XPT_MSG_GEN_FILT_EN_i_ARRAY_BASE + ( 4 * i ), 0 );
+        BREG_Write32( hRegister, BCHP_XPT_MSG_DMA_RP_TABLE_i_ARRAY_BASE + ( 4 * i ), 0 );
 
         /* for normal legacy mode set false, set true to override settings */
         lhXpt->PidChannelParserConfigOverride[i] = false;
@@ -547,6 +559,7 @@ BERR_Code BXPT_Open(
         BREG_Write32( hRegister, BCHP_XPT_MSG_GEN_FILT_COEF_i_ARRAY_BASE + ( 4 * i ), 0 );
         BREG_Write32( hRegister, BCHP_XPT_MSG_GEN_FILT_MASK_i_ARRAY_BASE + ( 4 * i ), 0 );
         BREG_Write32( hRegister, BCHP_XPT_MSG_GEN_FILT_EXCL_i_ARRAY_BASE + ( 4 * i ), 0 );
+        BREG_Write32( hRegister, BCHP_XPT_MSG_MCAST_16_ADDR_i_ARRAY_BASE + ( 4 * i ), 0 );
     }
 
     #if BXPT_HAS_MESG_L2
@@ -750,6 +763,7 @@ BERR_Code BXPT_Open(
 #if (!BXPT_DMA_HAS_MEMDMA_MCPB)
     BXPT_P_AcquireSubmodule(lhXpt, BXPT_P_Submodule_eMcpb);
 #endif
+
     BXPT_P_PMUHwg_Control(hRegister, true);
 
     done:

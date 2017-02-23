@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,9 +102,14 @@ NEXUS_SpdifOutputHandle NEXUS_SpdifOutput_Open(
     BAPE_SpdifOutputHandle spdifHandle;
     BERR_Code errCode;
     BAPE_OutputPort connector;
+    NEXUS_AudioCapabilities audioCapabilities;
+
+    BDBG_CASSERT((int)NEXUS_MAX_AUDIO_SPDIF_OUTPUTS>=(int)NEXUS_NUM_SPDIF_OUTPUTS);
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     /* Sanity check */
-    if ( (int)index >= NEXUS_NUM_SPDIF_OUTPUTS )
+    if ( index >= audioCapabilities.numOutputs.spdif )
     {
         BDBG_ERR(("SpdifOutput Index %u out of range", index));
         return NULL;

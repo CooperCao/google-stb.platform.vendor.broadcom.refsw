@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description: APE Buffer Interface
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
 ***************************************************************************/
 
 #include "bstd.h"
@@ -32,11 +52,12 @@ typedef struct BAPE_Buffer
     BDBG_OBJECT(BAPE_Buffer)
 
     bool userAllocatedBuffer;
+    BMMA_Block_Handle block;
     void * buffer;
     size_t size;
-    volatile unsigned long read;
-    volatile unsigned long write;
-    unsigned long end;
+    volatile size_t read;
+    volatile size_t write;
+    BMMA_DeviceOffset end;
 
     BAPE_BufferSettings settings;
 } BAPE_Buffer;
@@ -63,9 +84,8 @@ BERR_Code BAPE_Buffer_Open(
     )
 {
     BAPE_BufferHandle handle;
-    void * uncached = NULL;
+    BMMA_Block_Handle block = NULL;
     void * buffer = NULL;
-    BERR_Code err;
 
     /* check for valid settings */
     if ( NULL == pSettings )
@@ -83,22 +103,22 @@ BERR_Code BAPE_Buffer_Open(
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
-        BDBG_MSG(("%s - calling BMEM_Heap_Alloc(%p, %lu)", __FUNCTION__, (void *)pSettings->heap, (unsigned long)pSettings->bufferSize));
-        uncached = BMEM_Heap_Alloc(pSettings->heap, pSettings->bufferSize);
-        if ( NULL == uncached )
+        BDBG_MSG(("%s - calling BMMA_Alloc(%p, %lu)", __FUNCTION__, (void *)pSettings->heap, (unsigned long)pSettings->bufferSize));
+        block = BMMA_Alloc(pSettings->heap, pSettings->bufferSize, 0, NULL);
+        if ( NULL == block )
         {
             BDBG_ERR(("failed to allocate %lu byte buffer", (unsigned long)pSettings->bufferSize));
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
 
-        err = BMEM_Heap_ConvertAddressToCached(pSettings->heap, uncached, &buffer);
-        if ( err )
+        buffer = BMMA_Lock(block);
+        if ( NULL == buffer )
         {
-            BDBG_ERR(("BMEM_Heap_ConvertAddressToCached returned %lu", (unsigned long)err));
-            BMEM_Heap_Free(pSettings->heap, uncached);
-            return BERR_TRACE(err);
+            BDBG_ERR(("could not lock block"));
+            BMMA_Free(block);
+            return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
-        BMEM_Heap_FlushCache(pSettings->heap, buffer, pSettings->bufferSize);
+        BMMA_FlushCache(block, buffer, pSettings->bufferSize);
     }
     else
     {
@@ -111,7 +131,10 @@ BERR_Code BAPE_Buffer_Open(
     {
         if ( !pSettings->userBuffer )
         {
-            BMEM_Heap_Free(pSettings->heap, uncached);
+            BMMA_Unlock(block, buffer);
+            buffer = NULL;
+            BMMA_Free(block);
+            block = NULL;
         }
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
@@ -121,6 +144,7 @@ BERR_Code BAPE_Buffer_Open(
     BKNI_Memset(handle, 0, sizeof(BAPE_Buffer));
     BDBG_OBJECT_SET(handle, BAPE_Buffer);
 
+    handle->block = block;
     handle->buffer = buffer;
     handle->read = handle->write = (unsigned long) handle->buffer;
     handle->size = pSettings->bufferSize;
@@ -147,14 +171,18 @@ void BAPE_Buffer_Close(
     BDBG_MSG(("%s - ", __FUNCTION__));
     if ( !handle->userAllocatedBuffer )
     {
-        BDBG_ERR(("%s - calling BMEM_Heap_Free", __FUNCTION__));
-        BMEM_Heap_FreeCached(handle->settings.heap, handle->buffer);
+        BDBG_ERR(("%s - calling BMMA_Free", __FUNCTION__));
+        BMMA_Unlock(handle->block, handle->buffer);
+        handle->buffer = NULL;
+        BMMA_Free(handle->block);
+        handle->block = NULL;
     }
 
     handle->buffer = NULL;
 
     BDBG_OBJECT_DESTROY(handle, BAPE_Buffer);
     BKNI_Free(handle);
+    handle = NULL;
     BDBG_ERR(("%s - SUCCESS, returning", __FUNCTION__));
 }
 

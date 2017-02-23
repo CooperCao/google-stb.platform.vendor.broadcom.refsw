@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -94,7 +94,7 @@ static int tzioc_tdrv_map_paddrs(void);
 
 static int tzioc_tdrv_msg_proc(
     tzioc_msg_hdr *pHdr,
-    uint32_t ulPrivData);
+    uintptr_t ulPrivData);
 
 /*
  * Variable Declarations
@@ -118,7 +118,7 @@ static int __init tzioc_tdrv_init(void)
     memset(&tzioc_tdrv, 0, sizeof(tzioc_tdrv));
 
     /* init msg proc func */
-    ptdrv->pMsgProc = tzioc_tdrv_msg_proc;
+    ptdrv->pMsgProc = (tzioc_msg_proc_pfn) tzioc_tdrv_msg_proc;
 
     /* init msg lock */
     spin_lock_init(&ptdrv->msgLock);
@@ -226,8 +226,8 @@ static int tzioc_tdrv_client(void)
             return -EFAULT;
         }
 
-        LOGI("client handle 0x%x, client id %d",
-             ptdrv->hClient,
+        LOGI("client handle 0x%zx, client id %d",
+             (size_t) ptdrv->hClient,
              ptdrv->clientId);
 
         /* leave last test client */
@@ -306,6 +306,7 @@ static int tzioc_tdrv_peer_hello(void)
             return -ETIMEDOUT;
         }
 
+#if 1
         spin_lock(&ptdrv->msgLock);
         ptdrv->msgCnt++;
         spin_unlock(&ptdrv->msgLock);
@@ -316,10 +317,10 @@ static int tzioc_tdrv_peer_hello(void)
             msleep(1000);
 
         if (timeout == -1) {
-            LOGE("timedout waiting for rpy");
+            LOGE("timedout waiting for nfy");
             return -ETIMEDOUT;
         }
-
+#endif
         LOGI("peer hello app testing %d done\n", rep);
     }
 
@@ -467,7 +468,7 @@ static int tzioc_tdrv_msg_echo(void)
     }
 
     /* switch to TZOS */
-    tzioc_call_smc(ptdrv->hClient, 0x7);
+    tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
     /* wait for echo msgs or timeout */
     timeout = 10;
@@ -525,7 +526,7 @@ static int tzioc_tdrv_msg_hello(void)
     }
 
     /* switch to TZOS */
-    tzioc_call_smc(ptdrv->hClient, 0x7);
+    tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
     /* wait for rpy or timeout */
     timeout = 10;
@@ -571,7 +572,7 @@ static int tzioc_tdrv_mem_alloc(void)
         /* convert virtual address to offset */
         offset = tzioc_vaddr2offset(
             ptdrv->hClient,
-            (uint32_t)vaddr);
+            (uintptr_t)vaddr);
 
         if (offset == (uint32_t)-1) {
             LOGE("failed to convert virtual address to offset");
@@ -621,7 +622,7 @@ static int tzioc_tdrv_mem_alloc(void)
             spin_unlock(&ptdrv->msgLock);
 
             /* switch to TZOS */
-            tzioc_call_smc(ptdrv->hClient, 0x7);
+            tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
             /* wait for rpy or timeout */
             timeout = 10;
@@ -738,7 +739,7 @@ static int tzioc_tdrv_map_paddr(void)
             spin_unlock(&ptdrv->msgLock);
 
             /* switch to TZOS */
-            tzioc_call_smc(ptdrv->hClient, 0x7);
+            tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
             /* wait for rpy or timeout */
             timeout = 10;
@@ -871,7 +872,7 @@ static int tzioc_tdrv_map_paddrs(void)
             spin_unlock(&ptdrv->msgLock);
 
             /* switch to TZOS */
-            tzioc_call_smc(ptdrv->hClient, 0x7);
+            tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
             /* wait for rpy or timeout */
             timeout = 10;
@@ -912,7 +913,7 @@ static int tzioc_tdrv_map_paddrs(void)
 
 static int tzioc_tdrv_msg_proc(
     tzioc_msg_hdr *pHdr,
-    uint32_t ulPrivData)
+    uintptr_t ulPrivData)
 {
     UNUSED(ulPrivData);
 

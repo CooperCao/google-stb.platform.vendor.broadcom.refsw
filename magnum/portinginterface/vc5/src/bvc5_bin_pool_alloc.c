@@ -39,6 +39,7 @@
 
 #include "bstd.h"
 #include "bmma.h"
+#include "bvc5_bin_pool_priv.h"
 
 BDBG_MODULE(BVC5_P);
 
@@ -49,18 +50,25 @@ BMMA_Block_Handle BVC5_P_BinPoolBlock_AllocMem(
    uint32_t           uiAlign
    )
 {
-   BMMA_AllocationSettings pSettings;
-   BMMA_Block_Handle hBlock = NULL;
+   BVC5_BinPoolBlock_MemInterface *pIface = BVC5_P_GetBinPoolMemInterface();
 
-   BMMA_GetDefaultAllocationSettings(&pSettings);
+   if (pIface && pIface->BinPoolBlock_Alloc != NULL)
+      return pIface->BinPoolBlock_Alloc(hHeap, zSize, uiAlign);
+   else
+   {
+      BMMA_AllocationSettings pSettings;
+      BMMA_Block_Handle hBlock = NULL;
+
+      BMMA_GetDefaultAllocationSettings(&pSettings);
 #ifdef BMMA_ALLOC_HAS_DESC
-   pSettings.desc = "Binner Pool";
+      pSettings.desc = "Binner Pool";
 #endif
-   hBlock = BMMA_Alloc(hHeap, zSize, uiAlign, &pSettings);
-   if (hBlock != NULL)
-      BMMA_MarkDiscarable(hBlock);
+      hBlock = BMMA_Alloc(hHeap, zSize, uiAlign, &pSettings);
+      if (hBlock != NULL)
+         BMMA_MarkDiscarable(hBlock);
 
-   return hBlock;
+      return hBlock;
+   }
 }
 
 /***************************************************************************/
@@ -68,7 +76,12 @@ void BVC5_P_BinPoolBlock_FreeMem(
    BMMA_Block_Handle hBlock
    )
 {
-   BMMA_Free(hBlock);
+   BVC5_BinPoolBlock_MemInterface *pIface = BVC5_P_GetBinPoolMemInterface();
+
+   if (pIface && pIface->BinPoolBlock_Free != NULL)
+      pIface->BinPoolBlock_Free(hBlock);
+   else
+      BMMA_Free(hBlock);
 }
 
 /***************************************************************************/
@@ -78,9 +91,16 @@ void BVC5_P_BinPoolBlock_LockMem(
    uint32_t          *puiPhysOffset
    )
 {
-   *puiLockOffset = BMMA_LockOffset(hBlock);
-   *puiPhysOffset = *puiLockOffset & 0xFFFFFFFF;
-   BDBG_ASSERT(*puiLockOffset >> 32 == 0);
+   BVC5_BinPoolBlock_MemInterface *pIface = BVC5_P_GetBinPoolMemInterface();
+
+   if (pIface && pIface->BinPoolBlock_Lock != NULL)
+      pIface->BinPoolBlock_Lock(hBlock, puiLockOffset, puiPhysOffset);
+   else
+   {
+      *puiLockOffset = BMMA_LockOffset(hBlock);
+      *puiPhysOffset = *puiLockOffset & 0xFFFFFFFF;
+      BDBG_ASSERT(*puiLockOffset >> 32 == 0);
+   }
 }
 
 /***************************************************************************/
@@ -88,6 +108,13 @@ void BVC5_P_BinPoolBlock_UnlockMem(
    BMMA_Block_Handle hBlock,
    BMMA_DeviceOffset uiLockOffset)
 {
-   BMMA_UnlockOffset(hBlock, uiLockOffset);
-   BMMA_MarkDiscarable(hBlock);
+   BVC5_BinPoolBlock_MemInterface *pIface = BVC5_P_GetBinPoolMemInterface();
+
+   if (pIface && pIface->BinPoolBlock_Unlock != NULL)
+      pIface->BinPoolBlock_Unlock(hBlock, uiLockOffset);
+   else
+   {
+      BMMA_UnlockOffset(hBlock, uiLockOffset);
+      BMMA_MarkDiscarable(hBlock);
+   }
 }

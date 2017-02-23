@@ -581,6 +581,14 @@ typedef enum NEXUS_TsmMode
     NEXUS_TsmMode_eMax
 } NEXUS_TsmMode;
 
+typedef enum NEXUS_VideoDecoderDqtMode
+{
+    NEXUS_VideoDecoderDqtMode_eDisabled,
+    NEXUS_VideoDecoderDqtMode_eSinglePass,
+    NEXUS_VideoDecoderDqtMode_eMultiPass,
+    NEXUS_VideoDecoderDqtMode_eMax
+} NEXUS_VideoDecoderDqtMode;
+
 /**
 Summary:
 Set a collection of video decoder trick mode parameters.
@@ -605,7 +613,7 @@ typedef struct NEXUS_VideoDecoderTrickState
     NEXUS_VideoDecoderDecodeMode decodeMode; /* Instruct decoder which frames to decode and which to drop based on picture type. */
     bool brcmTrickModesEnabled;     /* If true, BTP's will be processed by the decoder. For some decodes, BTP's are always on and this option is ignored. */
     bool hostTrickModesEnabled;     /* If true host has manipulated stream content.  */
-    bool dqtEnabled;                /* If true, the display manager will reverse the order of displayed pictures to achieve GOP-based reverse trick modes. */
+    NEXUS_VideoDecoderDqtMode dqtEnabled; /* If true, the display manager will reverse the order of displayed pictures to achieve GOP-based reverse trick modes. */
     bool topFieldOnly;              /* If true and source is interlaced, only top fields will be sent to the display. */
     bool fieldByFieldAdvance;       /* If true, then NEXUS_VideoDecoder_FrameAdvance will advance one field at a time for interlaced content. */
     bool reverseFields;             /* If true, fields will be reversed before sending to the display. This is used for reverse trick modes. */
@@ -721,6 +729,12 @@ typedef struct NEXUS_VideoDecoderExtendedSettings
     unsigned crcFifoSize;                 /* Defaults to zero, which disables CRC. If non-zero, CRC's will be captured and can be retrieved with NEXUS_VideoDecoder_GetCrc. */
     NEXUS_VideoDecoderLowLatencySettings lowLatencySettings; /* settings which
         control low latency behavior of the display queue */
+
+    NEXUS_VideoEotf eotf;                 /* User-specified color grading / expected electro-optical transfer function.
+                                             Forces color override if not set to invalid .
+                                             This must be set before NEXUS_VideoDecoder_Start() is called to take effect. */
+    NEXUS_ContentLightLevel contentLightLevel;
+    NEXUS_MasteringDisplayColorVolume masteringDisplayColorVolume;
 } NEXUS_VideoDecoderExtendedSettings;
 
 /**

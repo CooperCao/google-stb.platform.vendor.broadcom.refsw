@@ -74,7 +74,8 @@ sub get_file_text
     # Remove all comments
     # No nested comments allowed
     $text =~ s/\/\*.*?\*\///sg;
-
+    # replace multiple whitespace with a single whitespace */
+    $text =~ s/\s+/ /g;
     return $text;
 }
 
@@ -175,9 +176,8 @@ sub copy_structs
 {
     my %dst;
     my $structs = shift;
-    my $name; my $members;
-    while (($name, $members) = each %$structs) {
-        $dst{$name} = [@$members];
+    while (my ($name, $fields) = each %$structs) {
+        $dst{$name} = [map { {%$_} } @$fields];
     }
     \%dst;
 }
@@ -231,12 +231,17 @@ sub expand_structs
 sub parse_struct
 {
     my $filename = shift;
-    my $preload_struct = shift;
+    my $opts = shift;
     my $text = get_file_text $filename;
     my %struct;
+    my $structs_attr;
+
+    if(defined $opts) {
+        $structs_attr = $opts->{'structs_attr'} if exists $opts->{'structs_attr'};
+    }
 
     while ($text =~  /
-        typedef\s+struct\s+(\w+)\s*{  # typedef
+        typedef\s+struct\s(\w+)\s?(attr\{([^}]+)})?\s?{  # typedef  (+attributes)
         (.+?)}                 # body
         \s*\1                   # termination
         \s*;                      # must terminate with ;
@@ -244,8 +249,11 @@ sub parse_struct
         my @level= ( [] );; # fields on the current level
         my @level_kind =  ( 'struct' ); # type (struct or union) on the current level
         my $struct_name= $1;
-        my $body = $2;
-        my $kind;
+        my $body = $4;
+        if(defined $3 && defined $structs_attr) {
+            $structs_attr->{$struct_name} = parse_attr $3;
+        }
+
         #print "structure $1\n";
         $struct{$struct_name} = $level[0];
         while($body =~ /(struct\s*{)|(union\s*{)|(}[^;]+;)|((\w[\w\s]*[\s\*]+)(\w+[^;]*))\s*;\s*(attr\{([^}]+)})?/sg) {
@@ -284,7 +292,7 @@ sub parse_struct
                     push @{$level[$#level]}, $field;
                 }
             } elsif (defined $1 || defined $2) {
-                $kind = 'struct';
+                my $kind = 'struct';
                 $kind = 'union' if (defined $2);
                 push @level_kind, $kind;
                 push @level, [];
@@ -462,9 +470,7 @@ sub parse_func
     if ($more eq "*") {
         $func{RETTYPE} .= $more;
     }
-    $func{RETTYPE_ISHANDLE} = ($func{RETTYPE} =~ /Handle$/ ||
-                               $func{RETTYPE} =~ /NEXUS_(Video|Audio)(Input|Output)/
-                               );
+    $func{RETTYPE_ISHANDLE} = $func{RETTYPE} =~ /Handle$/;
     ($func{FUNCNAME}) = $prototype =~ /(\w+)\s*\(/;
 
     # get the attributes and params into a raw list
@@ -494,8 +500,6 @@ sub parse_func
 
         # parse type and name
         my ($type, $name) = $p =~ /(\w[\w\s]*[\s\*]+)(\w+)/;
-        # replace multiple whitespaces with a single whitespace */
-        $type =~ s/\s+/ /g;
         # strip leading and trailing whitespace
         $type =~ s/^\s?(.*?)\s?$/$1/;
 
@@ -528,9 +532,7 @@ sub parse_func
         else {
             # if not by-reference, then by-value, which is always in in param
             $paramhash{INPARAM} = 1;
-            $paramhash{ISHANDLE} = ($paramhash{TYPE} =~ /Handle$/ ||
-                                    $paramhash{TYPE} =~ /NEXUS_(Video|Audio)(Input|Output)/
-                                    );
+            $paramhash{ISHANDLE} = $paramhash{TYPE} =~ /Handle$/;
         }
         push @params, \%paramhash;
     }

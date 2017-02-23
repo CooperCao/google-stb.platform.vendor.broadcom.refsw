@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -56,11 +56,6 @@
 
 #ifdef NEXUS_FPGA_SUPPORT
 #include "bfpga.h"
-#endif
-
-#ifndef NEXUS_NUM_XVD_DEVICES
-/* NEXUS_NUM_XVD_DEVICES is used throughout platform code; this provides backward compatibility */
-#define NEXUS_NUM_XVD_DEVICES NEXUS_MAX_XVD_DEVICES
 #endif
 
 #include "blst_queue.h"
@@ -154,6 +149,15 @@ typedef struct NEXUS_PlatformHandles
     BLST_Q_HEAD(handle_head, NEXUS_Platform_P_ModuleInfo) handles;
     bool baseOnlyInit;
 } NEXUS_PlatformHandles;
+
+typedef struct NEXUS_P_PlatformInternalSettings {
+#if NEXUS_HAS_VIDEO_ENCODER
+    NEXUS_VideoEncoderModuleInternalSettings videoEncoderSettings;
+#endif
+    unsigned unused;
+} NEXUS_P_PlatformInternalSettings;
+
+
 
 /***************************************************************************
 Summary:
@@ -261,54 +265,6 @@ Get the memory regions that the OS says can be used by nexus/magnum
 **/
 NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory);
 NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory);
-
-/***************************************************************************
-Summary:
-Read reserved memory
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadReserved(
-    uint32_t physicalAddress
-    );
-
-/***************************************************************************
-Summary:
-Write reserved memory
-***************************************************************************/
-void NEXUS_Platform_P_WriteReserved(
-    uint32_t physicalAddress,
-    uint32_t value
-    );
-
-/***************************************************************************
-Summary:
-Read core register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCoreReg(
-    uint32_t offset
-    );
-
-/***************************************************************************
-Summary:
-Write core register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCoreReg(
-    uint32_t offset,
-    uint32_t value
-    );
-
-/***************************************************************************
-Summary:
-Read CMT Control Register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCmtControl(void);
-
-/***************************************************************************
-Summary:
-Write CMT Control Register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCmtControl(
-    uint32_t value
-    );
 
 /***************************************************************************
 Summary:
@@ -428,6 +384,7 @@ NEXUS_Error NEXUS_Platform_P_SetCoreModuleSettings(
 Summary:
 Configure GISB timeout checking
  ***************************************************************************/
+bool NEXUS_Platform_P_IsGisbTimeoutAvailable(void);
 void NEXUS_Platform_P_ConfigureGisbTimeout(void);
 
 /**
@@ -442,6 +399,7 @@ typedef struct NEXUS_PlatformStandbyState {
 extern NEXUS_PlatformStandbyState g_standbyState;
 #endif
 
+#if !NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX
 /***************************************************************************
 Summary:
 Based on the RTS settings for each platform, framebuffer for each display
@@ -449,32 +407,10 @@ could be placed on any heaps. This API shall return the heap handle
 for each frame buffer.
  ***************************************************************************/
 NEXUS_HeapHandle NEXUS_Platform_P_GetFramebufferHeap(unsigned displayIndex);
+#endif
 
 NEXUS_Error NEXUS_Platform_P_InitServer(void);
 void NEXUS_Platform_P_UninitServer(void);
-
-void NEXUS_Platform_P_TerminateProcess(unsigned pid);
-
-/***************************************************************************
-Summary:
-    Initialize Nexus
-Description:
-    This will initialize all board-specifics
-See Also:
- ***************************************************************************/
-NEXUS_Error NEXUS_Platform_P_Init( const NEXUS_PlatformSettings *pSettings,
-                                           unsigned platformCheck,
-                                           unsigned versionCheck,
-                                           unsigned structSizeCheck );
-
-/***************************************************************************
-Summary:
-Private function for frontend standby/resume
- ***************************************************************************/
-NEXUS_Error NEXUS_Platform_P_StandbyFrontend(
-    bool enabled,
-    const NEXUS_StandbySettings *pSettings
-    );
 
 /***************************************************************************
 Summary:
@@ -503,10 +439,8 @@ Global variables for platform state
  ***************************************************************************/
 extern NEXUS_PlatformHandles g_NEXUS_platformHandles;
 extern NEXUS_PlatformSettings g_NEXUS_platformSettings;
+extern NEXUS_P_PlatformInternalSettings g_NEXUS_platformInternalSettings;
 extern NEXUS_PlatformMemory g_platformMemory;
-
-NEXUS_Error NEXUS_Platform_P_AcquireObject(const struct b_objdb_client *client, const NEXUS_InterfaceName *type, void *object);
-void NEXUS_Platform_P_ReleaseObject(const NEXUS_InterfaceName *type, void *object);
 
 struct b_objdb_client *nexus_p_platform_objdb_client(NEXUS_ClientHandle client);
 
@@ -535,7 +469,7 @@ NEXUS_Error NEXUS_Platform_P_RemoveDynamicRegion(NEXUS_Addr addr, unsigned size)
 void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings );
 void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_MemoryConfigurationSettings *pSettings);
 void NEXUS_P_GetDefaultMemoryRtsSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_MemoryRtsSettings *pRtsSettings);
-NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryConfigurationSettings *pMemConfig, const NEXUS_MemoryRtsSettings *pRtsSettings, NEXUS_PlatformSettings *pSettings);
+NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryConfigurationSettings *pMemConfig, const NEXUS_MemoryRtsSettings *pRtsSettings, NEXUS_PlatformSettings *pSettings, NEXUS_P_PlatformInternalSettings *pInternalSettings);
 void NEXUS_P_SupportVideoDecoderCodec( NEXUS_MemoryConfigurationSettings *pSettings, NEXUS_VideoCodec codec );
 bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryRtsSettings *pRtsSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned memcIndex);
 
@@ -559,7 +493,7 @@ typedef struct NEXUS_MemoryConfiguration
     NEXUS_DisplayModuleSettings display;
 #endif
 #if NEXUS_HAS_VIDEO_ENCODER
-    NEXUS_VideoEncoderModuleSettings videoEncoder;
+    NEXUS_VideoEncoderModuleInternalSettings videoEncoder;
 #endif
 } NEXUS_MemoryConfiguration;
 

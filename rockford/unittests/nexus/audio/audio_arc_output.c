@@ -54,6 +54,7 @@
 #if NEXUS_NUM_HDMI_INPUTS
 #include "nexus_hdmi_input.h"
 #endif
+#if NEXUS_HAS_AUDIO
 #include "nexus_audio_input.h"
 #include "nexus_audio_decoder.h"
 #include "nexus_audio_dac.h"
@@ -61,6 +62,7 @@
 #include "nexus_audio_playback.h"
 #if NEXUS_NUM_AUDIO_RETURN_CHANNEL
 #include "nexus_audio_return_channel.h"
+#endif
 #endif
 #include "blst_queue.h"
 #include "bstd.h"
@@ -94,7 +96,7 @@ static BLST_Q_HEAD(cecTxQueueBusyHead, cecTxQueue) cecTxQueueBusyHead = BLST_Q_I
 #endif
 
 
-#if NEXUS_HAS_HDMI_INPUT  &&  NEXUS_NUM_AUDIO_RETURN_CHANNEL && NEXUS_HAS_CEC && NEXUS_NUM_CEC
+#if NEXUS_HAS_HDMI_INPUT  &&  NEXUS_NUM_AUDIO_RETURN_CHANNEL && NEXUS_HAS_CEC && NEXUS_NUM_CEC && NEXUS_HAS_AUDIO
 
 BDBG_MODULE(audio_arc_output);
 
@@ -114,11 +116,11 @@ void printTxQueueElem(NEXUS_CecHandle handle, const struct cecTxQueue *pElem, co
 
     BDBG_WRN (("CEC Send: %s %u (%p): From:%2u To:%2u Length:%u Data: %s  pMessage: %p",
               pPrefix,
-              pElem->idx, pElem,
+              pElem->idx, (void *)pElem,
               pElem->cecMessage.initiatorAddr,
               pElem->cecMessage.destinationAddr,
               pElem->cecMessage.length,
-              msgBuffer, &pElem->cecMessage));
+              msgBuffer, (void *)&pElem->cecMessage));
 }
 
 
@@ -1091,5 +1093,5 @@ done:
     return 0;
 }
 #else
-int main(void) {printf("no hdmi_input support\n");return 0;}
+int main(void) {printf("no hdmi_input, ARC, CEC, or audio support\n");return 0;}
 #endif

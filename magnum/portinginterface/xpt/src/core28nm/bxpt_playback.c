@@ -977,11 +977,30 @@ BERR_Code BXPT_Playback_AddDescriptors(
 
     DescPhysAddr = hPb->mma.descOffset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPb->mma.descPtr); /* convert FirstDesc -> offset */
 
-    /* fail if descriptor not on MEMC0 */
-    if (!BCHP_OffsetOnMemc(hPb->hChip, DescPhysAddr, 0)) {
-        BDBG_ERR(("Descriptor at offset " BDBG_UINT64_FMT " is not on MEMC0 and inaccessible by default RTS", BDBG_UINT64_ARG(DescPhysAddr)));
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
+    /* Fail if the descriptor is on a MEMC that doesn't have bandwidth for playback. */
+   {
+       #include "bmrc.h"
+       #include "bchp_memc_clients.h"
+
+      unsigned memcIndex;
+      BCHP_MemcClient pbReadClientId;
+      BCHP_MemClientConfig memCfg;
+
+      ExitCode = BERR_SUCCESS;
+      BKNI_Memset(&memCfg, 0, sizeof(BCHP_MemClientConfig));
+      for (memcIndex = 0; memcIndex < BCHP_P_MEMC_COUNT; memcIndex++)
+         if (BCHP_OffsetOnMemc(hPb->hChip, DescPhysAddr, memcIndex))
+         {
+            pbReadClientId = BMRC_P_GetClientId(BCHP_MemcClient_eXPT_RD_PB, memcIndex);
+            ExitCode = BCHP_GetMemcClientConfig(hPb->hChip, memcIndex, pbReadClientId, &memCfg);
+            if (ExitCode != BERR_SUCCESS || (memCfg.blockout == 0x3FFFF && !memCfg.roundRobinEn))
+            {
+               BDBG_ERR(("Descriptor at offset " BDBG_UINT64_FMT " is not on an MEMC that has RTS for playback.", BDBG_UINT64_ARG(DescPhysAddr)));
+               return BERR_TRACE(BERR_NOT_SUPPORTED);
+            }
+            break;
+         }
+   }
 
     if( LastDescriptor )
     {

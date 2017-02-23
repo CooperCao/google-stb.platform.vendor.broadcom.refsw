@@ -239,7 +239,7 @@ public:
    // @cond
    enum
    {
-      BAD_INDEX = 0xffffffff
+      BAD_INDEX = -1
    };
    // @endcond
 
@@ -374,6 +374,12 @@ private:
 public:
    static Library                   *m_library;
 };
+
+#ifdef __clang__
+// Doesn't build in clang without this declaration.
+// gcc 4.8.4 doesn't like it though
+template <typename Traits> Library<Traits> *Library<Traits>::m_library;
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 

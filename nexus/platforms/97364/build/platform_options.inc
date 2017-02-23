@@ -42,7 +42,7 @@
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
-#Todo remove when HSM checked in.
+# Security is on by defualt
 NEXUS_SECURITY_SUPPORT ?= y
 
 # RFM Support turned off by default due to SWSTB-170.
@@ -50,9 +50,13 @@ NEXUS_RFM_SUPPORT := n
 
 NEXUS_HDMI_INPUT_SUPPORT := n
 
+#
+# SW7364-335: we turn off the encoder support by default, to enable SD output path.
+# if needed turn it on by setting the flag back to "y"
+#
+
 #Raaga encoder support flags
-VIDEO_ENCODER_SUPPORT ?= y
-BDSP_ENCODER_SUPPORT  ?= y
+BDSP_ENCODER_SUPPORT  ?= n
 ifeq ($(BDSP_ENCODER_SUPPORT),y)
 BDSP_ENCODER_ACCELERATOR_SUPPORT ?= y
 endif

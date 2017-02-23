@@ -1,49 +1,46 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 /* Nexus example app: basic file playback */
 
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if NEXUS_HAS_AUDIO && (NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA)
+#if NEXUS_HAS_AUDIO
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
 #include "nexus_display.h"
@@ -53,6 +50,7 @@
 #include "nexus_audio_decoder.h"
 #include "nexus_audio_input.h"
 #include "nexus_audio_output.h"
+#include "nexus_audio_mixer.h"
 #include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
 #include "nexus_composite_output.h"
@@ -100,6 +98,7 @@ int main(void)
     NEXUS_AudioDecoderHandle pcmDecoder[NUM_AUDIO_DECODES];
     NEXUS_AudioMixerHandle hwMixer, dspMixer;
     NEXUS_AudioMixerSettings mixerSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
     #if ENABLE_AUDIO_LOW_DELAY_DECODE
     NEXUS_SyncChannelSettings syncChannelSettings;
     NEXUS_SyncChannelHandle syncChannel;
@@ -115,12 +114,43 @@ int main(void)
     NEXUS_DisplaySettings displaySettings;
     NEXUS_Error rc;
     #endif
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
+
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     platformSettings.audioModuleSettings.numPcmBuffers += 2;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < NUM_AUDIO_DECODES ||
+        audioCapabilities.numMixers == 0 ||
+        !audioCapabilities.dsp.mixer)
+    {
+        printf("This application is not supported on this platform (requires decoder and mixers).\n");
+        return 0;
+    }
+
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
 #if ENABLE_AUDIO_LOW_DELAY_DECODE
     /* create a sync channel */
@@ -169,21 +199,22 @@ int main(void)
     NEXUS_AudioMixer_SetSettings(dspMixer, &mixerSettings);
     #endif
 
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioMixer_GetConnector(dspMixer));
-    #endif
-
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioMixer_GetConnector(dspMixer));
-    #endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioMixer_GetConnector(dspMixer));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioMixer_GetConnector(dspMixer));
+    }
     #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioMixer_GetConnector(dspMixer));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioMixer_GetConnector(dspMixer));
+    }
     #endif
 
     #if 0
@@ -310,15 +341,17 @@ int main(void)
     }
     NEXUS_AudioMixer_Stop(dspMixer);
     NEXUS_Playback_Destroy(playback);
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
     #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioHdmiHandle);
+    }
     #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+    }
     for ( i=0; i<NUM_AUDIO_DECODES; i++)
     {
         NEXUS_AudioDecoder_Close(pcmDecoder[i]);

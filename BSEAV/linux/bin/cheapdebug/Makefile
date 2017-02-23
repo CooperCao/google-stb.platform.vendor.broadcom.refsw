@@ -1,7 +1,7 @@
 ############################################################
-#	  (c)2012 Broadcom Corporation
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -13,11 +13,11 @@
 #
 #  Except as expressly set forth in the Authorized License,
 #
-#  1.	  This program, including its structure, sequence and organization, constitutes the valuable trade
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 #  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 #  and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-#  2.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
 #  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 #  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 #  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
 #  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 #  USE OR PERFORMANCE OF THE SOFTWARE.
 #
-#  3.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
 #  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
 #  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
 #  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -34,20 +34,12 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-# 
 ############################################################
 
-include ../../../api/build/tools.mak
+# use nexus for BCHP_CHIP
+NEXUS_PLATFORM ?= $(PLATFORM)
+NEXUS_TOP=$(shell cd ../../../../nexus;pwd)
+include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 OBJS	= main.o
 TARGET	= cheapdebug
@@ -58,11 +50,20 @@ CFLAGS	+= -DUSE_READLINE
 LDFLAGS	+= -lreadline -ltermcap
 endif
 
+include $(MAGNUM)/basemodules/chp/bchp.inc
+
+CFLAGS += $(addprefix -D,$(NEXUS_APP_DEFINES)) $(NEXUS_CFLAGS)
+CFLAGS += $(addprefix -D,$(foreach module,$(MAGNUM_MODULES),$($(module)_DEFINES)))
+CFLAGS += $(addprefix -I,$(foreach module,$(MAGNUM_MODULES),$($(module)_INCLUDES)))
+
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	@echo [Linking... $(notdir $@)]
 	${Q_}$(CC) -o $@ $^ $(LDFLAGS)
+ifneq ($(DESTDIR),)
+	$(CP) $@ $(DESTDIR)
+endif
 
 clean:
 	${Q_}$(RM) $(OBJS) $(TARGET)
@@ -70,4 +71,3 @@ clean:
 $(OBJS): %.o : %.c
 	@echo [Compile... $(notdir $<)]
 	${Q_}$(CC) $(CFLAGS) -c $< -o $@
-

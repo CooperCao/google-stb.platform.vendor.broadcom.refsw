@@ -471,7 +471,6 @@ void NEXUS_Frontend_GetDefaultSatellitePeakscanSettings(NEXUS_FrontendSatelliteP
     pSettings->maxSymbolRate = 30 * 1000000;
     pSettings->frequencyRange = 5 * 1000000;
     pSettings->frequencyStep = 1 * 1000000;
-    /* TODO: hardcoded values are ok for now, but consider querying AST for these */
     NEXUS_CallbackDesc_Init(&pSettings->peakscanCallback);
 }
 

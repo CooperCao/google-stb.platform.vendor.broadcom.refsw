@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,7 +70,14 @@ NEXUS_VideoEncoderModule_GetDefaultSettings( NEXUS_VideoEncoderModuleSettings *p
     return;
 }
 
-static NEXUS_VideoEncoderModuleSettings g_moduleSettings;
+void
+NEXUS_VideoEncoderModule_GetDefaultInternalSettings( NEXUS_VideoEncoderModuleInternalSettings *pSettings )
+{
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    /* we can't set meaningless default heap assignment since it's chip/platform speciific */
+
+    return;
+}
 
 static void NEXUS_VideoEncoderModule_P_Print_Vce(void)
 {
@@ -81,24 +88,23 @@ static void NEXUS_VideoEncoderModule_P_Print_Vce(void)
     for (i=0; i<NEXUS_NUM_VCE_DEVICES; i++) {
         unsigned j;
         if (!g_NEXUS_VideoEncoder_P_State.vceDevices[i].vce) continue;
-        BDBG_MODULE_LOG(vce_proc, ("VCE%u[dev%u/ch%u]: (%p) general:%uMB secure:%uMB picture:%uMB", i,
-            g_moduleSettings.vceMapping[i].device, g_moduleSettings.vceMapping[i].channel, (void *)g_NEXUS_VideoEncoder_P_State.vceDevices[i].vce,
-            g_moduleSettings.heapSize[i].general/1024/1024,
-            g_moduleSettings.heapSize[i].secure/1024/1024,
-            g_moduleSettings.heapSize[i].picture/1024/1024));
+        BDBG_MODULE_LOG(vce_proc, ("VCE%u: general:%uMB secure:%uMB picture:%uMB", i,
+            g_NEXUS_VideoEncoder_P_State.config.heapSize[i].general/1024/1024,
+            g_NEXUS_VideoEncoder_P_State.config.heapSize[i].secure/1024/1024,
+            g_NEXUS_VideoEncoder_P_State.config.heapSize[i].picture/1024/1024));
         for (j=0; j < NEXUS_NUM_VCE_CHANNELS; j++) {
             NEXUS_VideoEncoderHandle videoEncoder = &g_NEXUS_VideoEncoder_P_State.vceDevices[i].channels[j];
             if (videoEncoder->enc) {
                 NEXUS_VideoEncoderStatus status;
                 if(NEXUS_VideoEncoder_GetStatus(videoEncoder, &status)) continue;
 
-                BDBG_MODULE_LOG(vce_proc, (" device%u channel%d: vceChannel=%p, %s", i, j, (void *)videoEncoder->enc, videoEncoder->startSettings.nonRealTime ? "NRT" : "RT"));
-                BDBG_MODULE_LOG(vce_proc, ("  started=%c, codec=%d, profile=%#x, level=%p, stcCh=%p", videoEncoder->started?'y':'n',
+                BDBG_MODULE_LOG(vce_proc, (" ch%d(%p): %s", j, (void *)videoEncoder->enc, videoEncoder->startSettings.nonRealTime ? "NRT" : "RT"));
+                BDBG_MODULE_LOG(vce_proc, ("  started=%c, codec=%d, profile=%#x, level=%u, stcCh=%p", videoEncoder->started?'y':'n',
                     videoEncoder->started?videoEncoder->startSettings.codec:0,
-                    videoEncoder->started?videoEncoder->startSettings.profile:0, (void *)videoEncoder->startSettings.level, (void *)videoEncoder->startSettings.stcChannel));
-                BDBG_MODULE_LOG(vce_proc, ("  CDB: %d/%d (%d%%), ITB: %d/%d (%d%%)",
-                    status.data.fifoDepth, status.data.fifoSize, status.data.fifoSize?status.data.fifoDepth*100/status.data.fifoSize:0,
-                    status.index.fifoDepth, status.index.fifoSize, status.index.fifoSize?status.index.fifoDepth*100/status.index.fifoSize:0));
+                    videoEncoder->started?videoEncoder->startSettings.profile:0, videoEncoder->startSettings.level, (void *)videoEncoder->startSettings.stcChannel));
+                BDBG_MODULE_LOG(vce_proc, ("  CDB: "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" (%d%%), ITB: "BDBG_UINT64_FMT"/"BDBG_UINT64_FMT" (%d%%)",
+                    BDBG_UINT64_ARG((uint64_t)status.data.fifoDepth), BDBG_UINT64_ARG((uint64_t)status.data.fifoSize), (unsigned)(status.data.fifoSize?status.data.fifoDepth*100/status.data.fifoSize:0),
+                    BDBG_UINT64_ARG((uint64_t)status.index.fifoDepth), BDBG_UINT64_ARG((uint64_t)status.index.fifoSize), (unsigned)(status.index.fifoSize?status.index.fifoDepth*100/status.index.fifoSize:0)));
                 BDBG_MODULE_LOG(vce_proc, ("  Encode: encoded=%d lastPicID=%d picPerSeconds=%d", status.picturesEncoded, status.pictureIdLastEncoded,
                     status.picturesPerSecond));
                 BDBG_MODULE_LOG(vce_proc, ("  Drops: received=%d dropsFRC=%d dropsHRD=%d dropsErr=%d", status.picturesReceived, status.picturesDroppedFRC,
@@ -112,7 +118,7 @@ static void NEXUS_VideoEncoderModule_P_Print_Vce(void)
 }
 
 NEXUS_ModuleHandle
-NEXUS_VideoEncoderModule_Init(const NEXUS_VideoEncoderModuleSettings *pSettings)
+NEXUS_VideoEncoderModule_Init(const NEXUS_VideoEncoderModuleInternalSettings *pInternalSettings, const NEXUS_VideoEncoderModuleSettings *pSettings)
 {
     NEXUS_ModuleSettings moduleSettings;
     BERR_Code rc;
@@ -121,10 +127,11 @@ NEXUS_VideoEncoderModule_Init(const NEXUS_VideoEncoderModuleSettings *pSettings)
 
     BDBG_CASSERT(NEXUS_NUM_VCE_DEVICES <= NEXUS_MAX_VCE_DEVICES);
     BDBG_ASSERT(g_NEXUS_VideoEncoder_P_State.module==NULL);
-    BDBG_ASSERT(pSettings->display);
-    BDBG_ASSERT(pSettings->transport);
+    BDBG_ASSERT(pInternalSettings->display);
+    BDBG_ASSERT(pInternalSettings->transport);
     BKNI_Memset(&g_NEXUS_VideoEncoder_P_State, 0, sizeof(g_NEXUS_VideoEncoder_P_State));
-    g_NEXUS_VideoEncoder_P_State.config = *pSettings;
+    g_NEXUS_VideoEncoder_P_State.settings = *pSettings;
+    g_NEXUS_VideoEncoder_P_State.config = *pInternalSettings;
     /* init global module handle */
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.dbgPrint = NEXUS_VideoEncoderModule_P_Print_Vce;
@@ -135,8 +142,6 @@ NEXUS_VideoEncoderModule_Init(const NEXUS_VideoEncoderModuleSettings *pSettings)
         rc = BERR_TRACE(BERR_OS_ERROR);
         return NULL;
     }
-
-    g_moduleSettings = *pSettings;
 
     if (!pSettings->deferInit) {
         NEXUS_LockModule();
@@ -236,7 +241,7 @@ static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void)
 {
     unsigned i, j;
     NEXUS_Error rc;
-    const NEXUS_VideoEncoderModuleSettings *pSettings = &g_moduleSettings;
+    const NEXUS_VideoEncoderModuleInternalSettings *pSettings = &g_NEXUS_VideoEncoder_P_State.config;
 
     /* Open ViCE devices */
     for(i=0;i<NEXUS_NUM_VCE_DEVICES;i++ ) {
@@ -539,12 +544,12 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
 
     if(index>=NEXUS_NUM_VCE_CHANNELS*NEXUS_NUM_VCE_DEVICES) {rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;}
 
-    if(g_moduleSettings.vceMapping[index].device == -1) {
+    if(g_NEXUS_VideoEncoder_P_State.config.vceMapping[index].device == -1) {
         BDBG_ERR(("Video encoder[%u] is not supported by this platform!", index));
         rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);goto error;
     }
-    deviceId = g_moduleSettings.vceMapping[index].device;
-    chanId   = g_moduleSettings.vceMapping[index].channel;
+    deviceId = g_NEXUS_VideoEncoder_P_State.config.vceMapping[index].device;
+    chanId   = g_NEXUS_VideoEncoder_P_State.config.vceMapping[index].channel;
     BDBG_MSG(("Open video encoder %u: VCE[%u] channel[%u]", index, deviceId, chanId));
 
     /* deferred init */
@@ -614,16 +619,16 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
 
         encSettings.stMemoryConfig.uiPictureMemSize = memConfig.uiPictureMemSize;
         encSettings.stMemoryConfig.uiSecureMemSize  = memConfig.uiSecureMemSize;
-        BDBG_MSG(("Memory Config(%ux%u%c) heap size: picture %d, secure %d",
+        BDBG_MSG(("Memory Config(%ux%u%c) heap size: picture "BDBG_UINT64_FMT", secure "BDBG_UINT64_FMT,
             pSettings->memoryConfig.maxWidth, pSettings->memoryConfig.maxHeight,
             pSettings->memoryConfig.interlaced?'i' : 'p',
-            memConfig.uiPictureMemSize, memConfig.uiSecureMemSize));
+                  BDBG_UINT64_ARG((uint64_t)memConfig.uiPictureMemSize), BDBG_UINT64_ARG((uint64_t)memConfig.uiSecureMemSize)));
     }
 
     encSettings.stOutput.bAllocateOutput = true;
     encSettings.stMemoryConfig.uiDataMemSize = pSettings->data.fifoSize;
     encSettings.stMemoryConfig.uiIndexMemSize = pSettings->index.fifoSize;
-    BDBG_MSG(("CDB size = 0x%x, ITB size = 0x%x", encSettings.stMemoryConfig.uiDataMemSize, encSettings.stMemoryConfig.uiIndexMemSize));
+    BDBG_MSG(("CDB size = "BDBG_UINT64_FMT", ITB size = "BDBG_UINT64_FMT, BDBG_UINT64_ARG((uint64_t)encSettings.stMemoryConfig.uiDataMemSize), BDBG_UINT64_ARG((uint64_t)encSettings.stMemoryConfig.uiIndexMemSize)));
     /* ITB buffer must be non-secure to be parsed by host mux manager; and
      * ITB buffer must be on MEMC0 since CABAC hw generates the ITB and CABAC is tied to MEMC0 for security reason; */
     encSettings.stOutput.hIndexMem = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mma;
@@ -632,7 +637,7 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
     if (heap) {
        encSettings.stOutput.hIndexMem = NEXUS_Heap_GetMmaHandle(heap);
     }
-    heap = get_heap(pSettings->data.heap, g_moduleSettings.heapIndex[deviceId].output);
+    heap = get_heap(pSettings->data.heap, g_NEXUS_VideoEncoder_P_State.config.heapIndex[deviceId].output);
     if (heap) {
        encSettings.stOutput.hDataMem = NEXUS_Heap_GetMmaHandle(heap);
     }
@@ -855,7 +860,7 @@ NEXUS_VideoEncoder_P_ConvertSettings(const NEXUS_VideoEncoderSettings *pSettings
     return BERR_SUCCESS;
 }
 
-NEXUS_Error
+static NEXUS_Error
 NEXUS_VideoEncoder_P_ConvertStartSettings(NEXUS_VideoEncoderHandle encoder, const NEXUS_VideoEncoderStartSettings *pSettings, BVCE_Channel_StartEncodeSettings *startEncodeSettings)
 {
     BERR_Code rc;
@@ -1401,16 +1406,17 @@ void NEXUS_GetVideoEncoderCapabilities( NEXUS_VideoEncoderCapabilities *pCapabil
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
     pCapabilities->videoEncoder[0].supported = true;
     pCapabilities->videoEncoder[0].displayIndex = 3;
-    pCapabilities->videoEncoder[0].memory = g_moduleSettings.videoEncoder[0].memory;
+    pCapabilities->videoEncoder[0].memory = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[0].memory;
     pCapabilities->videoEncoder[1].supported = true;
     pCapabilities->videoEncoder[1].displayIndex = 2;
-    pCapabilities->videoEncoder[1].memory = g_moduleSettings.videoEncoder[1].memory;
+    pCapabilities->videoEncoder[1].memory = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[1].memory;
 #else
     unsigned i, j;
     BKNI_Memset(pCapabilities, 0, sizeof(*pCapabilities));
     for (i=0;i<NEXUS_MAX_VIDEO_ENCODERS;i++) {
-        unsigned device = g_moduleSettings.vceMapping[i].device;
-        unsigned channel = g_moduleSettings.vceMapping[i].channel;
+        unsigned device = g_NEXUS_VideoEncoder_P_State.config.vceMapping[i].device;
+        unsigned channel = g_NEXUS_VideoEncoder_P_State.config.vceMapping[i].channel;
+        if (device == (unsigned)-1) continue;
         pCapabilities->videoEncoder[i].supported = g_pCoreHandles->boxConfig->stVce.stInstance[device].uiChannels & (1 << channel);
         if (!pCapabilities->videoEncoder[i].supported) continue;
         for (j=0;j<BBOX_VDC_DISPLAY_COUNT;j++) {
@@ -1421,7 +1427,7 @@ void NEXUS_GetVideoEncoderCapabilities( NEXUS_VideoEncoderCapabilities *pCapabil
                 break;
             }
         }
-        pCapabilities->videoEncoder[i].memory = g_moduleSettings.videoEncoder[i].memory;
+        pCapabilities->videoEncoder[i].memory = g_NEXUS_VideoEncoder_P_State.config.videoEncoder[i].memory;
         pCapabilities->videoEncoder[i].deviceIndex = device;
         pCapabilities->videoEncoder[i].channelIndex = channel;
         BDBG_MSG(("videoEncoder[%u] display%u %ux%u%c", i, j,

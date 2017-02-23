@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2011-2014 Broadcom Corporation
+* Copyright (C) 2011-2016 2xxx Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -65,7 +65,7 @@ int  nexus_generic_driver_open(
     );
 void nexus_generic_driver_close(unsigned module, void *context, bool abnormal_termination);
 int  nexus_generic_driver_validate_mmap(unsigned module, void *context, uint64_t offset, unsigned size);
-int  nexus_generic_driver_ioctl(unsigned module, void *context, unsigned int cmd, unsigned long arg);
+int  nexus_generic_driver_ioctl(unsigned module, void *context, unsigned int cmd, unsigned long arg, bool compat);
 void nexus_generic_driver_read_register(uint32_t addr, uint32_t *p_value);
 void nexus_generic_driver_write_register(uint32_t addr, uint32_t value);
 

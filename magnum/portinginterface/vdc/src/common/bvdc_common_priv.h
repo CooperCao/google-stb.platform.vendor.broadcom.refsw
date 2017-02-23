@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,7 +63,6 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (1)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2)
 #define BVDC_P_SUPPORT_DNR                    (1)
-#define BVDC_P_SUPPORT_DNR_VER                (7)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 #define BVDC_P_SUPPORT_CAP_VER                (4)
@@ -153,15 +152,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -219,7 +213,6 @@ extern "C" {
 
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (0)
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (1)
-#define BVDC_P_SUPPORT_DNR_VER                (7)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 
@@ -339,15 +332,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -397,7 +385,6 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (1)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (7) /* DNR HW version */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 
 /* source */
@@ -511,15 +498,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_1_V0_RECT_ENABLE_MASK */
@@ -593,7 +575,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (1) /* Has 656Out and run as master mode */
 #define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (7) /* DNR HW version */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_CAP_VER                (5) /* CAP HW version, see bvdc_capture_priv.h */
 
@@ -661,15 +642,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_1_V0_RECT_ENABLE_MASK */
@@ -741,7 +717,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_TDAC_VER               (12)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_DNR                    (4) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (7)
 #define BVDC_P_SUPPORT_BOX_DETECT             (4) /* Number LBOX HW detect */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (2)
 #define BVDC_P_SUPPORT_HDDVI_VER              (9)
@@ -806,15 +781,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (1) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -872,19 +842,20 @@ extern "C" {
 #define BVDC_P_SUPPORT_DRAIN_VER              (4) /* DRAIN HW version */
 #define BVDC_P_SUPPORT_SCL_VER                (9)
 #define BVDC_P_SUPPORT_CAP_VER                (5)
+#define BVDC_P_SUPPORT_HSCL_VER               (6)
 #else
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (1)
 #define BVDC_P_SUPPORT_MFD_VER                (12)/* MFD HW version */
 #define BVDC_P_SUPPORT_DRAIN_VER              (3) /* DRAIN HW version */
 #define BVDC_P_SUPPORT_SCL_VER                (7)
 #define BVDC_P_SUPPORT_CAP_VER                (4)
+#define BVDC_P_SUPPORT_HSCL_VER               (5)
 #endif
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (0)
 #define BVDC_P_SUPPORT_TDAC_VER              (10) /* TODO */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2)
 #define BVDC_P_SUPPORT_DNR                    (1)
-#define BVDC_P_SUPPORT_DNR_VER                (7)
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 #define BVDC_P_SUPPORT_VEC_GRPD               (0)
 
@@ -918,7 +889,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_XSRC_VER               (0) /* XSRC HW version */
 #define BVDC_P_SUPPORT_XSRC                   (0) /* Number of stand alone XSRC HW */
 #define BVDC_P_SUPPORT_VFC                    (0) /* Number of stand alone VFC HW */
-#define BVDC_P_SUPPORT_HSCL_VER               (5)
 #define BVDC_P_SUPPORT_DMISC                  (0)
 #define BVDC_P_SUPPORT_FREE_CHANNEL           (3)
 #define BVDC_P_SUPPORT_DRAIN_F                (1)
@@ -949,15 +919,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (0)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -1026,7 +991,6 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (2) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (7) /* DNR HW version */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_VEC_GRPD               (1) /* Support GRPD hw */
 
@@ -1097,15 +1061,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_1_V0_RECT_ENABLE_MASK */
@@ -1165,7 +1124,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_TDAC_VER               (12)/* DAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (7) /* DNR HW version */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_VEC_GRPD               (1) /* Support GRPD hw */
 
@@ -1241,15 +1199,10 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_1_V0_RECT_ENABLE_MASK */
@@ -1323,7 +1276,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_DNR                    (6) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (8)
 #define BVDC_P_SUPPORT_BOX_DETECT             (0) /* Number LBOX HW detect, See SW7445-782 */
 #define BVDC_P_SUPPORT_BOX_DETECT_VER         (3)
 #define BVDC_P_SUPPORT_HDDVI_VER              (11)
@@ -1385,15 +1337,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (1) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (1) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (1) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -1483,7 +1430,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_GFD1_VER               (9)
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
-#define BVDC_P_SUPPORT_DNR_VER                (8)
 #define BVDC_P_SUPPORT_HDDVI                  (1)
 #define BVDC_P_SUPPORT_HDDVI_VER              (11)
 
@@ -1525,15 +1471,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (1)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (2)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (6)
+#define BVDC_P_CMP_CFC_VER                    (1)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -1655,7 +1596,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_GFD1_VER               (6)
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
-#define BVDC_P_SUPPORT_DNR_VER                (8)
 #if (BCHP_CHIP==7366)
 #define BVDC_P_SUPPORT_HDDVI_VER              (9)
 #else
@@ -1721,15 +1661,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -1778,7 +1713,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_656_MASTER_MODE        (1) /* Has 656Out and run as master mode */
 #define BVDC_P_SUPPORT_LOOP_BACK              (4) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (2) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (8) /* DNR HW version */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 #define BVDC_P_SUPPORT_CAP_VER                (7) /* CAP HW version, see bvdc_capture_priv.h */
 
@@ -1856,15 +1790,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_1_V0_RECT_ENABLE_MASK */
@@ -1939,7 +1868,6 @@ extern "C" {
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
 #define BVDC_P_SUPPORT_LOOP_BACK              (4) /* Number of VNET_B_LOOP_BACK_x_SRC */
 #define BVDC_P_SUPPORT_DNR                    (1) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (7) /* DNR HW version */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0) /* TODO: recheck */
 
 /* source */
@@ -2009,15 +1937,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (5)
+#define BVDC_P_CMP_CFC_VER                    (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (5)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (5) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V0_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)/* Number of clear rect support CMP_0_V1_RECT_ENABLE_MASK */
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)/* Number of clear rect support CMP_1_V0_RECT_ENABLE_MASK */
@@ -2125,7 +2048,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_GFD1_VER               (9)
 #define BVDC_P_SUPPORT_TDAC_VER               (13)/* TDAC/QDAC HW version */
 #define BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND (0)
-#define BVDC_P_SUPPORT_DNR_VER                (8)
 #define BVDC_P_SUPPORT_HDDVI_VER              (12)
 
 /* BVN */
@@ -2173,23 +2095,17 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 
-#if ((BCHP_CHIP==7268)||(BCHP_CHIP==7271)) && (BCHP_VER==BCHP_VER_B0)
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#elif BCHP_VER >= BCHP_VER_B0
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (3)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
+#if BCHP_VER >= BCHP_VER_B0
+#define BVDC_P_CMP_CFC_VER                    (3)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (8)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (4)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #else
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (2)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (2)
+#define BVDC_P_CMP_CFC_VER                    (2)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (6)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #endif
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (6)
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -2257,7 +2173,6 @@ extern "C" {
 #define BVDC_P_SUPPORT_MFD                    (4)
 #define BVDC_P_SUPPORT_MFD_VER                (17)/* MFD HW version */
 #define BVDC_P_SUPPORT_DNR                    (4) /* Number of DNR_x core */
-#define BVDC_P_SUPPORT_DNR_VER                (8)
 #define BVDC_P_SUPPORT_MTG                    (2) /* MFD Trigger Generator */
 #define BVDC_P_SUPPORT_NEW_656_IN_VER         (0)
 
@@ -2306,15 +2221,10 @@ extern "C" {
 #define BVDC_P_CMP_5_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_5_Gx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (3)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_MOSAIC_CSC_SLOTS           (6)
+#define BVDC_P_CMP_CFC_VER                    (3)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_1_V0_CLEAR_RECTS           (16)
@@ -2370,7 +2280,7 @@ extern "C" {
 #define BVDC_P_SUPPORT_CLOCK_GATING           (1)
 #define BVDC_P_SUPPORT_MEM_PWR_GATING         (1)  /*Dynamic Memory Power Gating*/
 #define BVDC_P_BVB_BUS_CLOCK                  (BVDC_P_324_SYSCLK)
-#define BVDC_P_SUPPORT_STG                    (0) /* TODO: STG HW */
+#define BVDC_P_SUPPORT_STG                    (2) /* two STGs are supported */
 #define BVDC_P_SUPPORT_STG_VER                (4)
 #define BVDC_P_MANAGE_VIP                     (0) /* TODO: VDC owns VIP */
 #define BVDC_P_SUPPORT_RDC_STC_FLAG           (1) /* RDC STC flags */
@@ -2398,15 +2308,13 @@ extern "C" {
 #define BVDC_P_SUPPORT_CMP_CLEAR_RECT         \
     (BVDC_P_SUPPORT_CMP_V0_CLEAR_RECT || BVDC_P_SUPPORT_CMP_V1_CLEAR_RECT)
 
-#if (BVDC_P_CMP_0_NON_LINEAR_CSC_WINS || BVDC_P_CMP_1_NON_LINEAR_CSC_WINS || BVDC_P_CMP_2_NON_LINEAR_CSC_WINS || \
-     BVDC_P_CMP_3_NON_LINEAR_CSC_WINS || BVDC_P_CMP_4_NON_LINEAR_CSC_WINS || BVDC_P_CMP_5_NON_LINEAR_CSC_WINS || \
-     BVDC_P_CMP_6_NON_LINEAR_CSC_WINS)
-#define BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC     (1)
+#if defined(BVDC_FOR_BOOTUPDATER)
+#define BVDC_P_CMP_CFCS                       1
+#elif (BVDC_P_CMP_0_MOSAIC_CFCS>0)
+#define BVDC_P_CMP_CFCS                       BVDC_P_CMP_0_MOSAIC_CFCS
 #else
-#define BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC     (0)
+#define BVDC_P_CMP_CFCS                       2 /* primary and demo */
 #endif
-#define BVDC_P_CMP_NL_CFG_REGS                (BAVC_MOSAIC_MAX / 2)
-#define BVDC_P_CMP_LR_ADJ_PTS                 (8)
 
 /* cause reconfig vdet after input signal loss and re-lock */
 #ifndef BVDC_P_CLEANUP_VNET
@@ -3098,6 +3006,12 @@ DCX macro
 #define BVDC_P_DCXM_BUFFERHEAP_INCREASE_WORKAROUND   (0)
 #endif
 
+/*SW7439-400:SWSTB-2319: 72 pixel restriction */
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER >= BVDC_P_VIDEO_TESTFEATURE1_VER_8)
+#define BVDC_P_DCXM_72PIXELS   (0)
+#else
+#define BVDC_P_DCXM_72PIXELS   (1)
+#endif
 /* This needs to match SIOB_0_DCXS_CFG.FIXED_RATE for MADR */
 #define BVDC_P_MADR_VARIABLE_RATE              (0)
 
@@ -3182,24 +3096,6 @@ typedef enum
     BVDC_P_ChromaType_eFrame420,
     BVDC_P_ChromaType_eAuto = 7
 } BVDC_P_ChromaType;
-
-/* VDC internally used, shrinked Matrix coefficients enum definition,
- * in order to shrink the size of related tables
- */
-typedef enum BVDC_P_MatrixCoeffs
-{
-    BVDC_P_MatrixCoeffs_eBt709,
-    BVDC_P_MatrixCoeffs_eSmpte170M,
-    BVDC_P_MatrixCoeffs_eBt470_2_BG,
-    BVDC_P_MatrixCoeffs_eBt2020_NCL,
-    BVDC_P_MatrixCoeffs_eBt2020_CL,
-    BVDC_P_MatrixCoeffs_eXvYcc601,
-    BVDC_P_MatrixCoeffs_eXvYcc709,       /* matrix is same as BT709 */
-    BVDC_P_MatrixCoeffs_eFcc,            /* only for input */
-    BVDC_P_MatrixCoeffs_eSmpte240M,      /* only for input */
-    BVDC_P_MatrixCoeffs_eMax,
-    BVDC_P_MatrixCoeffs_eInvalid = BVDC_P_MatrixCoeffs_eMax
-} BVDC_P_MatrixCoeffs;
 
 /* internal mvp compression technology */
 typedef enum
@@ -3623,6 +3519,26 @@ typedef struct
     uint32_t     ulPsfMark;
 } BVDC_P_ListInfo;
 
+/* CFC Versions
+ */
+/* only has basic Mc matrix */
+#define BVDC_P_CFC_VER_0                  (0) /* older than 7439 B0 */
+
+/* Able to convert among SDR BT709 / BT2020NCL / BT2020CL / ... */
+#define BVDC_P_CFC_VER_1                  (1) /* 7439 B0 and up */
+
+/* Able to convert between any combination of SDR / HDR, BT709 / BT2020NCL / BT2020CL / ... */
+#define BVDC_P_CFC_VER_2                  (2) /* 7271 A0 and up */
+
+/* Able to handle HLG OOTF-Adj, bolby and TpToneMapping  */
+#define BVDC_P_CFC_VER_3                  (3) /* 7271 B0 and up */
+
+#define BVDC_P_CMP_NL_CFG_REGS                (BAVC_MOSAIC_MAX / 2)
+#define BVDC_P_CMP_LR_ADJ_PTS                 (8)
+
+/* CSC configure for a CMP/GFD that has NL CSC HW */
+#define BVDC_P_NL_CSC_CTRL_SEL_BYPASS         (0xFFFFFFFF)
+
 /* 4x3 Color Conversion Matrix. two's complement fixed point values.
  * Precision see bvdc_csc_priv.h. */
 typedef struct
@@ -3654,89 +3570,6 @@ typedef struct
     uint16_t     usCoVideoBits;  /* video bit format for offset */
 
 } BVDC_P_CscCoeffs;
-
-/* 4x3 Color Conversion Matrix MA or MB. two's complement fixed point values.
- * Precision see bvdc_csc_priv.h. */
-typedef struct
-{
-    uint32_t     ulY0;
-    uint32_t     ulY1;
-    uint32_t     ulY2;
-    uint32_t     ulYAlpha;
-    uint32_t     ulYOffset;
-
-    uint32_t     ulCb0;
-    uint32_t     ulCb1;
-    uint32_t     ulCb2;
-    uint32_t     ulCbAlpha;
-    uint32_t     ulCbOffset;
-
-    uint32_t     ulCr0;
-    uint32_t     ulCr1;
-    uint32_t     ulCr2;
-    uint32_t     ulCrAlpha;
-    uint32_t     ulCrOffset;
-
-    uint16_t     usCxIntBits;    /* integer fixed point precision for coefficients */
-    uint16_t     usCxFractBits;  /* fraction fixed point precision for coefficients */
-
-    uint16_t     usCoIntBits;    /* integer fixed point precision for offset */
-    uint16_t     usCoFractBits;  /* fraction fixed point precision for offset */
-
-    uint16_t     usCoVideoBits;  /* video bit format for offset */
-
-} BVDC_P_CscAbCoeffs;
-
-/* L-range adjustment */
-typedef struct
-{
-    uint32_t   ulLRangeAdjNumPoints;
-    uint32_t   aulLRangeAdjSlope[BVDC_P_CMP_LR_ADJ_PTS];
-    uint32_t   aulLRangeAdjXY[BVDC_P_CMP_LR_ADJ_PTS];
-
-} BVDC_P_CscLRangeAdj;
-
-/* Non-linear CSC Versions
- */
-
-/* Able to convert among SDR BT709 / BT2020NCL / BT2020CL / ... */
-#define BVDC_P_NL_CSC_VER_1                  (1) /* 7439 B0 and up */
-
-/* Able to convert between any combination of SDR / HDR, BT709 / BT2020NCL / BT2020CL / ... */
-#define BVDC_P_NL_CSC_VER_2                  (2) /* 7271 A0 and up */
-
-/* CSC configure for a CMP/GFD that has NL CSC HW */
-#define BVDC_P_NL_CSC_CTRL_SEL_BYPASS   (0xFFFFFFFF)
-typedef struct
-{
-    uint8_t                    ucSlotIdx;
-    uint8_t                    ucRulBuildCntr;
-
-#if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
-    uint8_t                    ucXvYcc;
-    uint8_t                    ucInputCL;
-
-#if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)
-    const BVDC_P_CscAbCoeffs  *pCscAbMA;
-    const BVDC_P_CscAbCoeffs  *pCscAbMB;
-#endif /* #if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2) */
-
-    /* the following are needed for CMP_1 too even if NON_LINEAR_CSC_VER >= 2 */
-    uint32_t                   ulNLCnv;
-    const BVDC_P_CscCoeffs    *pCscMA;
-#endif /* #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC */
-
-    BVDC_P_CscCoeffs           stCscMC;
-} BVDC_P_CscCfg;
-
-typedef struct
-{
-    uint8_t                    ucSlotIdx;
-    uint8_t                    ucRulBuildCntr;
-    uint8_t                    ucNL2L;
-    uint8_t                    ucL2NL;
-    const BVDC_P_CscLRangeAdj *pLRangeAdj;
-} BVDC_P_EotfConvCfg;
 
 /* Use for Dither */
 typedef struct
@@ -4000,7 +3833,6 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #undef BVDC_P_SUPPORT_TNTD_VER
 #undef BVDC_P_SUPPORT_MASK_DITHER
 #undef BVDC_P_SUPPORT_DNR
-#undef BVDC_P_SUPPORT_DNR_VER
 #undef BVDC_P_SUPPORT_BOX_DETECT
 #undef BVDC_P_SUPPORT_BOX_DETECT_VER
 #undef BVDC_P_SUPPORT_CAP
@@ -4034,16 +3866,11 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #undef BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT
 #undef BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT
 #undef BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT
-#undef BVDC_P_CMP_NON_LINEAR_CSC_VER
-#undef BVDC_P_CMP_0_NON_LINEAR_CSC_WINS
-#undef BVDC_P_CMP_1_NON_LINEAR_CSC_WINS
-#undef BVDC_P_CMP_2_NON_LINEAR_CSC_WINS
-#undef BVDC_P_CMP_3_NON_LINEAR_CSC_WINS
-#undef BVDC_P_CMP_4_NON_LINEAR_CSC_WINS
-#undef BVDC_P_CMP_5_NON_LINEAR_CSC_WINS
-#undef BVDC_P_CMP_6_NON_LINEAR_CSC_WINS
+#undef BVDC_P_CMP_CFC_VER
 
-#undef BVDC_P_CMP_MOSAIC_CSC_SLOTS
+#undef BVDC_P_CMP_0_MOSAIC_CFCS
+#undef BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS
+#undef BVDC_P_CMP_i_MOSAIC_CFCS
 #undef BVDC_P_CMP_0_V0_CLEAR_RECTS
 #undef BVDC_P_CMP_0_V1_CLEAR_RECTS
 #undef BVDC_P_CMP_1_V0_CLEAR_RECTS
@@ -4108,14 +3935,7 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #define BVDC_P_CMP_5_V0_CLEAR_RECTS           (0)
 #define BVDC_P_CMP_6_V0_CLEAR_RECTS           (0)
 
-#define BVDC_P_CMP_NON_LINEAR_CSC_VER         (0)
-#define BVDC_P_CMP_0_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_1_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_2_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_3_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_4_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_5_NON_LINEAR_CSC_WINS      (0)
-#define BVDC_P_CMP_6_NON_LINEAR_CSC_WINS      (0)
+#define BVDC_P_CMP_CFC_VER                    (0)
 #define BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT   (0)
 #define BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT   (0)
 #define BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT   (0)
@@ -4123,6 +3943,9 @@ typedef struct BVDC_P_VipContext         *BVDC_P_Vip_Handle;
 #define BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_4_Vx */
 #define BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_5_Vx */
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
+
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_i_MOSAIC_CFCS              (0)
 
 #undef BVDC_P_MAX_4HD_BUFFER_COUNT
 #undef BVDC_P_MAX_2HD_BUFFER_COUNT

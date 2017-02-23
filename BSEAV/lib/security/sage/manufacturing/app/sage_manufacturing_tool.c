@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
+ *
  ******************************************************************************/
 
 #include <ftw.h>
@@ -436,6 +436,16 @@ handle_error:
             }
             else{
                 BDBG_ERR(("\tDTCP-IP validation FAILED!!!! No file will be provisioned/written to rootfs"));
+                goto end;
+            }
+        }
+        if(((validationCommand & VALIDATION_COMMAND_ValidateMediaroom) & 0x1F) && !validation_status)
+        {
+            if(validation_status == 0){
+                BDBG_LOG(("\t********* SAGE-side Mediaroom validation successfully completed!!! *********"));
+            }
+            else{
+                BDBG_ERR(("\tMediaroom validation FAILED!!!! No file will be provisioned/written to rootfs"));
                 goto end;
             }
         }

@@ -135,7 +135,7 @@ endif
 #Define public include path for this library
 #
 ifndef (B_OPENSSL_INC_INSTALL_DIR)
-    include $(B_LIB_TOP)/../../BSEAV/lib/openssl/openssl.inc
+    include $(B_LIB_TOP)/../../BSEAV/opensource/openssl/openssl.inc
 endif
 
 B_DTCP_IP_LIB_PUBLIC_INCLUDES += $(DTCP_TOP_DIR)/include \

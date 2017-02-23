@@ -89,23 +89,12 @@ else
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 endif
 
-ifeq ($(B_REFSW_OS),vxworks)
-# VxWorks needs a wrapper function to call main.
-VXOBJS = vxworks_cmd.o
-# We like to use .out for loadable objects.
-APPSUFFIX = .out
-APPS = $(addsuffix .out, $(THEAPPS))
-else
 ifeq ($(B_REFSW_OS),linuxkernel)
 APPSUFFIX = .ko
 APPS = $(addsuffix ${APPSUFFIX}, $(THEAPPS))
 else
 APPS = $(THEAPPS)
 endif
-endif
-
-
-
 
 OBJDIR=./obj
 vpath %.c ${NEXUS_TOP}/utils
@@ -192,13 +181,6 @@ else
 	$(Q_)$(CC) -o $@ $(filter %.o, $^) $(LDFLAGS)
 endif
 	cp $@ ${NEXUS_BIN_DIR}
-
-ifeq ($(B_REFSW_OS),vxworks)
-# Explicit rule for building vxworks wrapper app
-vxworks_cmd.o: vxworks_cmd.c
-	@echo [Compile... $<]
-	$(Q_)$(CC) -o $@ $< $(CFLAGS)
-endif
 
 install: all
 

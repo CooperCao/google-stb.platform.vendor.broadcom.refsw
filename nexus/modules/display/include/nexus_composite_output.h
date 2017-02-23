@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2008 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
  *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_COMPOSITE_OUTPUT_H__
 #define NEXUS_COMPOSITE_OUTPUT_H__
@@ -124,7 +114,7 @@ The NEXUS_VideoOutput connector is added to a Display in order to route that Dis
 Description:
 Used in NEXUS_Display_AddOutput
 **/
-NEXUS_VideoOutput NEXUS_CompositeOutput_GetConnector(
+NEXUS_VideoOutputHandle NEXUS_CompositeOutput_GetConnector(
     NEXUS_CompositeOutputHandle composite
     );
 

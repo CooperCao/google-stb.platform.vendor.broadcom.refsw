@@ -149,7 +149,11 @@ static const BVDC_P_IntCbTbl s_apfErrorHandlers[] =
     BVDC_P_MAKE_BVN_ERR(eRdc,      RDC_ERR,      BVNF_INTR2_5_R5F, RDC,           RDC,           RDC_error_status),
 
     BVDC_P_MAKE_BVN_ERR(eMfd_0,    MFD_0,        BVNF_INTR2_5_R5F, MFD_0,         MFD_0,         MFD_0_FEEDER_ERROR_INTERRUPT_STATUS),
+#if (BCHP_CHIP==7364) || (BCHP_CHIP==7250)
+    BVDC_P_MAKE_BVN_ERR(eMfd_1,    MFD_1,        BVNF_INTR2_5_R5F, MFD_0,         MFD_1,         MFD_0_FEEDER_ERROR_INTERRUPT_STATUS),
+#else
     BVDC_P_MAKE_INVALID(eMfd_1,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
+#endif
     BVDC_P_MAKE_INVALID(eMfd_2,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMfd_3,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),
     BVDC_P_MAKE_INVALID(eMfd_4,    UNKNOWN,      UNKNOWN,          UNKNOWN,       UNKNOWN,       UNKNOWN),

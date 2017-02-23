@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -583,8 +583,8 @@ typedef struct BDSP_ArmDspSystemInitParamsResp
 
 typedef struct BDSP_ArmDspHbcParams
 {
-	uint32_t *hbcValidDramAddr;
-	uint32_t *hbcDramAddr;
+	dramaddr_t hbcValidDramAddr;
+	dramaddr_t hbcDramAddr;
 }BDSP_ArmDspHbcParams;
 
 typedef struct BDSP_ArmDspSystemCmd

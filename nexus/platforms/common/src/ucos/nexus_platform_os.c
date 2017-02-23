@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -215,10 +215,10 @@ void NEXUS_Platform_P_UninitOSMem()
 
 /* IMPORTANT: the logic in NEXUS_Platform_P_MapMemory must be carefully paired with NEXUS_Platform_P_UnmapMemory */
 void *
-NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type)
+NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
 {
     /*unsigned*/ long addr = 0UL;
-    bool cached = type==NEXUS_MemoryMapType_eCached;
+    bool cached = type==NEXUS_AddrType_eCached;
 
 #if NEXUS_CPU_ARM
     BSTD_UNUSED(cached);
@@ -266,7 +266,7 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
 }
 
 void
-NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_MemoryMapType memoryMapType)
+NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_AddrType memoryMapType)
 {
     BSTD_UNUSED(pMem);
     BSTD_UNUSED(length);
@@ -278,14 +278,14 @@ NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_MemoryMapType memo
 void *
 NEXUS_Platform_P_MapRegisterMemory(unsigned long offset, unsigned long length)
 {
-    return NEXUS_Platform_P_MapMemory(offset,length,false);
+    return NEXUS_Platform_P_MapMemory(offset,length,NEXUS_AddrType_eUncached);
 }
 
 
 void
 NEXUS_Platform_P_UnmapRegisterMemory(void *pMem,unsigned long length)
 {
-    return NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_MemoryMapType_eUncached);
+    return NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_AddrType_eUncached);
 }
 
 
@@ -1030,6 +1030,16 @@ unsigned NEXUS_Platform_P_ReadBoxMode(void)
 }
 #endif
 
+unsigned NEXUS_Platform_P_ReadPMapId(void)
+{
+#if 0
+    const char *env = NEXUS_GetEnv("B_REFSW_PMAP_ID");
+    return env?NEXUS_atoi(env):0;
+#else
+    return 0;
+#endif
+}
+
 NEXUS_Error NEXUS_Platform_P_SetStandbyExclusionRegion(unsigned heapIndex)
 {
 #if defined(BRCMSTB_HAS_PM_MEM_EXCLUDE)
@@ -1058,6 +1068,19 @@ NEXUS_Error NEXUS_Platform_P_InitializeThermalMonitor(void)
 void NEXUS_Platform_P_UninitializeThermalMonitor(void)
 {
     return;
+}
+
+bool NEXUS_Platform_P_IsGisbTimeoutAvailable(void)
+{
+    bool is_available = true;
+#if BDBG_DEBUG_BUILD && !defined(NEXUS_CPU_ARM)
+#if defined(CONFIG_BRCMSTB_GISB_ARB)
+    is_available = false;
+#else
+    is_available = true;
+#endif
+#endif
+    return is_available;
 }
 
 NEXUS_Error NEXUS_Platform_P_AddDynamicRegion(NEXUS_Addr addr, unsigned size)
@@ -1120,5 +1143,24 @@ NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitS
         pMemory->memc[i].size += pMemory->memc[i].region[0].size;
     }
     return NEXUS_SUCCESS;
+}
+
+NEXUS_Addr NEXUS_Platform_P_AllocCma(const NEXUS_PlatformMemory *pMemory, unsigned memcIndex, unsigned subIndex, unsigned size, unsigned alignment)
+{
+    BSTD_UNUSED(pMemory);
+    BSTD_UNUSED(memcIndex);
+    BSTD_UNUSED(subIndex);
+    BSTD_UNUSED(size);
+    BSTD_UNUSED(alignment);
+    return 0;
+}
+
+void NEXUS_Platform_P_FreeCma(const NEXUS_PlatformMemory *pMemory, unsigned memcIndex, unsigned subIndex, NEXUS_Addr addr, unsigned size)
+{
+    BSTD_UNUSED(pMemory);
+    BSTD_UNUSED(memcIndex);
+    BSTD_UNUSED(subIndex);
+    BSTD_UNUSED(addr);
+    BSTD_UNUSED(size);
 }
 #endif

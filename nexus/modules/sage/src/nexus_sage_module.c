@@ -47,6 +47,9 @@
 #include "bsagelib_boot.h"
 #include "bkni.h"
 #include "bchp_bsp_glb_control.h"
+#include "priv/bsagelib_shared_types.h"
+#include "priv/nexus_security_regver_priv.h"
+#include "bhsm_verify_reg.h"
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
@@ -63,6 +66,9 @@ BDBG_MODULE(nexus_sage_module);
 
 
 #define _REGION_MAP_MAX_NUM 8
+
+#define SAGE_RESET_REG BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_eReset)
+#define SAGE_RESETVAL_DOWN  0x1FF1FEED /* Defined in multiple places */
 
 static struct {
     NEXUS_SageModuleSettings settings; /* Nexus sage module settings, given in NEXUS_SageModule_Init */
@@ -391,6 +397,38 @@ NEXUS_Error NEXUS_Sage_P_VarInit(void)
 void NEXUS_Sage_P_VarCleanup(void)
 {
     NEXUS_Sage_P_Cleanup();
+}
+
+static NEXUS_Error NEXUS_Sage_P_WaitSageRegion(void)
+{
+    uint8_t count=0;
+    NEXUS_SecurityRegionInfoQuery  regionSatus;
+    BERR_Code rc=NEXUS_SUCCESS;
+
+    NEXUS_Sage_P_Module_Lock_Security();
+    NEXUS_Security_RegionQueryInformation_priv(&regionSatus);
+    NEXUS_Sage_P_Module_Unlock_Security();
+
+    BDBG_MSG(("Waiting for ScpuFsbl to be undefined"));
+
+    while(regionSatus.regionStatus[NEXUS_SecurityRegverRegionID_eScpuFsbl] & REGION_STATUS_DEFINED)
+    {
+        if(count++>50)
+        {
+            BDBG_ERR(("Timeout waiting for ScpuFsbl to become undefined"));
+            rc=NEXUS_TIMEOUT;
+            goto EXIT;
+        }
+        BKNI_Sleep(100);
+
+        NEXUS_Sage_P_Module_Lock_Security();
+        NEXUS_Security_RegionQueryInformation_priv(&regionSatus);
+        NEXUS_Sage_P_Module_Unlock_Security();
+    }
+    BDBG_MSG(("ScpuFsbl undefined"));
+
+EXIT:
+    return rc;
 }
 
 /****************************************
@@ -799,14 +837,6 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     BSAGElib_BootSettings bootSettings;
     bool bRunning=false;
 
-    if(!(BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
-        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
-    {
-        bRunning=true;
-    }
-
-    BDBG_MSG(("SAGE is %s", bRunning ? "RUNNING" : "STOPPED"));
-
     frameworkImg.raw = &g_sage_module.framework;
     blImg.raw = &bl;
 
@@ -851,6 +881,23 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     bootSettings.regionMapNum = g_sage_module.regionMapNum;
     bootSettings.logBufferOffset = (uint32_t)g_sage_module.logBufferHeapOffset;
     bootSettings.logBufferSize = g_sage_module.logBufferHeapLen;
+
+    if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG)==SAGE_RESETVAL_DOWN)
+    {
+        /* In case of previous shutdown.. wait for sage to be down */
+        if(NEXUS_Sage_P_WaitSageRegion()!=NEXUS_SUCCESS)
+        {
+            BDBG_ERR(("Failed waiting for SAGE shutdown. Continue, but SAGE may not function"));
+        }
+    }
+
+    if(!(BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
+    {
+        bRunning=true;
+    }
+
+    BDBG_MSG(("SAGE is %s", bRunning ? "RUNNING" : "STOPPED"));
 
     if(!bRunning)
     {
@@ -957,6 +1004,14 @@ void NEXUS_SageModule_Uninit(void)
 
     if (booted) {
         BCHP_SAGE_Reset(g_pCoreHandles->reg);
+
+        if(BREG_Read32(g_pCoreHandles->reg, SAGE_RESET_REG)==SAGE_RESETVAL_DOWN)
+        {
+            if(NEXUS_Sage_P_WaitSageRegion()!=NEXUS_SUCCESS)
+            {
+                BDBG_ERR(("Failed waiting for SAGE shutdown"));
+            }
+        }
     }
 
     NEXUS_MemoryBlock_Free(g_sage_module.sageSecureHeap);
@@ -1409,7 +1464,12 @@ NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff, uint32_t inputBufSize,
     rc = NEXUS_DmaJob_ProcessBlocks ( dmaJob, &blockSettings, 1 );
     if ( rc == NEXUS_DMA_QUEUED )
     {
-        BKNI_WaitForEvent ( dmaEvent, BKNI_INFINITE );
+        rc_magnum = BKNI_WaitForEvent ( dmaEvent, BKNI_INFINITE );
+        if (rc_magnum != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Nexus Dma Job Process Buf failed %s.",__FUNCTION__));
+            goto error;
+        }
         NEXUS_DmaJob_GetStatus ( dmaJob, &jobStatus );
         BDBG_ASSERT ( jobStatus.currentState == NEXUS_DmaJobState_eComplete );
         rc = NEXUS_SUCCESS;
@@ -1444,7 +1504,12 @@ NEXUS_Error NEXUS_Sage_P_GetLogBuffer(uint8_t *pBuff, uint32_t inputBufSize,
         rc = NEXUS_DmaJob_ProcessBlocks ( dmaJob, &blockSettings, 1 );
         if ( rc == NEXUS_DMA_QUEUED )
         {
-            BKNI_WaitForEvent ( dmaEvent, BKNI_INFINITE );
+            rc_magnum = BKNI_WaitForEvent ( dmaEvent, BKNI_INFINITE );
+            if (rc_magnum != BERR_SUCCESS)
+            {
+                BDBG_ERR(("Nexus Dma Job Process Buf failed %s.",__FUNCTION__));
+                goto error;
+            }
             NEXUS_DmaJob_GetStatus ( dmaJob, &jobStatus );
             BDBG_ASSERT ( jobStatus.currentState == NEXUS_DmaJobState_eComplete );
             rc = NEXUS_SUCCESS;

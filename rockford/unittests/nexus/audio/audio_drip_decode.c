@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,12 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 /* Nexus example app: playpump and decode */
 
+#if NEXUS_HAS_AUDIO
 #include "nexus_platform.h"
 #include "nexus_display.h"
 #include "nexus_playpump.h"
@@ -150,7 +143,7 @@ int main(void)  {
 #endif
 #if NEXUS_NUM_COMPOSITE_OUTPUTS
     NEXUS_Display_AddOutput(display, NEXUS_CompositeOutput_GetConnector(platformConfig.outputs.composite[0]));
-#endif	
+#endif
 #endif
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
 #if NEXUS_NUM_AUDIO_DACS
@@ -194,8 +187,16 @@ int main(void)  {
         BKNI_Sleep(100);
 #endif
     }
-	return 0;
+    return 0;
 
 error:
     return 1;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

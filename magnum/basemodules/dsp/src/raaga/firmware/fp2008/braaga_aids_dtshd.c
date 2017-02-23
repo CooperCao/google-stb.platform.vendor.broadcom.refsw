@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -185,7 +185,7 @@ const uint32_t BDSP_IMG_dtshd_ids_array1[] = {
 	0x07a47f2f,
 	0x74020603,
 	0x3d840003,
-	0xa75a8dd7,
+	0xa77f09d7,
 	0x001fdbc0,
 	0x740e1907,
 	0x741c0fcf,
@@ -926,7 +926,7 @@ const uint32_t BDSP_IMG_dtshd_ids_array1[] = {
 	0xa70e8dd7,
 	0x001ffbca,
 	0x07bffe03,
-	0xa70a8dd7,
+	0xa72f09d7,
 	0x001fdbbe,
 	0x7400050f,
 	0x2901c427,
@@ -989,7 +989,7 @@ const uint32_t BDSP_IMG_dtshd_ids_array1[] = {
 	0x1b410343,
 	0x03e30218,
 	0x951787cb,
-	0xa7318dd7,
+	0xa73f89d7,
 	0x001fdbc0,
 	0x07a47e07,
 	0x07bffe17,
@@ -2557,7 +2557,7 @@ const uint32_t BDSP_IMG_dtshd_ids_array1[] = {
 	0xb61f89ff,
 	0x001ffffe,
 	0x07b1fe03,
-	0xa76889d7,
+	0xa7760dd7,
 	0x001fdbbd,
 	0x760475cf,
 	0x7724e5cf,
@@ -3010,7 +3010,7 @@ const uint32_t BDSP_IMG_dtshd_ids_array1[] = {
 	0xa75709d7,
 	0x001ffbc5,
 	0x07bffe03,
-	0xa7018dd7,
+	0xa72609d7,
 	0x001fdbba,
 	0x741a010f,
 	0x2b00fe0f,
@@ -3156,8 +3156,8 @@ const uint32_t BDSP_IMG_dtshd_ids_array1[] = {
 	0xa7610dd7,
 	0x001ffbc5,
 	0x07bffe03,
-	0xa75d0dd7,
-	0x001fdbb9,
+	0xa70189d7,
+	0x001fdbba,
 	0x46114e03,
 	0xa7000dd7,
 	0x001ffffb,

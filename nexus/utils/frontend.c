@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -342,8 +334,7 @@ frontend_set_parserbandsettings(FrontendSettings *settings, NEXUS_ParserBandSett
 {
 #if NEXUS_HAS_FRONTEND
     NEXUS_FrontendUserParameters userParams;
-    NEXUS_Error rc = NEXUS_Frontend_GetUserParameters(settings->handle, &userParams);
-    BDBG_ASSERT(!rc);
+    NEXUS_Frontend_GetUserParameters(settings->handle, &userParams);
     if (userParams.isMtsif) {
         parserBandSettings->sourceType = NEXUS_ParserBandSourceType_eMtsif;
         parserBandSettings->sourceTypeSettings.mtsif = NEXUS_Frontend_GetConnector(settings->handle); /* NEXUS_Frontend_TuneXyz() will connect this frontend to this parser band */

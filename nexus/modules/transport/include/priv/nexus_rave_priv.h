@@ -192,8 +192,8 @@ is set.
 **/
 void NEXUS_Rave_GetCdbPointers_isr(
     NEXUS_RaveHandle rave,
-    uint32_t *validPointer, /* [out] */
-    uint32_t *readPointer /* [out] */
+    uint64_t *validPointer, /* [out] */
+    uint64_t *readPointer /* [out] */
     );
 
 /**

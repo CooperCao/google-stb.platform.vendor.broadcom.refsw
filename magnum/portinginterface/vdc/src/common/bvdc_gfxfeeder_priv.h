@@ -43,6 +43,7 @@
 #include "bvdc_source_priv.h"
 #include "bvdc_common_priv.h"
 #include "bvdc_gfxsurface_priv.h"
+#include "bvdc_cfc_priv.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -258,15 +259,9 @@ typedef struct BVDC_P_GfxFeederContext
     /* record previous dirty in case RUL was not executed */
     BVDC_P_GfxDirtyBits              stPrevDirty;
 
-    /* CSC */
-    BVDC_P_CscCfg                    stGfxCsc;
-    BVDC_P_EotfConvCfg               stEotfConv;
-    bool                             bSupportNLCsc;
-    bool                             bSupportMACsc;
-    bool                             bSupportEotfConv;
-
     /* current matrix to convert SDR gfx to HDR in pre-7271 chips */
-    BVDC_P_CscCoeffs                 stCscCoeffSdr2Hdr;
+    BVDC_P_Csc3x4                    stCscSdr2Hdr;
+    BVDC_P_CfcContext                stCfc;
 
     bool                             bSupportVertScl;
 
@@ -409,30 +404,10 @@ BERR_Code BVDC_P_GfxFeeder_ValidateBlend
  * values before calling this function
  */
 BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
-    ( BVDC_BlendFactor            *peSrcBlendFactor,
+    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder,
+      BVDC_BlendFactor            *peSrcBlendFactor,
       BVDC_BlendFactor            *peDstBlendFactor,
       uint8_t                     *pucConstantAlpha );
-
-/*------------------------------------------------------------------------
- * {private}
- * BVDC_P_GfxFeeder_DecideColorMatrix_isr
- *
- * output: color matrix to convert from active pixel format to output
- *         color primary (main video window's color primary)
- *
- * Note: Because of gamma effect, of not knowing how user treated alpha
- * when the src gfx surface was created, and of diff between Bt601 and
- * Bt709 is not very noticable for gfx, we decide to use idendity matrix
- * to convert between Bt601 and Bt709 (i.e. not conv).
- */
-BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
-    ( BPXL_Format                  eActivePxlFmt,
-      BVDC_P_GfxFeeder_Handle      hGfxFeeder,
-      const BVDC_P_CscCoeffs     **ppaulRGBToYCbCr,
-      const BVDC_P_CscCoeffs     **ppaulYCbCrToRGB );
-
-BERR_Code BVDC_P_GfxFeeder_InitColorMatrix
-    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder );
 
 /*------------------------------------------------------------------------
  * {private}
@@ -462,6 +437,28 @@ BERR_Code BVDC_P_GfxFeeder_DecideVsclFirCoeff_isr
       uint32_t              ulSrcSize,
       uint32_t              ulOutSize,
       uint32_t **           paulCoeff );
+
+/* Calculate special SDR to HDR CSC adjustment for GFX
+ */
+void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
+    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder );
+
+/* init GFD CFC
+ */
+void BVDC_P_GfxFeeder_InitCfc
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder);
+
+/* copy input color space info from gfx surface
+ */
+void BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(
+    const BVDC_P_SurfaceInfo   *pGfxSurface,
+    BVDC_P_ColorSpace          *pColorSpace );
+
+/* Build RUL for cfc inside a GFD
+ */
+void BVDC_P_GfxFeeder_BuildCfcRul_isr
+    ( BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+      BVDC_P_ListInfo                 *pList);
 
 #ifdef __cplusplus
 }

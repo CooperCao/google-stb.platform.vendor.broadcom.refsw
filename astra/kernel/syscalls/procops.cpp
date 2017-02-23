@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,13 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * sysexecve.cpp
- *
- *  Created on: Feb 18, 2015
- *      Author: gambhire
- */
-
 
 #include <cstdint>
 #include "tzerrno.h"
@@ -67,12 +60,12 @@ static char *kArgv[TzTask::TaskStartInfo::MAX_NUM_ARGS];
 static char *kuEnvp[TzTask::TaskStartInfo::MAX_NUM_ENVS];
 static char kEnvs[TzTask::TaskStartInfo::MAX_NUM_ENVS][MAX_ENVP_ELEM_SIZE];
 static char *kEnvp[TzTask::TaskStartInfo::MAX_NUM_ENVS];
-spinlock_t SysCalls::execLock;
+SpinLock SysCalls::execLock;
 
 TzTask *TzTask::taskFromId(int tid) {
     int numTasks = tasks.numElements();
     for (int i=0; i<numTasks; i++) {
-        if (tasks[i]->tid == tid)
+        if (tasks[i]->tid == tid && !tasks[i]->exited())
             return tasks[i];
     }
 
@@ -177,31 +170,32 @@ void SysCalls::doExecve(TzTask *currTask) {
     /*
      * Get the envps.
      */
-    const char **uEnvp = (const char **)arg2;
-    rc = ptrArrayFromUser(uEnvp, kuEnvp, TzTask::TaskStartInfo::MAX_NUM_ENVS);
-    if (!rc) {
-        currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
-        return;
-    }
-    for (int i=0; i<TzTask::TaskStartInfo::MAX_NUM_ENVS; i++) {
-        if (kuEnvp[i] == nullptr){
-            kEnvs[i][0] = 0;
-            break;
-        }
-
-        rc = strFromUser(kuEnvp[i], kEnvs[i], MAX_ENVP_ELEM_SIZE, &truncated);
+    if(arg2) {
+        const char **uEnvp = (const char **)arg2;
+        rc = ptrArrayFromUser(uEnvp, kuEnvp, TzTask::TaskStartInfo::MAX_NUM_ENVS);
         if (!rc) {
             currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
             return;
         }
+        for (int i=0; i<TzTask::TaskStartInfo::MAX_NUM_ENVS; i++) {
+            if (kuEnvp[i] == nullptr){
+                kEnvs[i][0] = 0;
+                break;
+            }
 
-        if (kEnvs[i][0] == 0)
-            break;
+            rc = strFromUser(kuEnvp[i], kEnvs[i], MAX_ENVP_ELEM_SIZE, &truncated);
+            if (!rc) {
+                currTask->writeUserReg(TzTask::UserRegs::r0, -EFAULT);
+                return;
+            }
 
-        kEnvs[i][MAX_ENVP_ELEM_SIZE-1] = 0;
-        kEnvp[i] = &kEnvs[i][0];
+            if (kEnvs[i][0] == 0)
+                break;
+
+            kEnvs[i][MAX_ENVP_ELEM_SIZE-1] = 0;
+            kEnvp[i] = &kEnvs[i][0];
+        }
     }
-
     /*
      * Resolve the file name
      */

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,6 +49,28 @@
 BDBG_MODULE(splash_script_load);
 
 #define BRDC_REGISTER(reg)      ((reg) + BCHP_PHYSICAL_OFFSET)
+
+#define IS_PROGRESSIVE(fmt) (\
+	(fmt == BFMT_VideoFmt_e480p)               || \
+	(fmt == BFMT_VideoFmt_e576p_50Hz)          || \
+	(fmt == BFMT_VideoFmt_e720p)               || \
+	(fmt == BFMT_VideoFmt_e720p_24Hz)          || \
+	(fmt == BFMT_VideoFmt_e720p_25Hz)          || \
+	(fmt == BFMT_VideoFmt_e720p_30Hz)          || \
+	(fmt == BFMT_VideoFmt_e720p_50Hz)          || \
+	(fmt == BFMT_VideoFmt_e1080p)              || \
+	(fmt == BFMT_VideoFmt_e1080p_24Hz)         || \
+	(fmt == BFMT_VideoFmt_e1080p_25Hz)         || \
+	(fmt == BFMT_VideoFmt_e1080p_30Hz)         || \
+	(fmt == BFMT_VideoFmt_e1080p_50Hz)         || \
+	(fmt == BFMT_VideoFmt_e720p_60Hz_3DOU_AS)  || \
+	(fmt == BFMT_VideoFmt_e720p_50Hz_3DOU_AS)  || \
+	(fmt == BFMT_VideoFmt_e1080p_24Hz_3DOU_AS) || \
+	(fmt == BFMT_VideoFmt_e1080p_30Hz_3DOU_AS) || \
+	(fmt == BFMT_VideoFmt_eCUSTOM_1366x768p)   || \
+	(fmt == BFMT_VideoFmt_eDVI_1600x1200p_60Hz)|| \
+	(fmt == BFMT_VideoFmt_eCustom2)               \
+)
 
 /* Remember highest slot number ever used */
 static int s_highSlot = -1;
@@ -100,23 +122,37 @@ static void InitializeSlot
     uint32_t          ulTriggerSelect,
     uint32_t         *pListCount,
     uint32_t         *pulList,
-    int               iListCount
+    int               iListCount,
+    bool              bProgressive
 )
 {
     int              i;
-    int              iNumEntries, iPrvNumEntries = 0, iCount;
+    int              iNumEntries, iPrvNumEntries = 0, iCount, iRdcEntries = 6;
     uint32_t         ulAddrOffset;
     uint32_t         ulValue;
     uint32_t        *pulCurr;
-    uint32_t         ulSlotOffset = 4 * iSlotIndex * sizeof(uint32_t);
+    uint32_t         ulSlotOffset = (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) * iSlotIndex;
+    bool             bArm = false, bDisArm = false;
     int              iRUL;
     BMMA_Block_Handle mmaBlock[30];
     void*             mmaSwAccess[30];
     BMMA_DeviceOffset mmaHwAccess[30];
     BERR_Code        rc;
+#ifdef BCHP_RDC_sync_0_arm
+    uint32_t         ulSyncId = iSlotIndex / 2;
+    uint32_t         ulSlotArmOffset = (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm) * ulSyncId;
+    bArm = (iSlotIndex%2) ? true : (bProgressive ? true : false);
+    bDisArm = (bProgressive) ? bArm : !bArm;
+    if(bArm) iRdcEntries += 3;
+    if(bDisArm) iRdcEntries += 3;
+#endif
+#ifdef BCHP_RDC_desc_0_count
+    iRdcEntries += 6;
+#endif
 
     BDBG_MSG(("InitializeSlot : iSlotIndex:%d ulTriggerSelect:%d pListCount:%p pulList:%p iListCount:%d",
 			  iSlotIndex,   ulTriggerSelect,(void *)pListCount,(void *)pulList, iListCount));
+
     /************************
      * We have to place the dumped RULs into allocated memory. Instead a user could
      * have pre-determined memory locations for each of the RULs instead of directly
@@ -131,7 +167,7 @@ static void InitializeSlot
         /* RUL passed inspection */
         /* allocate aligned memory (add 6 more elements for extra entries -- see below) */
         mmaBlock[iRUL] = BMMA_Alloc(
-            hHeap, sizeof(uint32_t) * (iNumEntries + 6), 32, NULL);
+            hHeap, sizeof(uint32_t) * (iNumEntries + iRdcEntries), 32, NULL);
         RememberPointer (mmaBlock[iRUL]);
         mmaSwAccess[iRUL] = BMMA_Lock(mmaBlock[iRUL]);
         mmaHwAccess[iRUL] = BMMA_LockOffset(mmaBlock[iRUL]);
@@ -152,6 +188,16 @@ static void InitializeSlot
             BDBG_MSG(("********* pulCurr = %p, mmaSwAccess[%d] = %p i=%d, iPrvNumEntries=%d",
                 (void*)pulCurr, iRUL-1, mmaSwAccess[iRUL-1],i, iPrvNumEntries));
 
+#ifdef BCHP_RDC_sync_0_arm
+            if(bDisArm)
+            {
+                *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
+                *pulCurr++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm) + ulSlotArmOffset;
+                *pulCurr++ =
+                    BCHP_FIELD_DATA(RDC_sync_0_arm, arm, 0);
+            }
+#endif
+
             /* write command to install new RUL address into slot after the
                previous list is complete  */
             *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
@@ -160,13 +206,15 @@ static void InitializeSlot
                 BCHP_FIELD_DATA(RDC_desc_0_addr, addr, mmaHwAccess[iRUL]);
 
             /* are we going to add more entries for this list (not the last list)? */
-            iCount = (i != iListCount - 1) ? (iNumEntries+6) : iNumEntries ;
+            iCount = (i != iListCount - 1) ? (iNumEntries+iRdcEntries) : iNumEntries ;
 
             /* write new count into slot */
             *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
             *pulCurr++ = BRDC_REGISTER(BCHP_RDC_desc_0_config) + ulSlotOffset;
             *pulCurr++ =
+                #if defined(BCHP_RDC_desc_0_config_count_SHIFT)
                 BCHP_FIELD_DATA(RDC_desc_0_config, count,          iCount - 1) |
+                #endif
                 BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTriggerSelect) |
                 #if defined(BCHP_RDC_desc_0_config_reserved0_SHIFT)
                 BCHP_FIELD_DATA(RDC_desc_0_config, reserved0,      0)               |
@@ -174,13 +222,40 @@ static void InitializeSlot
                 BCHP_FIELD_DATA(RDC_desc_0_config, segmented,      0)               |
                 #endif
                 BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         1)               |
-                BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1)               |
-                BCHP_FIELD_DATA(RDC_desc_0_config, done,           1);
+                #if defined(BCHP_RDC_desc_0_config_done_SHIFT)
+                BCHP_FIELD_DATA(RDC_desc_0_config, done,           1)               |
+                #endif
+                #if BCHP_RDC_desc_0_config_sync_sel_MASK
+                BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel,       ulSyncId)        |
+                #endif
+                BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1);
+
+#ifdef BCHP_RDC_desc_0_count
+            *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
+            *pulCurr++ = BRDC_REGISTER(BCHP_RDC_desc_0_count) + ulSlotOffset;
+            *pulCurr++ =
+                BCHP_FIELD_DATA(RDC_desc_0_count, count,          iCount - 1);
+
+            *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
+            *pulCurr++ = BRDC_REGISTER(BCHP_RDC_desc_0_count_direct ) + ulSlotOffset;
+            *pulCurr++ =
+                BCHP_FIELD_DATA(RDC_desc_0_count_direct , count,          iCount - 1);
+#endif
+
+#ifdef BCHP_RDC_sync_0_arm
+            if(bArm)
+            {
+                *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
+                *pulCurr++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm) + ulSlotArmOffset;
+                *pulCurr++ =
+                    BCHP_FIELD_DATA(RDC_sync_0_arm, arm, 1);
+            }
+#endif
 
             /* flush previous RUL: we just appended cmd to it to link the current RUL start addr */
             BMMA_FlushCache(
                 mmaBlock[iRUL-1], mmaSwAccess[iRUL-1],
-                sizeof(uint32_t)*(iPrvNumEntries+6));
+                sizeof(uint32_t)*(iPrvNumEntries+iRdcEntries));
 
             /* Remember this slot */
             if (iSlotIndex > s_highSlot) s_highSlot = iSlotIndex;
@@ -193,7 +268,7 @@ static void InitializeSlot
 	/* flush the last RUL */
 	BMMA_FlushCache(
             mmaBlock[iRUL-1], mmaSwAccess[iRUL-1],
-            sizeof(uint32_t)*(iPrvNumEntries+6));
+            sizeof(uint32_t)*(iPrvNumEntries+iRdcEntries));
 
     /*****************************
      * Setup the initial RDC slot with the first list.
@@ -206,11 +281,20 @@ static void InitializeSlot
     if(iListCount > 1)
     {
         /* we have 6 more entries on this list */
-        iNumEntries += 6;
+        iNumEntries += iRdcEntries;
     }
 
+#ifdef BCHP_RDC_sync_0_arm
+    if(bDisArm)
+    {
+        BREG_Write32(hRegister, BCHP_RDC_sync_0_arm + ulSlotArmOffset, 0);
+    }
+#endif
+
     ulValue =
+        #if defined(BCHP_RDC_desc_0_config_count_SHIFT)
         BCHP_FIELD_DATA(RDC_desc_0_config, count,          iNumEntries - 1) |
+        #endif
         BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTriggerSelect) |
 		#if defined(BCHP_RDC_desc_0_config_reserved0_SHIFT)
 		BCHP_FIELD_DATA(RDC_desc_0_config, reserved0,      0)               |
@@ -218,14 +302,33 @@ static void InitializeSlot
 		BCHP_FIELD_DATA(RDC_desc_0_config, segmented,      0)               |
 		#endif
         BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         1)               |
-        BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1)               |
-        BCHP_FIELD_DATA(RDC_desc_0_config, done,           1);
+        #if defined(BCHP_RDC_desc_0_config_done_SHIFT)
+        BCHP_FIELD_DATA(RDC_desc_0_config, done,           1)               |
+        #endif
+        #if BCHP_RDC_desc_0_config_sync_sel_MASK
+        BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel,       ulSyncId)        |
+        #endif
+        BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1);
     BREG_Write32(hRegister, BCHP_RDC_desc_0_config + ulSlotOffset,
         ulValue);
+
+#ifdef BCHP_RDC_desc_0_count
+    BREG_Write32(hRegister, BCHP_RDC_desc_0_count + ulSlotOffset,
+        iNumEntries - 1);
+    BREG_Write32(hRegister, BCHP_RDC_desc_0_count_direct + ulSlotOffset,
+        iNumEntries - 1);
+#endif
 
     /* put first entry into slot */
     BREG_WriteAddr(hRegister, BCHP_RDC_desc_0_addr + ulSlotOffset,
         mmaHwAccess[0]);
+
+#ifdef BCHP_RDC_sync_0_arm
+    if(bArm)
+    {
+        BREG_Write32(hRegister, BCHP_RDC_sync_0_arm + ulSlotArmOffset, 1);
+    }
+#endif
 
 	/* Remember this slot */
 	if (iSlotIndex > s_highSlot) s_highSlot = iSlotIndex;
@@ -264,11 +367,11 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
 	for (ii=0; ii<pSplashData->iNumDisplay; ii++)
 	{
 		iSurIdx = pSplashData->pDispInfo[ii].iSurIdx;
-		BREG_Write32(hRegister, pSplashData->pDispInfo[ii].ulRdcScratchReg0,
+		BREG_WriteAddr(hRegister, pSplashData->pDispInfo[ii].ulRdcScratchReg0,
 			pSplashBufInfo->aulSurfaceBufOffset[iSurIdx]);
 		if (pSplashData->pDispInfo[ii].ulRdcScratchReg1)
 		{
-			BREG_Write32(
+			BREG_WriteAddr(
 				hRegister, pSplashData->pDispInfo[ii].ulRdcScratchReg1,
 				pSplashBufInfo->aulSurfaceBufOffset[iSurIdx]);
 		}
@@ -280,12 +383,20 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
 	     iTriggerIndex < pSplashData->iNumTrigMap ;
 		 ++iTriggerIndex)
     {
+        bool bProgressive = false;
         if(pSplashData->pTrigMap[iTriggerIndex].TriggerHwNum != -1)
         {
             BDBG_MSG(("Slot number %d, Trigger number %d aList%d[]",
                 pSplashData->pTrigMap[iTriggerIndex].SlotNum,
 				pSplashData->pTrigMap[iTriggerIndex].TriggerHwNum,
 				iTriggerIndex));
+
+            if(IS_PROGRESSIVE(pSplashData->pDispInfo->eDspFmt) &&
+               (pSplashData->pTrigMap[iTriggerIndex].SlotNum / 2) == 0) /* display 0 */
+            {
+                bProgressive = true;
+            }
+
             /* Initialize slot for RUL list n */
             InitializeSlot(
                 hRegister,
@@ -294,7 +405,8 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
                 pSplashData->pTrigMap[iTriggerIndex].TriggerHwNum,
                 pSplashData->pTrigMap[iTriggerIndex].aListCountArray,
                 pSplashData->pTrigMap[iTriggerIndex].aListArray,
-                pSplashData->pTrigMap[iTriggerIndex].ListCountMaxIndex);
+                pSplashData->pTrigMap[iTriggerIndex].ListCountMaxIndex,
+                bProgressive);
         }
     }
 
@@ -308,8 +420,8 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
             if(0 == (pSplashData->pTrigMap[iTriggerIndex].SlotNum%2))
             {
                 uint32_t ulSlotOffset =
-					4 * pSplashData->pTrigMap[iTriggerIndex].SlotNum *
-					sizeof(uint32_t);
+                    (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) *
+                    pSplashData->pTrigMap[iTriggerIndex].SlotNum;
 
                 BDBG_MSG(("Writing immediate to %08x",
 					BCHP_RDC_desc_0_immediate+ulSlotOffset));
@@ -326,9 +438,11 @@ void splash_bvn_uninit(BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo)
 	int iSlotIndex;
 	for (iSlotIndex = 0 ; iSlotIndex <= s_highSlot ; ++iSlotIndex)
 	{
-		uint32_t ulSlotOffset = 4 * iSlotIndex * sizeof(uint32_t);
+        uint32_t ulSlotOffset = (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) * iSlotIndex;
 		uint32_t ulValue =
+            #if defined(BCHP_RDC_desc_0_config_count_SHIFT)
 			BCHP_FIELD_DATA(RDC_desc_0_config, count,          0)              |
+			#endif
 			BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, 0)              |
 			#if defined(BCHP_RDC_desc_0_config_reserved0_SHIFT)
 			BCHP_FIELD_DATA(RDC_desc_0_config, reserved0,      0)              |
@@ -336,8 +450,10 @@ void splash_bvn_uninit(BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo)
 			BCHP_FIELD_DATA(RDC_desc_0_config, segmented,      0)              |
 			#endif
 			BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         0)              |
-			BCHP_FIELD_DATA(RDC_desc_0_config, enable,         0)              |
-			BCHP_FIELD_DATA(RDC_desc_0_config, done,           1);
+            #if defined(BCHP_RDC_desc_0_config_done_SHIFT)
+			BCHP_FIELD_DATA(RDC_desc_0_config, done,           1)              |
+			#endif
+			BCHP_FIELD_DATA(RDC_desc_0_config, enable,         0);
 		BREG_Write32(hRegister, BCHP_RDC_desc_0_config + ulSlotOffset,
 			ulValue);
 	}

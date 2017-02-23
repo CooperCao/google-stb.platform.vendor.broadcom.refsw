@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band */
@@ -98,19 +90,45 @@ int main(void)
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_Ac3EncodeHandle ac3Encode;
-#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_AudioCapabilities audioCapabilities;
     NEXUS_SpdifOutputSettings spdifSettings;
-#endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
 #endif
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 || !audioCapabilities.dsp.encoder)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -151,29 +169,30 @@ int main(void)
     ac3Encode = NEXUS_Ac3Encode_Open(NULL);
 
     /* Send stereo output to DAC and HDMI */
-#if NEXUS_NUM_AUDIO_DACS
+    if (audioDacHandle) {
     NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+        audioDacHandle,
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    }
 #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
     NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        audioHdmiHandle,
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #endif
     /* Send multichannel output to AC3 encoder */
     NEXUS_Ac3Encode_AddInput(ac3Encode,
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel));
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    /* Send compressed AC3 data to SPDIF */
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                               NEXUS_Ac3Encode_GetConnector(ac3Encode));
-
-    /* Mark the SPDIF data as copyrighted */
-    NEXUS_SpdifOutput_GetSettings(platformConfig.outputs.spdif[0], &spdifSettings);
-    spdifSettings.channelStatusInfo.swCopyRight = true;
-    NEXUS_SpdifOutput_SetSettings(platformConfig.outputs.spdif[0], &spdifSettings);
-#endif
+    if (audioSpdifHandle) {
+        /* Send compressed AC3 data to SPDIF */
+        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                   NEXUS_Ac3Encode_GetConnector(ac3Encode));
+        /* Mark the SPDIF data as copyrighted */
+        NEXUS_SpdifOutput_GetSettings(platformConfig.outputs.spdif[0], &spdifSettings);
+        spdifSettings.channelStatusInfo.swCopyRight = true;
+        NEXUS_SpdifOutput_SetSettings(platformConfig.outputs.spdif[0], &spdifSettings);
+    }
     /* Bring up video display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
@@ -196,7 +215,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 

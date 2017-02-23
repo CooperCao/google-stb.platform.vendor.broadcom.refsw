@@ -1,39 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bchp.h"
@@ -41,8 +41,13 @@
 #include "bvdc_displayfmt_priv.h"
 #include "bvdc_csc_priv.h"
 
-BDBG_MODULE(BVDC_DVI_CSC);
-BDBG_FILE_MODULE(BVDC_DVI_NLCSC);
+BDBG_MODULE(BVDC_CSC);
+
+/* --------------------------------------------------------
+ * this file now only contains matrices for analogue display
+ * output;  HDMI output now uses unified CFC code.
+*/
+
 
 /**********************************************************
  * static tables
@@ -71,28 +76,6 @@ static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_SDYPbPr = BVDC_P_MAKE_VEC_CSC_
        0.0000,  0.0000,  0.6127,  -78.4300 )
 );
 
-/* vec_csc_CbYCr2dviGBR */
-static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_RGB_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    16,   /* clamped for (1-254) */
-    4064,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (  1.000,  0.000,  1.371, -175.488,
-       1.000, -0.336, -0.698,  132.352,
-       1.000,  1.732,  0.000, -221.696 )
-);
-
-/* SDYCrCb_to_SDRGB_DVI */
-static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_RGB_Full_Range_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    0,
-    4095,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (  1.1644,  0.0029,  1.5901, -222.1632,
-       1.1644, -0.3885, -0.8149,  134.8800,
-       1.1644,  2.0165,  0.0071, -276.7424 )
-);
-
 /* HDYCrCb_to_HDRGB */
 static const BVDC_P_DisplayCscMatrix s_HDYCbCr_to_RGB = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
@@ -107,84 +90,6 @@ static const BVDC_P_DisplayCscMatrix s_HDYCbCr_to_RGB = BVDC_P_MAKE_VEC_CSC_MATR
 /* HDYCrCb_to_HDYPrPb_1080i720p */
 #define s_HDYCbCr_to_HDYPbPr s_SDYCbCr_to_SDYPbPr
 
-/* HDYCrCb_to_HDRGB_DVI */
-static const BVDC_P_DisplayCscMatrix s_HDYCbCr_to_RGB_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    16,   /* clamped for (1-254) */
-    4064,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (  1.0000,  0.0000,  1.5396, -197.0749,
-       1.0000, -0.1831, -0.4577,   82.0247,
-       1.0000,  1.8142,  0.0000, -232.2150 )
-);
-
-/* vec_csc_hdCbYCr2dviGBR */
-static const BVDC_P_DisplayCscMatrix s_HDYCbCr_to_RGB_Full_Range_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    0,
-    4095,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (
-        1.1644, 0.0000,  1.7927, -248.0896,
-        1.1644, -0.2132, -0.5330, 76.8887,
-        1.1644,  2.1124,  0.0000, -289.0198 )
-);
-
-/* UHDYCrCb_to_UHDRGB_DVI */
-static const BVDC_P_DisplayCscMatrix s_UHDYCbCr_to_RGB_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    16,   /* clamped for (1-254) */
-    4064,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (  1.000000,  0.000000,  1.441685, -184.535657,
-       1.000000, -0.160880, -0.558600,   92.093411,
-       1.000000,  1.839404,  0.000000, -235.443771 )
-);
-
-/* vec_csc_uhdCbYCr2dviGBR */
-static const BVDC_P_DisplayCscMatrix s_UHDYCbCr_to_RGB_Full_Range_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    0,
-    4095,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (  1.168950,  0.000000,  1.685257, -234.416111,
-       1.168950, -0.188061, -0.652975,   88.949376,
-       1.168950,  2.150171,  0.000000, -293.925139 )
-);
-
-/* vec_csc_uhdCbYCr2dviGBR_4CL */
-static const BVDC_P_DisplayCscMatrix s_UHDYCbCr_to_RGB_Full_Range_DVI_for_CL = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    0,
-    4095,
-    BVDC_P_MAKE_DVO_CSC
-    (  1.168950,  0.000000,  1.685257, -234.416111,
-       1.168950, -0.188061, -0.652975,   88.949376,
-       1.168950,  2.150171,  0.000000, -293.925139 )
-);
-
-/* For custom panel, can be replaced as necessary */
-static const BVDC_P_DisplayCscMatrix s_CustomYCbCr_to_RGB_Full_Range_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    0,
-    4095,
-    BVDC_P_MAKE_DVO_RGB_CSC
-    (  1.168950,  0.000000,  1.727430, -239.814253,
-       1.168950, -0.183493, -0.605934,   82.343430,
-       1.168950,  2.149871,  0.000000, -293.886738 )
-);
-
-/* YCbCr limited to full range, used with BT 2020 only */
-static const BVDC_P_DisplayCscMatrix s_YCbCr_Limited_Range_to_YCbCr_Full_Range_Hdmi = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    -4096,
-    4095,
-    BVDC_P_MAKE_DVO_CSC
-    (  1.164383562, 0.000000000, 0.000000000, -18.63013699,
-       0.000000000, 1.138392857, 0.000000000, -18.21428571,
-       0.000000000, 0.000000000, 1.138392857, -18.21428571 )
-);
-
 /* For SECAM Composite/SVideo (SDYCrCb_to_secamYDrDb) */
 static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YDbDr = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
@@ -196,7 +101,7 @@ static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YDbDr = BVDC_P_MAKE_VEC_CSC_MA
        0.0000,  0.0000, -1.0040,  128.4742 )
 );
 
-#if 1 /* CMP_CSC outputs Smpte_170M for PAL formats due to HDMI out requirement */
+#if 0 /* CMP_CSC outputs Smpte_170M for PAL formats due to HDMI out requirement */
 /* For PAL Composite/SVideo (SMPTE 170M SDYCrCb to PAL YUV) */
 static const BVDC_P_DisplayCscMatrix s_SDYCbCr_to_YUV = BVDC_P_MAKE_VEC_CSC_MATRIX
 (
@@ -326,17 +231,6 @@ static const BVDC_P_DisplayCscMatrix s_Identity_656 = BVDC_P_MAKE_VEC_CSC_MATRIX
     -4096,
     4095,
     BVDC_P_MAKE_656_CSC
-    (  1.0000,  0.0000,  0.0000,  0.0000,
-       0.0000,  1.0000,  0.0000,  0.0000,
-       0.0000,  0.0000,  1.0000,  0.0000 )
-);
-
-/* vec_csc_std_init */
-static const BVDC_P_DisplayCscMatrix s_Identity_DVI = BVDC_P_MAKE_VEC_CSC_MATRIX
-(
-    -4096,
-    4095,
-    BVDC_P_MAKE_DVO_CSC
     (  1.0000,  0.0000,  0.0000,  0.0000,
        0.0000,  1.0000,  0.0000,  0.0000,
        0.0000,  0.0000,  1.0000,  0.0000 )
@@ -497,30 +391,6 @@ static const BVDC_P_DisplayCscMatrix* const s_apHDYCbCr_MatrixTbl[] =
     &s_HDYCbCr_to_HDYPbPr,   /* HDYPbPr */
 };
 
-/* SDYCbCr DVI CSC table, based on BVDC_HdmiOutput */
-static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_DVI_MatrixTbl[] =
-{
-    &s_SDYCbCr_to_RGB_DVI,
-    &s_Identity_DVI,
-    &s_SDYCbCr_to_RGB_Full_Range_DVI
-};
-
-/* HDYCbCr DVI CSC table, based on BVDC_HdmiOutput */
-static const BVDC_P_DisplayCscMatrix* const s_apHDYCbCr_DVI_MatrixTbl[] =
-{
-    &s_HDYCbCr_to_RGB_DVI,
-    &s_Identity_DVI,
-    &s_HDYCbCr_to_RGB_Full_Range_DVI
-};
-
-/* UHDYCbCr DVI CSC table, based on BVDC_HdmiOutput */
-static const BVDC_P_DisplayCscMatrix* const s_apUHDYCbCr_DVI_MatrixTbl[] =
-{
-    &s_UHDYCbCr_to_RGB_DVI,
-    &s_Identity_DVI,
-    &s_UHDYCbCr_to_RGB_Full_Range_DVI
-};
-
 /* SDYCbCr 656 CSC table */
 static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_656_Bypass_MatrixTbl[] =
 {
@@ -530,11 +400,9 @@ static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_656_Bypass_MatrixTbl[] =
     &s_Identity_656,
     &s_Identity_656,
     &s_Identity_656,
-    &s_Identity_656,
     &s_Identity_656,                      /* from FCC 1953 video source */
     &s_HD240MYCbCr_to_SDYCbCr_656         /* from SMPTE 240M HD video source */
 };
-
 
 /***************************************************************************
  *
@@ -569,125 +437,18 @@ void BVDC_P_Display_GetCscTable_isr
     {
         /* HD output */
         uint32_t   ulIndex = (eOutputColorSpace == BVDC_P_Output_eHDYPrPb) ? 1 : 0;
-        if(pDispInfo->eCmpMatrixCoeffs <= BVDC_P_MatrixCoeffs_eSmpte240M)
+        if(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M)
         {
             *ppCscMatrix = s_apHDYCbCr_MatrixTbl[ulIndex];
         }
         else
         {
-            BDBG_ASSERT(pDispInfo->eCmpMatrixCoeffs <= BVDC_P_MatrixCoeffs_eSmpte240M);
+            BDBG_ASSERT(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M);
         }
     }
 
     return;
 }
-
-extern const BVDC_P_CscCoeffs s_CMP_UhdYCbCr_to_BT2020RGB;
-/***************************************************************************
- * This is to convert the color space from CMP -> DVO.  Since the CMP's CSC
- * already convert color space of specific input -> YCbCr ; the DVO only needs
- * to convert it further to:
- *   (1) RGB
- *   (2) RGB Full Range
- *   (3) bypass (identity matrix)
- */
-void BVDC_P_Display_GetDviCscTable_isr
-    ( const BVDC_P_DisplayInfo        *pDispInfo,
-      const BVDC_P_DisplayCscMatrix  **ppCscMatrix )
-{
-    BAVC_Colorspace  eColorComponent;
-    BAVC_ColorRange  eColorRange;
-
-    eColorComponent = pDispInfo->stHdmiSettings.stSettings.eColorComponent;
-    eColorRange = pDispInfo->stHdmiSettings.stSettings.eColorRange;
-
-    BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("dviOut color Space %d, range %d, matrixCoeff %d", eColorComponent, eColorRange, pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs));
-
-    /* this is for back compatibility */
-    if (BAVC_ColorRange_eAuto == eColorRange)
-    {
-        eColorRange = ((BAVC_MatrixCoefficients_eDvi_Full_Range_RGB    == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
-                       (BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)) ?
-            BAVC_ColorRange_eFull : BAVC_ColorRange_eLimited;
-    }
-    if (((BAVC_MatrixCoefficients_eHdmi_RGB           == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
-         (BAVC_MatrixCoefficients_eDvi_Full_Range_RGB == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)) &&
-        (BAVC_Colorspace_eRGB != eColorComponent))
-    {
-        eColorComponent = BAVC_Colorspace_eRGB;
-        BDBG_MSG(("Hdmi output BAVC_MatrixCoefficients = %d but ColorSpace is NOT RGB (%d)", pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs, eColorComponent));
-    }
-
-#if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
-    if (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)
-    {
-        /* setup for NL CSC HW */
-        *ppCscMatrix = &s_UHDYCbCr_to_RGB_Full_Range_DVI_for_CL;
-    }
-    else
-#endif
-    if (BAVC_Colorspace_eRGB == eColorComponent)
-    {
-        if (BAVC_ColorRange_eLimited == eColorRange)
-        {
-            if (pDispInfo->pFmtInfo->ulHeight >= BFMT_2160P_HEIGHT)
-            {
-                *ppCscMatrix = s_apUHDYCbCr_DVI_MatrixTbl[0];
-            }
-            else if (BFMT_IS_VESA_MODE(pDispInfo->pFmtInfo->eVideoFmt) ||
-                     (pDispInfo->pFmtInfo->ulWidth > BFMT_NTSC_WIDTH))
-            {
-                *ppCscMatrix = s_apHDYCbCr_DVI_MatrixTbl[0];
-            }
-            else
-            {
-                *ppCscMatrix = s_apSDYCbCr_DVI_MatrixTbl[0];
-            }
-        }
-        else /* full range */
-        {
-            if(BVDC_P_IS_CUSTOMFMT(pDispInfo->pFmtInfo->eVideoFmt))
-            {
-                *ppCscMatrix = &s_CustomYCbCr_to_RGB_Full_Range_DVI;
-            }
-            else
-            {
-                if (pDispInfo->pFmtInfo->ulHeight >= BFMT_2160P_HEIGHT)
-                {
-                    *ppCscMatrix = s_apUHDYCbCr_DVI_MatrixTbl[2];
-                }
-                else if (BFMT_IS_VESA_MODE(pDispInfo->pFmtInfo->eVideoFmt) ||
-                         (pDispInfo->pFmtInfo->ulWidth > BFMT_NTSC_WIDTH))
-                {
-                    *ppCscMatrix = s_apHDYCbCr_DVI_MatrixTbl[2];
-                }
-                else
-                {
-                    *ppCscMatrix = s_apSDYCbCr_DVI_MatrixTbl[2];
-                }
-            }
-        }
-    }
-    else /* YCbCr */
-    {
-        if (BAVC_ColorRange_eLimited == eColorRange)
-        {
-            *ppCscMatrix = &s_Identity_DVI;
-        }
-        else /* full range */
-        {
-            *ppCscMatrix = &s_YCbCr_Limited_Range_to_YCbCr_Full_Range_Hdmi;
-        }
-    }
-
-    BDBG_MSG(("Refer to BVDC_P_MAKE_VEC_CSC, YCbCr col 0 and col 1 are swapped."));
-    BDBG_MSG(("Refer to BVDC_P_MAKE_VEC_RGB_CSC, RGB raws are also swapped: r0 on r1 position, r1 on r2, r2 on r0"));
-    BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("DVI_CSC: CL2020_NLCsc_En %d", (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)? 1: 0));
-
-    BVDC_P_Csc_Print_isr(&((*ppCscMatrix)->stCscCoeffs));
-    return;
-}
-
 
 /***************************************************************************
  *
@@ -699,16 +460,16 @@ void BVDC_P_Display_Get656CscTable_isr
 {
     /* Note the new color space conversion in compositor would always
      * output SD to 656 output. */
-    if(pDispInfo->eCmpMatrixCoeffs <= BVDC_P_MatrixCoeffs_eSmpte240M)
+    if(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M)
     {
         *ppCscMatrix = (bBypass) ?
-            s_apSDYCbCr_656_Bypass_MatrixTbl[pDispInfo->eCmpMatrixCoeffs] :
+            s_apSDYCbCr_656_Bypass_MatrixTbl[pDispInfo->eCmpColorimetry] :
             ((pDispInfo->bXvYcc) ? &s_XvYCC_SDYCbCr_to_SDYCbCr_656 :
                                    &s_Identity_656);
     }
     else
     {
-        BDBG_ASSERT(pDispInfo->eCmpMatrixCoeffs <= BVDC_P_MatrixCoeffs_eSmpte240M);
+        BDBG_ASSERT(pDispInfo->eCmpColorimetry <= BAVC_P_Colorimetry_eSmpte240M);
     }
     return;
 }

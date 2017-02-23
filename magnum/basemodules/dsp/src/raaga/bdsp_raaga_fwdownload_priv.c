@@ -1,43 +1,41 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "bdsp_raaga_fwdownload_priv.h"
 #include "bdsp_raaga_priv.h"
 
@@ -284,7 +282,7 @@ void BDSP_Raaga_P_FwDwnldBuf_Dump( void *pDeviceHandle)
 }
 #endif /*FWDWNLD_DBG*/
 
-BERR_Code BDSP_Raaga_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, void *ptr)
+BERR_Code BDSP_Raaga_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, BDSP_MMA_Memory *pMemory)
 {
     const BDSP_Raaga_P_AlgorithmInfo *pInfo;
     unsigned i=0;
@@ -292,14 +290,14 @@ BERR_Code BDSP_Raaga_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, void *ptr)
     bool bDownload = true;
     BERR_Code errCode = BERR_SUCCESS;
     BDSP_Raaga *pDevice = pDeviceHandle;
-    void * init_ptr= ptr;
+    BDSP_MMA_Memory MemoryInit = *pMemory;
 
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
 
     for(algorithm= BDSP_Algorithm_eAudioProcessing_StrtIdx ; algorithm <= BDSP_Algorithm_eAudioProcessing_EndIdx ;algorithm++)
     {
         pInfo = BDSP_Raaga_P_LookupAlgorithmInfo(algorithm);
-        BDBG_MSG(("Requesting algorithm %s (%u) num nodes %d at %p", pInfo->pName, algorithm,pInfo->algoExecInfo.NumNodes, ptr));
+        BDBG_MSG(("Requesting algorithm %s (%u) num nodes %d at %p", pInfo->pName, algorithm,pInfo->algoExecInfo.NumNodes, pMemory->pAddr));
         if ( pInfo->supported )
         {
             for ( i = 0; i < pInfo->algoExecInfo.NumNodes; i++ )
@@ -311,21 +309,27 @@ BERR_Code BDSP_Raaga_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, void *ptr)
                 {
                     BDBG_MSG((" AlgoId (%d) %s", algoId, algoidname[algoId]));
                     errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext,\
-                                                        pDevice->imgCache, BDSP_IMG_ID_CODE(algoId), bDownload, pDevice->memHandle, ptr);
-                    ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size);
+                                                        pDevice->imgCache, BDSP_IMG_ID_CODE(algoId), bDownload, pMemory);
                     IF_ERR_GOTO_error;
+                    BDSP_MMA_P_FlushCache((*pMemory), pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size);
+                    pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size);
+                    pMemory->offset= pMemory->offset + pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size;
 
                     errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext,\
-                                                        pDevice->imgCache, BDSP_IMG_ID_IFRAME(algoId), bDownload, pDevice->memHandle, ptr);
-                    ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size);
+                                                        pDevice->imgCache, BDSP_IMG_ID_IFRAME(algoId), bDownload, pMemory);
                     IF_ERR_GOTO_error;
+                    BDSP_MMA_P_FlushCache((*pMemory), pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size);
+                    pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size);
+                    pMemory->offset= pMemory->offset + pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size;
 
                     if ( BDSP_Raaga_P_AlgoHasTables(algoId) )
                     {
                         errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext,\
-                                                            pDevice->imgCache, BDSP_IMG_ID_TABLE(algoId), bDownload, pDevice->memHandle, ptr);
-                        ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size);
+                                                            pDevice->imgCache, BDSP_IMG_ID_TABLE(algoId), bDownload, pMemory);
                         IF_ERR_GOTO_error;
+                        BDSP_MMA_P_FlushCache((*pMemory), pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size);
+                        pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size);
+                        pMemory->offset= pMemory->offset + pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size;
                     }
 
                 }
@@ -338,11 +342,11 @@ BERR_Code BDSP_Raaga_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, void *ptr)
             }
         }
     }
-    if(ptr > (void *)((uint8_t *)init_ptr + pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].ui32Size))
+    if(pMemory->pAddr > (void *)((uint8_t *)MemoryInit.pAddr + pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].ui32Size))
     {
         BDBG_ERR(("Used memory more than allocated memory.MemInfo size parameter might be \
-            corrupted. Used till %p allocated till %p -- exclusive", ptr, \
-            (void *)((uint8_t *)init_ptr + pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].ui32Size) ));
+            corrupted. Used till %p allocated till %p -- exclusive", pMemory->pAddr, \
+            (void *)((uint8_t *)MemoryInit.pAddr + pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].ui32Size) ));
         errCode = BERR_INVALID_PARAMETER;
         goto error;
     }
@@ -373,7 +377,7 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
     BDSP_Raaga *pDevice = pDeviceHandle;
     BDSP_Raaga_P_DwnldMemInfo *pDwnldMemInfo;
     unsigned imageId,i=0,j=0;
-    void * ptr;
+    BDSP_MMA_Memory Memory;
     bool bDownload = true;
     BDSP_Raaga_P_AlgoTypeImgBuf *pAlgoTypeBuf;
 
@@ -420,14 +424,14 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
             }
         }
     }
+    BDBG_MSG(("**************Allocated size %d, ptr = %p Preloaded = %d", pDwnldMemInfo->ui32AllocatedBinSize, pDwnldMemInfo->ImgBuf.pAddr, pDwnldMemInfo->IsImagePreLoaded));
 
-    BDBG_MSG(("**************Allocated size %d, ptr = %p Preloaded = %d", pDwnldMemInfo->ui32AllocatedBinSize, pDwnldMemInfo->pImgBuf, pDwnldMemInfo->IsImagePreLoaded));
-
-    if(pDwnldMemInfo->pImgBuf == NULL ){
+    if(pDwnldMemInfo->ImgBuf.pAddr == NULL ){
             return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     /*Init*/
-    BKNI_Memset(pDwnldMemInfo->pImgBuf, 0, pDwnldMemInfo->ui32AllocwithGuardBand);
+    BKNI_Memset(pDwnldMemInfo->ImgBuf.pAddr, 0, pDwnldMemInfo->ui32AllocwithGuardBand);
+    BDSP_MMA_P_FlushCache(pDwnldMemInfo->ImgBuf,pDwnldMemInfo->ui32AllocwithGuardBand);
     for (imageId=0; imageId<BDSP_IMG_ID_MAX; imageId++)
     {
         pDevice->imgCache[imageId].pMemory = NULL;
@@ -441,13 +445,20 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
             BDSP_INIT_DWNLDBUF( &pAlgoTypeBuf->DwnldBufUsageInfo[j]);
         }
     }
-    ptr = pDwnldMemInfo->pImgBuf;
+    Memory = pDwnldMemInfo->ImgBuf;
 
     /*Rest of the Image Code download/allocation */
     if( pDevice->memInfo.sDwnldMemInfo.IsImagePreLoaded == true )
     {
-       errCode = BDSP_Raaga_P_PreLoadFwImages(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, ptr, pDwnldMemInfo->ui32AllocatedBinSize, pDevice->memHandle);
-       IF_ERR_GOTO_error;
+        errCode = BDSP_Raaga_P_PreLoadFwImages(
+                        pDevice->settings.pImageInterface,
+                        pDevice->settings.pImageContext,
+                        pDevice->imgCache,
+                        &Memory,
+                        pDwnldMemInfo->ui32AllocatedBinSize
+                        );
+        IF_ERR_GOTO_error;
+        BDSP_MMA_P_FlushCache(pDwnldMemInfo->ImgBuf, pDwnldMemInfo->ui32AllocatedBinSize);
     }
     else
     {
@@ -458,16 +469,18 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
             {
                 continue;
             }
-            errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, imageId, bDownload, pDevice->memHandle, ptr);
-            ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[imageId].size);
-            IF_ERR_GOTO_error   ;
+            errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, imageId, bDownload, &Memory);
+            IF_ERR_GOTO_error;
+            BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[imageId].size);
+            Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[imageId].size);
+            Memory.offset= Memory.offset + pDevice->imgCache[imageId].size;
         }
         /* Code download happens during start task when images are not
         preloaded. Only pointers are allocated here.*/
-        errCode = BDSP_Raaga_P_AssignMem_DwnldBuf(pDeviceHandle, ptr);
+        errCode = BDSP_Raaga_P_AssignMem_DwnldBuf(pDeviceHandle, &Memory);
         IF_ERR_GOTO_error;
 
-        errCode = BDSP_Raaga_P_Dwnld_AudioProc_Algos(pDeviceHandle, pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].DwnldBufUsageInfo[0].pAddr );
+        errCode = BDSP_Raaga_P_Dwnld_AudioProc_Algos(pDeviceHandle, &(pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].DwnldBufUsageInfo[0].Memory));
         IF_ERR_GOTO_error;
     }
 
@@ -475,7 +488,7 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
     BDSP_Raaga_P_FwDwnldBuf_Dump(pDeviceHandle);
 #endif
 
-return errCode;
+    return errCode;
 
 error:
     BDSP_Raaga_P_FreeFwExec(pDeviceHandle);
@@ -608,7 +621,7 @@ BDSP_Raaga_P_DwnldBufUsageInfo * BDSP_Raaga_P_LookUpFree_DwnldBuf(void * pDevice
     pDwnldBuf->numUser++;
     pDwnldBuf->algorithm = algorithm;
     BDBG_MSG((" Request Mem = %p for algoId %s (%d)  numuser = %d existing download valid = %d" ,
-        pDwnldBuf->pAddr, BDSP_P_AlgoTypeName[pInfo->type],algorithm , pDwnldBuf->numUser, pDwnldBuf->bIsExistingDwnldValid));
+        pDwnldBuf->Memory.pAddr, BDSP_P_AlgoTypeName[pInfo->type],algorithm , pDwnldBuf->numUser, pDwnldBuf->bIsExistingDwnldValid));
 
 error:
     BDBG_LEAVE( BDSP_Raaga_P_LookUpFree_DwnldBuf);
@@ -670,7 +683,6 @@ If the image has to be downloaded in the pre-allocated buffers for AlgoTypes, th
 that pointer will not be updated
 
 *******************************************/
-
 BERR_Code BDSP_Raaga_P_RequestAlgorithm(
     void *pDeviceHandle,
     BDSP_Algorithm algorithm        /*input*/
@@ -681,7 +693,8 @@ BERR_Code BDSP_Raaga_P_RequestAlgorithm(
     const BDSP_Raaga_P_AlgorithmInfo *pInfo;
     unsigned i=0;
     BDSP_Raaga_P_DwnldBufUsageInfo *pDwnldBufInfo;
-    void *ptr;
+    BDSP_MMA_Memory Memory;
+    BDSP_MMA_Memory MemoryInit;
     bool bDownload=true;
 
 
@@ -706,20 +719,21 @@ BERR_Code BDSP_Raaga_P_RequestAlgorithm(
             goto error;
         }
 
-        if(pDwnldBufInfo->pAddr == NULL )
+        if(pDwnldBufInfo->Memory.pAddr== NULL )
         {
             errCode = BERR_INVALID_PARAMETER;
             errCode = BERR_TRACE(errCode);
             goto error;
         }
 
-        ptr = pDwnldBufInfo->pAddr;
+        Memory = pDwnldBufInfo->Memory;
+        MemoryInit = pDwnldBufInfo->Memory;
 
         if( pDwnldBufInfo->bIsExistingDwnldValid == true){
              bDownload = false;
         }
 
-        BDBG_MSG(("Requesting algorithm %s (%u) ptr = %p num nodes %d", pInfo->pName, algorithm, pDwnldBufInfo->pAddr, pInfo->algoExecInfo.NumNodes));
+        BDBG_MSG(("Requesting algorithm %s (%u) ptr = %p num nodes %d", pInfo->pName, algorithm, Memory.pAddr, pInfo->algoExecInfo.NumNodes));
         for ( i = 0; i < pInfo->algoExecInfo.NumNodes; i++ )
         {
             BDSP_AF_P_AlgoId algoId = pInfo->algoExecInfo.eAlgoIds[i];
@@ -728,19 +742,25 @@ BERR_Code BDSP_Raaga_P_RequestAlgorithm(
 
             if ( algoId < BDSP_AF_P_AlgoId_eMax )
             {
-                errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_IMG_ID_CODE(algoId), bDownload, pDevice->memHandle, ptr);
-                ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size);
+                errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_IMG_ID_CODE(algoId), bDownload, &Memory);
                 IF_ERR_GOTO_error;
+                BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size);
+                Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size);
+                Memory.offset= Memory.offset + pDevice->imgCache[BDSP_IMG_ID_CODE(algoId)].size;
 
-                errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_IMG_ID_IFRAME(algoId), bDownload, pDevice->memHandle, ptr);
-                ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size);
+                errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_IMG_ID_IFRAME(algoId), bDownload, &Memory);
                 IF_ERR_GOTO_error;
+                BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size);
+                Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size);
+                Memory.offset= Memory.offset + pDevice->imgCache[BDSP_IMG_ID_IFRAME(algoId)].size;
 
                 if ( BDSP_Raaga_P_AlgoHasTables(algoId) )
                 {
-                    errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_IMG_ID_TABLE(algoId), bDownload, pDevice->memHandle, ptr);
-                    ptr = (void *)((uint8_t *)ptr + pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size);
+                    errCode = BDSP_Raaga_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_IMG_ID_TABLE(algoId), bDownload, &Memory);
                     IF_ERR_GOTO_error;
+                    BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size);
+                    Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size);
+                    Memory.offset= Memory.offset + pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].size;
                 }
 
             }
@@ -750,7 +770,7 @@ BERR_Code BDSP_Raaga_P_RequestAlgorithm(
             BDBG_MSG(("table ptr = %p (off = %p)",pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].pMemory, pDevice->imgCache[BDSP_IMG_ID_TABLE(algoId)].offset));
 #endif
             }
-        if(ptr > (void*)((uint8_t *)pDwnldBufInfo->pAddr+pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[pInfo->type].ui32Size)){
+        if(Memory.pAddr > (void*)((uint8_t *)MemoryInit.pAddr+pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[pInfo->type].ui32Size)){
             BDBG_ERR((" Binary downloaded is more than the size allocated for the type %s (%d) ", BDSP_P_AlgoTypeName[pInfo->type], pInfo->type));
             errCode= BERR_INVALID_PARAMETER;
             goto error;

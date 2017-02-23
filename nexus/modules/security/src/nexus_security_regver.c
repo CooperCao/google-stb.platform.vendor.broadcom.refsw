@@ -113,6 +113,7 @@ typedef struct {
     NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
 
     char description[30];                     /* textual description of region. */
+    bool enforceAuthentication;               /* force verification */
 
 }regionData_t;
 
@@ -132,9 +133,10 @@ BDBG_MODULE(nexus_security_verify_reg);
 
 static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize );
 static NEXUS_Error calculateCpuType( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region );
-#define initialiseRegion(region,otpIndex) initialiseRegion_dbg(region,otpIndex,#region)
+#define initialiseRegion(region,otpIndex,enf) initialiseRegion_dbg(region,otpIndex,enf,#region)
 static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
                                      BCMD_Otp_CmdMsp_e otpIndex,
+                                     bool enforceAuthentication,
                                      char * pRegionStr );
 static regionData_t* getRegionData( NEXUS_SecurityRegverRegionID regionId );
 static NEXUS_Error disableRegion( NEXUS_SecurityRegverRegionID regionId );
@@ -192,7 +194,7 @@ static NEXUS_Error loadSignature( unsigned regionId,  const uint8_t *pSigData )
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error InitialiseSignatures( void )
+static NEXUS_Error InitialiseSignatures( void )
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
 
@@ -362,8 +364,20 @@ NEXUS_Error InitialiseSignatures( void )
     return NEXUS_SUCCESS;
 }
 
+void  NEXUS_Security_GetDefaultRegionVerificationModuleSettings(  NEXUS_SecurityRegionModuleSettings *pSettings )
+{
 
-NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void )
+    BDBG_ENTER( NEXUS_Security_GetDefaultRegionVerificationModuleSettings );
+    NEXUS_ASSERT_MODULE();
+
+    BKNI_Memset( pSettings, 0, sizeof(*pSettings) );
+
+    BDBG_LEAVE( NEXUS_Security_GetDefaultRegionVerificationModuleSettings );
+    return;
+}
+
+
+NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityRegionModuleSettings *pSettings )
 {
     NEXUS_SecurityRegionInfoQuery  regionSatus;
     regionData_t *pRegionData;
@@ -387,35 +401,35 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void )
         BKNI_Memset( &gRegVerModuleData, 0, sizeof(gRegVerModuleData) );
 
         /* initialise module data. */
-        initialiseRegion( BHSM_VerificationRegionId_eRave,          OTP_ENUM_RAVE   );
-        initialiseRegion( BHSM_VerificationRegionId_eRaaga0,        OTP_ENUM_RAAGA0 );
+        initialiseRegion( BHSM_VerificationRegionId_eRave,          OTP_ENUM_RAVE, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eTransport] );
+        initialiseRegion( BHSM_VerificationRegionId_eRaaga0,        OTP_ENUM_RAAGA0, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eAudioDecoder] );
         #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
-        initialiseRegion( BHSM_VerificationRegionId_eRaaga1,        OTP_ENUM_RAAGA1 );
+        initialiseRegion( BHSM_VerificationRegionId_eRaaga1,        OTP_ENUM_RAAGA1, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eAudioDecoder] );
         #endif
 
         #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-        initialiseRegion( BHSM_VerificationRegionId_eVdec0_Il2A,    OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eVdec0_Ila,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eVdec0_Ola,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eVdec1_Ils,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eVdec1_Ols,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eVdec2_Ila,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eVdec2_Ola,     OTP_ENUM_VIDEO );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec0_Il2A,    OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec0_Ila,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec0_Ola,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec1_Ils,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec1_Ols,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec2_Ila,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVdec2_Ola,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
         #else
-        initialiseRegion( BHSM_VerificationRegionId_eAvd0Inner,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eAvd0Outer,     OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eHvd0_Ila,      OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eHvd0_Ola,      OTP_ENUM_VIDEO );
-        initialiseRegion( BHSM_VerificationRegionId_eSvd0Bl,        OTP_ENUM_VIDEO );
+        initialiseRegion( BHSM_VerificationRegionId_eAvd0Inner,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eAvd0Outer,     OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eHvd0_Ila,      OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eHvd0_Ola,      OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eSvd0Bl,        OTP_ENUM_VIDEO, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoDecoder] );
         #endif
-        initialiseRegion( BHSM_VerificationRegionId_eVice0Pic,      OTP_ENUM_VICE );
-        initialiseRegion( BHSM_VerificationRegionId_eVice0MacroBlk, OTP_ENUM_VICE );
-        initialiseRegion( BHSM_VerificationRegionId_eVice1Pic,      OTP_ENUM_VICE );
-        initialiseRegion( BHSM_VerificationRegionId_eVice1MacroBlk, OTP_ENUM_VICE );
-        initialiseRegion( BHSM_VerificationRegionId_eSid0,          OTP_ENUM_SID );
+        initialiseRegion( BHSM_VerificationRegionId_eVice0Pic,      OTP_ENUM_VICE, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoEncoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVice0MacroBlk, OTP_ENUM_VICE, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoEncoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVice1Pic,      OTP_ENUM_VICE, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoEncoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eVice1MacroBlk, OTP_ENUM_VICE, pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_eVideoEncoder] );
+        initialiseRegion( BHSM_VerificationRegionId_eSid0,          OTP_ENUM_SID,  pSettings->enforceAuthentication[NEXUS_SecurityFirmwareType_ePictureDecoder] );
 
         #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,0)
-        initialiseRegion( BHSM_VerificationRegionId_eScpuFsbl,      OTP_ENUM_SAGE_FSBL );
+        initialiseRegion( BHSM_VerificationRegionId_eScpuFsbl,      OTP_ENUM_SAGE_FSBL, false );
         #endif
 
         /* load static signatures. */
@@ -891,6 +905,7 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
     regionConfiguration.ucEpochSel               = pRegionData->signedAttributes.epochSelect;
     regionConfiguration.ucSigVersion             = pRegionData->signedAttributes.signatureVersion;
     regionConfiguration.ucSigType                = pRegionData->signedAttributes.signatureType;
+    regionConfiguration.enforceAuthentication    = pRegionData->enforceAuthentication;
    #endif
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(2,0)
     regionConfiguration.verifyFailAction         = BCMD_MemAuth_ResetOnVerifyFailure_eNoReset; /* Ignored for  most region IDs*/
@@ -1332,7 +1347,7 @@ static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, co
 Summary
     Copy the last part of a enumerator from string ... i.e., "Description" from  "Enumerator_eDescription"
 */
-void cropDescriptionFromStr( char* pDest, unsigned destSize, char* pStr )
+static void cropDescriptionFromStr( char* pDest, unsigned destSize, char* pStr )
 {
     char* pLocation = NULL;
     unsigned boundsCheck = 120; /*stop run away*/
@@ -1448,6 +1463,7 @@ Summary
 */
 static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
                                      BCMD_Otp_CmdMsp_e otpIndex,
+                                     bool enforceAuthentication,
                                      char * pRegionStr )
 {
     BHSM_ReadMspIO_t otp;
@@ -1488,6 +1504,12 @@ static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
         pRegionData->verificationRequired = true;
     }
     #endif
+
+    if( enforceAuthentication )
+    {
+        pRegionData->verificationRequired = true;
+        pRegionData->enforceAuthentication = true;
+    }
 
     cropDescriptionFromStr( pRegionData->description, sizeof(pRegionData->description), pRegionStr );
 

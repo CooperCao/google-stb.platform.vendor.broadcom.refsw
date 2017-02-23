@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,7 +61,7 @@
 #include "hwtimer.h"
 #include "system.h"
 
-void tzKernelSecondary();
+extern "C" void tzKernelSecondary();
 
 void tzKernelInit(const void *devTree) {
 
@@ -76,7 +76,7 @@ void tzKernelInit(const void *devTree) {
 
     // Disable interrupts. They will get re-enabled
     // when we switch to user mode.
-    asm volatile("cpsid if":::);
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
     schedule();
 }
@@ -85,7 +85,7 @@ void tzKernelSecondary() {
 
     System::initSecondaryCpu();
 
-    asm volatile("cpsid if":::);
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
     schedule();
 }

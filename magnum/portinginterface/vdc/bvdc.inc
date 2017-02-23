@@ -78,6 +78,7 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_compositor_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_displayfmt_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_csc_priv.c \
+	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_cfc_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_displaymatrices_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_gfxfeeder.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_gfxfeedertable_priv.c \
@@ -110,6 +111,7 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_compositor.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_compositor_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_csc_priv.c \
+	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_cfc_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_dbg.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_bvnerrtable_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_displayfmt_priv.c \
@@ -140,7 +142,6 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_test.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_tntalgorithm_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_tnt_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_videotable_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_vnet_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_window.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_window_priv.c \

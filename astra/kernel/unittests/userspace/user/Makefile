@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,45 +36,40 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-#build environment
+# build environment
 TZ_DIR ?= ../../../..
-TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
-TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
-
-# platform and target
-PLATFORM ?= brcmstb
+include $(TZ_DIR)/kernel/default.inc
 
 # directories and files
 USER_APP := user
 
 SRC_DIRS := .
 INC_DIRS := .
-BIN_DIRS := bin
+BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/kernel/unittests/userspace
+BIN_DIR := $(BASE_OBJ_DIR)/user/bin
 
 SOURCES_ASM := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S)))
-OBJS        := $(patsubst %.S,bin/%.o,$(SOURCES_ASM))
-DEPS        := $(patsubst %.S,bin/%.d,$(SOURCES_ASM))
+OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM))
+DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM))
 
 SOURCES_C   := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c)))
-OBJS        += $(patsubst %.c,bin/%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,bin/%.d,$(SOURCES_C))
+OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
+DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
 
 SOURCES_CPP := $(notdir $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp)))
-OBJS        += $(patsubst %.cpp,bin/%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
+OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
+DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
 
-# dependent libs
-DEP_LIBS +=
-INC_DIRS +=
+# Create out of build (OOB) objects
+OOB_OBJS	:= $(patsubst %.o, $(BIN_DIR)/%.o,$(OBJS))
+OOB_DEPS	:= $(patsubst %.d, $(BIN_DIR)/%.d,$(DEPS))
 
 # build flags
 DEPENDFLAGS := -MD -MP
 
 INCLUDES    := $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -I$(TZ_DIR)/kernel/api
-
-# funcationally and alphabetically ordered
-ARCHFLAGS   := -mcpu=cortex-a15
+INCLUDES    += -I$(SRC_DIRS)/../libhello
 
 BASEFLAGS   := -O2 -g
 
@@ -87,12 +82,12 @@ ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
 CFLAGS      += -std=gnu99
 CFLAGS      += -D_POSIX_SOURCE
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11
 CPPFLAGS    += -D_POSIX_SOURCE
 
@@ -112,35 +107,28 @@ $1/%.o: %.cpp
 endef
 
 # build rules
-.PHONY: checkplatform checkdirs $(USER_APP)
+.PHONY: checkplatform checkdirs
 
-all: checkplatform checkdirs $(USER_APP)
+all: checkplatform checkdirs $(BIN_DIR)/$(USER_APP).elf $(BIN_DIR)/$(USER_APP).elf.lst
 
--include $(DEPS)
+-include $(OOB_DEPS)
 
 checkplatform:
-	@echo Building for PLATFORM=$(PLATFORM)...
+	@echo Building for PLATFORM=$(TZ_PLATFORM)...
 
-checkdirs: $(BIN_DIRS)
+checkdirs: $(BIN_DIR)
 
-$(BIN_DIRS):
+$(BIN_DIR):
 	mkdir -p $@
 
-$(USER_APP): $(USER_APP).elf
+$(BIN_DIR)/$(USER_APP).elf.lst: $(BIN_DIR)/$(USER_APP).elf
+	@echo generating listing: $@
+	$(TZ_ARMGNU)-objdump -d $< | $(TZ_ARMGNU)-c++filt > $@
 
-$(USER_APP).elf: $(DEP_LIBS) $(OBJS)
-	$(TZ_ARMGNU)-g++ $(LDFLAGS) $(OBJS) $(foreach dlib,$(DEP_LIBS),$(dlib)/$(dlib).a) -o $@
-
-.PHONY: $(DEP_LIBS)
-
-$(DEP_LIBS):
-	$(MAKE) -C $@
+$(BIN_DIR)/$(USER_APP).elf: $(BIN_DIR)/$(OOB_OBJS)
+	$(TZ_ARMGNU)-g++  $(LDFLAGS) -ldl $(OOB_OBJS) -o $@
 
 clean:
-	$(RM) -r bin
-	$(RM) $(USER_APP).elf
-	@for dlib in $(DEP_LIBS); do \
-		$(MAKE) -C $$dlib clean; \
-	done
+	$(RM) -r $(BIN_DIR)
 
-$(foreach bdir,$(BIN_DIRS),$(eval $(call make-goal,$(bdir))))
+$(foreach bdir,$(BIN_DIR),$(eval $(call make-goal,$(bdir))))

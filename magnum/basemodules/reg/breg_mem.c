@@ -72,7 +72,41 @@ static void BREG_P_systemUpdate32_isrsafe(void *context, uint32_t reg, uint32_t 
 
 static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg );
 
+static bool BREG_P_isRegisterReadOnly_isrsafe(uint32_t reg) {
+#if defined(BCHP_REGISTER_HAS_READONLY)
+#define BCHP_REGISTER_READONLY_32BIT(name, offset) case (offset/4): BDBG_CASSERT((offset%4)==0);return true;
+    switch(reg/4) {
+#include "bchp_readonly.h"
+    default: break;
+    }
+#else
+    BSTD_UNUSED(reg);
+#endif
+    return false;
+}
+
+static bool BREG_P_Test32RegReadOnly_isrsafe(uint32_t reg)
+{
+    bool result = BREG_P_isRegisterReadOnly_isrsafe(reg);
+    if(result) {
+        BDBG_ERR(("Register %#x is read-only, write operation is not allowed", reg));
+        BDBG_ASSERT(0);
+    }
+    return result;
+}
+
 #if defined(BCHP_HIF_MSAT_REG_START) /* MSAT is hw atomizer for 64-bit register access from 32-bit host */
+
+static bool BREG_P_Test64RegReadOnly_isrsafe(uint32_t reg)
+{
+    bool result = BREG_P_isRegisterReadOnly_isrsafe(reg) || BREG_P_isRegisterReadOnly_isrsafe(reg+4);
+    if(result) {
+        BDBG_ERR(("Register %#x is read-only, write operation is not allowed", reg));
+        BDBG_ASSERT(0);
+    }
+    return result;
+}
+
 #if BDBG_DEBUG_BUILD
 static bool BREG_P_Test64RegOffset_isrsafe(uint32_t regOffset)
 {
@@ -95,7 +129,7 @@ static void BREG_P_Test32Reg_isrsafe(uint32_t reg)
     BSTD_UNUSED(reg);
 #if BDBG_DEBUG_BUILD
     if(reg%4!=0 || BREG_P_Test64RegOffset_isrsafe(reg/8)) {
-        BDBG_ERR(("Invalid 32-bit register access"));
+        BDBG_ERR(("Invalid 32-bit register access %#x", reg));
     }
 #endif
     return;
@@ -924,7 +958,7 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_PWRON);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_LDO_PWRON);
-#elif (BCHP_CHIP==7271 || BCHP_CHIP==7268 || BCHP_CHIP==7260)
+#elif (BCHP_CHIP==7271 || BCHP_CHIP==7268 || BCHP_CHIP==7260 || BCHP_CHIP==7278)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_RESET);
@@ -1158,6 +1192,9 @@ void BREG_Write32(BREG_Handle RegHandle, uint32_t reg, uint32_t data)
     }
     APP_BREG_Write32(RegHandle, reg, data) ;
 #endif
+    if(BREG_P_Test32RegReadOnly_isrsafe(reg)) {
+        return;
+    }
     BREG_P_Write32(RegHandle, reg, data);
 }
 
@@ -1183,6 +1220,9 @@ void BREG_AtomicUpdate32_isrsafe(BREG_Handle RegHandle, uint32_t reg, uint32_t m
     BDBG_ASSERT(reg < RegHandle->MaxRegOffset);
     BREG_P_Test32Reg_isrsafe(reg);
     BREG_P_CheckAtomicRegister_isrsafe(RegHandle, reg, "BREG_AtomicUpdate32_isr", true);
+    if(BREG_P_Test32RegReadOnly_isrsafe(reg)) {
+        return;
+    }
     RegHandle->openSettings.systemUpdate32_isrsafe(RegHandle->openSettings.callbackContext, reg, mask, value, true);
 #if BREG_CAPTURE
     APP_BREG_Write32(RegHandle,reg,BREG_Read32(RegHandle,reg));
@@ -1195,6 +1235,9 @@ void BREG_Update32_isrsafe(BREG_Handle RegHandle, uint32_t reg, uint32_t mask, u
     BDBG_ASSERT(reg < RegHandle->MaxRegOffset);
     BREG_P_Test32Reg_isrsafe(reg);
 
+    if(BREG_P_Test32RegReadOnly_isrsafe(reg)) {
+        return;
+    }
     RegHandle->openSettings.systemUpdate32_isrsafe(RegHandle->openSettings.callbackContext, reg, mask, value, false);
     return;
 }
@@ -1248,7 +1291,7 @@ static void BREG_P_Write64_Native_isrsafe(BREG_Handle regHandle, uint32_t reg, u
 
 static uint64_t BREG_P_Read64_Native_isrsafe(BREG_Handle regHandle, uint32_t reg)
 {
-    uint32_t data;
+    uint64_t data;
     data = BREG_P_Read64(regHandle, reg);
     return data;
 }
@@ -1349,7 +1392,7 @@ static uint64_t BREG_P_Read64_Msat_isrsafe(BREG_Handle regHandle, uint32_t reg)
 
 uint64_t BREG_Read64_isrsafe(BREG_Handle regHandle, uint32_t reg)
 {
-    uint32_t data;
+    uint64_t data;
     bool native = false;
 
     BDBG_ASSERT(reg < regHandle->MaxRegOffset);
@@ -1374,6 +1417,9 @@ void BREG_Write64_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
 #if defined(BREG_64_NATIVE_SUPPORT) /* allow native 64-bit register access from 64-bit host interface */
     native = true;
 #endif /*  #if defined(BREG_64_NATIVE_SUPPORT)  */
+    if(BREG_P_Test64RegReadOnly_isrsafe(reg)) {
+        return;
+    }
     if(native) {
         BREG_P_Write64_Native_isrsafe(regHandle, reg, data);
     } else {
@@ -1388,6 +1434,9 @@ void BREG_Write64_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
     if((data>>32)!= 0) {
         BDBG_ERR(("BREG_Write64_isrsafe: will drop " BDBG_UINT64_FMT "  when writing " BDBG_UINT64_FMT " to %#x", BDBG_UINT64_ARG((data>>32)<<32), BDBG_UINT64_ARG(data), reg));
         /* BDBG_ASSERT(data>>32==0); */
+    }
+    if(BREG_P_Test32RegReadOnly_isrsafe(reg)) {
+        return;
     }
     BREG_Write32(regHandle, reg, data);
     return;

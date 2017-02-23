@@ -38,7 +38,7 @@
  * Module Description:
  *
  *****************************************************************************/
-#if NEXUS_HAS_SIMPLE_DECODER
+#if NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_AUDIO
 #include "nxclient.h"
 #include "nexus_platform.h"
 #include "nexus_simple_video_decoder.h"

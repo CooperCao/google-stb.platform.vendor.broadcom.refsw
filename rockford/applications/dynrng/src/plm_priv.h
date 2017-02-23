@@ -46,6 +46,7 @@
 #include "plm.h"
 #include "platform_types.h"
 #include "file_switcher.h"
+#include "nl2l.h"
 
 #define PWL_POINTS 8
 
@@ -57,7 +58,9 @@ typedef struct Plm
     FileSwitcherHandle currentSwitcher;
     FileSwitcherHandle sdr2hdrSwitcher;
     FileSwitcherHandle hdr2sdrSwitcher;
+    FileSwitcherHandle hlg2hdrSwitcher;
     PwlCurveHandle curve;
+    Nl2lHandle nl2l;
     bool demo;
     int plmSetting;
 } Plm;

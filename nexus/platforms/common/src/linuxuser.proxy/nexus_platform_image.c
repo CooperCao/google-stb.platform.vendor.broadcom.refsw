@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+* Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform (private)
 *   This file containes private API to implement the B_CONFIG_IMAGE user mode part
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #include "nexus_types.h"
 #include "nexus_base.h"
@@ -160,6 +152,9 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
     ctl.req.req_type =  BIMG_Ioctl_Req_Type_Start;
 
     for(;;) {
+        void *tmp_pointer;
+        const void *tmp_const_pointer;
+
         rc = ioctl(fd, ioctl_no, &ctl);
         if (b_interfaces.stopped) {
             break;
@@ -184,30 +179,33 @@ NEXUS_Error Nexus_Platform_P_Image_Handler(int fd, int ioctl_no)
         case BIMG_Ioctl_Req_Type_Open:
             BDBG_MSG((">>Open[%s]: %p %u", ctl.req.id, (void *)entry->context, (unsigned)ctl.req.data.open.image_id));
             if (b_interfaces.imgInterface.open) {
-                mrc = (b_interfaces.imgInterface.open)(entry->name, &ctl.ack.data.open.image, ctl.req.data.open.image_id);
+                mrc = (b_interfaces.imgInterface.open)(entry->name, &tmp_pointer, ctl.req.data.open.image_id);
+                ctl.ack.data.open.image = (unsigned long)tmp_pointer;
                 if (!mrc) {
                     entry->external = true;
                 }
             }
             if (!entry->external) {
-                mrc = entry->iface->open((void *)entry->context, &ctl.ack.data.open.image, ctl.req.data.open.image_id);
+                mrc = entry->iface->open((void *)entry->context, &tmp_pointer, ctl.req.data.open.image_id);
+                ctl.ack.data.open.image = (unsigned long)tmp_pointer;
             }
             ctl.ack.result = mrc;
             if (mrc==BERR_SUCCESS) {
-                entry->image = ctl.ack.data.open.image;
+                entry->image = (void *)(unsigned long)ctl.ack.data.open.image;
             }
             BDBG_MSG(("<<Open[%s]: %p %u %d %p", ctl.req.id, (void *)entry->context, (unsigned)ctl.req.data.open.image_id, ctl.ack.result, (void *)entry->image));
             break;
         case BIMG_Ioctl_Req_Type_Next:
             BDBG_MSG((">>Next[%s]: %p %u %u", ctl.req.id, (void *)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length));
             if (entry->external) {
-                mrc = (b_interfaces.imgInterface.next)(entry->image, ctl.req.data.next.chunk, &ctl.ack.data.next.data, (uint16_t)ctl.req.data.next.length);
+                mrc = (b_interfaces.imgInterface.next)(entry->image, ctl.req.data.next.chunk, &tmp_const_pointer, (uint16_t)ctl.req.data.next.length);
             }
             else {
-                mrc = entry->iface->next(entry->image, ctl.req.data.next.chunk, &ctl.ack.data.next.data, (uint16_t)ctl.req.data.next.length);
+                mrc = entry->iface->next(entry->image, ctl.req.data.next.chunk, &tmp_const_pointer, (uint16_t)ctl.req.data.next.length);
             }
+            ctl.ack.data.next.data = (unsigned long)tmp_const_pointer;
             ctl.ack.result = mrc;
-            BDBG_MSG(("<<Next[%s]: %p %u %u %d %p", ctl.req.id, (void *)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length, ctl.ack.result, (void *)ctl.ack.data.next.data ));
+            BDBG_MSG(("<<Next[%s]: %p %u %u %d %p", ctl.req.id, (void *)entry->image, (unsigned)ctl.req.data.next.chunk, (unsigned)ctl.req.data.next.length, ctl.ack.result, (void *)(unsigned long)ctl.ack.data.next.data ));
             break;
         case BIMG_Ioctl_Req_Type_Close:
             BDBG_MSG((">>Close[%s]: %p", ctl.req.id, (void *)entry->image));

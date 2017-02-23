@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_video_decoder_module.h"
@@ -280,17 +270,6 @@ NEXUS_Error NEXUS_VideoDecoder_CreateStripedMosaicSurfaces( NEXUS_VideoDecoderHa
         return handle->intf->CreateStripedMosaicSurfaces( handle, pStripedSurfaces, maxSurfaces, pSurfaceCount);
     } else {
         return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-}
-
-void NEXUS_VideoDecoder_DestroyStripedMosaicSurfaces( NEXUS_VideoDecoderHandle handle, const NEXUS_StripedSurfaceHandle *pStripedSurfaces, unsigned int surfaceCount)
-{
-    BDBG_OBJECT_ASSERT(handle, NEXUS_VideoDecoder);
-    BDBG_ASSERT(handle->intf);
-    if(handle->intf->DestroyStripedMosaicSurfaces) {
-        handle->intf->DestroyStripedMosaicSurfaces( handle, pStripedSurfaces, surfaceCount);
-    } else {
-        (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
 }
 

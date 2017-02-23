@@ -41,13 +41,13 @@ BSG_DIR          := $(shell pwd)
 
 include common.inc
 
+# zlib and png required
+include $(NEXUS_TOP)/../BSEAV/opensource/zlib/zlib.inc
+include $(NEXUS_TOP)/../BSEAV/opensource/libpng/libpng.inc
+
 # Paths
 BSEAV_DIR        := $(shell cd $(BSG_DIR)/../../..            ; pwd)
-OPENSOURCE       := $(NEXUS_TOP)/../BSEAV/lib
 NEXUS_TOP        ?= $(shell cd $(BSEAV_DIR)/../nexus          ; pwd)
-ROCKFORD_TOP     ?= $(shell cd $(BSEAV_DIR)/../rockford       ; pwd)
-V3D_DIR          ?= $(shell cd $(ROCKFORD_TOP)/middleware/$(V3D_PREFIX)/driver ; pwd)
-V3D_PLATFORM_DIR ?= $(shell cd $(V3D_DIR)/../platform         ; pwd)
 B_REFSW_OBJ_DIR  ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${BSEAV_DIR}/../${B_REFSW_OBJ_DIR}
 
@@ -63,9 +63,9 @@ V3D_OBJ := obj_$(NEXUS_PLATFORM)_release
 endif
 
 V3DDRIVER_LIB_TARGET := ${NEXUS_BIN_DIR}
-V3DDRIVER_OBJ_TARGET := ${B_REFSW_OBJ_ROOT}/rockford/middleware/v3d/$(V3D_OBJ)
+V3DDRIVER_OBJ_TARGET := ${B_REFSW_OBJ_ROOT}/$(shell sed 's/.*\(BSEAV\)/\1/g' <<< $(V3D_DIR))/$(V3D_OBJ)
 NXPL_LIB_TARGET := ${NEXUS_BIN_DIR}
-NXPL_OBJ_TARGET := ${B_REFSW_OBJ_ROOT}/rockford/middleware/platform/nexus/$(V3D_OBJ)
+NXPL_OBJ_TARGET := ${B_REFSW_OBJ_ROOT}/$(shell sed 's/.*\(BSEAV\)/\1/g' <<< $(V3D_PLATFORM_DIR))/$(V3D_OBJ)
 
 include bsg_common.inc
 include bsg_nexus.inc
@@ -79,8 +79,6 @@ ALL_OBJECTS      = $(COMMON_OBJECTS) $(PLATFORM_OBJECTS)
 TARGET := $(NEXUS_BIN_DIR)/libbsg.so
 
 # Third party library locations
-PNG              ?= $(OPENSOURCE)/libpng
-ZLIB             ?= $(OPENSOURCE)/zlib
 FREETYPE         ?= $(BSG_DIR)/../freetype-2.3.12
 
 # Includes for most BSG files
@@ -91,9 +89,7 @@ INCLUDES       += $(V3D_DIR)/interface/khronos/include                \
                   $(V3D_DIR)/libs/core/vcos/include                   \
                   $(V3D_DIR)/libs/core/vcos/pthreads                  \
                   $(V3D_DIR)                                          \
-                  $(FREETYPE)/include                                 \
-                  $(PNG)                                              \
-                  $(ZLIB)
+                  $(FREETYPE)/include
 
 PLATFORM_INCLUDES += $(V3D_PLATFORM_DIR)/nexus			\
                      $(NEXUS_TOP)/../BSEAV/lib/media            \
@@ -101,27 +97,28 @@ PLATFORM_INCLUDES += $(V3D_PLATFORM_DIR)/nexus			\
 
 # C++ compiler flags
 CXXFLAGS += $(addprefix -I,$(INCLUDES))
-CXXFLAGS += -fPIC
+CXXFLAGS += -fPIC -Wno-literal-suffix
+CXXFLAGS += $(LIBPNG_CFLAGS)
+CXXFLAGS += $(ZLIB_CFLAGS)
 
 # Includes and defines needed by Nexus client code
 NEXUS_CXXFLAGS += $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS))
 NEXUS_CXXFLAGS += $(addprefix -I,$(PLATFORM_INCLUDES))
 
 NEXUS_CXXFLAGS += $(addprefix -D,$(NEXUS_APP_DEFINES))
+NEXUS_CXXFLAGS += -DEMBEDDED_SETTOP_BOX=1
 
-.PHONY: info nexus_lib v3d_lib nxpl_lib zlib png freetype
+.PHONY: info nexus_lib v3d_lib nxpl_lib freetype
 
-all:	info nxpl_lib png freetype $(TARGET)
+all:	info nxpl_lib freetype $(TARGET)
 
 info:
 	@echo "*******************************************************"; \
 	echo "Building BSG with the following settings:"; \
 	echo "                                                       "; \
 	echo "BSG_DIR          = $(BSG_DIR)"; \
-	echo "OPENSOURCE       = $(OPENSOURCE)"; \
 	echo "NEXUS_TOP        = $(NEXUS_TOP)"; \
 	echo "NEXUS_BIN_DIR    = $(NEXUS_BIN_DIR)"; \
-	echo "ROCKFORD_TOP     = $(ROCKFORD_TOP)"; \
 	echo "V3D_DIR          = $(V3D_DIR)"; \
 	echo "V3D_PLATFORM_DIR = $(V3D_PLATFORM_DIR)"; \
 	echo "CXX              = $(CXX)"; \
@@ -153,18 +150,14 @@ nxpl_lib: v3d_lib
 #################################################
 # Build libz
 #################################################
-zlib:	$(B_REFSW_OBJ_ROOT)/BSEAV/lib/zlib/$(B_REFSW_ARCH)/libz.a
-
-$(B_REFSW_OBJ_ROOT)/BSEAV/lib/zlib/$(B_REFSW_ARCH)/libz.a:
-	$(MAKE) -C $(ZLIB)
+$(ZLIB_LIB_FOLDER)/include/zlib.h:
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/zlib
 
 #################################################
 # Build libpng
 #################################################
-png:	$(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng/libpng.a zlib
-
-$(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng/libpng.a:
-	$(MAKE) -C $(PNG)
+$(LIBPNG_LIB_FOLDER)/png.h:
+	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/libpng
 
 #################################################
 # Build libfreetype
@@ -197,7 +190,7 @@ docs:
 #################################################
 # Create and install the BSG library
 #################################################
-$(TARGET):      $(ALL_OBJECTS) freetype png nxpl_lib
+$(TARGET):      $(ALL_OBJECTS) freetype nxpl_lib
 	@echo Linking $(TARGET)
 	@$(CXX) -shared -o $(TARGET) $(ALL_OBJECTS)
 
@@ -219,8 +212,8 @@ ifeq ($(NXCLIENT_SUPPORT),y)
 else
 	$(MAKE) -C $(NEXUS_TOP)/build NEXUS_BIN_DIR=$(NEXUS_BIN_DIR) clean
 endif
-	@$(MAKE) -C $(ZLIB) clean
-	@$(MAKE) -C $(PNG) clean
+	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/zlib clean
+	@$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/libpng clean
 ifneq ($(wildcard $(FREETYPE)/.bsg_configured),)
 	@$(MAKE) -C $(FREETYPE) OBJ_DIR=$(FREETYPE_OBJ_DIR) clean
 endif
@@ -231,14 +224,20 @@ endif
 # Generic rules
 #################################################
 
+AUTO_FILES = \
+        $(ZLIB_LIB_FOLDER)/include/zlib.h \
+        $(LIBPNG_LIB_FOLDER)/png.h
+
 # Files that need all the Nexus flags for platform specific code
-$(PLATFORM_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp
-	@mkdir -p $(BSG_OBJ_DIR)
-	@echo Compiling $^
-	@$(CXX) $(CFLAGS) $(CXXFLAGS) $(NEXUS_CXXFLAGS) -c $^ -o $@
+$(PLATFORM_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp \
+	$(AUTO_FILES)
+		@mkdir -p $(BSG_OBJ_DIR)
+		@echo Compiling $<
+		@$(CXX) $(CFLAGS) $(CXXFLAGS) $(NEXUS_CXXFLAGS) -c $< -o $@
 
 # Files that do not need nexus flags
-$(COMMON_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp
-	@mkdir -p $(BSG_OBJ_DIR)
-	@echo Compiling $^
-	@$(CXX) $(CFLAGS) $(CXXFLAGS) -c $^ -o $@
+$(COMMON_OBJECTS): $(BSG_OBJ_DIR)/%o: %cpp \
+	$(AUTO_FILES)
+		@mkdir -p $(BSG_OBJ_DIR)
+		@echo Compiling $<
+		@$(CXX) $(CFLAGS) $(CXXFLAGS) -c $< -o $@

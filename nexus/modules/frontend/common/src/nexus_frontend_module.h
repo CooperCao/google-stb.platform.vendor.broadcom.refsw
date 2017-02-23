@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -191,6 +191,7 @@
 #include "nexus_frontend_7125.h"
 #include "nexus_tuner_7125.h"
 #endif
+
 #ifdef NEXUS_FRONTEND_SCAN_SUPPORTED
 #include "nexus_frontend_scan.h"
 #endif
@@ -211,7 +212,6 @@ extern void NEXUS_Frontend_P_UninitExtension( NEXUS_FrontendHandle handle );
 #endif
 
 #include "priv/nexus_frontend_analog_priv.h"
-#include "priv/nexus_tuner_priv.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -332,6 +332,7 @@ typedef struct NEXUS_FrontendDevice {
     NEXUS_AmplifierHandle amplifier;
 #endif
     bool abortThread;
+    NEXUS_TaskCallbackHandle dummyLockCallback;
     /* one frontend device may have up to two mtsif configs. i.e. host only sees one device, but there are two frontend XPT blocks to control.
        the chained config is always HAB/RPC-chained, and only optionally MTSIF-chained */
     NEXUS_FrontendDeviceMtsifConfig mtsifConfig, *chainedConfig;
@@ -366,6 +367,8 @@ typedef struct NEXUS_FrontendDevice {
         bool getCapabilities;
         bool getSatelliteCapabilities;
     } nonblocking;
+
+    NEXUS_FrontendStandbyCallback standbyCallback;
 } NEXUS_FrontendDevice;
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_FrontendDevice);
@@ -389,6 +392,8 @@ NEXUS_Error NEXUS_FrontendDevice_P_SetAmplifierStatus(NEXUS_FrontendDeviceHandle
 #endif
 NEXUS_Error NEXUS_Frontend_P_CheckDeviceOpen(NEXUS_FrontendHandle handle);
 NEXUS_Error NEXUS_FrontendDevice_P_CheckOpen(NEXUS_FrontendDeviceHandle handle);
+NEXUS_FrontendHandle NEXUS_Frontend_P_OpenPassthrough(void *pDevice);
+NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_P_OpenPassthrough(void);
 
 typedef struct NEXUS_FrontendChannelBonding *NEXUS_FrontendChannelBondingHandle;
 
@@ -423,6 +428,7 @@ typedef struct NEXUS_Frontend
     NEXUS_FrontendUserParameters userParameters;
     NEXUS_FrontendChannelBondingHandle chbond;
     struct NEXUS_Frontend* bondingMaster;
+
     void        (*close)(NEXUS_FrontendHandle handle);
     NEXUS_Error (*registerExtension)(NEXUS_FrontendHandle parentHandle, NEXUS_FrontendHandle extensionHandle);
 
@@ -492,10 +498,20 @@ typedef struct NEXUS_Frontend
     NEXUS_Error (*getIsdbtAsyncStatus)(void *handle, NEXUS_FrontendIsdbtStatusType type, NEXUS_FrontendIsdbtStatus *pStatus);
     NEXUS_Error (*requestDvbt2AsyncStatus)(void *handle, NEXUS_FrontendDvbt2StatusType type);
     NEXUS_Error (*getDvbt2AsyncStatusReady)(void *handle, NEXUS_FrontendDvbt2StatusReady *pStatusReady);
-    NEXUS_Error (*getDvbt2AsyncStatus)(void *handle, NEXUS_FrontendDvbt2StatusType type, NEXUS_FrontendDvbt2Status *pStatus);
+    NEXUS_Error (*getDvbt2AsyncFecStatistics)(void *handle, NEXUS_FrontendDvbt2StatusType type, NEXUS_FrontendDvbt2FecStatistics *pStatistics);
+    NEXUS_Error (*getDvbt2AsyncL1PreStatus)(void *handle, NEXUS_FrontendDvbt2L1PreStatus *pStatus);
+    NEXUS_Error (*getDvbt2AsyncL1PostConfigurableStatus)(void *handle, NEXUS_FrontendDvbt2L1PostConfigurableStatus *pStatus);
+    NEXUS_Error (*getDvbt2AsyncPostDynamicStatus)(void *handle, NEXUS_FrontendDvbt2L1PostDynamicStatus *pStatus);
+    NEXUS_Error (*getDvbt2AsyncL1PlpStatus)(void *handle, NEXUS_FrontendDvbt2L1PlpStatus *pStatus);
+    NEXUS_Error (*getDvbt2AsyncBasicStatus)(void *handle, NEXUS_FrontendDvbt2BasicStatus *pStatus);
     NEXUS_Error (*requestDvbc2AsyncStatus)(void *handle, NEXUS_FrontendDvbc2StatusType type);
     NEXUS_Error (*getDvbc2AsyncStatusReady)(void *handle, NEXUS_FrontendDvbc2StatusReady *pStatusReady);
-    NEXUS_Error (*getDvbc2AsyncStatus)(void *handle, NEXUS_FrontendDvbc2StatusType type, NEXUS_FrontendDvbc2Status *pStatus);
+    NEXUS_Error (*getDvbc2AsyncFecStatistics)(void *handle, NEXUS_FrontendDvbc2StatusType type, NEXUS_FrontendDvbc2FecStatistics *pStatistics);
+    NEXUS_Error (*getDvbc2AsyncL1Part2Status)(void *handle, NEXUS_FrontendDvbc2L1Part2Status *pStatus);
+    NEXUS_Error (*getDvbc2AsyncL1DsliceStatus)(void *handle, NEXUS_FrontendDvbc2L1DsliceStatus *pStatus);
+    NEXUS_Error (*getDvbc2AsyncL1NotchStatus)(void *handle, NEXUS_FrontendDvbc2L1NotchStatus *pStatus);
+    NEXUS_Error (*getDvbc2AsyncL1PlpStatus)(void *handle, NEXUS_FrontendDvbc2L1PlpStatus *pStatus);
+    NEXUS_Error (*getDvbc2AsyncBasicStatus)(void *handle, NEXUS_FrontendDvbc2BasicStatus *pStatus);
     NEXUS_Error (*writeRegister)(void *handle, unsigned address, uint32_t value);
     NEXUS_Error (*readRegister)(void *handle, unsigned address, uint32_t *value);
     NEXUS_Error (*standby)(void *handle, bool enabled, const NEXUS_StandbySettings *pSettings);
@@ -553,7 +569,6 @@ typedef struct NEXUS_Tuner
     NEXUS_Error (*tune)(void *handle, const NEXUS_TunerTuneSettings *pSettings);
     NEXUS_Error (*getSettings)(void *handle, NEXUS_TunerSettings *pSettings);
     NEXUS_Error (*setSettings)(void *handle, const NEXUS_TunerSettings *pSettings);
-    void *(*getAgcScript)(void *handle);
     void (*getAttributes)(void *handle, NEXUS_TunerAttributes *pAttributes);
     NEXUS_Error (*readPowerLevel)(void *handle, int *pPowerLevel);
     void (*untune)(void *handle); /* optional */

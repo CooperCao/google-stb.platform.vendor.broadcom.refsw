@@ -70,7 +70,7 @@ static struct nexus_driver_module_state {
 #define NEXUS_DRIVER_SEND_ADDR(addr,type)  nexus_driver_send_addr((void *)(&addr))
 #define NEXUS_DRIVER_RECV_ADDR(addr,type)  nexus_driver_recv_addr_##type((void *)(&addr))
 
-#if NEXUS_P_ABIVERIFY_SERVER
+#if NEXUS_ABICOMPAT_MODE
 #define CLIENT_ID (__client)
 #else
 #define CLIENT_ID (&client_module_state->client->client)
@@ -130,7 +130,7 @@ nexus_server_process(void *vclient, void *vin_data, unsigned in_data_size, void 
     struct nexus_driver_slave_scheduler *__slave_scheduler = client_module_state->slave_scheduler;
     nexus_server_args *out_data = vout_data;
     struct nexus_driver_client_state *client = client_module_state->client;
-#if NEXUS_P_ABIVERIFY_SERVER
+#if NEXUS_ABICOMPAT_MODE
     NEXUS_P_ServerOutVarArg_State __varargs;
 #else
     unsigned __variable_out_offset = 0;
@@ -140,7 +140,7 @@ nexus_server_process(void *vclient, void *vin_data, unsigned in_data_size, void 
     NEXUS_P_API_STATS_STATE();
     BSTD_UNUSED(__slave_scheduler);
 
-#if NEXUS_P_ABIVERIFY_SERVER
+#if NEXUS_ABICOMPAT_MODE
     NEXUS_P_ServerCall_OutVarArg_Init(&__varargs, &client->client, vout_data, out_mem_size);
     __varargs.header = (uint8_t *)&out_data->data - (uint8_t *)out_data;
     out_data->header.version = 0;
@@ -174,7 +174,7 @@ nexus_server_process(void *vclient, void *vin_data, unsigned in_data_size, void 
     NEXUS_Module_Lock(module_header->module);
     b_objdb_set_client(&client->client); /* CLIENT_ID */
 
-#if NEXUS_P_ABIVERIFY_SERVER
+#if NEXUS_ABICOMPAT_MODE
 #else
     switch(in_data->header.function_id) {
     default:

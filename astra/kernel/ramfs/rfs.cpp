@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -83,14 +83,14 @@ struct MountPoint {
     IDirectory *mount;
 };
 
-static spinlock_t mountLock;
+static SpinLock mountLock;
 static tzutils::Vector<MountPoint> activeMounts;
 
 void RamFS::init() {
     RamFS::File::init();
     RamFS::Directory::init();
     activeMounts.init();
-    spinlock_init("RamFS::MountLock", &mountLock);
+    spinLockInit(&mountLock);
 }
 
 IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool initRamFS) {
@@ -107,6 +107,7 @@ IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool ini
 
     while (true) {
         CpioBinHdr *hdr = (CpioBinHdr *)currFile;
+        size_t bytesWritten;
         if (hdr->magic != CPIO_BIN_MAGIC) {
             err_msg("Malformed FS archive\n");
             printCpioHdr(hdr);
@@ -162,12 +163,16 @@ IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool ini
 
         IFile *file = RamFS::File::create(hdr->uid, hdr->gid, perms); // fileStart, fileSize, perms);
         currDir->addFile((char *)currPos, file);
-        file->write(fileStart, fileSize, 0);
+        bytesWritten = file->write(fileStart, fileSize, 0);
+        if(bytesWritten!=fileSize) {
+            RamFS::Directory::destroy(root);
+            return nullptr;
+        }
 
         uint8_t *lastFile = currFile;
 
         currFile += sizeof(CpioBinHdr) + nameLength + namePadding + fileSize + 1;
-        if ((uint32_t)currFile & 0x1)
+        if ((uintptr_t)currFile & 0x1)
             currFile++;
 
         if (initRamFS)

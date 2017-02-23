@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,19 +34,11 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: AudioOutput
 *    API to group multiple stereo outputs into a multichannel output
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_AUDIO_OUTPUT_GROUP_H__
 #define NEXUS_AUDIO_OUTPUT_GROUP_H__
@@ -97,7 +89,7 @@ run on a different clock than other outputs.
 ***************************************************************************/
 typedef struct NEXUS_AudioOutputGroupCreateSettings
 {    
-    NEXUS_AudioOutputHandle outputs[NEXUS_AudioChannelPair_eMax]; /* Output per channel pair.  If set to NULL, the channel pair is not supported. */
+    NEXUS_AudioOutputHandle outputs[NEXUS_MAX_AUDIO_CHANNEL_PAIR]; /* Output per channel pair.  If set to NULL, the channel pair is not supported. */
 } NEXUS_AudioOutputGroupCreateSettings;
 
 /***************************************************************************

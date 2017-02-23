@@ -68,27 +68,11 @@ extern "C" {
  * Private register cracking macros
  ***************************************************************************/
 #if BVDC_P_SUPPORT_DNR
-/* VER_0 needs PR35221, PR38730 work-around */
-#define BVDC_P_SUPPORT_DNR_VER_0              (0) /* 7325A0, 7335A0, 7405A0 */
-/* VER_1 needs PR35221 work-around, PR38730 is fixed */
-#define BVDC_P_SUPPORT_DNR_VER_1              (1) /* other 7335, 7405B0, Other 7400 */
-/* These > VER_1 fixes above PRs */
-#define BVDC_P_SUPPORT_DNR_VER_2              (2) /* 7400E0, 7325B0 */
-#define BVDC_P_SUPPORT_DNR_VER_3              (3) /* 7420 */
-#define BVDC_P_SUPPORT_DNR_VER_4              (4) /* 3548A0 */
-#define BVDC_P_SUPPORT_DNR_VER_5              (5) /* 3548B0*/
-#define BVDC_P_SUPPORT_DNR_VER_6              (6) /* 7408 */
-#define BVDC_P_SUPPORT_DNR_VER_7              (7) /* 7422, 7425 */
-#define BVDC_P_SUPPORT_DNR_VER_8              (8) /* 7445, 7439 10 bit 4k */
-
 #define BVDC_P_DNR_H_MAX_RANGE        (200)
 #define BVDC_P_DNR_MAX_HW_QP_STEPS    (100)
 
 
 #define BVDC_P_Dnr_PostMuxValue(hDnr)     ((hDnr)->ulVnetMuxValue)
-
-
-
 
 #define BVDC_P_DNR_GET_REG_IDX(reg) \
     ((BCHP##_##reg - BCHP_DNR_0_REG_START) / sizeof(uint32_t))

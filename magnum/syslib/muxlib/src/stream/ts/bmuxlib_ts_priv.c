@@ -1165,7 +1165,7 @@ BMUXlib_TS_P_InsertBPP(
       pstCurrentTransportDescriptorMetaData->pBufferAddress = pstBPPInfo->pBuffer;
       pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
       pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-      pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+      pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
       pstCurrentTransportDescriptor->uiBufferLength = pstBPPInfo->uiLength;
 
       BERR_TRACE( BMUXlib_TS_P_AddTransportDescriptor(
@@ -1288,7 +1288,7 @@ BMUXlib_TS_P_InsertPESHeader(
          pstCurrentTransportDescriptorMetaData->pBufferAddress = pstCurrentPESHeader;
          pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
          pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-         pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+         pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
          pstCurrentTransportDescriptor->uiBufferLength = BMUXlib_TS_P_PESHeader_MINSIZE + BMUXlib_TS_P_PESHeader_GetHeaderLength(pstCurrentPESHeader->data);
 
          /* Set ESCR */
@@ -1805,7 +1805,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
       pstCurrentTransportDescriptorMetaData->pBufferAddress = hMuxTS->status.pNullTSPacketBuffer;
       pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
       pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-      pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+      pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
       pstCurrentTransportDescriptor->uiBufferLength = 0;
    }
    else
@@ -1813,7 +1813,7 @@ BMUXlib_TS_P_InsertNULLTransportDescriptor (
       pstCurrentTransportDescriptorMetaData->pBufferAddress = hMuxTS->status.pDummyPESBuffer;
       pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
       pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-      pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+      pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
       pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_BPPData );
    }
 
@@ -2066,7 +2066,7 @@ BMUXlib_TS_P_ProcessSystemData(
             pstCurrentTransportDescriptorMetaData->pBufferAddress = (void *) pstPCRPacket;
             pstCurrentTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
             pstCurrentTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-            pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+            pstCurrentTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
             pstCurrentTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
          }
 
@@ -2189,7 +2189,7 @@ BMUXlib_TS_P_ProcessSystemData(
                   pstBTPTransportDescriptorMetaData->pBufferAddress = (void *) pBTPBuffer->data;
                   pstBTPTransportDescriptorMetaData->hBufferBaseBlock = hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].hBlock;
                   pstBTPTransportDescriptor->uiBufferOffset = (uint8_t *) pstCurrentTransportDescriptorMetaData->pBufferAddress - (uint8_t *) hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].pBuffer;
-                  pstBTPTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].uiBufferOffset;
+                  pstBTPTransportDescriptor->uiBufferOffset += hMuxTS->stSubHeap[BMUXlib_TS_P_MemoryType_eShared].stMmaRangeAllocatorCreateSettings.base;
                   pstBTPTransportDescriptor->uiBufferLength = sizeof( BMUXlib_TS_P_TSPacket );
 
                   BDBG_MODULE_MSG( BMUXLIB_TS_MTU, ("Transport[%d] BTP (ESCR=%08x,                                TOTAL=(%08x-->%08x (%06x Base + %03x Ext)))",

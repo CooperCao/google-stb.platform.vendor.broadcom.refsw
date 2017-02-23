@@ -684,7 +684,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 16.4" ;
+	static const char Version[] = "BHDM URSR 17.1" ;
 	return Version ;
 }
 
@@ -1199,10 +1199,6 @@ BERR_Code BHDM_Open(
 	BERR_Code      rc = BERR_SUCCESS;
 	BHDM_Handle hHDMI = NULL ;
 
-#ifndef BHDM_FOR_BOOTUPDATER
-	uint32_t Register;
-#endif
-
 	uint32_t ulOffset;
 	BHDM_P_HdmCoreId eCoreId ;
 	uint8_t i ;
@@ -1328,29 +1324,22 @@ BERR_Code BHDM_Open(
 
 /* For boot loader usage */
 #ifndef BHDM_FOR_BOOTUPDATER
+	{
+		uint32_t Register ;
 
-	/* all and any register R/W must happen after the AcquireResource */
+		/* all and any register R/W must happen after the AcquireResource */
 #if BHDM_CONFIG_40NM_SUPPORT || BHDM_CONFIG_28NM_SUPPORT
-	Register = BREG_Read32(hRegister, BCHP_DVP_HT_CORE_REV + ulOffset);
+		Register = BREG_Read32(hRegister, BCHP_DVP_HT_CORE_REV + ulOffset);
 #else
-	Register = BREG_Read32(hRegister, BCHP_HDMI_CORE_REV  + ulOffset);
+		Register = BREG_Read32(hRegister, BCHP_HDMI_CORE_REV  + ulOffset);
 #endif
+		BSTD_UNUSED(Register) ;
+	}
 
 	/* display version information */
 	BDBG_MSG(("*****************************************")) ;
 	BDBG_MSG(("%s   %d", BHDM_P_GetVersion(), BCHP_CHIP)) ;
 	BDBG_MSG(("*****************************************")) ;
-
-#if BHDM_CONFIG_HDCP_AUTO_RI_PJ_CHECKING_SUPPORT
-	/* Ensure HDMI is not in control of BSCC (I2C) block. This is to prevent I2C got locked
-		by HDMI core in the case ctrl-c was use to terminate the software AND
-		HW Ri/Pj checking was enabled */
-	Register = BREG_Read32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset) ;
-	Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE, 1);
-	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
-	Register &= ~(BCHP_MASK(HDMI_CP_INTEGRITY_CHK_CFG_1, CHECK_MODE));
-	BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CHK_CFG_1 + ulOffset, Register) ;
-#endif
 
 /* inform if the TMDS lines are swapped */
 #if BHDM_CONFIG_SWAP_DEFAULT_PHY_CHANNELS
@@ -2344,6 +2333,13 @@ BERR_Code BHDM_Close(
 		/* all interrupts are now created; destroy all on close */
 		BHDM_CHECK_RC( rc, BINT_DestroyCallback( hHDMI->hCallback[i] ) );
 	}
+
+	/* reset HDCP registers (variables don't matter here) to their initial state */
+	BKNI_EnterCriticalSection() ;
+		/* Initialize/Reset HDCP Settings */
+		BHDM_HDCP_P_ResetSettings_isr(hHDMI) ;
+	BKNI_LeaveCriticalSection() ;
+
 
 	/* Destroy the Events */
 	BKNI_DestroyEvent((hHDMI->BHDM_EventHDCP)) ;

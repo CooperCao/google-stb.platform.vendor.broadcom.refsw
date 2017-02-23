@@ -54,6 +54,7 @@ BDBG_FILE_MODULE(bape_adts);
 
 BDBG_OBJECT_ID(BAPE_MuxOutput);
 
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #define BAPE_ITB_ENTRY_TYPE_BASE_ADDRESS (0x20)
 #define BAPE_ITB_ENTRY_TYPE_PTS_DTS      (0x21)
 #define BAPE_ITB_ENTRY_TYPE_BIT_RATE     (0x60)
@@ -609,7 +610,9 @@ BERR_Code BAPE_MuxOutput_Start(
             queueSettings.dataType = BDSP_DataType_eRdbCdb;
             queueSettings.numBuffers = numBuffers;
             queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.cdb.size;
-            queueSettings.bufferInfo[0].bufferAddress = hMuxOutput->cdb.offset;
+            queueSettings.bufferInfo[0].buffer.hBlock = hMuxOutput->createSettings.cdb.block;
+            queueSettings.bufferInfo[0].buffer.offset = hMuxOutput->cdb.offset;
+            queueSettings.bufferInfo[0].buffer.pAddr = hMuxOutput->cdb.cached;
 
             errCode = BDSP_Queue_Create(hMuxOutput->node.deviceHandle->dspContext,
                             dspIndex,
@@ -624,7 +627,9 @@ BERR_Code BAPE_MuxOutput_Start(
             queueSettings.dataType = BDSP_DataType_eRdbItb;
             queueSettings.numBuffers = numBuffers;
             queueSettings.bufferInfo[0].bufferSize = hMuxOutput->createSettings.itb.size;
-            queueSettings.bufferInfo[0].bufferAddress = hMuxOutput->itb.offset;
+            queueSettings.bufferInfo[0].buffer.hBlock = hMuxOutput->createSettings.itb.block;
+            queueSettings.bufferInfo[0].buffer.offset = hMuxOutput->itb.offset;
+            queueSettings.bufferInfo[0].buffer.pAddr = hMuxOutput->itb.cached;
 
             errCode = BDSP_Queue_Create(hMuxOutput->node.deviceHandle->dspContext,
                             dspIndex,
@@ -683,8 +688,8 @@ BERR_Code BAPE_MuxOutput_Start(
     }
 
     /* Update shadow pointers for context to the current read pointer. */
-    hMuxOutput->descriptorInfo.uiCDBBufferShadowReadOffset = BREG_Read32(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->cdb.bufferInterface.read);
-    hMuxOutput->descriptorInfo.uiITBBufferShadowReadOffset = BREG_Read32(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->itb.bufferInterface.read);
+    hMuxOutput->descriptorInfo.uiCDBBufferShadowReadOffset = BREG_ReadAddr(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->cdb.bufferInterface.read);
+    hMuxOutput->descriptorInfo.uiITBBufferShadowReadOffset = BREG_ReadAddr(hMuxOutput->node.deviceHandle->regHandle, hMuxOutput->itb.bufferInterface.read);
 
     /* Reset Descriptor Offsets in case mux didn't consume all previous descriptors */
     hMuxOutput->descriptorInfo.uiDescriptorWriteOffset = 0;
@@ -754,13 +759,13 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
     BAPE_FrameItbEntries *pITBEntryNext = NULL;
     BAPE_ItbEntry *pITBEntryMetadata = NULL;
     BAVC_AudioBufferDescriptor *pAudioDescriptor;
-    uint32_t uiCDBBaseOffset;
-    uint32_t uiCDBEndOffset;
-    uint32_t uiCDBValidOffset;
-    uint32_t uiCDBReadOffset;
-    uint32_t uiCDBEndOfFrameOffset;
-    uint32_t uiNextBase=0;
-    uint32_t uiTemp;
+    BMMA_DeviceOffset uiCDBBaseOffset;
+    BMMA_DeviceOffset uiCDBEndOffset;
+    BMMA_DeviceOffset uiCDBValidOffset;
+    BMMA_DeviceOffset uiCDBReadOffset;
+    BMMA_DeviceOffset uiCDBEndOfFrameOffset;
+    BMMA_DeviceOffset uiNextBase=0;
+    unsigned uiTemp;
     BAPE_OutputDescriptorInfo *psOutputDescDetails;
     BAVC_AudioMetadataDescriptor stMetadata;
     BERR_Code ret = BERR_SUCCESS;
@@ -788,22 +793,22 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
     }
 
     /* Read CDB Addresses */
-    uiCDBBaseOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.base);
-    uiCDBEndOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.end);
-    uiCDBValidOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.valid);
-    uiCDBReadOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.read);
+    uiCDBBaseOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.base);
+    uiCDBEndOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.end);
+    uiCDBValidOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.valid);
+    uiCDBReadOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.read);
 
     if ( uiCDBEndOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
     {
         uiCDBEndOffset += 1; /* end is inclusive */
     }
 
-    BDBG_MSG(("CDB Base/End/Shadow Read/Read/Write = %08x/%08x/%08x (%08x)/%08x",
-              uiCDBBaseOffset,
-              uiCDBEndOffset,
-              psOutputDescDetails->uiCDBBufferShadowReadOffset,
-              uiCDBReadOffset,
-              uiCDBValidOffset
+    BDBG_MSG(("CDB Base/End/Shadow Read/Read/Write = " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT "/" BDBG_UINT64_FMT " (" BDBG_UINT64_FMT ")/" BDBG_UINT64_FMT "",
+              BDBG_UINT64_ARG(uiCDBBaseOffset),
+              BDBG_UINT64_ARG(uiCDBEndOffset),
+              BDBG_UINT64_ARG(psOutputDescDetails->uiCDBBufferShadowReadOffset),
+              BDBG_UINT64_ARG(uiCDBReadOffset),
+              BDBG_UINT64_ARG(uiCDBValidOffset)
              ));
 
     while ( 1 )
@@ -833,8 +838,8 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
         }
         else
         {
-            uint32_t uiDepthToNext;
-            uint32_t uiDepthToValid;
+            uint64_t uiDepthToNext;
+            uint64_t uiDepthToValid;
 
             /* It is possible that the CDB Valid doesn't, yet, contain any of the next frame and
              * may still be in the middle of the current frame, so we need use the depth that is the
@@ -1026,8 +1031,8 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
         }
 
         /* Advance read pointer appropriately */
-        BDBG_MSG(("Advance CDB shadow read from %#x to %lx (len %lx)",psOutputDescDetails->uiCDBBufferShadowReadOffset,
-                  (unsigned long)psOutputDescDetails->uiCDBBufferShadowReadOffset+pAudioDescriptor->stCommon.uiLength,
+        BDBG_MSG(("Advance CDB shadow read from " BDBG_UINT64_FMT " to " BDBG_UINT64_FMT " (len %lx)",BDBG_UINT64_ARG(psOutputDescDetails->uiCDBBufferShadowReadOffset),
+                  BDBG_UINT64_ARG(psOutputDescDetails->uiCDBBufferShadowReadOffset+pAudioDescriptor->stCommon.uiLength),
                   (unsigned long)pAudioDescriptor->stCommon.uiLength));
         psOutputDescDetails->uiCDBBufferShadowReadOffset += \
                                                             pAudioDescriptor->stCommon.uiLength;
@@ -1043,10 +1048,10 @@ BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
             pAudioDescriptor->stCommon.uiFlags |= BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_FRAME_END;
         }
 
-        BDBG_MSG(("Audio Descriptor Base/Length = %x/%lx Shadow Read %08x",
+        BDBG_MSG(("Audio Descriptor Base/Length = %x/%lx Shadow Read " BDBG_UINT64_FMT "",
                   pAudioDescriptor->stCommon.uiOffset,
                   (unsigned long)pAudioDescriptor->stCommon.uiLength,
-                  psOutputDescDetails->uiCDBBufferShadowReadOffset
+                  BDBG_UINT64_ARG(psOutputDescDetails->uiCDBBufferShadowReadOffset)
                  ));
 
         /* If we need to send metadata, send it on the first frame */
@@ -1236,12 +1241,12 @@ BERR_Code BAPE_MuxOutput_ConsumeBufferDescriptors(
 {
     BREG_Handle hReg;
     BERR_Code   ret = BERR_SUCCESS;
-    uint32_t uiCDBReadOffset;
-    uint32_t uiCDBEndOffset;
-    uint32_t uiCDBBaseOffset;
-    uint32_t uiCDBValidOffset;
-    uint32_t uiCDBDepth;
-    uint32_t uiCDBIncrement=0;
+    BMMA_DeviceOffset uiCDBReadOffset;
+    BMMA_DeviceOffset uiCDBEndOffset;
+    BMMA_DeviceOffset uiCDBBaseOffset;
+    BMMA_DeviceOffset uiCDBValidOffset;
+    BMMA_DeviceOffset uiCDBDepth;
+    uint64_t uiCDBIncrement=0;
     BAPE_OutputDescriptorInfo  *psOutputDescDetails;
 
     BDBG_OBJECT_ASSERT(hMuxOutput, BAPE_MuxOutput);
@@ -1271,10 +1276,10 @@ BERR_Code BAPE_MuxOutput_ConsumeBufferDescriptors(
     psOutputDescDetails->numOutstandingDescriptors -= numBufferDescriptors;
 
     /* Read CDB Addresses */
-    uiCDBBaseOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.base);
-    uiCDBEndOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.end);
-    uiCDBValidOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.valid);
-    uiCDBReadOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.read);
+    uiCDBBaseOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.base);
+    uiCDBEndOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.end);
+    uiCDBValidOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.valid);
+    uiCDBReadOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.read);
 
     if ( uiCDBEndOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
     {
@@ -1312,12 +1317,12 @@ BERR_Code BAPE_MuxOutput_ConsumeBufferDescriptors(
 
     if ( uiCDBIncrement > uiCDBDepth )
     {
-        BDBG_ERR(("Attempting to consume %u bytes from CDB when only %u are present.", uiCDBIncrement, uiCDBDepth));
+        BDBG_ERR(("Attempting to consume " BDBG_UINT64_FMT " bytes from CDB when only " BDBG_UINT64_FMT " are present.", BDBG_UINT64_ARG(uiCDBIncrement), BDBG_UINT64_ARG(uiCDBDepth)));
         BDBG_ASSERT(uiCDBDepth >= uiCDBIncrement);
     }
     else
     {
-        BDBG_MSG(("Consume %u of %u bytes from CDB", uiCDBIncrement, uiCDBDepth));
+        BDBG_MSG(("Consume " BDBG_UINT64_FMT " of " BDBG_UINT64_FMT " bytes from CDB", BDBG_UINT64_ARG(uiCDBIncrement), BDBG_UINT64_ARG(uiCDBDepth)));
     }
 
     uiCDBReadOffset += uiCDBIncrement;
@@ -1326,13 +1331,13 @@ BERR_Code BAPE_MuxOutput_ConsumeBufferDescriptors(
         uiCDBReadOffset -= ( uiCDBEndOffset - uiCDBBaseOffset );
     }
 
-    BDBG_MSG(("BRAP_UpdateBufferDescriptors :uiDescriptorReadOffset = %d",\
-              psOutputDescDetails->uiDescriptorReadOffset));
+    BDBG_MSG(("BRAP_UpdateBufferDescriptors :uiDescriptorReadOffset = " BDBG_UINT64_FMT "",
+              BDBG_UINT64_ARG(psOutputDescDetails->uiDescriptorReadOffset)));
 
     /* Update Actual ITB/CDB Read Pointers */
-    BREG_Write32(hReg, hMuxOutput->cdb.bufferInterface.read, uiCDBReadOffset);
+    BREG_WriteAddr(hReg, hMuxOutput->cdb.bufferInterface.read, uiCDBReadOffset);
     /* No need to compute the ITB amount - just consume all previously used ITB entries in one shot. */
-    BREG_Write32(hReg, hMuxOutput->itb.bufferInterface.read, psOutputDescDetails->uiITBBufferShadowReadOffset);
+    BREG_WriteAddr(hReg, hMuxOutput->itb.bufferInterface.read, psOutputDescDetails->uiITBBufferShadowReadOffset);
 
     BDBG_LEAVE (BAPE_MuxOutput_ConsumeBufferDescriptors);
     return ret;
@@ -1555,7 +1560,7 @@ static void *bape_p_convert_itb_offset(BAPE_MuxOutputHandle hMuxOutput, BMMA_Dev
 }
 
 /* Get type of next entry */
-static uint8_t BAPE_MuxOutput_P_GetNextItbEntryType(BAPE_MuxOutputHandle hMuxOutput, uint32_t readOffset)
+static uint8_t BAPE_MuxOutput_P_GetNextItbEntryType(BAPE_MuxOutputHandle hMuxOutput, BMMA_DeviceOffset readOffset)
 {
     void *pSource;
     BAPE_ItbEntry entry;
@@ -1567,7 +1572,7 @@ static uint8_t BAPE_MuxOutput_P_GetNextItbEntryType(BAPE_MuxOutputHandle hMuxOut
 }
 
 /* Read and hMuxOutput wraparound */
-static size_t BAPE_MuxOutput_P_ReadItb(BAPE_MuxOutputHandle hMuxOutput, uint32_t baseOffset, uint32_t readOffset, uint32_t endOffset, uint32_t depth, uint8_t *pDest, size_t length)
+static size_t BAPE_MuxOutput_P_ReadItb(BAPE_MuxOutputHandle hMuxOutput, BMMA_DeviceOffset baseOffset, BMMA_DeviceOffset readOffset, BMMA_DeviceOffset endOffset, size_t depth, uint8_t *pDest, size_t length)
 {
     void *pSource;
 
@@ -1600,13 +1605,13 @@ static size_t BAPE_MuxOutput_P_ReadItb(BAPE_MuxOutputHandle hMuxOutput, uint32_t
 static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_FrameItbEntries **pCurrent, BAPE_FrameItbEntries **pNext, BAVC_AudioMetadataDescriptor *pMetadataDescriptor, BAPE_ItbEntry **pMetadata)
 {
     BREG_Handle hReg;
-    uint32_t uiITBBaseOffset;
-    uint32_t uiITBEndOffset;
-    uint32_t uiITBValidOffset;
-    uint32_t uiITBReadOffset;
-    uint32_t uiITBDepth;
-    uint32_t uiShadowReadOffset;
-    uint32_t uiNextEntryOffset;
+    BMMA_DeviceOffset uiITBBaseOffset;
+    BMMA_DeviceOffset uiITBEndOffset;
+    BMMA_DeviceOffset uiITBValidOffset;
+    BMMA_DeviceOffset uiITBReadOffset;
+    BMMA_DeviceOffset uiITBDepth;
+    BMMA_DeviceOffset uiShadowReadOffset;
+    BMMA_DeviceOffset uiNextEntryOffset;
     size_t uiAmountRead;
     uint8_t entryType;
     BAPE_OutputDescriptorInfo *psOutputDescDetails;
@@ -1625,22 +1630,22 @@ static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_Fram
     BKNI_Memset(pMetadataDescriptor, 0, sizeof(*pMetadataDescriptor));
 
     /* Read ITB Addresses */
-    uiITBBaseOffset = BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.base);
-    uiITBEndOffset = BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.end);
-    uiITBValidOffset= BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.valid);
-    uiITBReadOffset= BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.read);
+    uiITBBaseOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.base);
+    uiITBEndOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.end);
+    uiITBValidOffset= BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.valid);
+    uiITBReadOffset= BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.read);
 
     if ( uiITBEndOffset != 0 && hMuxOutput->itb.bufferInterface.inclusive )
     {
         uiITBEndOffset += 1; /* end is inclusive */
     }
 
-    BDBG_MSG(("ITB Base/End/Shadow Read/Valid = %08x/%08x/%08x (%08x)/%08x",\
-              uiITBBaseOffset,
-              uiITBEndOffset,
-              psOutputDescDetails->uiITBBufferShadowReadOffset,
-              uiITBReadOffset,
-              uiITBValidOffset
+    BDBG_MSG(("ITB Base/End/Shadow Read/Valid = " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT "/" BDBG_UINT64_FMT " (" BDBG_UINT64_FMT ")/" BDBG_UINT64_FMT "",
+              BDBG_UINT64_ARG(uiITBBaseOffset),
+              BDBG_UINT64_ARG(uiITBEndOffset),
+              BDBG_UINT64_ARG(psOutputDescDetails->uiITBBufferShadowReadOffset),
+              BDBG_UINT64_ARG(uiITBReadOffset),
+              BDBG_UINT64_ARG(uiITBValidOffset)
              ));
 
 
@@ -1662,10 +1667,10 @@ static void BAPE_MuxOutput_P_ParseItb(BAPE_MuxOutputHandle hMuxOutput, BAPE_Fram
             uiITBDepth += uiITBValidOffset - uiITBBaseOffset;
         }
 
-        BDBG_MSG(("ITB Depth: %d bytes (Valid: %08x, Shadow Read: %08x)",
-                  uiITBDepth,
-                  uiITBValidOffset,
-                  uiShadowReadOffset
+        BDBG_MSG(("ITB Depth: " BDBG_UINT64_FMT " bytes (Valid: " BDBG_UINT64_FMT ", Shadow Read: " BDBG_UINT64_FMT ")",
+                  BDBG_UINT64_ARG(uiITBDepth),
+                  BDBG_UINT64_ARG(uiITBValidOffset),
+                  BDBG_UINT64_ARG(uiShadowReadOffset)
                  ));
 
         /* Don't attempt to read the next entry if it's invaild */
@@ -2263,10 +2268,10 @@ BERR_Code BAPE_MuxOutput_GetStatus(
     if ( hMuxOutput->hStage )
     {
         BREG_Handle hReg;
-        uint32_t readOffset;
-        uint32_t endOffset;
-        uint32_t baseOffset;
-        uint32_t validOffset;
+        BMMA_DeviceOffset readOffset;
+        BMMA_DeviceOffset endOffset;
+        BMMA_DeviceOffset baseOffset;
+        BMMA_DeviceOffset validOffset;
 
         errCode = BDSP_Stage_GetStatus(hMuxOutput->hStage, &streamInfo, sizeof(streamInfo));
         if ( errCode )
@@ -2284,10 +2289,10 @@ BERR_Code BAPE_MuxOutput_GetStatus(
         hReg = hMuxOutput->node.deviceHandle->regHandle;
         if (hMuxOutput->cdb.bufferInterface.base != 0)
         {
-            baseOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.base);
-            endOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.end);
-            validOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.valid);
-            readOffset = BREG_Read32(hReg, hMuxOutput->cdb.bufferInterface.read);
+            baseOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.base);
+            endOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.end);
+            validOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.valid);
+            readOffset = BREG_ReadAddr(hReg, hMuxOutput->cdb.bufferInterface.read);
 
             if ( endOffset != 0 && hMuxOutput->cdb.bufferInterface.inclusive )
             {
@@ -2309,10 +2314,10 @@ BERR_Code BAPE_MuxOutput_GetStatus(
             }
             pStatus->data.fifoSize = endOffset - baseOffset;
 
-            baseOffset = BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.base);
-            endOffset = BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.end);
-            validOffset = BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.valid);
-            readOffset = BREG_Read32(hReg, hMuxOutput->itb.bufferInterface.read);
+            baseOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.base);
+            endOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.end);
+            validOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.valid);
+            readOffset = BREG_ReadAddr(hReg, hMuxOutput->itb.bufferInterface.read);
 
             if ( endOffset != 0 && hMuxOutput->itb.bufferInterface.inclusive )
             {
@@ -2339,3 +2344,170 @@ BERR_Code BAPE_MuxOutput_GetStatus(
 
     return BERR_SUCCESS;
 }
+#else
+void BAPE_MuxOutput_GetDefaultCreateSettings(
+    BAPE_MuxOutputCreateSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_MuxOutput_Create(
+    BAPE_Handle hApe,
+    const BAPE_MuxOutputCreateSettings *pSettings,
+    BAPE_MuxOutputHandle *pHandle
+    )
+{
+    BSTD_UNUSED(hApe);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_MuxOutput_Destroy(
+    BAPE_MuxOutputHandle hMuxOutput
+    )
+{
+   BSTD_UNUSED(hMuxOutput);
+}
+
+void BAPE_MuxOutput_GetDefaultStartSettings(
+    BAPE_MuxOutputStartSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_MuxOutput_Start(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputStartSettings *pSettings
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_MuxOutput_Stop(
+    BAPE_MuxOutputHandle hMuxOutput
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+}
+
+BERR_Code BAPE_MuxOutput_GetBufferDescriptors(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAVC_AudioBufferDescriptor **pBuffer, /* [out] pointer to BAVC_AudioBufferDescriptor structs */
+    size_t *pSize, /* [out] number of BAVC_AudioBufferDescriptor elements in pBuffer */
+    const BAVC_AudioBufferDescriptor **pBuffer2, /* [out] pointer to BAVC_AudioBufferDescriptor structs after wrap around */
+    size_t *pSize2 /* [out] number of BAVC_AudioBufferDescriptor elements in pBuffer2 */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pBuffer);
+    BSTD_UNUSED(pSize);
+    BSTD_UNUSED(pBuffer2);
+    BSTD_UNUSED(pSize2);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MuxOutput_ConsumeBufferDescriptors(
+    BAPE_MuxOutputHandle hMuxOutput,
+    unsigned numBufferDescriptors /* must be <= pSize+pSize2 returned by last BAPE_MuxOutput_GetBufferDescriptors call. */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(numBufferDescriptors);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MuxOutput_GetBufferStatus(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAVC_AudioBufferStatus *pBufferStatus    /* [out] */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pBufferStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+#if !B_REFSW_MINIMAL
+void BAPE_MuxOutput_GetConnector(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_Connector *pConnector
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pConnector);
+}
+#endif
+
+BERR_Code BAPE_MuxOutput_AddInput(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MuxOutput_RemoveInput(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MuxOutput_RemoveAllInputs(
+    BAPE_MuxOutputHandle hMuxOutput
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_MuxOutput_GetInterruptHandlers(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputInterruptHandlers *pInterrupts /* [out] */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pInterrupts);
+}
+
+BERR_Code BAPE_MuxOutput_SetInterruptHandlers(
+    BAPE_MuxOutputHandle hMuxOutput,
+    const BAPE_MuxOutputInterruptHandlers *pInterrupts /* [out] */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pInterrupts);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MuxOutput_GetStatus(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAPE_MuxOutputStatus *pStatus    /* [out] */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MuxOutput_GetDelayStatus(
+    BAPE_MuxOutputHandle hMuxOutput,
+    BAVC_AudioCompressionStd codec,
+    BAPE_MuxOutputDelayStatus *pStatus    /* [out] */
+    )
+{
+    BSTD_UNUSED(hMuxOutput);
+    BSTD_UNUSED(codec);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

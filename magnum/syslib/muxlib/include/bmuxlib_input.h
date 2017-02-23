@@ -62,6 +62,8 @@ extern "C" {
 #define BMUXLIB_INPUT_DESCRIPTOR_TYPE(x)           ((x)->eType)
 #define BMUXLIB_INPUT_DESCRIPTOR_FRAMESIZE(x)      ((x)->uiFrameSize)
 #define BMUXLIB_INPUT_DESCRIPTOR_BURSTSIZE(x)      ((x)->uiBurstSize)
+#define BMUXLIB_INPUT_DESCRIPTOR_DATA_UNIT_SIZE(x) ((x)->uiDataUnitSize)
+#define BMUXLIB_INPUT_DESCRIPTOR_FRAME_DURATION(x) ((x)->uiFrameDuration90kHz)
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_BURSTSTART(x)  (0 != (x)->uiBurstSize)
 
 #define BMUXLIB_INPUT_DESCRIPTOR_FLAGS(x)          ((x)->descriptor.pstCommon->uiFlags)
@@ -99,19 +101,29 @@ extern "C" {
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_METADATA(x)    (0 != (((x)->descriptor.pstCommon->uiFlags) & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA))
 
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(x) \
- ( (BMUXlib_Input_Type_eVideo == (x)->eType) ? \
-         (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID)) \
-         : BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID(x) )
+   ((BMUXlib_Input_Type_eVideo == (x)->eType) ? \
+        (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DTS_VALID)) \
+        : BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID(x) )
 
 #define BMUXLIB_INPUT_DESCRIPTOR_IS_KEYFRAME(x)    \
- ( (BMUXlib_Input_Type_eVideo == (x)->eType) ? \
-          (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP)) \
-          : true )   /* audio frames are always RAP points */
+   ((BMUXlib_Input_Type_eVideo == (x)->eType) ? \
+        (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_RAP)) \
+        : true )   /* audio frames are always RAP points */
 
 #define BMUXLIB_INPUT_DESCRIPTOR_DTS(x) \
-  ( (BMUXlib_Input_Type_eVideo == (x)->eType) ? \
-         ((x)->descriptor.pstVideo->uiDTS) \
-         : (x)->descriptor.pstCommon->uiPTS )
+   ((BMUXlib_Input_Type_eVideo == (x)->eType) ? \
+        ((x)->descriptor.pstVideo->uiDTS) \
+        : (x)->descriptor.pstCommon->uiPTS )
+
+#define BMUXLIB_INPUT_DESCRIPTOR_IS_DATA_UNIT_START(x)   \
+   ((BMUXlib_Input_Type_eVideo == (x)->eType) ? \
+        (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START)) \
+        : true) /* for audio, all descriptors are DU start (for now) */
+
+#define BMUXLIB_INPUT_DESCRIPTOR_DATA_UNIT_TYPE(x)    \
+   ((BMUXlib_Input_Type_eVideo == (x)->eType) ? \
+        ((x)->descriptor.pstVideo->uiDataUnitType) \
+        : ((x)->descriptor.pstAudio->uiDataUnitType))
 
 #define BMUXLIB_INPUT_DESCRIPTOR_VIDEO_IS_DATA_UNIT_START(x)   \
         (0 != (((x)->descriptor.pstVideo->uiVideoFlags) & BAVC_VIDEOBUFFERDESCRIPTOR_FLAGS_DATA_UNIT_START))
@@ -135,6 +147,9 @@ typedef enum BMUXlib_Input_Type
    BMUXlib_Input_Type_eMax
 } BMUXlib_Input_Type;
 
+/*** IMPORTANT: Any changes to this descriptor requires changes to
+     astQueue[] in BMUXlib_Input_P_Context and to BMUXlib_Input_P_PeekAtDescriptor
+     (to copy fields as required) ***/
 typedef struct BMUXlib_Input_Descriptor
 {
       BMUXlib_Input_Type eType;
@@ -147,15 +162,20 @@ typedef struct BMUXlib_Input_Descriptor
       } descriptor;
 
       BMMA_Block_Handle hBlock;
-      size_t uiFrameSize;                 /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame */
-      size_t uiBurstSize;                 /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame */
+      size_t uiFrameSize;                 /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame or eFrameDU */
+      size_t uiBurstSize;                 /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame and for Audio only */
+      size_t uiDataUnitSize;              /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eDU or eFrameDU */
+      uint32_t uiFrameDuration90kHz;      /* Only valid if BMUXlib_Input_CreateSettings.eBurstMode == BMUXlib_Input_BurstMode_eFrame or eFrameDU */
 } BMUXlib_Input_Descriptor;
 
 typedef enum BMUXlib_Input_BurstMode
 {
-   BMUXlib_Input_BurstMode_eDescriptor,   /* Descriptors will be returned as soon as they are available.  Useful for low delay modes */
-   BMUXlib_Input_BurstMode_eFrame,        /* Descriptors will be returned only when the entire frame is available.  Useful for optimizing output and/or modes where frame size is needed */
-
+   BMUXlib_Input_BurstMode_eDescriptor,      /* Descriptors will be returned as soon as they are available (i.e. no burst mode).  Useful for low delay modes */
+   BMUXlib_Input_BurstMode_eFrame,           /* Descriptors will be returned only when the entire frame is available.  Useful for optimizing output and/or modes where frame size is needed */
+   BMUXlib_Input_BurstMode_eDataUnit,        /* Descriptors will be returned only when an entire data unit is available. Currently only applicable if input is BMUXlib_Input_Type_eVideo */
+   BMUXlib_Input_BurstMode_eFrameDataUnit,   /* Combination of frame-mode when data units are expected. Descriptors will be returned only when the entire frame is available.
+                                                Each DU within the frame will have a valid size on the starting DU descriptor and the frame's starting descriptor will have the frame size
+                                                Currently only applicable when input is BMUXlib_Input_Type_eVideo */
    BMUXlib_Input_BurstMode_eMax
 } BMUXlib_Input_BurstMode;
 
@@ -180,8 +200,9 @@ typedef struct BMUXlib_Input_CreateSettings
 
 
    BMUXlib_Input_BurstMode eBurstMode;
-   unsigned uiBurstMaxLength;               /* Maximum burst length (in bytes). 0 = Default (64KB) */
-   unsigned uiBurstMaxDuration;             /* Maximum burst duration (in ms). 0 = Default (700ms) */
+   /* NOTE: The following are only used for BMUXlib_Input_Type_eAudio */
+   unsigned uiBurstMaxLength;                /* Maximum burst length (in bytes). 0 = Default (64KB) */
+   unsigned uiBurstMaxDuration;              /* Maximum burst duration (in ms). 0 = Default (700ms) */
 
    bool bFilterUntilMetadataSeen;         /* If true, all input descriptors will be filtered until the first
                                            * metadata descriptor is seen.  This is to handle scenarios where
@@ -193,7 +214,7 @@ typedef struct BMUXlib_Input_CreateSettings
    /* For debug: */
    unsigned uiMuxId;                      /* indicates the ID of the mux this input is associated with.
                                              E.g. for dual transcode, each mux "output" should have a different instance */
-   unsigned uiTypeInstance;               /* indicates which input instance for this type that is accociated with the mux instance.
+   unsigned uiTypeInstance;               /* indicates which input instance for this type that is associated with the mux instance.
                                              E.g. for single transcode with multiple audio, each audio input should have a different type instance */
 } BMUXlib_Input_CreateSettings;
 

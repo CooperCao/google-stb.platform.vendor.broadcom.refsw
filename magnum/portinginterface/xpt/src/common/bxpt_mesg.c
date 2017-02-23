@@ -190,6 +190,8 @@ void ConfigPid2BufferMap(
     else
         Reg &= (~tempReg);
     BREG_Write32( hXpt->hRegister, RegAddr, Reg );
+    BDBG_MSG(("%s: PidChannelNum %u, BufferNumber %u, enable %s, reg %x, data %x", __FUNCTION__, PidChannelNum,
+                BufferNumber, enableIt ? "1" : "0", RegAddr, Reg));
 }
 
 

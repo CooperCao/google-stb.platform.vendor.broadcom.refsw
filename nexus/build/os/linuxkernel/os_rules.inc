@@ -53,33 +53,20 @@ B_REFSW_LINUX_ARCH=arm64
 endif
 
 nexus_install: nexus_all ${NEXUS_BIN_DIR}/exists
-	@echo [Install... driver]
+	@echo [Install... nexus driver to $(realpath ${NEXUS_BIN_DIR})]
 ifneq ($(NEXUS_DRIVER),)
 	@$(CP) $(NEXUS_DRIVER) ${NEXUS_BIN_DIR}
-ifeq ($(B_REFSW_FIRMWARE),y)
-	@echo [Install... firmware]
-	@$(CP) $(subst nexus.ko,nexus_firmware.elf,$(NEXUS_DRIVER)) ${NEXUS_BIN_DIR}
-endif
 else
 ifdef NEXUS_STATIC_LIB
 	@$(CP) $(NEXUS_STATIC_LIB) ${NEXUS_BIN_DIR}
-	@$(CP) $(MAGNUM_LIB) ${NEXUS_BIN_DIR}
 endif
 endif
-	@$(CP) $(NEXUS_TOP)/build/nexus.linuxkernel ${NEXUS_BIN_DIR}/nexus
-	@$(CP) $(NEXUS_TOP)/build/nexus.client ${NEXUS_BIN_DIR}
-	@$(CP) $(NEXUS_TOP)/build/nxclient.sh ${NEXUS_BIN_DIR}
-	@chmod +x ${NEXUS_BIN_DIR}/nexus ${NEXUS_BIN_DIR}/nexus.client ${NEXUS_BIN_DIR}/nxclient.sh
 
 ifneq ($(NEXUS_DRIVER),)
-nexus_all: ${LINUX_INC} $(MAGNUM_LIB) $(NEXUS_DRIVER)
+nexus_all: ${LINUX_INC} $(NEXUS_DRIVER) ${NEXUS_STATIC_LIB}
 else
-nexus_all: ${LINUX_INC} $(MAGNUM_LIB) ${NEXUS_STATIC_LIB}
+nexus_all: ${LINUX_INC} ${NEXUS_STATIC_LIB}
 endif
-
-# Generate nexus_driver_modules.h using PERL
-$(NEXUS_SYNCTHUNK_DIR)/nexus_driver_modules.h: ${NEXUS_SYNCTHUNK_DIR}/exists
-	${Q_}$(PERL) $(NEXUS_TOP)/build/tools/common/generate_nexus_driver_modules.pl $@ $(NEXUS_REVERSE_SORTED_MODULES)
 
 ${NEXUS_MAGNUM_PRECOMPILED_HEADER_H}.gch: ${NEXUS_MAGNUM_PRECOMPILED_HEADER} ${NEXUS_OBJ_DIR}/MAGNUM/exists
 	@echo "[Compile... $(notdir $<)]"
@@ -115,21 +102,13 @@ ${NEXUS_ASM_OBJECTS} : $(NEXUS_OBJ_DIR)/%.o : %.S
 endif
 
 ifdef NEXUS_STATIC_LIB
-# Rule for magnum library
-$(MAGNUM_LIB): $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS) $(MAGNUM_OS_ABSTRACTION_OBJECTS)
-	@echo "[Archive... $(notdir $@)]"
-	$(Q_)cd $(NEXUS_OBJ_DIR);$(AR) rcs $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^))
-
-# Rule for nexus library
-$(NEXUS_STATIC_LIB): $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS) ${NEXUS_ASM_OBJECTS} $(MAGNUM_OS_ABSTRACTION_OBJECTS)
+$(NEXUS_STATIC_LIB): $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) ${NEXUS_ASM_OBJECTS} $(MAGNUM_OS_ABSTRACTION_OBJECTS)
 	@echo "[Archive... $(notdir $@)]"
 	$(Q_)cd $(NEXUS_OBJ_DIR);$(AR) rcs $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^))
 endif
 
-${NEXUS_OBJECTS}: $(NEXUS_SYNCTHUNK_DIR)/nexus_driver_modules.h
-
 # Rule for nexus driver
-$(NEXUS_OBJ_DIR)/nexus.o_shipped: $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS) $(MAGNUM_OS_ABSTRACTION_OBJECTS) $(NEXUS_EXTRALIBS) $(NEXUS_ASM_OBJECTS)
+$(NEXUS_OBJ_DIR)/nexus.o_shipped: $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_OS_ABSTRACTION_OBJECTS) $(NEXUS_EXTRALIBS) $(NEXUS_ASM_OBJECTS)
 	@echo [Link...... nexus.ko]
 	${Q_}rm -f $@.ld && for f in $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^)) ; do echo $(abspath ${NEXUS_OBJ_DIR})/$$f >>$@.ld; done
 	${Q_}cd $(LINUX);$(LD) -Map $(abspath ${NEXUS_DRIVER}.map) ${NEXUS_LDFLAGS} $(NEXUS_EXTRA_LDFLAGS) --strip-debug -r @$(abspath $@.ld) -o $(abspath $@)
@@ -146,9 +125,9 @@ else
 endif
 
 nexus_clean: ${OTHER_CLEANS}
-	-$(Q_)$(RM) -r $(NEXUS_DRIVER) ${NEXUS_STATIC_LIB} ${MAGNUM_LIB} $(NEXUS_OBJ_DIR) $(NEXUS_SYNCTHUNK_DIR) $(NEXUS_BUILD_DIR)/module_vars_*.inc $(NEXUS_BUILD_DIR)/module_rules_*.inc
+	-$(Q_)$(RM) -r $(NEXUS_DRIVER) ${NEXUS_STATIC_LIB} $(NEXUS_OBJ_DIR) $(NEXUS_SYNCTHUNK_DIR) $(NEXUS_BUILD_DIR)/module_vars_*.inc $(NEXUS_BUILD_DIR)/module_rules_*.inc
 ifdef NEXUS_STATIC_LIB
-	-$(Q_)$(RM) ${NEXUS_BIN_DIR}/$(notdir ${NEXUS_STATIC_LIB}) ${NEXUS_BIN_DIR}/$(notdir ${MAGNUM_LIB})
+	-$(Q_)$(RM) ${NEXUS_BIN_DIR}/$(notdir ${NEXUS_STATIC_LIB})
 endif
 
 # Include dependencies

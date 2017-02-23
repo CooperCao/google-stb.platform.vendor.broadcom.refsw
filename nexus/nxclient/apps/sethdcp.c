@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,6 +42,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "bstd.h"
 #include "bkni.h"
 
@@ -61,6 +65,13 @@ static void print_usage(void)
         "  -hdcp1x_keys BINFILE \tload Hdcp1.x bin file\n"
         "  -timeout     SECONDS \tbefore exiting (otherwise, wait for ctrl-C)\n"
         );
+
+    printf (
+        "  -revokedList BINFILE \tload HDCP revocation list bin file\n"
+                        /* HDCP revocation list is a binary file content the list of appending revoked KSV/ReceiverID.
+                                Each ReceiverID/KSV is 5 bytes long store in big endian format.
+                                */
+        );
 }
 
 int main(int argc, char **argv)  {
@@ -72,6 +83,7 @@ int main(int argc, char **argv)  {
     bool load_keys = false;
     int timeout = -1;
     unsigned i;
+    char *revocationListFile = NULL;
 
     NxClient_GetDefaultJoinSettings(&joinSettings);
     snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "%s", argv[0]);
@@ -79,7 +91,6 @@ int main(int argc, char **argv)  {
     if (rc) return -1;
 
     NxClient_GetDisplaySettings(&displaySettings);
-
     displaySettings.hdmiPreferences.hdcp = NxClient_HdcpLevel_eMandatory;
 
     while (argc > curarg) {
@@ -108,12 +119,73 @@ int main(int argc, char **argv)  {
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
             timeout = strtoul(argv[++curarg], NULL, 0);
         }
+        else if (!strcmp(argv[curarg], "-revokedList") && curarg+1<argc) {
+            revocationListFile = (char *)argv[++curarg];
+        }
         else {
             print_usage();
             return -1;
         }
         curarg++;
     }
+
+    if (revocationListFile)
+    {
+        NEXUS_HdmiOutputHandle hdmiOutput;
+        int fd, n;
+        off_t seekPos;
+        size_t fileSize;
+        uint8_t *buffer = NULL;
+
+        hdmiOutput = NEXUS_HdmiOutput_Open(0 + NEXUS_ALIAS_ID, NULL);
+        if (!hdmiOutput) {
+            BDBG_WRN(("Can't get hdmi output alias\n"));
+            return -1;
+        }
+
+        fd = open(revocationListFile, O_RDONLY);
+        if (fd < 0) {
+            if (revocationListFile) {
+                BDBG_ERR(("Cannot open revocation bin file %s", revocationListFile));
+            }
+            rc = NEXUS_OS_ERROR;
+            goto done;
+        }
+
+        seekPos = lseek(fd, 0, SEEK_END);
+        if (seekPos < 0) {
+            rc = BERR_TRACE(NEXUS_OS_ERROR);
+            goto done;
+        }
+        fileSize = (size_t) (seekPos - (seekPos % 5));
+        BDBG_LOG(("loading %u bytes of revoked KSV/ReceiverId List from '%s', dropping %d bytes off the list",
+                        (unsigned) fileSize, revocationListFile, (uint16_t) (seekPos % 5))) ;
+        if (lseek(fd, 0, SEEK_SET) < 0) {
+            rc = BERR_TRACE(NEXUS_OS_ERROR);
+            goto done;
+        }
+
+        buffer = BKNI_Malloc(fileSize);
+        if (!buffer) {
+            rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            goto done;
+        }
+
+        n = read(fd, buffer, fileSize);
+        if (n != (int)fileSize) {
+            rc = BERR_TRACE(NEXUS_OS_ERROR);
+            goto done;
+        }
+
+        close(fd);
+
+        /* install list of revoked KSVs from SRMs (System Renewability Message) if available */
+        BDBG_LOG(("Read Revoked KSV/ReceiverID list from file"));
+        NEXUS_HdmiOutput_SetHdcpRevokedKsvs(hdmiOutput, (NEXUS_HdmiOutputHdcpKsv *)buffer, (uint16_t) (fileSize/5)) ;
+
+        BKNI_Free(buffer);
+    }
+
 
     if (load_keys) {
         int size = 32*1024;
@@ -162,5 +234,6 @@ int main(int argc, char **argv)  {
         }
     }
 
+done:
     return 0;
 }

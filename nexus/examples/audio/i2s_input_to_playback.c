@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,7 @@
  *
  *****************************************************************************/
 #include "nexus_platform.h"
-#if NEXUS_HAS_AUDIO && NEXUS_NUM_AUDIO_CAPTURES && NEXUS_NUM_I2S_INPUTS
+#if NEXUS_HAS_AUDIO
 #include <stdio.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -240,14 +240,53 @@ int main(int argc, char *argv[])
 
     captureCallbackParameters captureCBParams;
     NEXUS_AudioOutputSettings outputSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioI2sHandle = NULL;
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    #if USE_OUTPUT_CAPTURE
+    if (audioCapabilities.numInputs.i2s == 0 ||
+        audioCapabilities.numOutputs.capture == 0 ||
+        audioCapabilities.numPlaybacks == 0)
+    #else
+    if (audioCapabilities.numInputs.i2s == 0 ||
+        audioCapabilities.numInputCaptures == 0 ||
+        audioCapabilities.numPlaybacks == 0)
+    #endif
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    if (audioCapabilities.numOutputs.i2s > 0)
+    {
+        audioI2sHandle = NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]);
+    }
 
     BSTD_UNUSED(argv);
     BSTD_UNUSED(argc);
 
     BKNI_CreateEvent(&event);
+
+    if (audioCapabilities.numOutputs.capture == 0 ) {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
 
     /* Set timebase 0 to I2S input */
     {
@@ -307,44 +346,35 @@ int main(int argc, char *argv[])
     }
 
     /* Connect Playback -> Outputs */
-    #if NEXUS_NUM_AUDIO_DACS > 0
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
-    #endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
 
-    #if NEXUS_NUM_I2S_OUTPUTS > 0
-    NEXUS_AudioOutput_AddInput(
-    NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
-        NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
-    #endif
+        NEXUS_AudioOutput_GetSettings(audioDacHandle, &outputSettings);
+        outputSettings.timebase = NEXUS_Timebase_e0;
+        NEXUS_AudioOutput_SetSettings(audioDacHandle, &outputSettings);
+    }
+    if (audioI2sHandle) {
+        NEXUS_AudioOutput_AddInput(
+        audioI2sHandle,
+            NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
 
-    #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
-    #endif
+        NEXUS_AudioOutput_GetSettings(audioI2sHandle, &outputSettings);
+        outputSettings.timebase = NEXUS_Timebase_e0;
+        outputSettings.pll = NEXUS_AudioOutputPll_e0;
+        NEXUS_AudioOutput_SetSettings(audioI2sHandle, &outputSettings);
+    }
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioPlayback_GetConnector(g_playbackHandle));
 
-    /* Set Timebase for outputs */
-    #if NEXUS_NUM_AUDIO_DACS > 0
-    NEXUS_AudioOutput_GetSettings(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]), &outputSettings);
-    outputSettings.timebase = NEXUS_Timebase_e0;
-    NEXUS_AudioOutput_SetSettings(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]), &outputSettings);
-    #endif
-
-    #if NEXUS_NUM_I2S_OUTPUTS > 0
-    NEXUS_AudioOutput_GetSettings(NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]), &outputSettings);
-    outputSettings.timebase = NEXUS_Timebase_e0;
-    outputSettings.pll = NEXUS_AudioOutputPll_e0;
-    NEXUS_AudioOutput_SetSettings(NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]), &outputSettings);
-    #endif
-
-    #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-    NEXUS_AudioOutput_GetSettings(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]), &outputSettings);
-    outputSettings.timebase = NEXUS_Timebase_e0;
-    outputSettings.pll = NEXUS_AudioOutputPll_e0;
-    NEXUS_AudioOutput_SetSettings(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]), &outputSettings);
-    #endif
+        NEXUS_AudioOutput_GetSettings(audioSpdifHandle, &outputSettings);
+        outputSettings.timebase = NEXUS_Timebase_e0;
+        outputSettings.pll = NEXUS_AudioOutputPll_e0;
+        NEXUS_AudioOutput_SetSettings(audioSpdifHandle, &outputSettings);
+    }
 
     /* Start thread for playback */
     #if USE_OUTPUT_CAPTURE
@@ -413,15 +443,15 @@ int main(int argc, char *argv[])
     #endif
     NEXUS_AudioPlayback_Stop(g_playbackHandle);
 
-    #if NEXUS_NUM_I2S_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]));
-    #endif
-    #if NEXUS_NUM_AUDIO_DACS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS > 0
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
+    if (audioI2sHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioI2sHandle);
+    }
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+    }
     NEXUS_AudioInput_Shutdown(NEXUS_I2sInput_GetConnector(i2sInput));
 
     #if USE_OUTPUT_CAPTURE

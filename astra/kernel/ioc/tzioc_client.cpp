@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,7 @@
 #include "lib_printf.h"
 
 // Static non-const data from TzIocClient class
-spinlock_t TzIoc::TzIocClient::lock;
+SpinLock TzIoc::TzIocClient::lock;
 struct tzioc_client_cb TzIoc::TzIocClient::clientCB;
 struct tzioc_client TzIoc::TzIocClient::clients[TZIOC_CLIENT_NUM_MAX];
 
@@ -54,7 +54,7 @@ void TzIoc::TzIocClient::init(void *devTree)
     UNUSED(devTree);
 
     // Init spinlock
-    spinlock_init("TzIocClient.lock", &lock);
+    spinLockInit(&lock);
 
     // Init client control block
     memset(&clientCB, 0, sizeof(clientCB));
@@ -70,9 +70,9 @@ struct tzioc_client *TzIoc::TzIocClient::clientFindById(uint8_t id)
 {
     struct tzioc_client *pClient;
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     pClient = __tzioc_client_find_by_id(id);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     return pClient;
 }
@@ -81,9 +81,9 @@ struct tzioc_client *TzIoc::TzIocClient::clientFindByName(const char *pName)
 {
     struct tzioc_client *pClient;
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     pClient = __tzioc_client_find_by_name(pName);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     return pClient;
 }
@@ -92,9 +92,9 @@ struct tzioc_client *TzIoc::TzIocClient::clientFindByTask(const TzTask *pTask)
 {
     struct tzioc_client *pClient;
 
-    spin_lock(&lock);
-    pClient = __tzioc_client_find_by_task((uint32_t)pTask);
-    spin_unlock(&lock);
+    spinLockAcquire(&lock);
+    pClient = __tzioc_client_find_by_task((uintptr_t)pTask);
+    spinLockRelease(&lock);
 
     return pClient;
 }
@@ -105,9 +105,9 @@ struct tzioc_client *TzIoc::TzIocClient::clientFindByNameAndTask(
 {
     struct tzioc_client *pClient;
 
-    spin_lock(&lock);
-    pClient = __tzioc_client_find_by_name_and_task(pName, (uint32_t)pTask);
-    spin_unlock(&lock);
+    spinLockAcquire(&lock);
+    pClient = __tzioc_client_find_by_name_and_task(pName, (uintptr_t)pTask);
+    spinLockRelease(&lock);
 
     return pClient;
 }
@@ -134,13 +134,13 @@ struct tzioc_client *TzIoc::TzIocClient::kernelClientOpen(
     memset(pClient, 0, sizeof(*pClient));
     pClient->idx = idx;
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     int err = __tzioc_kernel_client_open(
         pClient,
         pName,
         pMsgProc,
         ulPrivData);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     if (err) {
         printf("TzIoc kernel client open failed\n");
@@ -153,9 +153,9 @@ struct tzioc_client *TzIoc::TzIocClient::kernelClientOpen(
 void TzIoc::TzIocClient::kernelClientClose(
     struct tzioc_client *pClient)
 {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     __tzioc_kernel_client_close(pClient);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     // Free client
     // Nothing to do because clientCB ptr is already reset
@@ -183,13 +183,13 @@ struct tzioc_client *TzIoc::TzIocClient::userClientOpen(
     memset(pClient, 0, sizeof(*pClient));
     pClient->idx = idx;
 
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     int err = __tzioc_user_client_open(
         pClient,
         pName,
-        (uint32_t)pTask,
+        (uintptr_t)pTask,
         msgQ);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     if (err) {
         printf("TzIoc user client open failed\n");
@@ -202,9 +202,9 @@ struct tzioc_client *TzIoc::TzIocClient::userClientOpen(
 void TzIoc::TzIocClient::userClientClose(
     struct tzioc_client *pClient)
 {
-    spin_lock(&lock);
+    spinLockAcquire(&lock);
     __tzioc_user_client_close(pClient);
-    spin_unlock(&lock);
+    spinLockRelease(&lock);
 
     // Free client
     // Nothing to do because clientCB ptr is already reset

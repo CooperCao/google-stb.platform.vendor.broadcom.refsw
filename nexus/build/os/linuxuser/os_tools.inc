@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2013 Broadcom Corporation
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,9 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
 #   This file defines the OS-specific tools for building in linuxuser mode.
 #
-# Revision History:
-#
-# Created: 08/28/2007 by Jon Garrett
-#
-# $brcm_Log: $
-# 
 ############################################################
 
 ############################################################
@@ -103,8 +93,8 @@ endif
 # Define make variables
 AS      = $(B_REFSW_CROSS_COMPILE)as
 LD      = $(B_REFSW_CROSS_COMPILE)ld
-CC      = ${B_REFSW_CCACHE} $(B_REFSW_CROSS_COMPILE)gcc
-CXX     = ${B_REFSW_CCACHE} $(B_REFSW_CROSS_COMPILE)c++
+CC      = $(strip ${B_REFSW_CCACHE} $(B_REFSW_CROSS_COMPILE)gcc)
+CXX     = $(strip ${B_REFSW_CCACHE} $(B_REFSW_CROSS_COMPILE)c++)
 AR      = $(B_REFSW_CROSS_COMPILE)ar
 NM      = $(B_REFSW_CROSS_COMPILE)nm
 STRIP   = $(B_REFSW_CROSS_COMPILE)strip

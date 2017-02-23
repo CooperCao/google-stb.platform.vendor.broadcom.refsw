@@ -213,6 +213,7 @@ typedef enum BAPE_Pll
     BAPE_Pll_e0,
     BAPE_Pll_e1,
     BAPE_Pll_e2,
+    BAPE_Pll_e3, /* Currently no known chips which support 4.  Added to keep in line with nexus */
     BAPE_Pll_eMax
 } BAPE_Pll;
 
@@ -315,6 +316,8 @@ typedef struct BAPE_BufferDescriptor
                                        non-interleaved stereo, it's 2.  For non-interleaved 7.1 it's 8. */
     struct
     {
+        BMMA_Block_Handle block;    /* BMMA block that this memory is tied to */
+        /*BMMA_DeviceOffset offset;*/   /* Physical offset of this block */
         void *pBuffer;              /* Buffer base address prior to wraparound */
         void *pWrapBuffer;          /* Buffer address after wraparound (NULL if no wrap has occurred) */
     } buffers[BAPE_Channel_eMax];

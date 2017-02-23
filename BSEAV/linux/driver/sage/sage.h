@@ -94,28 +94,26 @@ typedef struct IrqCtx
 typedef struct SageBase
 {
     BREG_Handle         hReg;
-
     BTMR_Handle         hTmr;
-
     BMEM_ModuleHandle   hMemModule;
-    BMEM_Heap_Handle    hMem;
-    BMEM_Heap_Handle    hMemGlr;
-
     BINT_Handle         hInt;
-
-    BHSM_Handle         hHsm;
-
     BHSI_Handle         hHsi;
-
     BSAGE_Handle        hSAGE;
     BKNI_MutexHandle    sageLock;
+    void                *pRegAddress;
 
-    IrqCtx              isr1,isr2;
+    IrqCtx              isrHsm;
+    BHSM_Handle         hHsm;
+    BMEM_Heap_Handle    hMemHsm;
+    struct page         *pageHsm;
 
-    void *pRegAddress,*bmemAddress;
-    struct page *pages;
-    void *page_address;
-    phys_addr_t page_offset;
+    BMEM_Heap_Handle    hMemGlr;
+    void                *addrGLR;
+    BMEM_Heap_Handle    hMemGlr2;
+    void                *addrGLR2;
+
+    IrqCtx              isrRpc;
+    uint32_t            HSIBufferOffset;
 
     BSAGE_BootSettings bootSettings;
     BSAGElib_RegionInfo regionMap[REGION_MAP_MAX_NUM];

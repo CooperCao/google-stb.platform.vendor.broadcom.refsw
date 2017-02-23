@@ -1,48 +1,45 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #ifndef BVCE_PRIV_H_
 #define BVCE_PRIV_H_
 
-#include "bvce_fw_api.h"
+#include "bvce_fw_api_common.h"
 #include "bvce_platform.h"
 #include "bvce_telem.h"
 #include "bkni_multi.h"
@@ -87,7 +84,7 @@ extern "C" {
 #define BVCE_P_DEFAULT_ITB_ALIGNMENT 256
 
 #define BVCE_P_DEFAULT_DEBUG_LOG_SIZE (512*1024)
-#define BVCE_P_MAX_DEBUG_FIFO_COUNT 1024
+#define BVCE_P_MAX_DEBUG_FIFO_COUNT 4096
 
 #define BVCE_P_DEFAULT_USER_DATA_QUEUE_SIZE 32
 
@@ -103,6 +100,8 @@ extern "C" {
 #define BVCE_P_ALIGN(x,bytes) ((((x) + (bytes-1))/(bytes))*(bytes))
 
 #define BVCE_P_NEW_METADATA_MASK 0x0FFFFFFF
+
+#define BVCE_P_SET_32BIT_HI_LO_FROM_64( _32bit, _64bit ) { (_32bit ## Hi) = (uint32_t)( ((_64bit) >> 32) & 0xFFFFFFFF ); (_32bit ## Lo) = (uint32_t)( ((_64bit) >> 0) & 0xFFFFFFFF ); }
 
 typedef union BVCE_P_Command
 {
@@ -207,8 +206,8 @@ typedef struct BVCE_P_Output_Cache
 
 typedef struct BVCE_P_Output_BufferCache
 {
-      uint32_t uiITBCacheValidOffset;
-      uint32_t uiCDBCacheValidOffset;
+      uint64_t uiITBCacheValidOffset;
+      uint64_t uiCDBCacheValidOffset;
 } BVCE_P_Output_BufferCache;
 
 #define BVCE_P_ITBENTRY_ENTRYTYPE_OFFSET 0
@@ -274,6 +273,42 @@ typedef struct BVCE_P_Output_BufferCache
 #define BVCE_P_ITBENTRY_METADATA_OFFSET 3
 #define BVCE_P_ITBENTRY_METADATA_SHIFT 0
 #define BVCE_P_ITBENTRY_METADATA_MASK 0xFFFFFFFF
+
+/* NAL Addr/Data Entry */
+#define BVCE_P_ITBENTRY_NALADDR_STARTCODESIZE_OFFSET 0
+#define BVCE_P_ITBENTRY_NALADDR_STARTCODESIZE_SHIFT 6
+#define BVCE_P_ITBENTRY_NALADDR_STARTCODESIZE_MASK 0x7
+
+#define BVCE_P_ITBENTRY_NALADDR_CDBOFFSET_OFFSET 1
+#define BVCE_P_ITBENTRY_NALADDR_CDBOFFSET_SHIFT 0
+#define BVCE_P_ITBENTRY_NALADDR_CDBOFFSET_MASK 0xFFFFFFFF
+
+#define BVCE_P_ITBENTRY_NALADDR_DATA_OFFSET 2
+
+/* NAL Data Entry */
+#define BVCE_P_ITBENTRY_NALDATA_DATASTART_OFFSET 0
+#define BVCE_P_ITBENTRY_NALDATA_DATASTART_SHIFT 0
+#define BVCE_P_ITBENTRY_NALDATA_DATASTART_MASK 0x1
+
+#define BVCE_P_ITBENTRY_NALDATA_DATAEND_OFFSET 0
+#define BVCE_P_ITBENTRY_NALDATA_DATAEND_SHIFT 1
+#define BVCE_P_ITBENTRY_NALDATA_DATAEND_MASK 0x1
+
+#define BVCE_P_ITBENTRY_NALDATA_DATASIZE_OFFSET 0
+#define BVCE_P_ITBENTRY_NALDATA_DATASIZE_SHIFT 2
+#define BVCE_P_ITBENTRY_NALDATA_DATASIZE_MASK 0xF
+
+#define BVCE_P_ITBENTRY_NALDATA_DATA_MAXOFFSET 3
+#define BVCE_P_ITBENTRY_NALDATA_DATA_OFFSET 1
+
+/* EOS Entry */
+#define BVCE_P_ITBENTRY_EOS_CDBADDRESS_OFFSET 1
+#define BVCE_P_ITBENTRY_EOS_CDBADDRESS_SHIFT 0
+#define BVCE_P_ITBENTRY_EOS_CDBADDRESS_MASK 0xFFFFFFFF
+
+#define BVCE_P_ITBENTRY_EOS_ESCR_OFFSET 2
+#define BVCE_P_ITBENTRY_EOS_ESCR_SHIFT 0
+#define BVCE_P_ITBENTRY_EOS_ESCR_MASK 0xFFFFFFFF
 
 /* STC Entry */
 #define BVCE_P_ITBENTRY_STCSNAPSHOT_UPPER_OFFSET 0
@@ -347,6 +382,13 @@ typedef struct BVCE_P_Output_BufferCache
 #define BVCE_P_ITBEntry_GetESCR(_pentry) BVCE_P_ITBEntry_Get(_pentry, ESCR)
 #define BVCE_P_ITBEntry_GetOriginalPTS(_pentry) BVCE_P_ITBEntry_Get(_pentry, OPTS)
 #define BVCE_P_ITBEntry_GetMetadata(_pentry) BVCE_P_ITBEntry_Get(_pentry, METADATA)
+#define BVCE_P_ITBEntry_GetNalAddr_CDBOffset(_pentry) BVCE_P_ITBEntry_Get(_pentry, NALADDR_CDBOFFSET)
+#define BVCE_P_ITBEntry_GetNalAddr_NumStartBytes(_pentry) BVCE_P_ITBEntry_Get(_pentry, NALADDR_STARTCODESIZE)
+#define BVCE_P_ITBEntry_GetNalData_NumDataBytes(_pentry) BVCE_P_ITBEntry_Get(_pentry, NALDATA_DATASIZE)
+#define BVCE_P_ITBEntry_GetNalData_NalDataEnd(_pentry) BVCE_P_ITBEntry_Get(_pentry, NALDATA_DATAEND)
+#define BVCE_P_ITBEntry_GetNalData_NalDataStart(_pentry) BVCE_P_ITBEntry_Get(_pentry, NALDATA_DATASTART)
+#define BVCE_P_ITBEntry_GetEOSCDBAddress(_pentry) BVCE_P_ITBEntry_Get(_pentry, EOS_CDBADDRESS)
+#define BVCE_P_ITBEntry_GetEOSESCR(_pentry) BVCE_P_ITBEntry_Get(_pentry, EOS_ESCR)
 #define BVCE_P_ITBEntry_GetStcSnapshot(_pentry) ( ( ( (uint64_t) BVCE_P_ITBEntry_Get(_pentry, STCSNAPSHOT_UPPER)) << 32 ) | BVCE_P_ITBEntry_Get(_pentry, STCSNAPSHOT_LOWER) )
 #define BVCE_P_ITBEntry_GetCRCLoad(_pentry) BVCE_P_ITBEntry_Get(_pentry, CRCLOAD)
 #define BVCE_P_ITBEntry_GetCRCCompare(_pentry) BVCE_P_ITBEntry_Get(_pentry, CRCCOMPARE)
@@ -361,7 +403,7 @@ typedef struct BVCE_P_Output_ITB_IndexEntry
 {
    unsigned uiSizeInITB;
    bool bError;
-   unsigned uiCDBAddress;
+   uint64_t uiCDBAddress;
    BAVC_VideoBufferDescriptor stFrameDescriptor;
    uint32_t uiMetadata;
    bool bIgnoreFrame;
@@ -398,6 +440,22 @@ typedef enum BVCE_Output_P_DataUnitDetectState
    BVCE_Output_P_DataUnitDetectState_eMax
 } BVCE_Output_P_DataUnitDetectState;
 
+typedef struct BVCE_P_Buffer_Offsets
+{
+   uint64_t uiBase;
+   uint64_t uiEnd;
+   uint64_t uiValid;
+   uint64_t uiRead;
+   uint64_t uiWrite;
+   uint64_t uiShadowRead;
+} BVCE_P_Buffer_Offsets;
+
+typedef struct BVCE_P_VideoBufferDescriptorReleaseMetadata
+{
+   size_t uiShadowLength;
+   bool bHasITBEntry;
+} BVCE_P_VideoBufferDescriptorReleaseMetadata;
+
 typedef struct BVCE_P_Output_Context
 {
       BDBG_OBJECT(BVCE_P_Output_Context)
@@ -412,9 +470,9 @@ typedef struct BVCE_P_Output_Context
          BVCE_P_Allocator_Handle hAllocator;
          BVCE_P_Buffer_Handle hDescriptorBuffer;
          BAVC_VideoBufferDescriptor *astDescriptors;
+         BVCE_P_VideoBufferDescriptorReleaseMetadata *astDescriptorReleaseMetadata;
          BVCE_P_Buffer_Handle hMetadataBuffer;
          BAVC_VideoMetadataDescriptor *astMetadataDescriptors;
-         size_t *astShadowDescriptorsLength;
          BVCE_P_Buffer_Handle hITBIndexBuffer;
          BVCE_P_Output_ITB_IndexEntry *astIndex;
       } stDescriptors;
@@ -428,14 +486,9 @@ typedef struct BVCE_P_Output_Context
 
          struct
          {
-            uint32_t uiShadowReadOffset; /* Points to the ITB entry that needs to be parsed next */
-            uint32_t uiShadowDepth;
+            uint64_t uiShadowDepth;
 
-            uint32_t uiBaseOffset;
-            uint32_t uiEndOffset;
-            uint32_t uiValidOffset;
-            uint32_t uiReadOffset;
-            uint32_t uiWriteOffset;
+            BVCE_P_Buffer_Offsets stOffset;
 
             uint32_t uiIndexWriteOffset;
             uint32_t uiIndexReadOffset;
@@ -443,31 +496,26 @@ typedef struct BVCE_P_Output_Context
 
             bool bReadHackDone;
 
-            uint32_t uiPreviousValidOffset;
+            uint64_t uiPreviousValidOffset;
             bool bPreviousValidOffsetValid;
          } stITBBuffer;
 
          struct
          {
-            uint32_t uiShadowReadOffset; /* Points to the CDB location that needs to be muxed next */
-            uint32_t uiShadowValidOffset;
+            uint64_t uiShadowValidOffset;
 
-            uint32_t uiBaseOffset;
-            uint32_t uiEndOffset;
-            uint32_t uiValidOffset;
-            uint32_t uiReadOffset;
-            uint32_t uiWriteOffset;
+            BVCE_P_Buffer_Offsets stOffset;
 
 #if BVCE_P_DUMP_OUTPUT_ITB_DESC
             struct
             {
-               uint32_t uiValidOffset;
-               uint32_t uiReadOffset;
-               uint32_t uiWriteOffset;
-               uint32_t uiDepth;
+               uint64_t uiValidOffset;
+               uint64_t uiReadOffset;
+               uint64_t uiWriteOffset;
+               uint64_t uiDepth;
             } hw;
 #endif
-            uint32_t uiPreviousValidOffset;
+            uint64_t uiPreviousValidOffset;
             bool bPreviousValidOffsetValid;
          } stCDBBuffer;
 
@@ -491,11 +539,11 @@ typedef struct BVCE_P_Output_Context
           * to "the bytes THAT WAS read LAST"
           */
          bool bCDBReadHackDone;
-         bool bEOSITBEntrySeen;
+         bool bEOSITBEntryIndexed;
          bool bEOSDescriptorSent;
          /* 7425A0: END HACK */
 
-         bool bFrameStart;
+         bool bNewITBEntry;
 
          BVCE_P_Output_Cache stChannelCache;
          uint32_t uiDataUnitDetectionShiftRegister;
@@ -762,10 +810,15 @@ typedef struct BVCE_P_DebugFifo_Entry
       BVCE_P_Output_ITB_IndexEntry stITBDescriptor;
       BAVC_VideoBufferDescriptor stBufferDescriptor;
       BAVC_VideoMetadataDescriptor stMetadataDescriptor;
-      uint8_t auiITB[16];
+      struct
+      {
+         uint64_t uiReadOffset;
+         uint8_t auiEntry[16];
+      } stITB;
       BVCE_P_Command stCommand;
       BVCE_P_Response stResponse;
       char szFunctionTrace[BVCE_P_FUNCTION_TRACE_LENGTH];
+      BVCE_P_Buffer_Offsets stOffset;
    } data;
 } BVCE_P_DebugFifo_Entry;
 

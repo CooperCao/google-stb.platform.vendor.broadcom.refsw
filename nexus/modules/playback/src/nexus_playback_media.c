@@ -159,10 +159,14 @@ b_play_media_next_frame(NEXUS_PlaybackHandle p)
 
             rc = p->file->file.data->bounds(p->file->file.data, &first, &last);
             if(rc==0 && last > p->state.frame.offset + p->state.frame.size) {
+                NEXUS_PlaypumpStatus playpumpStatus;
                 p->state.navTrailingMode = true;
                 p->state.media.entry.type=bmedia_player_entry_type_file;
                 p->state.media.entry.start = p->state.frame.offset + p->state.frame.size;
                 p->state.media.entry.length = last - (p->state.frame.offset + p->state.frame.size);
+                if(NEXUS_Playpump_GetStatus(p->params.playpump, &playpumpStatus) == NEXUS_SUCCESS && p->state.media.entry.length > playpumpStatus.fifoSize) {
+                    p->state.media.entry.length = playpumpStatus.fifoSize;
+                }
                 BDBG_MSG(("b_play_media_next_frame: %p sending trailing %u bytes",(void *)p, (unsigned)p->state.media.entry.length ));
             }
         }
@@ -672,6 +676,35 @@ b_play_media_player_error(void *cntx)
     return;
 }
 
+static int
+b_play_media_get_dqt_index(void *cntx, unsigned *index, unsigned *openGopPictures)
+{
+    NEXUS_PlaybackHandle playback = cntx;
+    const NEXUS_Playback_P_PidChannel *pid;
+    BDBG_OBJECT_ASSERT(playback, NEXUS_Playback);
+    for (pid = BLST_S_FIRST(&playback->pid_list); pid ; pid = BLST_S_NEXT(pid, link)) {
+        if(pid->cfg.pidSettings.pidType==NEXUS_PidType_eVideo && pid->cfg.pidTypeSettings.video.decoder) {
+            NEXUS_VideoDecoderMultiPassDqtData data;
+            int rc = NEXUS_VideoDecoder_ReadMultiPassDqtData(pid->cfg.pidTypeSettings.video.decoder, &data);
+            if (!rc) {
+                *index = data.intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
+                *openGopPictures = data.openGopPictures;
+            }
+            return rc;
+        }
+        if(pid->cfg.pidSettings.pidType==NEXUS_PidType_eVideo && pid->cfg.pidTypeSettings.video.simpleDecoder) {
+            NEXUS_VideoDecoderMultiPassDqtData data;
+            int rc = NEXUS_SimpleVideoDecoder_ReadMultiPassDqtData(pid->cfg.pidTypeSettings.video.simpleDecoder, &data);
+            if (!rc) {
+                *index = data.intraGopPictureIndex; /* Last intra gop picture index returned by decoder. Needed to advance MP DQT to previous GOP. */
+                *openGopPictures = data.openGopPictures;
+            }
+            return rc;
+        }
+    }
+    return -1;
+}
+
 void
 b_play_update_media_player_config(NEXUS_PlaybackHandle p, bmedia_player_decoder_config *config)
 {
@@ -1063,6 +1096,7 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
     player_config.cntx = playback;
     player_config.atom_ready = b_play_media_async_atom_ready;
     player_config.error_detected = b_play_media_player_error;
+    player_config.get_dqt_index = b_play_media_get_dqt_index;
     player_config.timeshifting = playback->params.timeshifting;
     b_play_update_media_player_config(playback, &player_config.decoder_features);
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -89,7 +89,8 @@ typedef enum Hdcp22_IndicationType
 {
 	Hdcp22_IndicationType_eAuthenticationStatus = 0x1,
 	Hdcp22_IndicationType_eAuthenticationError,
-	Hdcp22_IndicationType_eContentStreamTypeUpdate
+	Hdcp22_IndicationType_eContentStreamTypeUpdate,
+	Hdcp22_IndicationType_eSecurityViolation
 } Hdcp22_IndicationType;
 
 
@@ -179,6 +180,12 @@ typedef enum Hdcp22_AuthenticationError
 	Hdcp22_AuthenticationError_eIncorrectSizeRepeaterAuthStreamManage
 } Hdcp22_AuthenticationError;
 
+typedef enum Hdcp22_SecurityViolationError
+{
+	Hdcp22_SecurityViolationError_eNone,
+	Hdcp22_SecurityViolationError_eHdcpLevel,
+	Hdcp22_SecurityViolationError_eSvpTA
+} Hdcp22_SecurityViolationError;
 
 typedef enum Hdcp22_ContentStreamType
 {

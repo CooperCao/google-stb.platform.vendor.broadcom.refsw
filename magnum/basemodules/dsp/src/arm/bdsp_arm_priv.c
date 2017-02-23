@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -279,10 +279,8 @@ BERR_Code BDSP_Arm_P_StartHbcMonitor(BDSP_Arm *pDevice)
         sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
 
         /* Physical address of command and generic responce queue */
-        BDSP_MEM_P_ConvertAddressToOffset(
-                pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
-        BDSP_MEM_P_ConvertAddressToOffset(
-                pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
+        sCmd.uCommand.sHbcParams.hbcValidDramAddr = pDevice->HbcInfo.Memory.offset;
+		sCmd.uCommand.sHbcParams.hbcDramAddr = (dramaddr_t)(pDevice->HbcInfo.Memory.offset + (uint32_t)(&((BDSP_Arm_P_HbcInfo *)NULL)->hbc));
 
         /*Send msg */
         ret = BTEE_Connection_SendMessage(
@@ -373,9 +371,11 @@ BERR_Code BDSP_Arm_P_Open(
     }
     /*THIS SHOULD BE DONE ONLY IF RAAGA RDB IS USED BY ARM Add register to mapp table*/
     {
-        void *pAddr =(void *) (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
-        uint32_t u32Size = (59*(BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR-BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR));/*59 is the number of fifo available in Raaga*/
-        ret = BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddr, u32Size, BDSP_ARM_AF_P_Map_eDevice, BDSP_ARM_MAX_ALLOC_DEVICE);
+		BDSP_MMA_Memory Addr;
+		uint32_t u32Size = (59*(BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR-BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR));/*59 is the number of fifo available in Raaga*/
+		Addr.pAddr = (void *) (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
+		Addr.offset =  (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
+		ret = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &Addr, u32Size, BDSP_ARM_AF_P_Map_eDevice, BDSP_ARM_MAX_ALLOC_DEVICE);
         if (BERR_SUCCESS != ret)
         {
             BDBG_ERR(("BDSP_ARM_P_Open: Error in updating the MAP Table with Raaga RDB"));
@@ -462,7 +462,8 @@ BERR_Code BDSP_Arm_P_Open(
 
     if (pDevice->deviceWatchdogFlag == true)
     {
-        pDevice->psHbcInfo->hbcValid = 2;
+        pDevice->HbcInfo.psHbcInfo->hbcValid = 2;
+        BDSP_MMA_P_FlushCache(pDevice->HbcInfo.Memory ,sizeof(uint32_t));
     }
 
     if (pDevice->deviceWatchdogFlag == false)
@@ -550,12 +551,8 @@ BERR_Code BDSP_Arm_P_Open(
                 /* Send HBC params msg */
                 sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
 
-                /* Physical address of command and generic responce queue */
-                BDSP_MEM_P_ConvertAddressToOffset(
-                        pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
-                BDSP_MEM_P_ConvertAddressToOffset(
-                        pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
-
+                sCmd.uCommand.sHbcParams.hbcValidDramAddr = pDevice->HbcInfo.Memory.offset;
+                sCmd.uCommand.sHbcParams.hbcDramAddr = (dramaddr_t)(pDevice->HbcInfo.Memory.offset+ (uint32_t)(&((BDSP_Arm_P_HbcInfo *)NULL)->hbc));
                 /*Send msg */
                 ret = BTEE_Connection_SendMessage(
                     pDevice->armDspApp.hConnection,
@@ -569,12 +566,9 @@ BERR_Code BDSP_Arm_P_Open(
                 sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_INIT_PARAMS;
 
                 /* Physical address of command and generic responce queue */
-                BDSP_MEM_P_ConvertAddressToOffset(
-                        pDevice->memHandle,(void *)&pDevice->armInterfaceQHndl[pDevice->hCmdQueue->MsgQueueHandleIndex],&sCmd.uCommand.sInitParams.cmdQueueHandlePhyAddr);
-                BDSP_MEM_P_ConvertAddressToOffset(
-                        pDevice->memHandle,(void *)&pDevice->armInterfaceQHndl[pDevice->hGenRspQueue->MsgQueueHandleIndex],&sCmd.uCommand.sInitParams.genRspQueueHandlePhyAddr);
-                BDSP_MEM_P_ConvertAddressToOffset(
-                        pDevice->memHandle,(void *)pDevice->armInterfaceQHndl,&sCmd.uCommand.sInitParams.QueueHandleArryPhyAddr);
+                sCmd.uCommand.sInitParams.cmdQueueHandlePhyAddr    = ((uint32_t)pDevice->sArmInterfaceQ.Memory.offset+(sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER)*pDevice->hCmdQueue->MsgQueueHandleIndex));
+                sCmd.uCommand.sInitParams.genRspQueueHandlePhyAddr = ((uint32_t)pDevice->sArmInterfaceQ.Memory.offset+(sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER)*pDevice->hGenRspQueue->MsgQueueHandleIndex));
+                sCmd.uCommand.sInitParams.QueueHandleArryPhyAddr   = pDevice->sArmInterfaceQ.Memory.offset;
                 sCmd.uCommand.sInitParams.ui32NumQueueHandle = BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE;
 
                 /*Send msg */
@@ -709,8 +703,10 @@ void BDSP_Arm_P_Close(
     BDSP_Arm_P_FreeInitMemory(pDeviceHandle);
 
     {
-        void *pAddr =(void *) (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
-        err = BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pDevice->sDeviceMapTable[0]), pAddr, BDSP_ARM_MAX_ALLOC_DEVICE);
+		BDSP_MMA_Memory Addr;
+		Addr.pAddr = (void *) (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
+		Addr.offset = (BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR+BCHP_PHYSICAL_OFFSET);
+        err = BDSP_Arm_P_DeleteEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &Addr, BDSP_ARM_MAX_ALLOC_DEVICE);
         if (BERR_SUCCESS != err)
         {
             BDBG_ERR(("BDSP_ARM_P_Close: Error in removing the MAP Table entries with Raaga RDB"));
@@ -1001,12 +997,11 @@ BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
     unsigned ui32NumPorts = 0, channel, ui32FMMContentType, ui32FMMDstType;
     unsigned ui32BufferDepthThreshold;
     BDSP_ArmStage *pArmPrimaryStage = (BDSP_ArmStage *)pPrimaryStageHandle;
-    BDSP_AF_P_sIO_BUFFER *pIOBuffer_Source;
-    BDSP_AF_P_sIO_BUFFER *pIOBuffer_Destination;
+    BDSP_MMA_Memory IOBuffer_Source, IOBuffer_Destination;
 
     BDBG_ASSERT(NULL != pArmPrimaryStage);
 
-    pIOBuffer_Destination= (BDSP_AF_P_sIO_BUFFER *)pArmPrimaryStage->pArmTask->taskMemGrants.sTaskGateOpenBufInfo.pBaseAddr;
+    IOBuffer_Destination = pArmPrimaryStage->pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer;
 
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmPrimaryStage, pArmConnectStage)
     BSTD_UNUSED(macroBrId);
@@ -1081,16 +1076,13 @@ BERR_Code BDSP_Arm_P_PopulateGateOpenFMMStages(
 #if 0
                 sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].uin32DramIoConfigAddr = pArmConnectStage->sStageOutput[output].ui32StageIOBuffCfgAddr;
 #else
-                BDSP_MEM_P_ConvertOffsetToCacheAddr(pArmPrimaryStage->pContext->pDevice->memHandle,
-                                    pArmPrimaryStage->sStageOutput[output].ui32StageIOBuffCfgAddr,
-                                    (void **)&pIOBuffer_Source);
+                IOBuffer_Source = pArmConnectStage->sStageOutput[output].IoBuffDesc;
+                BKNI_Memcpy(IOBuffer_Destination.pAddr, IOBuffer_Source.pAddr, SIZEOF(BDSP_AF_P_sIO_BUFFER));
+                BDSP_MMA_P_FlushCache(IOBuffer_Destination, SIZEOF(BDSP_AF_P_sIO_BUFFER));
+                sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].uin32DramIoConfigAddr = IOBuffer_Destination.offset;
 
-                BKNI_Memcpy((void *)pIOBuffer_Destination, (void *)pIOBuffer_Source,sizeof(BDSP_AF_P_sIO_BUFFER));
-                BDSP_MEM_P_FlushCache(pArmPrimaryStage->pContext->pDevice->memHandle, (void *)pIOBuffer_Destination, sizeof(*pIOBuffer_Destination));
-                BDSP_MEM_P_ConvertAddressToOffset(pArmPrimaryStage->pContext->pDevice->memHandle,
-                                    (void *)pIOBuffer_Destination,
-                                    &sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].uin32DramIoConfigAddr);
-                pIOBuffer_Destination++;
+                IOBuffer_Destination.pAddr = (void *)((uint8_t *)IOBuffer_Destination.pAddr + SIZEOF(BDSP_AF_P_sIO_BUFFER));
+                IOBuffer_Destination.offset = IOBuffer_Destination.offset + SIZEOF(BDSP_AF_P_sIO_BUFFER);
 #endif
                 sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].ui32IndepDelay= pArmConnectStage->sStageOutput[output].connectionDetails.fmm.descriptor.delay;
                 sTaskFmmGateOpenConfig->sFmmGateOpenConfig[ui32NumPorts].eFMMContentType = ui32FMMContentType;
@@ -1146,9 +1138,7 @@ BERR_Code BDSP_Arm_P_RetrieveGateOpenSettings(
             psFmmGateOpenConfig->uin32RingBufStartWrPointAddr[index2]=(psFmmGateOpenConfig->uin32RingBufStartWrPointAddr[index2]-BCHP_PHYSICAL_OFFSET);
         }
 
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pArmTask->pContext->pDevice->memHandle,
-                            psFmmGateOpenConfig->uin32DramIoConfigAddr,
-                            (void **)&pIOBuffer);
+		pIOBuffer =(BDSP_AF_P_sIO_BUFFER *)((BDSP_AF_P_sIO_BUFFER *)pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer.pAddr + index);
         for(index2=0;index2 < (int32_t)pIOBuffer->ui32NumBuffers; index2++)/*audio channels*/
         {   /*ensure that the descriptors for FMM and RAVE that are passed are physical address*/
            pIOBuffer->sCircBuffer[index2].ui32BaseAddr = (pIOBuffer->sCircBuffer[index2].ui32BaseAddr-BCHP_PHYSICAL_OFFSET);
@@ -1158,12 +1148,10 @@ BERR_Code BDSP_Arm_P_RetrieveGateOpenSettings(
            pIOBuffer->sCircBuffer[index2].ui32WriteAddr= (pIOBuffer->sCircBuffer[index2].ui32WriteAddr-BCHP_PHYSICAL_OFFSET);
         }
 
-        BDSP_MEM_P_FlushCache(pArmTask->pContext->pDevice->memHandle,
-            (void *)pIOBuffer,
-            sizeof(*pIOBuffer));
-
         psFmmGateOpenConfig++;
     }
+	BDSP_MMA_P_FlushCache(pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer,(sTaskFmmGateOpenConfig.ui32NumPorts*sizeof(BDSP_AF_P_sIO_BUFFER)));
+	pSettings->PortAddr = pArmTask->taskMemGrants.sTaskGateOpenBufInfo.Buffer;
 
     pSettings->ui32NumPorts      = sTaskFmmGateOpenConfig.ui32NumPorts;
     pSettings->ui32MaxIndepDelay = sTaskFmmGateOpenConfig.ui32MaxIndepDelay;
@@ -1442,11 +1430,7 @@ Functionality   :   Following are the operations performed.
         3)  Issue the command and wait for it.
     Note: This command is used when we need to reconfigure the running task.
 ***********************************************************************/
-
-BERR_Code BDSP_Arm_P_SendCitReconfigCommand(
-    BDSP_ArmTask *pArmTask,
-    BDSP_ARM_AF_P_sTASK_CONFIG  *psWorkingTaskCitBuffAddr_Cached
-    )
+BERR_Code BDSP_Arm_P_SendCitReconfigCommand(BDSP_ArmTask *pArmTask)
 {
 
     BERR_Code err = BERR_SUCCESS;
@@ -1468,7 +1452,7 @@ BERR_Code BDSP_Arm_P_SendCitReconfigCommand(
 
     pDevice = pArmTask->pContext->pDevice;
 
-    BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)psWorkingTaskCitBuffAddr_Cached, sizeof(*psWorkingTaskCitBuffAddr_Cached));
+	BKNI_Memcpy((void *)&pArmTask->citOutput.sCit, pArmTask->taskMemGrants.sSpareCitStruct.Buffer.pAddr, sizeof(BDSP_ARM_AF_P_sTASK_CONFIG));
     BDSP_Arm_P_Analyse_CIT(pArmTask, true);
 
     /*Prepare command to stop the task */
@@ -1478,13 +1462,8 @@ BERR_Code BDSP_Arm_P_SendCitReconfigCommand(
     psCommand->sCommandHeader.eResponseType = BDSP_P_ResponseType_eResponseRequired;
     psCommand->sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Arm_P_Command);
 
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle, (void *)(psWorkingTaskCitBuffAddr_Cached),
-        &(psCommand->uCommand.sCitReconfigCommand.ui32ModifiedCitAddr));
-
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-        (pArmTask->taskMemGrants.sCitStruct.pBaseAddr),
-        &(psCommand->uCommand.sCitReconfigCommand.ui32RunningTaskCitAddr));
-
+    psCommand->uCommand.sCitReconfigCommand.ui32ModifiedCitAddr = pArmTask->taskMemGrants.sSpareCitStruct.Buffer.offset;
+    psCommand->uCommand.sCitReconfigCommand.ui32RunningTaskCitAddr = pArmTask->taskMemGrants.sCitStruct.Buffer.offset;
     psCommand->uCommand.sCitReconfigCommand.ui32SizeInBytes = pArmTask->taskMemGrants.sCitStruct.ui32Size;
 
     pArmTask->lastEventType = psCommand->sCommandHeader.ui32CommandID;
@@ -1588,40 +1567,38 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
     pArmStage->sStageInput[ipIndex].connectionDetails.interTask.hInterTask
         = (BDSP_InterTaskBufferHandle)&pArmInterTaskBuffer->interTaskBuffer;
 
-    BDSP_MEM_P_ConvertAddressToOffset(pArmStage->pContext->pDevice->memHandle,
-        pArmInterTaskBuffer->pIoBufferDesc,
-        &pArmStage->sStageInput[ipIndex].ui32StageIOBuffCfgAddr);
+	pArmStage->sStageInput[ipIndex].StageIOBuffDescAddr = pArmInterTaskBuffer->IoBufferDesc.offset;
+	pArmStage->sStageInput[ipIndex].StageIOGenericBuffDescAddr = pArmInterTaskBuffer->IoBufferGenericDesc.offset;
 
-    BDSP_MEM_P_ConvertAddressToOffset(pArmStage->pContext->pDevice->memHandle,
-        pArmInterTaskBuffer->pIoBufferGenericDesc,
-        &pArmStage->sStageInput[ipIndex].ui32StageIOGenericDataBuffCfgAddr);
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                                &(pArmStage->sStageMapTable[0]),
-                                pArmInterTaskBuffer->pIoBufferDesc,
-                                sizeof(BDSP_AF_P_sIO_BUFFER) + sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER),
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoBufferDesc,
+                                sizeof(BDSP_AF_P_sIO_BUFFER),
                                 BDSP_ARM_AF_P_Map_eDram,
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
-    err = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                                &(pArmStage->sStageMapTable[0]),
-                                pArmInterTaskBuffer->pIoBuffer,
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoBufferGenericDesc,
+                                sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER),
+                                BDSP_ARM_AF_P_Map_eDram,
+                                BDSP_ARM_MAX_ALLOC_STAGE);
+
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoBuffer,
                                 pArmInterTaskBuffer->numChans*BDSP_AF_P_INTERTASK_IOBUFFER_SIZE,
                                 BDSP_ARM_AF_P_Map_eDevice,
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
-    err = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                                &(pArmStage->sStageMapTable[0]),
-                                pArmInterTaskBuffer->pIoGenBuffer,
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoGenBuffer,
                                 BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE,
                                 BDSP_ARM_AF_P_Map_eDevice,
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
     /* Flush cache for all the above memory */
-    BDSP_MEM_P_FlushCache(pArmStage->pContext->pDevice->memHandle,pArmInterTaskBuffer->pIoBufferDesc,sizeof(BDSP_AF_P_sIO_BUFFER) + sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
-    BDSP_MEM_P_FlushCache(pArmStage->pContext->pDevice->memHandle,pArmInterTaskBuffer->pIoBuffer,pArmInterTaskBuffer->numChans*BDSP_AF_P_INTERTASK_IOBUFFER_SIZE);
-    BDSP_MEM_P_FlushCache(pArmStage->pContext->pDevice->memHandle,pArmInterTaskBuffer->pIoGenBuffer,BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE);
-
+    BDSP_MMA_P_FlushCache(pArmInterTaskBuffer->IoBuffer, (pArmInterTaskBuffer->numChans*BDSP_AF_P_INTERTASK_IOBUFFER_SIZE));
+    BDSP_MMA_P_FlushCache(pArmInterTaskBuffer->IoGenBuffer, BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE);
+    BDSP_MMA_P_FlushCache(pArmInterTaskBuffer->IoBufferDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
+    BDSP_MMA_P_FlushCache(pArmInterTaskBuffer->IoBufferGenericDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
     pArmStage->numInputs[BDSP_ConnectionType_eInterTaskBuffer] += 1;
 
     pArmInterTaskBuffer->dstIndex = ipIndex;
@@ -1643,10 +1620,10 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
 
         BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
 
-        psWorkingTaskCitBuffAddr_Cached = (BDSP_ARM_AF_P_sTASK_CONFIG *)pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr;
+        psWorkingTaskCitBuffAddr_Cached = (BDSP_ARM_AF_P_sTASK_CONFIG *)pArmTask->taskMemGrants.sSpareCitStruct.Buffer.pAddr;
 
         /* Assuming that the input inter-task buffer will be added only to stage 0 */
-        pIoBuffDesc_Cached = (BDSP_AF_P_sIO_BUFFER *)pArmInterTaskBuffer->pIoBufferDesc;
+        pIoBuffDesc_Cached = (BDSP_AF_P_sIO_BUFFER *)pArmInterTaskBuffer->IoBufferDesc.pAddr;
 
         /* SIPS is only supported if the Inter task buffer type is DRAM */
         if (pIoBuffDesc_Cached->eBufferType != BDSP_AF_P_BufferType_eDRAM)
@@ -1655,14 +1632,8 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
                 pIoBuffDesc_Cached->eBufferType));
         }
 
-        BDSP_MEM_P_ConvertAddressToOffset(pArmStage->pContext->pDevice->memHandle,
-            pArmInterTaskBuffer->pIoBufferDesc,
-            &ui32NodeIpBuffCfgAddr);
-
-        BDSP_MEM_P_ConvertAddressToOffset(pArmStage->pContext->pDevice->memHandle,
-            pArmInterTaskBuffer->pIoBufferGenericDesc,
-            &ui32NodeIpGenericDataBuffCfgAddr);
-
+        ui32NodeIpBuffCfgAddr = pArmInterTaskBuffer->IoBufferDesc.offset;
+        ui32NodeIpGenericDataBuffCfgAddr = pArmInterTaskBuffer->IoBufferGenericDesc.offset;
 
         psNodeConfig = &psWorkingTaskCitBuffAddr_Cached->sNodeConfig[0];
         /* Making the Input port valid */
@@ -1678,11 +1649,11 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferInput(
         psNodeConfig->ui32NodeIpGenericDataBuffCfgAddr[ipIndex] = ui32NodeIpGenericDataBuffCfgAddr;
         psNodeConfig->eNodeIpValidFlag[ipIndex] = BDSP_AF_P_eValid;
         psNodeConfig->ui32NumSrc++;
-        BDSP_MEM_P_FlushCache(pArmStage->pContext->pDevice->memHandle, (void *)psWorkingTaskCitBuffAddr_Cached, sizeof(*psWorkingTaskCitBuffAddr_Cached));
+
+        BDSP_MMA_P_FlushCache(pArmTask->taskMemGrants.sSpareCitStruct.Buffer, pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
 
         /* Send the cit re-configuration command to DSP */
-        err = BDSP_Arm_P_SendCitReconfigCommand(pArmTask, psWorkingTaskCitBuffAddr_Cached);
-
+        err = BDSP_Arm_P_SendCitReconfigCommand(pArmTask);
         if (err)
         {
             goto err;
@@ -1764,36 +1735,31 @@ BERR_Code BDSP_Arm_P_AddInterTaskBufferOutput(
     pArmStage->sStageOutput[opIndex].connectionDetails.interTask.hInterTask
         = (BDSP_InterTaskBufferHandle)&pArmInterTaskBuffer->interTaskBuffer;
 
-    BDSP_MEM_P_ConvertAddressToOffset(pArmStage->pContext->pDevice->memHandle,
-        pArmInterTaskBuffer->pIoBufferDesc,
-        &pArmStage->sStageOutput[opIndex].ui32StageIOBuffCfgAddr);
-
-    BDSP_MEM_P_ConvertAddressToOffset(pArmStage->pContext->pDevice->memHandle,
-        pArmInterTaskBuffer->pIoBufferGenericDesc,
-        &pArmStage->sStageOutput[opIndex].ui32StageIOGenericDataBuffCfgAddr);
-
-
-    err = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                                &(pArmStage->sStageMapTable[0]),
-                                pArmInterTaskBuffer->pIoBufferDesc,
-                                sizeof(BDSP_AF_P_sIO_BUFFER) + sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER),
+	pArmStage->sStageOutput[opIndex].StageIOBuffDescAddr = pArmInterTaskBuffer->IoBufferDesc.offset;
+	pArmStage->sStageOutput[opIndex].StageIOGenericBuffDescAddr = pArmInterTaskBuffer->IoBufferGenericDesc.offset;
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoBufferDesc,
+                                sizeof(BDSP_AF_P_sIO_BUFFER),
                                 BDSP_ARM_AF_P_Map_eDram,
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
-    err = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                                &(pArmStage->sStageMapTable[0]),
-                                pArmInterTaskBuffer->pIoBuffer,
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoBufferGenericDesc,
+                                sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER),
+                                BDSP_ARM_AF_P_Map_eDram,
+                                BDSP_ARM_MAX_ALLOC_STAGE);
+
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoBuffer,
                                 pArmInterTaskBuffer->numChans*BDSP_AF_P_INTERTASK_IOBUFFER_SIZE,
                                 BDSP_ARM_AF_P_Map_eDevice,
                                 BDSP_ARM_MAX_ALLOC_STAGE);
 
-    err = BDSP_Arm_P_InsertEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                                &(pArmStage->sStageMapTable[0]),
-                                pArmInterTaskBuffer->pIoGenBuffer,
+    err = BDSP_Arm_P_InsertEntry_MapTable(&(pArmStage->sStageMapTable[0]),
+                                &pArmInterTaskBuffer->IoGenBuffer,
                                 BDSP_AF_P_INTERTASK_IOGENBUFFER_SIZE,
                                 BDSP_ARM_AF_P_Map_eDevice,
                                 BDSP_ARM_MAX_ALLOC_STAGE);
-
     pArmStage->numOutputs[BDSP_ConnectionType_eInterTaskBuffer] += 1;
     pArmStage->eStageOpBuffDataType[opIndex] = pArmInterTaskBuffer->distinctOp;
 
@@ -1843,10 +1809,6 @@ BERR_Code BDSP_Arm_P_AddFmmOutput(
 {
     BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
     BERR_Code errCode=BERR_SUCCESS;
-
-    BDSP_ArmContext *pArmContext = (BDSP_ArmContext *)pArmStage->pContext; /*src or dest*/
-    BDSP_Arm *pDevice = (BDSP_Arm *)pArmContext->pDevice;
-
     unsigned channels=0, i, opIndex;
 
     BDBG_ENTER(BDSP_Arm_P_AddFmmOutput);
@@ -1895,13 +1857,8 @@ BERR_Code BDSP_Arm_P_AddFmmOutput(
         pArmStage->sStageOutput[opIndex].Metadata.rateController[i].wrcnt=pDescriptor->rateControllers[i].wrcnt;
     }
 
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-        pArmStage->sStageOutput[opIndex].pIoBuffDesc,
-        &pArmStage->sStageOutput[opIndex].ui32StageIOBuffCfgAddr);
-
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-        pArmStage->sStageOutput[opIndex].pIoGenBuffDesc,
-        &pArmStage->sStageOutput[opIndex].ui32StageIOGenericDataBuffCfgAddr);
+	pArmStage->sStageOutput[opIndex].StageIOBuffDescAddr = pArmStage->sStageOutput[opIndex].IoBuffDesc.offset;
+	pArmStage->sStageOutput[opIndex].StageIOGenericBuffDescAddr = pArmStage->sStageOutput[opIndex].IoGenBuffDesc.offset;
 
     pArmStage->numOutputs[BDSP_ConnectionType_eFmmBuffer]+=1;
 
@@ -2006,14 +1963,8 @@ BERR_Code BDSP_Arm_P_AddQueueOutput(
 
     /* This needs to be done only for non-interstage connections, since the interstage buffer descriptors
         are allocated with the interstage buffers */
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-        pArmStage->sStageOutput[opIndex].pIoBuffDesc,
-        &pArmStage->sStageOutput[opIndex].ui32StageIOBuffCfgAddr);
-
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-        pArmStage->sStageOutput[opIndex].pIoGenBuffDesc,
-        &pArmStage->sStageOutput[opIndex].ui32StageIOGenericDataBuffCfgAddr);
-
+	pArmStage->sStageOutput[opIndex].StageIOBuffDescAddr = pArmStage->sStageOutput[opIndex].IoBuffDesc.offset;
+	pArmStage->sStageOutput[opIndex].StageIOGenericBuffDescAddr = pArmStage->sStageOutput[opIndex].IoGenBuffDesc.offset;
     pArmStage->numOutputs[BDSP_ConnectionType_eRDBBuffer]+=1;
     pArmStage->totalOutputs+=1;
 
@@ -2054,8 +2005,6 @@ BERR_Code BDSP_Arm_P_AddOutputStage(
 {
     BDSP_AF_P_sIO_BUFFER *pIoBuffDesc_Cached = NULL;
     BDSP_AF_P_sIO_GENERIC_BUFFER *pIoGenBuffDesc_Cached = NULL;
-    BDSP_ArmContext *pArmContext = NULL;
-    BDSP_Arm *pDevice = NULL;
     BDSP_ArmStage *pArmSrcStage = pSrcStageHandle;
     BDSP_ArmStage *pArmDstStage = pDstStageHandle;
     BERR_Code errCode = BERR_SUCCESS;
@@ -2065,10 +2014,6 @@ BERR_Code BDSP_Arm_P_AddOutputStage(
     BDBG_ASSERT(pDstStageHandle);
 
     BDBG_ASSERT(pArmSrcStage);
-    pArmContext = (BDSP_ArmContext *)pArmSrcStage->pContext; /*src or dest*/
-    BDBG_ASSERT(pArmContext);
-    pDevice = (BDSP_Arm *)pArmContext->pDevice;
-    BDBG_ASSERT(pDevice);
 
     BDSP_P_GetFreeInputPortIndex(&(pArmDstStage->sStageInput[0]), &ipIndex);
     BDBG_ASSERT(ipIndex < BDSP_AF_P_MAX_IP_FORKS);
@@ -2084,9 +2029,8 @@ BERR_Code BDSP_Arm_P_AddOutputStage(
     pArmSrcStage->sStageOutput[opIndex].connectionHandle = &pArmDstStage->stage;
     pArmSrcStage->sStageOutput[opIndex].connectionDetails.stage.hStage=&pArmDstStage->stage;
 
-    pIoBuffDesc_Cached = pArmSrcStage->sStageOutput[opIndex].pIoBuffDesc;
-    pIoGenBuffDesc_Cached = pArmSrcStage->sStageOutput[opIndex].pIoGenBuffDesc;
-
+    pIoBuffDesc_Cached = (BDSP_AF_P_sIO_BUFFER *)pArmSrcStage->sStageOutput[opIndex].IoBuffDesc.pAddr;
+    pIoGenBuffDesc_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pArmSrcStage->sStageOutput[opIndex].IoGenBuffDesc.pAddr;
     pIoBuffDesc_Cached->eBufferType = BDSP_AF_P_BufferType_eDRAM_IS;
     pIoBuffDesc_Cached->ui32NumBuffers = numBuffers;
 
@@ -2103,16 +2047,11 @@ BERR_Code BDSP_Arm_P_AddOutputStage(
     pIoGenBuffDesc_Cached->eBufferType = BDSP_AF_P_BufferType_eDRAM_IS;
     pIoGenBuffDesc_Cached->ui32NumBuffers = 1;
 
-    BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pIoBuffDesc_Cached, sizeof(*pIoBuffDesc_Cached));
-    BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pIoGenBuffDesc_Cached, sizeof(*pIoGenBuffDesc_Cached));
+    BDSP_MMA_P_FlushCache(pArmSrcStage->sStageOutput[opIndex].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
+    BDSP_MMA_P_FlushCache(pArmSrcStage->sStageOutput[opIndex].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
 
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-                                pArmSrcStage->sStageOutput[opIndex].pIoBuffDesc,
-                                &pArmSrcStage->sStageOutput[opIndex].ui32StageIOBuffCfgAddr);
-
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-                                pArmSrcStage->sStageOutput[opIndex].pIoGenBuffDesc,
-                                &pArmSrcStage->sStageOutput[opIndex].ui32StageIOGenericDataBuffCfgAddr);
+	pArmSrcStage->sStageOutput[opIndex].StageIOBuffDescAddr = pArmSrcStage->sStageOutput[opIndex].IoBuffDesc.offset;
+	pArmSrcStage->sStageOutput[opIndex].StageIOGenericBuffDescAddr = pArmSrcStage->sStageOutput[opIndex].IoGenBuffDesc.offset;
 
     pArmDstStage->sStageInput[ipIndex].eNodeValid=BDSP_AF_P_eValid;
     pArmDstStage->sStageInput[ipIndex].eConnectionType=BDSP_ConnectionType_eStage;
@@ -2124,11 +2063,9 @@ BERR_Code BDSP_Arm_P_AddOutputStage(
     /*ONE DESCRIPTOR FOR ONE CONNECTION AND LET THAT BE THE INPUT(SRC) STAGE'S OUTPUT DESCRIPTOR ie pRaagaSrcStage->sStageOutput*/
 
     /*the actual buffers itself allocated will be assigned during start time as we dont know the node network now*/
-    pArmDstStage->sStageInput[ipIndex].ui32StageIOBuffCfgAddr
-        = pArmSrcStage->sStageOutput[opIndex].ui32StageIOBuffCfgAddr;
-    pArmDstStage->sStageInput[ipIndex].ui32StageIOGenericDataBuffCfgAddr
-        = pArmSrcStage->sStageOutput[opIndex].ui32StageIOGenericDataBuffCfgAddr;
-
+	/* copy the address descriptor for IO and IO GEN of the source stage directly to destination stage*/
+	pArmDstStage->sStageInput[ipIndex].StageIOBuffDescAddr = pArmDstStage->sStageOutput[opIndex].StageIOBuffDescAddr;
+	pArmDstStage->sStageInput[ipIndex].StageIOGenericBuffDescAddr = pArmDstStage->sStageOutput[opIndex].StageIOGenericBuffDescAddr;
 
     pArmSrcStage->numOutputs[BDSP_ConnectionType_eStage]+=1;
 
@@ -2209,28 +2146,31 @@ void BDSP_Arm_P_RemoveOutput(
 
     if(BDSP_ConnectionType_eFmmBuffer == connectionType)
     {
-        void *base_addr = NULL;
         int32_t i;
         for(i=0; i<(int32_t)pArmStage->sStageOutput[outputIndex].IoBuffer.ui32NumBuffers;i++)
         {
-            err = BDSP_Arm_P_DeleteEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                &(pArmStage->sStageMapTable[0]),
-                (void *)(pArmStage->sStageOutput[outputIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr|BCHP_PHYSICAL_OFFSET),
-                BDSP_ARM_MAX_ALLOC_STAGE);
+			BDSP_MMA_Memory Memory;
+			/* We are trying to UNMAP the registers here, hence we pass the same in both physical and virtual Address */
+			Memory.pAddr = (void *)(pArmStage->sStageOutput[outputIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr|BCHP_PHYSICAL_OFFSET);
+			Memory.offset = (pArmStage->sStageOutput[outputIndex].IoBuffer.sCircBuffer[i].ui32ReadAddr|BCHP_PHYSICAL_OFFSET);
+			err = BDSP_Arm_P_DeleteEntry_MapTable(
+				&(pArmStage->sStageMapTable[0]),
+				&Memory,
+				BDSP_ARM_MAX_ALLOC_STAGE);
             if (BERR_SUCCESS != err)
             {
                 BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for FMM register!!!!"));
             }
 
-            BDSP_MEM_P_ConvertOffsetToCacheAddress(pArmStage->pContext->pDevice->memHandle,
-                BDSP_Read32(pArmStage->pContext->pDevice->regHandle, pArmStage->sStageOutput[outputIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr),
-                &base_addr);
-
-            err = BDSP_Arm_P_DeleteEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-                &(pArmStage->sStageMapTable[0]),
-                base_addr,
-                BDSP_ARM_MAX_ALLOC_STAGE);
-
+			/* The Memory we are trying to UNMAP, is actual Buffer which is allocated by APE/AIO for the FMM buffer. The address is physical and stored in the FMM register.
+			Since Insert enrty table function expects both physical and virtual. The processing inside the function is based on virtual and at the end we pass the physical
+			address to Firmware. We read the value and pass it as both physical and virtual address, so that Delete Entry function processes it correctly. */
+			Memory.offset= BDSP_Read32(pArmStage->pContext->pDevice->regHandle, pArmStage->sStageOutput[outputIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr);
+			Memory.pAddr = (void *)BDSP_Read32(pArmStage->pContext->pDevice->regHandle, pArmStage->sStageOutput[outputIndex].IoBuffer.sCircBuffer[i].ui32BaseAddr);
+			err = BDSP_Arm_P_DeleteEntry_MapTable(
+				&(pArmStage->sStageMapTable[0]),
+				&Memory,
+				BDSP_ARM_MAX_ALLOC_STAGE);
             if (BERR_SUCCESS != err)
             {
                 BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for the actual buffer used for FMM!!!!"));
@@ -2241,33 +2181,41 @@ void BDSP_Arm_P_RemoveOutput(
     {
         BDSP_P_InterTaskBuffer *pArmInterTaskBuffer=NULL;
         pArmInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pArmStage->sStageInput[outputIndex].connectionDetails.interTask.hInterTask->pInterTaskBufferHandle;
-        err = BDSP_Arm_P_DeleteEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-            &(pArmStage->sStageMapTable[0]),
-            (void *)pArmInterTaskBuffer->pIoBuffer,
-            BDSP_ARM_MAX_ALLOC_STAGE);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO buffer!!!!"));
-        }
+		err = BDSP_Arm_P_DeleteEntry_MapTable(
+			&(pArmStage->sStageMapTable[0]),
+			&pArmInterTaskBuffer->IoBuffer,
+			BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO buffer!!!!"));
+		}
 
-        err = BDSP_Arm_P_DeleteEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-            &(pArmStage->sStageMapTable[0]),
-            (void *)pArmInterTaskBuffer->pIoGenBuffer,
-            BDSP_ARM_MAX_ALLOC_STAGE);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO GEN buffer!!!!"));
-        }
+		err = BDSP_Arm_P_DeleteEntry_MapTable(
+			&(pArmStage->sStageMapTable[0]),
+			&pArmInterTaskBuffer->IoGenBuffer,
+			BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO GEN buffer!!!!"));
+		}
 
-        err = BDSP_Arm_P_DeleteEntry_MapTable(pArmStage->pContext->pDevice->memHandle,
-            &(pArmStage->sStageMapTable[0]),
-            (void *)pArmInterTaskBuffer->pIoBufferDesc,
-            BDSP_ARM_MAX_ALLOC_STAGE);
-        if (BERR_SUCCESS != err)
-        {
-            BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO buffer Descriptor!!!!"));
-        }
+		err = BDSP_Arm_P_DeleteEntry_MapTable(
+			&(pArmStage->sStageMapTable[0]),
+			&pArmInterTaskBuffer->IoBufferDesc,
+			BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO buffer Descriptor!!!!"));
+		}
 
+		err = BDSP_Arm_P_DeleteEntry_MapTable(
+			&(pArmStage->sStageMapTable[0]),
+			&pArmInterTaskBuffer->IoBufferGenericDesc,
+			BDSP_ARM_MAX_ALLOC_STAGE);
+		if (BERR_SUCCESS != err)
+		{
+			BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Unable to delete entry form the Table for Intertask IO Generic buffer Descriptor!!!!"));
+		}
     }
 
     /* Reset the last stage output structure */
@@ -2352,7 +2300,6 @@ void BDSP_Arm_P_RemoveInput(
 {
     BERR_Code err;
     BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
-    BDSP_Arm *pDevice = pArmStage->pContext->pDevice;
     BDSP_ConnectionType connectionType;
     BDSP_P_InterTaskBuffer *pArmInterTaskBuffer=NULL;
     BDSP_AF_P_sIO_BUFFER *pIoBuffDesc_Cached = NULL;
@@ -2391,7 +2338,7 @@ void BDSP_Arm_P_RemoveInput(
 
         BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
 
-        psWorkingTaskCitBuffAddr_Cached = (BDSP_ARM_AF_P_sTASK_CONFIG *)pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr;
+        psWorkingTaskCitBuffAddr_Cached = (BDSP_ARM_AF_P_sTASK_CONFIG *)pArmTask->taskMemGrants.sSpareCitStruct.Buffer.pAddr;
 
         /* For inter task connections, the output from the source stage
         also needs to be removed. */
@@ -2400,7 +2347,7 @@ void BDSP_Arm_P_RemoveInput(
             pArmInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pArmStage->sStageInput[inputIndex].connectionDetails.interTask.hInterTask->pInterTaskBufferHandle;
             pArmInterTaskBuffer->dstHandle = NULL;
             pArmInterTaskBuffer->dstIndex  = -1;
-            pIoBuffDesc_Cached = (BDSP_AF_P_sIO_BUFFER *)pArmInterTaskBuffer->pIoBufferDesc;
+			pIoBuffDesc_Cached = (BDSP_AF_P_sIO_BUFFER *)pArmInterTaskBuffer->IoBufferDesc.pAddr;
 
             /* SIPS is only supported if the Inter task buffer type is DRAM */
             if (pIoBuffDesc_Cached->eBufferType != BDSP_AF_P_BufferType_eDRAM)
@@ -2425,10 +2372,10 @@ void BDSP_Arm_P_RemoveInput(
         psNodeConfig->eNodeIpValidFlag[inputIndex] = BDSP_AF_P_eInvalid;
         if( psNodeConfig->ui32NumSrc != 0 )
         psNodeConfig->ui32NumSrc--;
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)psWorkingTaskCitBuffAddr_Cached, sizeof(*psWorkingTaskCitBuffAddr_Cached));
+        BDSP_MMA_P_FlushCache(pArmTask->taskMemGrants.sSpareCitStruct.Buffer, pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
 
         /* Send the cit re-configuration command to DSP */
-        err = BDSP_Arm_P_SendCitReconfigCommand(pArmTask, psWorkingTaskCitBuffAddr_Cached);
+        err = BDSP_Arm_P_SendCitReconfigCommand(pArmTask);
 
         if (err)
         {
@@ -2456,9 +2403,9 @@ void BDSP_Arm_P_RemoveInput(
             pArmInterTaskBuffer->inUse = false;
             pArmInterTaskBuffer->distinctOp = BDSP_AF_P_DistinctOpType_eMax;
         }
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pArmInterTaskBuffer->pIoBufferDesc, BDSP_ARM_MAX_ALLOC_STAGE);
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pArmInterTaskBuffer->pIoBuffer, BDSP_ARM_MAX_ALLOC_STAGE);
-        BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle, &(pArmStage->sStageMapTable[0]), pArmInterTaskBuffer->pIoGenBuffer, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoBufferDesc, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoBuffer, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoGenBuffer, BDSP_ARM_MAX_ALLOC_STAGE);
     }
 
     /* Reset the stage input structure */
@@ -2801,26 +2748,20 @@ BERR_Code BDSP_Arm_P_GetStageSettings(
     size_t settingsSize)
 {
     BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
-    void *pAddress;
     BERR_Code errCode;
 
     BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
     BDBG_ASSERT(pSettingsBuffer);
 
     BDBG_ASSERT(pArmStage->algorithm < BDSP_Algorithm_eMax);
-
-    BDSP_MEM_P_ConvertOffsetToCacheAddr(pArmStage->pContext->pDevice->memHandle, pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress, &pAddress);
-
     errCode = BDSP_Arm_P_GetAlgorithmSettings(
-        pArmStage->pContext->pDevice->memHandle,
         pArmStage->algorithm,
-        pAddress,
+        &pArmStage->sDramUserConfigBuffer.Buffer,
         /* Since the buffer is shared between ids and decode stage, the
         buffer size available for the decode stage is the offset to ids buffer */
         pArmStage->sFrameSyncOffset.ui32UserCfgOffset,
         pSettingsBuffer,
         settingsSize);
-
     if ( errCode )
     {
         return BERR_TRACE(errCode);
@@ -2859,7 +2800,6 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
     BDSP_Arm_P_Command *psCommand;
     BDSP_Arm_P_Response sRsp;
     BDSP_P_MsgType      eMsgType;
-    void *pAddress;
 
     pArmStage = (BDSP_ArmStage *)pStageHandle;
     pDevice = pArmStage->pContext->pDevice;
@@ -2877,29 +2817,30 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
     }
 
     BKNI_Memset(psCommand, 0, sizeof(*psCommand));
-
     if (pArmStage->running)
     {
-        uiConfigBufAddr = pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress;
+        uiConfigBufAddr = pArmStage->sDramUserConfigSpareBuffer.Buffer.offset;
         uiConfigBufSize = pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+        err = BDSP_Arm_P_SetAlgorithmSettings(
+            pArmStage->algorithm,
+            &pArmStage->sDramUserConfigSpareBuffer.Buffer,
+            uiConfigBufSize,
+            pSettingsBuffer,
+            settingsSize);
     }
     else
     {
-        uiConfigBufAddr = pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress;
+        uiConfigBufAddr = pArmStage->sDramUserConfigBuffer.Buffer.offset;
         /* Since the buffer is shared between ids and decode stage, the
         buffer size availabel for the decode stage is the offset to ids buffer */
         uiConfigBufSize = pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+        err = BDSP_Arm_P_SetAlgorithmSettings(
+            pArmStage->algorithm,
+            &pArmStage->sDramUserConfigBuffer.Buffer,
+            uiConfigBufSize,
+            pSettingsBuffer,
+            settingsSize);
     }
-
-    BDSP_MEM_P_ConvertOffsetToCacheAddr(pArmStage->pContext->pDevice->memHandle, uiConfigBufAddr, &pAddress);
-
-    err = BDSP_Arm_P_SetAlgorithmSettings(
-        pDevice->memHandle,
-        pArmStage->algorithm,
-        pAddress,
-        uiConfigBufSize,
-        pSettingsBuffer,
-        settingsSize);
     if ( err )
     {
         err = BERR_TRACE(err);
@@ -2917,8 +2858,7 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
         psCommand->sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Arm_P_Command);
 
         psCommand->uCommand.sCfgChange.ui32HostConfigParamBuffAddr = uiConfigBufAddr;
-        psCommand->uCommand.sCfgChange.ui32DspConfigParamBuffAddr = pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress;
-
+		psCommand->uCommand.sCfgChange.ui32DspConfigParamBuffAddr = pArmStage->sDramUserConfigBuffer.Buffer.offset;
         psCommand->uCommand.sCfgChange.ui32SizeInBytes = settingsSize;
 
         pArmStage->pArmTask->lastEventType = psCommand->sCommandHeader.ui32CommandID;
@@ -3050,25 +2990,26 @@ BERR_Code BDSP_Arm_P_GetDatasyncSettings_isr(
 {
     BERR_Code       err = BERR_SUCCESS;
     uint32_t        ui32FsUserCfgSize;
-    void            *pFsUserCfgAddr = NULL;
+	BDSP_MMA_Memory UserCfgMemory;
     BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pStageHandle;
     BDSP_P_Audio_FrameSyncTsmConfigParams  sFrameSyncTsmConfigParams;
 
     BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
     BDBG_ASSERT(pSettings);
 
-    pFsUserCfgAddr = (void *)((uint8_t *)pArmStage->sDramUserConfigSpareBuffer.pDramBufferAddress+
-                    pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
+	UserCfgMemory = pArmStage->sDramUserConfigSpareBuffer.Buffer;
+	UserCfgMemory.pAddr = (void *)((uint8_t *)UserCfgMemory.pAddr +
+						pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
+	UserCfgMemory.offset = UserCfgMemory.offset +
+						pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+	ui32FsUserCfgSize = pArmStage->sDramUserConfigSpareBuffer.ui32Size -
+						pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
 
-    ui32FsUserCfgSize = pArmStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes -
-                    pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+	BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
+		pArmStage->algorithm, &UserCfgMemory, ui32FsUserCfgSize,
+		&sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
 
-    BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
-        pArmStage->pContext->pDevice->memHandle,
-        pArmStage->algorithm, pFsUserCfgAddr, ui32FsUserCfgSize,
-        &sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
-
-    BKNI_Memcpy((void *)(volatile void*)pSettings,
+	BKNI_Memcpy((void *)(volatile void*)pSettings,
         (void *)&sFrameSyncTsmConfigParams.sFrameSyncConfigParams,
         sizeof(BDSP_AudioTaskDatasyncSettings));
 
@@ -3109,13 +3050,13 @@ BERR_Code BDSP_Arm_P_SetDatasyncSettings_isr(
     BDSP_ArmStage *pArmStage;
     BDSP_Arm  *pDevice;
     BERR_Code err = BERR_SUCCESS;
-    void            *pConfigBuf = NULL;
+	BDSP_MMA_Memory ConfigBuf;
     dramaddr_t      ui32ConfigBufAddr;
     unsigned int    uiConfigBufSize=0;
     BDSP_Arm_P_Command *psCommand;
     BDSP_P_Audio_FrameSyncTsmConfigParams   sFrameSyncTsmConfigParams;
 
-    void            *pTsmUserCfg;
+	BDSP_MMA_Memory TsmUserCfg;
     dramaddr_t      TsmBufAddr;
     uint32_t        ui32FsTsmUserCfgSize;
 
@@ -3134,41 +3075,42 @@ BERR_Code BDSP_Arm_P_SetDatasyncSettings_isr(
 
     BKNI_Memset(psCommand, 0, sizeof(*psCommand));
 
-    /*HOST Buffer details */
-    pConfigBuf      = (void *)((uint8_t *)pArmStage->sDramUserConfigSpareBuffer.pDramBufferAddress + pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
-    uiConfigBufSize = pArmStage->sDramUserConfigSpareBuffer.ui32BufferSizeInBytes - pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+	/*HOST Buffer details */
+	ConfigBuf = pArmStage->sDramUserConfigSpareBuffer.Buffer;
+	ConfigBuf.pAddr = (void *)((uint8_t *)ConfigBuf.pAddr+ pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
+	ConfigBuf.offset= ConfigBuf.offset + pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+	uiConfigBufSize = pArmStage->sDramUserConfigSpareBuffer.ui32Size - pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
 
-    /*DSP Buffer details */
-    pTsmUserCfg          = (void *)((uint8_t *)pArmStage->sDramUserConfigBuffer.pDramBufferAddress+ pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
-    ui32FsTsmUserCfgSize = pArmStage->sDramUserConfigBuffer.ui32BufferSizeInBytes - pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+	/*DSP Buffer details */
+	TsmUserCfg = pArmStage->sDramUserConfigBuffer.Buffer;
+	TsmUserCfg.pAddr = (void *)((uint8_t *)TsmUserCfg.pAddr+ pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
+	TsmUserCfg.offset= TsmUserCfg.offset + pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+	ui32FsTsmUserCfgSize = pArmStage->sDramUserConfigBuffer.ui32Size - pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
 
-    BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
-        pDevice->memHandle, pArmStage->algorithm,
-        pConfigBuf, uiConfigBufSize,
-        &sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
+	BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
+		pArmStage->algorithm,
+		&ConfigBuf, uiConfigBufSize,
+		&sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
 
     BKNI_Memcpy((void *)(volatile void*)&(sFrameSyncTsmConfigParams.sFrameSyncConfigParams) ,(void *)pSettings ,sizeof(BDSP_AudioTaskDatasyncSettings));
 
     if ( !pArmStage->running )
     {
-        /* If the Task is not running then write the data into DSP buffer too */
-        BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
-            pDevice->memHandle, pArmStage->algorithm,
-            pTsmUserCfg, ui32FsTsmUserCfgSize,
-            &sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
+		/* If the Task is not running then write the data into DSP buffer too */
+		BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
+			pArmStage->algorithm,
+			&TsmUserCfg, ui32FsTsmUserCfgSize,
+			&sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
     }
-    /*Always write the data into HOST buffer*/
-    BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
-        pDevice->memHandle, pArmStage->algorithm,
-        pConfigBuf, uiConfigBufSize,
-        &sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
-
+	/*Always write the data into HOST buffer*/
+	BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
+		pArmStage->algorithm,
+		&ConfigBuf, uiConfigBufSize,
+		&sFrameSyncTsmConfigParams, sizeof(sFrameSyncTsmConfigParams));
     if (pArmStage->running)
     {
-
-        ui32ConfigBufAddr  = pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress + pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
-        TsmBufAddr = pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress +
-                       pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+		ui32ConfigBufAddr = ConfigBuf.offset;
+		TsmBufAddr = TsmUserCfg.offset;
 
         /*Send CFG Change Command to FW*/
         psCommand->sCommandHeader.ui32CommandID = BDSP_ALGO_PARAMS_CFG_COMMAND_ID;
@@ -3203,7 +3145,7 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
     BDSP_ArmStage *pArmStage;
     BDSP_Arm      *pDevice;
     void *pIfAddr;
-    uint32_t ui32IfAddr, ui32IfBuffSize;
+    uint32_t ui32IfBuffSize;
     BDSP_ARM_AF_P_AlgoId algoId;
     void *pIfAddr_Cached = NULL;
     /*void *pMemory_Cached = NULL;*/
@@ -3224,16 +3166,14 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
         pAlgoInfo = BDSP_Arm_P_LookupAlgorithmInfo(pStageIterator->algorithm);
         /* Load the interframe for decoder */
         algoId = pAlgoInfo->algoExecInfo.eAlgoIds[1];
-        ui32IfAddr = pStageIterator->sDramInterFrameBuffer.ui32DramBufferAddress;
-        ui32IfBuffSize = pStageIterator->sDramInterFrameBuffer.ui32BufferSizeInBytes;
-
+        pIfAddr = pStageIterator->sDramInterFrameBuffer.Buffer.pAddr;
+        ui32IfBuffSize = pStageIterator->sDramInterFrameBuffer.ui32Size;
         if (algoId == BDSP_ARM_AF_P_AlgoId_eInvalid)
         {
             BDBG_ERR(("You are here as there was a problem in the connection handles between stages. "));
             BDBG_ERR(("The Algo Id is invalid for this stage algo %d", pStageIterator->algorithm));
             BDBG_ASSERT(0);
         }
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle, ui32IfAddr, &pIfAddr);
 #if 0  /*SR_TBD: Enabled when Interframe download is enabled*/
         ui32ImgId = BDSP_ARM_IMG_ID_IFRAME(algoId);
 
@@ -3251,19 +3191,14 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
         pIfAddr_Cached = pIfAddr;
         BKNI_Memset((void *)(volatile void*)pIfAddr_Cached, 0, ui32IfBuffSize);
 #endif /*SR_TBD: Enabled when Interframe download is enabled*/
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pIfAddr_Cached, ui32IfBuffSize);
+        BDSP_MMA_P_FlushCache(pStageIterator->sDramInterFrameBuffer.Buffer, ui32IfBuffSize);
 
         /* Load the interframe for datasync */
         algoId = pAlgoInfo->algoExecInfo.eAlgoIds[0];
         if (algoId != BDSP_ARM_AF_P_AlgoId_eInvalid)
         {
-            ui32IfAddr = pStageIterator->sDramInterFrameBuffer.ui32DramBufferAddress +
-                pStageIterator->sFrameSyncOffset.ui32IfOffset;
-            ui32IfBuffSize = pStageIterator->sDramInterFrameBuffer.ui32BufferSizeInBytes -
-                pStageIterator->sFrameSyncOffset.ui32IfOffset;
-
-
-            BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle, ui32IfAddr, &pIfAddr);
+            pIfAddr = pStageIterator->sDramInterFrameBuffer.Buffer.pAddr;
+            ui32IfBuffSize = pStageIterator->sDramInterFrameBuffer.ui32Size;
 #if 0  /*SR_TBD: Enabled when Interframe download is enabled*/
             ui32ImgId = BDSP_ARM_IMG_ID_IFRAME(algoId);
 
@@ -3281,7 +3216,7 @@ static BERR_Code BDSP_Arm_P_InitInterframeBuffer(void *pStageHandle)
             pIfAddr_Cached = pIfAddr ;
             BKNI_Memset((void *)(volatile void*)pIfAddr_Cached, 0, ui32IfBuffSize);
 #endif /*SR_TBD: Enabled when Interframe download is enabled*/
-            BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pIfAddr_Cached, ui32IfBuffSize);
+            BDSP_MMA_P_FlushCache(pStageIterator->sDramInterFrameBuffer.Buffer, ui32IfBuffSize);
         }
     }
     BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pStageIterator)
@@ -3527,7 +3462,7 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
         goto err_malloc_command;
     }
 
-    pMapTable = (BDSP_MAP_Table *)pDevice->memInfo.sMapTable.pBaseAddr;
+	pMapTable = (BDSP_MAP_Table *)pDevice->memInfo.sMapTable.Buffer.pAddr;
     if(NULL == pMapTable)
     {
         BDBG_ERR((" Allocated Address for MAP Table is not proper"));
@@ -3537,11 +3472,8 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
     BKNI_Memset(psCommand,0,sizeof(*psCommand));
 
     BKNI_Memcpy((void *)(&(psCommand->uCommand.sMapCommand.sMapEntries[0])),pMapTableEntries,(ui32NumEntries*sizeof(BDSP_MAP_Table_Entry)));
-    BDSP_MEM_P_FlushCache( pDevice->memHandle, (void *)pDevice->memInfo.sMapTable.pBaseAddr, (ui32NumEntries*sizeof(BDSP_MAP_Table_Entry)));
-
-    BDSP_MEM_P_ConvertAddressToOffset(
-        pDevice->memHandle, pDevice->memInfo.sMapTable.pBaseAddr, &physAddress);
-
+    BDSP_MMA_P_FlushCache(pDevice->memInfo.sMapTable.Buffer, (ui32NumEntries*sizeof(BDSP_MAP_Table_Entry)));
+    physAddress = pDevice->memInfo.sMapTable.Buffer.offset;
     psCommand->sCommandHeader.ui32CommandID = BDSP_ARM_MAP_COMMAND_ID;
     psCommand->sCommandHeader.ui32CommandCounter = 0;
     psCommand->sCommandHeader.ui32TaskID = 0;
@@ -3603,7 +3535,7 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
         goto err_malloc_command;
     }
 
-    pMapTable = (BDSP_MAP_Table *)pDevice->memInfo.sMapTable.pBaseAddr;
+	pMapTable = (BDSP_MAP_Table *)pDevice->memInfo.sMapTable.Buffer.pAddr;
     if(NULL == pMapTable)
     {
         BDBG_ERR((" Allocated Address for MAP Table is not proper"));
@@ -3613,11 +3545,8 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
     BKNI_Memset(psCommand,0,sizeof(*psCommand));
 
     BKNI_Memcpy((void *)(&(psCommand->uCommand.sUnMapCommand.sMapEntries[0])),pMapTableEntries,(ui32NumEntries*sizeof(BDSP_MAP_Table_Entry)));
-    BDSP_MEM_P_FlushCache( pDevice->memHandle, (void *)pDevice->memInfo.sMapTable.pBaseAddr, (ui32NumEntries*sizeof(BDSP_MAP_Table_Entry)));
-
-    BDSP_MEM_P_ConvertAddressToOffset(
-        pDevice->memHandle, pDevice->memInfo.sMapTable.pBaseAddr, &physAddress);
-
+    BDSP_MMA_P_FlushCache(pDevice->memInfo.sMapTable.Buffer, (ui32NumEntries*sizeof(BDSP_MAP_Table_Entry)));
+    physAddress = pDevice->memInfo.sMapTable.Buffer.offset;
     if(pDevice->deviceWatchdogFlag == false)
     {
         psCommand->sCommandHeader.ui32CommandID = BDSP_ARM_UNMAP_COMMAND_ID;
@@ -3726,10 +3655,7 @@ static BERR_Code BDSP_Arm_P_FindSlaveTaskSchedulingBuffer(
             {
                 BDSP_P_InterTaskBuffer *pArmInterTaskBuffer;
                 pArmInterTaskBuffer = (BDSP_P_InterTaskBuffer *)pStageIterator->sStageOutput[i].connectionDetails.interTask.hInterTask->pInterTaskBufferHandle;
-
-                BDSP_MEM_P_ConvertAddressToOffset(pStageIterator->pContext->pDevice->memHandle,
-                        pArmInterTaskBuffer->pIoBufferDesc,
-                        pui32DramSchedulingBuffCfgAddr);
+                *pui32DramSchedulingBuffCfgAddr = pArmInterTaskBuffer->IoBufferDesc.offset;
                 break;
             }
         }
@@ -4021,7 +3947,6 @@ BERR_Code BDSP_Arm_P_StartTask(
         goto err_gen_citinput;
     }
 
-
     err = BDSP_ARM_P_PrepareAndSendMapCommand(pTaskHandle);
     if( err != BERR_SUCCESS)
     {
@@ -4043,38 +3968,25 @@ BERR_Code BDSP_Arm_P_StartTask(
     if( err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
+	/* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
+	err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sCitStruct.ui32Size);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("Error in Copying data to CIT Buffer DRAM"));
+		err = BERR_TRACE(err);
+		goto err_gen_citinput;
+	}
+
+	/* Download CIT structure into HOST/SPARE CIT Buffer DRAM */
+	err = BDSP_MMA_P_CopyDataToDram(&pArmTask->taskMemGrants.sSpareCitStruct.Buffer, (void *)&(pArmTask->citOutput.sCit), pArmTask->taskMemGrants.sSpareCitStruct.ui32Size);
+	if (BERR_SUCCESS != err)
+	{
+		BDBG_ERR(("Error in Copying data to SPARE CIT Buffer DRAM"));
+		err = BERR_TRACE(err);
+		goto err_gen_citinput;
+	}
+
     BDSP_Arm_P_Analyse_CIT(pArmTask, false);
-
-    /* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
-    err = BDSP_P_CopyDataToDram(
-        pDevice->memHandle,
-        (uint32_t *)(&(pArmTask->citOutput.sCit)),
-        pArmTask->taskMemGrants.sCitStruct.pBaseAddr,
-        pArmTask->taskMemGrants.sCitStruct.ui32Size
-        );
-
-    if (BERR_SUCCESS != err)
-    {
-        BDBG_ERR(("Error in Copying data to CIT Buffer DRAM"));
-        err = BERR_TRACE(err);
-        goto err_gen_citinput;
-    }
-
-    /* Download CIT structure into HOST/SPARE CIT Buffer DRAM */
-    err = BDSP_P_CopyDataToDram(
-        pDevice->memHandle,
-        (uint32_t *)(&(pArmTask->citOutput.sCit)),
-        pArmTask->taskMemGrants.sSpareCitStruct.pBaseAddr,
-        pArmTask->taskMemGrants.sSpareCitStruct.ui32Size
-        );
-
-    if (BERR_SUCCESS != err)
-    {
-        BDBG_ERR(("Error in Copying data to SPARE CIT Buffer DRAM"));
-        err = BERR_TRACE(err);
-        goto err_gen_citinput;
-    }
-
     /* Initialize interframe buffers for all the nodes */
     err = BDSP_Arm_P_InitInterframeBuffer((void *)pStartSettings->primaryStage->pStageHandle);
     if (BERR_SUCCESS != err)
@@ -4116,8 +4028,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         }
 
         /* Fill up start task parameters */
-        pTaskParams = (BDSP_P_TaskParamInfo *)(pArmTask->taskMemGrants.sTaskInfo.pBaseAddr);
-
+        pTaskParams = (BDSP_P_TaskParamInfo *)(pArmTask->taskMemGrants.sTaskInfo.Buffer.pAddr);
         if (pArmTask->startSettings.realtimeMode== BDSP_TaskRealtimeMode_eNonRealTime)
         {
             psCommand->uCommand.sStartTask.eDeadlineComputationFuncType =
@@ -4158,30 +4069,18 @@ BERR_Code BDSP_Arm_P_StartTask(
             psCommand->uCommand.sStartTask.ui32MasterTaskId = BDSP_P_INVALID_TASK_ID;
         }
 
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-            (void *)(pArmTask->taskMemGrants.sTaskInfo.pBaseAddr),
-            &ui32PhysAddr);
-        psCommand->uCommand.sStartTask.ui32DramDeadlineConfigStructAddr = ui32PhysAddr;
+        psCommand->uCommand.sStartTask.ui32DramDeadlineConfigStructAddr = pArmTask->taskMemGrants.sTaskInfo.Buffer.offset;
+        psCommand->uCommand.sStartTask.ui32DramTaskConfigAddr = pArmTask->taskMemGrants.sCitStruct.Buffer.offset;
 
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-            (void *)(pArmTask->taskMemGrants.sCitStruct.pBaseAddr),
-            &ui32PhysAddr);
-        psCommand->uCommand.sStartTask.ui32DramTaskConfigAddr = ui32PhysAddr;
-
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-            (void *)(pArmTask->hSyncMsgQueue->psQueuePointer),
-            &ui32PhysAddr);
+		ui32PhysAddr = pDevice->sArmInterfaceQ.Memory.offset +
+			((uint8_t *)pArmTask->hSyncMsgQueue->psQueuePointer - (uint8_t *)pDevice->sArmInterfaceQ.Memory.pAddr);
         psCommand->uCommand.sStartTask.ui32SyncQueueId = ui32PhysAddr;
 
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-            (void *)(pArmTask->hAsyncMsgQueue->psQueuePointer),
-            &ui32PhysAddr);
+		ui32PhysAddr = pDevice->sArmInterfaceQ.Memory.offset +
+			((uint8_t *)pArmTask->hAsyncMsgQueue->psQueuePointer - (uint8_t *)pDevice->sArmInterfaceQ.Memory.pAddr);
         psCommand->uCommand.sStartTask.ui32AsyncQueueId = ui32PhysAddr;
 
-        BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-            (void *)(pArmTask->taskMemGrants.sStackSwapBuff.pBaseAddr),
-            &ui32PhysAddr);
-        psCommand->uCommand.sStartTask.sDramStackBuffer.ui32DramBufferAddress = ui32PhysAddr;
+        psCommand->uCommand.sStartTask.sDramStackBuffer.ui32DramBufferAddress = pArmTask->taskMemGrants.sStackSwapBuff.Buffer.offset;
         psCommand->uCommand.sStartTask.sDramStackBuffer.ui32BufferSizeInBytes = pArmTask->taskMemGrants.sStackSwapBuff.ui32Size;
 
         pTaskParams->ui32SamplingFrequency = 48000;
@@ -4262,9 +4161,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         if ((pArmTask->schedulingMode== BDSP_TaskSchedulingMode_eMaster)
             ||(pArmTask->schedulingMode == BDSP_TaskSchedulingMode_eSlave))
         {
-            BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,
-                (void *)(pArmTask->pFeedbackBuffer),
-                &(pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
+            pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = pArmTask->FeedbackBuffer.offset;
             pTaskParams->ui32MasterTaskFeedbackBuffValid = 1;
             BDBG_MSG(("%s: pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0x%x",(psCommand->uCommand.sStartTask.eSchedulingMode == BDSP_P_SchedulingMode_eSlave)?"slave":"master", pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
         }
@@ -4275,7 +4172,7 @@ BERR_Code BDSP_Arm_P_StartTask(
             BDBG_MSG(("%s: pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr = 0x%x",(psCommand->uCommand.sStartTask.eSchedulingMode == BDSP_P_SchedulingMode_eSlave)?"slave":"master", pTaskParams->ui32MasterTaskFeedbackBuffCfgAddr));
         }
 
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, pTaskParams, sizeof(BDSP_P_TaskParamInfo));
+        BDSP_MMA_P_FlushCache(pArmTask->taskMemGrants.sTaskInfo.Buffer, pArmTask->taskMemGrants.sTaskInfo.ui32Size);
         psCommand->uCommand.sStartTask.ui32EventEnableMask = pArmTask->eventEnabledMask ;
         pArmTask->lastEventType = psCommand->sCommandHeader.ui32CommandID;
         BKNI_ResetEvent(pArmTask->hEvent);
@@ -4509,7 +4406,7 @@ BERR_Code BDSP_Arm_P_StopTask(
     {
         BDSP_ARM_CIT_P_Output       *psCitOp   = &(pArmTask->citOutput);
         BDSP_ARM_AF_P_sNODE_CONFIG  *psNodeCfg = &(psCitOp->sCit.sNodeConfig[1]);
-        void *pAddr = NULL;
+		BDSP_MMA_Memory Memory;
         BERR_Code   err1 = BERR_SUCCESS;
         BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
         BDSP_MAP_Table_Entry MapTable[((BDSP_ARM_MAX_ALLOC_STAGE>BDSP_ARM_MAX_ALLOC_TASK)? BDSP_ARM_MAX_ALLOC_STAGE: BDSP_ARM_MAX_ALLOC_TASK)];
@@ -4523,16 +4420,12 @@ BERR_Code BDSP_Arm_P_StopTask(
         {
             BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command failed!!!!"));
         }
-
-        BDSP_MEM_P_ConvertOffsetToCacheAddress(pDevice->memHandle,
-            psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress,
-            &pAddr);
-
-        err1 = BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle,
-            &(pArmStage->sStageMapTable[0]),
-            pAddr,
-            BDSP_ARM_MAX_ALLOC_STAGE);
-
+		Memory.pAddr = pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(psNodeCfg->eAlgoId)].pMemory;
+		Memory.offset=	pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(psNodeCfg->eAlgoId)].offset;
+		err1 = BDSP_Arm_P_DeleteEntry_MapTable(
+			&(pArmStage->sStageMapTable[0]),
+			&Memory,
+			BDSP_ARM_MAX_ALLOC_STAGE);
         if (BERR_SUCCESS != err1)
         {
             BDBG_ERR(("BDSP_Arm_P_StopTask: Unable to delete entry form the Table for LUT of NODE-1 which was a hack put-in in NODE CONFIG"));
@@ -4603,17 +4496,13 @@ Functionality   :   Return the Default UserConfig of the algorithm requested by 
 ***********************************************************************/
 
 void BDSP_Arm_P_GetAlgorithmDefaultSettings(
-    void *pDeviceHandle,
     BDSP_Algorithm algorithm,
-    void *pSettingsBuffer,        /* [out] */
+    BDSP_MMA_Memory *pMemory,
     size_t settingsBufferSize
     )
 {
     const BDSP_Arm_P_AlgorithmInfo *pAlgoInfo;
-    BDSP_Arm *pDevice =(BDSP_Arm *)pDeviceHandle;
-
-
-    BDBG_ASSERT(NULL != pSettingsBuffer);
+	BDBG_ASSERT(NULL != pMemory->pAddr);
     BDBG_ASSERT(algorithm < BDSP_Algorithm_eMax);
 
     pAlgoInfo = BDSP_Arm_P_LookupAlgorithmInfo(algorithm);
@@ -4626,8 +4515,8 @@ void BDSP_Arm_P_GetAlgorithmDefaultSettings(
         BDBG_ASSERT(0);;
     }
 
-    BKNI_Memcpy((void *)pSettingsBuffer, (void *)pAlgoInfo->pDefaultUserConfig, settingsBufferSize);
-    BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pSettingsBuffer, settingsBufferSize);
+    BKNI_Memcpy(pMemory->pAddr, (void *)pAlgoInfo->pDefaultUserConfig, settingsBufferSize);
+    BDSP_MMA_P_FlushCache((*pMemory), settingsBufferSize);
 }
 
 
@@ -4661,7 +4550,6 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
     const BDSP_Arm_P_AlgorithmInfo *pAlgoInfo;
     const BDSP_Arm_P_AlgorithmInfo *pCurrAlgoInfo;
     bool validType;
-    void *pUserCfgAddr, *pStatusBuffAddr;
 
     BDBG_ENTER(BDSP_Arm_P_SetAlgorithm);
     BDBG_ASSERT(NULL != pStageHandle);
@@ -4742,51 +4630,38 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
     if(pAlgoInfo->userConfigSize)
     {
         /* Load the default algorithm settings */
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
-            pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress, (void **)&pUserCfgAddr);
-
-        BDSP_Arm_P_GetAlgorithmDefaultSettings((void *)pDevice,
-                    pArmStage->algorithm,
-                    pUserCfgAddr,
+        BDSP_Arm_P_GetAlgorithmDefaultSettings(pArmStage->algorithm,
+                    &(pArmStage->sDramUserConfigBuffer.Buffer),
                     pAlgoInfo->userConfigSize);
     }
 
     /* Load the default ids settings */
     if (pAlgoInfo->idsConfigSize)
     {
-        uint32_t fsBufAddr;
+        BDSP_MMA_Memory Memory;
+        Memory = pArmStage->sDramUserConfigBuffer.Buffer;
+        Memory.pAddr = (void *)(((uint32_t)Memory.pAddr)+pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
 
-        fsBufAddr = pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress +
-                    pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
-
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle, fsBufAddr, (void **)&pUserCfgAddr);
-
-        BKNI_Memcpy((void *)pUserCfgAddr, (void *)pAlgoInfo->pDefaultIdsConfig, pAlgoInfo->idsConfigSize);
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pUserCfgAddr, pAlgoInfo->idsConfigSize);
+        BKNI_Memcpy(Memory.pAddr, (void *)pAlgoInfo->pDefaultIdsConfig, pAlgoInfo->idsConfigSize);
+        BDSP_MMA_P_FlushCache(Memory, pAlgoInfo->idsConfigSize);
 
         /* Initilaise both the HOST and DSP Frame Sync Settings to maintain consistence while the Stage is Stopped.
          Get Settings retrieves the data from HOST buffer(spare) and if this data is not initialised then, there may be case
          of junk data fed to the FW. */
 
-        fsBufAddr = pArmStage->sDramUserConfigSpareBuffer.ui32DramBufferAddress +
-                    pArmStage->sFrameSyncOffset.ui32UserCfgOffset;
+        Memory = pArmStage->sDramUserConfigSpareBuffer.Buffer;
+        Memory.pAddr = (void *)(((uint32_t)Memory.pAddr)+pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
 
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle, fsBufAddr, (void **)&pUserCfgAddr);
-
-        BKNI_Memcpy((void *)pUserCfgAddr, (void *)pAlgoInfo->pDefaultIdsConfig, pAlgoInfo->idsConfigSize);
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pUserCfgAddr, pAlgoInfo->idsConfigSize);
+        BKNI_Memcpy(Memory.pAddr, (void *)pAlgoInfo->pDefaultIdsConfig, pAlgoInfo->idsConfigSize);
+        BDSP_MMA_P_FlushCache(Memory, pAlgoInfo->idsConfigSize);
     }
-
 
     /* Reset the Status buffer */
-    if( pArmStage->sDramStatusBuffer.ui32BufferSizeInBytes)
-    {
-        BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
-            pArmStage->sDramStatusBuffer.ui32DramBufferAddress, (void **)&pStatusBuffAddr);
-
-        BKNI_Memset((void *)pStatusBuffAddr, 0xFF, pArmStage->sDramStatusBuffer.ui32BufferSizeInBytes);
-        BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)pStatusBuffAddr, pArmStage->sDramStatusBuffer.ui32BufferSizeInBytes);
-    }
+	if( pArmStage->sDramStatusBuffer.ui32Size)
+	{
+        BKNI_Memset(pArmStage->sDramStatusBuffer.Buffer.pAddr, 0xFF, pArmStage->sDramStatusBuffer.ui32Size);
+        BDSP_MMA_P_FlushCache(pArmStage->sDramStatusBuffer.Buffer, pArmStage->sDramStatusBuffer.ui32Size);
+	}
 
 end:
     BDBG_LEAVE(BDSP_Arm_P_SetAlgorithm);

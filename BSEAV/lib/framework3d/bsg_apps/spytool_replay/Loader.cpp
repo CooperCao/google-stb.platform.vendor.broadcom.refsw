@@ -99,6 +99,8 @@ Loader::Loader(SpyToolReplay *replay) :
    m_ioBufferBytes(64 * 1024),
    m_maxCmds(200000),
    m_reprime(true),
+   m_readPtr(NULL),
+   m_loaderTask(NULL),
    m_tasker(NULL)
 #ifdef HAS_UNZIP
    ,
@@ -327,6 +329,20 @@ bool Loader::ReadCommand(Command *cmd)
    return true;
 }
 
+bool Loader::CaptureHasPointerSize()
+{
+#if V3D_TECH_VERSION >= 3
+   #define CAPTURE_WITH_PTR_SIZE_MAJOR_VER_MIN 1
+   #define CAPTURE_WITH_PTR_SIZE_MINOR_VER_MIN 5
+
+   return m_major > CAPTURE_WITH_PTR_SIZE_MAJOR_VER_MIN ||
+         (m_major == CAPTURE_WITH_PTR_SIZE_MAJOR_VER_MIN &&
+               m_minor >= CAPTURE_WITH_PTR_SIZE_MINOR_VER_MIN);
+#else
+   return false;
+#endif
+}
+
 bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t ioBufferBytes, uint32_t maxCmds, bool reprime)
 {
    m_bufferBytes = bufferBytes;
@@ -453,6 +469,30 @@ bool Loader::Open(const std::string &filename, uint32_t bufferBytes, uint32_t io
          }
 #endif
       }
+
+#if V3D_TECH_VERSION >= 3
+      #define DEFAULT_PTR_SIZE 4 // Assume 32-bit platform if not specified
+      unsigned capturePtrSize = CaptureHasPointerSize() ?
+            Read32() : DEFAULT_PTR_SIZE;
+      if (!PacketItem::SetPointerSize(capturePtrSize))
+      {
+         unsigned ourPtrSize = sizeof(void*);
+         printf("Error: Capture pointer size of %d-bit too big for this %d-bit "
+               "replayer\n", capturePtrSize * 8, ourPtrSize * 8);
+         if (m_fp)
+         {
+            fclose(m_fp);
+            m_fp = NULL;
+         }
+#ifdef HAS_UNZIP
+         if (m_zipFP)
+         {
+            unzClose(m_zipFP);
+            m_zipFP = NULL;
+         }
+#endif
+      }
+#endif
 
       if (!m_reprime)
       {

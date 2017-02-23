@@ -229,9 +229,6 @@ void BVDC_P_CompositorDisplay_isr
     /* Display only have T/B slot. */
     BDBG_ASSERT(BAVC_Polarity_eFrame != (BAVC_Polarity)iParam2);
 
-    /* Basically this guaranteed that interrupt will not run dried. */
-    BDBG_ASSERT(BVDC_P_STATE_IS_INACTIVE(hCompositor)==false);
-
     /* Make sure the BKNI enter/leave critical section works. */
     BVDC_P_CHECK_CS_ENTER_VDC(hCompositor->hVdc);
 
@@ -240,7 +237,7 @@ void BVDC_P_CompositorDisplay_isr
        (BVDC_P_ItState_eSwitchMode == hDisplay->eItState))
     {
         /* Detected the force execution, or mode switch reset of vec. */
-        uint32_t ulVecResetDetected = BREG_Read32(hCompositor->hVdc->hRegister,
+        uint32_t ulVecResetDetected = BRDC_ReadScratch_isrsafe(hCompositor->hVdc->hRegister,
             hDisplay->ulRdcVarAddr);
 
         /* If ulVecResetDetected it means that the last RDC executed a VEC's
@@ -248,7 +245,7 @@ void BVDC_P_CompositorDisplay_isr
         if(ulVecResetDetected)
         {
             /* Acknowledge reset. */
-            BREG_Write32(hCompositor->hVdc->hRegister, hDisplay->ulRdcVarAddr, 0);
+            BRDC_WriteScratch_isrsafe(hCompositor->hVdc->hRegister, hDisplay->ulRdcVarAddr, 0);
             BDBG_MSG(("Display[%d]'s state: %s (%s => %d)", hCompositor->eId,
                 (BVDC_P_ItState_eNotActive == hDisplay->eItState) ? "eNotActive" :
                 (BVDC_P_ItState_eSwitchMode == hDisplay->eItState) ? "eSwitchMode" : "eActive",

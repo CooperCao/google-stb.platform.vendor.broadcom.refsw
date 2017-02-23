@@ -144,6 +144,17 @@ typedef enum NEXUS_DssMessageType
     NEXUS_DssMessageType_eMax
 } NEXUS_DssMessageType;
 
+/*
+Summary:
+DSS message MPT flags
+*/
+typedef enum NEXUS_DssMessageMptFlags
+{
+    NEXUS_DssMessageMptFlags_eSaveNone,     /* Don't save any MPT flag */
+    NEXUS_DssMessageMptFlags_eSaveFirst,    /* Save first MPT flag only, per MPT message */
+    NEXUS_DssMessageMptFlags_eSaveAll,      /* Save all MPT flags in each transport packet of an MPT message */
+    NEXUS_DssMessageMptFlags_eMax
+} NEXUS_DssMessageMptFlags;
 
 /**
 Summary:
@@ -316,6 +327,7 @@ typedef struct NEXUS_MessageStartSettings
     unsigned bufferSize; /* Size in bytes of optional NEXUS_MessageStartSettings.buffer. See NEXUS_MessageSettings.bufferSize for size restrictions. */
 
     NEXUS_DssMessageType dssMessageType;
+    NEXUS_DssMessageMptFlags dssMessageMptFlags;
     bool useRPipe;
 
     unsigned filterOffset;       /* offset all filters by this number of bytes */

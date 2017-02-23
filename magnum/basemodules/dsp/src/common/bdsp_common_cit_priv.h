@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,12 @@
 
 /* STATIC MEMORY ALLOCATION FOR A TASK */
 
+#if (BCHP_CHIP == 7278)
+#define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(32000)) /* Task Swap Buffer size in bytes */
+#else
 #define BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES        ((uint32_t)(2048*4)) /* Task Swap Buffer size in bytes */
+#endif /* (BCHP_CHIP == 7278) */
+
 #define BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE            ((uint32_t)((((SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS + 20)+3)>>2)<<2)) /* Task's output port configuration memory size in bytes */
 #define BDSP_CIT_P_TASK_SPDIF_USER_CFG_MEM_SIZE         ((uint32_t)((((SIZEOF(BDSP_AF_P_sSPDIF_USER_CFG)*BDSP_AF_P_MAX_NUM_SPDIF_PORTS + 20) +3)>>2)<<2)) /* Task's SPDIF user configuration memory size in bytes for all ports*/
 #define BDSP_CIT_P_TASK_FMM_GATE_OPEN_CONFIG            ((uint32_t)((((SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG) + 20)+3)>>2)<<2)) /* FMM gate open configuration memory size in bytes*/
@@ -123,13 +128,11 @@ void BDSP_P_InitializeFmmDstCfg(
                 BDSP_AF_P_sFMM_DEST_CFG     *psFmmDestCfgArray
             );
 
-uint32_t BDSP_P_FillSamplingFrequencyMapLut(
-                BMEM_Handle                 hHeap,
+BERR_Code BDSP_P_FillSamplingFrequencyMapLut(
                 BDSP_AF_P_DolbyMsUsageMode  eDolbyMsUsageMode,
-                uint32_t                    ui32FwOpSamplingFreqMapLutAddr,
-                BDSP_CIT_P_sAlgoModePresent *psAlgoModePresent
+                BDSP_CIT_P_sAlgoModePresent *psAlgoModePresent,
+                BDSP_MMA_Memory				*pFwOpSamplingFreqMapLUTAddr
             );
-
 void BDSP_P_Analyse_CIT_PrintBufferAddrSize(BDSP_AF_P_sDRAM_BUFFER Buffer,
                 uint32_t count);
 

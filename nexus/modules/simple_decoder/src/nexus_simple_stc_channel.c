@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_simple_decoder_module.h"
 #include "nexus_simple_decoder_impl.h"
@@ -767,7 +766,7 @@ NEXUS_Error NEXUS_SimpleStcChannel_SetSettings( NEXUS_SimpleStcChannelHandle han
     set_sync_mode(handle, pSettings->sync);
 #endif
 #if NEXUS_HAS_ASTM
-    handle->astm.enabled = (pSettings->astm || NEXUS_GetEnv("astm_enabled")) && !NEXUS_GetEnv("force_vsync");
+    handle->astm.enabled = pSettings->astm && !NEXUS_GetEnv("force_vsync");
     BDBG_MSG(("ASTM %s", handle->astm.enabled ? "enabled" : "disabled"));
     set_astm_control(handle, handle->astm.enabled);
 #endif

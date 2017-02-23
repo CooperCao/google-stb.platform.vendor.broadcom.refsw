@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,19 +35,11 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #include "nexus_platform.h"
-#if NEXUS_NUM_I2S_OUTPUTS && NEXUS_NUM_I2S_INPUTS
+#if NEXUS_NUM_I2S_OUTPUTS && NEXUS_NUM_I2S_INPUTS && NEXUS_HAS_AUDIO
 #include "nexus_audio_dac.h"
 #include "nexus_i2s_input.h"
 #include "nexus_audio_input.h"
@@ -63,8 +55,8 @@ int main(int argc, char **argv)
     NEXUS_I2sInputHandle i2sInput;
     NEXUS_PlatformConfiguration platformConfig;
 
-	argc=argc;
-	argv=argv;
+    argc=argc;
+    argv=argv;
 
     NEXUS_Platform_Init(NULL);
     NEXUS_Platform_GetConfiguration(&platformConfig);
@@ -156,6 +148,6 @@ int main(int argc, char **argv)
 int main(void)
 {
     printf("This application is not supported on this platform!\n");
-    return -1;
+    return 0;
 }
 #endif

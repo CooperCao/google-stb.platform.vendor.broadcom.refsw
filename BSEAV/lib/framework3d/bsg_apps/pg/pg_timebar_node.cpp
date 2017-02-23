@@ -62,7 +62,7 @@ TimeBarNode::TimeBarNode() :
    m_tickMaterial(New),
    m_lineMaterial(New)
 {
-   m_font->Load("DroidSans-Bold.ttf", 20.0f);
+   m_font->Load("DroidSans-Bold.ttf", Metrics::GetTimeTextPoints());
    m_textEffect->Load("frame_text.bfx");
    m_tickEffect->Load("tick.bfx");
    m_lineEffect->Load("line.bfx");

@@ -54,8 +54,8 @@ BDBG_MODULE(nexus_base_mmap);
 typedef struct NEXUS_P_MemoryMap {
     size_t length;
     NEXUS_Addr offset;
-    bool fake_uncached;
-    bool fake_cached;
+    NEXUS_AddrType cachedAddrType;
+    NEXUS_AddrType uncachedAddrType;
     void *cached;
     void *uncached;
 } NEXUS_P_MemoryMap;
@@ -79,7 +79,7 @@ kernel and user modes. Allow chip-specific override in nexus_platform_features.h
 
 
 NEXUS_P_Base_MemoryRange g_NEXUS_P_CpuNotAccessibleRange = {
-#if NEXUS_BASE_OS_ucos_ii || NEXUS_BASE_OS_no_os || NEXUS_BASE_OS_wince || B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_BASE_OS_ucos_ii || B_REFSW_SYSTEM_MODE_CLIENT
     NULL, 0
 #elif NEXUS_MODE_driver || NEXUS_BASE_OS_linuxkernel
     NULL, NEXUS_KERNEL_MODE_VIRTUAL_ADDRESS_BASE
@@ -92,23 +92,23 @@ NEXUS_P_Base_MemoryRange g_NEXUS_P_CpuNotAccessibleRange = {
 
 bool NEXUS_P_CpuAccessibleAddress( const void *address )
 {
-    if( (uint8_t *)address >= (uint8_t *)g_NEXUS_P_CpuNotAccessibleRange.start && (uint8_t *)address < ((uint8_t *)g_NEXUS_P_CpuNotAccessibleRange.start + g_NEXUS_P_CpuNotAccessibleRange.length)) {
+    NEXUS_AddrType type = NEXUS_GetAddrType(address);
+    if(type == NEXUS_AddrType_eCached || type == NEXUS_AddrType_eUncached) {
+        return true;
+    } else {
         return false;
     }
-    return true;
 }
 
 NEXUS_Error
-NEXUS_P_AddMap(NEXUS_Addr offset, void *cached, void *uncached, size_t length)
+NEXUS_P_AddMap(NEXUS_Addr offset, void *cached, NEXUS_AddrType cachedAddrType, void *uncached, NEXUS_AddrType uncachedAddrType, size_t length)
 {
     unsigned i;
 
-#if !NEXUS_BASE_OS_linuxemu
     /* offset==0 is normal in emulation environments */
     if (offset==0) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-#endif
     if (uncached==NULL && cached==NULL) {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
@@ -119,11 +119,11 @@ NEXUS_P_AddMap(NEXUS_Addr offset, void *cached, void *uncached, size_t length)
             map->length = length;
             map->offset = offset;
             map->cached = cached;
-            map->fake_cached = !NEXUS_P_CpuAccessibleAddress(cached);
+            map->cachedAddrType = cachedAddrType;
             map->uncached = uncached;
-            map->fake_uncached = !NEXUS_P_CpuAccessibleAddress(uncached);
+            map->uncachedAddrType = uncachedAddrType;
             BDBG_MSG(("NEXUS_P_AddMap offset=" BDBG_UINT64_FMT " length=%#x(%uMBytes) cached_addr=%p..%p%s uncached_addr=%p..%p%s",
-                BDBG_UINT64_ARG(offset), (unsigned)length, (unsigned)(length/(1024*1024)), cached,  (uint8_t *)cached + length, map->fake_cached?"[FAKE]":"", uncached, (uint8_t *)uncached + length, map->fake_uncached?"[FAKE]":""));
+                BDBG_UINT64_ARG(offset), (unsigned)length, (unsigned)(length/(1024*1024)), cached,  (uint8_t *)cached + length, cachedAddrType == NEXUS_AddrType_eFake ? "[FAKE]":"", uncached, (uint8_t *)uncached + length, uncachedAddrType == NEXUS_AddrType_eFake ?"[FAKE]":""));
             return BERR_SUCCESS;
         }
         if(  B_IS_INTERSECT(offset,length, map->offset,map->length) ||
@@ -176,12 +176,12 @@ NEXUS_AddrType NEXUS_GetAddrType(const void *addr)
             (uint8_t *)addr<((uint8_t *)map[i].cached + map[i].length) &&
             map[i].cached != NULL
             ) {
-            return map[i].fake_cached?NEXUS_AddrType_eFake:NEXUS_AddrType_eCached;
+            return map[i].cachedAddrType;
         }
         if( (uint8_t *)addr>=(uint8_t *)map[i].uncached &&
             (uint8_t *)addr<((uint8_t *)map[i].uncached + map[i].length) &&
             map[i].uncached != NULL) {
-            return map[i].fake_uncached?NEXUS_AddrType_eFake:NEXUS_AddrType_eUncached;
+            return map[i].uncachedAddrType;
         }
     }
     return NEXUS_AddrType_eUnknown;

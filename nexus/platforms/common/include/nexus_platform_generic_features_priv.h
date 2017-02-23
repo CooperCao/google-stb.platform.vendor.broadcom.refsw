@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -123,15 +123,12 @@ See NEXUS_TransportCapabilities.numInputBands for actual number. */
 #endif
 
 #ifdef NEXUS_HAS_VIDEO_DECODER
-/* TODO: convert to generic max when BBOX_XVD specifies this */
-#if BCHP_CHIP == 7445
-#define NEXUS_NUM_XVD_DEVICES 3
-#elif BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435 || BCHP_CHIP == 7439
-#define NEXUS_NUM_XVD_DEVICES 2
-#else
+/* unused. only for backward compat. */
 #define NEXUS_NUM_XVD_DEVICES 1
-#endif
 #define NEXUS_NUM_MOSAIC_DECODES 14
+#else
+#define NEXUS_NUM_XVD_DEVICES 0
+#define NEXUS_NUM_MOSAIC_DECODES 0
 #endif
 
 /* NEXUS_NUM_656_INPUTS is unused in Nexus except in some older pinmux code,
@@ -166,15 +163,129 @@ For a compile-time test for RAAGA, use:
 #if NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA
 */
 #define NEXUS_NUM_AUDIO_DSP 2
-#ifndef NEXUS_NUM_AUDIO_CAPTURES
-#define NEXUS_NUM_AUDIO_CAPTURES 4
+
+#ifndef NEXUS_NUM_AUDIO_DECODERS
+#define NEXUS_NUM_AUDIO_DECODERS NEXUS_MAX_AUDIO_DECODERS
 #endif
+
+#ifndef NEXUS_NUM_AUDIO_PLAYBACKS
+#define NEXUS_NUM_AUDIO_PLAYBACKS NEXUS_MAX_AUDIO_PLAYBACKS
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_MIXERS
+#define NEXUS_NUM_AUDIO_MIXERS NEXUS_MAX_AUDIO_MIXERS
+#endif
+
+#ifndef NEXUS_HAS_AUDIO_MUX_OUTPUT
+#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_DACS
+#define NEXUS_NUM_AUDIO_DACS NEXUS_MAX_AUDIO_DAC_OUTPUTS
+#endif
+
+#ifndef NEXUS_NUM_I2S_OUTPUTS
+#define NEXUS_NUM_I2S_OUTPUTS NEXUS_MAX_AUDIO_I2S_OUTPUTS
+#endif
+
+#ifndef NEXUS_NUM_SPDIF_OUTPUTS
+#define NEXUS_NUM_SPDIF_OUTPUTS NEXUS_MAX_AUDIO_SPDIF_OUTPUTS
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
+#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS NEXUS_MAX_AUDIO_DUMMY_OUTPUTS
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_CAPTURES
+#define NEXUS_NUM_AUDIO_CAPTURES NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS
+#endif
+
 #ifndef NEXUS_NUM_AUDIO_CRCS
-#define NEXUS_NUM_AUDIO_CRCS 2
+#define NEXUS_NUM_AUDIO_CRCS NEXUS_MAX_AUDIO_CRC_OUTPUTS
+#endif
+
+#ifndef NEXUS_NUM_I2S_INPUTS
+#define NEXUS_NUM_I2S_INPUTS NEXUS_MAX_AUDIO_I2S_INPUTS
+#endif
+
+#ifndef NEXUS_NUM_SPDIF_INPUTS
+#define NEXUS_NUM_SPDIF_INPUTS NEXUS_MAX_AUDIO_SPDIF_INPUTS
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_INPUT_CAPTURES
+#define NEXUS_NUM_AUDIO_INPUT_CAPTURES NEXUS_MAX_AUDIO_INPUT_CAPTURES
 #endif
 #else /* NEXUS_HAS_AUDIO */
-#define NEXUS_NUM_AUDIO_CRCS 0
+#ifndef NEXUS_NUM_AUDIO_DECODERS
+#define NEXUS_NUM_AUDIO_DECODERS 0
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_PLAYBACKS
+#define NEXUS_NUM_AUDIO_PLAYBACKS 0
+#endif
+#ifndef NEXUS_NUM_AUDIO_MIXERS
+#define NEXUS_NUM_AUDIO_MIXERS 0
+#endif
+
+#ifndef NEXUS_HAS_AUDIO_MUX_OUTPUT
+#define NEXUS_HAS_AUDIO_MUX_OUTPUT 0
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_DACS
+#define NEXUS_NUM_AUDIO_DACS 0
+#endif
+
+#ifndef NEXUS_NUM_I2S_OUTPUTS
+#define NEXUS_NUM_I2S_OUTPUTS 0
+#endif
+
+#ifndef NEXUS_NUM_SPDIF_OUTPUTS
+#define NEXUS_NUM_SPDIF_OUTPUTS 0
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
+#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 0
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_CAPTURES
 #define NEXUS_NUM_AUDIO_CAPTURES 0
 #endif
+
+#ifndef NEXUS_NUM_AUDIO_CRCS
+#define NEXUS_NUM_AUDIO_CRCS 0
+#endif
+
+#ifndef NEXUS_NUM_I2S_INPUTS
+#define NEXUS_NUM_I2S_INPUTS 0
+#endif
+
+#ifndef NEXUS_NUM_SPDIF_INPUTS
+#define NEXUS_NUM_SPDIF_INPUTS 0
+#endif
+
+#ifndef NEXUS_NUM_AUDIO_INPUT_CAPTURES
+#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 0
+#endif
+#endif
+
+#define NEXUS_MEMC0_MAIN_HEAP                   0
+#define NEXUS_VIDEO_SECURE_HEAP                 1
+#define NEXUS_SAGE_SECURE_HEAP                  2
+#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP         3
+#define NEXUS_MEMC0_GRAPHICS_HEAP               4
+#define NEXUS_MEMC0_DRIVER_HEAP                 5
+#define NEXUS_MEMC1_PICTURE_BUFFER_HEAP         6
+#define NEXUS_MEMC1_GRAPHICS_HEAP               7
+#define NEXUS_MEMC1_DRIVER_HEAP                 8
+#define NEXUS_MEMC2_PICTURE_BUFFER_HEAP         9
+#define NEXUS_MEMC2_GRAPHICS_HEAP               10
+#define NEXUS_MEMC2_DRIVER_HEAP                 11
+#define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP  12
+#define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP  13
+#define NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP  14
+#define NEXUS_MEMC0_SECURE_GRAPHICS_HEAP        15
+#define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP        16
+#define NEXUS_MEMC2_SECURE_GRAPHICS_HEAP        17
+#define NEXUS_EXPORT_HEAP                       18
 
 #endif

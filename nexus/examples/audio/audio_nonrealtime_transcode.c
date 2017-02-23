@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -59,10 +51,14 @@
 #include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
 #include "nexus_composite_output.h"
+#include "nexus_audio_input.h"
+#include "nexus_audio_mux_output.h"
+#include "nexus_audio_encoder.h"
+#include "nexus_audio_decoder.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_STREAM_MUX && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_STREAM_MUX
 #include "nexus_playback.h"
 #include "nexus_record.h"
 #include "nexus_file.h"
@@ -70,9 +66,6 @@
 #include "nexus_stream_mux.h"
 #include "nexus_recpump.h"
 #include "nexus_record.h"
-#include "nexus_audio_input.h"
-#include "nexus_audio_mux_output.h"
-#include "nexus_audio_encoder.h"
 #endif
 
 #include <assert.h>
@@ -86,7 +79,7 @@
 #define AUDIO_PID 0x104
 #define PCR_PID 0x101 /* use video PID */
 
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_STREAM_MUX && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_STREAM_MUX
 static void 
 transcoderFinishCallback(void *context, int param)
 {
@@ -99,7 +92,7 @@ transcoderFinishCallback(void *context, int param)
 
 int main(void)
 {
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_STREAM_MUX && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_STREAM_MUX
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel;
@@ -139,6 +132,7 @@ int main(void)
     NEXUS_PidChannelHandle pidChannelTranscodeAudio;
     NEXUS_PidChannelHandle pidChannelTranscodePcr;
     NEXUS_AudioMuxOutputStartSettings muxStartSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     const char *fname = "videos/avatar_AVC_15M.ts";
 
@@ -146,6 +140,13 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0 || !audioCapabilities.dsp.muxOutput)
+    {
+        printf("This application is not supported on this platform (requires decoder and mux).\n");
+        return 0;
+    }
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -191,7 +192,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -356,7 +357,7 @@ int main(void)
     NEXUS_Platform_Uninit();
 
 #else
-	printf("This application is not supported on this platform!\n");
+    printf("This application is not supported on this platform!\n");
 #endif
 
     return 0;

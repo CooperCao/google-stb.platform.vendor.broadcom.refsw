@@ -192,9 +192,9 @@ NEXUS_Display_P_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySett
             rc = BVDC_Display_SetVideoFormat(display->displayVdc, video_format_info.eVideoFmt);
             if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_setformat;}
         }
-
+#if NEXUS_HAS_VBI && defined(MACROVISION_SUPPORT)
         nexus_p_check_macrovision(display, pSettings->format);
-
+#endif
         /* actual display refresh rate should come from the display rate change callback */
         if(display->status.refreshRate == 0) {/* initialize if not updated by display callback */
             display->status.refreshRate = B_REFRESH_RATE_10_TO_1000(video_format_info.ulVertFreq);
@@ -1352,6 +1352,20 @@ NEXUS_Display_GetSettings(NEXUS_DisplayHandle display, NEXUS_DisplaySettings *pS
     return;
 }
 
+static void nexus_p_max_window_size(NEXUS_DisplayHandle display, unsigned window, unsigned *pWidth, unsigned *pHeight)
+{
+    *pWidth = display->displayRect.width;
+    *pHeight = display->displayRect.height;
+    if (g_pCoreHandles->boxConfig->stBox.ulBoxId) {
+        const BBOX_Vdc_WindowSizeLimits *pSizeLimits =
+           &(g_pCoreHandles->boxConfig->stVdc.astDisplay[display->index].astWindow[window].stSizeLimits);
+        if(BBOX_VDC_DISREGARD != pSizeLimits->ulHeightFraction) {
+            *pWidth = *pWidth/pSizeLimits->ulWidthFraction;
+            *pHeight = *pHeight/pSizeLimits->ulHeightFraction;
+        }
+    }
+}
+
 NEXUS_Error
 NEXUS_Display_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettings *pSettings)
 {
@@ -1382,29 +1396,23 @@ NEXUS_Display_SetSettings(NEXUS_DisplayHandle display, const NEXUS_DisplaySettin
         unsigned i;
         for(i=0;i<sizeof(display->windows)/sizeof(display->windows[0]);i++) {
             NEXUS_VideoWindowHandle window = &display->windows[i];
+            unsigned maxWidth, maxHeight;
             /* resize window */
             if (!window->open) continue;
+            nexus_p_max_window_size(display, i, &maxWidth, &maxHeight);
             if (NEXUS_P_Display_RectEqual(&window->cfg.position, &prevDisplayRect) || /* preserve fullscreen */
+                (window->cfg.position.width > maxWidth) || (window->cfg.position.height > maxHeight) || /* don't exceed box mode limit */
                 (window->cfg.position.x + window->cfg.position.width > display->displayRect.width) || /* window will exceed bounds of new display */
                 (window->cfg.position.y + window->cfg.position.height > display->displayRect.height+2) || /* The +2 on height is needed to account for NTSC as 482 or 480 */
                 NEXUS_P_Display_RectEqual3d(&window->cfg.position, &prevDisplayRect,
                     pSettings->display3DSettings.overrideOrientation?display->cfg.display3DSettings.orientation:NEXUS_VideoOrientation_e2D)) /* preserve fullscreen for halfres 3D formats on 40nm BVN */
             {
-                /* the simple solution is just to make the window full screen instead of letting VDC fail.
+                /* the simple solution is to put the window at 0,0,maxWidth,maxHeight for this display.
                 likely the app will want to reposition the window if the display size changes. */
-                window->cfg.position = display->displayRect; /* set to fullscreen */
-
-                /* stay within boxmode limit */
-                if (g_pCoreHandles->boxConfig->stBox.ulBoxId) {
-                    const BBOX_Vdc_WindowSizeLimits *pSizeLimits =
-                       &(g_pCoreHandles->boxConfig->stVdc.astDisplay[display->index].astWindow[i].stSizeLimits);
-                    if(BBOX_VDC_DISREGARD != pSizeLimits->ulHeightFraction) {
-                        window->cfg.position.width  =
-                            display->displayRect.width/pSizeLimits->ulWidthFraction;
-                        window->cfg.position.height =
-                            display->displayRect.height/pSizeLimits->ulHeightFraction;
-                    }
-                }
+                window->cfg.position.x = 0;
+                window->cfg.position.y = 0;
+                window->cfg.position.width = maxWidth;
+                window->cfg.position.height = maxHeight;
 
                 if(window->vdcState.window) {
                     rc = NEXUS_VideoWindow_P_SetVdcSettings(window, &window->cfg, true);
@@ -1889,6 +1897,11 @@ NEXUS_Error NEXUS_DisplayModule_Standby_priv(bool enabled, const NEXUS_StandbySe
     BSTD_UNUSED(pSettings);
 
     if(!enabled) {
+        BTMR_TimerSettings sTmrSettings;
+        BTMR_GetDefaultTimerSettings(&sTmrSettings);
+        sTmrSettings.type = BTMR_Type_eSharedFreeRun;
+        rc = BTMR_CreateTimer(g_pCoreHandles->tmr, &pVideo->tmr, &sTmrSettings);
+        if (rc) {rc = BERR_TRACE(rc); goto err;}
         rc = BRDC_Resume(pVideo->rdc);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
         rc = BVDC_Resume(pVideo->vdc);
@@ -2009,6 +2022,7 @@ NEXUS_Error NEXUS_DisplayModule_Standby_priv(bool enabled, const NEXUS_StandbySe
         if (rc) { rc = BERR_TRACE(rc); goto err; }
         rc = BRDC_Standby(pVideo->rdc, NULL);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
+        BTMR_DestroyTimer(pVideo->tmr);
     }
 
     return BERR_SUCCESS;
@@ -2078,6 +2092,9 @@ static void nexus_display_p_refresh_rate_event(void *context)
         {
             BKNI_EnterCriticalSection();
             NEXUS_VideoWindow_P_UpdatePhaseDelay_isr(window, display->status.refreshRate);
+            if (window->syncSettings.formatCallback_isr) {
+                (*window->syncSettings.formatCallback_isr)(window->syncSettings.callbackContext, 0);
+            }
             BKNI_LeaveCriticalSection();
             if(window->input) {
                 NEXUS_Display_P_VideoInputDisplayUpdate(NULL, window, &display->cfg);
@@ -2173,18 +2190,13 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         } else  {
             display->encoder.window->cfg.userCaptureBufferCount = NEXUS_DISPLAY_ENCODER_MAX_PICTURE_BUFFERS;
         }
+        /* only use artificial vsync for legacy soft encoder */
+        rc = BVDC_Display_SetArtificialVsync(display->displayVdc, true, pSettings->extIntAddress, 1<<pSettings->extIntBitNum);
+        if (rc) return BERR_TRACE(rc);
 #endif
         rc = BVDC_ApplyChanges(pVideo->vdc);
         if (rc) return BERR_TRACE(rc);
-        rc = BVDC_Display_SetArtificialVsync(display->displayVdc, true, pSettings->extIntAddress, 1<<pSettings->extIntBitNum);
-        if (rc) return BERR_TRACE(rc);
-        rc = BVDC_ApplyChanges(pVideo->vdc);
-        if (rc) return BERR_TRACE(rc);
     } else {
-        rc = BVDC_Display_SetArtificialVsync(display->displayVdc, false, 0, 0);
-        if (rc) {rc = BERR_TRACE(rc);}
-        rc = BVDC_ApplyChanges(pVideo->vdc);
-        if (rc) {rc = BERR_TRACE(rc);}
         /* Reclaim all buffers that encoder might be holding. Note: soft encoder should have been stopped up to this point. */
         BKNI_EnterCriticalSection();
         while(NULL != (pImage=BLST_SQ_FIRST(&display->encoder.queued))){
@@ -2214,6 +2226,11 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         rc = BVDC_Display_SetStgConfiguration(display->displayVdc, stgEnabled, &vdcSettings);
         if (rc) { return BERR_TRACE(rc); }
 #else
+        /* only use artificial vsync for legacy soft encoder */
+        rc = BVDC_Display_SetArtificialVsync(display->displayVdc, false, 0, 0);
+        if (rc) {rc = BERR_TRACE(rc);}
+        rc = BVDC_ApplyChanges(pVideo->vdc);
+        if (rc) {rc = BERR_TRACE(rc);}
         /* need to guard on cleanup, since we might have lost input already */
         if (display->encoder.window->input)
         {
@@ -2293,4 +2310,9 @@ NEXUS_Error NEXUS_Display_GetMaxMosaicCoverage( unsigned displayIndex, unsigned 
     if (rc) return BERR_TRACE(rc);
     pCoverage->maxCoverage = coverage;
     return NEXUS_SUCCESS;
+}
+
+void NEXUS_Display_GetIndex_driver( NEXUS_DisplayHandle display, unsigned *pDisplayIndex )
+{
+    *pDisplayIndex = display->index;
 }

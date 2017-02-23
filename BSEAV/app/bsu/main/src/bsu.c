@@ -108,6 +108,7 @@ extern uint32_t g_cp0_count_clocks_per_sec;
 extern uint32_t g_cpu_freq_hz;
 extern void dbg_print(char *);
 extern void dbg_print_dec32(unsigned int num);
+extern void dbg_print_hex32(unsigned int num);
 extern uint32_t mem0_size;
 extern uint32_t mem1_size;
 
@@ -126,6 +127,23 @@ void system_init(void);
 #if __cplusplus
 }
 #endif
+
+extern unsigned int __getstack(void);
+uintptr_t __stack_chk_guard = BSU_STACK_CHECK_VAL;
+
+void __attribute__((noreturn)) __stack_chk_fail(void)
+{
+	unsigned long *sp = (unsigned long *)__getstack();
+
+	dbg_print("stack_chk_fail ");
+	dbg_print_hex32(__stack_chk_guard);
+	dbg_print(" STACK @ ");
+	dbg_print_hex32((unsigned long)sp);
+	dbg_print(" (");
+	dbg_print_hex32(*(unsigned long *)sp);
+	dbg_print(")");
+	while (1);
+}
 
 /***********************************************************************
  *                        Local Functions

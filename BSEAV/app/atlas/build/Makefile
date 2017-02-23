@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,7 @@
 #
 # Reference Software Makefile
 #
-# This Makefile will build 3 things
+# This Makefile will build the following:
 # 1) driver(s)
 # 2) nexus api (shared or static)
 # 3) libs
@@ -84,7 +84,7 @@ B_REFSW_OBJ_ROOT ?= ${BSEAV}/../${B_REFSW_OBJ_DIR}
 ifeq ($(ATLAS_BIN_DIR),)
 # location of final binaries
 ATLAS_BIN_ROOT = $(B_REFSW_OBJ_ROOT)
-ATLAS_BIN_DIR = $(ATLAS_BIN_ROOT)/BSEAV/bin${ATLAS_BIN_DIR_SUFFIX}
+ATLAS_BIN_DIR = $(abspath $(ATLAS_BIN_ROOT)/BSEAV/bin${ATLAS_BIN_DIR_SUFFIX})
 else
 ATLAS_BIN_ROOT = $(ATLAS_BIN_DIR)
 endif
@@ -185,7 +185,7 @@ export B_REFSW_TOOLCHAIN_VER_GE_4_8
 
 CABLECARD_SI_INCLUDE_PATH += \
 	$(BSEAV)/cable/lib/si \
-	$(BSEAV)/cable/lib/si/mpeg2_ts_parse
+	$(BSEAV)/lib/mpeg2_ts_parse
 CFLAGS += $(addprefix -I,$(CABLECARD_SI_INCLUDE_PATH))
 endif
 ##########
@@ -241,21 +241,21 @@ endif
 #  run from that directory without having your configuration files overwritten.
 # install builds an installation tarball in BSEAV/bin.
 bin_install:  $(ATLAS_BIN_DIR) api all
-	@echo [Install... binaries]
+	@echo [Install... binaries to $(ATLAS_BIN_DIR)]
 # Copy over the nexus script into the correct Directory
-	$(Q_)$(CP) $(APP) $(ATLAS_BIN_DIR)
-	$(Q_)$(CP) $(NEXUS_BIN_DIR)/logger $(ATLAS_BIN_DIR)
-	$(Q_)$(CP) $(NEXUS_BIN_DIR)/nexus $(ATLAS_BIN_DIR)
-	$(Q_)$(CP) start $(ATLAS_BIN_DIR)
-	@chmod +x $(ATLAS_BIN_DIR)/nexus
-	@chmod +x $(ATLAS_BIN_DIR)/start
+	${Q_}$(CP) $(APP) $(ATLAS_BIN_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/logger $(ATLAS_BIN_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/nexus $(ATLAS_BIN_DIR)
+	${Q_}$(CP) start $(ATLAS_BIN_DIR)
+	${Q_}chmod +x $(ATLAS_BIN_DIR)/nexus
+	${Q_}chmod +x $(ATLAS_BIN_DIR)/start
 	@echo [Install... Atlas Complete]
 
 
 
 
 $(ATLAS_ODIR):
-	$(Q_)$(MKDIR) $(ATLAS_ODIR)
+	${Q_}$(MKDIR) $(ATLAS_ODIR)
 
 ##########
 ##### NEXUS API Libraries
@@ -283,6 +283,19 @@ PMLIB_CLEAN += b_pmlib_target_clean
 endif
 endif
 
+### we need jpeg support here for cpuTest
+CPUTEST_SUPPORT?=y
+LIBJPEG_BUILD:=
+LIBJPEG_CLEAN:=
+ifeq ($(JPEG_SUPPORT),y)
+ifeq ($(CPUTEST_SUPPORT),y)
+include $(BSEAV)/opensource/jpeg/b_libjpeg_targets.inc
+LIBJPEG_BUILD: b_libjpeg_target_build
+LIBJPEG_CLEAN: b_libjpeg_target_clean_all
+CFLAGS += -DJPEG_SUPPORT -DCPUTEST_SUPPORT -I$(B_REFSW_OBJ_ROOT)/BSEAV/opensource/jpeg-6b
+endif
+endif
+
 ###############
 ####### LUA Support
 ###############
@@ -307,7 +320,7 @@ endif
 ##########
 .PHONY: build_date
 build_date:
-	$(Q_)$(RM) -f $(ATLAS_ODIR)/main.o
+	${Q_}$(RM) -f $(ATLAS_ODIR)/main.o
 
 $(ATLAS_ODIR)/main.o: build_date
 
@@ -317,12 +330,13 @@ clean-atlas:
 lib: b_bwin_target_build b_mlibs_target_build b_bwidgets_target_build
 
 lib-clean: b_bwin_target_clean b_mlibs_target_clean b_bwidgets_target_clean
+clean-lib: lib-clean
 
 print-atlas-tarball:
 	@echo $(ATLAS_TAR_BALL)
 
 $(ATLAS_BIN_DIR):
-	$(Q_)${MKDIR} ${ATLAS_BIN_DIR}
+	${Q_}${MKDIR} ${ATLAS_BIN_DIR}
 
 ##########
 ##### Rule for all and clean
@@ -330,10 +344,12 @@ $(ATLAS_BIN_DIR):
 all: $(ATLAS_BIN_DIR) $(APP)
 	${Q_}$(CP) -f $(APP) $(ATLAS_BIN_DIR)
 
-clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN) $(WPA_SUPPLICANT_CLEAN) clean-wlan
+clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN)
 
 dist-clean: clean dist-clean-netapp
+	@echo [Clean..... libraries]
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/lib
+	@echo [Clean..... linux]
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/linux
 
 # oslib
@@ -346,14 +362,14 @@ api:  $(ATLAS_BIN_DIR) $(ATLAS_ODIR) b_os_lib_target_build
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build  INSTALL_DIR=$(ATLAS_BIN_DIR)
 	${Q_}$(CP) -f $(NEXUS_BIN_DIR)/lib*.so $(ATLAS_BIN_DIR)
 ifeq  ($(NEXUS_MODE),proxy)
-	@echo [Install... KernelMode Driver]
+	@echo [Install... KernelMode Driver to $(ATLAS_BIN_DIR)]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/nexus.ko $(ATLAS_BIN_DIR)
 else
-	@echo [Install... UserMode Driver]
+	@echo [Install... UserMode Driver to $(ATLAS_BIN_DIR)]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/bcmdriver.ko $(ATLAS_BIN_DIR)
 endif
 ifeq ($(SAGE_SUPPORT),y)
-	@echo [Install... Sage binaries]
+	@echo [Install... Sage binaries to $(ATLAS_BIN_DIR)]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/sage*.bin $(ATLAS_BIN_DIR)
 endif
 	${Q_}if [ -f $(NEXUS_BIN_DIR)/wakeup_drv.ko ] ; then  \
@@ -373,10 +389,10 @@ api-install: api
 	${Q_}$(foreach file,$(B_OS_LIB_BUILD_FILES),cp -u $(file) $(STAGING_DIR);)
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build  NEXUS_BIN_DIR=$(STAGING_DIR)
 ifeq  ($(NEXUS_MODE),proxy)
-	@echo [Install... KernelMode Driver]
+	@echo [Install... KernelMode Driver to $(STAGING_DIR)]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/nexus.ko $(STAGING_DIR)
 else
-	@echo [Install... UserMode Driver]
+	@echo [Install... UserMode Driver to $(STAGING_DIR)]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/bcmdriver.ko $(STAGING_DIR)
 endif
 
@@ -385,6 +401,7 @@ api-clean: b_os_lib_target_clean
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build clean
 	${Q_}$(RM) -f $(ATLAS_BIN_DIR)/nexus.ko
 	${Q_}$(RM) -f $(ATLAS_BIN_DIR)/bcmdriver.ko
+clean-api: api-clean
 
 ################
 ######## Source Files for compiling
@@ -487,6 +504,13 @@ APP_OBJECTS += \
     panel_keyboard.o \
     main.o
 
+ifeq ($(JPEG_SUPPORT),y)
+ifeq ($(CPUTEST_SUPPORT),y)
+APP_OBJECTS += \
+    cputest.o
+endif
+endif
+
 ifeq ($(PLAYBACK_IP_SUPPORT),y)
 APP_OBJECTS += \
     panel_streaming.o \
@@ -534,7 +558,6 @@ PSISCAN_SUPPORT = n
 SI_SUPPORT = y
 export NEXUS_MPOD_SUPPORT = y
 BCM_DSGCC_CLIENTS_USE_SHARED_MEMORY_IPC = 0
-
 CFLAGS += -DMPOD_SUPPORT -DINTEGRATE_BCM_DSG_HOST
 POD_DIR = $(BSEAV)/cable/lib/mpod
 POD_STAGING_DIR = ${B_REFSW_OBJ_ROOT}/BSEAV/cable/lib/mpod
@@ -704,6 +727,7 @@ TOOLCHAIN_DIR:=$(shell dirname $(shell dirname $(shell which $(CC) 2>/dev/null) 
 
 CROSS_COMPILE ?= mips-linux-uclibc-
 SI_DIR = $(BSEAV)/cable/lib/si
+TSPSI_DIR = $(BSEAV)/lib/tspsi2
 ATLAS_DIRS += \
 	$(SI_DIR) \
 	$(SI_DIR)/aeit \
@@ -718,7 +742,9 @@ ATLAS_DIRS += \
 	$(SI_DIR)/stt \
 	$(SI_DIR)/svct \
 	$(SI_DIR)/api \
-	$(SI_DIR)/mpeg2_ts_parse
+	$(BSEAV)/lib/mpeg2_ts_parse \
+	$(TSPSI_DIR)
+ATLAS_INCLUDE_DIRS += -I$(TSPSI_DIR)
 LDFLAGS += -L$(B_REFSW_OBJ_ROOT)/BSEAV/cable/lib/si -lsi
 endif
 
@@ -735,6 +761,7 @@ ifneq ($(PSISCAN_SUPPORT),n)
 	# all other tspsi and mpeg2_ts_parse are compiled in with nexus
 	APP_OBJECTS += tspsimgr2.o
 endif
+
 
 ATLAS_OBJS := $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 
@@ -918,8 +945,10 @@ endif
 ## Include wlan driver
 ####
 
-ifneq ($(findstring $(NEXUS_PLATFORM), 97271), $(NEXUS_PLATFORM))
-#only build wlan support for 97271
+ifeq ($(findstring $(NEXUS_PLATFORM), 97271), $(NEXUS_PLATFORM))
+#only build wlan support for 97271, default on
+export WLAN_SUPPORT ?= y
+else
 export WLAN_SUPPORT=n
 endif
 
@@ -1004,7 +1033,7 @@ eclipse:
 # WPA Supplicant Support
 #
 ifeq ($(WLAN_SUPPORT),y)
-include $(BSEAV)/lib/wpa_supplicant/b_wpa_supplicant_targets.inc
+include $(BSEAV)/opensource/wpa_supplicant/b_wpa_supplicant_targets.inc
 CFLAGS += $(B_WPA_SUPPLICANT_CFLAGS) -DWPA_SUPPLICANT_SUPPORT
 LDFLAGS += $(B_WPA_SUPPLICANT_LDFLAGS)
 WPA_SUPPLICANT_BUILD += b_wpa_supplicant_target_build
@@ -1015,7 +1044,7 @@ B_SUPPLICANT_INSTALL_FILES = $(sort $(filter-out %.a,$(B_WPA_SUPPLICANT_BUILD_FI
 wpa_supplicant_install_files:
 	${Q_}$(foreach file, $(B_SUPPLICANT_INSTALL_FILES),cp -fP $(file) $(STAGING_DIR) &&) true
 
-APP_OBJECTS += wifi.o
+APP_OBJECTS += wifi.o panel_wps.o
 endif
 
 ##########
@@ -1039,9 +1068,9 @@ vpath %.cpp $(VPATH)
 vpath %.c $(VPATH)
 
 # Implicit rule for building local app
-$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
+$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LIBJPEG_BUILD) $(LUA_BUILD) $(WPA_SUPPLICANT_BUILD) wlan $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 	@echo [Linking... $(notdir $@)]
-	$(Q_)$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
+	${Q_}$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
 
 # "order only" prerequisite rule so APP_OBJECTS wait for playback_ip_lib to be built (for make -j option)
 $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)): | playback_ip_lib nxclient $(LUA_BUILD) netapp
@@ -1063,11 +1092,11 @@ $(ATLAS_LIB): $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 
 $(ATLAS_ODIR)/%.o: %.c
 	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CC) -c -o $@ $< $(CFLAGS) $(C_ONLY_FLAGS)
+	${Q_}$(CC) -c -o $@ $< $(CFLAGS) $(C_ONLY_FLAGS)
 
 $(ATLAS_ODIR)/%.o: %.cpp
 	@echo [Compile... $(notdir $<)]
-	$(Q_)$(CXX) -c -o $@ $(abspath $<) $(filter-out $(C_ONLY_FLAGS),$(CFLAGS)) $(CXXFLAGS)
+	${Q_}$(CXX) -c -o $@ $(abspath $<) $(filter-out $(C_ONLY_FLAGS),$(CFLAGS)) $(CXXFLAGS)
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 .PHONY: nxclient
@@ -1080,10 +1109,13 @@ nxclient: api
 nxclient-clean:
 	${Q_}$(MAKE) -C $(NXCLIENT_DIR)/build -f Makefile clean
 	${Q_}$(MAKE) -C $(NXCLIENT_DIR)/server -f Makefile clean
+clean-nxclient: nxclient-clean
 else
 nxclient:
 #intentionally left blank
 nxclient-clean:
+#intentionally left blank
+clean-nxclient:
 #intentionally left blank
 endif
 
@@ -1093,11 +1125,11 @@ endif
 ifeq ($(WLAN_SUPPORT),y)
 wlan:
 	@echo [Build..... wlan]
-	@$(MAKE) -C $(B_WLAN_INSRC_DIR)
+	${Q_}$(MAKE) -C $(B_WLAN_INSRC_DIR)
 
 clean-wlan:
 	@echo [Clean..... wlan]
-	@$(MAKE) -C $(B_WLAN_INSRC_DIR) clean
+	${Q_}$(MAKE) -C $(B_WLAN_INSRC_DIR) clean
 else
 wlan:
 clean-wlan:
@@ -1108,10 +1140,10 @@ endif
 #################
 ifeq ($(DVR_LIB_SUPPORT),y)
 dvrlib:
-	$(MAKE) -C $(DVR_LIB_DIR)
+	${Q_}$(MAKE) -C $(DVR_LIB_DIR)
 
 clean-dvrlib:
-	$(MAKE) -C $(DVR_LIB_DIR) clean
+	${Q_}$(MAKE) -C $(DVR_LIB_DIR) clean
 else
 dvrlib:
 clean-dvrlib:
@@ -1121,7 +1153,7 @@ endif
 ##### Cablecard
 #################
 ifeq ($(CABLECARD_SUPPORT),y)
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 #this builds and cleans MPOD driver/lib
 podlibs: b_openssl_target_build
 	${Q_}$(MAKE) -C $(POD_DIR) DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT) TWOWAY_OOB_CABLECARD_SUPPORT=$(TWOWAY_OOB_CABLECARD_SUPPORT)
@@ -1140,8 +1172,8 @@ clean-pod-driver:
 
 install-pod-driver:
 ifeq ($(SYSTEM),linux)
-	@echo "[Install... pod.ko]"
-	@$(MAKE) INSTALL_DIR=$(STAGING_DIR) -C $(POD_DRIVERDIR) install
+	@echo "[Install... pod.ko to $(STAGING_DIR)]"
+	${Q_}$(MAKE) INSTALL_DIR=$(STAGING_DIR) -C $(POD_DRIVERDIR) install
 endif
 
 else #CABLECARD_SUPPORT is not defined, so define empty targets
@@ -1167,16 +1199,16 @@ endif # CABLECARD_SUPPORT
 ifeq ($(DSG_SUPPORT),y)
 # This untar source ball for DSG-CC and estbsnmpagent
 untar_estb:
-	@if [ -d $(DSG_DIR)/StbHostApps ];then echo ""; else cd $(DSG_DIR);tar fxvz stb_src.tgz;fi
+	${Q_}if [ -d $(DSG_DIR)/StbHostApps ];then echo ""; else cd $(DSG_DIR);tar fxvz stb_src.tgz;fi
 # This builds and cleans the dsgcc api
 dsgcclib: untar_estb
-	@$(RM) -f ${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm/dsgcclib.a
+	${Q_}$(RM) -f ${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm/dsgcclib.a
 	export CROSSDEV_ROOT=$(TOOLCHAIN_DIR);\
 	cd $(DSG_DIR)/StbHostApps/DsgCC/build; \
 	env MAKE="${MAKE}" bash build dsgcc pvnet applib $(CC_FLAG) $(CDL_CMDS);\
 	cd $(BSEAV)/app/atlas/build
 clean-dsgcclib: untar_estb
-	@$(RM) -f ${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm/dsgcclib.a
+	${Q_}$(RM) -f ${B_REFSW_OBJ_ROOT}/BSEAV/cable/docsis/estb/StbHostApps/DsgCC/StbApp_DsgCC/linux/bcm/dsgcclib.a
 	export CROSSDEV_ROOT=$(TOOLCHAIN_DIR);\
 	cd $(DSG_DIR)/StbHostApps/DsgCC/build; \
 	bash build dsgcc clean;\
@@ -1195,14 +1227,14 @@ endif # DSG_SUPPORT
 ifeq ($(CDL_SUPPORT),y)
 API_SUPPORT = NEXUS
 untar_estb_for_cdl:
-	@if [ -d $(DSG_DIR)/StbHostApps ];then echo ""; else cd $(DSG_DIR);tar fxvz stb_src.tgz;fi
+	${Q_}if [ -d $(DSG_DIR)/StbHostApps ];then echo ""; else cd $(DSG_DIR);tar fxvz stb_src.tgz;fi
 cdllib:untar_estb_for_cdl
-	$(MAKE) -C $(CDL_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) API_SUPPORT=$(API_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT) CDL_SUPPORT_ENABLE_SIGNED_IMAGE=$(CDL_SUPPORT_ENABLE_SIGNED_IMAGE) DSG_DIR=$(DSG_DIR)
-	$(MAKE) -C $(DSMCC_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT)
+	${Q_}$(MAKE) -C $(CDL_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) API_SUPPORT=$(API_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT) CDL_SUPPORT_ENABLE_SIGNED_IMAGE=$(CDL_SUPPORT_ENABLE_SIGNED_IMAGE) DSG_DIR=$(DSG_DIR)
+	${Q_}$(MAKE) -C $(DSMCC_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT)
 
 clean-cdllib:untar_estb_for_cdl
-	$(MAKE) -C $(CDL_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) API_SUPPORT=$(API_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT) DSG_DIR=$(DSG_DIR) clean
-	$(MAKE) -C $(DSMCC_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT) clean
+	${Q_}$(MAKE) -C $(CDL_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) API_SUPPORT=$(API_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT) DSG_DIR=$(DSG_DIR) clean
+	${Q_}$(MAKE) -C $(DSMCC_LIB_DIR)  DSG_SUPPORT=$(DSG_SUPPORT) CABLECARD_SUPPORT=$(CABLECARD_SUPPORT) clean
 
 else
 cdllib:
@@ -1214,9 +1246,9 @@ endif
 #################
 ifeq ($(ESTB_CFG_SUPPORT),y)
 estb-cfglibs:
-	$(MAKE) -C $(ESTB_CFG_LIB_DIR) DSG_SUPPORT=$(DSG_SUPPORT)
+	${Q_}$(MAKE) -C $(ESTB_CFG_LIB_DIR) DSG_SUPPORT=$(DSG_SUPPORT)
 clean-estb-cfglibs:
-	$(MAKE) -C $(ESTB_CFG_LIB_DIR) DSG_SUPPORT=$(DSG_SUPPORT) clean
+	${Q_}$(MAKE) -C $(ESTB_CFG_LIB_DIR) DSG_SUPPORT=$(DSG_SUPPORT) clean
 else # ESTB_CFG_SUPPORT is not defined, so define empty targets
 estb-cfglibs:
 #intentionally left empty
@@ -1229,10 +1261,10 @@ endif # ESTB_CFG_SUPPORT
 #################
 ifeq ($(DCC_SUPPORT),y)
 dcclib:
-	@$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(ATLAS_BIN_DIR)
+	${Q_}$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(ATLAS_BIN_DIR)
 clean-dcclib:
-	@$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y clean
+	${Q_}$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y clean
 else # DCC_SUPPORT is not defined, so define empty targets
 dcclib:
 #intentionally left empty
@@ -1264,18 +1296,18 @@ snmp-proxy:
 		patch -p1 < snmp.patch; \
 	fi; \
 	if [ -e Makefile ]; then \
-		$(MAKE) depend; \
-		$(MAKE); \
+		${Q_}$(MAKE) depend; \
+		${Q_}$(MAKE); \
 	else \
 		bash $(SNMPCONFIG); \
-		$(MAKE) depend; \
-		$(MAKE); \
+		${Q_}$(MAKE) depend; \
+		${Q_}$(MAKE); \
 	fi; \
 	cd -
 clean-snmp-proxy:
 	cd $(SNMP_DIR); \
 	if [ -e Makefile ]; then \
-		$(MAKE) distclean; \
+		${Q_}$(MAKE) distclean; \
 		$(RM) -fr Makefile.bak; \
 		$(RM) -fr agent/Makefile.bak; \
 		$(RM) -fr agent/helpers/Makefile.bak; \
@@ -1345,22 +1377,22 @@ endif
 		echo "";\
 		exit -1;\
 	fi
-	$(MAKE) -C $(NETAPP_DIR) install
+	${Q_}$(MAKE) -C $(NETAPP_DIR) install
 
 ifneq ($(NETAPP_BUILD_EXAMPLES),n)
 netapp : api
-	$(MAKE) -C $(NETAPP_DIR) examples
-	@$(CP) ${NETAPP_OUTPUT_DIR}/bin/netapp_target_prep.sh ${B_REFSW_OBJ_ROOT}/BSEAV/bin
+	${Q_}$(MAKE) -C $(NETAPP_DIR) examples
+	${Q_}$(CP) ${NETAPP_OUTPUT_DIR}/bin/netapp_target_prep.sh ${B_REFSW_OBJ_ROOT}/BSEAV/bin
 else
 netapp :
-	$(MAKE) -C $(NETAPP_DIR) install
-	@$(CP) ${NETAPP_OUTPUT_DIR}/bin/netapp_target_prep.sh ${B_REFSW_OBJ_ROOT}/BSEAV/bin
+	${Q_}$(MAKE) -C $(NETAPP_DIR) install
+	${Q_}$(CP) ${NETAPP_OUTPUT_DIR}/bin/netapp_target_prep.sh ${B_REFSW_OBJ_ROOT}/BSEAV/bin
 endif
 clean-netapp:
-	$(MAKE) -C $(NETAPP_DIR) clean
+	${Q_}$(MAKE) -C $(NETAPP_DIR) clean
 	${Q_}rm -f ${B_REFSW_OBJ_ROOT}/BSEAV/bin/netapp_target_prep.sh
 dist-clean-netapp:
-	$(MAKE) -C $(NETAPP_DIR) distclean
+	${Q_}$(MAKE) -C $(NETAPP_DIR) distclean
 	${Q_}rm -f ${B_REFSW_OBJ_ROOT}/BSEAV/bin/netapp_target_prep.sh
 
 else # NETAPP_SUPPORT is not defined, so define empty targets
@@ -1400,13 +1432,14 @@ playback_ip_lib_clean:
 #intentionally left empty
 
 playback_ip_lib_min_clean:
-	@echo [..... Minimal Clean ....]
+	@echo [clean.... bip (not openssl)]
+
+clean-bip: playback_ip_lib_min_clean
 
 endif # PLAYBACK_IP_SUPPORT
 
 #Only Cleans Playback-IP library not SSL, only
 min-clean: playback_ip_lib_min_clean clean-atlas api-clean
-	@echo [..... Minimal Cleaning Done....]
 
 #
 # This is the main installation rule.
@@ -1414,8 +1447,8 @@ min-clean: playback_ip_lib_min_clean clean-atlas api-clean
 # perform the actual installation procedure.
 #
 install:  bin_install $(STAGING_DIR)
-	@$(MAKE) install-binaries
-	@$(MAKE) make-tarball
+	${Q_}$(MAKE) install-binaries
+	${Q_}$(MAKE) make-tarball
 
 #
 # Install drivers, libraries and apps
@@ -1429,8 +1462,8 @@ install-binaries: api-install playback_ip_lib_install install-config-files insta
 #
 .PHONY: $(STAGING_DIR)
 $(STAGING_DIR):
-	@$(RM) -rf $(STAGING_DIR)
-	@${MKDIR} $(STAGING_DIR)
+	${Q_}$(RM) -rf $(STAGING_DIR)
+	${Q_}${MKDIR} $(STAGING_DIR)
 
 #
 # Copy everything into temporary STAGING_DIR and tar it up.
@@ -1438,9 +1471,9 @@ $(STAGING_DIR):
 #
 
 make-tarball: install-support-files
-	@echo [Build..... tarball]
-	@(cd $(STAGING_DIR);tar -pzckf $(ATLAS_BIN_DIR)/${ATLAS_TAR_BALL} .)
-	@$(RM) -rf $(STAGING_DIR)
+	@echo [Build..... tarball of $(STAGING_DIR)]
+	${Q_}(cd $(STAGING_DIR);tar -pzckf $(ATLAS_BIN_DIR)/${ATLAS_TAR_BALL} .)
+	${Q_}$(RM) -rf $(STAGING_DIR)
 	@echo ""
 	@echo "*********************************************"
 	@echo "* Installation tarball created in $(ATLAS_BIN_DIR)."
@@ -1457,59 +1490,59 @@ make-tarball: install-support-files
 #
 .PHONY: install-support-files
 install-support-files:
-	@echo [Install... scripts]
-	$(Q_)$(CP) start $(STAGING_DIR)
-	$(Q_)chmod +x $(STAGING_DIR)/start
+	@echo [Install... scripts to $(STAGING_DIR)]
+	${Q_}$(CP) start $(STAGING_DIR)
+	${Q_}chmod +x $(STAGING_DIR)/start
 ifeq ($(NEXUS_MODE),proxy)
-	$(Q_)$(CP) $(NEXUS_BIN_DIR)/nexus.ko $(STAGING_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/nexus.ko $(STAGING_DIR)
 endif
-	$(Q_)$(CP) $(NEXUS_BIN_DIR)/logger $(STAGING_DIR)
-	$(Q_)$(CP) $(NEXUS_BIN_DIR)/nexus $(STAGING_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/logger $(STAGING_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/nexus $(STAGING_DIR)
 ifeq ($(NXCLIENT_SUPPORT),y)
-	$(Q_)$(CP) $(NEXUS_BIN_DIR)/nxserver $(STAGING_DIR)
+	${Q_}$(CP) $(NEXUS_BIN_DIR)/nxserver $(STAGING_DIR)
 	${Q_}$(CP) $(NEXUS_BIN_DIR)/lib*.so $(STAGING_DIR)
 endif
-	$(Q_)chmod +x $(STAGING_DIR)/nexus
+	${Q_}chmod +x $(STAGING_DIR)/nexus
 ifeq ($(CABLECARD_SUPPORT),y)
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_mpod.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_mpod.so $(STAGING_DIR)
 endif
 ifeq ($(DVR_LIB_SUPPORT),y)
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_dvr.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_dvr.so $(STAGING_DIR)
 endif
 ifeq ($(CDL_SUPPORT),y)
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_cdl.so $(STAGING_DIR)
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_dsmcc.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_cdl.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_dsmcc.so $(STAGING_DIR)
 endif
 ifeq ($(ESTB_CFG_SUPPORT),y)
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_estb_cfg.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_estb_cfg.so $(STAGING_DIR)
 endif
 ifeq ($(DCC_SUPPORT),y)
-	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(STAGING_DIR)
 endif
-	$(Q_)$(CP) $(APP) $(STAGING_DIR)
+	${Q_}$(CP) $(APP) $(STAGING_DIR)
 
-	@echo [Install... fonts]
-	@${MKDIR} $(STAGING_DIR)/fonts
-	@$(CP) $(PRERENDERED_FONTS) $(STAGING_DIR)/fonts
+	@echo [Install... fonts to $(STAGING_DIR)]
+	${Q_}${MKDIR} $(STAGING_DIR)/fonts
+	${Q_}$(CP) $(PRERENDERED_FONTS) $(STAGING_DIR)/fonts
 ifeq ($(DCC_SUPPORT),y)
-	@${MKDIR} $(STAGING_DIR)/fonts/cc_fonts
-	@$(CP) $(PRERENDERED_CC_FONTS) $(STAGING_DIR)/fonts/cc_fonts
+	${Q_}${MKDIR} $(STAGING_DIR)/fonts/cc_fonts
+	${Q_}$(CP) $(PRERENDERED_CC_FONTS) $(STAGING_DIR)/fonts/cc_fonts
 endif
 
 ifeq ($(WLAN_SUPPORT),y)
 # Install all files needed for wlan driver
 install-wlan-files:
-	$(Q_)echo  [...... Installing wlan files ......]
-	$(Q_)$(CP) $(ATLAS_BIN_DIR)/wl $(STAGING_DIR)
-	$(Q_)$(CP) $(ATLAS_BIN_DIR)/wlinstall $(STAGING_DIR)
-	$(Q_)$(CP) $(ATLAS_BIN_DIR)/wl.ko $(STAGING_DIR)
-	$(Q_)$(CP) $(ATLAS_BIN_DIR)/lib/libnl-3.so* $(STAGING_DIR)
-	$(Q_)$(CP) $(ATLAS_BIN_DIR)/lib/libnl-genl-3.so* $(STAGING_DIR)
-	$(Q_)$(CP)  ../scripts/atlas_wlan_prep.sh $(STAGING_DIR)
-	$(Q_)chmod 755 $(STAGING_DIR)/atlas_wlan_prep.sh
-	$(Q_)$(CP)  ../scripts/udhcpc.script $(STAGING_DIR)
-	$(Q_)chmod 755 $(STAGING_DIR)/udhcpc.script
-	$(Q_)$(CP) $(ATLAS_BIN_DIR)/bcm97271*.txt $(STAGING_DIR)
+	@echo  [Install... wlan to $(STAGING_DIR)]
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/wlinstall $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/wl.ko $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnl-3.so* $(STAGING_DIR)
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/libnl-genl-3.so* $(STAGING_DIR)
+	${Q_}$(CP)  ../scripts/atlas_wlan_prep.sh $(STAGING_DIR)
+	${Q_}chmod 755 $(STAGING_DIR)/atlas_wlan_prep.sh
+	${Q_}$(CP)  ../scripts/udhcpc.script $(STAGING_DIR)
+	${Q_}chmod 755 $(STAGING_DIR)/udhcpc.script
+	${Q_}$(CP) $(ATLAS_BIN_DIR)/bcm97271*.txt $(STAGING_DIR)
 else
 install-wlan-files:
 #intentionally left empty
@@ -1518,9 +1551,9 @@ endif
 ifeq ($(RF4CE_SUPPORT),y)
 # Install all files needed to run rf4ce
 install-zigbee-files:
-	@echo  [...... Installing rf4ce files ......]
-	@$(CP) $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/atlas_zigbee_prep.sh $(STAGING_DIR)
-	@$(CP) $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/stack_binary/broadbee_zrc11_target.bin $(STAGING_DIR)
+	@echo  [Install... rf4ce to $(STAGING_DIR)]
+	${Q_}$(CP) $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/atlas_zigbee_prep.sh $(STAGING_DIR)
+	${Q_}$(CP) $(BSEAV)/lib/zigbee/broadbee_mailbox_host/projects/SoC_mailboxHostSide/stack_binary/broadbee_zrc11_target.bin $(STAGING_DIR)
 else
 install-zigbee-files:
 #intentionally left empty
@@ -1529,20 +1562,20 @@ endif
 ifeq ($(CABLE_SUPPORT),y)
 # Install all files needed to run cable platforms
 install-cable-files:
-	@echo  [...... Installing cable files ......]
-	$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
+	@echo  [Install... cable to $(STAGING_DIR)]
+	${Q_}$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
 ifeq ($(findstring $(NEXUS_PLATFORM), 97435), $(NEXUS_PLATFORM))
 ifeq ($(findstring $(DOCSIS_CHIP), 3384), $(DOCSIS_CHIP))
-	@$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/33843/* $(STAGING_DIR)
-	@$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/rc.user $(STAGING_DIR)
-	@$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/estbconfigsettings.bin $(STAGING_DIR)
-	@$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/rnonvolhost $(STAGING_DIR)
+	${Q_}$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/33843/* $(STAGING_DIR)
+	${Q_}$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/rc.user $(STAGING_DIR)
+	${Q_}$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/estbconfigsettings.bin $(STAGING_DIR)
+	${Q_}$(CP) $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/rnonvolhost $(STAGING_DIR)
 else
-	@$(CP) -r $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/* $(STAGING_DIR)
-	@$(RM) -fr $(STAGING_DIR)/33843
+	${Q_}$(CP) -r $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/* $(STAGING_DIR)
+	${Q_}$(RM) -fr $(STAGING_DIR)/33843
 endif
 else
-	@$(CP) -r $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/* $(STAGING_DIR)
+	${Q_}$(CP) -r $(BSEAV)/cable/bin/$(NEXUS_PLATFORM)/* $(STAGING_DIR)
 endif
 
 else
@@ -1551,26 +1584,26 @@ install-cable-files:
 endif
 
 ifeq ($(NEXUS_USE_3390_VMS),y)
-	@echo  [...... Installing cable files for 93390 ......]
-	$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
-	@$(CP) -r $(BSEAV)/cable/bin/93390/* $(STAGING_DIR)
+	@echo  [Install... cable for 93390 to $(STAGING_DIR)]
+	${Q_}$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
+	${Q_}$(CP) -r $(BSEAV)/cable/bin/93390/* $(STAGING_DIR)
 endif
 
 ifeq ($(NEXUS_USE_7252S_GW), y)
-	@echo  [...... Installing cable files for 97252S_GW ......]
-	$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
-	@$(CP) -r $(BSEAV)/cable/bin/97252sgw/* $(STAGING_DIR)
+	@echo  [Install... cable for 97252S_GW to $(STAGING_DIR)]
+	${Q_}$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml
+	${Q_}$(CP) -r $(BSEAV)/cable/bin/97252sgw/* $(STAGING_DIR)
 endif
 
 ifeq ($(ESTB_SNMP_SUPPORT),y)
 install-snmp-files:
-	@$(CP) -fr $(DSG_DIR)/StbHostApps/EstbSnmpAgent/build/estbsnmpagent $(STAGING_DIR)
-	@$(CP) -fr $(SNMP_DIR)/agent/libsnmpd.so $(STAGING_DIR)
-	@$(CP) -fr $(SNMP_DIR)/agent/.libs/libnetsnmpagent.so* $(STAGING_DIR)
-	@$(CP) -fr $(SNMP_DIR)/agent/.libs/libnetsnmpmibs.so* $(STAGING_DIR)
-	@$(CP) -fr $(SNMP_DIR)/agent/helpers/.libs/libnetsnmphelpers.so* $(STAGING_DIR)
-	@$(CP) -fr $(SNMP_DIR)/snmplib/.libs/libnetsnmp.so* $(STAGING_DIR)
-	@$(CP) -fr $(BSEAV)/cable/bin/mibs $(STAGING_DIR)
+	${Q_}$(CP) -fr $(DSG_DIR)/StbHostApps/EstbSnmpAgent/build/estbsnmpagent $(STAGING_DIR)
+	${Q_}$(CP) -fr $(SNMP_DIR)/agent/libsnmpd.so $(STAGING_DIR)
+	${Q_}$(CP) -fr $(SNMP_DIR)/agent/.libs/libnetsnmpagent.so* $(STAGING_DIR)
+	${Q_}$(CP) -fr $(SNMP_DIR)/agent/.libs/libnetsnmpmibs.so* $(STAGING_DIR)
+	${Q_}$(CP) -fr $(SNMP_DIR)/agent/helpers/.libs/libnetsnmphelpers.so* $(STAGING_DIR)
+	${Q_}$(CP) -fr $(SNMP_DIR)/snmplib/.libs/libnetsnmp.so* $(STAGING_DIR)
+	${Q_}$(CP) -fr $(BSEAV)/cable/bin/mibs $(STAGING_DIR)
 else
 install-snmp-files:
 #intentionally left empty
@@ -1579,39 +1612,39 @@ endif
 ifeq ($(NETAPP_SUPPORT),y)
 # Install all files needed to run WiFi and Bluetooth platforms
 install-netapp-files:
-	@echo  [...... Installing netapp files ......]
-	@$(MKDIR) -p $(STAGING_DIR)/lib
-	@$(MKDIR) -p $(STAGING_DIR)/bin
-	@$(CP) -fr $(ATLAS_BIN_DIR)/bin/netapp_target_prep.sh $(STAGING_DIR)
-	@if [ -e $(ATLAS_BIN_DIR)/bin/dhd ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/dhd $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/bcmdl ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/bcmdl $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/bsa_server ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/bsa_server $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/wpa_supplicant ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/wpa_supplicant $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/wpa_supplicant.conf ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/wpa_supplicant.conf $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/NetAppTester ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/NetAppTester $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/app_manager ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/app_manager $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/app_hh ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/app_hh $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/app_ble ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/app_ble $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/btdl ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/btdl $(STAGING_DIR)/bin;fi
-	@if [ -e $(ATLAS_BIN_DIR)/bin/txpower.txt ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/txpower.txt $(STAGING_DIR)/bin;fi
-	@$(CP) -fr $(ATLAS_BIN_DIR)/bin/netapp_target_prep.sh $(STAGING_DIR)
-	@$(CP) -fr $(ATLAS_BIN_DIR)/lib/libnetapp.so $(STAGING_DIR)/lib
-	@$(CP) -fr $(ATLAS_BIN_DIR)/lib/libsqlite3.so* $(STAGING_DIR)/lib
-	@$(CP) -fr $(ATLAS_BIN_DIR)/lib/libjson.so* $(STAGING_DIR)/lib
-	@$(CP) -fr $(ATLAS_BIN_DIR)/lib/libudev.so* $(STAGING_DIR)/lib
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libbwl.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libbwl.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libwpsenr.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpsenr.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libwpscom.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpscom.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libwpsapi.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpsapi.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libwpsap.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpsap.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libwpscli.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpscli.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libbsa.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libbsa.so $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libcurl.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libcurl.so* $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libavahi-core.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libavahi-core.so* $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libavahi-common.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libavahi-common.so* $(STAGING_DIR)/lib;fi
-	@if [ -e $(ATLAS_BIN_DIR)/lib/libnl-3.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libnl*-3.so* $(STAGING_DIR)/lib;fi
-	@$(CP) -fr $(ATLAS_BIN_DIR)/lib/modules $(STAGING_DIR)/lib
-	@$(CP) -fr $(ATLAS_BIN_DIR)/firmware $(STAGING_DIR)
+	@echo  [Install... netapp to $(STAGING_DIR)]
+	${Q_}$(MKDIR) -p $(STAGING_DIR)/lib
+	${Q_}$(MKDIR) -p $(STAGING_DIR)/bin
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/bin/netapp_target_prep.sh $(STAGING_DIR)
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/dhd ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/dhd $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/bcmdl ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/bcmdl $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/bsa_server ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/bsa_server $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/wpa_supplicant ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/wpa_supplicant $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/wpa_supplicant.conf ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/wpa_supplicant.conf $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/NetAppTester ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/NetAppTester $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/app_manager ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/app_manager $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/app_hh ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/app_hh $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/app_ble ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/app_ble $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/btdl ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/btdl $(STAGING_DIR)/bin;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/bin/txpower.txt ];then $(CP) -fr $(ATLAS_BIN_DIR)/bin/txpower.txt $(STAGING_DIR)/bin;fi
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/bin/netapp_target_prep.sh $(STAGING_DIR)
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/lib/libnetapp.so $(STAGING_DIR)/lib
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/lib/libsqlite3.so* $(STAGING_DIR)/lib
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/lib/libjson.so* $(STAGING_DIR)/lib
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/lib/libudev.so* $(STAGING_DIR)/lib
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libbwl.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libbwl.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libwpsenr.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpsenr.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libwpscom.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpscom.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libwpsapi.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpsapi.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libwpsap.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpsap.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libwpscli.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libwpscli.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libbsa.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libbsa.so $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libcurl.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libcurl.so* $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libavahi-core.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libavahi-core.so* $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libavahi-common.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libavahi-common.so* $(STAGING_DIR)/lib;fi
+	${Q_}if [ -e $(ATLAS_BIN_DIR)/lib/libnl-3.so ];then $(CP) -fr $(ATLAS_BIN_DIR)/lib/libnl*-3.so* $(STAGING_DIR)/lib;fi
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/lib/modules $(STAGING_DIR)/lib
+	${Q_}$(CP) -fr $(ATLAS_BIN_DIR)/firmware $(STAGING_DIR)
 else
 install-netapp-files:
 #intentionally left empty
@@ -1621,10 +1654,10 @@ endif
 ## install Config Files
 ####
 install-config-files:
-	$(Q_)cd ../; \
+	${Q_}cd ../; \
 		$(CP) -r images/bcmlogo.png images scripts $(STAGING_DIR)
-	$(Q_)$(CP) -r ../scripts/atlas.cfg $(STAGING_DIR)/atlas.cfg
-	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
+	${Q_}$(CP) -r ../scripts/atlas.cfg $(STAGING_DIR)/atlas.cfg
+	${Q_}if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
 		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
 	elif [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
 		$(CP) ../channelmap/$(NEXUS_PLATFORM).channels.xml $(STAGING_DIR)/channels.xml; \
@@ -1633,19 +1666,19 @@ install-config-files:
 		$(CP) ../channelmap/channels.xml $(STAGING_DIR)/channels.xml; \
 		fi; \
 	fi;
-	$(Q_)if [ -f ../channelmap/udpUrl.xml ] ; then  \
+	${Q_}if [ -f ../channelmap/udpUrl.xml ] ; then  \
 		$(CP) ../channelmap/udpUrl.xml $(STAGING_DIR)/udpUrl.xml; \
 	fi;
-	@cd $(STAGING_DIR); chmod 664 atlas.cfg
+	${Q_}cd $(STAGING_DIR); chmod 664 atlas.cfg
 
 bin-install-config-files:
 # Copy over config files so we can run without doing a make install
 # you can run this manually with "make bin-install-config-files"
-	@echo  [...... Installing config files to $(ATLAS_BIN_DIR) ......]
-	$(Q_)cd ../; \
+	@echo  [Install... config files to $(ATLAS_BIN_DIR)]
+	${Q_}cd ../; \
 		$(CP) -r images/bcmlogo.png images scripts $(ATLAS_BIN_DIR)
-	$(Q_)$(CP) -r ../scripts/atlas.cfg $(ATLAS_BIN_DIR)/atlas.cfg
-	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
+	${Q_}$(CP) -r ../scripts/atlas.cfg $(ATLAS_BIN_DIR)/atlas.cfg
+	${Q_}if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
 		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
 	elif [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
 		$(CP) ../channelmap/$(NEXUS_PLATFORM).channels.xml $(ATLAS_BIN_DIR)/channels.xml; \
@@ -1654,18 +1687,38 @@ bin-install-config-files:
 		$(CP) ../channelmap/channels.xml $(ATLAS_BIN_DIR)/channels.xml; \
 		fi; \
 	fi;
-	$(Q_)if [ -f ../channelmap/udpUrl.xml ] ; then  \
+	${Q_}if [ -f ../channelmap/udpUrl.xml ] ; then  \
 		$(CP) ../channelmap/udpUrl.xml $(ATLAS_BIN_DIR)/udpUrl.xml; \
 	fi;
-	@cd $(ATLAS_BIN_DIR); chmod 664 atlas.cfg
-	@echo [Install... fonts]
-	@${MKDIR} $(ATLAS_BIN_DIR)/fonts
-	@$(CP) $(PRERENDERED_FONTS) $(ATLAS_BIN_DIR)/fonts
+	${Q_}cd $(ATLAS_BIN_DIR); chmod 664 atlas.cfg
+	@echo [Install... fonts to $(ATLAS_BIN_DIR)]
+	${Q_}${MKDIR} $(ATLAS_BIN_DIR)/fonts
+	${Q_}$(CP) $(PRERENDERED_FONTS) $(ATLAS_BIN_DIR)/fonts
 ifeq ($(DCC_SUPPORT),y)
-	@${MKDIR} $(ATLAS_BIN_DIR)/fonts/cc_fonts
-	@$(CP) $(PRERENDERED_CC_FONTS) $(ATLAS_BIN_DIR)/fonts/cc_fonts
+	${Q_}${MKDIR} $(ATLAS_BIN_DIR)/fonts/cc_fonts
+	${Q_}$(CP) $(PRERENDERED_CC_FONTS) $(ATLAS_BIN_DIR)/fonts/cc_fonts
 endif
 
-
+##########
+##### Rule for help
+##########
+.PHONY: help
+help:
+	@echo "Atlas Make Options"
+	@echo
+	@echo "all             - build atlas and libraries"
+	@echo "lib             - build bwin, mlibs and bwidgets"
+	@echo "api             - build nexus"
+	@echo "nxclient        - build nexus, nxclient and nxserver"
+	@echo "perftools       - build bsysperf and bmemperf tools"
+	@echo "clean           - clean atlas, nexus and libs"
+	@echo "                  (skip: zlib/jpeg/png/openssl/netapp/libnl/bwl/wpa_supplicant)"
+	@echo "clean-atlas     - clean atlas"
+	@echo "clean-perftools - clean bsysperf and bmemperf tools"
+	@echo "clean-api       - clean nexus"
+	@echo "clean-nxclient  - clean nxclient and nxserver"
+	@echo "clean-lib       - clean bwin, mlibs and bwidgets"
+	@echo "clean-bip       - clean bip (skip: openssl)"
+	@echo "dist-clean      - clean atlas and libraries"
 
 -include $(ATLAS_ODIR)/*.d

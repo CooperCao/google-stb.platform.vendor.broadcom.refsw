@@ -67,6 +67,9 @@ BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
 BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
 
 struct NEXUS_P_Base_State NEXUS_P_Base_State;
+#if NEXUS_P_DEBUG_CALLBACKS
+static void NEXUS_Base_P_PrintPendingCallers(void);
+#endif
 
 static const char NEXUS_P_Base_Name[] = "NEXUS_Base";
 
@@ -438,6 +441,8 @@ static void NEXUS_P_Base_Monitor(void *context)
                 NEXUS_P_Base_CheckForStuckCallback(NEXUS_P_Base_State.schedulers[i]);
             }
         }
+
+        NEXUS_Base_P_PrintPendingCallers();
     }
 }
 #endif
@@ -1179,3 +1184,266 @@ size_t NEXUS_P_SizeAlign(size_t v, size_t alignment)
     r -= r%alignment;
     return r;
 }
+
+#if NEXUS_P_DEBUG_CALLBACKS
+void NEXUS_Module_SetPendingCaller(NEXUS_ModuleHandle module, const char *functionName)
+{
+    NEXUS_LockModule();
+    NEXUS_Time_Get(&module->pendingCaller.time);
+    module->pendingCaller.functionName = functionName;
+    NEXUS_UnlockModule();
+}
+
+void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *functionName)
+{
+    NEXUS_LockModule();
+    if (module->pendingCaller.functionName == functionName) {
+        module->pendingCaller.functionName = NULL;
+    }
+    NEXUS_UnlockModule();
+}
+
+static void NEXUS_Base_P_PrintPendingCallers(void)
+{
+    NEXUS_ModuleHandle module;
+    NEXUS_Time now;
+    NEXUS_Time_Get(&now);
+    NEXUS_LockModule();
+    for(module=BLST_S_FIRST(&NEXUS_P_Base_State.modules); module; module=BLST_S_NEXT(module, link)) {
+        if (module->pendingCaller.functionName) {
+            unsigned diff = NEXUS_Time_Diff(&now, &module->pendingCaller.time);
+            if (diff >= 5000) { /* 5 seconds */
+                BDBG_WRN(("%s blocked for %u msec", module->pendingCaller.functionName, diff));
+            }
+        }
+    }
+    NEXUS_UnlockModule();
+}
+#else
+void NEXUS_Module_SetPendingCaller(NEXUS_ModuleHandle module, const char *functionName)
+{
+    BSTD_UNUSED(module);
+    BSTD_UNUSED(functionName);
+}
+
+void NEXUS_Module_ClearPendingCaller(NEXUS_ModuleHandle module, const char *functionName)
+{
+    BSTD_UNUSED(module);
+    BSTD_UNUSED(functionName);
+}
+#endif
+
+#ifdef BDBG_DEBUG_WITH_STRINGS
+BDBG_FILE_MODULE(nexus_environment);
+static const char * const NEXUS_P_GetEnvVariables [] =
+{
+    /* all entries MUST be sorted */
+    "BVCE_Debug",
+    "BVCE_GopRampFactor",
+    "B_REFSW_BOARD_ID",
+    "B_REFSW_BOXMODE",
+    "B_REFSW_OVERRIDE_PRODUCT_ID_TO",
+    "B_REFSW_PMAP_ID",
+    "COMMON_DRM_CA_VENDOR_ID",
+    "COMMON_DRM_MASKKEY2_ID",
+    "COMMON_DRM_STB_OWNER_ID",
+    "IVF_SUPPORT",
+    "NEXUS_ASI",
+    "NEXUS_BASE_ONLY_INIT",
+    "NEXUS_DEVICE_NODE",
+    "NEXUS_STREAMER",
+    "NEXUS_WAKE_DEVICE_NODE",
+    "SAGEBIN_PATH",
+    "SCMBIN_PATH",
+    "STG_ResolutionRampCount",
+    "V3D_BIN_MEM_CHUNK_POW",
+    "V3D_BIN_MEM_MEGS",
+    "V3D_BIN_MEM_MEGS_SECURE",
+    "V3D_CLOCK_FREQ",
+    "V3D_DISABLE_AQA",
+    "V3D_DRIVER_NO_QUEUEING",
+    "V3D_DRM_DEVICE_NUM",
+    "V3D_GPUMON_DEPS",
+    "V3D_MEM_DUMP_ON_STALL",
+    "V3D_NO_BURST_SPLITTING",
+    "V3D_RESET_ON_STALL",
+    "V3D_USE_CLOCK_GATING",
+    "V3D_USE_POWER_GATING",
+    "V3D_USE_STALL_DETECTION",
+    "astm_disabled",
+    "audio_core_file",
+    "audio_debug_file",
+    "audio_equalizer_disabled",
+    "audio_logs_enabled",
+    "audio_max_delay",
+    "audio_processing_disabled",
+    "audio_ramp_disabled",
+    "audio_target_print_file",
+    "audio_uart_file",
+    "auto_subindex",
+    "avd_monitor",
+    "bmem_override",
+    "bvce_log",
+    "bypass_secure_graphics2d",
+    "capture_excel",
+    "capture_ruls",
+    "capture_vdc_buf_log",
+    "check_lock",
+    "cont_count_ignore",
+    "custom_arc",
+    "debug_log_size",
+    "debug_mem",
+    "dejag",
+    "disable_arm_audio",
+    "disable_avs",
+    "disable_oob_frontend",
+    "disable_thermal_monitor",
+    "ds0_video",
+    "force_sw_rave",
+    "force_vsync",
+    "hddvi_width",
+    "hdmi_bypass_edid",
+    "hdmi_i2c_software_mode",
+    "hdmi_use_debug_edid",
+    "hdmiformatoverride",
+    "hscl_coeff_chroma",
+    "hscl_coeff_luma",
+    "hvd_uart",
+    "kernel_debug_log_size",
+    "mad_coeff_chroma",
+    "mad_coeff_luma",
+    "max_hd_display_format",
+    "mpod_loopback",
+    "ms12_dual_raaga",
+    "msg_modules",
+    "multichannel_disabled",
+    "nexus_binary_compat",
+    "nexus_ipc_dir",
+    "nexus_logger",
+    "nexus_logger_file",
+    "no_3255",
+    "no_independent_delay",
+    "no_watchdog",
+    "not_realtime_isr",
+    "nxclient_ipc_node",
+    "odt_ignore_failures",
+    "pq_disabled",
+    "profile_accurate",
+    "profile_calls",
+    "profile_counters",
+    "profile_entries",
+    "profile_init",
+    "profile_maxentries",
+    "profile_perthread",
+    "profile_playpump",
+    "profile_preempt",
+    "profile_show",
+    "sage_log",
+    "sage_log_file",
+    "sage_logging",
+    "sarnoff_lipsync_offset_disabled",
+    "sarnoff_video_delay_workaround",
+    "scl_coeff_chroma_h",
+    "scl_coeff_chroma_v",
+    "scl_coeff_luma_h",
+    "scl_coeff_luma_v",
+    "secure_heap",
+    "sync_disabled",
+    "trace_modules",
+    "tsio_loopback",
+    "tsio_static_cal_only",
+    "verify_timebase",
+    "video_encoder_verification",
+    "with_uncached_mmap",
+    "wrn_modules",
+    "xvd_removal_delay"
+};
+
+/*
+function that does a binary search in a sorted array ([0] smallest value)
+it returns either index of located entry or negative result
+*/
+
+static int NEXUS_P_GetEnvVariables_find(const char *name) {
+    int nentries = sizeof(NEXUS_P_GetEnvVariables)/sizeof(NEXUS_P_GetEnvVariables[0]);
+    int right = nentries-1; int left = 0; int mid;
+
+    if(name==NULL) {
+        return -1;
+    }
+    while(left <= right) {
+        int cmp;
+        mid = (left+right) / 2;
+        cmp = NEXUS_StrCmp(name, NEXUS_P_GetEnvVariables[mid]);
+        if (cmp > 0) { left = mid+1; }
+        else if (cmp < 0 ) { right = mid-1; }
+        else { return mid; } \
+    }
+    return -(left+1);
+}
+
+void NEXUS_P_CheckEnv(const char *name)
+{
+    int n = NEXUS_P_GetEnvVariables_find(name);
+    if(n<0) {
+        BDBG_WRN(("NEXUS_GetEnv: Unrecognized variable '%s'", name));
+    }
+    return;
+}
+
+void NEXUS_P_PrintEnv(const char *mode)
+{
+    unsigned nentries = sizeof(NEXUS_P_GetEnvVariables)/sizeof(NEXUS_P_GetEnvVariables[0]);
+    unsigned i;
+    char buf[128];
+    unsigned buf_offset=0;
+
+    /* 1. verify that entris are sorted */
+    for(i=1;i<nentries;i++) {
+        if(NEXUS_StrCmp(NEXUS_P_GetEnvVariables[i-1], NEXUS_P_GetEnvVariables[i]) >=0) {
+            BDBG_ERR(("out of order NEXUS_P_GetEnvVariables[%u]='%s' and NEXUS_P_GetEnvVariables[%u]='%s'", i-1, NEXUS_P_GetEnvVariables[i-1], i, NEXUS_P_GetEnvVariables[i]));
+            BDBG_ASSERT(0);
+        }
+    }
+    /* 2. Print all populated entries */
+    for(i=0;i<nentries;i++) {
+        const char *key = NEXUS_P_GetEnvVariables[i];
+        const char *value = NEXUS_GetEnv(key);
+        if(value) {
+            unsigned len = b_strlen(key) + b_strlen(value) + 8 /* formatting */;
+            if(len > sizeof(buf)) { /* jumbo variables bypass formatting buffer */
+                BDBG_MODULE_LOG(nexus_environment, ("%s%s='%s'", mode, key, value));
+            } else {
+                int rc;
+                if(len + buf_offset >= sizeof(buf)) { /* flush buffer */
+                    BDBG_MODULE_LOG(nexus_environment,("%s%s", mode, buf));
+                    buf_offset = 0;
+                }
+                rc = BKNI_Snprintf(buf+buf_offset, sizeof(buf)-buf_offset,"%s%s='%s'",buf_offset>0?", ":"",key, value);
+                if(rc>0) {
+                    buf_offset = buf_offset + rc;
+                    if(buf_offset > sizeof(buf)) { /* overflow */
+                        buf_offset = sizeof(buf); /* trigger flush on next iteration */
+                    }
+                }
+            }
+        }
+    }
+    /* 3. Flush formatting buffer*/
+    if(buf_offset) {
+        BDBG_MODULE_LOG(nexus_environment, ("%s%s", mode, buf));
+    }
+    return ;
+}
+#else /* #if BDBG_DEBUG_WITH_STRINGS */
+void NEXUS_P_CheckEnv(const char *name)
+{
+    BSTD_UNUSED(name);
+    return;
+}
+void NEXUS_P_PrintEnv(const char *mode)
+{
+    BSTD_UNUSED(mode);
+    return;
+}
+#endif /* #if BDBG_DEBUG_WITH_STRINGS */

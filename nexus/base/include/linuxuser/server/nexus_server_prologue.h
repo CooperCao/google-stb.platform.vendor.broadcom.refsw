@@ -58,13 +58,11 @@ nexus_driver_client_state - one per client (including one for the server)
 */
 BDBG_OBJECT_ID_DECLARE(nexus_driver_client_state);
 struct nexus_driver_client_state {
-    BDBG_OBJECT(nexus_driver_client_state)
-    BLST_S_ENTRY(nexus_driver_client_state) link;
-    NEXUS_Certificate certificate; /* set by the server, verified by join */
-    unsigned pid; /* if zero, then not joined */
-    unsigned refcnt; /* number of nexus_driver_module_driver_state's opened */
     struct b_objdb_client client; /* address of this is the client.
                               also, client.trusted counts whether it is trusted. */
+#if NEXUS_COMPAT_32ABI
+    unsigned abi;
+#endif
 };
 
 /*
@@ -92,8 +90,10 @@ typedef struct nexus_driver_callback_desc {
     void *interfaceHandle; /* interface handle that is used in NEXUS_Start/StopCallbacks */
 } nexus_driver_callback_desc;
 
+#if !defined(NEXUS_ABICOMPAT_MODE)
 void nexus_driver_send_addr(void **paddr); /* inplace convert address from virtual to physical */
 void nexus_driver_recv_addr_cached(void **paddr); /* inplace convert address from physical to virtual */
+#endif
 
 /* nexus_driver_callbacks */
 void nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, 
@@ -110,5 +110,14 @@ struct nexus_p_server_process_output {
     void *data;
     unsigned size;
 };
+
+/** declare all module-specific functions. **/
+#define NEXUS_PLATFORM_P_DRIVER_MODULE(X) \
+    int nexus_server_##X##_open(struct nexus_driver_module_header **pHeader); \
+    int nexus_server_##X##_close(void); \
+    int nexus_server_##X##_process(void *driver_state, void *in_data, unsigned in_data_size, void *out_data, unsigned out_mem_size, struct nexus_p_server_process_output *out);
+#include "nexus_driver_modules.h"
+#undef NEXUS_PLATFORM_P_DRIVER_MODULE
+
 
 #endif /* _NEXUS_SERVER_PROLOGUE_H_ */

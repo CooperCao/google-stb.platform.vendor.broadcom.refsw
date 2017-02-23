@@ -69,15 +69,34 @@
 /* We will stop issuing bin jobs when the binner is this many jobs ahead of the renderer */
 #define BVC5_MAX_BINNER_RUNAHEAD       15
 
+#define BVC5_CACHE_FLUSH_CORE (\
+      BVC5_CACHE_CLEAR_SIC\
+   |  BVC5_CACHE_CLEAR_SUC\
+   |  BVC5_CACHE_CLEAR_L1TD\
+   |  BVC5_CACHE_CLEAR_L1TC\
+   |  BVC5_CACHE_CLEAR_VCD\
+   |  BVC5_CACHE_CLEAR_L2C\
+   |  BVC5_CACHE_FLUSH_L2T)
+
+#define BVC5_CACHE_CLEAN_CORE (\
+      BVC5_CACHE_CLEAN_L1TD\
+   |  BVC5_CACHE_CLEAN_L2T)
+
+#define BVC5_CACHE_FLUSH_HUB (BVC5_CACHE_FLUSH_L3C | BVC5_CACHE_CLEAR_GCA)
+#define BVC5_CACHE_CLEAN_HUB (BVC5_CACHE_CLEAN_L3C)
+#define BVC5_CACHE_FLUSH_ALL (BVC5_CACHE_FLUSH_CORE | BVC5_CACHE_FLUSH_HUB)
+#define BVC5_CACHE_CLEAN_ALL (BVC5_CACHE_CLEAN_CORE | BVC5_CACHE_CLEAN_HUB)
+
+
 typedef struct BVC5_P_Handle
 {
    BCHP_Handle                hChp;
    BREG_Handle                hReg;
 
-   BMEM_Heap_Handle           hHeap;
    BMMA_Heap_Handle           hMMAHeap;
-   BMEM_Heap_Handle           hSecureHeap;
    BMMA_Heap_Handle           hSecureMMAHeap;
+   uint64_t                   ulDbgHeapOffset;
+   unsigned                   uDbgHeapSize;
 
    BINT_Handle                hInt;
    BVC5_OpenParameters        sOpenParams;
@@ -158,10 +177,6 @@ typedef struct BVC5_P_Handle
 } BVC5_P_Handle;
 
 BVC5_BinPoolHandle BVC5_P_GetBinPool(
-   BVC5_Handle hVC5
-);
-
-BMEM_Heap_Handle BVC5_P_GetHeap(
    BVC5_Handle hVC5
 );
 

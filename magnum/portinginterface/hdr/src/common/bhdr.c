@@ -1162,7 +1162,7 @@ void BHDR_P_ProcessModeChange_isr(BHDR_Handle hHDR)
 
 	if (hHDR->bHdmiMode == 0) /* DVI MODE */
 	{
-		BDBG_WRN(("CH%d ***DVI MODE***", hHDR->eCoreId)) ;
+		BDBG_LOG(("CH%d ***DVI MODE***", hHDR->eCoreId)) ;
 
 		/* mask packet stop interrupts... no need to be aware of packet stops  in DVI mode */
 		BREG_Write32(hRegister, BCHP_HDMI_RX_0_ENABLE_PACKET_STOP_DETECT + ulOffset, 0xFFFFFFF) ;
@@ -1201,7 +1201,7 @@ void BHDR_P_ProcessModeChange_isr(BHDR_Handle hHDR)
 	}
 	else /* HDMI MODE */
 	{
-		BDBG_WRN(("CH%d ***HDMI MODE***", hHDR->eCoreId)) ;
+		BDBG_LOG(("CH%d ***HDMI MODE***", hHDR->eCoreId)) ;
 		BHDR_P_ResetHdcp_isr(hHDR) ;
 
 		/* make sure MAI bus is configured to match current channel status information */

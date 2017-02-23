@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from a streamer */
@@ -65,11 +57,13 @@ int main(void)
 #include "nexus_display.h"
 #include "nexus_video_window.h"
 #include "nexus_video_input.h"
+#if NEXUS_HAS_AUDIO
 #include "nexus_audio_dac.h"
 #include "nexus_audio_decoder.h"
 #include "nexus_audio_output.h"
 #include "nexus_audio_input.h"
 #include "nexus_spdif_output.h"
+#endif
 #include "nexus_composite_output.h"
 #include "nexus_component_output.h"
 #if NEXUS_HAS_HDMI_OUTPUT
@@ -101,8 +95,10 @@ int main(void)
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle vdecode;
     NEXUS_VideoDecoderStartSettings videoProgram;
+#if NEXUS_HAS_AUDIO
     NEXUS_AudioDecoderHandle pcmDecoder, compressedDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
+#endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
@@ -128,7 +124,9 @@ int main(void)
 
     /* Open the audio and video pid channels */
     videoPidChannel = NEXUS_PidChannel_Open(parserBand, VIDEO_PID, NULL);
+#if NEXUS_HAS_AUDIO
     audioPidChannel = NEXUS_PidChannel_Open(parserBand, AUDIO_PID, NULL);
+#endif
 
     /* Open the StcChannel to do lipsync with the PCR */
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
@@ -137,6 +135,7 @@ int main(void)
     stcSettings.modeSettings.pcr.pidChannel = videoPidChannel; /* PCR happens to be on video pid */
     stcChannel = NEXUS_StcChannel_Open(0, &stcSettings);
 
+#if NEXUS_HAS_AUDIO
     /* Bring up audio decoders and outputs */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
@@ -167,6 +166,7 @@ int main(void)
         NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
         NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
+#endif /* NEXUS_HAS_AUDIO */
 
     /* Bring up display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
@@ -207,20 +207,22 @@ int main(void)
     videoProgram.codec = VIDEO_CODEC;
     videoProgram.pidChannel = videoPidChannel;
     videoProgram.stcChannel = stcChannel;
+#if NEXUS_HAS_AUDIO
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
     audioProgram.codec = AUDIO_CODEC;
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
-
+#endif
     /* Start Decoders */
     NEXUS_VideoDecoder_Start(vdecode, &videoProgram);
+#if NEXUS_HAS_AUDIO
     NEXUS_AudioDecoder_Start(pcmDecoder, &audioProgram);
     if ( AUDIO_CODEC == NEXUS_AudioCodec_eAc3 )
     {
         /* Only pass through AC3 */
         NEXUS_AudioDecoder_Start(compressedDecoder, &audioProgram);
     }
-
+#endif
 #if 0
     /* Print status while decoding */
     for (;;) {
@@ -248,6 +250,7 @@ int main(void)
     getchar();
 
     /* example shutdown */
+#if NEXUS_HAS_AUDIO
     NEXUS_AudioDecoder_Stop(pcmDecoder);
     if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
     {
@@ -255,13 +258,16 @@ int main(void)
     }
     NEXUS_AudioDecoder_Close(pcmDecoder);
     NEXUS_AudioDecoder_Close(compressedDecoder);
+#endif
     NEXUS_VideoDecoder_Stop(vdecode);
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
     NEXUS_VideoDecoder_Close(vdecode);
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_PidChannel_Close(videoPidChannel);
+#if NEXUS_HAS_AUDIO
     NEXUS_PidChannel_Close(audioPidChannel);
+#endif
     NEXUS_Platform_Uninit();
 #endif
 

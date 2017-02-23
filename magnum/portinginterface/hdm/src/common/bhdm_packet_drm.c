@@ -80,7 +80,7 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	&&  (!hHDMI->AttachedEDID.HdrDB.valid))
 	{
 		BHDM_DisablePacketTransmission(hHDMI, BHDM_PACKET_eDRM_ID) ;
-		BDBG_WRN(("Rx Does not support HDR; no DRM packet sent")) ;
+		BDBG_MSG(("Rx Does not support HDR; no DRM packet sent")) ;
 		goto done ;
 	}
 

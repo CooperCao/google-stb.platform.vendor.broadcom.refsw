@@ -1831,7 +1831,8 @@ BERR_Code BSAT_g1_P_SetFfeMainTap_isr(BSAT_ChannelHandle h)
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL);
    val &= 0xFF00FFFF;
-   if ((BSAT_MODE_IS_DTV(hChn->acqSettings.mode)) || hChn->bUndersample)
+   /* Xiaofen: main tap 6 applies to all legacy modes (instead of just dtv) */
+   if ((BSAT_MODE_IS_LEGACY_QPSK(hChn->acqSettings.mode)) || hChn->bUndersample)
       val |= 0x00060000;
    else
       val |= 0x000C0000;
@@ -2333,7 +2334,6 @@ BERR_Code BSAT_g1_P_NonLegacyModeAcquireInit_isr(BSAT_ChannelHandle h)
 #endif
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0x00FF00FF, 0x03000600); /* EQMU=0x03,EQFFE2=0x06 */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0x000000FF, 0x00140400); /* EQMISC=0x14, EQBLND=0x04 */
-   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, 0x4C);   /* initialization of EQ tap */
 #ifdef BCHP_SDS_FEC_FERR
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FEC_FERR, 0x00000000);
 #else
@@ -2479,6 +2479,10 @@ BERR_Code BSAT_g1_P_Acquire0_isr(BSAT_ChannelHandle h)
    BERR_Code retCode = BERR_SUCCESS;
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)(h->pImpl);
 
+   /* set some registers to their power-up default values */
+   BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_CG_RSTCTL, 1);
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONFIG, 0x3F8F0F80);
+
    BSAT_g1_P_ResetLockFilter_isr(h);
    BSAT_g1_P_ResetAcquisitionTimer_isr(h);
 
@@ -2538,13 +2542,37 @@ BERR_Code BSAT_g1_P_Acquire1_isr(BSAT_ChannelHandle h)
 
 
 /******************************************************************************
+ BSAT_g1_P_InitEqTaps()
+******************************************************************************/
+void BSAT_g1_P_InitEqTaps(BSAT_ChannelHandle h)
+{
+   uint32_t ffe_main_tap, i, val, eqcfad, f0b;
+
+   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL);
+   ffe_main_tap = (val >> 16) & 0x1F;
+   for (i = 0; i < 24; i++)
+   {
+      val = 0x00;
+      if (i == ffe_main_tap)
+         val = 0x25; /* changed by Xiaofen to be same as dvbs2 (orig is 0x12) */
+
+      eqcfad = 0x40 | i;
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, eqcfad);
+
+      f0b = (val & 0xFF) << 24;
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_F0B, f0b);
+   }
+   BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, 0);
+}
+
+
+/******************************************************************************
  BSAT_g1_P_Acquire2_isr()
 ******************************************************************************/
 BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-
-   uint32_t ffe_main_tap, i, val, eqcfad, f0b;
+   uint32_t val;
    BERR_Code retCode;
 
    BSAT_CHK_RETCODE(BSAT_g1_P_SetDecimationFilters_isr(h));
@@ -2578,8 +2606,10 @@ BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 #endif
    if (BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode) || (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode)))
       val = 0x0C801063; /* per Xiaofen */
-   else
+   else if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       val = 0x0C881073;
+   else
+      val = 0x08881073;
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, val);
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x00000003); /* clear carrier loop reset bit */
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00000003);
@@ -2595,27 +2625,8 @@ BERR_Code BSAT_g1_P_Acquire2_isr(BSAT_ChannelHandle h)
 
    BSAT_CHK_RETCODE(BSAT_g1_P_SetFfeMainTap_isr(h));
 
-   val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL);
-   ffe_main_tap = (val >> 16) & 0x1F;
-   for (i = 0; i < 24; i++)
-   {
-      val = 0x00;
-      if (i == ffe_main_tap)
-      {
-#ifdef BSAT_HAS_WFE
-         val = 0x11;
-#else
-         val = 0x16; /*0x18*/
-#endif
-      }
-
-      eqcfad = 0x40 | i;
-      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, eqcfad);
-
-      f0b = (val & 0xFF) << 24;
-      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_F0B, f0b);
-   }
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 1); /* reset the eq */
+   BSAT_g1_P_InitEqTaps(h);
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLLC, 0x01000100);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLIC, 0x01000000);
@@ -2663,8 +2674,14 @@ BERR_Code BSAT_g1_P_Acquire3_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x000000EF, 0x00000000);
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x0000FF00, 0x00007000);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0x00000400);
+#if 0
+#if 0
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_EQCFAD, 0x00000046);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_F0B, 0x16000000);
+#else
+   BSAT_g1_P_InitEqTaps(h);
+#endif
+#endif
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_BL_BLPCTL, ~0x000000F7, 0x00000007);
 
    if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)

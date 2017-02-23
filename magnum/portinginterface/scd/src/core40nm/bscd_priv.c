@@ -4599,25 +4599,22 @@ static BERR_Code BSCD_Channel_P_ConfigEvent1Timer_isrsafe(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_2),
                     inp_timer->timerMode.eEventTimerMode->incr_event);
-#else
-            /* start event src */
-            BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1),
-                    inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT1_CMD_start_event_src_SHIFT);
-            /* increment event src */
-            BREG_Write32(
-                    in_channelHandle->moduleHandle->regHandle,
-                    (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1),
-                    inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT1_CMD_increment_event_src_SHIFT);
-
-#endif
-
-            /* reset event src */
+			            /* reset event src */
             BREG_Write32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1),
                     inp_timer->timerMode.eEventTimerMode->reset_event);
+#else
+	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT1_CMD_start_event_src_SHIFT;
+	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT1_CMD_increment_event_src_SHIFT;
+	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->reset_event;
+        BREG_Write32(
+                    in_channelHandle->moduleHandle->regHandle,
+                    (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1),
+                    ulTimerCmdVal);
+#endif
+
+
 
             if (inp_timer->timerMode.eEventTimerMode->int_after_compare == true ) {
                 ulTimerCmdVal |= BCHP_SCA_SC_EVENT1_CMD_4_intr_after_compare_MASK;
@@ -4752,26 +4749,21 @@ static BERR_Code BSCD_Channel_P_ConfigEvent2Timer_isrsafe(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_2),
                 inp_timer->timerMode.eEventTimerMode->incr_event);
-#else
-    /* start event src */
-        BREG_Write32(
-                in_channelHandle->moduleHandle->regHandle,
-                (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1),
-                inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT2_CMD_start_event_src_SHIFT);
-        /* increment event src */
-        BREG_Write32(
-                in_channelHandle->moduleHandle->regHandle,
-                (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1),
-                inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT2_CMD_increment_event_src_SHIFT);
-
-#endif
-
-        /* reset event src */
+		/* reset event src */
         BREG_Write32(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1),
                 inp_timer->timerMode.eEventTimerMode->reset_event);
-
+#else
+	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->start_event<<BCHP_SCA_EVENT2_CMD_start_event_src_SHIFT;
+	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->incr_event<<BCHP_SCA_EVENT2_CMD_increment_event_src_SHIFT;
+	ulTimerCmdVal |= inp_timer->timerMode.eEventTimerMode->reset_event;
+		/* start event src */
+        BREG_Write32(
+                in_channelHandle->moduleHandle->regHandle,
+                (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1),
+                ulTimerCmdVal);
+#endif
             if (inp_timer->timerMode.eEventTimerMode->int_after_compare == true ) {
                 ulTimerCmdVal |= BCHP_SCA_SC_EVENT2_CMD_4_intr_after_compare_MASK;
             }

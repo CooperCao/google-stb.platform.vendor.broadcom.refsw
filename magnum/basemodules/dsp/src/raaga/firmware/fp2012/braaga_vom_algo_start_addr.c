@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -144,7 +144,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x10473000,
 
 		/* BDSP_AF_P_AlgoId_eiLBCDecode */
-		0x104d8cfc,
+		0x104d8cd4,
 
 		/* BDSP_AF_P_AlgoId_eiSACDecode */
 		0x104f3844,
@@ -156,13 +156,13 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x105f4800,
 
 		/* BDSP_AF_P_AlgoId_eOpusDecode */
-		0x106a9c90,
+		0x106a9c8c,
 
 		/* BDSP_AF_P_AlgoId_eALSDecode */
-		0x106cbdbc,
+		0x106cbdb4,
 
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
-		0x106d0e18,
+		0x106d0e24,
 
 		/* BDSP_AF_P_AlgoId_eEndOfAudioDecodeAlgos */
 		0x00000000,
@@ -297,7 +297,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x00000000,
 
 		/* BDSP_AF_P_AlgoId_eAacHeEncode */
-		0x102b66c0,
+		0x102b66b0,
 
 		/* BDSP_AF_P_AlgoId_eDtsEncode */
 		0x10254000,
@@ -537,7 +537,7 @@ const BDSP_VOM_Algo_Start_Addr BDSP_sAlgoStartAddr =
 		0x104fe000,
 
 		/* BDSP_AF_P_AlgoId_eScm3 */
-		0x000012d4,
+		0x000012e4,
 
 		/* BDSP_AF_P_AlgoId_eEndOfScmAlgos */
 		0x00000000,

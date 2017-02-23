@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band */
@@ -103,6 +95,10 @@ int main(void)
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
     NEXUS_AudioMixerSettings mixerSettings;
     NEXUS_AudioMixerHandle mixer;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
@@ -113,6 +109,30 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 2 || audioCapabilities.numMixers == 0)
+    {
+        printf("This application is not supported on this platform (requires decoder and mixers).\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -173,24 +193,26 @@ int main(void)
     mixerSettings.master = NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
     NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
 
-#if NEXUS_NUM_AUDIO_DACS
-    /* Add DAC to the mixer output */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    /* Add HDMI to the mixer output */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    /* Attach SPDIF to the mixer output */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioMixer_GetConnector(mixer));
-#endif
+    if (audioDacHandle) {
+        /* Add DAC to the mixer output */
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        /* Add HDMI to the mixer output */
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
+    #endif
+    if (audioSpdifHandle) {
+        /* Attach SPDIF to the mixer output */
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioMixer_GetConnector(mixer));
+    }
     /* Bring up video display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     display = NEXUS_Display_Open(0, &displaySettings);
@@ -213,7 +235,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 

@@ -124,7 +124,7 @@ endif
 # If we're building the playback_ip sub-library, then it will build nexus and os_lib
 # but if not, then we'll need to build them... so add them to the sub-lib list.
 ifneq ($(PLAYBACK_IP_SUPPORT),y)
-    ifneq ($(B_NEXUS_API_BUILD_COMPLETED),1)
+    ifneq ($(B_NEXUS_API_BUILD_COMPLETED),y)
         SUBLIBS += nexus
     endif
     ifeq ($(APPS),BUILD_SUBLIBS_ONLY)

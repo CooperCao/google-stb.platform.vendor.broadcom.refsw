@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band with ATSC A/85 loudness equivalence enabled */
@@ -90,6 +82,11 @@ int main(void)
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_AudioOutputSettings audioOutputSettings;
     NEXUS_RfAudioEncoderHandle rfEncoder;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSecondDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -100,6 +97,36 @@ int main(void)
 #endif
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 2)
+    {
+        printf("This application is not supported on this platform (requires decoders).\n");
+        return 0;
+    }
+
+
+    if (audioCapabilities.numOutputs.dac > 1)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+        audioSecondDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[1]);
+    }
+    else if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -137,52 +164,51 @@ int main(void)
     /* Bring up audio decoders and outputs */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    /* DACs are considered "active" outputs per ATSC A/85.  Since the decoder outputs at -20dB we must attenuate
-       another 3dB to achieve -23dB.  */
-    NEXUS_AudioOutput_GetSettings(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        &audioOutputSettings);
-    audioOutputSettings.leftVolume = -300;
-    audioOutputSettings.rightVolume = -300;
-    NEXUS_AudioOutput_SetSettings(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        &audioOutputSettings);
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    /* SPDIF is considered a passive output per ATSC A/85.  Since the decoder outputs at -20dB we must attenuate
-       another 11dB to achieve -31dB.  */
-    NEXUS_AudioOutput_GetSettings(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        &audioOutputSettings);
-    audioOutputSettings.leftVolume = -1100;
-    audioOutputSettings.rightVolume = -1100;
-    NEXUS_AudioOutput_SetSettings(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        &audioOutputSettings);
-
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
-    {
-        /* Only pass through AC3 - In compressed mode the above volume setting will be ignored. */
+    if (audioDacHandle) {
         NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-            NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-    }
-    else
-    {
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            audioDacHandle,
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        /* DACs are considered "active" outputs per ATSC A/85.  Since the decoder outputs at -20dB we must attenuate
+           another 3dB to achieve -23dB.  */
+        NEXUS_AudioOutput_GetSettings(
+            audioDacHandle,
+            &audioOutputSettings);
+        audioOutputSettings.leftVolume = -300;
+        audioOutputSettings.rightVolume = -300;
+        NEXUS_AudioOutput_SetSettings(
+            audioDacHandle,
+            &audioOutputSettings);
     }
-#endif
+    if (audioSpdifHandle) {
+        /* SPDIF is considered a passive output per ATSC A/85.  Since the decoder outputs at -20dB we must attenuate
+           another 11dB to achieve -31dB.  */
+        NEXUS_AudioOutput_GetSettings(
+            audioSpdifHandle,
+            &audioOutputSettings);
+        audioOutputSettings.leftVolume = -1100;
+        audioOutputSettings.rightVolume = -1100;
+        NEXUS_AudioOutput_SetSettings(
+            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            &audioOutputSettings);
+        if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
+        {
+            /* Only pass through AC3 - In compressed mode the above volume setting will be ignored. */
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else
+        {
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
+    }
 #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
     NEXUS_AudioOutput_GetSettings(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        audioHdmiHandle,
         &audioOutputSettings);
-
     {
         NEXUS_HdmiOutputStatus hdmiStatus;
         unsigned pollcnt = 10; /* 1 second = 10 loops of 100 msec */
@@ -209,25 +235,26 @@ int main(void)
     }
 
     NEXUS_AudioOutput_SetSettings(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+        audioHdmiHandle,
         &audioOutputSettings);    
 
     NEXUS_AudioOutput_AddInput(
         NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
         NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #endif
 
     rfEncoder = NEXUS_RfAudioEncoder_Open(NULL);    
-#if NEXUS_NUM_AUDIO_DACS > 1
-    /* Setup a FW BTSC encoding on the second audio DAC. Since the decoders output at -20dB in
-       ATSC A/85 mode, no further attenuation is required on this output.  */
-    NEXUS_RfAudioEncoder_AddInput(
-        rfEncoder,
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));    
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[1]),
-        NEXUS_RfAudioEncoder_GetConnector(rfEncoder));
-#endif
+    if (audioSecondDacHandle) {
+        /* Setup a FW BTSC encoding on the second audio DAC. Since the decoders output at -20dB in
+           ATSC A/85 mode, no further attenuation is required on this output.  */
+        NEXUS_RfAudioEncoder_AddInput(
+            rfEncoder,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        NEXUS_AudioOutput_AddInput(
+            audioSecondDacHandle,
+            NEXUS_RfAudioEncoder_GetConnector(rfEncoder));
+    }
 
     /* Bring up display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);

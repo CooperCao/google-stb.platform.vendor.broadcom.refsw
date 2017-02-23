@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -240,10 +240,13 @@ eRet CConfig::initResources()
     CPlatform * pPlatformConfig      = _cfg.getPlatformConfig();
 
     /* if atlas.cfg does not override number of resources, use nexus values */
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
     if (0 > nDisplays) { nDisplays = NEXUS_NUM_DISPLAYS; }
     if (0 > nGraphics) { nGraphics = ATLAS_NUM_GRAPHICS; }
     if (0 > nSimpleVideoDecoders) { nSimpleVideoDecoders = ATLAS_NUM_SIMPLE_VIDEO_DECODES; }
-    if (0 > nSimpleAudioDecoders) { nSimpleAudioDecoders = ATLAS_NUM_SIMPLE_AUDIO_DECODES; }
+    if (0 > nSimpleAudioDecoders) { nSimpleAudioDecoders = audioCapabilities.numDecoders; }
     if (0 > nStillDecoders) { nStillDecoders = NEXUS_NUM_STILL_DECODES; }
     if (0 > nStreamers) { nStreamers = ATLAS_NUM_STREAMERS; }
     if (0 > nRemotesIr) { nRemotesIr = ATLAS_NUM_IR_REMOTES; }
@@ -252,12 +255,8 @@ eRet CConfig::initResources()
     if (0 > nRemotesUhf) { nRemotesUhf = NEXUS_NUM_UHF_INPUTS; }
     if (0 > nFrontends) { nFrontends = NEXUS_MAX_FRONTENDS; }
     if (0 > nOutputsSpdif) { nOutputsSpdif = NEXUS_NUM_SPDIF_OUTPUTS; }
-    if (0 > nOutputsDac) { nOutputsDac = NEXUS_NUM_AUDIO_DACS; }
-#if NEXUS_NUM_I2S_OUTPUTS
-    if (0 > nOutputsDacI2s) { nOutputsDacI2s = NEXUS_NUM_I2S_OUTPUTS; }
-#else
-    nOutputsDacI2s = 0;
-#endif
+    if (0 > nOutputsDac) { nOutputsDac = audioCapabilities.numOutputs.dac; }
+    if (0 > nOutputsDacI2s) { nOutputsDacI2s = audioCapabilities.numOutputs.i2s; }
     if (0 > nOutputsHdmi) { nOutputsHdmi = NEXUS_NUM_HDMI_OUTPUTS; }
     if (0 > nOutputsComponent) { nOutputsComponent = NEXUS_NUM_COMPONENT_OUTPUTS; }
     if (0 > nOutputsComposite) { nOutputsComposite = NEXUS_NUM_COMPOSITE_OUTPUTS; }

@@ -1,7 +1,7 @@
 /******************************************************************************
- *     (c)2010-2011 Broadcom Corporation
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #ifndef NEXUS_HDMI_INPUT_HDCP_TYPES_H__
@@ -169,7 +161,11 @@ typedef enum NEXUS_HdmiInputHdcpState
 {
 	NEXUS_HdmiInputHdcpState_eUnknown, /* for HDCP 1.x, this is the only state */
 	NEXUS_HdmiInputHdcpState_eUnauthenticated,
-	NEXUS_HdmiInputHdcpState_eAuthenticated,
+	NEXUS_HdmiInputHdcpState_eAuthenticated,   /* device's receiver is authenticated by the upstream device */
+	NEXUS_HdmiInputHdcpState_eRepeaterAuthenticated, /* Repeater Authenticated state -
+                                                        available only when device used as a repeater, device's
+                                                        receiver and all downstream receivers are authenticated
+                                                        by the upstream device */
 	NEXUS_HdmiInputHdcpState_eMax
 } NEXUS_HdmiInputHdcpState;
 

@@ -3795,7 +3795,7 @@ bool BRDC_Slot_UpdateLastRulStatus_isr
         else
         {
             uint32_t ulHwTrackCount =
-                BREG_Read32(hSlot->hRdc->hReg, hSlot->ulTrackRegAddr);
+                BRDC_ReadScratch_isrsafe(hSlot->hRdc->hReg, hSlot->ulTrackRegAddr);
             hList->bLastExecuted = (hSlot->ulTrackCount == ulHwTrackCount)
                 ? true : false;
         }

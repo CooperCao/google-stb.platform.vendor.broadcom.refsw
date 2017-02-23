@@ -942,6 +942,9 @@ int main(int argc, const char *argv[])
     BKNI_EventHandle endOfStreamEvent;
     bool echo = false;
     NEXUS_PlatformCapabilities platformCap;
+    #if NEXUS_HAS_AUDIO
+    NEXUS_AudioCapabilities audioCaps;
+    #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     struct hotplug_context hotplug_context;
 #endif
@@ -1176,9 +1179,10 @@ int main(int argc, const char *argv[])
     rc = NEXUS_Playback_SetSettings(playback, &playbackSettings);
     BDBG_ASSERT(!rc);
 
-#if NEXUS_HAS_AUDIO
-#if NEXUS_NUM_AUDIO_DACS == 0 && NEXUS_NUM_I2S_OUTPUTS == 0 && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS == 0
-    if (opts.common.compressedAudio) {
+    #if NEXUS_HAS_AUDIO
+    NEXUS_GetAudioCapabilities(&audioCaps);
+    if (audioCaps.numOutputs.dac == 0 && audioCaps.numOutputs.i2s == 0 && audioCaps.numOutputs.dummy == 0 &&
+        opts.common.compressedAudio) {
         /* If compressed output is requested and the board does not have DACs or I2S outputs
            then we need to attach a dummy output to put the decoder into simul mode.
            Some codecs (DDP for example) attach to the pcm decoder to get AC3 out.
@@ -1187,7 +1191,6 @@ int main(int argc, const char *argv[])
         BDBG_WRN(("Compressed Audio: Disabling PCM audio decoding as no supported PCM audio interface"));
         opts.common.decodedAudio = false;
     }
-#endif
     NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
     if(opts.common.audioCdb) {
         audioDecoderOpenSettings.fifoSize = opts.common.audioCdb*1024;
@@ -1210,19 +1213,19 @@ int main(int argc, const char *argv[])
     }
 
     if (opts.common.audioPid && opts.common.decodedAudio) {
-#if NEXUS_NUM_AUDIO_DACS
-        rc = NEXUS_AudioOutput_AddInput(
-            NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
-        BDBG_ASSERT(!rc);
-#elif NEXUS_NUM_I2S_OUTPUTS
-        rc = NEXUS_AudioOutput_AddInput(
-            NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
-            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
-        BDBG_ASSERT(!rc);
-#endif
-#if NEXUS_NUM_AUDIO_DACS == 0 && NEXUS_NUM_I2S_OUTPUTS == 0 && NEXUS_NUM_AUDIO_DUMMY_OUTPUTS > 0
-        {
+        if ( audioCaps.numOutputs.dac > 0 ) {
+            rc = NEXUS_AudioOutput_AddInput(
+                NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            BDBG_ASSERT(!rc);
+        }
+        else if ( audioCaps.numOutputs.i2s > 0 ) {
+            rc = NEXUS_AudioOutput_AddInput(
+                NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
+                NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+            BDBG_ASSERT(!rc);
+        }
+        else if ( audioCaps.numOutputs.dummy > 0 ) {
             NEXUS_AudioOutputSettings dummySettings;
             NEXUS_AudioOutput_GetSettings(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]), &dummySettings);
             dummySettings.pll = NEXUS_AudioOutputPll_e1;
@@ -1233,16 +1236,14 @@ int main(int argc, const char *argv[])
                 NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
             BDBG_ASSERT(!rc);
         }
-#endif
 
-#if NEXUS_HAS_SYNC_CHANNEL
-        if (opts.sync)
-        {
+        #if NEXUS_HAS_SYNC_CHANNEL
+        if (opts.sync) {
             NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
             syncSettings.audioInput[0] = NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo);
             NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
         }
-#endif
+        #endif
         NEXUS_AudioDecoder_GetSettings(audioDecoder, &audioDecoderSettings);
         audioDecoderSettings.wideGaThreshold = opts.looseAudioTsm;
         rc = NEXUS_AudioDecoder_SetSettings(audioDecoder, &audioDecoderSettings);
@@ -1253,8 +1254,7 @@ int main(int argc, const char *argv[])
         audioDecoderOpenSettings.type = NEXUS_AudioDecoderType_ePassthrough;
         compressedDecoder = NEXUS_AudioDecoder_Open(1, &audioDecoderOpenSettings);
         BDBG_ASSERT(compressedDecoder);
-        if ( opts.common.dtsCd )
-        {
+        if ( opts.common.dtsCd ) {
             NEXUS_AudioDecoderCodecSettings audioCodecSettings;
             NEXUS_AudioDecoder_GetCodecSettings(compressedDecoder, NEXUS_AudioCodec_eDtsLegacy, &audioCodecSettings);
             audioCodecSettings.codecSettings.dts.littleEndian = true;
@@ -1262,68 +1262,59 @@ int main(int argc, const char *argv[])
             BDBG_ASSERT(!rc);
         }
 
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        if ( opts.common.audioCodec == NEXUS_AudioCodec_eAc3Plus || opts.common.audioCodec == NEXUS_AudioCodec_eWmaPro )
-        {
-            /* These codecs pasthrough as part of decode (ac3+ is transcoded to ac3, wma pro is not transcoded) */
-            if (opts.common.decodedAudio)
-            {
-                BDBG_WRN(("spdif audio: decoder 0 -> compressed"));
-                rc = NEXUS_AudioOutput_AddInput(
-                    NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                    NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eCompressed));
+        if ( audioCaps.numOutputs.spdif > 0 ) {
+            if ( opts.common.audioCodec == NEXUS_AudioCodec_eAc3Plus || opts.common.audioCodec == NEXUS_AudioCodec_eWmaPro ) {
+                /* These codecs pasthrough as part of decode (ac3+ is transcoded to ac3, wma pro is not transcoded) */
+                if (opts.common.decodedAudio) {
+                    BDBG_WRN(("spdif audio: decoder 0 -> compressed"));
+                    rc = NEXUS_AudioOutput_AddInput(
+                        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eCompressed));
+                    BDBG_ASSERT(!rc);
+                }
+                else {
+                    BDBG_WRN(("spdif audio: decoder 0 -> disconnected (no PCM decoder configured)"));
+                }
             }
-            else
-            {
-                BDBG_WRN(("spdif audio: decoder 0 -> disconnected (no PCM decoder configured)"));
-            }
-        }
-        else if ( opts.common.audioCodec && opts.common.audioCodec != NEXUS_AudioCodec_eMlp )
-        {
+            else if ( opts.common.audioCodec && opts.common.audioCodec != NEXUS_AudioCodec_eMlp ) {
 
-           BDBG_WRN(("spdif audio: decoder 1 -> compressed"));
-            rc = NEXUS_AudioOutput_AddInput(
-                NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed));
-#if NEXUS_HAS_SYNC_CHANNEL
-            if (opts.sync)
-            {
-                NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
-                syncSettings.audioInput[1] = NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed);
-                NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
-            }
-#endif
-        }
-        else if ( opts.common.audioCodec && opts.common.audioCodec == NEXUS_AudioCodec_eMlp )
-        {
-            if (opts.common.decodedAudio)
-            {
-                BDBG_WRN(("spdif audio: decoder 0 -> stereo"));
+               BDBG_WRN(("spdif audio: decoder 1 -> compressed"));
                 rc = NEXUS_AudioOutput_AddInput(
                     NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                    NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+                    NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed));
+                BDBG_ASSERT(!rc);
+                #if NEXUS_HAS_SYNC_CHANNEL
+                if (opts.sync) {
+                    NEXUS_SyncChannel_GetSettings(sync, &syncSettings);
+                    syncSettings.audioInput[1] = NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioConnectorType_eCompressed);
+                    NEXUS_SyncChannel_SetSettings(sync, &syncSettings);
+                }
+                #endif
             }
-            else
-            {
-                BDBG_WRN(("spdif audio: decoder 0 -> disconnected (no PCM decoder configured)"));
+            else if ( opts.common.audioCodec && opts.common.audioCodec == NEXUS_AudioCodec_eMlp ) {
+                if (opts.common.decodedAudio) {
+                    BDBG_WRN(("spdif audio: decoder 0 -> stereo"));
+                    rc = NEXUS_AudioOutput_AddInput(
+                        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
+                    BDBG_ASSERT(!rc);
+                }
+                else {
+                    BDBG_WRN(("spdif audio: decoder 0 -> disconnected (no PCM decoder configured)"));
+                }
             }
         }
-#endif
-        BDBG_ASSERT(!rc);
     }
-    else
-    {
-        if (opts.common.decodedAudio) {
-#if NEXUS_NUM_SPDIF_OUTPUTS
+    else {
+        if (opts.common.decodedAudio && audioCaps.numOutputs.spdif > 0 ) {
             BDBG_WRN(("spdif audio: decoder 0 -> stereo"));
             rc = NEXUS_AudioOutput_AddInput(
                 NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
                 NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioConnectorType_eStereo));
             BDBG_ASSERT(!rc);
-#endif
         }
     }
-#endif /* NEXUS_HAS_AUDIO */
+    #endif /* NEXUS_HAS_AUDIO */
 
 #if NEXUS_NUM_HDMI_OUTPUTS && NEXUS_HAS_AUDIO
     if (opts.common.useHdmiOutput)
@@ -1585,10 +1576,12 @@ int main(int argc, const char *argv[])
     window = NEXUS_VideoWindow_Open(display, 0);
     if (displaySD) {
         windowSD = NEXUS_VideoWindow_Open(displaySD, 0);
-        NEXUS_VideoWindow_GetSettings(windowSD, &windowSettings);
-        windowSettings.contentMode = opts.common.contentMode;
-        rc = NEXUS_VideoWindow_SetSettings(windowSD, &windowSettings);
-        BDBG_ASSERT(!rc);
+        if (windowSD != NULL) {
+            NEXUS_VideoWindow_GetSettings(windowSD, &windowSettings);
+            windowSettings.contentMode = opts.common.contentMode;
+            rc = NEXUS_VideoWindow_SetSettings(windowSD, &windowSettings);
+            BDBG_ASSERT(!rc);
+        }
     }
 
     NEXUS_VideoWindow_GetSettings(window, &windowSettings);
@@ -1933,16 +1926,16 @@ int main(int argc, const char *argv[])
                 "  fr - frame reverse\n"
                 "  rate(rate) - set trick rate (floating point number, 1.0 is normal play)\n"
                 "  host(type[,modifier,slowrate]) - set host trick mode\n"
-                "    type=i,ip,all,bcm,gop,gopip\n"
+                "    type=i,ip,all,bcm,dqt,dqtip,mdqt,mdqtip\n"
                 "      if type=i, modifier is # of I frames to play\n"
                 "      if type=bcm, modifier is rate\n"
-                "      if type=gop|gopip, modifier%%100 is # of frames per GOP to play, modifier/100 is GOP skip\n"
+                "      if type=dqt|dqtip, modifier%%100 is # of frames per GOP to play, modifier/100 is GOP skip\n"
                 "    slowrate=decoder repeat rate (1=1x,2=2x)\n"
                 );
                 printf(
                 "  hostrate(rate,type) - set rate and host trick mode\n"
                 "    rate=1.0 is normal play\n"
-                "    type=i,ip,all,bcm,gop,gopip\n"
+                "    type=i,ip,all,bcm,dqt,dqtip,mdqt,mdqtip\n"
                 );
                 printf(
                 "  seek(pos) - jump to position (in milliseconds)\n"
@@ -2123,11 +2116,19 @@ int main(int argc, const char *argv[])
                 else if (!strcasecmp(trick, "all")) {
                     trickSettings.mode = NEXUS_PlaybackHostTrickMode_eNormal;
                 }
-                else if (!strcasecmp(trick, "gop")) {
-                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayGop;
+                else if (!strcasecmp(trick, "dqt") || !strcasecmp(trick, "gop")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayDqt;
                 }
-                else if (!strcasecmp(trick, "gopip")) {
-                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayGopIP;
+                else if (!strcasecmp(trick, "dqtip") || !strcasecmp(trick, "gopip")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayDqtIP;
+                }
+                else if (!strcasecmp(trick, "mdqt")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqt;
+                    trickSettings.mode_modifier = -1;
+                }
+                else if (!strcasecmp(trick, "mdqtip")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP;
+                    trickSettings.mode_modifier = -1;
                 }
                 else if (!strcasecmp(trick, "bcm")) {
                     trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayBrcm;
@@ -2183,13 +2184,21 @@ int main(int argc, const char *argv[])
                     trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayI;
                     trickSettings.mode_modifier = (trickSettings.rate < 0)?-1:1;
                 }
-                else if (!strcasecmp(trick, "gop")) {
-                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayGop;
+                else if (!strcasecmp(trick, "dqt") || !strcasecmp(trick, "gop")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayDqt;
                     trickSettings.mode_modifier = (trickSettings.rate < 0)?-10:10;
                 }
-                else if (!strcasecmp(trick, "gopip")) {
-                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayGopIP;
+                else if (!strcasecmp(trick, "dqtip") || !strcasecmp(trick, "gopip")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayDqtIP;
                     trickSettings.mode_modifier = (trickSettings.rate < 0)?-10:10;
+                }
+                else if (!strcasecmp(trick, "mdqt")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqt;
+                    trickSettings.mode_modifier = -1;
+                }
+                else if (!strcasecmp(trick, "mdqtip")) {
+                    trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP;
+                    trickSettings.mode_modifier = -1;
                 }
                 else if (!strcasecmp(trick, "bcm")) {
                     trickSettings.mode = NEXUS_PlaybackHostTrickMode_ePlayBrcm;
@@ -2817,7 +2826,9 @@ uninit:
     NEXUS_Display_Close(display); /* must precede NEXUS_VideoDecoder_Close to auto-shutdown of inputs */
 
     if (displaySD) {
-        NEXUS_VideoWindow_Close(windowSD);
+        if (windowSD) {
+            NEXUS_VideoWindow_Close(windowSD);
+        }
         NEXUS_Display_Close(displaySD);
     }
 

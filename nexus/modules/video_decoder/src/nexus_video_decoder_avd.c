@@ -160,11 +160,6 @@ NEXUS_Error NEXUS_VideoDecoder_CreateStripedMosaicSurfaces( NEXUS_VideoDecoderHa
     return NEXUS_VideoDecoder_P_CreateStripedMosaicSurfaces_Avd( videoDecoder, pStripedSurfaces, maxSurfaces, pSurfaceCount);
 }
 
-void NEXUS_VideoDecoder_DestroyStripedMosaicSurfaces( NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_StripedSurfaceHandle *pStripedSurfaces, unsigned int surfaceCount)
-{
-    NEXUS_VideoDecoder_P_DestroyStripedMosaicSurfaces_Avd( videoDecoder, pStripedSurfaces, surfaceCount);
-}
-
 NEXUS_Error NEXUS_VideoDecoder_GetMostRecentPts( NEXUS_VideoDecoderHandle handle, uint32_t *pPts)
 {
     return NEXUS_VideoDecoder_P_GetMostRecentPts_Avd( handle, pPts);

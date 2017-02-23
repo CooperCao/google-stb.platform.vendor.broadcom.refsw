@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,6 +58,8 @@ BDBG_FILE_MODULE(BVCE_DBG_CMD);
 BDBG_FILE_MODULE(BVCE_DBG_RSP);
 BDBG_FILE_MODULE(BVCE_DBG_TR0);
 BDBG_FILE_MODULE(BVCE_DBG_TR1);
+BDBG_FILE_MODULE(BVCE_DBG_CDO);
+BDBG_FILE_MODULE(BVCE_DBG_ITO);
 
 unsigned BVCE_Debug_P_CommandIndexLUT(
    uint32_t uiCommand
@@ -85,10 +87,11 @@ BVCE_Debug_PrintLogMessageEntry(
 
    BDBG_ASSERT( pstEntry );
 
+   BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eITBOffsets + 1) );
    switch ( pstEntry->stMetadata.eType )
    {
       case BVCE_DebugFifo_EntryType_eConfig:
-         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
+         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) <= 144 );
          BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
          BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
@@ -383,12 +386,12 @@ BVCE_Debug_PrintLogMessageEntry(
 dbg_buf_overflow:
             BDBG_MODULE_MSG(BVCE_DBG_BUF, ("Debug String Overflow"));
 dbg_buf_done:
-            BDBG_MODULE_MSG(BVCE_DBG_BUF, ("(%10u)[%u][%u] offset=%08x length=%08x %s",
+            BDBG_MODULE_MSG(BVCE_DBG_BUF, ("(%10u)[%u][%u] offset=%08x length=%08lx %s",
                pstEntry->stMetadata.uiTimestamp,
                pstEntry->stMetadata.uiInstance,
                pstEntry->stMetadata.uiChannel,
                pstEntry->data.stBufferDescriptor.stCommon.uiOffset,
-               pstEntry->data.stBufferDescriptor.stCommon.uiLength,
+               (unsigned long) pstEntry->data.stBufferDescriptor.stCommon.uiLength,
                szDebug
             ));
          }
@@ -497,11 +500,19 @@ dbg_mta_done:
          char szDebug[BVCE_DEBUG_STRING_SIZE] = "";
          signed iBytesLeft = BVCE_DEBUG_STRING_SIZE;
          unsigned i;
+
+         iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
+                        BDBG_UINT64_FMT": ",
+                        BDBG_UINT64_ARG(pstEntry->data.stITB.uiReadOffset)
+                     );
+
+         if ( iBytesLeft < 0 ) { goto dbg_itb_overflow; }
+
          for ( i = 0; i < 16; i++ )
          {
             iBytesLeft -= BKNI_Snprintf( &szDebug[BVCE_DEBUG_STRING_SIZE-iBytesLeft], iBytesLeft,
                "%02x ",
-               pstEntry->data.auiITB[i]
+               pstEntry->data.stITB.auiEntry[i]
             );
          }
          if ( iBytesLeft < 0 ) { goto dbg_itb_overflow; }
@@ -573,6 +584,38 @@ dbg_itb_done:
          }
          break;
 
+      case BVCE_DebugFifo_EntryType_eCDBOffsets:
+         {
+            BDBG_MODULE_MSG( BVCE_DBG_CDO, ("(%10u)[%u][%u] b="BDBG_UINT64_FMT" e="BDBG_UINT64_FMT" r="BDBG_UINT64_FMT" sr="BDBG_UINT64_FMT" v="BDBG_UINT64_FMT" w="BDBG_UINT64_FMT,
+               pstEntry->stMetadata.uiTimestamp,
+               pstEntry->stMetadata.uiInstance,
+               pstEntry->stMetadata.uiChannel,
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiBase),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiEnd),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiRead),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiShadowRead),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiValid),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiWrite)
+               ));
+         }
+         break;
+
+      case BVCE_DebugFifo_EntryType_eITBOffsets:
+         {
+            BDBG_MODULE_MSG( BVCE_DBG_ITO, ("(%10u)[%u][%u] b="BDBG_UINT64_FMT" e="BDBG_UINT64_FMT" r="BDBG_UINT64_FMT" sr="BDBG_UINT64_FMT" v="BDBG_UINT64_FMT" w="BDBG_UINT64_FMT,
+               pstEntry->stMetadata.uiTimestamp,
+               pstEntry->stMetadata.uiInstance,
+               pstEntry->stMetadata.uiChannel,
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiBase),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiEnd),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiRead),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiShadowRead),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiValid),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiWrite)
+               ));
+         }
+         break;
+
       default:
          BDBG_LOG(("Unrecognized debug entry type: %d", pstEntry->stMetadata.eType));
          break;
@@ -605,7 +648,7 @@ BVCE_Debug_FormatLogHeader(
       {
          BVCE_DebugFifo_EntryType eType = uiIndex - 1;
 
-         BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eTrace1 + 1) );
+         BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eITBOffsets + 1) );
          switch ( eType )
          {
             case BVCE_DebugFifo_EntryType_eConfig:
@@ -617,6 +660,8 @@ BVCE_Debug_FormatLogHeader(
             case BVCE_DebugFifo_EntryType_eResponse:
             case BVCE_DebugFifo_EntryType_eTrace0:
             case BVCE_DebugFifo_EntryType_eTrace1:
+            case BVCE_DebugFifo_EntryType_eCDBOffsets:
+            case BVCE_DebugFifo_EntryType_eITBOffsets:
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                   "%u,%u,%s,instance,channel",
                   0,
@@ -634,7 +679,7 @@ BVCE_Debug_FormatLogHeader(
          switch ( eType )
          {
             case BVCE_DebugFifo_EntryType_eConfig:
-               BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
+               BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) <= 144 );
                BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
                BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
@@ -729,6 +774,14 @@ BVCE_Debug_FormatLogHeader(
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
                break;
 
+            case BVCE_DebugFifo_EntryType_eCDBOffsets:
+            case BVCE_DebugFifo_EntryType_eITBOffsets:
+               iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+                  ",base,end,read,shadow read,valid,write"
+               );
+               if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
+               break;
+
             default:
                szMessage[0] = '\0';
                bMore = false;
@@ -779,10 +832,11 @@ BVCE_Debug_FormatLogMessage(
       );
       if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
+      BDBG_CASSERT( BVCE_DebugFifo_EntryType_eMax == (BVCE_DebugFifo_EntryType_eITBOffsets + 1) );
       switch ( pstEntry->stMetadata.eType )
       {
          case BVCE_DebugFifo_EntryType_eConfig:
-            BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
+            BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) <= 144 );
             BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
             BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
@@ -865,7 +919,7 @@ BVCE_Debug_FormatLogMessage(
 
          case BVCE_DebugFifo_EntryType_eBufferDescriptor:
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",0x%08x,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,"BDBG_UINT64_FMT",%u,%u,%u,%u,%u,%d,%u,"BDBG_UINT64_FMT,
+               ",0x%08x,%u,%u,%u,%u,%u,%u,%u,%u,%lu,%u,%u,%u,"BDBG_UINT64_FMT",%u,%u,%u,%u,%u,%d,%u,"BDBG_UINT64_FMT,
                pstEntry->data.stBufferDescriptor.stCommon.uiFlags,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_METADATA)),
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EXTENDED)),
@@ -875,7 +929,7 @@ BVCE_Debug_FormatLogMessage(
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EOS)),
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_EMPTY_FRAME)),
                pstEntry->data.stBufferDescriptor.stCommon.uiOffset,
-               pstEntry->data.stBufferDescriptor.stCommon.uiLength,
+               (unsigned long) pstEntry->data.stBufferDescriptor.stCommon.uiLength,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_ORIGINALPTS_VALID)),
                pstEntry->data.stBufferDescriptor.stCommon.uiOriginalPTS,
                (0 != (pstEntry->data.stBufferDescriptor.stCommon.uiFlags & BAVC_COMPRESSEDBUFFERDESCRIPTOR_FLAGS_PTS_VALID)),
@@ -963,7 +1017,7 @@ BVCE_Debug_FormatLogMessage(
                {
                   iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                      ",0x%02x",
-                     pstEntry->data.auiITB[i]
+                     pstEntry->data.stITB.auiEntry[i]
                   );
                   if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
                }
@@ -1007,6 +1061,20 @@ BVCE_Debug_FormatLogMessage(
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                ",%s",
                pstEntry->data.szFunctionTrace
+            );
+            if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
+            break;
+
+         case BVCE_DebugFifo_EntryType_eITBOffsets:
+         case BVCE_DebugFifo_EntryType_eCDBOffsets:
+            iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
+               ","BDBG_UINT64_FMT","BDBG_UINT64_FMT","BDBG_UINT64_FMT","BDBG_UINT64_FMT","BDBG_UINT64_FMT","BDBG_UINT64_FMT,
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiBase),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiEnd),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiRead),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiShadowRead),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiValid),
+               BDBG_UINT64_ARG(pstEntry->data.stOffset.uiWrite)
             );
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
             break;

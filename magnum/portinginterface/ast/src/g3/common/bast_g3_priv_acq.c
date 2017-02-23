@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"
@@ -1738,7 +1758,7 @@ BERR_Code BAST_g3_P_Acquire0_isr(BAST_ChannelHandle h)
    };
 
    BAST_g3_P_ChannelHandle *hChn = (BAST_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t ffe_main_tap, i, val, eqcfad, f0b;
+   uint32_t ffe_main_tap, i, val, eqcfad, f0b, dco_ctl;
    BERR_Code retCode;
 
    BAST_CHK_RETCODE(BAST_g3_P_SetDecimationFilters_isr(h));
@@ -1795,7 +1815,21 @@ BERR_Code BAST_g3_P_Acquire0_isr(BAST_ChannelHandle h)
          return BAST_g3_P_DftDumpBins_isr(h);
       else
 #endif
+      {
+         if ((hChn->peakScanSymRateMin == 0) || (hChn->peakScanSymRateMax == 0))
+         {
+            if ((hChn->miscCtl & BSAT_G3_CONFIG_MISC_CTL_PEAKSCAN_PSD) == 0)
+            {
+               /* change DCO gain control */
+               BAST_g3_P_ReadRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, &val);
+               dco_ctl = 8;
+               val = 0x30000 | (dco_ctl << 10);
+               BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_DCOCTL, &val);
+               return BAST_g3_P_EnableTimer_isr(h, BAST_TimerSelect_eBaudUsec, 2000, BAST_g3_P_DftPeakScan_isr);
+            }
+         }
          return BAST_g3_P_DftPeakScan_isr(h);
+      }
    }
 
    BAST_g3_P_ReadRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, &val);
@@ -2992,7 +3026,7 @@ BERR_Code BAST_g3_P_SmartTune_isr(BAST_ChannelHandle h, BAST_g3_FUNCT nextFunct)
    uint32_t range_low, range_high, x, harmonic, Fs_expected, diff, i, i_lo, i_hi;
    uint32_t lo_vco_khz, lo_div, Fs_khz, x_vco_khz;
 
-   if (hChn->miscCtl & BAST_G3_CONFIG_MISC_CTL_DISABLE_SMART_TUNE)
+   if ((hChn->miscCtl & BAST_G3_CONFIG_MISC_CTL_DISABLE_SMART_TUNE) || (hChn->peakScanStatus & BAST_PEAK_SCAN_STATUS_ENABLED))
    {
       if (hChn->bFsNotDefault)
          goto set_default_fs;

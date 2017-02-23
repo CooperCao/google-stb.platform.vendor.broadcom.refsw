@@ -88,6 +88,25 @@ static BERR_Code BAPE_InputCapture_P_InputFormatChange_isr(
     BAPE_InputPort inputPort
     );
 
+void BAPE_InputCapture_P_FreeBuffer(BAPE_InputCaptureHandle handle, unsigned idx)
+{
+    if ( handle->bufferBlock[idx] )
+    {
+        if ( handle->pBuffers[idx] )
+        {
+            BMMA_Unlock(handle->bufferBlock[idx], handle->pBuffers[idx]);
+            handle->pBuffers[idx] = NULL;
+        }
+        if ( handle->bufferOffset[idx] )
+        {
+            BMMA_UnlockOffset(handle->bufferBlock[idx], handle->bufferOffset[idx]);
+            handle->bufferOffset[idx] = 0;
+        }
+        BMMA_Free(handle->bufferBlock[idx]);
+        handle->bufferBlock[idx] = NULL;
+    }
+}
+
 BERR_Code BAPE_InputCapture_Open(
     BAPE_Handle deviceHandle,
     unsigned index,
@@ -97,7 +116,6 @@ BERR_Code BAPE_InputCapture_Open(
 {
     unsigned i;
     BAPE_InputCaptureOpenSettings defaultSettings;
-    void *pCachedMem;
     BAPE_InputCaptureHandle handle;
     BAPE_FMT_Descriptor format;
     BAPE_FMT_Capabilities caps;
@@ -155,27 +173,31 @@ BERR_Code BAPE_InputCapture_Open(
         for ( i = 0; i < handle->numBuffers; i++ )
         {
             /* Allocate buffer */
-            handle->pBuffers[i] =  BMEM_Heap_AllocAligned(handle->hHeap, handle->bufferSize, 8, 0);
-            if ( NULL == handle->pBuffers[i] )
+            handle->bufferBlock[i] = BMMA_Alloc(handle->hHeap, handle->bufferSize, 32, NULL);
+            if ( NULL == handle->bufferBlock[i] )
             {
                 errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 goto err_buffer;
             }
 
-            errCode = BMEM_Heap_ConvertAddressToOffset(handle->hHeap, handle->pBuffers[i], &handle->bufferOffset[i]);
-            if ( errCode )
+            handle->pBuffers[i] = BMMA_Lock(handle->bufferBlock[i]);
+            if ( NULL == handle->pBuffers[i] )
             {
-                errCode = BERR_TRACE(errCode);
-                goto err_offset;
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                BAPE_InputCapture_P_FreeBuffer(handle, i);
+                goto err_buffer;
             }
 
-            errCode = BMEM_Heap_ConvertAddressToCached(handle->hHeap, handle->pBuffers[i], &pCachedMem);
-            if ( BERR_SUCCESS == errCode )
+            handle->bufferOffset[i] = BMMA_LockOffset(handle->bufferBlock[i]);
+            if (  0 == handle->bufferOffset[i] )
             {
-                /* Flush once at open to make sure the buffer has been invalidated from the cache. */
-                BMEM_Heap_FlushCache(handle->hHeap, pCachedMem, handle->bufferSize);
+                errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                BAPE_InputCapture_P_FreeBuffer(handle, i);
+                goto err_buffer;
             }
-            /* Not fatal if it fails, assume no cache support */
+
+            /* Flush once at open to make sure the buffer has been invalidated from the cache. */
+            BMMA_FlushCache(handle->bufferBlock[i], handle->pBuffers[i], handle->bufferSize);
         }
 
         handle->settings.watermark = pSettings->watermarkThreshold > 0 ? pSettings->watermarkThreshold : handle->bufferSize / 2;
@@ -239,7 +261,6 @@ BERR_Code BAPE_InputCapture_Open(
     deviceHandle->inputCaptures[index] = handle;
     return BERR_SUCCESS;
 
-err_offset:
 err_buffer:
 err_format:
 err_caps:
@@ -273,7 +294,7 @@ void BAPE_InputCapture_Close(
     {
         if ( handle->pBuffers[i] )
         {
-            BMEM_Heap_Free(handle->hHeap, handle->pBuffers[i]);
+            BAPE_InputCapture_P_FreeBuffer(handle, i);
         }
     }
 
@@ -536,7 +557,7 @@ BERR_Code BAPE_InputCapture_Start(
             dfifoSettings.interleaveData = false;
             for ( i = 0; i < numChannelPairs; i++ )
             {
-                uint32_t length;
+                uint64_t length;
                 unsigned bufferNum = i*2;
                 pBuffer = handle->node.connectors[0].pBuffers[i];
                 length = pBuffer->bufferSize/2;
@@ -551,6 +572,8 @@ BERR_Code BAPE_InputCapture_Start(
             dfifoSettings.dataWidth = 16;
             dfifoSettings.interleaveData = true;
             pBuffer = handle->node.connectors[0].pBuffers[0];
+            dfifoSettings.bufferInfo[0].block = pBuffer->block;
+            dfifoSettings.bufferInfo[0].pBuffer = pBuffer->pMemory;
             dfifoSettings.bufferInfo[0].base = pBuffer->offset;
             dfifoSettings.bufferInfo[0].length = pBuffer->bufferSize;
         }
@@ -742,7 +765,6 @@ static BERR_Code BAPE_InputCapture_P_AllocatePathFromInput(
     )
 {
     BERR_Code errCode;
-    BAPE_PathConnector *pSource;
     BAPE_InputCaptureHandle handle;
     BAPE_PathNode *pSink;
 
@@ -754,7 +776,6 @@ static BERR_Code BAPE_InputCapture_P_AllocatePathFromInput(
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
 
-    pSource = pConnection->pSource;
     pSink = pConnection->pSink;
 
     BDBG_MSG(("%s", __FUNCTION__));
@@ -833,9 +854,7 @@ static BERR_Code BAPE_InputCapture_P_FreePathFromInput(
     BAPE_PathConnection *pConnection
     )
 {
-    BAPE_PathConnector *pSource;
     BAPE_InputCaptureHandle handle;
-    BAPE_PathNode *pSink;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
@@ -844,9 +863,6 @@ static BERR_Code BAPE_InputCapture_P_FreePathFromInput(
 
     handle = pNode->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
-
-    pSource = pConnection->pSource;
-    pSink = pConnection->pSink;
 
     BDBG_MSG(("%s", __FUNCTION__));
     if ( NULL != handle->pMasterConnection )
@@ -871,7 +887,6 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
 {
     BAPE_PathConnector *pSource;
     BAPE_InputCaptureHandle handle;
-    BAPE_PathNode *pSink;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
@@ -882,7 +897,6 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
     BDBG_OBJECT_ASSERT(handle, BAPE_InputCapture);
 
     pSource = pConnection->pSource;
-    pSink = pConnection->pSink;
 
     BDBG_MSG(("%s", __FUNCTION__));
 
@@ -947,10 +961,14 @@ static BERR_Code BAPE_InputCapture_P_ConfigPathToOutput(
                 unsigned bufferId = 2*i;
                 BAPE_BufferNode *pBuffer = pSource->pBuffers[i];
                 BDBG_ASSERT(NULL != pBuffer);
+                sfifoSettings.bufferInfo[bufferId].block = pBuffer->block;
+                sfifoSettings.bufferInfo[bufferId].pBuffer = pBuffer->pMemory;
                 sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
                 sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize;
                 sfifoSettings.bufferInfo[bufferId].wrpoint = pBuffer->offset+pBuffer->bufferSize-1;
                 bufferId++;
+                sfifoSettings.bufferInfo[bufferId].block = NULL;
+                sfifoSettings.bufferInfo[bufferId].pBuffer = NULL;
                 sfifoSettings.bufferInfo[bufferId].base = 0;
                 sfifoSettings.bufferInfo[bufferId].length = 0;
                 sfifoSettings.bufferInfo[bufferId].wrpoint = 0;

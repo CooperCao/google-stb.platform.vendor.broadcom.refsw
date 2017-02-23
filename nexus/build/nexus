@@ -24,6 +24,10 @@ TEST=`lsmod|grep wakeup_drv >/dev/null && echo 1`
 if [ ! -z $TEST ]; then
     rmmod wakeup_drv || exit;
 fi
+TEST=`lsmod|grep brcmv3d >/dev/null && echo 1`
+if [ ! -z $TEST ]; then
+    rmmod brcmv3d || exit;
+fi
 
 insmod bcmdriver.ko || exit;
 if [ ! -e /dev/brcm0 ]; then
@@ -35,6 +39,10 @@ insmod wakeup_drv.ko
 fi
 if [ ! -e /dev/wake0 ]; then
 mknod -m a=rw /dev/wake0 c 34 0
+fi
+
+if [ -e brcmv3d.ko ]; then
+insmod brcmv3d.ko
 fi
 
 if [ -e bcm_astra.ko ]; then

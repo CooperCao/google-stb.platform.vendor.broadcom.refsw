@@ -153,7 +153,8 @@ Status from a parser band. Retrieved with NEXUS_ParserBand_GetStatus.
 typedef struct NEXUS_ParserBandStatus
 {
     struct {
-        unsigned overflowErrors;
+        unsigned overflowErrors; /* Cumulative count of Rate Smoothing Buffer overflows detected.
+                                    Reset when PID channel is disabled or NEXUS_PidChannel_ResetStatus() */
     } rsBufferStatus;
     unsigned index; /* hardware parser band number */
 } NEXUS_ParserBandStatus;

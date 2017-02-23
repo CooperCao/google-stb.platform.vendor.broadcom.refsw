@@ -143,36 +143,18 @@ NEXUS_LDFLAGS += -G 0 --warn-common
 else
 # ARM
 
-ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-ARM_ARCH=arm64
-else
-ARM_ARCH=arm
-endif
 
-# CFLAGS only for OS abstraction files
-NEXUS_KERNEL_CFLAGS += \
-        -DLINUX \
-        -D__KERNEL__ \
-        -I$(LINUX_OUT)/include\
-        -I$(LINUX)/include\
-        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include\
-        -I$(LINUX)/arch/$(ARM_ARCH)/include\
-        -include linux/kconfig.h\
-        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include/generated\
-        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include/uapi\
-        -I$(LINUX)/arch/$(ARM_ARCH)/include/uapi\
-        -I$(LINUX_OUT)/arch/$(ARM_ARCH)/include/generated/uapi\
-        -I$(LINUX)/arch/$(ARM_ARCH)/include/generated/uapi\
-        -I$(LINUX_OUT)/include/uapi\
-        -I$(LINUX)/include/uapi\
-        -I$(LINUX_OUT)/include/generated/uapi
 
 # CFLAGS for all files compiled into linuxkernel
 ifeq ($(B_REFSW_DEBUG),y)
-NEXUS_CFLAGS  += $(filter-out -Wundef -mgeneral-regs-only,$(BCM_KBUILD_CFLAGS))
+NEXUS_CFLAGS  += $(filter-out -Wundef -O% -mgeneral-regs-only,$(BCM_KBUILD_CFLAGS))
 else
-NEXUS_CFLAGS  += $(filter-out -Wundef -Wall -mgeneral-regs-only,$(BCM_KBUILD_CFLAGS))
+NEXUS_CFLAGS  += $(filter-out -Wundef -O% -Wall -mgeneral-regs-only,$(BCM_KBUILD_CFLAGS))
 endif
+# Force Os -  optimise for size
+NEXUS_CFLAGS += -Os
+# Don't warn on unreferenced static functions
+NEXUS_CFLAGS += -Wno-unused-function
 NEXUS_LDFLAGS += $(BCM_KBUILD_LDFLAGS)
 
 
@@ -183,6 +165,37 @@ else
 # We are using -mfpu=vfpv3-d16 to force off generation of NEON instructions for fixed point code, when compiler comes with default -mfpu=neon-vfpv4
 NEXUS_CFLAGS += -mfpu=vfpv3-d16
 endif
+endif
+
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+LINUX_ARCH=arm64
+else
+ifeq ($(filter ${B_REFSW_ARCH}, mipsel-linux mips-linux mips-uclibc mips-linux-uclibc), ${B_REFSW_ARCH})
+LINUX_ARCH=mips
+else
+LINUX_ARCH=arm
+endif
+endif
+# CFLAGS only for OS abstraction files
+NEXUS_KERNEL_CFLAGS += \
+        -DLINUX \
+        -D__KERNEL__ \
+        -I$(LINUX_OUT)/include\
+        -I$(LINUX)/include\
+        -I$(LINUX_OUT)/arch/$(LINUX_ARCH)/include\
+        -I$(LINUX)/arch/$(LINUX_ARCH)/include\
+        -I$(LINUX_OUT)/arch/$(LINUX_ARCH)/include/generated\
+        -I$(LINUX_OUT)/arch/$(LINUX_ARCH)/include/uapi\
+        -I$(LINUX)/arch/$(LINUX_ARCH)/include/uapi\
+        -I$(LINUX_OUT)/arch/$(LINUX_ARCH)/include/generated/uapi\
+        -I$(LINUX)/arch/$(LINUX_ARCH)/include/generated/uapi\
+        -I$(LINUX_OUT)/include/uapi\
+        -I$(LINUX)/include/uapi\
+        -I$(LINUX_OUT)/include/generated/uapi
+
+ifeq ($(LINUX_VER_GE_3),y)
+NEXUS_KERNEL_CFLAGS += \
+        -include linux/kconfig.h
 endif
 
 NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=$(NEXUS_ENDIAN)

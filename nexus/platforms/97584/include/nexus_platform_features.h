@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
-#include "nexus_platform_generic_features_priv.h"
+#include "bstd.h"
 
 /* Transport Features */
 #define NEXUS_NUM_PARSER_BANDS 10
@@ -54,27 +54,12 @@
 #define NEXUS_NUM_VIDEO_DECODERS 2 /* Technically, two channels on a single decoder, but this indicates PIP support */
 
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 2
 #define NEXUS_NUM_VIDEO_ENCODERS 1
 #endif
 
 /* Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 3
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_MIXERS 4
-
-#define NEXUS_NUM_I2S_INPUTS 1
-#define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_PLAYBACKS 2
-#define NEXUS_NUM_AUDIO_INPUT_CAPTURES 2
-
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-
-#ifdef NEXUS_NUM_AUDIO_CRCS
-#undef NEXUS_NUM_AUDIO_CRCS
 #define NEXUS_NUM_AUDIO_CRCS 0
-#endif
+
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 2
@@ -119,15 +104,9 @@ upon the chip usage. See below */
 /* Memory features */
 #define NEXUS_NUM_MEMC 1
 
-/* default heap indices */
-#define NEXUS_MEMC0_MAIN_HEAP           0
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 2
-#define NEXUS_MEMC0_GRAPHICS_HEAP       1
-
-#define NEXUS_SAGE_SECURE_HEAP          3 /* optional secure heaps, can be left undefined if not used */
-#define NEXUS_VIDEO_SECURE_HEAP         4
-
 /* Use memory beyond 256M */
 #define NEXUS_UPPER_MEMORY_SUPPORT      0
+
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

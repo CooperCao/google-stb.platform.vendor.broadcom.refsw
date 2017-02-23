@@ -79,6 +79,7 @@ static void NEXUS_HdmiOutput_P_GetTmdsSignals(
 
 static NEXUS_Error NEXUS_HdmiOutput_P_GetSupportedFormats(
     NEXUS_HdmiOutputHandle output, bool *supportedVideoFormats) ;
+static void NEXUS_HdmiOutput_P_CopyDisplaySettings( NEXUS_HdmiOutputHandle output );
 
 #if BDBG_DEBUG_BUILD
 static const char *NEXUS_HdmiOutput_P_ColorSpace_Text[NEXUS_ColorSpace_eMax] =
@@ -166,19 +167,19 @@ void NEXUS_HdmiOutputModule_Print(void)
             g_hdmiOutputs[i].rxHwStatus.descrambling ? "Yes" : "No")) ;
 
         BDBG_LOG(("   ColorSpace: %s",
-            NEXUS_HdmiOutput_P_ColorSpace_Text[g_hdmiOutputs[i].settings.colorSpace])) ;
+            NEXUS_HdmiOutput_P_ColorSpace_Text[g_hdmiOutputs[i].displaySettings.colorSpace])) ;
 
-        BDBG_LOG(("   ColorDepth: %d ", g_hdmiOutputs[i].settings.colorDepth)) ;
+        BDBG_LOG(("   ColorDepth: %d ", g_hdmiOutputs[i].displaySettings.colorDepth)) ;
 
         BDBG_LOG(("   Matrix Coefficient ID: %d  Override: %s",
-            g_hdmiOutputs[i].settings.matrixCoefficients,
-            g_hdmiOutputs[i].settings.overrideMatrixCoefficients ? "Yes" : "No")) ;
+            g_hdmiOutputs[i].displaySettings.eColorimetry,
+            g_hdmiOutputs[i].displaySettings.overrideMatrixCoefficients ? "Yes" : "No")) ;
 
         BDBG_LOG(("   Color Range:           %s  Override: %s",
-            g_hdmiOutputs[i].settings.colorRange ? "Limited"
-                : (g_hdmiOutputs[i].settings.colorRange ==  NEXUS_ColorRange_eFull) ? "Full"
+            g_hdmiOutputs[i].displaySettings.colorRange ? "Limited"
+                : (g_hdmiOutputs[i].displaySettings.colorRange ==  NEXUS_ColorRange_eFull) ? "Full"
                 : "Unknown",
-            g_hdmiOutputs[i].settings.overrideColorRange ? "Yes" : "No")) ;
+            g_hdmiOutputs[i].displaySettings.overrideColorRange ? "Yes" : "No")) ;
 
         if (!g_hdmiOutputs[i].txHwStatus.hotplugInterruptEnabled)
         {
@@ -477,6 +478,7 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     NEXUS_CallbackDesc_Init(&pOutput->settings.hotplugCallback);
     NEXUS_CallbackDesc_Init(&pOutput->settings.hdmiRxStatusChanged);
     NEXUS_CallbackDesc_Init(&pOutput->settings.mhlStandbyCallback);
+    NEXUS_HdmiOutput_P_CopyDisplaySettings(pOutput);
 
     BDBG_ASSERT(pSettings->spd.deviceType < NEXUS_HdmiSpdSourceDeviceType_eMax);
 
@@ -805,6 +807,18 @@ void NEXUS_HdmiOutput_GetSettings(
     *pSettings = output->settings;
 }
 
+static void NEXUS_HdmiOutput_P_CopyDisplaySettings( NEXUS_HdmiOutputHandle output )
+{
+    /* After user settings are copied to displaySettings, only the copy should be used.
+    They may be modified by NEXUS_HdmiOutput_SetDisplaySettings_priv or NEXUS_HdmiOutput_OverrideVideoSettings_priv. */
+    output->displaySettings.overrideMatrixCoefficients = output->settings.overrideMatrixCoefficients;
+    output->displaySettings.eColorimetry = output->settings.matrixCoefficients;
+    output->displaySettings.colorSpace = output->settings.colorSpace;
+    output->displaySettings.overrideColorRange = output->settings.overrideColorRange;
+    output->displaySettings.colorRange = output->settings.colorRange;
+    output->displaySettings.colorDepth = output->settings.colorDepth;
+}
+
 NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const NEXUS_HdmiOutputSettings *pSettings )
 {
     NEXUS_Error errCode = NEXUS_SUCCESS ;
@@ -894,8 +908,8 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
         goto done ;
     }
 
-    colorDepthChanged = pSettings->colorDepth  != output->settings.colorDepth ;
-    colorSpaceChanged = pSettings->colorSpace != output->settings.colorSpace ;
+    colorDepthChanged = pSettings->colorDepth != output->displaySettings.colorDepth ;
+    colorSpaceChanged = pSettings->colorSpace != output->displaySettings.colorSpace ;
 
     /* if there are two rapid calls to SetSettings, the second must not clear a pending formatChangeUpdate */
     if (colorDepthChanged || colorSpaceChanged)
@@ -908,33 +922,33 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
     if (colorSpaceChanged
     || colorDepthChanged
 
-    || (pSettings->overrideMatrixCoefficients != output->settings.overrideMatrixCoefficients)
-    || (pSettings->matrixCoefficients != output->settings.matrixCoefficients)
+    || (pSettings->overrideMatrixCoefficients != output->displaySettings.overrideMatrixCoefficients)
+    || (pSettings->matrixCoefficients != output->displaySettings.eColorimetry)
 
-    || (pSettings->overrideColorRange != output->settings.overrideColorRange)
-    || (pSettings->colorRange != output->settings.colorRange))
+    || (pSettings->overrideColorRange != output->displaySettings.overrideColorRange)
+    || (pSettings->colorRange != output->displaySettings.colorRange))
     {
         BDBG_MSG(("SetSettings")) ;
         BDBG_MSG(("   ColorSpace from %s to %s",
-            NEXUS_HdmiOutput_P_ColorSpace_Text[output->settings.colorSpace],
+            NEXUS_HdmiOutput_P_ColorSpace_Text[output->displaySettings.colorSpace],
             NEXUS_HdmiOutput_P_ColorSpace_Text[pSettings->colorSpace])) ;
 
         BDBG_MSG(("   ColorDepth from %d bit to %d bit ",
-            output->settings.colorDepth, pSettings->colorDepth)) ;
+            output->displaySettings.colorDepth, pSettings->colorDepth)) ;
 
         BDBG_MSG(("   Override Matrix Coefficient Setting from %s to %s",
-            output->settings.overrideMatrixCoefficients ? "Yes" : "No",
+            output->displaySettings.overrideMatrixCoefficients ? "Yes" : "No",
             pSettings->overrideMatrixCoefficients ? "Yes" : "No")) ;
 
         BDBG_MSG(("   Matrix Coefficients ID from %d to %d",
-            output->settings.matrixCoefficients, pSettings->matrixCoefficients)) ;
+            output->displaySettings.eColorimetry, pSettings->matrixCoefficients)) ;
 
         BDBG_MSG(("   Override Color Range Setting from %s to %s",
-            output->settings.overrideColorRange ? "Yes" : "No",
+            output->displaySettings.overrideColorRange ? "Yes" : "No",
             pSettings->overrideColorRange ? "Yes" : "No")) ;
 
         BDBG_MSG(("   Color Range from %d to %d",
-            output->settings.colorRange, pSettings->colorRange)) ;
+            output->displaySettings.colorRange, pSettings->colorRange)) ;
 
     }
 #endif
@@ -944,6 +958,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetSettings( NEXUS_HdmiOutputHandle output, const N
 
     /* save new settings passed in */
     output->settings = *pSettings;
+    NEXUS_HdmiOutput_P_CopyDisplaySettings(output);
 
     if (output->crc.size != pSettings->crcQueueSize) {
         void *new_ptr = NULL, *old_ptr;
@@ -1200,6 +1215,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
 
     pStatus->colorSpace =
         NEXUS_P_ColorSpace_FromMagnum_isrsafe(stVideoSettings.eColorSpace) ;
+    pStatus->colorDepth = output->displaySettings.colorDepth;
 
     (void) BHDM_GetHdmiSettings(output->hdmHandle, &output->hdmSettings);
     pStatus->videoFormat = NEXUS_P_VideoFormat_FromMagnum_isrsafe(output->hdmSettings.eInputVideoFmt);
@@ -1637,17 +1653,6 @@ NEXUS_Error NEXUS_HdmiOutput_GetVideoFormatSupport(
 done:
     return errCode ;
 }
-
-
-void NEXUS_HdmiOutput_GetDefaultVideoSettings(
-    NEXUS_HdmiOutputVideoSettings *pSettings
-)
-{
-    pSettings->videoFormat = NEXUS_VideoFormat_e720p ;
-    pSettings->colorDepth = 8 ;
-    pSettings->colorSpace = NEXUS_ColorSpace_eYCbCr444 ;
-}
-
 
 NEXUS_VideoOutput NEXUS_HdmiOutput_GetVideoConnector( NEXUS_HdmiOutputHandle output )
 {
@@ -2507,7 +2512,7 @@ bool NEXUS_HdmiOutput_GetColorimetry_priv(
         return false ;
     }
 
-    switch (hdmiOutput->settings.colorSpace)
+    switch (hdmiOutput->displaySettings.colorSpace)
     {
     case NEXUS_ColorSpace_eAuto :
         /* User override of default colorspace */
@@ -2537,7 +2542,7 @@ bool NEXUS_HdmiOutput_GetColorimetry_priv(
         break ;
 
     default :
-        BDBG_WRN(("Unknown/Unsupported Color Space: %d", hdmiOutput->settings.colorSpace)) ;
+        BDBG_WRN(("Unknown/Unsupported Color Space: %d", hdmiOutput->displaySettings.colorSpace)) ;
         return false ;
         break ;
     }
@@ -2701,59 +2706,6 @@ NEXUS_Error NEXUS_HdmiOutput_Disconnect_priv(
     return errCode ;
 }
 
-/* Audio can only start if video is connected */
-bool NEXUS_HdmiOutput_VideoIsConnected_priv(
-    NEXUS_HdmiOutputHandle handle
-    )
-{
-    NEXUS_ASSERT_MODULE();
-    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-
-    return handle->videoConnected;
-}
-
-/* Sanity checks for the audio module */
-bool NEXUS_HdmiOutput_AudioFormatSupported_priv(
-    NEXUS_HdmiOutputHandle handle,
-    BAVC_AudioFormat format,
-    unsigned numChannels    /* PCM only */
-    )
-{
-    BERR_Code errCode;
-    BHDM_EDID_AudioDescriptor audioFormats[BAVC_AudioFormat_eMaxCount] ;
-
-    NEXUS_ASSERT_MODULE();
-    errCode = BHDM_EDID_GetSupportedAudioFormats(handle->hdmHandle, audioFormats);
-    if ( errCode )
-    {
-        return false;
-    }
-
-    if ( !audioFormats[format].Supported )
-    {
-        return false;
-    }
-    else if ( format == BAVC_AudioFormat_ePCM )
-    {
-        /* Hardware can only output stereo or 5.1 currently */
-        switch ( numChannels )
-        {
-        case 2:
-        case 6:
-            if ( audioFormats[BAVC_AudioFormat_ePCM].AudioChannels < numChannels )
-            {
-                return false;
-            }
-            break;
-        default:
-            /* Not supported */
-            return false;
-        }
-    }
-
-    return true;
-}
-
 /* Set audio format information */
 NEXUS_Error NEXUS_HdmiOutput_SetAudioParams_priv(
     NEXUS_HdmiOutputHandle handle,
@@ -2908,39 +2860,6 @@ NEXUS_Error NEXUS_HdmiOutput_SetAVMute(NEXUS_HdmiOutputHandle hdmiOutput, bool m
     return NEXUS_SUCCESS;
 }
 
-
-/* use NEXUS_HdmiOutout_GetVideoFormatSupport vs NEXUS_HdmiOutput_VideoFormatSupported */
-/* for additional support information */
-bool NEXUS_HdmiOutput_VideoFormatSupported(NEXUS_HdmiOutputHandle handle, NEXUS_VideoFormat format)
-{
-    BERR_Code errCode;
-    BFMT_VideoFmt videoFmt;
-    uint8_t supported;
-
-    NEXUS_ASSERT_MODULE();
-    BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-    RESOLVE_ALIAS(handle);
-
-    errCode = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &videoFmt);
-    if (errCode)
-    {
-        supported = false;
-        errCode = BERR_TRACE(errCode) ;
-        goto done ;
-    }
-
-    errCode = BHDM_EDID_VideoFmtSupported(handle->hdmHandle, videoFmt, &supported);
-    if (errCode)
-    {
-        supported = false;
-        errCode = BERR_TRACE(errCode) ;
-        goto done ;
-    }
-
-    done :
-        return supported;
-}
-
 NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput, bool aspectRatioChangeOnly)
 {
     NEXUS_Error rc;
@@ -3055,14 +2974,7 @@ NEXUS_Error NEXUS_HdmiOutput_GetDisplaySettings_priv(
 {
 #if NEXUS_HAS_HDMI_1_3
     BDBG_OBJECT_ASSERT(handle, NEXUS_HdmiOutput);
-
-    BKNI_Memset(stHdmiOutputDisplaySettings, 0, sizeof(NEXUS_HdmiOutputDisplaySettings)) ;
-    stHdmiOutputDisplaySettings->colorDepth = handle->settings.colorDepth ;
-    stHdmiOutputDisplaySettings->colorSpace = handle->settings.colorSpace ;
-    stHdmiOutputDisplaySettings->eColorimetry = handle->settings.matrixCoefficients ;
-    stHdmiOutputDisplaySettings->overrideMatrixCoefficients = handle->settings.overrideMatrixCoefficients ;
-    stHdmiOutputDisplaySettings->colorRange = handle->settings.colorRange ;
-    stHdmiOutputDisplaySettings->overrideColorRange = handle->settings.overrideColorRange ;
+    *stHdmiOutputDisplaySettings = handle->displaySettings;
 #else
     BSTD_UNUSED(handle);
     BSTD_UNUSED(stHdmiOutputDisplaySettings) ;
@@ -3088,17 +3000,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetDisplaySettings_priv(
         pstDisplaySettings->colorDepth,
         pstDisplaySettings->eColorimetry, pstDisplaySettings->overrideMatrixCoefficients ? "Yes" : "No")) ;
 
-    handle->settings.colorSpace = pstDisplaySettings->colorSpace ;
-
-#if NEXUS_HAS_HDMI_1_3
-    handle->settings.colorDepth = pstDisplaySettings->colorDepth ;
-
-    handle->settings.matrixCoefficients = pstDisplaySettings->eColorimetry ;
-    handle->settings.overrideMatrixCoefficients = pstDisplaySettings->overrideMatrixCoefficients ;
-
-    handle->settings.colorRange = pstDisplaySettings->colorRange ;
-    handle->settings.overrideColorRange = pstDisplaySettings->overrideColorRange ;
-#endif
+    handle->displaySettings = *pstDisplaySettings;
 
     rc = BHDM_GetVideoSettings(handle->hdmHandle, &stVideoSettings) ;
     if (rc) return BERR_TRACE(rc);

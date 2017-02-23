@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,13 +34,20 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_DISPLAY_MODULE_H__
 #define NEXUS_DISPLAY_MODULE_H__
 
 #include "nexus_base.h"
 #include "nexus_platform_features.h"
+
+#if NEXUS_HAS_GRAPHICS2D
+#include "bchp_gfd_0.h"
+#ifdef BCHP_GFD_0_CTRL_BSTC_ENABLE_ON
+#define NEXUS_AUTO_GRAPHICS_COMPRESSION 1
+#include "nexus_graphics2d.h"
+#endif
+#endif
 
 #ifndef NEXUS_VBI_ENCODER_QUEUE_SIZE
 /* override NEXUS_VBI_ENCODER_QUEUE_SIZE in nexus_platform_features.h */
@@ -60,6 +67,7 @@ BCHP_CHIP==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7468 || BCHP_CHIP ==7125 || BCH
 
 #include "nexus_display_thunks.h"
 #include "nexus_display.h"
+#include "nexus_display_private.h"
 #include "nexus_display_init.h"
 #include "priv/nexus_display_standby_priv.h"
 #include "priv/nexus_display_priv.h"
@@ -215,6 +223,19 @@ struct NEXUS_DisplayGraphics {
     BVDC_Window_Handle windowVdc;/* it indicates  that graphics is active, e.g. it both enabled in settings and frambuffer was assigned */
     const BPXL_Plane *queuedPlane; /* surface queued for display in hardware, used only as reference  */
     NEXUS_GraphicsFramebuffer3D frameBuffer3D;
+#if NEXUS_AUTO_GRAPHICS_COMPRESSION
+    struct {
+        struct {
+            NEXUS_SurfaceHandle uncompressed, compressed;
+#define NEXUS_MAX_COMPRESSED_FRAMEBUFFERS 4
+            unsigned cnt;
+        } cache[NEXUS_MAX_COMPRESSED_FRAMEBUFFERS];
+        unsigned cnt;
+        NEXUS_Graphics2DHandle gfx;
+        NEXUS_CallbackHandler checkpointCallback;
+        bool warning, checkpoint;
+    } compression;
+#endif
     uint16_t frameBufferWidth; /* width of the frame buffer */
     uint16_t frameBufferHeight; /* height of the frame buffer  */
     NEXUS_PixelFormat frameBufferPixelFormat; /* pixelFormat of the frame buffer */

@@ -1,5 +1,5 @@
 ############################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
 #
 # Protect against multiple/circular includes...
@@ -74,7 +73,7 @@ endif
 ifneq ($(LIVEMEDIA_SUPPORT),n)
     export LIVEMEDIA_SUPPORT=y
 
-    include $(NEXUS_TOP)/../BSEAV/lib/livemedia/livemedia.inc
+    include $(NEXUS_TOP)/../BSEAV/opensource/livemedia/livemedia.inc
 
     # LiveMedia start out from this directory and gets untarred to LIVEMEDIA_DIR
     LIVEMEDIA_ORG = $(B_LIVEMEDIA_BUILD_DIR)
@@ -82,7 +81,7 @@ ifneq ($(LIVEMEDIA_SUPPORT),n)
     # LiveMedia include files and source files end up here
     LIVEMEDIA_DIR = $(B_LIVEMEDIA_DIR)
 
-    BLIVE_EXT_DIR = $(NEXUS_TOP)/../BSEAV/lib/livemedia/blive_ext
+    BLIVE_EXT_DIR = $(NEXUS_TOP)/../BSEAV/opensource/livemedia/blive_ext
     include $(BLIVE_EXT_DIR)/include/blive_ext.mak
 endif #LM
 
@@ -217,7 +216,7 @@ endif # LIVEMEDIA_SUPPORT
 ifeq ($(SPF_SUPPORT),y)
 #Changes for RTSP-ES support
     export SPF_SUPPORT=y
-    B_PLAYBACK_IP_LIB_PUBLIC_INCLUDES += $(NEXUS_TOP)/../BSEAV/lib/livemedia
+    B_PLAYBACK_IP_LIB_PUBLIC_INCLUDES += $(NEXUS_TOP)/../BSEAV/opensource/livemedia
     B_PLAYBACK_IP_LIB_DEFINES += SPF_SUPPORT
     B_PLAYBACK_IP_LIB_SOURCES += \
                     $(B_LIB_TOP)/playback_ip/src/b_playback_ip_rtsp_es.c \
@@ -424,7 +423,7 @@ endif #DTCP_IP_SAGE_SUPPORT
 ifeq ($(SSL_SUPPORT),y)
     PLAYBACK_IP_LDFLAGS +=  -ldl
     ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
-        include $(NEXUS_TOP)/../BSEAV/lib/openssl/openssl.inc
+        include $(NEXUS_TOP)/../BSEAV/opensource/openssl/openssl.inc
         B_PLAYBACK_IP_LIB_PUBLIC_INCLUDES += $(B_OPENSSL_INC_INSTALL_DIR)
         PLAYBACK_IP_LDFLAGS +=  $(B_OPENSSL_LDFLAGS)
     endif   #  ifeq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
@@ -438,7 +437,7 @@ PLAYBACK_IP_CFLAGS = $(addprefix -I,  \
 PLAYBACK_IP_LDFLAGS += $(addprefix -L,$(B_REFSW_EXTRA_LIB_DIRS))
 PLAYBACK_IP_LDFLAGS += $(addprefix -l,$(B_REFSW_EXTRA_LIBS))
 
-PLAYBACK_IP_LDFLAGS += -lm -lb_psip
+PLAYBACK_IP_LDFLAGS += -lm
 
 ifneq ($(NEXUS_ANDROID_SUPPORT),y)
     PLAYBACK_IP_LDFLAGS += -lpthread

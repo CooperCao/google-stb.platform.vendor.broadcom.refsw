@@ -42,6 +42,7 @@
 #include "bvc5_priv.h"
 #include "bvc5_jobq_priv.h"
 #include "bvc5_client_priv.h"
+#include "bvc5_hardware_priv.h"
 
 /***************************************************************************/
 
@@ -125,6 +126,7 @@ BERR_Code BVC5_P_ClientCreate(
    hClient->uiClientId = uiClientId;
    hClient->uiPlatformToken = uiPlatformToken;
    hClient->uiMaxJobId = 0;
+   hClient->hVC5 = hVC5;
 
    BVC5_P_JobQCreate(&hClient->hWaitQ);
    if (hClient->hWaitQ == NULL)
@@ -148,6 +150,10 @@ BERR_Code BVC5_P_ClientCreate(
 
    BVC5_P_JobQCreate(&hClient->hRunnableUsermodeQ);
    if (hClient->hRunnableUsermodeQ == NULL)
+      goto exit;
+
+   BVC5_P_JobQCreate(&hClient->hRunnableBarrierQ);
+   if (hClient->hRunnableBarrierQ == NULL)
       goto exit;
 
    BVC5_P_JobQCreate(&hClient->hCompletedQ);
@@ -211,6 +217,9 @@ BERR_Code BVC5_P_ClientDestroy(
    if (hClient->hRunnableUsermodeQ != NULL)
       BVC5_P_JobQDestroy(hVC5, hClient->hRunnableUsermodeQ);
 
+   if (hClient->hRunnableBarrierQ != NULL)
+      BVC5_P_JobQDestroy(hVC5, hClient->hRunnableBarrierQ);
+
    if (hClient->hCompletedQ != NULL)
       BVC5_P_JobQDestroy(hVC5, hClient->hCompletedQ);
 
@@ -223,7 +232,7 @@ BERR_Code BVC5_P_ClientDestroy(
    if (hClient->hActiveJobs != NULL)
       BVC5_P_ActiveQDestroy(hClient->hActiveJobs);
 
-   if (hVC5->sOpenParams.bDoDRMClientTerm && hClient->uiPlatformToken != 0)
+   if (hClient->uiPlatformToken != 0)
       BVC5_P_DRMTerminateClient(hClient->uiPlatformToken);
 
    BKNI_Free(hClient);
@@ -408,6 +417,7 @@ static BVC5_JobQHandle BVC5_P_RunQ(
    case BVC5_JobType_eRender   : return hClient->hRunnableRenderQ;
    case BVC5_JobType_eTFU      : return hClient->hRunnableTFUQ;
    case BVC5_JobType_eUsermode : return hClient->hRunnableUsermodeQ;
+   case BVC5_JobType_eBarrier  : return hClient->hRunnableBarrierQ;
    default                     : return hClient->hRunnableSoftQ;
    }
 }
@@ -420,6 +430,21 @@ void BVC5_P_ClientJobWaitingToRunnable(
    BVC5_JobQHandle   hRunQ = BVC5_P_RunQ(hClient, psJob->pBase->eType);
 
    BDBG_ASSERT(hRunQ != NULL);
+
+   switch (psJob->pBase->eType)
+   {
+   case BVC5_JobType_eBin:
+   case BVC5_JobType_eRender:
+      psJob->uiNeedsCacheFlush = BVC5_P_HardwareDeferCacheFlush(
+         hClient->hVC5,
+         psJob->pBase->uiCacheOps & BVC5_CACHE_FLUSH_ALL,
+         BVC5_CACHE_FLUSH_ALL);
+      break;
+   default:
+      /* Shouldn't get cache op requests for other job types. */
+      BDBG_ASSERT(psJob->pBase->uiCacheOps == 0);
+      break;
+   }
 
    /* Add to client runnable list and remove from waitq */
    BVC5_P_JobQRemove(hClient->hWaitQ, psJob);
@@ -516,6 +541,20 @@ static void BVC5_P_ClientJobFinalized(
    BVC5_P_JobDestroy(hVC5, psJob);
 }
 
+static void BVC5_P_FinalizeImplicitDependency(
+   BVC5_P_InternalJob  *psJob
+)
+{
+   /* Special case when bin jobs are finalized due to the implicit dependency between
+    * render and bin. We need to tell the render job that the bin job is finalized. */
+   if (psJob->pBase->eType == BVC5_JobType_eBin)
+   {
+      BVC5_P_InternalJob *psIntRdrJob = psJob->jobData.sBin.psInternalRenderJob;
+      if (psIntRdrJob != NULL)
+         psIntRdrJob->jobData.sRender.uiBinJobId = BVC5_P_BIN_JOB_FINALIZED;
+   }
+}
+
 /* Move a job to finalized state - should only be used if the job has no callback fn */
 void BVC5_P_ClientJobCompletedToFinalized(
    BVC5_Handle          hVC5,
@@ -524,6 +563,7 @@ void BVC5_P_ClientJobCompletedToFinalized(
    )
 {
    BVC5_P_JobQRemove(hClient->hCompletedQ, psJob);
+   BVC5_P_FinalizeImplicitDependency(psJob);
    BVC5_P_ClientJobFinalized(hVC5, hClient, psJob);
 }
 
@@ -534,6 +574,7 @@ void BVC5_P_ClientJobFinalizingToFinalized(
 )
 {
    BVC5_P_InternalJob *psJob = BVC5_P_JobQRemoveById(hClient->hFinalizingQ, uiJobId);
+   BVC5_P_FinalizeImplicitDependency(psJob);
    BVC5_P_ClientJobFinalized(hVC5, hClient, psJob);
 }
 
@@ -790,26 +831,25 @@ BERR_Code BVC5_P_ClientMakeFenceForAnyNonFinalizedJob(
 }
 
 void BVC5_P_ClientMarkJobsFlushedV3D(
-   BVC5_ClientHandle hClient
+   BVC5_ClientHandle hClient,
+   uint32_t uiCoreIndex
 )
 {
-   BVC5_P_InternalJob   *pJob = NULL;
-   BVC5_JobQHandle queues[5];
-   int i;
+   unsigned i;
+   uint32_t mask = ~(1 << uiCoreIndex);
 
-   queues[0] = hClient->hRunnableSoftQ;
-   queues[1] = hClient->hRunnableBinnerQ;
-   queues[2] = hClient->hRunnableRenderQ;
-   queues[3] = hClient->hRunnableTFUQ;
-   queues[4] = hClient->hRunnableUsermodeQ;
+   BVC5_JobQHandle queues[2];
+   queues[0] = hClient->hRunnableBinnerQ;
+   queues[1] = hClient->hRunnableRenderQ;
 
-   for (i = 0; i < 5; i++)
+   for (i = 0; i < 2; i++)
    {
+      BVC5_P_InternalJob *pJob;
       for (pJob = BVC5_P_JobQFirst(queues[i]);
            pJob != NULL;
            pJob = BVC5_P_JobQNext(pJob))
       {
-         pJob->bFlushedV3D = true;
+         pJob->uiNeedsCacheFlush &= mask;
       }
    }
 }
@@ -836,9 +876,10 @@ void BVC5_P_ClientSetWanted(
    BVC5_ClientHandle hClient
 )
 {
-   hClient->uiWorkWanted = (BVC5_P_JobQSize(hClient->hRunnableBinnerQ) > 0 ? BVC5_CLIENT_BIN    : 0) |
-                           (BVC5_P_JobQSize(hClient->hRunnableRenderQ) > 0 ? BVC5_CLIENT_RENDER : 0) |
-                           (BVC5_P_JobQSize(hClient->hRunnableTFUQ)    > 0 ? BVC5_CLIENT_TFU    : 0);
+   hClient->uiWorkWanted = (BVC5_P_JobQSize(hClient->hRunnableBarrierQ) > 0 ? BVC5_CLIENT_BARRIER: 0) |
+                           (BVC5_P_JobQSize(hClient->hRunnableBinnerQ)  > 0 ? BVC5_CLIENT_BIN    : 0) |
+                           (BVC5_P_JobQSize(hClient->hRunnableRenderQ)  > 0 ? BVC5_CLIENT_RENDER : 0) |
+                           (BVC5_P_JobQSize(hClient->hRunnableTFUQ)     > 0 ? BVC5_CLIENT_TFU    : 0);
 }
 
 /* BVC5_P_SetGiven
@@ -863,7 +904,8 @@ bool BVC5_P_ClientHasHardJobs(
    BVC5_ClientHandle hClient
 )
 {
-   return BVC5_P_JobQSize(hClient->hRunnableBinnerQ) > 0 ||
-          BVC5_P_JobQSize(hClient->hRunnableRenderQ) > 0 ||
-          BVC5_P_JobQSize(hClient->hRunnableTFUQ)    > 0;
+   return BVC5_P_JobQSize(hClient->hRunnableBarrierQ) > 0 ||
+          BVC5_P_JobQSize(hClient->hRunnableBinnerQ)  > 0 ||
+          BVC5_P_JobQSize(hClient->hRunnableRenderQ)  > 0 ||
+          BVC5_P_JobQSize(hClient->hRunnableTFUQ)     > 0;
 }
