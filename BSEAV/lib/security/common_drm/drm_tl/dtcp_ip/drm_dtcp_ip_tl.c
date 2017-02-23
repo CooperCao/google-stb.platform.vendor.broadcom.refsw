@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,6 +53,8 @@
 #include "string.h"
 
 BDBG_MODULE(drm_dtcpip_tl);
+
+#define HOST_ACCESSIBLE_HEAP 1 /* Make this 0 when running in SVP mode, since HOST does not have access to XRR heap */
 
 #define DTCP_AES_KEY_SIZE  16
 #define DTCP_AES_IV_SIZE   16
@@ -521,7 +523,10 @@ DrmRC DtcpIpTl_EncDecOperation(
         goto ErrorExit;
     }
 
+#if HOST_ACCESSIBLE_HEAP
     NEXUS_FlushCache(pSrc, src_length);
+#endif
+
     NEXUS_FlushCache(pDst, src_length);
     NEXUS_DmaJob_GetDefaultBlockSettings (&blockSettings);
     blockSettings.pSrcAddr = pSrc;

@@ -131,8 +131,6 @@ typedef struct BODS_P_Leap_ChannelHandle
     BODS_CallbackFunc pCallback[BODS_Callback_eLast];
     void *pCallbackParam[BODS_Callback_eLast];
     BODS_ChannelSettings settings;
-    bool isLock;                        /* current lock status */
-    BKNI_MutexHandle mutex;             /* mutex to protect lock status*/
     BHAB_InterruptType event;
     bool bPowerdown;
     BODS_Version verInfo;
@@ -233,6 +231,7 @@ BERR_Code BODS_Leap_P_GetDvbtSelectiveAsyncStatus(
     BDBG_ASSERT( pStatus );
 
     BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
     buf[3] = hImplChnDev->chnNo;
 
@@ -296,6 +295,7 @@ BERR_Code BODS_Leap_P_GetIsdbtSelectiveAsyncStatus(
     BDBG_ASSERT( pStatus );
 
     BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
     buf[3] = hImplChnDev->chnNo;
 
@@ -391,6 +391,7 @@ BERR_Code BODS_Leap_P_GetDvbt2SelectiveAsyncStatus(
     else
     {
         BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
+        BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
         switch(type)
         {
@@ -643,7 +644,7 @@ BERR_Code BODS_Leap_P_GetDvbc2SelectiveAsyncStatus(
     else
     {
         BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
-
+        BKNI_Memset(pStatus, 0, sizeof(*pStatus));
         switch(type)
         {
             case BODS_SelectiveAsyncStatusType_eDvbc2L1Part2:
@@ -840,13 +841,13 @@ BERR_Code BODS_Leap_Open(
 done:
     if( retCode != BERR_SUCCESS )
     {
-        if( hDev != NULL )
-        {
-            BKNI_Free( hDev );
-        }
         if( hImplDev != NULL )
         {
             BKNI_Free( hImplDev );
+        }
+        if( hDev != NULL )
+        {
+            BKNI_Free( hDev );
         }
         *pOds = NULL;
     }
@@ -903,7 +904,7 @@ BERR_Code BODS_Leap_Init(
             hImplDev->verInfo.majVer = 0xC;
             break;
         default:
-            retCode = BERR_INVALID_PARAMETER;
+            retCode = BERR_TRACE(BERR_INVALID_PARAMETER);
             goto done;
     }
 
@@ -1066,6 +1067,7 @@ BERR_Code BODS_Leap_OpenChannel(
 
     BDBG_ENTER(BODS_Leap_OpenChannel);
     BDBG_ASSERT( hDev );
+    BDBG_ASSERT( pChnDefSettings );
     BDBG_OBJECT_ASSERT( hDev,BODS );
 
     hImplDev = (BODS_Leap_Handle) hDev->pImpl;
@@ -1168,10 +1170,9 @@ BERR_Code BODS_Leap_OpenChannel(
 
                 BHAB_InstallInterruptCallback( hImplDev->hHab,  hImplChnDev->devId, BODS_Leap_P_EventCallback_isr , (void *)hChnDev, event);
 
-                if (pChnDefSettings) hImplChnDev->settings = *pChnDefSettings;
+                hImplChnDev->settings = *pChnDefSettings;
                 hImplChnDev->hHab = hImplDev->hHab;
                 hImplChnDev->verInfo = hImplDev->verInfo;
-                CHK_RETCODE(retCode, BKNI_CreateMutex(&hImplChnDev->mutex));
                 hImplDev->hOdsChn[i] = hChnDev;
                 hImplChnDev->bPowerdown = true;
                 hChnDev->pImpl = hImplChnDev;
@@ -1203,19 +1204,21 @@ BERR_Code BODS_Leap_OpenChannel(
 done:
     if( retCode != BERR_SUCCESS )
     {
+        if( hImplChnDev != NULL )
+        {
+            BKNI_Free( hImplChnDev );
+        }
         if( hChnDev != NULL )
         {
             BKNI_Free( hChnDev );
             hImplDev->hOdsChn[pChnDefSettings->channelNo] = NULL;
         }
-        if( hImplChnDev != NULL )
-        {
-            BKNI_Free( hImplChnDev );
-        }
         *phChn = NULL;
 #if (BODS_CHIP == 7563) || (BODS_CHIP == 7364) || (BODS_CHIP == 75525)
-        if ( hImplChnDev->pMemory != NULL)
+        if ( hImplChnDev->pMemory != NULL) {
             BMEM_Free(pChnDefSettings->hHeap, hImplChnDev->pMemory);
+            hImplChnDev->pMemory = NULL;
+        }
 #endif
     }
     BDBG_LEAVE(BODS_Leap_OpenChannel);
@@ -1253,8 +1256,6 @@ BERR_Code BODS_Leap_CloseChannel(
 #endif
 
     BHAB_UnInstallInterruptCallback(hImplChnDev->hHab, hImplChnDev->devId);
-
-    BKNI_DestroyMutex(hImplChnDev->mutex);
     chnNo = 0;
     BKNI_Free( hChn->pImpl );
     BKNI_Free( hChn );
@@ -1367,6 +1368,7 @@ BERR_Code BODS_Leap_GetLockStatus(
             *pLockStatus = BODS_LockStatus_eNoSignal;
             break;
         default:
+            *pLockStatus = BODS_LockStatus_eLast;
             retCode = BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
     }
@@ -1432,7 +1434,7 @@ BERR_Code BODS_Leap_GetSoftDecision(
         buf[3] = hImplChnDev->chnNo;
         CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, write_len, hImplChnDev->readBuf, 125, false, true, 125));
 
-        for (i = 0; i < 30 && i < nbrToGet; i++)
+        for (i = 0; i < BODS_MAX_SOFT_DECISIONS && i < nbrToGet; i++)
         {
             iVal[i] = (hImplChnDev->readBuf[4+(4*i)] << 8) | hImplChnDev->readBuf[5+(4*i)];
             qVal[i] = (hImplChnDev->readBuf[6+(4*i)] << 8) | hImplChnDev->readBuf[7+(4*i)];
@@ -1575,10 +1577,6 @@ BERR_Code BODS_Leap_SetAcquireParams(
     hImplChnDev = (BODS_Leap_ChannelHandle) hChn->pImpl;
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
-
-    BKNI_AcquireMutex(hImplChnDev->mutex);
-    hImplChnDev->isLock = false;
-    BKNI_ReleaseMutex(hImplChnDev->mutex);
 
     if(hImplChnDev->bPowerdown)
     {
@@ -1790,10 +1788,6 @@ BERR_Code BODS_Leap_GetAcquireParams(
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
 
-    BKNI_AcquireMutex(hImplChnDev->mutex);
-    hImplChnDev->isLock = false;
-    BKNI_ReleaseMutex(hImplChnDev->mutex);
-
     if(hImplChnDev->bPowerdown)
     {
         BDBG_ERR(("ODS core Powered Off"));
@@ -1806,8 +1800,6 @@ BERR_Code BODS_Leap_GetAcquireParams(
         switch(hImplChnDev->settings.standard)
         {
             case BODS_Standard_eDvbt:
-                BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
-
                 buf[2] = (buf[2] & 0xF0) | BODS_DVBT_CORE_TYPE;
                 buf[3] = hImplChnDev->chnNo;
                 CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, hImplChnDev->readBuf, 29, false, true, 29 ));
@@ -1829,8 +1821,6 @@ BERR_Code BODS_Leap_GetAcquireParams(
                 acquireParams->acquireParams.dvbt.codeRateLowPriority = (BODS_DvbtTransmissionMode)((hImplChnDev->readBuf[5] & 0x70) >> 4);
                 break;
             case BODS_Standard_eIsdbt:
-                BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
-
                 buf[2] = (buf[2] & 0xF0) | BODS_ISDBT_CORE_TYPE;
                 buf[3] = hImplChnDev->chnNo;
                 CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, hImplChnDev->readBuf, 17, false, true, 17 ));
@@ -1864,8 +1854,6 @@ BERR_Code BODS_Leap_GetAcquireParams(
                 acquireParams->acquireParams.isdbt.layerCParams.numSegments = ((hImplChnDev->readBuf[24] & 0x30) >> 4);
                 break;
             case BODS_Standard_eDvbt2:
-                BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
-
                 buf[2] = (buf[2] & 0xF0) | BODS_DVBT2_CORE_TYPE;
                 buf[3] = hImplChnDev->chnNo;
                 CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, hImplChnDev->readBuf, 9, false, true, 9 ));
@@ -1881,8 +1869,6 @@ BERR_Code BODS_Leap_GetAcquireParams(
                 acquireParams->invertSpectrum = (BODS_InvertSpectrum)(hImplChnDev->readBuf[7] & 0x20) >> 5;
                 break;
             case BODS_Standard_eDvbc2:
-                BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
-
                 buf[3] = hImplChnDev->chnNo;
                 CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, buf, 5, hImplChnDev->readBuf, 9, false, true, 9 ));
                 acquireParams->acquisitionMode = (BODS_AcquisitionMode)(hImplChnDev->readBuf[4] & 0x3);
@@ -1924,10 +1910,6 @@ BERR_Code BODS_Leap_Acquire(
     hImplChnDev = (BODS_Leap_ChannelHandle) hChn->pImpl;
     BDBG_ASSERT( hImplChnDev );
     BDBG_ASSERT( hImplChnDev->hHab );
-
-    BKNI_AcquireMutex(hImplChnDev->mutex);
-    hImplChnDev->isLock = false;
-    BKNI_ReleaseMutex(hImplChnDev->mutex);
 
     if(hImplChnDev->bPowerdown)
     {
@@ -2040,9 +2022,9 @@ BERR_Code BODS_Leap_DisablePowerSaver(
         {
             case BODS_Standard_eDvbt:
                 buf[2] = (buf[2] & 0xF0) | BODS_DVBT_CORE_TYPE;
-                configParams[4] = BODS_THD_CONFIG_PARAMS_BUF1;
-                configParams[5] = BODS_THD_CONFIG_PARAMS_BUF2;
-                configParams[6] = BODS_THD_CONFIG_PARAMS_BUF3;
+                configParams[4] = BODS_DVBT_CONFIG_PARAMS_BUF1;
+                configParams[5] = BODS_DVBT_CONFIG_PARAMS_BUF2;
+                configParams[6] = BODS_DVBT_CONFIG_PARAMS_BUF3;
                 configParams[2] = (configParams[2] & 0xF0) | BODS_DVBT_CORE_TYPE;
                 /* set the bandwidth to an invalid value so that the acquire parameters get sent */
                 hImplChnDev->previousAcquireParams.acquireParams.dvbt.bandwidth = BODS_DvbtBandwidth_eLast;
@@ -2120,15 +2102,19 @@ BERR_Code BODS_Leap_ResetStatus(
     {
         switch(hImplChnDev->settings.standard)
         {
+                /* coverity[unterminated_case] */
             case BODS_Standard_eIsdbt:
                 reset[2] = BODS_ISDBT_CORE_TYPE;
+                /* coverity[fallthrough] */
             case BODS_Standard_eDvbt:
                 reset[3] = hImplChnDev->chnNo;
                 write_len = 5;
                 CHK_RETCODE(retCode, BHAB_SendHabCommand(hImplChnDev->hHab, reset, write_len, reset, 0, false, true, write_len));
                 break;
+                /* coverity[unterminated_case] */
             case BODS_Standard_eDvbt2:
                 selReset[2] = (selReset[2] & 0xF0) | BODS_DVBT2_CORE_TYPE;
+                /* coverity[fallthrough] */
             case BODS_Standard_eDvbc2:
                 selReset[3] = hImplChnDev->chnNo;
                 write_len = 9;
@@ -2292,6 +2278,7 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatusReadyType(
     else
     {
         BKNI_Memset(hImplChnDev->readBuf, 0, sizeof(hImplChnDev->readBuf));
+        BKNI_Memset(ready, 0, sizeof(*ready));
         switch(hImplChnDev->settings.standard)
         {
             case BODS_Standard_eDvbt:
@@ -2422,6 +2409,7 @@ BERR_Code BODS_Leap_GetSelectiveAsyncStatus(
     }
     else
     {
+        BKNI_Memset(pStatus, 0, sizeof(*pStatus));
         switch(hImplChnDev->settings.standard)
         {
             case BODS_Standard_eDvbt:

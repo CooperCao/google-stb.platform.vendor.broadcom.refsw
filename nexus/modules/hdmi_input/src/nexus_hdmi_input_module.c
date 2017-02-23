@@ -269,7 +269,7 @@ void NEXUS_HdmiInput_GetDefaultSettings(NEXUS_HdmiInputSettings *pHdmiInputDefau
 }
 
 
-NEXUS_Error NEXUS_HdmiInput_P_OpenHdmiFe(NEXUS_HdmiInputHandle hdmiInput, const NEXUS_HdmiInputSettings *pHdmiInputSettings)
+static NEXUS_Error NEXUS_HdmiInput_P_OpenHdmiFe(NEXUS_HdmiInputHandle hdmiInput, const NEXUS_HdmiInputSettings *pHdmiInputSettings)
 {
     BERR_Code rc;
     BHDR_FE_ChannelSettings frontendSettings;
@@ -307,7 +307,7 @@ error:
 }
 
 
-NEXUS_Error  NEXUS_HdmiInput_P_OpenHdmiRx(NEXUS_HdmiInputHandle  hdmiInput,
+static NEXUS_Error  NEXUS_HdmiInput_P_OpenHdmiRx(NEXUS_HdmiInputHandle  hdmiInput,
 	const NEXUS_HdmiInputSettings *pHdmiInputSettings)
 {
     NEXUS_HdmiInputSettings defaultHdmiInputSettings;

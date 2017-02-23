@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #ifndef NEXUS_CORE_H
 #define NEXUS_CORE_H
@@ -58,16 +55,19 @@ system-wide compilation dependencies. */
 #include "btmr.h"
 #include "bmma.h"
 #include "bmma_system.h"
+#if !BMEM_DEPRECATED
 #if !defined(BMMA_USE_STUB)
 #include "bmma_bmem.h"
 #endif
 #include "bmem.h"
+#endif /* !BMEM_DEPRECATED */
 #include "bavc.h"
 #include "bavc_hdmi.h"
 #include "bpxl.h"
 #include "bmrc_monitor.h"
 #include "bbox.h"
 #include "btee_instance.h"
+#include "bdtu.h"
 
 #if B_HAS_TRC
 #include "btrc.h"
@@ -103,10 +103,18 @@ typedef struct NEXUS_Core_MagnumHandles
     BTMR_Handle         tmr;
     BINT_Handle         bint;
     const BINT_P_IntMap *bint_map;
+#if !BMEM_DEPRECATED
     BMEM_ModuleHandle   mem;
+#endif
     BMMA_Handle         mma;
     struct {
+#if BMEM_DEPRECATED
+        struct {
+            unsigned deprecated;
+        } *mem;
+#else
         BMEM_Heap_Handle mem;/* magnum BMEM heap. deprecated  */
+#endif
         BMMA_Heap_Handle mma; /* magnum BMMA heap  */
         NEXUS_HeapHandle nexus; /* nexus heap */
     } heap[NEXUS_MAX_HEAPS];
@@ -114,7 +122,8 @@ typedef struct NEXUS_Core_MagnumHandles
     struct {
         BMRC_Monitor_Handle rmm;
         BMRC_Handle mrc;
-        BMEM_MonitorInterface mem_monitor;
+        BMRC_MonitorInterface mem_monitor;
+        BDTU_Handle dtu;
     } memc[NEXUS_MAX_HEAPS]; /* index of this array is memc index, which must be < NEXUS_MAX_HEAPS */
     BCHP_MemoryLayout   memoryLayout;
     BBOX_Handle         box;
@@ -328,6 +337,9 @@ NEXUS_Error NEXUS_Memory_P_ConvertAlignment(
     unsigned *pAlignmentExponent /* [out] */
     );
 
+#if BMEM_DEPRECATED
+void *NEXUS_Heap_GetMemHandle(NEXUS_HeapHandle heap) __attribute__ ((deprecated));
+#else
 /**
 Summary:
 Retrieve the heap for a cached address.
@@ -337,6 +349,15 @@ BMEM_Heap_Handle NEXUS_Core_P_AddressToHeap(
     void *pAddress,          /* cached address */
     void **ppUncachedAddress /* [out] optionally, uncached address. passing NULL is allowed. */
     );
+
+/***************************************************************************
+Summary:
+Get the magnum MEM heap from the Nexus heap
+***************************************************************************/
+BMEM_Heap_Handle NEXUS_Heap_GetMemHandle(
+    NEXUS_HeapHandle heap
+    );
+#endif /* !BMEM_DEPRECATED */
 
 /**
 Summary:
@@ -352,28 +373,34 @@ void NEXUS_P_VideoFormat_SetInfo(
     const NEXUS_VideoFormatInfo *pVideoFmtInfo    /* [out] */
     );
 
-
+void NEXUS_P_EotfToTransferCharacteristics_isrsafe(
+    const NEXUS_VideoEotf eotf,
+    NEXUS_TransferCharacteristics *tc,
+    NEXUS_TransferCharacteristics *preferredTc);
 NEXUS_VideoEotf NEXUS_P_TransferCharacteristicsToEotf_isrsafe(
     NEXUS_TransferCharacteristics tc,
     NEXUS_TransferCharacteristics preferredTc);
+void NEXUS_P_ContentLightLevel_ToMagnum_isrsafe(
+    NEXUS_ContentLightLevel * pCll,
+    uint32_t *ulMaxContentLight,
+    uint32_t *ulAvgContentLight);
 void NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
     NEXUS_ContentLightLevel * pCll,
     uint32_t ulMaxContentLight,
     uint32_t ulAvgContentLight);
+void NEXUS_P_MasteringDisplayColorVolume_ToMagnum_isrsafe(
+    const NEXUS_MasteringDisplayColorVolume * pMdcv,
+    BAVC_Point * pstDisplayPrimaries,
+    BAVC_Point * pstWhitePoint,
+    uint32_t *ulMaxDispMasteringLuma,
+    uint32_t *ulMinDispMasteringLuma);
+
 void NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
     NEXUS_MasteringDisplayColorVolume * pMdcv,
     const BAVC_Point * pstDisplayPrimaries,
     const BAVC_Point * pstWhitePoint,
     uint32_t ulMaxDispMasteringLuma,
     uint32_t ulMinDispMasteringLuma);
-
-/***************************************************************************
-Summary:
-Get the magnum MEM heap from the Nexus heap
-***************************************************************************/
-BMEM_Heap_Handle NEXUS_Heap_GetMemHandle(
-    NEXUS_HeapHandle heap
-    );
 
 /***************************************************************************
 Summary:
@@ -429,6 +456,7 @@ Create a heap
 ***************************************************************************/
 NEXUS_HeapHandle NEXUS_Heap_Create_priv(
     unsigned index, /* have to pass in the index because the heap[] array is sparse, so we need the debug information of where it's going */
+    BREG_Handle reg,
     const NEXUS_Core_MemoryRegion *pSettings
     );
 
@@ -534,6 +562,10 @@ void NEXUS_CoreModule_Uninit_Client_priv(struct b_objdb_client *client);
 void NEXUS_Core_DumpHeaps_priv(void *context);
 void NEXUS_Heap_GetRuntimeSettings_priv( NEXUS_HeapHandle heap, NEXUS_HeapRuntimeSettings *pSettings );
 NEXUS_Error NEXUS_Heap_SetRuntimeSettings_priv( NEXUS_HeapHandle heap, const NEXUS_HeapRuntimeSettings *pSettings );
+
+NEXUS_HeapHandle NEXUS_Heap_LookupForOffset_isrsafe(
+    NEXUS_Addr offset
+    );
 
 #ifdef __cplusplus
 }

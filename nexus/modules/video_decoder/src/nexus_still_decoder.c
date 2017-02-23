@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,12 +61,12 @@ void NEXUS_StillDecoder_GetDefaultOpenSettings( NEXUS_StillDecoderOpenSettings *
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->fifoSize = 1 * 1024 * 1024;
 
-    NEXUS_VideoFormat_GetInfo(g_NEXUS_videoDecoderModuleSettings.stillMemory[0].maxFormat, &info);
+    NEXUS_VideoFormat_GetInfo(g_NEXUS_videoDecoderCapabilities.stillMemory[0].maxFormat, &info);
     pSettings->maxWidth = info.width;
     pSettings->maxHeight = info.height;
 
     /* copy over default codec support appropriate to stilldecoder */
-    BKNI_Memcpy(pSettings->supportedCodecs, g_NEXUS_videoDecoderModuleSettings.stillMemory[0].supportedCodecs, sizeof(pSettings->supportedCodecs));
+    BKNI_Memcpy(pSettings->supportedCodecs, g_NEXUS_videoDecoderCapabilities.stillMemory[0].supportedCodecs, sizeof(pSettings->supportedCodecs));
     pSettings->supportedCodecs[NEXUS_VideoCodec_eH264_Svc] = false; /* not supported by stilldecoder */
     pSettings->supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = false; /* not supported by stilldecoder */
 #else
@@ -81,6 +81,7 @@ static NEXUS_Error nexus_stilldecoder_p_openchannel(NEXUS_HwStillDecoderHandle s
     unsigned index;
     BXVD_ChannelSettings xvdChannelSettings;
     BAVC_VideoCompressionStd stVideoCompressionList[BAVC_VideoCompressionStd_eMax];
+    unsigned i;
 
     index = NEXUS_NUM_VIDEO_DECODERS;
 
@@ -103,6 +104,23 @@ static NEXUS_Error nexus_stilldecoder_p_openchannel(NEXUS_HwStillDecoderHandle s
     else {
         xvdChannelSettings.eDecodeResolution = NEXUS_VideoDecoder_GetDecodeResolution_priv(stillDecoder->openSettings.maxWidth, stillDecoder->openSettings.maxHeight);
     }
+
+    /* in rev S cores and beyond, XVD requires at least one 4K capable codec in order to support 4K resolution. */
+    for (i=0;i<xvdChannelSettings.uiVideoCmprCount;i++) {
+        switch (xvdChannelSettings.peVideoCmprStdList[i]) {
+        case BAVC_VideoCompressionStd_eH264:
+        case BAVC_VideoCompressionStd_eH265:
+        case BAVC_VideoCompressionStd_eVP9:
+            i = xvdChannelSettings.uiVideoCmprCount+1; /* break from loop, 4K supported */
+            break;
+        default:
+            break;
+        }
+    }
+    if (i == xvdChannelSettings.uiVideoCmprCount && xvdChannelSettings.eDecodeResolution == BXVD_DecodeResolution_e4K) {
+        xvdChannelSettings.eDecodeResolution = BXVD_DecodeResolution_eHD;
+    }
+
     xvdChannelSettings.eChannelMode = BXVD_ChannelMode_eStill;
     if (g_NEXUS_videoDecoderModuleSettings.heapSize[stillDecoder->index].secondaryPicture &&
         ((pSettings && pSettings->codec == NEXUS_VideoCodec_eH265) || stillDecoder->openSettings.supportedCodecs[NEXUS_VideoCodec_eH265]))
@@ -110,7 +128,7 @@ static NEXUS_Error nexus_stilldecoder_p_openchannel(NEXUS_HwStillDecoderHandle s
         xvdChannelSettings.bSplitPictureBuffersEnable = true;
     }
 
-    xvdChannelSettings.b10BitBuffersEnable = (g_NEXUS_videoDecoderModuleSettings.stillMemory[stillDecoder->index].colorDepth >= 10);
+    xvdChannelSettings.b10BitBuffersEnable = (g_NEXUS_videoDecoderCapabilities.stillMemory[stillDecoder->index].colorDepth >= 10);
 
     if (stillDecoder->buffer.mem) {
         xvdChannelSettings.uiChannelPictureBlockSize = stillDecoder->buffer.size;
@@ -321,6 +339,10 @@ NEXUS_StillDecoderHandle NEXUS_StillDecoder_P_Open_Avd( NEXUS_VideoDecoderHandle
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
         return NULL;
     }
+    if (!g_NEXUS_videoDecoderModuleSettings.stillMemory[index].used) {
+        BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        return NULL;
+    }
 
     if (!pSettings) {
         NEXUS_StillDecoder_GetDefaultOpenSettings(&defaultSettings);
@@ -481,10 +503,13 @@ NEXUS_Error NEXUS_StillDecoder_P_Start_Avd( NEXUS_StillDecoderHandle stillDecode
     if (!pSettings) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
+    if (!g_NEXUS_videoDecoderCapabilities.stillMemory[stillDecoder->hw->index].supportedCodecs[pSettings->codec]) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
 
     supportHd =
         pSettings->output.maxHeight ? pSettings->output.maxHeight > 480 :
-        (g_NEXUS_videoDecoderModuleSettings.stillMemory[0].maxFormat >= NEXUS_VideoFormat_e480p);
+        (g_NEXUS_videoDecoderCapabilities.stillMemory[0].maxFormat >= NEXUS_VideoFormat_e480p);
 
     switch (pSettings->codec) {
     case NEXUS_VideoCodec_eMpeg2:
@@ -754,7 +779,7 @@ NEXUS_Error NEXUS_StillDecoder_RequestMemorySize( NEXUS_StillDecoderHandle swSti
     settings.peVideoCmprStdList = stVideoCompressionList;
     settings.uiVideoCmprCount = 1;
     settings.eChannelMode = BXVD_ChannelMode_eStill;
-    settings.b10BitBuffersEnable = (g_NEXUS_videoDecoderModuleSettings.stillMemory[stillDecoder->index].colorDepth >= 10);
+    settings.b10BitBuffersEnable = (g_NEXUS_videoDecoderCapabilities.stillMemory[stillDecoder->index].colorDepth >= 10);
 
     rc = BXVD_GetChannelMemoryConfig(stillDecoder->device->xvd, &settings, &config);
     if (rc) return BERR_TRACE(rc);

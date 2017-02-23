@@ -97,6 +97,19 @@ static const uint32_t BSAT_afec_clock_enable_reg[16] =
 };
 
 
+static const uint32_t BSAT_gypsum_tfec_clock_enable_reg[8] =
+{
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_1_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_2_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_3_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_4_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_5_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_6_INST_CLOCK_ENABLE,
+   BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_7_INST_CLOCK_ENABLE
+};
+
+
 const uint32_t BSAT_g1_ChannelIntrID[BSAT_G1_MAX_CHANNELS][BSAT_g1_MaxIntID] =
 {
    /* channel 0 interrupts */
@@ -399,11 +412,13 @@ BERR_Code BSAT_g1_P_InitHandleExt(BSAT_Handle h)
    hDev = (BSAT_g1_P_Handle *)(h->pImpl);
    hDev->xtalFreq = BSAT_G1_XTAL_FREQ;
 
-   val = BREG_Read32(hDev->hRegister, BCHP_TM_FAMILY_ID) >> 8;
-   if (val == 0x45316)
+   val = BREG_Read32(hDev->hRegister, BCHP_TM_FAMILY_ID);
+   if ((val >> 8) == 0x45316)
       hDev->chipFamily = BSAT_CHIP_FAMILY_GYPSUM_A0;
+   else if ((val & 0xFF) == 0x20)
+      hDev->chipFamily = BSAT_CHIP_FAMILY_C0;
    else
-      hDev->chipFamily = BSAT_CHIP_FAMILY_DEFAULT;
+      hDev->chipFamily = BSAT_CHIP_FAMILY_B0;
    return BERR_SUCCESS;
 }
 
@@ -538,7 +553,6 @@ BERR_Code BSAT_g1_P_SdsPowerDown(BSAT_ChannelHandle h)
  agc[1] = lna_agc
  agc[2] = chan_agc
  agc[3] = (not used)
-
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus)
 {
@@ -549,6 +563,68 @@ BERR_Code BSAT_g1_P_GetAgcStatus(BSAT_ChannelHandle h, BSAT_AgcStatus *pStatus)
 
 
 #ifndef BSAT_EXCLUDE_AFEC
+/******************************************************************************
+ BSAT_g1_P_GypsumEnable270MhzClock() - The 270MHz clock is used by TFEC and AFEC
+******************************************************************************/
+void BSAT_g1_P_GypsumEnable270MhzClock(BSAT_ChannelHandle h, bool bEnable)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val;
+
+   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+   if (bEnable)
+      val |= (1 << h->channel);
+   else
+      val &= ~(1 << h->channel);
+   BREG_Write32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2, val);
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_GypsumEnable486MhzClock() - The 486MHz clock is used by TFEC
+******************************************************************************/
+void BSAT_g1_P_GypsumEnable486MhzClock(BSAT_ChannelHandle h, bool bEnable)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val, reg;
+
+   reg = BSAT_gypsum_tfec_clock_enable_reg[h->channel >> 1];
+   val = BREG_Read32(pDev->hRegister, reg);
+   if (bEnable)
+      val |=  BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
+   else
+      val &=  ~BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK;
+   BREG_Write32(pDev->hRegister, reg, val);
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_GypsumIs270MHzClockEnabled()
+******************************************************************************/
+bool BSAT_g1_P_GypsumIs270MHzClockEnabled(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val;
+
+   val = BREG_Read32(pDev->hRegister, BCHP_TM_CLOCK_ENABLE_CTRL2);
+   return (val & (1 << h->channel)) ? true : false;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_GypsumIs486MHzClockEnabled()
+******************************************************************************/
+bool BSAT_g1_P_GypsumIs486MHzClockEnabled(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
+   uint32_t val, reg;
+
+   reg = BSAT_gypsum_tfec_clock_enable_reg[h->channel >> 1];
+   val = BREG_Read32(pDev->hRegister, reg);
+   return ((val & BCHP_GYPSUM_CLKGEN_SDS_AFEC_TOP_0_INST_CLOCK_ENABLE_SDS_TFEC_PLL_CLOCK_ENABLE_MASK) ? true : false);
+}
+
+
 /******************************************************************************
  BSAT_g1_P_IsAfecOn_isrsafe() - true if afec global is on
 ******************************************************************************/
@@ -567,7 +643,8 @@ bool BSAT_g1_P_IsAfecOn_isrsafe(BSAT_ChannelHandle h)
    }
    else
    {
-      /* TBD... */
+      /* gypsum */
+      bIsOn = BSAT_g1_P_GypsumIs270MHzClockEnabled(h);
    }
 
    return bIsOn;
@@ -592,7 +669,8 @@ BERR_Code BSAT_g1_P_AfecPowerUp_isr(BSAT_ChannelHandle h)
       }
       else
       {
-         /* TBD... */
+         /* gypsum - enable 270MHz clock (shared with TFEC) */
+         BSAT_g1_P_GypsumEnable270MhzClock(h, true);
       }
 
       BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_GLOBAL_CLK_CNTRL, ~BCHP_AFEC_GLOBAL_0_CLK_CNTRL_LDPC_CLK_ENABLEB_MASK);
@@ -623,7 +701,8 @@ BERR_Code BSAT_g1_P_AfecPowerDown_isrsafe(BSAT_ChannelHandle h)
       }
       else
       {
-         /* TBD... */
+         /* gypsum - disable 270MHz clock (shared with AFEC) */
+         BSAT_g1_P_GypsumEnable270MhzClock(h, false);
       }
    }
    done:
@@ -677,7 +756,9 @@ BERR_Code BSAT_g1_P_TfecPowerUp_isr(BSAT_ChannelHandle h)
       }
       else
       {
-         /* TBD... */
+         /* gypsum */
+         BSAT_g1_P_GypsumEnable486MhzClock(h, true);
+         BSAT_g1_P_GypsumEnable270MhzClock(h, true);
       }
    }
    BKNI_LeaveCriticalSection();
@@ -710,7 +791,11 @@ BERR_Code BSAT_g1_P_TfecPowerDown_isrsafe(BSAT_ChannelHandle h)
       }
       else
       {
-         /* TBD... */
+         /* gypsum - turn off 486MHz clock */
+         BSAT_g1_P_GypsumEnable486MhzClock(h, false);
+
+         /* TFEC also uses 270MHz (shared with AFEC) */
+         BSAT_g1_P_GypsumEnable270MhzClock(h, false);
       }
    }
 
@@ -741,7 +826,8 @@ bool BSAT_g1_P_IsTfecOn_isrsafe(BSAT_ChannelHandle h)
    }
    else
    {
-      /* TBD... */
+      /* gypsum */
+      bIsOn = (BSAT_g1_P_GypsumIs270MHzClockEnabled(h) && BSAT_g1_P_GypsumIs486MHzClockEnabled(h));
    }
 
    return bIsOn;

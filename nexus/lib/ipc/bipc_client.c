@@ -130,6 +130,7 @@ int bipc_client_send(bipc_t ipc, unsigned id, unsigned entry, size_t send_size, 
     in->pkt_size = send_size + sizeof(*in);
     in->method = entry;
     in->instance = id;
+    in->abi = sizeof(void *)*8;
     rc = b_safe_write(ipc->t.client.send_fd, in, in->pkt_size);
     if(rc!=(int)in->pkt_size) { (void)BERR_TRACE(BERR_NOT_SUPPORTED);goto done; }
     rc = b_safe_read(ipc->t.client.recv_fd, &out, sizeof(out));

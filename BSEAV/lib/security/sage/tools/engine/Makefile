@@ -50,7 +50,7 @@ ENGINE_OBJ_ROOT = ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/tools/engine
 include $(NEXUS_TOP)/platforms/common/build/nexus_platforms.inc
 include $(NEXUS_TOP)/platforms/common/build/platform_app.inc
 include $(NEXUS_TOP)/build/nexus_defs.inc
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 include ${BSEAV_TOP}/lib/security/sage/utility/utility.inc
 
 # Sanity check that we received a valid platform
@@ -126,7 +126,7 @@ prep_folder:
 
 prep_openssl:
 	@echo [..... prep_openssl with j option];
-	$(Q_)$(MAKE) -j8 -C $(B_OPENSSL_BUILD_DIR) > /dev/null
+	$(Q_)$(MAKE) -C $(B_OPENSSL_BUILD_DIR) > /dev/null
 
 all: prep_folder prep_openssl ${F_PUBLIC_LIBS}
 

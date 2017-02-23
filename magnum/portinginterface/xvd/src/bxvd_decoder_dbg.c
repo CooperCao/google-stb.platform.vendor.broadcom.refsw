@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -178,7 +198,7 @@ void BXVD_DecoderDbg_P_PrintUnifiedPicture_isrsafe(
 
    BDBG_ASSERT( pstPicture );
 
-   BDBG_MODULE_MSG( BXVD_UP, ("%c%03x:[%01x.%03x] idx:%d pts:%08x(%d) pPPB:%08x pd:%x flg:%08x ext0:%08x %s,%s %s %s %s%s tg:%x(%d) ck:%x %c:%02d",
+   BDBG_MODULE_MSG( BXVD_UP, ("%c%03x:[%01x.%03x] q:%d pts:%08x(%d) pPPB:%08x flg:%08x ext0:%08x %s,%s,%c %x:%s %s %s%s idx:%2d tg:%x(%d) ck:%x %c:%02d",
                                  ( bDropped ) ? 'D' : ' ',
                                  hXvdCh->stDecoderContext.stCounters.uiVsyncCount & 0xFFF,
                                  hXvdCh->ulChannelNum & 0xF,
@@ -187,11 +207,12 @@ void BXVD_DecoderDbg_P_PrintUnifiedPicture_isrsafe(
                                  pstPicture->stPTS.uiValue,
                                  pstPicture->stPTS.bValid,
                                  pstContext->pPPBPhysical,
-                                 pstContext->pPPB->pulldown,
                                  pstContext->pPPB->flags,
                                  uiFlagsExt0,
                                  s_aPictureCodingToStrLUT[  pstPicture->stPictureType.eCoding ],
                                  s_aPictureSetTypeToStrLUT[ pstContext->eSetType ],
+                                 ( BXVD_P_PPB_FLAG_RAP_PICTURE & pstContext->pPPB->flags ) ? 'R' : ' ',
+                                 pstContext->pPPB->pulldown,
                                  ( BXDM_Picture_BufferFormat_eSplitInterlaced == pstPicture->stBufferInfo.eBufferFormat ) ?
                                     ( BXDM_Picture_BufferHandlingMode_eSiRepeat == pstPicture->stBufferInfo.eBufferHandlingMode ) ?
                                         s_aSiRepeatPulldownToStrLUT[ pstPicture->stBufferInfo.ePulldown ] :
@@ -201,6 +222,7 @@ void BXVD_DecoderDbg_P_PrintUnifiedPicture_isrsafe(
                                  s_aOrientationToStrLUT[ pstPicture->st3D.eOrientation ],
                                  ( BXDM_Picture_Orientation_e2D == pstPicture->st3D.eOrientation ) ?
                                           " " : s_aFrameRelationShipLUT[ pstPicture->st3D.eFrameRelationship ],
+                                 pstPicture->uiIntraGOPIndex,
                                  pstPicture->stPictureTag.uiValue,
                                  pstPicture->stPictureTag.bValid,
                                  pstPicture->uiChunkId,

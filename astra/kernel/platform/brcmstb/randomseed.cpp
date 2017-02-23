@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,19 +35,12 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * randomseed.cpp
- *
- *  Created on: May 15, 2015
- *      Author: gambhire
- */
-
 #include <cstdint>
 
 #include "config.h"
 
 #include "arm/arm.h"
+#include "plat_config.h"
 #include "platform.h"
 #include "pgtable.h"
 #include "tzmemory.h"

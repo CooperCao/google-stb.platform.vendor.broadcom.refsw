@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *HIF_TOP_CTRL - HIF Top Control Registers
  ***************************************************************************/
-#define BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL          0x20201b00 /* [RW] External IRQ Active Level Control Register */
-#define BCHP_HIF_TOP_CTRL_SPI_DBG_SEL            0x20201b04 /* [RW] SPI test port select register */
-#define BCHP_HIF_TOP_CTRL_PM_CTRL0               0x20201b0c /* [RW] HIF Power Management Control0 Register */
-#define BCHP_HIF_TOP_CTRL_PM_CTRL1               0x20201b10 /* [RW] HIF Power Management Control1 Register */
-#define BCHP_HIF_TOP_CTRL_PM_CTRL2               0x20201b14 /* [RW] HIF Power Management Control Register:used to control SDIO_0 (CARD) */
-#define BCHP_HIF_TOP_CTRL_PM_CTRL3               0x20201b18 /* [RW] HIF Power Management Control Register:used to control SDIO_1 (EMMC) */
-#define BCHP_HIF_TOP_CTRL_FLASH_TYPE             0x20201b1c /* [RO] HIF Decoded Flash Type */
-#define BCHP_HIF_TOP_CTRL_PDA_CTRL               0x20201b20 /* [RW] HIF PDA Control Register */
-#define BCHP_HIF_TOP_CTRL_PDA_OUT_STATUS         0x20201b24 /* [RO] HIF PDA Out Status */
-#define BCHP_HIF_TOP_CTRL_CPU_MODE_CTRL          0x20201b30 /* [RW] CPU MODE Control register (PUBLIC) */
-#define BCHP_HIF_TOP_CTRL_CPU_MODE_STATUS        0x20201b34 /* [RO] CPU MODE Control status register (PUBLIC) */
-#define BCHP_HIF_TOP_CTRL_SCRATCH                0x20201b3c /* [RW] HIF Scratch Register */
+#define BCHP_HIF_TOP_CTRL_EXT_IRQ_LEVEL          0x20201b00 /* [RW][32] External IRQ Active Level Control Register */
+#define BCHP_HIF_TOP_CTRL_SPI_DBG_SEL            0x20201b04 /* [RW][32] SPI test port select register */
+#define BCHP_HIF_TOP_CTRL_PM_CTRL0               0x20201b0c /* [RW][32] HIF Power Management Control0 Register */
+#define BCHP_HIF_TOP_CTRL_PM_CTRL1               0x20201b10 /* [RW][32] HIF Power Management Control1 Register */
+#define BCHP_HIF_TOP_CTRL_PM_CTRL2               0x20201b14 /* [RW][32] HIF Power Management Control Register:used to control SDIO_0 (CARD) */
+#define BCHP_HIF_TOP_CTRL_PM_CTRL3               0x20201b18 /* [RW][32] HIF Power Management Control Register:used to control SDIO_1 (EMMC) */
+#define BCHP_HIF_TOP_CTRL_FLASH_TYPE             0x20201b1c /* [RO][32] HIF Decoded Flash Type */
+#define BCHP_HIF_TOP_CTRL_PDA_CTRL               0x20201b20 /* [RW][32] HIF PDA Control Register */
+#define BCHP_HIF_TOP_CTRL_PDA_OUT_STATUS         0x20201b24 /* [RO][32] HIF PDA Out Status */
+#define BCHP_HIF_TOP_CTRL_CPU_MODE_CTRL          0x20201b30 /* [RW][32] CPU MODE Control register (PUBLIC) */
+#define BCHP_HIF_TOP_CTRL_CPU_MODE_STATUS        0x20201b34 /* [RO][32] CPU MODE Control status register (PUBLIC) */
+#define BCHP_HIF_TOP_CTRL_SCRATCH                0x20201b3c /* [RW][32] HIF Scratch Register */
 
 /***************************************************************************
  *EXT_IRQ_LEVEL - External IRQ Active Level Control Register

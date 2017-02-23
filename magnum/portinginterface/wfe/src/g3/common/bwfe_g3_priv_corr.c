@@ -60,7 +60,7 @@ void BWFE_g3_Corr_P_CorrDone_isr(void *p, int param)
    BWFE_FUNCT funct;
    
    BSTD_UNUSED(param);
-   BWFE_g3_P_DisableTimer(h, BWFE_g3_TimerSelect_e0);
+   BWFE_g3_P_DisableTimer_isr(h, BWFE_g3_TimerSelect_e0);
 
    /* stop correlator, disable and clear interrupt */
    BWFE_P_AndRegister(h, BCHP_WFE_CORE_CORRCTL, ~0x00000002);
@@ -176,7 +176,7 @@ BERR_Code BWFE_g3_Corr_P_StartCorrelator(BWFE_ChannelHandle h, uint32_t freqHz, 
    hChn->corrIdleIsr = func;
 
    /* workaround for missing corr done irq at certain corrlen's - execute callback in 50 us */
-   retCode = BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e0, 50, (BWFE_FUNCT)BWFE_g3_Corr_P_CorrDone_isr);
+   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 50, (BWFE_FUNCT)BWFE_g3_Corr_P_CorrDone_isr);
 
    /* start correlator */
    BWFE_P_OrRegister(h, BCHP_WFE_CORE_CORRCTL, 0x00000002);
@@ -421,18 +421,6 @@ BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
 
 #if 0
    /* re-measure delay */
-   BKNI_Sleep(100);
-   retCode = BWFE_CalibrateAnalogDelay(hWfeChannel[0]);
-   if (retCode)
-   {
-      BKNI_Printf("BWFE_CalibrateAnalogDelay() error 0x%X\n", retCode);
-   }
-
-   BKNI_Sleep(200);
-   BWFE_GetAnalogDelay(hWfeChannel[0], delay);
-   measDelay = (int32_t)delay[0];
-#else
-   /* re-measure delay */
    BWFE_P_EnableDpmPilot(h);  /* enable DPM tone, disable DPM after delay calculations */
    hChn->postCalcDelayFunct = BWFE_g3_Corr_P_FineAdjust;    /* fine adjustment after delay measurement */
    BWFE_g3_Corr_P_StartCorrelator(h, hChn->dpmPilotFreqKhz * 1000, 0, BWFE_g3_Corr_P_CalcDelay);
@@ -557,8 +545,8 @@ BERR_Code BWFE_g3_Corr_P_FineAdjust1(BWFE_ChannelHandle h)
 
          case 3:
             /* finished linear search */
-            BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft);
-            BKNI_Printf("FINAL measDelay=%d\n", hChn->sliceDelay[0]);
+            BWFE_DEBUG_CORR(BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft));
+            BWFE_DEBUG_CORR(BKNI_Printf("FINAL measDelay=%d\n", hChn->sliceDelay[0]));
             BKNI_SetEvent(hChn->hDelayCalDone);
             return retCode;
 
@@ -635,7 +623,7 @@ BERR_Code BWFE_g3_Corr_P_ScanSpectrum(BWFE_ChannelHandle h)
    
    /* enter spectrum scan in isr context */
    BKNI_EnterCriticalSection();
-   retCode = BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e0, 5, BWFE_g3_Corr_P_ScanSpectrum1);
+   retCode = BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 5, BWFE_g3_Corr_P_ScanSpectrum1);
    BKNI_LeaveCriticalSection();
    
    return retCode;
@@ -678,7 +666,7 @@ BERR_Code BWFE_g3_Corr_P_ScanSpectrum1(BWFE_ChannelHandle h)
                if (hChn->bCorrInProgress)
                {
                   /* wait for correlator if in use */
-                  return BWFE_g3_P_EnableTimer(h, BWFE_g3_TimerSelect_e0, 5000, BWFE_g3_Corr_P_ScanSpectrum1);
+                  return BWFE_g3_P_EnableTimer_isr(h, BWFE_g3_TimerSelect_e0, 5000, BWFE_g3_Corr_P_ScanSpectrum1);
                }
                
                hDev->saState = 2;

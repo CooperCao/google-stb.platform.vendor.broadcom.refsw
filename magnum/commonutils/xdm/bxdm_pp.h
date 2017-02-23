@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -83,6 +83,10 @@ BXDM_PictureProvider_Destroy(
          BXDM_PictureProvider_Handle hXdmPP
          );
 
+/*
+ * SWSTB-3450: StartDecode/StopDecode have been deprecated.
+ * Call the following Start/Stop API's instead.
+ */
 BERR_Code
 BXDM_PictureProvider_StartDecode_isr(
          BXDM_PictureProvider_Handle hXdmPP
@@ -91,6 +95,21 @@ BXDM_PictureProvider_StartDecode_isr(
 BERR_Code
 BXDM_PictureProvider_StopDecode_isr(
          BXDM_PictureProvider_Handle hXdmPP
+         );
+
+/*
+ * SWSTB-3450: provide a mechanism for passing in start/stop settings
+ */
+BERR_Code
+BXDM_PictureProvider_Start_isr(
+         BXDM_PictureProvider_Handle hXdmPP,
+         const BXDM_PictureProvider_StartSettings * pstStartSettings
+         );
+
+BERR_Code
+BXDM_PictureProvider_Stop_isr(
+         BXDM_PictureProvider_Handle hXdmPP,
+         const BXDM_PictureProvider_StopSettings * pstStopSettings
          );
 
 BERR_Code
@@ -1422,6 +1441,21 @@ BXDM_PictureProvider_GetDebugFifo(
    BXDM_PictureProvider_Handle hXdmPP,
    BXDM_PictureProvider_DebugFifoInfo *pstDebugFifoInfo
    );
+
+/*
+ * SWSTB-3450: support for passing parameters directly to the XDM start/stop API's.
+ */
+BERR_Code
+BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
+   BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_StartSettings * pstStartSettings
+);
+
+BERR_Code
+BXDM_PictureProvider_GetDefaultStopSettings_isrsafe(
+   BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_StopSettings * pstStopSettings
+);
 
 #include "bxdm_pp_callback.h"
 

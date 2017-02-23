@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,47 +38,61 @@
 
 # build environment
 TZ_DIR ?= ../../..
-TZ_TOOLCHAIN ?= /opt/toolchains/tzos/nonDSO/gcc-arm-tzos-musl-4_8-2016q1
-TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
-
-# platform and target
-TZ_PLATFORM ?= brcmstb
+include $(TZ_DIR)/kernel/default.inc
 
 # directories and files
 TZ_IMG := fs_tests
 
+# system libs to go in
+SYS_LIBS := \
+	libc.so \
+	libstdc++.so.6 \
+	libgcc_s.so.1 \
+
+# user libs to build
+USER_LIBS :=
+
+# user apps to build
+USER_APPS := \
+	user
+
 TZ_KERNEL_DIR := $(TZ_DIR)/kernel
-TZ_KERNEL_LIB := $(TZ_KERNEL_DIR)/libkernel.a
+TZ_KERNEL_LIB := $(B_REFSW_OBJ_ROOT)/bin/libkernel.a
 
 # use local init module
 SRC_DIRS := init
 INC_DIRS := init
-BIN_DIRS := bin/init
+BASE_OBJ_DIR := $(B_REFSW_OBJ_ROOT)/kernel/unittests/fs
+BIN_DIRS := $(BASE_OBJ_DIR)/bin/init
 
-SOURCES_ASM := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.S))
-OBJS        := $(patsubst %.S,bin/%.o,$(SOURCES_ASM))
-DEPS        := $(patsubst %.S,bin/%.d,$(SOURCES_ASM))
+SOURCES_ASM-$(CFG_ARM32_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a32.S))
+SOURCES_ASM-$(CFG_ARM64_core) := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*_a64.S))
+OBJS        := $(patsubst %.S,%.o,$(SOURCES_ASM-y))
+DEPS        := $(patsubst %.S,%.d,$(SOURCES_ASM-y))
 
 SOURCES_C   := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.c))
-OBJS        += $(patsubst %.c,bin/%.o,$(SOURCES_C))
-DEPS        += $(patsubst %.c,bin/%.d,$(SOURCES_C))
+OBJS        += $(patsubst %.c,%.o,$(SOURCES_C))
+DEPS        += $(patsubst %.c,%.d,$(SOURCES_C))
 
 SOURCES_CPP := $(foreach sdir,$(SRC_DIRS),$(wildcard $(sdir)/*.cpp))
-OBJS        += $(patsubst %.cpp,bin/%.o,$(SOURCES_CPP))
-DEPS        += $(patsubst %.cpp,bin/%.d,$(SOURCES_CPP))
+OBJS        += $(patsubst %.cpp,%.o,$(SOURCES_CPP))
+DEPS        += $(patsubst %.cpp,%.d,$(SOURCES_CPP))
+
+# Create out of build (OOB) objects
+OOB_OBJS			:= $(patsubst %.o, $(BASE_OBJ_DIR)/bin/%.o,$(OBJS))
+OOB_DEPS			:= $(patsubst %.d, $(BASE_OBJ_DIR)/bin/%.d,$(DEPS))
 
 # build flags
 DEPENDFLAGS := -MD -MP
 
 INCLUDES    := -I. $(addprefix -I,$(INC_DIRS))
 INCLUDES    += -I$(TZ_KERNEL_DIR)/api
+INCLUDES    += -I$(TZ_KERNEL_DIR)/api/arch/$(ARCH_DIR)
 INCLUDES    += -I$(TZ_KERNEL_DIR)/include
+INCLUDES    += -I$(TZ_KERNEL_DIR)/include/arm
 INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)
+INCLUDES    += -I$(TZ_KERNEL_DIR)/platform/$(TZ_PLATFORM)/include/$(ARCH_DIR)
 INCLUDES    += -I$(TZ_KERNEL_DIR)/3rd_party/libfdt
-
-# funcationally and alphabetically ordered
-ARCHFLAGS   := -mcpu=cortex-a15
-ARCHFLAGS   += -mfpu=vfpv3
 
 BASEFLAGS   := -O2 -g
 BASEFLAGS   += -nostdlib
@@ -120,11 +134,11 @@ ASFLAGS     := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 ASFLAGS     += -g -D__ASSEMBLY__
 
 CFLAGS      := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CFLAGS      += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CFLAGS      += $(BASEFLAGS) $(WARNFLAGS)
 CFLAGS      += -std=gnu99
 
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
-CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
+CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS)
 CPPFLAGS    += -std=c++11 -D__EXCEPTIONS=0 -fno-rtti -fno-exceptions
 
 vpath %.S   $(SRC_DIRS)
@@ -141,11 +155,11 @@ $1/%.o: %.cpp
 endef
 
 # build rules
-.PHONY: kernel checkplatform checkdirs user $(TZ_IMG)
+.PHONY: kernel checkplatform checkdirs $(USER_APPS) $(USER_LIBS)
 
-all: kernel checkplatform checkdirs $(TZ_IMG)
+all: kernel checkplatform checkdirs $(BASE_OBJ_DIR)/$(TZ_IMG).bin $(BASE_OBJ_DIR)/$(TZ_IMG).elf.lst
 
--include $(DEPS)
+-include $(OOB_DEPS)
 
 kernel:
 	$(MAKE) -C $(TZ_KERNEL_DIR)
@@ -158,33 +172,62 @@ checkdirs: $(BIN_DIRS)
 $(BIN_DIRS):
 	mkdir -p $@
 
-$(TZ_IMG): $(TZ_IMG).bin
+$(BASE_OBJ_DIR)/$(TZ_IMG).bin: $(BASE_OBJ_DIR)/$(TZ_IMG).elf
+	$(TZ_ARMGNU)-objcopy $(BASE_OBJ_DIR)/$(TZ_IMG).elf -O binary $(BASE_OBJ_DIR)/$(TZ_IMG).bin
 
-$(TZ_IMG).bin: $(TZ_IMG).elf
-	$(TZ_ARMGNU)-objcopy $(TZ_IMG).elf -O binary $(TZ_IMG).bin
+$(BASE_OBJ_DIR)/$(TZ_IMG).elf.lst: $(BASE_OBJ_DIR)/$(TZ_IMG).elf
+	@echo generating listing: $@
+	$(TZ_ARMGNU)-objdump -d $< | $(TZ_ARMGNU)-c++filt > $@
 
-$(TZ_IMG).elf: $(OBJS) $(TZ_KERNEL_LIB) initramfs.o link_arm_tz.ld
-	$(TZ_ARMGNU)-g++ -nostartfiles $(OBJS) $(TZ_KERNEL_LIB) initramfs.o -Tlink_arm_tz.ld -o $@
+$(BASE_OBJ_DIR)/$(TZ_IMG).elf: $(OOB_OBJS) $(TZ_KERNEL_LIB) initramfs.o link_$(ARCH)_tz.ld
+	$(TZ_ARMGNU)-g++ -nostartfiles -static $(OOB_OBJS) $(TZ_KERNEL_LIB) $(BASE_OBJ_DIR)/initramfs.o -Tlink_$(ARCH)_tz.ld -o $@
 
-initramfs.o: user
-	@echo Copying user app...
-	@$(RM) -r ramfs.files ramfs.cpio
-	@cp user/user.elf .
-	@echo Generating init ramfs...
-	@echo user.elf >> ramfs.files
-	@cat ramfs.files | cpio -o -F ramfs.cpio
-	@find ../../ -iname *.cpp | cpio -o -AF ramfs.cpio
-	$(TZ_ARMGNU)-objcopy -I binary -O elf32-littlearm -B arm --rename-section .data=.initramfs ramfs.cpio initramfs.o
+# create ramfs
+initramfs.o: $(USER_LIBS) $(USER_APPS)
+	@$(RM) -r $(BASE_OBJ_DIR)/ramfs.files $(BBASE_OBJ_DIR)/ramfs.cpio
+	mkdir -p $(BASE_OBJ_DIR)/lib
+	@echo Copying system libs...
+	@for slib in $(SYS_LIBS); do \
+		if [ $(CFG_ARM32_core) = y ] || [ $$slib = libc.so ] ; then  \
+			echo $(TZ_ARMGNU)-strip --strip-debug -o $(BASE_OBJ_DIR)/lib/$$slib $(TZ_TOOLCHAIN)/$(TARGET_TRIPLET)/lib/$$slib; \
+			$(TZ_ARMGNU)-strip --strip-debug -o $(BASE_OBJ_DIR)/lib/$$slib $(TZ_TOOLCHAIN)/$(TARGET_TRIPLET)/lib/$$slib; \
+		else \
+			echo $(TZ_ARMGNU)-strip --strip-debug -o $(BASE_OBJ_DIR)/lib/$$slib $(TZ_TOOLCHAIN)/$(TARGET_TRIPLET)/lib64/$$slib; \
+			$(TZ_ARMGNU)-strip --strip-debug -o $(BASE_OBJ_DIR)/lib/$$slib $(TZ_TOOLCHAIN)/$(TARGET_TRIPLET)/lib64/$$slib; \
+		fi; \
+		echo lib/$$slib >> $(BASE_OBJ_DIR)/ramfs.files; \
+	done
+	@echo Copying user libs...
+	@for ulib in $(USER_LIBS); do \
+		cp $(BASE_OBJ_DIR)/lib/$$ulib/$$ulib.so $(BASE_OBJ_DIR)/lib; \
+		echo lib/$$ulib.so >> $(BASE_OBJ_DIR)/ramfs.files; \
+	done
+	@echo Copying user apps...
+	@for uapp in $(USER_APPS); do \
+		cp $(BASE_OBJ_DIR)/$$uapp/bin/$$uapp.elf $(BASE_OBJ_DIR); \
+		echo $$uapp.elf >> $(BASE_OBJ_DIR)/ramfs.files; \
+	done
+	@cd $(BASE_OBJ_DIR); cat ramfs.files | cpio -ov > ramfs.cpio
+	@find ../../ -iname *.cpp | cpio -o -AF $(BASE_OBJ_DIR)/ramfs.cpio
+	$(TZ_ARMGNU)-objcopy -I binary -O $(OBJ_TARGET) -B $(ARCH) --rename-section .data=.initramfs $(BASE_OBJ_DIR)/ramfs.cpio $(BASE_OBJ_DIR)/initramfs.o
 
-user:
+$(USER_APPS):
 	$(MAKE) -C $@
 
-clean:
-	$(RM) -r bin
-	$(RM) $(TZ_IMG).bin $(TZ_IMG).elf
+$(USER_LIBS):
+	$(MAKE) -C $@
+
+#clean ramfs
+ramfsclean:
 	$(RM) initramfs.o ramfs.files ramfs.cpio
-	$(RM) user.elf
-	$(MAKE) -C user clean
+	$(RM) -r lib
+	@for uapp in $(USER_APPS); do \
+		echo $(RM) $$uapp.elf; \
+		$(RM) $$uapp.elf; \
+	done
+
+clean:
+	$(RM) -r $(BASE_OBJ_DIR)
 
 distclean: clean
 	$(MAKE) -C $(TZ_KERNEL_DIR) clean

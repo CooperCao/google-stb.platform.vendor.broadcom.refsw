@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,6 +50,8 @@
 
 #include "system.h"
 
+extern "C" void tzKernelSecondary();
+
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 TzTask *idler;
@@ -60,8 +62,8 @@ int idleTask(void *task, void *ctx) {
     UNUSED(ctx);
 
     printf("starting idler\n");
-    asm volatile("cpsie aif":::);
-
+    ARCH_SPECIFIC_ENABLE_INTERRUPTS;
+    ARCH_SPECIFIC_MEMORY_BARRIER;
     while (true) {
         asm volatile("wfi": : :);
     }
@@ -73,6 +75,11 @@ void tzKernelInit(const void *devTree) {
 
     printf("%s: User space signals tests\n", __FUNCTION__);
 
+    if (arm::smpCpuNum() != 0) {
+        tzKernelSecondary();
+        return;
+    }
+
     System::init(devTree);
 
     IDirectory *root = System::root();
@@ -83,9 +90,10 @@ void tzKernelInit(const void *devTree) {
     assert(rc == 0);
     assert(dir == nullptr);
     printf("%s: resolved user.elf\n", __FUNCTION__);
+    char *argv[2] = {(char *)"user.elf", (char *)NULL};
 
     idler = new TzTask(idleTask, nullptr, 10, "idler");
-    userT = new TzTask(userFile, 50, dir, "userT");
+    userT = new TzTask(userFile, 50, dir, "userT", NULL, argv, argv);
 
     assert(idler);
     assert(userT);
@@ -94,7 +102,16 @@ void tzKernelInit(const void *devTree) {
     Scheduler::addTask(idler);
     Scheduler::addTask(userT);
 
-    asm volatile("cpsid if":::);
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+
+    schedule();
+}
+
+void tzKernelSecondary() {
+
+    System::initSecondaryCpu();
+
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
     schedule();
 }

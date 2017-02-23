@@ -45,12 +45,7 @@ NEXUS_MODULES += FILE
 # Module Options #
 ##################
 
-# alias certain OS values
-ifeq ($(B_REFSW_OS),linuxemu)
-NEXUS_FILE_OS=linuxuser
-else
 NEXUS_FILE_OS=$(B_REFSW_OS)
-endif
 
 ###################
 # Module Includes #

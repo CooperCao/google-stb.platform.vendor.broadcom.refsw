@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -91,6 +91,15 @@ static void BAPE_I2sOutput_P_SetMclk_isr(BAPE_OutputPort output, BAPE_MclkSource
     #define BAPE_I2S_IOPOUT_CONSTRUCT(prefix,suffix) prefix##_0_##suffix
     #define BAPE_I2S_IOPOUT_VERSION      2
 #endif
+
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+    #define BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
+#else
+    #define BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
+#endif
+#endif
+
 #if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_1_REG_START || defined BCHP_AUD_FMM_IOP_OUT_I2S_1_REG_START
     #if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_1_REG_START
         #include "bchp_aud_fmm_iop_out_i2s_stereo_1.h"
@@ -590,39 +599,40 @@ static void BAPE_I2sOutput_P_UpdateMclkReg_IopOut_isr(BAPE_I2sOutputHandle hI2sO
         }
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_0
     case BAPE_MclkSource_eNco0:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen0);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(0));
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_1
     case BAPE_MclkSource_eNco1:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen1);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(1));
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_2
     case BAPE_MclkSource_eNco2:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen2);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(2));
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_3
     case BAPE_MclkSource_eNco3:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen3);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(3));
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_4
     case BAPE_MclkSource_eNco4:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen4);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(4));
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_5
     case BAPE_MclkSource_eNco5:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen5);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(5));
         break;
 #endif
-#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6
+#if defined BCHP_AUD_FMM_IOP_OUT_I2S_STEREO_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6 || defined BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6 || BCHP_AUD_FMM_IOP_OUT_I2S_0_MCLK_CFG_0_PLLCLKSEL_NCO_6
     case BAPE_MclkSource_eNco6:
-        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, Mclk_gen6);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, BAPE_I2S_IOPOUT_CONSTRUCT(AUD_FMM_IOP_OUT_I2S,MCLK_CFG_0), PLLCLKSEL, BAPE_I2S_MCLKCFG_NCO_CONSTRUCT_PARAM(6));
         break;
 #endif
     default:
@@ -1607,6 +1617,12 @@ void BAPE_I2sOutput_GetOutputPort(
 }
 
 /**************************************************************************/
+
+BERR_Code BAPE_I2sOutput_P_PrepareForStandby(BAPE_Handle bapeHandle)
+{
+    BSTD_UNUSED(bapeHandle);
+    return BERR_SUCCESS;
+}
 
 BERR_Code BAPE_I2sOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {

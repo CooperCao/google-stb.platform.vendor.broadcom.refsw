@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,6 @@ SSL_CERT_FILE := host.cert
 # include cross-compiler definitions
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
-B_PSIP_TOP := $(NEXUS_TOP)/../rockford/lib/psip
 B_MPOD_TOP := $(NEXUS_TOP)/../rockford/lib/ocap/mpod
 B_MPOD_DRIVERDIR = $(B_MPOD_TOP)/src/driver/build/bcm$(NEXUS_PLATFORM)$(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')/linux
 BSEAV := $(NEXUS_TOP)/../BSEAV
@@ -93,7 +92,7 @@ CFLAGS += -DB_USE_HTTP_CHUNK_ENCODING
 endif
 
 # Get OpenSSl make defines
-include $(BSEAV)/lib/openssl/openssl.inc
+include $(BSEAV)/opensource/openssl/openssl.inc
 
 ifeq ($(RAD_EA_SUPPORT), y)
 CFLAGS += -DB_HAS_RAD_EA
@@ -107,7 +106,6 @@ include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_lib.inc
 DTCP_IP_APPLIB_TEST_LDFLAGS += $(PLAYBACK_IP_LDFLAGS)
 
 include $(NEXUS_TOP)/lib/os/b_os_lib.inc
-include $(B_PSIP_TOP)/b_psip_lib.inc
 
 ifeq ($(STREAMER_CABLECARD_SUPPORT),y)
 ESTB_CFG_SUPPORT=y
@@ -130,7 +128,6 @@ endif #STREAMER_CABLECARD_SUPPORT
 
 DTCP_IP_APPLIB_TEST_INCLUDE_PATH += \
 	$(NEXUS_APP_INCLUDE_PATHS) \
-	$(B_PSIP_LIB_PUBLIC_INCLUDES) \
 	$(NEXUS_TOP)/lib/os/include/ \
 	$(NEXUS_TOP)/lib/os/include/linuxuser \
 	$(NEXUS_TOP)/lib/playback_ip/src/ \
@@ -228,7 +225,6 @@ endif #DTCP_IP_SUPPORT
 
 	$(Q_)$(MAKE) -C $(BSEAV)/lib/tshdrbuilder
 	$(Q_)$(MAKE) -C $(NEXUS_TOP)/lib/playback_ip
-	$(Q_)$(MAKE) -C $(B_PSIP_TOP)
 
 ifeq ($(SETTOP_API_SUPPORT),y)
 	$(Q_)$(MAKE) -C $(BSEAV)/api/build/nexus

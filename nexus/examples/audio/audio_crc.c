@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -99,6 +99,10 @@ int main(void)
     NEXUS_AudioDecoderHandle pcmDecoder, compressedDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
     NEXUS_AudioInputHandle spdifInput;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
@@ -110,6 +114,32 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 2)
+    {
+        printf("This application is not supported on this platform (requires decoders).\n");
+        return 0;
+    }
+
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
+
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -147,24 +177,26 @@ int main(void)
     /* Bring up audio decoders and outputs */
     pcmDecoder = NEXUS_AudioDecoder_Open(0, NULL);
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
     printf("%s: pcmStereo  %p\n", __FUNCTION__, (void*)NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     printf("%s: pcmMch     %p\n", __FUNCTION__, (void*)NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel));
     printf("%s: compressed %p\n", __FUNCTION__, (void*)NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
 
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    printf("%s: SPDIF %p\n", __FUNCTION__, (void*)NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-#endif
+    if (audioSpdifHandle) {
+        printf("%s: SPDIF %p\n", __FUNCTION__, (void*)audioSpdifHandle);
+    }
 #if NEXUS_NUM_HDMI_OUTPUTS
-    printf("%s: HDMI  %p\n", __FUNCTION__, (void*)NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+    if (audioHdmiHandle) {
+        printf("%s: HDMI  %p\n", __FUNCTION__, (void*)audioHdmiHandle);
+    }
 #endif
-#if NEXUS_NUM_AUDIO_DACS
-    printf("%s: DAC   %p\n", __FUNCTION__, (void*)NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
+    if (audioDacHandle) {
+        printf("%s: DAC   %p\n", __FUNCTION__, (void*)audioDacHandle);
+    }
 
     if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
     {
@@ -176,16 +208,17 @@ int main(void)
         spdifInput = NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo);
     }
 
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        spdifInput);
-#endif
-
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            spdifInput);
+    }
 #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel));
+    }
 #endif
 
     {
@@ -207,24 +240,28 @@ int main(void)
         NEXUS_AudioCrc_GetDefaultInputSettings(&crcInputSettings);
         crcInputSettings.sourceType = NEXUS_AudioCrcSourceType_ePlaybackBuffer;
         crcInputSettings.input = spdifInput;
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        crcInputSettings.output = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
-#endif
+        if (audioSpdifHandle) {
+            crcInputSettings.output = audioSpdifHandle;
+        }
         NEXUS_AudioCrc_SetInput(crcHandleSpdif, &crcInputSettings);
         crcInputSettings.input = NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eMultichannel);
 #if NEXUS_NUM_HDMI_OUTPUTS
-        crcInputSettings.output = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+        if (audioHdmiHandle) {
+        crcInputSettings.output = audioHdmiHandle;
+        }
 #endif
         NEXUS_AudioCrc_SetInput(crcHandleHdmi, &crcInputSettings);
 #else
         NEXUS_AudioCrc_GetDefaultInputSettings(&crcInputSettings);
         crcInputSettings.sourceType = NEXUS_AudioCrcSourceType_eOutputPort;
-#if NEXUS_NUM_SPDIF_OUTPUTS
         crcInputSettings.output = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
-#endif
-        NEXUS_AudioCrc_SetInput(crcHandleSpdif, &crcInputSettings);
+        if (audioSpdifHandle) {
+            NEXUS_AudioCrc_SetInput(crcHandleSpdif, &crcInputSettings);
+        }
 #if NEXUS_NUM_HDMI_OUTPUTS
-        crcInputSettings.output = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+        if (audioHdmiHandle) {
+            crcInputSettings.output = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+        }
 #endif
         NEXUS_AudioCrc_SetInput(crcHandleHdmi, &crcInputSettings);
 #endif
@@ -254,7 +291,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 

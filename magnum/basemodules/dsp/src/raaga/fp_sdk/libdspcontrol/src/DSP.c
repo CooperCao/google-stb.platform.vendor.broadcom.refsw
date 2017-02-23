@@ -1,48 +1,49 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /**
  * @file DSP.c
  *
  * Implementation of the common DSP module API.
+ *
+ * Functions in this file are normally included in barebone flavours of
+ * libdspcontrol as 'default' implementations, so be careful when adding
+ * new code here.
  */
 
 /* NOTE: this file gets exported into the Raaga Magnum host library and so it
@@ -58,7 +59,8 @@
 #if !FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
 #  include <stdbool.h>
 #else
-#  include "bstd_defs.h"
+#  include "bstd.h"
+#  include "bkni.h"
 #endif
 
 #include "libdspcontrol/DSP.h"
@@ -119,7 +121,7 @@ DSP_RET DSP_readData(DSP *dsp, void *dest, uint32_t src, DSP_ADDRESS_SPACE src_s
 }
 
 
-void DSP_initParameters(DSP_PARAMETERS *params)
+void DSP_initParameters(DSP_PARAMETERS *params __attribute__((unused)))
 {
     /* You might be tempted to memset the structure to 0 and then set only the
      * fields that you think are not represented as zeros. Please don't do that:
@@ -131,9 +133,11 @@ void DSP_initParameters(DSP_PARAMETERS *params)
     params->port = 0;
 #endif
 
-#if defined(CELIVERO) && IS_HOST(SILICON)
+#if defined(CELIVERO) || defined(CELTRIX)
+#  if IS_HOST(SILICON)
     params->flush_cache_before_read     = true;
     params->flush_cache_after_write     = true;
+#  endif
     params->mem_transfer_mem_overlap_tb = false;
     params->mem_use_shared_dram         = false;
     params->mem_transfers_size          = DSP_CELIVERO_DEFAULT_TRANSFERS_MEM_SIZE;
@@ -150,9 +154,14 @@ void DSP_initParameters(DSP_PARAMETERS *params)
 #  endif
 #endif
 
-#if defined(RAAGA) && IS_HOST(SILICON)
+#if defined(RAAGA) && (FEATURE_IS(SW_HOST, RAAGA_MAGNUM) || FEATURE_IS(SW_HOST, RAAGA_ROCKFORD))
     params->hReg = NULL;
+#  if FEATURE_IS(SW_HOST, RAAGA_ROCKFORD)
     params->hMem = NULL;
+#  elif FEATURE_IS(SW_HOST, RAAGA_MAGNUM)
+    BKNI_Memset(params->sMmaBuffer, 0, sizeof(params->sMmaBuffer));
+    params->ui32MmaBufferValidEntries = 0;
+#  endif
 #endif
 
 #if defined(DUNA) && IS_HOST(SILICON)
@@ -180,7 +189,7 @@ void DSP_initParameters(DSP_PARAMETERS *params)
     params->dmem2mcphy_dst_dma_handle           = NULL;
 #endif
 
-#if IS_TARGET(Pike_haps)
+#if IS_TARGET(Pike_haps) || IS_TARGET(RaagaFP4015_haps)
     params->data_capim.device           = DSP_HAPS_INVALID_COORD;
     params->data_capim.bus              = DSP_HAPS_INVALID_COORD;
     params->data_capim.address          = DSP_HAPS_INVALID_COORD;
@@ -190,5 +199,19 @@ void DSP_initParameters(DSP_PARAMETERS *params)
     params->reset_bridge_on_init        = true;
     params->reset_bridge_on_error       = true;
     params->reset_bridge_on_transaction = false;
+#endif
+
+#if IS_TARGET(RaagaFP4015_haps)
+    params->reset_design_on_init = true;
+    for(unsigned i = 0; i < RAAGA_HAPS_MEMC_ARB_CLIENT_INFO_NUM_ENTRIES; i++)
+        params->memc_arb_client_info[i].valid = false;
+    params->secure_region_start = 0;
+    params->secure_region_end = 0;
+#endif
+
+#if IS_TARGET(RaagaFP4015_barebone)
+    /* Initialise so that any access will fail unless the user provides proper
+     * value (the default NULL has the risk of failing silently). */
+    params->misc_block_addr_fp0 = params->misc_block_addr_fp1 = 0xffffffff;
 #endif
 }

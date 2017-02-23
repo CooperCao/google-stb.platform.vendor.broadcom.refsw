@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,7 +67,7 @@ typedef struct BAPE_MaiOutput
     BAPE_MaiOutputSettings settings;
     unsigned index;
     BAPE_OutputPortObject outputPort;
-    uint32_t offset;
+    unsigned offset;
     unsigned sampleRate;
     struct
     {
@@ -81,7 +81,9 @@ typedef struct BAPE_MaiOutput
     BAPE_MaiOutputInterruptHandlers interrupts;
 
     /* The following are used to generate a pauseburst compressed mute on legacy chips */
-    uint32_t *pMuteBuffer;
+    BMMA_Block_Handle muteBufferBlock;
+    BMMA_DeviceOffset muteBufferOffset;
+    void *pMuteBuffer;
     BAPE_SfifoGroupHandle hSfifo;
     BAPE_MixerGroupHandle hMixer;
     BAPE_MaiOutputDataPath dataPath;
@@ -133,6 +135,14 @@ static void      BAPE_MaiOutput_P_SetMute(BAPE_OutputPort output, bool muted, bo
 #define BAPE_MAI_IOPOUT_VERSION     1
 #else
 #define BAPE_MAI_IOPOUT_VERSION     0
+#endif
+
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+    #define BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
+#else
+    #define BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
+#endif
 #endif
 
 static BERR_Code BAPE_MaiOutput_P_Open_IopOut(BAPE_MaiOutputHandle handle);
@@ -748,7 +758,7 @@ void BAPE_MaiOutput_P_SetLoudnessEquivlanceVolume(BAPE_OutputPort output)
 static BERR_Code BAPE_MaiOutput_P_Open_IopOut(BAPE_MaiOutputHandle handle)
 {
     BKNI_EnterCriticalSection();
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_0
     BAPE_MaiOutput_P_SetMclk_isr(&handle->outputPort, BAPE_MclkSource_eNco0, 0, 256);
 #else
     BAPE_MaiOutput_P_SetMclk_isr(&handle->outputPort, BAPE_MclkSource_ePll0, 0, 256);
@@ -923,7 +933,7 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
     handle->mclkInfo.pllChannel         = pllChannel;
     handle->mclkInfo.mclkFreqToFsRatio  = mclkFreqToFsRatio;
 
-    BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
+    BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
 
     switch ( mclkSource )
     {
@@ -931,9 +941,9 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
     case BAPE_MclkSource_ePll0:
         switch ( pllChannel )
         {
-        case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch1); break;
-        case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch2); break;
-        case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch3); break;
+        case 0: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch1); break;
+        case 1: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch2); break;
+        case 2: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL0_ch3); break;
         default: (void) BERR_TRACE(BERR_NOT_SUPPORTED); break;
         }
         break;
@@ -942,9 +952,9 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
     case BAPE_MclkSource_ePll1:
         switch ( pllChannel )
         {
-        case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch1); break;
-        case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch2); break;
-        case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch3); break;
+        case 0: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch1); break;
+        case 1: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch2); break;
+        case 2: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL1_ch3); break;
         default: (void) BERR_TRACE(BERR_NOT_SUPPORTED); break;
         }
         break;
@@ -953,46 +963,46 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
     case BAPE_MclkSource_ePll2:
         switch ( pllChannel )
         {
-        case 0: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch1); break;
-        case 1: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch2); break;
-        case 2: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch3); break;
+        case 0: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch1); break;
+        case 1: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch2); break;
+        case 2: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, PLL2_ch3); break;
         default: (void) BERR_TRACE(BERR_NOT_SUPPORTED); break;
         }
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_0
     case BAPE_MclkSource_eNco0:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen0);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(0));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_1
     case BAPE_MclkSource_eNco1:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen1);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(1));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_2
     case BAPE_MclkSource_eNco2:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen2);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(2));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_3
     case BAPE_MclkSource_eNco3:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen3);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(3));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_4
     case BAPE_MclkSource_eNco4:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen4);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(4));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_5
     case BAPE_MclkSource_eNco5:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen5);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(5));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6
+#if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6 || defined BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0_PLLCLKSEL_NCO_6
     case BAPE_MclkSource_eNco6:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen6);
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAI_MCLKCFG_NCO_CONSTRUCT_PARAM(6));
         break;
 #endif
     default:
@@ -1002,10 +1012,10 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
 
     switch ( mclkFreqToFsRatio )
     {
-    case 128: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_128fs_SCLK_64fs); break;
-    case 256: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_256fs_SCLK_64fs); break;
-    case 384: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_384fs_SCLK_64fs); break;
-    case 512: BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_512fs_SCLK_64fs); break;
+    case 128: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_128fs_SCLK_64fs); break;
+    case 256: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_256fs_SCLK_64fs); break;
+    case 384: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_384fs_SCLK_64fs); break;
+    case 512: BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, MCLK_RATE, MCLK_512fs_SCLK_64fs); break;
     default:
         BDBG_ERR(("Unsupported MCLK Rate of %uFs", mclkFreqToFsRatio));
         (void)BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -1276,12 +1286,20 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_IopOut(BAPE_MaiOutputHandle han
     BAPE_Reg_P_InitFieldList_isr(handle->deviceHandle, &regFieldList);
     if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_ePause )
     {
+        #if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST_BURST_TYPE_MASK
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, BURST_TYPE, Pause);
+        #else
         BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, TYPE, Pause);
+        #endif
         BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, REP_PERIOD, PER_32);
     }
     else if ( handle->settings.underflowBurst == BAPE_SpdifBurstType_eNull )
     {
+        #if defined BCHP_AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST_BURST_TYPE_MASK
+        BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, BURST_TYPE, Null);
+        #else
         BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, TYPE, Null);
+        #endif
         BAPE_Reg_P_AddEnumToFieldList_isr(&regFieldList, AUD_FMM_IOP_OUT_MAI_0_SPDIF_RAMP_BURST, REP_PERIOD, PER_32);
     }
     else
@@ -1389,9 +1407,25 @@ static BAPE_MaiOutputDataPath BAPE_MaiOutput_P_FormatToDataPath(const BAPE_FMT_D
 
 static BERR_Code BAPE_MaiOutput_P_Open_Legacy(BAPE_MaiOutputHandle handle)
 {
-    handle->pMuteBuffer = BMEM_Heap_AllocAligned(handle->deviceHandle->memHandle, BAPE_P_MUTE_BUFFER_SIZE, 8, 0);
+    handle->muteBufferBlock = BMMA_Alloc(handle->deviceHandle->memHandle, BAPE_P_MUTE_BUFFER_SIZE, 32, NULL);
+    if ( NULL == handle->muteBufferBlock )
+    {
+        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+    }
+    handle->pMuteBuffer = BMMA_Lock(handle->muteBufferBlock);
     if ( NULL == handle->pMuteBuffer )
     {
+        BMMA_Free(handle->muteBufferBlock);
+        handle->muteBufferBlock = NULL;
+        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+    }
+    handle->muteBufferOffset = BMMA_LockOffset(handle->muteBufferBlock);
+    if ( 0 == handle->muteBufferOffset )
+    {
+        BMMA_Unlock(handle->muteBufferBlock, handle->pMuteBuffer);
+        handle->pMuteBuffer = NULL;
+        BMMA_Free(handle->muteBufferBlock);
+        handle->muteBufferBlock = NULL;
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
 
@@ -1402,9 +1436,20 @@ static BERR_Code BAPE_MaiOutput_P_Open_Legacy(BAPE_MaiOutputHandle handle)
 
 static void BAPE_MaiOutput_P_Close_Legacy(BAPE_MaiOutputHandle handle)
 {
-    if ( handle->pMuteBuffer )
+    if ( handle->muteBufferBlock )
     {
-        BMEM_Heap_Free(handle->deviceHandle->memHandle, handle->pMuteBuffer);
+        if ( handle->muteBufferOffset )
+        {
+            BMMA_UnlockOffset(handle->muteBufferBlock, handle->muteBufferOffset);
+            handle->muteBufferOffset = 0;
+        }
+        if ( handle->pMuteBuffer )
+        {
+            BMMA_Unlock(handle->muteBufferBlock, handle->pMuteBuffer);
+            handle->pMuteBuffer = NULL;
+        }
+        BMMA_Free(handle->muteBufferBlock);
+        handle->muteBufferBlock = NULL;
     }
 }
 
@@ -2131,7 +2176,9 @@ static BERR_Code BAPE_MaiOutput_P_OpenHw_Legacy(BAPE_MaiOutputHandle handle)
     sfifoSettings.sampleRepeatEnabled = false;
     sfifoSettings.interleaveData = true;
     sfifoSettings.loopAround = true;
-    BMEM_Heap_ConvertAddressToOffset(handle->deviceHandle->memHandle, handle->pMuteBuffer, &sfifoSettings.bufferInfo[0].base);
+    sfifoSettings.bufferInfo[0].block = handle->muteBufferBlock;
+    sfifoSettings.bufferInfo[0].pBuffer = handle->pMuteBuffer;
+    sfifoSettings.bufferInfo[0].base = handle->muteBufferOffset;
     sfifoSettings.bufferInfo[0].length = BAPE_P_MUTE_BUFFER_SIZE;
     sfifoSettings.bufferInfo[0].wrpoint = sfifoSettings.bufferInfo[0].base;
     errCode = BAPE_SfifoGroup_P_SetSettings(handle->hSfifo, &sfifoSettings);
@@ -2311,8 +2358,7 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Legacy(BAPE_MaiOutputHandle han
         BAPE_SfifoGroup_P_Stop(handle->hSfifo); /* stop the fifo for mute buffer to clear it */
     }
 
-    (void)BMEM_Heap_ConvertAddressToCached(handle->deviceHandle->memHandle, handle->pMuteBuffer, (void **)&pCached);
-
+    pCached = (uint16_t*)handle->pMuteBuffer;
     BDBG_MSG(("filling Burst RBUF addr %p/%p, size %u with underflowBurst=%d(%s)",
         (void *)handle->pMuteBuffer, (void *)pCached, BAPE_P_MUTE_BUFFER_SIZE, handle->settings.underflowBurst,
         (handle->settings.underflowBurst==BAPE_SpdifBurstType_ePause)?"Pause Bursts" : (handle->settings.underflowBurst==BAPE_SpdifBurstType_eNull)?"NULL Bursts" : "Zeros"));
@@ -2337,7 +2383,7 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_Legacy(BAPE_MaiOutputHandle han
         }
     }
 
-    BMEM_Heap_FlushCache(handle->deviceHandle->memHandle, pCached, sizeof(g_pauseburst)*64);
+    BMMA_FlushCache(handle->muteBufferBlock, handle->pMuteBuffer, BAPE_P_MUTE_BUFFER_SIZE);
 
     if (handle->hSfifo)
     {
@@ -2446,6 +2492,15 @@ BERR_Code BAPE_MaiOutput_SetInterruptHandlers(
 }
 
 /**************************************************************************/
+
+
+BERR_Code BAPE_MaiOutput_P_PrepareForStandby(
+    BAPE_Handle bapeHandle
+    )
+{
+    BSTD_UNUSED(bapeHandle);
+    return BERR_SUCCESS;
+}
 
 BERR_Code BAPE_MaiOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 {

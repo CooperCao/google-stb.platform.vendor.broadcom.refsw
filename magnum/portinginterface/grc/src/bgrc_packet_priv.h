@@ -297,16 +297,41 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #endif
 
 /***************************************************************************/
+#if (!defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB) && ((BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0 - BCHP_M2MC_OUTPUT_SURFACE_ADDR_0) == 0x8))
+#define BGRC_P_64BITS_ADDR    1
+#else
+#define BGRC_P_64BITS_ADDR    0
+#endif
+
+#if BGRC_P_64BITS_ADDR
+typedef enum
+{
+    BGRC_P_AddrType_eReg32,
+    BGRC_P_AddrType_eAddr,
+    BGRC_P_AddrType_eGap
+} BGRC_P_AddrType;
+#endif
+
+#define BGRC_P_GET_UINT64_HIGH(x)   ((uint32_t)((x)>>32))
+#define BGRC_P_GET_UINT64_LOW(x)    ((uint32_t)((x) & 0xFFFFFFFF))
+
+/***************************************************************************/
 #ifdef BCHP_M2MC1_REVISION
 #define BGRC_P_WriteReg32( handle, reg, data ) BREG_Write32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION), data )
 #define BGRC_P_ReadReg32( handle, reg )        BREG_Read32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION) )
+#define BGRC_P_WriteAddr( handle, reg, data )  BREG_WriteAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION), data )
+#define BGRC_P_ReadAddr( handle, reg )         BREG_ReadAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC1_REVISION - BCHP_M2MC_REVISION) )
 #else
 #ifdef BCHP_M2MC_1_REVISION
 #define BGRC_P_WriteReg32( handle, reg, data ) BREG_Write32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION), data )
 #define BGRC_P_ReadReg32( handle, reg )        BREG_Read32( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION) )
+#define BGRC_P_WriteAddr( handle, reg, data )  BREG_WriteAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION), data )
+#define BGRC_P_ReadAddr( handle, reg )         BREG_ReadAddr_isrsafe( handle, BCHP_M2MC_##reg + hGrc->ulDeviceNum * (BCHP_M2MC_1_REVISION - BCHP_M2MC_REVISION) )
 #else
 #define BGRC_P_WriteReg32( handle, reg, data ) BREG_Write32( handle, BCHP_M2MC_##reg, data )
 #define BGRC_P_ReadReg32( handle, reg )        BREG_Read32( handle, BCHP_M2MC_##reg )
+#define BGRC_P_WriteAddr( handle, reg, data )  BREG_WriteAddr_isrsafe( handle, BCHP_M2MC_##reg, data )
+#define BGRC_P_ReadAddr( handle, reg )         BREG_ReadAddr_isrsafe( handle, BCHP_M2MC_##reg )
 #endif
 #endif
 

@@ -1,56 +1,41 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Example to encode mpeg2 TS to PIFF using PIFF Creation Module's APIs.
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- *****************************************************************************/
-/* Nexus example app: playback and decode */
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
 
-/* #include "drm_piff.h" */
+ ******************************************************************************/
 #include "bpiff_encoder.h"
 #include "nexus_platform.h"
 #include "nexus_video_decoder.h"
@@ -72,7 +57,6 @@
 #endif
 #include "nexus_core_utils.h"
 
-#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -91,7 +75,9 @@ static char lic_data_BearVideoOPLs[] = "<WRMHEADER xmlns=\"http://schemas.micros
 static char DS_ID[] = "AH+03juKbUGbHl1V/QIwRA==";
 #endif
 
-PIFF_encoder_handle  g_piff_handle;
+PIFF_encoder_handle g_piff_handle;
+
+static bool secure_video = false;
 
 const char usage_str[] =
 "\n"
@@ -110,40 +96,44 @@ static int usage(void)
 
 static void *getchar_thread(void *c)
 {
-	/*BKNI_SetEvent((BKNI_EventHandle)c);*/
-    bool *key_pressed = c; 
+    bool *key_pressed = c;
     getchar();
     *key_pressed = true;
-    if( g_piff_handle != NULL)
+    if (g_piff_handle != NULL)
     {
         printf("Key pressed, stopping the piff encoding here\n");
         piff_encode_stop(g_piff_handle);
+        g_piff_handle = NULL;
     }
     return NULL;
 }
 
 static void play_endOfStreamCallback(void *context, int param)
 {
-	BSTD_UNUSED(context);
-	BSTD_UNUSED(param);
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(param);
 
-	printf("End of stream detected\n");
-    if( g_piff_handle != NULL)
+    printf("End of stream detected\n");
+    if (g_piff_handle != NULL)
     {
         printf("Stop piff encoding.\n");
         piff_encode_stop(g_piff_handle);
+        g_piff_handle = NULL;
     }
 	return;
 }
-static void piffEncodeComplete( void * context)
-{
-	BKNI_SetEvent((BKNI_EventHandle)context);
-} 
 
-int main(int argc, char* argv[])  
+static void piffEncodeComplete(void * context)
+{
+    printf("%s\n", __FUNCTION__);
+    BKNI_SetEvent((BKNI_EventHandle)context);
+}
+
+int main(int argc, char* argv[])
 {
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_VIDEO_ENCODER
     NEXUS_PlatformSettings platformSettings;
+    NEXUS_MemoryConfigurationSettings memConfigSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel, stcChannelEncoder;
     NEXUS_StcChannelSettings stcSettings;
@@ -171,17 +161,21 @@ int main(int argc, char* argv[])
     NEXUS_AudioMuxOutputHandle audioMuxOutput;
     NEXUS_AudioEncoderHandle audioEncoder;
 
-	BKNI_EventHandle event;
+    BKNI_EventHandle event;
 
-    bool key_pressed  = false; 
+    bool key_pressed = false;
     pthread_t getchar_thread_id;
     NEXUS_DisplaySettings displaySettings;
-    char fname[] = "videos/avatar_AVC_15M.ts"; 
+    char fname[] = "videos/avatar_AVC_15M.ts";
     char fout[] = "piff.mp4";
 
+    /* DRM_Prdy specific */
+    DRM_Prdy_Init_t prdyParamSettings;
+    DRM_Prdy_Handle_t drm_context;
+
     /* PIFF specific */
-    PIFF_encoder_handle piff_handle=NULL;  
-    PIFF_Encoder_Settings  piffSettings;  
+    PIFF_encoder_handle piff_handle = NULL;
+    PIFF_Encoder_Settings piffSettings;
 
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
     NEXUS_VideoWindowScalerSettings sclSettings;
@@ -189,33 +183,64 @@ int main(int argc, char* argv[])
     NEXUS_VideoWindowSettings windowSettings;
 #endif
 
-    BSTD_UNUSED(argc); 
-    BSTD_UNUSED(argv); 
+    BSTD_UNUSED(argc);
+    BSTD_UNUSED(argv);
 
-/*    
+/*
     int ii;
     for (ii = 1; ii < argc; ii++) {
-        if( !strcmp(argv[ii], "-i") ){
+        if (!strcmp(argv[ii], "-i")){
             fname = argv[++ii];
         }
-        else if( !strcmp(argv[ii], "-o") ){
+        else if (!strcmp(argv[ii], "-o")){
             fout = argv[++ii];
         }
     }
 
-    if(fname == NULL || fout == NULL ){
-        usage(); 
-        goto clean_exit; 
+    if (fname == NULL || fout == NULL){
+        usage();
+        goto clean_exit;
     }
 */
-	BKNI_CreateEvent(&event);
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
-    NEXUS_Platform_Init(&platformSettings);
+
+    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
+    if (secure_video)
+    {
+        int i, j;
+
+        /* Request secure picture buffers, i.e. URR
+        * Should only do this if SAGE is in use, and when SAGE_SECURE_MODE is NOT 1 */
+        /* For now default to SVP2.0 type configuration (i.e. ALL buffers are
+        * secure ONLY */
+        for (i = 0; i < NEXUS_NUM_VIDEO_DECODERS; i++)
+        {
+            memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eSecure;
+        }
+        for (i = 0; i < NEXUS_NUM_DISPLAYS; i++)
+        {
+            for (j = 0; j < NEXUS_NUM_VIDEO_WINDOWS; j++)
+            {
+                memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eSecure;
+            }
+        }
+    }
+
+    if (NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings)) {
+        fprintf(stderr, "NEXUS_Platform_Init failed\n");
+        goto clean_exit;
+    }
+
     NEXUS_Platform_GetConfiguration(&platformConfig);
 
-    playpump = NEXUS_Playpump_Open(0, NULL);
+    BKNI_CreateEvent(&event);
+
+    printf("Creating the Event...\n");
+
+    printf("Finish waiting...\n");
+    playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
     assert(playpump);
     playback = NEXUS_Playback_Create();
     assert(playback);
@@ -223,7 +248,7 @@ int main(int argc, char* argv[])
     file = NEXUS_FilePlay_OpenPosix(fname, NULL);
     if (!file) {
         fprintf(stderr, "can't open file:%s\n", fname);
-        goto clean_exit; 
+        goto clean_exit;
     }
 
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
@@ -246,26 +271,35 @@ int main(int argc, char* argv[])
     playbackSettings.stcChannel = stcChannel;
 
     playbackSettings.endOfStreamCallback.callback = play_endOfStreamCallback;
-    playbackSettings.endOfStreamCallback.context  = NULL; 
+    playbackSettings.endOfStreamCallback.context = NULL;
 
     NEXUS_Playback_SetSettings(playback, &playbackSettings);
 
+    printf("Create a DRM_Prdy_context");
+    DRM_Prdy_GetDefaultParamSettings(&prdyParamSettings);
+    drm_context = DRM_Prdy_Initialize(&prdyParamSettings);
+    if (drm_context == NULL)
+    {
+       printf("Failed to create drm_context, quitting....");
+       goto clean_exit;
+    }
+
     printf("Create a piff handle\n");
-    piff_GetDefaultSettings(&piffSettings); 
-    piffSettings.destPiffFileName = fout;  
-    piffSettings.completionCallBack.callback = piffEncodeComplete; 
-    piffSettings.completionCallBack.context = event; 
+    piff_GetDefaultSettings(&piffSettings);
+    piffSettings.destPiffFileName = fout;
+    piffSettings.completionCallBack.callback = piffEncodeComplete;
+    piffSettings.completionCallBack.context = event;
     /*
-    piffSettings.licAcqDSId = DS_ID; 
-    piffSettings.licAcqDSIdLen = strlen(DS_ID); 
+    piffSettings.licAcqDSId = DS_ID;
+    piffSettings.licAcqDSIdLen = strlen(DS_ID);
     */
-    piff_handle = piff_create_encoder_handle(&piffSettings);
-    if( piff_handle == NULL) {
+    piff_handle = piff_create_encoder_handle(&piffSettings, drm_context);
+    if (piff_handle == NULL) {
         printf("FAILED to create piff handle, I'm quitting...\n");
         return 0;
     }
     printf("created a piff handle\n");
-    g_piff_handle=piff_handle;  
+    g_piff_handle = piff_handle;
 
     /* bring up decoder and connect to local display */
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
@@ -283,7 +317,7 @@ int main(int argc, char* argv[])
     NEXUS_Display_GetDefaultSettings(&displaySettings);
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
     displaySettings.format = NEXUS_VideoFormat_e720p;
-    displayTranscode = NEXUS_Display_Open(0, &displaySettings);    
+    displayTranscode = NEXUS_Display_Open(0, &displaySettings);
 #else
     displaySettings.displayType = NEXUS_DisplayType_eAuto;
     displaySettings.timingGenerator = NEXUS_DisplayTimingGenerator_eEncoder;
@@ -296,18 +330,16 @@ int main(int argc, char* argv[])
     assert(windowTranscode);
 
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
-    NEXUS_VideoWindow_GetSettings(windowTranscode, &windowSettings);    
+    NEXUS_VideoWindow_GetSettings(windowTranscode, &windowSettings);
     windowSettings.position.width = 416;
     windowSettings.position.height = 224;
-    windowSettings.pixelFormat = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;    
+    windowSettings.pixelFormat = NEXUS_PixelFormat_eCr8_Y18_Cb8_Y08;
     windowSettings.visible = false;
     NEXUS_VideoWindow_SetSettings(windowTranscode, &windowSettings);
-    
     NEXUS_VideoWindow_GetScalerSettings(windowTranscode, &sclSettings);
     sclSettings.bandwidthEquationParams.bias = NEXUS_ScalerCaptureBias_eScalerBeforeCapture;
     sclSettings.bandwidthEquationParams.delta = 1000000;
     NEXUS_VideoWindow_SetScalerSettings(windowTranscode, &sclSettings);
-    
     NEXUS_VideoWindow_GetMadSettings(windowTranscode, &madSettings);
     madSettings.deinterlace = true;
     madSettings.enable22Pulldown = true;
@@ -315,7 +347,7 @@ int main(int argc, char* argv[])
     NEXUS_VideoWindow_SetMadSettings(windowTranscode, &madSettings);
 #endif
 
-    /* connect same decoder to encoder display 
+    /* connect same decoder to encoder display
      * This simul mode is for video encoder bringup only; audio path may have limitation
      * for simul display+transcode mode;
      */
@@ -339,11 +371,11 @@ int main(int argc, char* argv[])
     NEXUS_VideoEncoder_GetSettings(videoEncoder, &videoEncoderConfig);
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
     videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e29_97;
-    videoEncoderConfig.bitrateMax = 400*1000;
-#else 
+    videoEncoderConfig.bitrateMax = 400 * 1000;
+#else
     videoEncoderConfig.variableFrameRate = true;
     videoEncoderConfig.frameRate = NEXUS_VideoFrameRate_e24;
-    videoEncoderConfig.bitrateMax = 6*1000*1000;
+    videoEncoderConfig.bitrateMax = 6 * 1000 * 1000;
     videoEncoderConfig.streamStructure.framesP = 29; /* IPP GOP size = 30 */
     videoEncoderConfig.streamStructure.framesB = 0;
 #endif
@@ -362,16 +394,21 @@ int main(int argc, char* argv[])
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
 
-#if 1
     /* Connect audio decoders to outputs */
+#if NEXUS_NUM_AUDIO_DACS
     NEXUS_AudioOutput_AddInput(
         NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
+#if NEXUS_NUM_SPDIF_OUTPUTS
+    NEXUS_AudioOutput_AddInput(
+        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+#endif
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_AudioOutput_AddInput(
         NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
         NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
 #endif
 
     {
@@ -409,7 +446,7 @@ int main(int argc, char* argv[])
     videoEncoderStartConfig.input = displayTranscode;
     videoEncoderStartConfig.codec = NEXUS_VideoCodec_eH264;
     videoEncoderStartConfig.profile = NEXUS_VideoCodecProfile_eBaseline;
-    videoEncoderStartConfig.level = NEXUS_VideoCodecLevel_e30;         
+    videoEncoderStartConfig.level = NEXUS_VideoCodecLevel_e30;
     videoEncoderStartConfig.bounds.inputDimension.max.width = 416;
     videoEncoderStartConfig.bounds.inputDimension.max.height = 224;
     videoEncoderStartConfig.stcChannel = stcChannelEncoder;
@@ -421,9 +458,9 @@ int main(int argc, char* argv[])
     videoEncoderStartConfig.stcChannel = stcChannelEncoder;
 
 	/******************************************
-	 * add configurable delay to video path 
+	 * add configurable delay to video path
 	 */
-	/* NOTE: ITFP is encoder feature to detect and lock on 3:2/2:2 cadence in the video content to help 
+	/* NOTE: ITFP is encoder feature to detect and lock on 3:2/2:2 cadence in the video content to help
 	 * efficient coding for interlaced formats; disabling ITFP will impact the bit efficiency but reduce the encode delay. */
 	videoEncoderConfig.enableFieldPairing = true;
 
@@ -456,15 +493,16 @@ int main(int argc, char* argv[])
     NEXUS_VideoEncoder_Start(videoEncoder, &videoEncoderStartConfig);
     NEXUS_VideoEncoder_GetStatus(videoEncoder, &videoEncoderStatus);
 
+    printf("Create thread for the key pressed.\n");
     pthread_create(&getchar_thread_id, NULL, getchar_thread, &key_pressed);
 
-    piff_encode_start( audioMuxOutput,videoEncoder,piff_handle);  
+    printf("Start piff encoding.\n");
+    piff_encode_start(audioMuxOutput, videoEncoder, piff_handle);
+    printf("piff encoding started...\n");
 
     BKNI_WaitForEvent(event, BKNI_INFINITE);
 
     printf("PIFF Encoding completed.\n");
-
-    piff_destroy_encoder_handle(piff_handle); 
 
     NEXUS_VideoEncoder_Stop(videoEncoder, NULL);
 
@@ -493,7 +531,13 @@ int main(int argc, char* argv[])
 
     NEXUS_VideoEncoder_Close(videoEncoder);
     NEXUS_StcChannel_Close(stcChannelEncoder);
-    
+
+    piff_destroy_encoder_handle(piff_handle);
+
+    DRM_Prdy_Uninitialize(drm_context);
+
+    BKNI_DestroyEvent(event);
+
     NEXUS_Platform_Uninit();
 
 #endif

@@ -63,6 +63,7 @@ int main(int argc, char **argv)
 
     test(16*_1mb, 512*_1mb, 104*_1mb);
     test(16*_1mb, 3072*_1mb, 496*_1mb);
+    test(160*_1mb, 2048*_1mb, 1384*_1mb);
 
     return 0;
 }

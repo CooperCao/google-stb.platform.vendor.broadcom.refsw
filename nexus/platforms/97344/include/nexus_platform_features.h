@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,6 @@
 #define NEXUS_PLATFORM_FEATURES_H__
 
 #include "bstd.h"
-#include "nexus_platform_generic_features_priv.h"
 
 /* Transport Features */
 #if (BCHP_CHIP==7344)
@@ -60,25 +59,13 @@
 
 #define NEXUS_NUM_VIDEO_DECODERS 2
 
-/* Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 3
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_MIXERS 4
 #ifdef NEXUS_NUM_DSP_VIDEO_ENCODERS
-#define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 2
 #define NEXUS_NUM_VIDEO_ENCODERS 1
 #endif
 
-#define NEXUS_NUM_I2S_INPUTS 1
-#define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_PLAYBACKS 2
-
-#define NEXUS_HAS_AUDIO_MUX_OUTPUT 1
-#ifdef NEXUS_NUM_AUDIO_CRCS
-#undef NEXUS_NUM_AUDIO_CRCS
+/* Audio Features */
 #define NEXUS_NUM_AUDIO_CRCS 0
-#endif
+
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 1
@@ -98,44 +85,20 @@ upon the chip usage. See below */
 
 
 /* Cable Frontend */
-#if (BCHP_CHIP==7344)
 #if defined NEXUS_PLATFORM_7418SFF_H
-#define NEXUS_MAX_FRONTENDS 3
 #define NEXUS_3128_MAX_DOWNSTREAM_CHANNELS 3
-#else
-#if defined NEXUS_PLATFORM_7344SV
-#define NEXUS_MAX_FRONTENDS 2
-#else
-#define NEXUS_MAX_FRONTENDS 1
-#endif
 #endif
 /* Internal Frontends define to 1 */
-#define NEXUS_7346_MAX_FRONTEND_CHANNELS 1
-#elif ((BCHP_CHIP==7346) || (BCHP_CHIP==73465))
 #if defined(NEXUS_PLATFORM_97346_SV)
 #if defined NEXUS_USE_FRONTEND_DAUGHTER_CARD
-#define NEXUS_MAX_FRONTENDS 9
 #define NEXUS_NUM_FRONTEND_CARD_SLOTS 1
-#else
-#define NEXUS_MAX_FRONTENDS 4
 #endif
-#elif defined(NEXUS_PLATFORM_97346_HR44)
-#define NEXUS_MAX_FRONTENDS 6
-#elif defined(NEXUS_PLATFORM_97346_H43)
-#define NEXUS_MAX_FRONTENDS 9
-#elif defined(NEXUS_PLATFORM_97346_SHR44)
-#define NEXUS_MAX_FRONTENDS 12
+#endif
+/* Allow fallthrough to Nexus default for NEXUS_MAX_FRONTENDS */
 
 #if defined USE_SPI_FRONTEND
 /* SPI Channels */
 #define NEXUS_NUM_SPI_CHANNELS 2
-#endif
-
-#elif defined NEXUS_PLATFORM_97346_I2SFF
-#define NEXUS_MAX_FRONTENDS 4
-#else
-#define NEXUS_MAX_FRONTENDS 2
-#endif
 #endif
 
 /* I2C Channels */
@@ -157,9 +120,6 @@ upon the chip usage. See below */
 /* Memory features */
 #define NEXUS_NUM_MEMC 1
 
-/* default heap indices */
-#define NEXUS_MEMC0_MAIN_HEAP           0
-#define NEXUS_MEMC0_PICTURE_BUFFER_HEAP 1
-#define NEXUS_MEMC0_GRAPHICS_HEAP       2
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

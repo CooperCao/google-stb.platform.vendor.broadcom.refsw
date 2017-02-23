@@ -64,7 +64,7 @@ SRAI_TOP  ?= ${SAGE_PUBLIC_TOP}/srai
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${BSEAV_TOP}/lib/security/sage/tools/engine/engine.inc
 include ${BSEAV_TOP}/lib/security/sage/utility/utility.inc
-include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include $(BSEAV_TOP)/opensource/openssl/openssl.inc
 
 ifeq (${USE_NXCLIENT},y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
@@ -98,7 +98,7 @@ LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus ${ENGINE_LDFLAGS}
 LDFLAGS += -lpthread -lm
 
 #why does openssl LD need to be included like this?!?!!
-LDFLAGS += -L${B_REFSW_OBJ_ROOT}${B_OPENSSL_LIB_INSTALL_DIR} -lcrypto -lssl
+LDFLAGS += -L${B_OPENSSL_LIB_INSTALL_DIR} -lcrypto -lssl
 LDFLAGS += ${UTILITY_LDFLAGS}
 
 
@@ -113,7 +113,7 @@ CFLAGS += $(addprefix -I,${UTILITY_INCLUDES})
 #$(error CFLAGS = ${CFLAGS})
 
 #not sure why I have to do it like this, normally $(B_OPENSSL_CFLAGS) should work
-CFLAGS += -I${B_REFSW_OBJ_ROOT}${B_OPENSSL_INC_INSTALL_DIR}
+CFLAGS += -I${B_OPENSSL_INC_INSTALL_DIR}
 CFLAGS += -DPIC -fpic
 
 # This is the minimum needed to compile and link with Nexus
@@ -163,6 +163,6 @@ install:
 	@echo [Installing SRAI... in ${NEXUS_BIN_DIR}]
 	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai/* ${NEXUS_BIN_DIR}
 	@echo [Installing OpenSSL dependencies... in ${NEXUS_BIN_DIR}]
-	${Q_} install -m 0755 ${B_REFSW_OBJ_ROOT}${B_OPENSSL_LIB_INSTALL_DIR}/lib* ${NEXUS_BIN_DIR}
+	${Q_} install -m 0755 ${B_OPENSSL_LIB_INSTALL_DIR}/lib* ${NEXUS_BIN_DIR}
 
 re: srai prep_engine prep_utility uninstall clean all install

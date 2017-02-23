@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -158,27 +158,78 @@ error:
     return(ret);
 } /* setContentMode */
 
-eRet CDisplayNx::setColorSpace(NEXUS_ColorSpace colorSpace)
+eRet CDisplayNx::setColorDepth(uint8_t * pColorDepth)
 {
     eRet                     ret    = eRet_Ok;
     NEXUS_Error              nerror = NEXUS_SUCCESS;
     NxClient_DisplaySettings settings;
+    eNotification            notification = eNotify_Invalid;
+
+    BDBG_ASSERT(NULL != pColorDepth);
 
     NxClient_GetDisplaySettings(&settings);
 
-    if (settings.hdmiPreferences.colorSpace == colorSpace)
+    if (settings.hdmiPreferences.colorDepth == *pColorDepth)
     {
         /* nothing changed - done */
         return(ret);
     }
 
-    settings.hdmiPreferences.colorSpace = colorSpace;
+    settings.hdmiPreferences.colorDepth = *pColorDepth;
+    nerror                              = NxClient_SetDisplaySettings(&settings);
+    CHECK_NEXUS_ERROR_GOTO("unable to set color depth", ret, nerror, error);
+
+error:
+    /* color depth takes a few display vsyncs to complete */
+    BKNI_Sleep(50);
+    NxClient_GetDisplaySettings(&settings);
+    if (*pColorDepth != settings.hdmiPreferences.colorDepth)
+    {
+        ret = eRet_NotSupported;
+    }
+
+    *pColorDepth = settings.hdmiPreferences.colorDepth;
+
+    notification = (ret == eRet_Ok ? eNotify_ColorDepthChanged : eNotify_ColorDepthFailure);
+    notifyObservers(notification, &(settings.hdmiPreferences.colorDepth));
+
+    return(ret);
+} /* setColorDepth */
+
+eRet CDisplayNx::setColorSpace(NEXUS_ColorSpace * pColorSpace)
+{
+    eRet                     ret    = eRet_Ok;
+    NEXUS_Error              nerror = NEXUS_SUCCESS;
+    NxClient_DisplaySettings settings;
+    eNotification            notification = eNotify_Invalid;
+
+    BDBG_ASSERT(NULL != pColorSpace);
+
+    NxClient_GetDisplaySettings(&settings);
+
+    if (settings.hdmiPreferences.colorSpace == *pColorSpace)
+    {
+        /* nothing changed - done */
+        return(ret);
+    }
+
+    settings.hdmiPreferences.colorSpace = *pColorSpace;
     nerror                              = NxClient_SetDisplaySettings(&settings);
     CHECK_NEXUS_ERROR_GOTO("unable to set color space", ret, nerror, error);
 
 error:
+    /* color space takes a few display vsyncs to complete */
+    BKNI_Sleep(50);
     NxClient_GetDisplaySettings(&settings);
-    notifyObservers(eNotify_ColorSpaceChanged, &(settings.hdmiPreferences.colorSpace));
+    if (*pColorSpace != settings.hdmiPreferences.colorSpace)
+    {
+        ret = eRet_NotSupported;
+    }
+
+    *pColorSpace = settings.hdmiPreferences.colorSpace;
+
+    notification = (ret == eRet_Ok ? eNotify_ColorSpaceChanged : eNotify_ColorSpaceFailure);
+    notifyObservers(notification, &(settings.hdmiPreferences.colorSpace));
 
     return(ret);
 } /* setColorSpace */
@@ -186,11 +237,12 @@ error:
 /* set preferred colorspace for ouputs that support it */
 eRet CDisplayNx::setPreferredColorSpace(NEXUS_VideoFormat format)
 {
-    eRet ret = eRet_Ok;
+    eRet             ret        = eRet_Ok;
+    NEXUS_ColorSpace colorSpace = NEXUS_ColorSpace_eAuto;
 
     BSTD_UNUSED(format);
 
-    ret = setColorSpace(NEXUS_ColorSpace_eAuto);
+    ret = setColorSpace(&colorSpace);
     CHECK_ERROR_GOTO("unable to set color space", ret, error);
 
 error:

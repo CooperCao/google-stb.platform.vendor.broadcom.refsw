@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 23 10:47:06 2016
- *                 Full Compile MD5 Checksum  23af2db02a4ebd1aa573cb181f364336
+ * Date:           Generated on               Tue Dec 13 10:42:02 2016
+ *                 Full Compile MD5 Checksum  3569507c301c8ecc2edaa056747f2c3c
  *                     (minus title and desc)
- *                 MD5 Checksum               2ca98119a9d04d3939770dcc0844ff43
+ *                 MD5 Checksum               f5c451485c31535bef93cb504758197d
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1048
+ *                 RDB.pm                     1139
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,51 +70,51 @@
 /***************************************************************************
  *USB_CTRL - USB Control Registers
  ***************************************************************************/
-#define BCHP_USB_CTRL_SETUP                      0x20b00200 /* [RW] Setup Register */
-#define BCHP_USB_CTRL_PLL_CTL                    0x20b00204 /* [RW] PLL Control Register */
-#define BCHP_USB_CTRL_FLADJ_VALUE                0x20b00208 /* [RW] Frame Adjust Value */
-#define BCHP_USB_CTRL_EBRIDGE                    0x20b0020c /* [RW] Control Register for EHCI Bridge */
-#define BCHP_USB_CTRL_OBRIDGE                    0x20b00210 /* [RW] Control Register for OHCI Bridge */
-#define BCHP_USB_CTRL_MDIO                       0x20b00214 /* [RW] MDIO Interface Programming Register */
-#define BCHP_USB_CTRL_MDIO2                      0x20b00218 /* [RO] MDIO Interface Read Register */
-#define BCHP_USB_CTRL_TEST_PORT_CTL              0x20b0021c /* [RW] Test Port Control Register */
-#define BCHP_USB_CTRL_USB_SIMCTL                 0x20b00220 /* [RW] Simulation Register */
-#define BCHP_USB_CTRL_USB_TESTCTL                0x20b00224 /* [RW] Throutput Test Control */
-#define BCHP_USB_CTRL_USB_TESTMON                0x20b00228 /* [RO] Throughput Test Monitor */
-#define BCHP_USB_CTRL_UTMI_CTL_1                 0x20b0022c /* [RW] UTMI Control Register */
-#define BCHP_USB_CTRL_UTMI_CTL_2                 0x20b00230 /* [RW] UTMI Control 2 Register */
-#define BCHP_USB_CTRL_USB_PM                     0x20b00234 /* [RW] Power Management Register */
-#define BCHP_USB_CTRL_USB_PM_STATUS              0x20b00238 /* [RW] usb20 Power Management Status Register */
-#define BCHP_USB_CTRL_OHCI_ADDR_EXT              0x20b0023c /* [RW] OHCI ADDRESS Extension */
-#define BCHP_USB_CTRL_PLL_LDO_CTL                0x20b00240 /* [RW] 28NM USBPHY LDO Control */
-#define BCHP_USB_CTRL_PLL_LDO_PLLBIAS            0x20b00244 /* [RW] 28NM USBPHY PLLBIAS Control */
-#define BCHP_USB_CTRL_PLL_AFE_BG_CNTL            0x20b00248 /* [RW] 28NM USBPHY AFE Bandgap Control */
-#define BCHP_USB_CTRL_AFE_USBIO_TST              0x20b0024c /* [RW] 28NM USBPHY AFE Bandgap Control */
-#define BCHP_USB_CTRL_PLL_NDIV_FRAC              0x20b00250 /* [RW] PLL Feedback Divider Control Register */
-#define BCHP_USB_CTRL_TP_DIAG                    0x20b00254 /* [RW] diagnostic for tp bus */
-#define BCHP_USB_CTRL_TP_DIAG1                   0x20b00258 /* [RW] diagnostic for tp bus */
-#define BCHP_USB_CTRL_USBD_DRD_STATUS            0x20b0025c /* [RO] DRD Status Register */
-#define BCHP_USB_CTRL_USB30_CTL1                 0x20b00260 /* [RW] USB30 CONTROL Register 1 */
-#define BCHP_USB_CTRL_USB30_CTL2                 0x20b00264 /* [RW] USB30 CONTROL Register 2 */
-#define BCHP_USB_CTRL_USB30_CTL3                 0x20b00268 /* [RW] USB30 CONTROL Register 3 */
-#define BCHP_USB_CTRL_USB30_CTL4                 0x20b0026c /* [RW] USB30 CONTROL Register 4 */
-#define BCHP_USB_CTRL_USB30_PCTL                 0x20b00270 /* [RW] USB30 PORT CONTROL Register */
-#define BCHP_USB_CTRL_USB30_CTL5                 0x20b00274 /* [RW] USB30 CONTROL Register 5 */
-#define BCHP_USB_CTRL_SPARE5                     0x20b00278 /* [RW] Spare1 Register for future use */
-#define BCHP_USB_CTRL_SPARE6                     0x20b0027c /* [RW] Spare2 Register for future use */
-#define BCHP_USB_CTRL_USB_DEVICE_CTL1            0x20b00290 /* [RW] USB DEVICE  CONTROL Register 1 */
-#define BCHP_USB_CTRL_USB_DEVICE_CTL2            0x20b00294 /* [RW] USB DEVICE  CONTROL Register 2 */
-#define BCHP_USB_CTRL_USB_DEBOUNCE_COUNT         0x20b00298 /* [RW] USB Debounce Count Register */
-#define BCHP_USB_CTRL_SCB0_BASE_RANGE            0x20b002a0 /* [RW] SCB0 base start and end address */
-#define BCHP_USB_CTRL_SPARE7                     0x20b002a4 /* [RW] Spare Register for future use */
-#define BCHP_USB_CTRL_SPARE8                     0x20b002a8 /* [RW] Spare Register for future use */
-#define BCHP_USB_CTRL_SCB0_EXTN_RANGE            0x20b002ac /* [RW] SCB0 extn start and end address */
-#define BCHP_USB_CTRL_SPARE9                     0x20b002b0 /* [RW] Spare Register for future use */
-#define BCHP_USB_CTRL_SPARE10                    0x20b002b4 /* [RW] Spare Register for future use */
-#define BCHP_USB_CTRL_USB20_ID                   0x20b002f0 /* [RO] USB REVID */
-#define BCHP_USB_CTRL_USB30_ID                   0x20b002f4 /* [RO] USB REVID */
-#define BCHP_USB_CTRL_BDC_COREID                 0x20b002f8 /* [RO] USB REVID */
-#define BCHP_USB_CTRL_USB_REVID                  0x20b002fc /* [RO] USB REVID */
+#define BCHP_USB_CTRL_SETUP                      0x20b00200 /* [RW][32] Setup Register */
+#define BCHP_USB_CTRL_PLL_CTL                    0x20b00204 /* [RW][32] PLL Control Register */
+#define BCHP_USB_CTRL_FLADJ_VALUE                0x20b00208 /* [RW][32] Frame Adjust Value */
+#define BCHP_USB_CTRL_EBRIDGE                    0x20b0020c /* [RW][32] Control Register for EHCI Bridge */
+#define BCHP_USB_CTRL_OBRIDGE                    0x20b00210 /* [RW][32] Control Register for OHCI Bridge */
+#define BCHP_USB_CTRL_MDIO                       0x20b00214 /* [RW][32] MDIO Interface Programming Register */
+#define BCHP_USB_CTRL_MDIO2                      0x20b00218 /* [RO][32] MDIO Interface Read Register */
+#define BCHP_USB_CTRL_TEST_PORT_CTL              0x20b0021c /* [RW][32] Test Port Control Register */
+#define BCHP_USB_CTRL_USB_SIMCTL                 0x20b00220 /* [RW][32] Simulation Register */
+#define BCHP_USB_CTRL_USB_TESTCTL                0x20b00224 /* [RW][32] Throutput Test Control */
+#define BCHP_USB_CTRL_USB_TESTMON                0x20b00228 /* [RO][32] Throughput Test Monitor */
+#define BCHP_USB_CTRL_UTMI_CTL_1                 0x20b0022c /* [RW][32] UTMI Control Register */
+#define BCHP_USB_CTRL_UTMI_CTL_2                 0x20b00230 /* [RW][32] UTMI Control 2 Register */
+#define BCHP_USB_CTRL_USB_PM                     0x20b00234 /* [RW][32] Power Management Register */
+#define BCHP_USB_CTRL_USB_PM_STATUS              0x20b00238 /* [RW][32] usb20 Power Management Status Register */
+#define BCHP_USB_CTRL_OHCI_ADDR_EXT              0x20b0023c /* [RW][32] OHCI ADDRESS Extension */
+#define BCHP_USB_CTRL_PLL_LDO_CTL                0x20b00240 /* [RW][32] 28NM USBPHY LDO Control */
+#define BCHP_USB_CTRL_PLL_LDO_PLLBIAS            0x20b00244 /* [RW][32] 28NM USBPHY PLLBIAS Control */
+#define BCHP_USB_CTRL_PLL_AFE_BG_CNTL            0x20b00248 /* [RW][32] 28NM USBPHY AFE Bandgap Control */
+#define BCHP_USB_CTRL_AFE_USBIO_TST              0x20b0024c /* [RW][32] 28NM USBPHY AFE Bandgap Control */
+#define BCHP_USB_CTRL_PLL_NDIV_FRAC              0x20b00250 /* [RW][32] PLL Feedback Divider Control Register */
+#define BCHP_USB_CTRL_TP_DIAG                    0x20b00254 /* [RW][32] diagnostic for tp bus */
+#define BCHP_USB_CTRL_TP_DIAG1                   0x20b00258 /* [RW][32] diagnostic for tp bus */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS            0x20b0025c /* [RO][32] DRD Status Register */
+#define BCHP_USB_CTRL_USB30_CTL1                 0x20b00260 /* [RW][32] USB30 CONTROL Register 1 */
+#define BCHP_USB_CTRL_USB30_CTL2                 0x20b00264 /* [RW][32] USB30 CONTROL Register 2 */
+#define BCHP_USB_CTRL_USB30_CTL3                 0x20b00268 /* [RW][32] USB30 CONTROL Register 3 */
+#define BCHP_USB_CTRL_USB30_CTL4                 0x20b0026c /* [RW][32] USB30 CONTROL Register 4 */
+#define BCHP_USB_CTRL_USB30_PCTL                 0x20b00270 /* [RW][32] USB30 PORT CONTROL Register */
+#define BCHP_USB_CTRL_USB30_CTL5                 0x20b00274 /* [RW][32] USB30 CONTROL Register 5 */
+#define BCHP_USB_CTRL_SPARE5                     0x20b00278 /* [RW][32] Spare1 Register for future use */
+#define BCHP_USB_CTRL_SPARE6                     0x20b0027c /* [RW][32] Spare2 Register for future use */
+#define BCHP_USB_CTRL_USB_DEVICE_CTL1            0x20b00290 /* [RW][32] USB DEVICE  CONTROL Register 1 */
+#define BCHP_USB_CTRL_USB_DEVICE_CTL2            0x20b00294 /* [RW][32] USB DEVICE  CONTROL Register 2 */
+#define BCHP_USB_CTRL_USB_DEBOUNCE_COUNT         0x20b00298 /* [RW][32] USB Debounce Count Register */
+#define BCHP_USB_CTRL_SCB0_BASE_RANGE            0x20b002a0 /* [RW][32] SCB0 base start and end address */
+#define BCHP_USB_CTRL_SPARE7                     0x20b002a4 /* [RW][32] Spare Register for future use */
+#define BCHP_USB_CTRL_SPARE8                     0x20b002a8 /* [RW][32] Spare Register for future use */
+#define BCHP_USB_CTRL_SCB0_EXTN_RANGE            0x20b002ac /* [RW][32] SCB0 extn start and end address */
+#define BCHP_USB_CTRL_SPARE9                     0x20b002b0 /* [RW][32] Spare Register for future use */
+#define BCHP_USB_CTRL_SPARE10                    0x20b002b4 /* [RW][32] Spare Register for future use */
+#define BCHP_USB_CTRL_USB20_ID                   0x20b002f0 /* [RO][32] USB REVID */
+#define BCHP_USB_CTRL_USB30_ID                   0x20b002f4 /* [RO][32] USB REVID */
+#define BCHP_USB_CTRL_BDC_COREID                 0x20b002f8 /* [RO][32] USB REVID */
+#define BCHP_USB_CTRL_USB_REVID                  0x20b002fc /* [RO][32] USB REVID */
 
 /***************************************************************************
  *SETUP - Setup Register
@@ -129,15 +129,15 @@
 #define BCHP_USB_CTRL_SETUP_OC_DISABLE_SHIFT                       28
 #define BCHP_USB_CTRL_SETUP_OC_DISABLE_DEFAULT                     0x00000000
 
-/* USB_CTRL :: SETUP :: strap_cc_enable_sel [27:27] */
-#define BCHP_USB_CTRL_SETUP_strap_cc_enable_sel_MASK               0x08000000
-#define BCHP_USB_CTRL_SETUP_strap_cc_enable_sel_SHIFT              27
-#define BCHP_USB_CTRL_SETUP_strap_cc_enable_sel_DEFAULT            0x00000001
+/* USB_CTRL :: SETUP :: strap_cc_drd_mode_enable_sel [27:27] */
+#define BCHP_USB_CTRL_SETUP_strap_cc_drd_mode_enable_sel_MASK      0x08000000
+#define BCHP_USB_CTRL_SETUP_strap_cc_drd_mode_enable_sel_SHIFT     27
+#define BCHP_USB_CTRL_SETUP_strap_cc_drd_mode_enable_sel_DEFAULT   0x00000001
 
-/* USB_CTRL :: SETUP :: cc_enable [26:26] */
-#define BCHP_USB_CTRL_SETUP_cc_enable_MASK                         0x04000000
-#define BCHP_USB_CTRL_SETUP_cc_enable_SHIFT                        26
-#define BCHP_USB_CTRL_SETUP_cc_enable_DEFAULT                      0x00000000
+/* USB_CTRL :: SETUP :: cc_drd_mode_enable [26:26] */
+#define BCHP_USB_CTRL_SETUP_cc_drd_mode_enable_MASK                0x04000000
+#define BCHP_USB_CTRL_SETUP_cc_drd_mode_enable_SHIFT               26
+#define BCHP_USB_CTRL_SETUP_cc_drd_mode_enable_DEFAULT             0x00000000
 
 /* USB_CTRL :: SETUP :: strap_ipp_sel [25:25] */
 #define BCHP_USB_CTRL_SETUP_strap_ipp_sel_MASK                     0x02000000
@@ -338,15 +338,10 @@
 #define BCHP_USB_CTRL_EBRIDGE_ebr_size_sel_SHIFT                   28
 #define BCHP_USB_CTRL_EBRIDGE_ebr_size_sel_DEFAULT                 0x00000001
 
-/* USB_CTRL :: EBRIDGE :: EBR_SPARE [27:19] */
-#define BCHP_USB_CTRL_EBRIDGE_EBR_SPARE_MASK                       0x0ff80000
-#define BCHP_USB_CTRL_EBRIDGE_EBR_SPARE_SHIFT                      19
+/* USB_CTRL :: EBRIDGE :: EBR_SPARE [27:18] */
+#define BCHP_USB_CTRL_EBRIDGE_EBR_SPARE_MASK                       0x0ffc0000
+#define BCHP_USB_CTRL_EBRIDGE_EBR_SPARE_SHIFT                      18
 #define BCHP_USB_CTRL_EBRIDGE_EBR_SPARE_DEFAULT                    0x00000000
-
-/* USB_CTRL :: EBRIDGE :: ESTOP_SCB_REQ1 [18:18] */
-#define BCHP_USB_CTRL_EBRIDGE_ESTOP_SCB_REQ1_MASK                  0x00040000
-#define BCHP_USB_CTRL_EBRIDGE_ESTOP_SCB_REQ1_SHIFT                 18
-#define BCHP_USB_CTRL_EBRIDGE_ESTOP_SCB_REQ1_DEFAULT               0x00000000
 
 /* USB_CTRL :: EBRIDGE :: ESTOP_SCB_REQ [17:17] */
 #define BCHP_USB_CTRL_EBRIDGE_ESTOP_SCB_REQ_MASK                   0x00020000
@@ -391,23 +386,13 @@
 #define BCHP_USB_CTRL_OBRIDGE_obr_size_sel_SHIFT                   28
 #define BCHP_USB_CTRL_OBRIDGE_obr_size_sel_DEFAULT                 0x00000001
 
-/* USB_CTRL :: OBRIDGE :: OBR_SPARE [27:20] */
-#define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE_MASK                       0x0ff00000
-#define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE_SHIFT                      20
+/* USB_CTRL :: OBRIDGE :: OBR_SPARE [27:19] */
+#define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE_MASK                       0x0ff80000
+#define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE_SHIFT                      19
 #define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE_DEFAULT                    0x00000000
 
-/* USB_CTRL :: OBRIDGE :: ohci_memreq_disable [19:19] */
-#define BCHP_USB_CTRL_OBRIDGE_ohci_memreq_disable_MASK             0x00080000
-#define BCHP_USB_CTRL_OBRIDGE_ohci_memreq_disable_SHIFT            19
-#define BCHP_USB_CTRL_OBRIDGE_ohci_memreq_disable_DEFAULT          0x00000000
-
-/* USB_CTRL :: OBRIDGE :: OSTOP_SCB_REQ1 [18:18] */
-#define BCHP_USB_CTRL_OBRIDGE_OSTOP_SCB_REQ1_MASK                  0x00040000
-#define BCHP_USB_CTRL_OBRIDGE_OSTOP_SCB_REQ1_SHIFT                 18
-#define BCHP_USB_CTRL_OBRIDGE_OSTOP_SCB_REQ1_DEFAULT               0x00000000
-
-/* USB_CTRL :: OBRIDGE :: OBR_SPARE1 [17:17] */
-#define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE1_MASK                      0x00020000
+/* USB_CTRL :: OBRIDGE :: OBR_SPARE1 [18:17] */
+#define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE1_MASK                      0x00060000
 #define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE1_SHIFT                     17
 #define BCHP_USB_CTRL_OBRIDGE_OBR_SPARE1_DEFAULT                   0x00000000
 
@@ -1206,10 +1191,44 @@
 #define BCHP_USB_CTRL_USBD_DRD_STATUS_DRD_STATUS_SPARE_SHIFT       9
 #define BCHP_USB_CTRL_USBD_DRD_STATUS_DRD_STATUS_SPARE_DEFAULT     0x00000000
 
-/* USB_CTRL :: USBD_DRD_STATUS :: drd_status [08:00] */
-#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_status_MASK              0x000001ff
-#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_status_SHIFT             0
-#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_status_DEFAULT           0x00000000
+/* USB_CTRL :: USBD_DRD_STATUS :: cc_drd_mode [08:08] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_cc_drd_mode_MASK             0x00000100
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_cc_drd_mode_SHIFT            8
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_cc_drd_mode_DEFAULT          0x00000000
+
+/* USB_CTRL :: USBD_DRD_STATUS :: cc_data_role [07:06] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_cc_data_role_MASK            0x000000c0
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_cc_data_role_SHIFT           6
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_cc_data_role_DEFAULT         0x00000000
+
+/* USB_CTRL :: USBD_DRD_STATUS :: vbusout [05:05] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_vbusout_MASK                 0x00000020
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_vbusout_SHIFT                5
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_vbusout_DEFAULT              0x00000000
+
+/* USB_CTRL :: USBD_DRD_STATUS :: idout [04:04] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_idout_MASK                   0x00000010
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_idout_SHIFT                  4
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_idout_DEFAULT                0x00000000
+
+/* USB_CTRL :: USBD_DRD_STATUS :: pwron_dis [03:03] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_pwron_dis_MASK               0x00000008
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_pwron_dis_SHIFT              3
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_pwron_dis_DEFAULT            0x00000000
+
+/* USB_CTRL :: USBD_DRD_STATUS :: device_sel [02:02] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_device_sel_MASK              0x00000004
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_device_sel_SHIFT             2
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_device_sel_DEFAULT           0x00000000
+
+/* USB_CTRL :: USBD_DRD_STATUS :: drd_state [01:00] */
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_MASK               0x00000003
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_SHIFT              0
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_DEFAULT            0x00000000
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_IDLE               0
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_HOSTMODE           1
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_DEVICEMODE         2
+#define BCHP_USB_CTRL_USBD_DRD_STATUS_drd_state_DISCON             3
 
 /***************************************************************************
  *USB30_CTL1 - USB30 CONTROL Register 1
@@ -1771,12 +1790,12 @@
 /* USB_CTRL :: USB30_ID :: USB30PHY_ID [31:16] */
 #define BCHP_USB_CTRL_USB30_ID_USB30PHY_ID_MASK                    0xffff0000
 #define BCHP_USB_CTRL_USB30_ID_USB30PHY_ID_SHIFT                   16
-#define BCHP_USB_CTRL_USB30_ID_USB30PHY_ID_DEFAULT                 0x0000c254
+#define BCHP_USB_CTRL_USB30_ID_USB30PHY_ID_DEFAULT                 0x0000c264
 
 /* USB_CTRL :: USB30_ID :: XHC_CORE_ID [15:00] */
 #define BCHP_USB_CTRL_USB30_ID_XHC_CORE_ID_MASK                    0x0000ffff
 #define BCHP_USB_CTRL_USB30_ID_XHC_CORE_ID_SHIFT                   0
-#define BCHP_USB_CTRL_USB30_ID_XHC_CORE_ID_DEFAULT                 0x00000200
+#define BCHP_USB_CTRL_USB30_ID_XHC_CORE_ID_DEFAULT                 0x00000201
 
 /***************************************************************************
  *BDC_COREID - USB REVID
@@ -1789,7 +1808,7 @@
 /* USB_CTRL :: BDC_COREID :: BDC2_COREID [15:00] */
 #define BCHP_USB_CTRL_BDC_COREID_BDC2_COREID_MASK                  0x0000ffff
 #define BCHP_USB_CTRL_BDC_COREID_BDC2_COREID_SHIFT                 0
-#define BCHP_USB_CTRL_BDC_COREID_BDC2_COREID_DEFAULT               0x00000200
+#define BCHP_USB_CTRL_BDC_COREID_BDC2_COREID_DEFAULT               0x00000315
 
 /***************************************************************************
  *USB_REVID - USB REVID

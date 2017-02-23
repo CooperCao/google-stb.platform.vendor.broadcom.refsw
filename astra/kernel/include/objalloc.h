@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 
 #include "arm/arm.h"
 #include "arm/spinlock.h"
-
+#include "plat_config.h"
 #include "pgtable.h"
 #include "tzmemory.h"
 
@@ -56,7 +56,7 @@ public:
 
     void init() {
         firstChunk = nullptr;
-        spinlock_init("allocator.lock", &lock);
+        spinLockInit(&lock);
     }
 
     inline unsigned int objSize() {
@@ -219,7 +219,7 @@ private:
 
 private:
     void *firstChunk;
-    spinlock_t lock;
+    SpinLock lock;
 
     struct ChunkHead {
         ChunkHead *nextChunk;
@@ -230,7 +230,7 @@ private:
 
 private:
     static const int ChunkSize = 16*1024;
-    static const unsigned long ObjToChunkMask = 0xFFFFC000L;
+    static const unsigned long ObjToChunkMask = ARCH_SPECIFIC_CHUNK_MASK;
 };
 
 

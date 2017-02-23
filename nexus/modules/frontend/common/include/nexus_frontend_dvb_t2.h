@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2004-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,13 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-* Revision History:  
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_FRONTEND_DVBT2_H__
 #define NEXUS_FRONTEND_DVBT2_H__
@@ -103,7 +96,7 @@ typedef struct NEXUS_FrontendDvbt2StatusReady
 /***************************************************************************
 Summary:
 ****************************************************************************/
-typedef struct NEXUS_FrontendDvbt2Status
+typedef struct NEXUS_FrontendDvbt2Status /* attr{local=true} */
 {
     NEXUS_FrontendDvbt2StatusType type;
 
@@ -138,10 +131,59 @@ NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncStatusReady(
 /*******************************************************************************
 Summary: Get the dvbt2 asynchronous status.
 ********************************************************************************/
-NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncStatus(
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncStatus( /* attr{local=true} */
+     NEXUS_FrontendHandle handle,
+     NEXUS_FrontendDvbt2StatusType type,
+     NEXUS_FrontendDvbt2Status *pStatus   /* [out] */
+     );
+
+/*******************************************************************************
+Summary: Get the dvbt2 asynchronous FEC statisitics
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncFecStatistics (
     NEXUS_FrontendHandle handle,
     NEXUS_FrontendDvbt2StatusType type,
-    NEXUS_FrontendDvbt2Status *pStatus   /* [out] */
+    NEXUS_FrontendDvbt2FecStatistics *pStatistics /* [out] */
+    );
+
+/*******************************************************************************
+Summary: Get the dvbt2 asynchronous L1 PRE status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncL1PreStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PreStatus   *pStatus
+    );
+
+/*******************************************************************************
+Summary: Get the dvbt2 L1 asynchronous Post Configurable status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncL1PostConfigurableStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PostConfigurableStatus *pStatus   /* [out] */
+    );
+
+/*******************************************************************************
+Summary: Get the dvbt2 asynchronous Post Dynamic status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncPostDynamicStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PostDynamicStatus *pStatus   /* [out] */
+    );
+
+/*******************************************************************************
+Summary: Get the dvbt2 asynchronous L1 PLP status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncL1PlpStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2L1PlpStatus *pStatus   /* [out] */
+    );
+
+/*******************************************************************************
+Summary: Get the dvbt2 asynchronous basic status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbt2AsyncBasicStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbt2BasicStatus *pStatus
     );
 
 #ifdef __cplusplus

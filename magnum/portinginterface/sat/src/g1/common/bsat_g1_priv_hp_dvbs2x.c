@@ -127,6 +127,7 @@ BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    BERR_Code retCode;
+   uint32_t timeout = BSAT_HP_TIMEOUT;
 
    /* configure the HP */
    hChn->bShortFrame = false;
@@ -137,10 +138,14 @@ BERR_Code BSAT_g1_P_HpAcquire1_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_HP_HPCONTROL, ~0xF0000000, 0x50000000);
 
    /* let the HP run */
+   BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &(hChn->count1));
    BSAT_CHK_RETCODE(BSAT_g1_P_HpEnable_isr(h, true));
 
    /* start reacquisition timer */
-   retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, BSAT_HP_TIMEOUT, BSAT_g1_P_OnHpTimeOut_isr);
+   if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
+      timeout = hChn->acqSettings.symbolRate; /* 1 second timeout for scan mode */
+
+   retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, timeout, BSAT_g1_P_OnHpTimeOut_isr);
 
 #ifndef BSAT_EXCLUDE_TFEC
    if (hChn->acqSettings.mode == BSAT_Mode_eTurbo_scan)
@@ -378,7 +383,7 @@ BERR_Code BSAT_g1_P_HpConfig_isr(BSAT_ChannelHandle h)
       dafe_average = hChn->configParam[BSAT_g1_CONFIG_HP_CTL] & BSAT_g1_CONFIG_HP_CTL_DAFE_AVERAGE_MASK;
    else if (BSAT_MODE_IS_TURBO(hChn->acqSettings.mode))
       dafe_average = 15;
-   else if (!bDvbs2Pilot && (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode) || BSAT_MODE_IS_DVBS2_EXTENDED(hChn->acqSettings.mode)))
+   else if (bDvbs2Scan || (!bDvbs2Pilot && (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode) || BSAT_MODE_IS_DVBS2_EXTENDED(hChn->acqSettings.mode))))
       dafe_average = 63; /* optimize later */
    else
       dafe_average = 15; /* should depend on modcod */
@@ -548,6 +553,7 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
 {
    BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
+   uint32_t t;
 #ifndef BSAT_EXCLUDE_AFEC
    uint32_t acm_check, val;
    uint8_t oldScanState, modcod, plscode, i;
@@ -573,9 +579,11 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eBaud); /* kill the reacquisition timer */
    BSAT_g1_P_HpDisableInterrupts_isr(h);
 
+   BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t);
+
    /* HP is locked */
    BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eRcvrLocked);
-   BDBG_MSG(("HP%d locked", h->channel));
+   BDBG_MSG(("HP%d locked in %u usecs", h->channel, t-hChn->count1));
 
 #ifndef BSAT_EXCLUDE_AFEC
    if ((BSAT_MODE_IS_DVBS2(hChn->acqSettings.mode)) || (BSAT_MODE_IS_DVBS2X(hChn->acqSettings.mode)))
@@ -606,6 +614,7 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
                if (BSAT_MODE_IS_DVBS2X(hChn->actualMode))
                {
                   /* JIRA SWSATFE-756 */
+                  not_supported:
                   hChn->reacqCause = BSAT_ReacqCause_eDvbs2xNotSupported;
                   BSAT_g1_P_Reacquire_isr(h);
                   return;
@@ -625,6 +634,16 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
                goto reacquire_hp;
             }
             hChn->actualMode = BSAT_Mode_eDvbs2_Qpsk_1_4 + modcod - 1;
+
+#if BCHP_CHIP==45308
+            if (otp_disable_feature & OTP_DISABLE_FEATURE_DVBS2X)
+            {
+               /* SWSATFE-822: do not allow DVB-S2 16/32APSK or QPSK 1/4,1/3,2/5 modes on S2-only variants */
+               if (((hChn->actualMode >= BSAT_Mode_eDvbs2_16apsk_2_3) && (hChn->actualMode <= BSAT_Mode_eDvbs2_32apsk_9_10)) ||
+                    ((hChn->actualMode >= BSAT_Mode_eDvbs2_Qpsk_1_4) && (hChn->actualMode <= BSAT_Mode_eDvbs2_Qpsk_2_5)))
+                  goto not_supported;
+            }
+#endif
          }
 
          oldScanState = hChn->dvbs2ScanState;

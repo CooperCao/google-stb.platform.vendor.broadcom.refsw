@@ -58,7 +58,9 @@ CustomProcessing Settings
 ***************************************************************************/
 typedef struct BAPE_CustomProcessingSettings
 {
+#if BAPE_DSP_SUPPORT
     BDSP_Algorithm algorithm;               /* Processing algorithm to be used.  Refer to BDSP for a list of algorithms. */
+#endif
     size_t algorithmSettingsSize;           /* Size of the settings structure in bytes */
     BAPE_MultichannelFormat outputFormat;   /* Output PCM format of this processor */
 } BAPE_CustomProcessingSettings;
@@ -210,6 +212,5 @@ BERR_Code BAPE_CustomProcessing_GetAlgorithmStatus(
     void *pStatus,      /* [out] Should be defined as the correct data type for this custom algorithm */
     size_t statusSize   /* Size of the status structure in bytes */
     );
-
-#endif
+#endif /* #if !B_REFSW_MINIMAL */
 #endif /* #ifndef BAPE_CUSTOM_PROCESSING_H__ */

@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 /* Nexus example app: playback and decode */
@@ -60,17 +52,17 @@
 #include "nexus_spdif_output.h"
 #include "nexus_component_output.h"
 #include "nexus_composite_output.h"
+#include "nexus_audio_mux_output.h"
+#include "nexus_audio_encoder.h"
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK
 #include "nexus_playback.h"
 #include "nexus_record.h"
 #include "nexus_file.h"
 #include "nexus_recpump.h"
 #include "nexus_record.h"
-#include "nexus_audio_mux_output.h"
-#include "nexus_audio_encoder.h"
 #endif
 
 #include <assert.h>
@@ -110,7 +102,7 @@
 
 int main(void)
 {
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_AUDIO_MUX_OUTPUT
+#if NEXUS_HAS_PLAYBACK
     NEXUS_PlatformSettings platformSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelHandle stcChannel, stcChannelTranscode;
@@ -130,6 +122,10 @@ int main(void)
     NEXUS_AudioMuxOutputHandle audioMuxOutput;
     NEXUS_AudioMuxOutputStatus audioMuxStatus;
     NEXUS_AudioMuxOutputStartSettings audioMuxStartSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 #if BTST_ENABLE_TRANSCODE 
     NEXUS_AudioEncoderSettings encoderSettings;
     NEXUS_AudioEncoderHandle audioEncoder;
@@ -148,6 +144,38 @@ int main(void)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (!audioCapabilities.dsp.muxOutput ||
+    #if BTST_ENABLE_TRANSCODE
+        !audioCapabilities.dsp.encoder ||
+    #endif
+    #if BTST_ENABLE_PASSTHROUGH
+        audioCapabilities.numDecoders < 2)
+    #else
+        audioCapabilities.numDecoders == 0)
+    #endif
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -198,7 +226,7 @@ int main(void)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -227,22 +255,24 @@ int main(void)
     audioProgram.stcChannel = stcChannel;
 
     /* Connect audio decoders to outputs */
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #if BTST_ENABLE_PASSTHROUGH
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(audioPassthrough, NEXUS_AudioDecoderConnectorType_eCompressed));
-#endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioDecoder_GetConnector(audioPassthrough, NEXUS_AudioDecoderConnectorType_eCompressed));
+    }
 #endif
 #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
 #endif
 
     /* Open audio mux output */
@@ -346,7 +376,7 @@ int main(void)
     NEXUS_Platform_Uninit();
 
 #else
-	printf("This application is not supported on this platform!\n");
+    printf("This application is not supported on this platform!\n");
 #endif
     return 0;
 }

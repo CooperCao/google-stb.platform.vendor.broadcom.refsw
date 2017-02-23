@@ -51,14 +51,13 @@ var gEvent = 0;
 var CgiCount=0; // number of times the cgi was called
 var SetVariableCount=0; // number of times setVariable() is called
 var gFieldName = "";
-var GetBvnView = {Value: 0};
+var HIDE = false;
+var SHOW = true;
 
 function MyLoad(event)
 {
     //alert("MyLoad");
-    // In order to get the very first hide row to work, we have to display the row in the HTML file and then
-    // manually hide the exact same row in Javascript.
-    hideOrShow("row_bvnview", 0 );
+    hideOrShow("row_bvnview", SHOW );
     bvn_display();
 }
 
@@ -90,16 +89,6 @@ function setVariable(fieldName)
         if (obj.type == "checkbox" ) {
             fieldValue = obj.checked;
             if (debug) alert("setVariable: checkbox; value " + fieldValue );
-
-            if (fieldName == "checkboxbvnview" ) {
-                SetInternalCheckboxStatus ( "checkboxbvnview", GetBvnView );
-                hideOrShow("row_bvnview", fieldValue);
-
-                if (obj.checked) {
-                    //alert("calling bvn_display");
-                    bvn_display();
-                }
-            }
         } else if ( obj.type == "text" ) {
             fieldValue = obj.value;
         } else if ( obj.type == "radio" ) {
@@ -154,6 +143,16 @@ function SetInternalCheckboxStatus ( checkboxName, objStatus )
     if (obj ) {
         objStatus.Value = obj.checked;
         //alert("SetInternalCheckboxStatus (" + checkboxName + ") to value (" + objStatus.Value + ")" );
+    }
+}
+
+function UpdateField( fieldText, fieldName )
+{
+    if ( fieldText.length ) {
+        var objplatform = document.getElementById( fieldName );
+        if (objplatform) {
+            objplatform.innerHTML = fieldText;
+        }
     }
 }
 
@@ -273,22 +272,13 @@ function update_javascript_elements ( json )
         bvnview.addrs = bvnview_addrs;
         //alert( "new  bvnview.addrs:" + JSON.stringify ( bvnview.addrs, null, 4 ) );
     }
-    if ( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformType[0].Text.length ) {
-        //alert( "response PlatformType :" + json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformType[0].Text );
-        var PlatformType = json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformType[0].Text;
-        var objplatform = document.getElementById("platform");
-        if (objplatform) {
-            objplatform.innerHTML = PlatformType;
-        }
-    }
-    if ( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformVersion[0].Text.length ) {
-        var PlatformVersion = json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformVersion[0].Text;
-        //alert( "response PlatformVersion :" + json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformVersion[0].Text + "; version(" + PlatformVersion + ")" );
-        var objplatform = document.getElementById("platver");
-        if (objplatform) {
-            objplatform.innerHTML = PlatformVersion;
-        }
-    }
+
+    UpdateField( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformType[0].Text, "platform" );
+    UpdateField( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformVersion[0].Text, "platver" );
+    UpdateField( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformVariant[0].Text, "VARIANT" );
+    UpdateField( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformBoltVer[0].Text, "BOLTVER" );
+    UpdateField( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].PlatformUname[0].Text, "UNAME" );
+    UpdateField( json.Body[0].GetRegisterCollectionWithElmErrsResponse[0].StbTime[0].Text, "stbtime" );
 }
 
 function bvn_set_names() {

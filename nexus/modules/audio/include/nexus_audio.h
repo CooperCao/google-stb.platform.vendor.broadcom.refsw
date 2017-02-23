@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -200,6 +200,7 @@ typedef struct NEXUS_AudioCapabilities
     unsigned numPlls;                   /* Number of output PLL clocks */
     unsigned numNcos;                   /* Number of output NCO clocks */
     unsigned numStcs;                   /* Number of STC that audio can use. Will be <= NEXUS_TransportCapabilities.numStcs. */
+    unsigned numMixers;                 /* Number of Mixers */
 
     unsigned numDsps;                   /* Number of audio DSPs */
     unsigned numCrcs;                   /* Number of audio CRCs */

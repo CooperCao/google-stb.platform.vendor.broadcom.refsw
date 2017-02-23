@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,8 +102,8 @@ Description:
 #define TZIOC_MEM_REGIONS
 
 typedef struct tzioc_mem_region {
-    uint32_t ulPaddr;
-    uint32_t ulVaddr;
+    uintptr_t ulPaddr;
+    uintptr_t ulVaddr;
     uint32_t ulSize;
     uint32_t ulFlags;
 } tzioc_mem_region;
@@ -127,7 +127,7 @@ Description:
     It is freed with tzioc_client_close().
 ******************************************************************************/
 
-typedef uint32_t tzioc_client_handle;
+typedef uintptr_t tzioc_client_handle;
 
 /*****************************************************************************
 Summary:
@@ -311,9 +311,9 @@ Returns:
     (uint32_t)-1 - failure
 ******************************************************************************/
 
-uint32_t tzioc_offset2vaddr(
+uintptr_t tzioc_offset2vaddr(
     tzioc_client_handle hClient,
-    uint32_t ulOffset);
+    uintptr_t ulOffset);
 
 /*****************************************************************************
 Summary:
@@ -333,9 +333,9 @@ Returns:
     (uint32_t)-1 - failure
 ******************************************************************************/
 
-uint32_t tzioc_vaddr2offset(
+uintptr_t tzioc_vaddr2offset(
     tzioc_client_handle hClient,
-    uint32_t ulVaddr);
+    uintptr_t ulVaddr);
 
 /*****************************************************************************
 Summary:
@@ -358,7 +358,7 @@ Returns:
 
 void *tzioc_map_paddr(
     tzioc_client_handle hClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize,
     uint32_t ulFlags);
 
@@ -380,7 +380,7 @@ Returns:
 
 void tzioc_unmap_paddr(
     tzioc_client_handle hClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize);
 
 /*****************************************************************************

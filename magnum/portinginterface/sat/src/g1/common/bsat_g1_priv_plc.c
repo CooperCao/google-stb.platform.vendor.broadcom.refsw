@@ -611,6 +611,10 @@ BERR_Code BSAT_g1_P_ConfigPlc_isr(BSAT_ChannelHandle h, bool bAcq)
       BSAT_DEBUG_PLC(BDBG_WRN(("setting acquisition PLC...")));
 
       mode = hChn->acqSettings.mode;
+      if ((mode == BSAT_Mode_eDvbs2_scan) && (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_FOUND) &&
+          (hChn->actualMode >= BSAT_Mode_eDvbs2_Qpsk_1_4) && (hChn->actualMode <= BSAT_Mode_eDvbs2_32apsk_9_10))
+         mode = hChn->actualMode;
+
       if (hChn->configParam[BSAT_g1_CONFIG_PLC_CTL] & BSAT_g1_CONFIG_PLC_CTL_OVERRIDE_ACQ)
       {
          bw = hChn->configParam[BSAT_g1_CONFIG_PLC_ALT_ACQ_BW];

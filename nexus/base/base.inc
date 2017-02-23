@@ -81,9 +81,17 @@ NEXUS_BASE_SOURCES += \
     $(NEXUS_TOP)/base/src/$(B_REFSW_OS)/nexus_base_os.c
 endif
 
-ifeq ($(B_REFSW_OS),linuxemu)
-NEXUS_BASE_PUBLIC_INCLUDES += $(NEXUS_TOP)/base/include/linuxuser
-else
+ifeq ($(filter $(NEXUS_MODE),client proxy),)
+ifeq ($(NEXUS_COMPAT_32ABI),y)
+NEXUS_BASE_SOURCES += \
+    $(NEXUS_TOP)/base/src/nexus_base_compat.c
+endif
+
+NEXUS_BASE_SOURCES += \
+    $(NEXUS_TOP)/base/src/b_objdb.c \
+    $(NEXUS_TOP)/base/src/nexus_client_resources.c
+endif
+
 ifeq ($(B_REFSW_OS),bare)
 NEXUS_BASE_PUBLIC_INCLUDES += $(NEXUS_TOP)/base/include/linuxkernel
 else
@@ -91,7 +99,6 @@ ifeq ($(filter $(B_REFSW_OS), ucos ucos_ii ucos_iii), $(B_REFSW_OS))
 NEXUS_BASE_PUBLIC_INCLUDES += $(NEXUS_TOP)/base/include/ucos
 else
 NEXUS_BASE_PUBLIC_INCLUDES += $(NEXUS_TOP)/base/include/$(B_REFSW_OS)
-endif
 endif
 endif
 

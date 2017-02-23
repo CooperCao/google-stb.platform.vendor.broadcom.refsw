@@ -109,6 +109,7 @@ void NEXUS_SimpleDecoderModule_P_PrintEncoder(void);
 NEXUS_Error nexus_simpleencoder_p_start_audio(NEXUS_SimpleEncoderHandle handle);
 NEXUS_Error nexus_simpleencoder_p_start_video(NEXUS_SimpleEncoderHandle handle);
 void nexus_simplevideodecoder_p_remove_settings_from_cache(void);
+void nexus_simpleencoder_p_stop_videoencoder(NEXUS_SimpleEncoderHandle handle, bool abort);
 
 void NEXUS_SimpleVideoDecoderModule_P_UnloadDefaultSettings(void);
 void NEXUS_SimpleAudioDecoderModule_P_UnloadDefaultSettings(void);

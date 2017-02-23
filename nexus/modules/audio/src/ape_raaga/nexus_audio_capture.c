@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -49,33 +49,7 @@
 
 BDBG_MODULE(nexus_audio_capture);
 
-/***************************************************************************
-Summary:
-Get default settings for opening an audio capture channel
-***************************************************************************/
-void NEXUS_AudioCapture_GetDefaultOpenSettings(
-    NEXUS_AudioCaptureOpenSettings *pSettings      /* [out] default settings */
-    )
-{
-    BAPE_OutputCaptureOpenSettings piSettings;
-    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    BAPE_OutputCapture_GetDefaultOpenSettings(&piSettings);
-    pSettings->fifoSize = piSettings.bufferSize;
-    pSettings->multichannelFormat = NEXUS_AudioMultichannelFormat_eStereo;
-}
-
-static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHandle handle);
-static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHandle handle);
-static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessorHandle handle);
-static void NEXUS_AudioCapture_P_ConvertMono(NEXUS_AudioCaptureProcessorHandle handle, bool rightChannel);
-static void NEXUS_AudioCapture_P_ConvertMonoMix(NEXUS_AudioCaptureProcessorHandle handle);
 #if NEXUS_NUM_AUDIO_CAPTURES
-static size_t NEXUS_AudioCapture_P_GetContiguousSpace(NEXUS_AudioCaptureProcessorHandle handle);
-static void NEXUS_AudioCapture_P_AdvanceBuffer(NEXUS_AudioCaptureProcessorHandle handle, size_t bytes);
-static void NEXUS_AudioCapture_P_DataInterrupt_isr(void *pParam, int param);
-static void NEXUS_AudioCapture_P_SampleRateChange_isr(void *pParam, int param, unsigned sampleRate);
-static void NEXUS_AudioCapture_P_FlushDeviceBuffer_isr(NEXUS_AudioCaptureHandle handle);
-
 typedef struct NEXUS_AudioCapture
 {
     NEXUS_OBJECT(NEXUS_AudioCapture);
@@ -85,7 +59,8 @@ typedef struct NEXUS_AudioCapture
     BAPE_OutputCaptureHandle apeHandle;
     NEXUS_AudioOutputObject connector;
     NEXUS_AudioCaptureSettings settings;
-    void *pMemory, *pCachedMemory;
+    BMMA_Block_Handle fifoBlock;
+    void *pMemory;
     NEXUS_AudioCaptureProcessorHandle procHandle;
     /* uint32_t *pBuffer;
     int bufferSize, rptr, wptr, bufferDepth; */
@@ -93,7 +68,7 @@ typedef struct NEXUS_AudioCapture
     unsigned sampleRate;
     size_t fifoSize; 
     char name[16];   /* AUDIO CAPTURE %d */
-    BMEM_Heap_Handle fifoMem; /* heap used for fifo */
+    BMMA_Heap_Handle fifoMem; /* heap used for fifo */
 
 #define RESOLVE_ALIAS(handle) do {(handle) = ((handle)->alias.master?(handle)->alias.master:(handle));}while(0)
 #define IS_ALIAS(handle) ((handle)->alias.master != NULL)
@@ -103,6 +78,19 @@ typedef struct NEXUS_AudioCapture
 } NEXUS_AudioCapture;
 
 static NEXUS_AudioCapture g_captures[NEXUS_NUM_AUDIO_CAPTURES];
+
+static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHandle handle);
+static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHandle handle);
+static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessorHandle handle);
+static void NEXUS_AudioCapture_P_ConvertMono(NEXUS_AudioCaptureProcessorHandle handle, bool rightChannel);
+static void NEXUS_AudioCapture_P_ConvertMonoMix(NEXUS_AudioCaptureProcessorHandle handle);
+static size_t NEXUS_AudioCapture_P_GetContiguousSpace(NEXUS_AudioCaptureProcessorHandle handle);
+static void NEXUS_AudioCapture_P_AdvanceBuffer(NEXUS_AudioCaptureProcessorHandle handle, size_t bytes);
+static void NEXUS_AudioCapture_P_DataInterrupt_isr(void *pParam, int param);
+static void NEXUS_AudioCapture_P_SampleRateChange_isr(void *pParam, int param, unsigned sampleRate);
+static void NEXUS_AudioCapture_P_FlushDeviceBuffer_isr(NEXUS_AudioCaptureHandle handle);
+
+#define min(A,B) ((A)<(B)?(A):(B))
 
 static BERR_Code NEXUS_AudioCapture_P_Output_GetBuffer(
     void * hCapture,
@@ -120,6 +108,17 @@ static BERR_Code NEXUS_AudioCapture_P_Output_ConsumeData(
     return BAPE_OutputCapture_ConsumeData((BAPE_OutputCaptureHandle)hCapture, numBytes);
 }
 
+void NEXUS_AudioCapture_GetDefaultOpenSettings(
+    NEXUS_AudioCaptureOpenSettings *pSettings      /* [out] default settings */
+    )
+{
+    BAPE_OutputCaptureOpenSettings piSettings;
+    BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    BAPE_OutputCapture_GetDefaultOpenSettings(&piSettings);
+    pSettings->fifoSize = piSettings.bufferSize;
+    pSettings->multichannelFormat = NEXUS_AudioMultichannelFormat_eStereo;
+}
+
 NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_AudioCapture_Close}  */
     unsigned index,
     const NEXUS_AudioCaptureOpenSettings *pSettings    /* Pass NULL for default settings */
@@ -135,11 +134,18 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
     NEXUS_AudioCaptureProcessorHandle procHandle = NULL;
     BERR_Code errCode;
     unsigned org_index = index;
+    NEXUS_AudioCapabilities audioCapabilities;
+    unsigned outputCount;
+
+    BDBG_CASSERT((int)NEXUS_MAX_AUDIO_CAPTURE_OUTPUTS>=(int)NEXUS_NUM_AUDIO_CAPTURES);
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    outputCount = min(audioCapabilities.numOutputs.capture, NEXUS_NUM_AUDIO_CAPTURES);
 
     errCode = NEXUS_CLIENT_RESOURCES_ACQUIRE(audioCapture,IdList,org_index);
     if (errCode) { errCode = BERR_TRACE(errCode); goto err_acquire; }
 
-    if (index >= NEXUS_ALIAS_ID && index-NEXUS_ALIAS_ID < NEXUS_NUM_AUDIO_CAPTURES) {
+    if (index >= NEXUS_ALIAS_ID && index-NEXUS_ALIAS_ID < outputCount) {
         BDBG_MSG(("%d aliasing %d(%p)", index, index-NEXUS_ALIAS_ID, (void *)&g_captures[index-NEXUS_ALIAS_ID]));
         index -= NEXUS_ALIAS_ID;
         master = &g_captures[index];
@@ -152,7 +158,7 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
             goto err_index;
         }
     }
-    if ( index >= NEXUS_NUM_AUDIO_CAPTURES )
+    if ( index >= outputCount )
     {
         BDBG_ERR(("index out of range."));
         (void)BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -257,7 +263,7 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
         (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto err_heap;
     }
-    handle->fifoMem = NEXUS_Heap_GetMemHandle(heap);
+    handle->fifoMem = NEXUS_Heap_GetMmaHandle(heap);
 
     handle->dataCallback = NEXUS_IsrCallback_Create(handle, NULL);
     if ( NULL == handle->dataCallback )
@@ -280,18 +286,18 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
         goto err_ape_handle;
     }
 
-    handle->pMemory = BMEM_Heap_Alloc(handle->fifoMem, pSettings->fifoSize);
-    if ( NULL == handle->pMemory )
+    handle->fifoBlock = BMMA_Alloc(handle->fifoMem, pSettings->fifoSize, 0, NULL);
+    if ( NULL == handle->fifoBlock )
     {
         (void)BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         goto err_buffer_alloc;
     }
 
-    errCode = BMEM_Heap_ConvertAddressToCached(handle->fifoMem, handle->pMemory, &handle->pCachedMemory);
-    if ( errCode )
+    handle->pMemory = BMMA_Lock(handle->fifoBlock);
+    if ( NULL == handle->pMemory )
     {
-        (void)BERR_TRACE(errCode);
-        goto err_buffer_cache;
+        (void)BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+        goto err_buffer_alloc;
     }
 
     /*handle->pBuffer = handle->pCachedMemory;
@@ -301,7 +307,7 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
 
     /* Set up the Capture Processor */
     procHandle->piHandle = handle->apeHandle;
-    procHandle->pBuffer = handle->pCachedMemory;
+    procHandle->pBuffer = handle->pMemory;
     procHandle->bufferSize = pSettings->fifoSize;
     procHandle->getBuffer = NEXUS_AudioCapture_P_Output_GetBuffer;
     procHandle->consumeData = NEXUS_AudioCapture_P_Output_ConsumeData;
@@ -330,9 +336,17 @@ NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_A
 
     return handle;
 
-err_buffer_cache:
-    BMEM_Heap_Free(handle->fifoMem, handle->pMemory);
 err_buffer_alloc:
+    if ( handle->pMemory )
+    {
+        BMMA_Unlock(handle->fifoBlock, handle->pMemory);
+        handle->pMemory = NULL;
+    }
+    if ( handle->fifoBlock )
+    {
+        BMMA_Free(handle->fifoBlock);
+        handle->fifoBlock = NULL;
+    }
     BAPE_OutputCapture_Close(handle->apeHandle);
 err_ape_handle:
     NEXUS_IsrCallback_Destroy(handle->sampleRateCallback);
@@ -376,7 +390,16 @@ static void NEXUS_AudioCapture_P_Finalizer(
     BDBG_ASSERT(handle->opened);
     NEXUS_AudioOutput_RemoveAllInputs(&handle->connector);
     NEXUS_AudioOutput_Shutdown(&handle->connector);
-    BMEM_Free(handle->fifoMem, handle->pMemory);
+    if ( handle->pMemory )
+    {
+        BMMA_Unlock(handle->fifoBlock, handle->pMemory);
+        handle->pMemory = NULL;
+    }
+    if ( handle->fifoBlock )
+    {
+        BMMA_Free(handle->fifoBlock);
+        handle->fifoBlock = NULL;
+    }
     BAPE_OutputCapture_Close(handle->apeHandle);
     NEXUS_IsrCallback_Destroy(handle->sampleRateCallback);
     NEXUS_IsrCallback_Destroy(handle->dataCallback);
@@ -616,120 +639,6 @@ NEXUS_Error NEXUS_AudioCapture_GetStatus(
     return BERR_SUCCESS;
 }
 
-#else
-/* stub */
-
-typedef struct NEXUS_AudioCapture
-{
-    NEXUS_OBJECT(NEXUS_AudioCapture);
-} NEXUS_AudioCapture;
-
-NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_AudioCapture_Close}  */
-    unsigned index,
-    const NEXUS_AudioCaptureOpenSettings *pSettings    /* Pass NULL for default settings */
-    )
-{
-    BSTD_UNUSED(index);
-    BSTD_UNUSED(pSettings);
-    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
-    return NULL;
-}
-
-static void NEXUS_AudioCapture_P_Finalizer(
-    NEXUS_AudioCaptureHandle handle
-    )
-{
-    BSTD_UNUSED(handle);
-}
-
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioCapture, NEXUS_AudioCapture_Close);
-
-void NEXUS_AudioCapture_GetSettings(
-    NEXUS_AudioCaptureHandle handle,
-    NEXUS_AudioCaptureSettings *pSettings /* [out] */
-    )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(pSettings);
-}
-
-NEXUS_Error NEXUS_AudioCapture_SetSettings(
-    NEXUS_AudioCaptureHandle handle,
-    const NEXUS_AudioCaptureSettings *pSettings
-    )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(pSettings);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-void NEXUS_AudioCapture_GetDefaultStartSettings(
-    NEXUS_AudioCaptureStartSettings *pSettings  /* [out] default settings */
-    )
-{
-    BSTD_UNUSED(pSettings);
-}
-
-NEXUS_Error NEXUS_AudioCapture_Start(
-    NEXUS_AudioCaptureHandle handle,
-    const NEXUS_AudioCaptureStartSettings *pSettings
-    )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(pSettings);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-void NEXUS_AudioCapture_Stop(
-    NEXUS_AudioCaptureHandle handle
-    )
-{
-    BSTD_UNUSED(handle);
-}
-
-NEXUS_Error NEXUS_AudioCapture_GetBuffer(
-    NEXUS_AudioCaptureHandle handle,
-    void **ppBuffer,    /* [out] attr{memory=cached} pointer to memory mapped
-                                 region that contains captured data. */
-    size_t *pSize       /* [out] total number of readable, contiguous bytes which the buffers are pointing to */
-    )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(ppBuffer);
-    BSTD_UNUSED(pSize);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-NEXUS_Error NEXUS_AudioCapture_WriteComplete(
-    NEXUS_AudioCaptureHandle handle,
-    size_t amountWritten            /* The number of bytes read from the buffer */
-    )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(amountWritten);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-NEXUS_AudioOutputHandle NEXUS_AudioCapture_GetConnector( /* attr{shutdown=NEXUS_AudioOutput_Shutdown} */
-    NEXUS_AudioCaptureHandle handle
-    )
-{
-    BSTD_UNUSED(handle);
-    return NULL;
-}
-
-NEXUS_Error NEXUS_AudioCapture_GetStatus(
-    NEXUS_AudioCaptureHandle handle,
-    NEXUS_AudioCaptureStatus *pStatus   /* [out] */
-    )
-{
-    BSTD_UNUSED(handle);
-    BSTD_UNUSED(pStatus);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-
-#endif
-
 NEXUS_Error NEXUS_AudioCapture_P_GetBuffer(
     NEXUS_AudioCaptureProcessorHandle handle,
     void **ppBuffer,    /* [out] attr{memory=cached} pointer to memory mapped
@@ -879,7 +788,6 @@ static void NEXUS_AudioCapture_P_AdvanceBuffer(NEXUS_AudioCaptureProcessorHandle
 static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHandle handle)
 {
     BERR_Code errCode;
-    void *pCachedBuffer;
     uint32_t *pSource;
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
@@ -898,10 +806,8 @@ static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHand
             /* Done */
             return;
         }
-        errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, &pCachedBuffer);
-        BDBG_ASSERT(errCode == BERR_SUCCESS);
-        BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffer, bufferSize);
-        pSource = pCachedBuffer;
+        BMMA_FlushCache(bufferDescriptor.buffers[BAPE_Channel_eLeft].block, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, bufferSize);
+        pSource = bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer;
         copied = 0;
         while ( bufferSize >= 4 )
         {
@@ -947,7 +853,6 @@ static void NEXUS_AudioCapture_P_ConvertStereo24(NEXUS_AudioCaptureProcessorHand
 static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHandle handle)
 {
     BERR_Code errCode;
-    void *pCachedBuffer;
     uint32_t *pSource;
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
@@ -966,10 +871,8 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
             /* Done */
             return;
         }
-        errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, &pCachedBuffer);
-        BDBG_ASSERT(errCode == BERR_SUCCESS);
-        BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffer, bufferSize);
-        pSource = pCachedBuffer;
+        BMMA_FlushCache(bufferDescriptor.buffers[BAPE_Channel_eLeft].block, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, bufferSize);
+        pSource = bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer;
         copied = 0;
         while ( bufferSize >= 8 )
         {
@@ -1032,7 +935,6 @@ static void NEXUS_AudioCapture_P_ConvertStereo16(NEXUS_AudioCaptureProcessorHand
 static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessorHandle handle)
 {
     BERR_Code errCode;
-    void *pCachedBuffers[3] = {NULL, NULL, NULL};
     uint32_t *pSource0, *pSource1, *pSource2;
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
@@ -1051,34 +953,13 @@ static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessor
             /* Done */
             return;
         }
-        if ( bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer )
-        {
-            errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, &pCachedBuffers[0]);
-            BDBG_ASSERT(errCode == BERR_SUCCESS);
-        }
-        if ( bufferDescriptor.buffers[BAPE_Channel_eCenter].pBuffer )
-        {
-            errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eCenter].pBuffer, &pCachedBuffers[1]);
-            BDBG_ASSERT(errCode == BERR_SUCCESS);
-        }
-        if ( bufferDescriptor.buffers[BAPE_Channel_eLeftSurround].pBuffer )
-        {
-            errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeftSurround].pBuffer, &pCachedBuffers[2]);
-            BDBG_ASSERT(errCode == BERR_SUCCESS);
-        }
 
-        BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffers[0], bufferSize);
-        if ( pCachedBuffers[1] )
-        {
-            BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffers[1], bufferSize);
-        }
-        if ( pCachedBuffers[2] )
-        {
-            BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffers[2], bufferSize);
-        }
-        pSource0 = pCachedBuffers[0];
-        pSource1 = pCachedBuffers[1];
-        pSource2 = pCachedBuffers[2];
+        BMMA_FlushCache(bufferDescriptor.buffers[0].block, bufferDescriptor.buffers[0].pBuffer, bufferSize);
+        BMMA_FlushCache(bufferDescriptor.buffers[1].block, bufferDescriptor.buffers[1].pBuffer, bufferSize);
+        BMMA_FlushCache(bufferDescriptor.buffers[2].block, bufferDescriptor.buffers[2].pBuffer, bufferSize);
+        pSource0 = bufferDescriptor.buffers[0].pBuffer;
+        pSource1 = bufferDescriptor.buffers[1].pBuffer;
+        pSource2 = bufferDescriptor.buffers[2].pBuffer;
         copied = 0;
         while ( bufferSize >= 8 )
         {
@@ -1152,7 +1033,6 @@ static void NEXUS_AudioCapture_P_ConvertMultichannel(NEXUS_AudioCaptureProcessor
 static void NEXUS_AudioCapture_P_ConvertMono(NEXUS_AudioCaptureProcessorHandle handle, bool rightChannel)
 {
     BERR_Code errCode;
-    void *pCachedBuffer;
     uint32_t *pSource;
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
@@ -1171,10 +1051,8 @@ static void NEXUS_AudioCapture_P_ConvertMono(NEXUS_AudioCaptureProcessorHandle h
             /* Done */
             return;
         }
-        errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, &pCachedBuffer);
-        BDBG_ASSERT(errCode == BERR_SUCCESS);
-        BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffer, bufferSize);
-        pSource = pCachedBuffer;
+        BMMA_FlushCache(bufferDescriptor.buffers[BAPE_Channel_eLeft].block, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, bufferSize);
+        pSource = bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer;
         copied = 0;
         while ( bufferSize >= 16 )
         {
@@ -1233,7 +1111,6 @@ static void NEXUS_AudioCapture_P_ConvertMono(NEXUS_AudioCaptureProcessorHandle h
 static void NEXUS_AudioCapture_P_ConvertMonoMix(NEXUS_AudioCaptureProcessorHandle handle)
 {
     BERR_Code errCode;
-    void *pCachedBuffer;
     uint32_t *pSource;
     size_t bufferSize, copied;
     BAPE_BufferDescriptor bufferDescriptor;
@@ -1252,10 +1129,8 @@ static void NEXUS_AudioCapture_P_ConvertMonoMix(NEXUS_AudioCaptureProcessorHandl
             /* Done */
             return;
         }
-        errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, &pCachedBuffer);
-        BDBG_ASSERT(errCode == BERR_SUCCESS);
-        BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, pCachedBuffer, bufferSize);
-        pSource = pCachedBuffer;
+        BMMA_FlushCache(bufferDescriptor.buffers[BAPE_Channel_eLeft].block, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, bufferSize);
+        pSource = bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer;
         copied = 0;
         while ( bufferSize >= 16 )
         {
@@ -1302,3 +1177,125 @@ static void NEXUS_AudioCapture_P_ConvertMonoMix(NEXUS_AudioCaptureProcessorHandl
         }
     }
 }
+
+#else
+/* stub */
+
+typedef struct NEXUS_AudioCapture
+{
+    NEXUS_OBJECT(NEXUS_AudioCapture);
+} NEXUS_AudioCapture;
+
+void NEXUS_AudioCapture_GetDefaultOpenSettings(
+    NEXUS_AudioCaptureOpenSettings *pSettings      /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+    return;
+}
+
+NEXUS_AudioCaptureHandle NEXUS_AudioCapture_Open(     /* attr{destructor=NEXUS_AudioCapture_Close}  */
+    unsigned index,
+    const NEXUS_AudioCaptureOpenSettings *pSettings    /* Pass NULL for default settings */
+    )
+{
+    BSTD_UNUSED(index);
+    BSTD_UNUSED(pSettings);
+    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
+    return NULL;
+}
+
+static void NEXUS_AudioCapture_P_Finalizer(
+    NEXUS_AudioCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioCapture, NEXUS_AudioCapture_Close);
+
+void NEXUS_AudioCapture_GetSettings(
+    NEXUS_AudioCaptureHandle handle,
+    NEXUS_AudioCaptureSettings *pSettings /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+NEXUS_Error NEXUS_AudioCapture_SetSettings(
+    NEXUS_AudioCaptureHandle handle,
+    const NEXUS_AudioCaptureSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void NEXUS_AudioCapture_GetDefaultStartSettings(
+    NEXUS_AudioCaptureStartSettings *pSettings  /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+NEXUS_Error NEXUS_AudioCapture_Start(
+    NEXUS_AudioCaptureHandle handle,
+    const NEXUS_AudioCaptureStartSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void NEXUS_AudioCapture_Stop(
+    NEXUS_AudioCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+NEXUS_Error NEXUS_AudioCapture_GetBuffer(
+    NEXUS_AudioCaptureHandle handle,
+    void **ppBuffer,    /* [out] attr{memory=cached} pointer to memory mapped
+                                 region that contains captured data. */
+    size_t *pSize       /* [out] total number of readable, contiguous bytes which the buffers are pointing to */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(ppBuffer);
+    BSTD_UNUSED(pSize);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+NEXUS_Error NEXUS_AudioCapture_WriteComplete(
+    NEXUS_AudioCaptureHandle handle,
+    size_t amountWritten            /* The number of bytes read from the buffer */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(amountWritten);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+NEXUS_AudioOutputHandle NEXUS_AudioCapture_GetConnector( /* attr{shutdown=NEXUS_AudioOutput_Shutdown} */
+    NEXUS_AudioCaptureHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return NULL;
+}
+
+NEXUS_Error NEXUS_AudioCapture_GetStatus(
+    NEXUS_AudioCaptureHandle handle,
+    NEXUS_AudioCaptureStatus *pStatus   /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+#endif

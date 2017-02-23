@@ -373,7 +373,7 @@ echo	 "----"
 echo	 "copying ssl, crypto libraries"
 echo	
 
-pushd $BASE_DIR/BSEAV/lib/openssl/openssl-0.9.8h_${ARCH} > /dev/null
+pushd $BASE_DIR/BSEAV/opensource/openssl/openssl-0.9.8h_${ARCH} > /dev/null
 
 cp -fv libssl.so* $BIN_DIR
 cp -fv libcrypto.so* $BIN_DIR

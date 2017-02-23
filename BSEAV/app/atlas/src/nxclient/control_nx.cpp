@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -152,12 +152,28 @@ eRet CControlNx::setColorSpace(NEXUS_ColorSpace colorSpace)
 
     /* We only have to set the colorspace setting for the hd display.  nxserver will
      * handle the sd display (for component) if necessary */
-    ret = pDisplay->setColorSpace(colorSpace);
+    ret = pDisplay->setColorSpace(&colorSpace);
     CHECK_ERROR_GOTO("unable to set color space", ret, error);
 
 error:
     return(ret);
 } /* setColorSpace */
+
+eRet CControlNx::setColorDepth(uint8_t colorDepth)
+{
+    CDisplay * pDisplay = _pModel->getDisplay();
+    eRet       ret      = eRet_Ok;
+
+    BDBG_ASSERT(NULL != pDisplay);
+
+    /* We only have to set the colordepth setting for the hd display.  nxserver will
+     * handle the sd display (for component) if necessary */
+    ret = pDisplay->setColorDepth(&colorDepth);
+    CHECK_ERROR_GOTO("unable to set color depth", ret, error);
+
+error:
+    return(ret);
+} /* setColorDepth */
 
 eRet CControlNx::setMpaaDecimation(bool bMpaaDecimation)
 {

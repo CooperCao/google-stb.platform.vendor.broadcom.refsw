@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2003-2010 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "nexus_file_module.h"
@@ -59,7 +49,7 @@
 #include "nexus_file_types.h"
 #include "nexus_file_posix.h"
 
-BDBG_MODULE(fileio_chunk);
+BDBG_MODULE(nexus_file_chunk);
 
 #if 0
 /* just to exercise more corner cases */
@@ -69,8 +59,6 @@ BDBG_MODULE(fileio_chunk);
 #define B_DEFAULT_CHUNK_SIZE    (256*1024*1024)
 #endif
 #define B_MAX_FILE_LEN  128
-#define B_FIRST_CHUNK   1
-
 
 struct bfile_io_write_chunk {
     struct bfile_io_write self;
@@ -88,6 +76,7 @@ void NEXUS_ChunkedFilePlay_GetDefaultOpenSettings(
 {
     BKNI_Memset(pSettings, 0, sizeof(NEXUS_ChunkedFilePlayOpenSettings));
     pSettings->chunkSize = B_DEFAULT_CHUNK_SIZE;
+    b_strncpy(pSettings->chunkTemplate, "%s/chunk.%u", sizeof(pSettings->chunkTemplate));
 }
 
 void NEXUS_ChunkedFileRecord_GetDefaultOpenSettings(
@@ -96,13 +85,15 @@ void NEXUS_ChunkedFileRecord_GetDefaultOpenSettings(
 {
     BKNI_Memset(pSettings, 0, sizeof(NEXUS_ChunkedFileRecordOpenSettings));
     pSettings->chunkSize = B_DEFAULT_CHUNK_SIZE;
+    b_strncpy(pSettings->chunkTemplate, "%s/chunk.%u", sizeof(pSettings->chunkTemplate));
 }
 
 
 static void
-get_chunk_name(char *buf, const char *name, unsigned chunk)
+get_chunk_name(char *buf, unsigned bufsize, const char *chunkTemplate, const char *filename, unsigned chunk)
 {
-    BKNI_Snprintf(buf, B_MAX_FILE_LEN, "%s/chunk.%u", name, chunk);
+    /* ChunkedFilePlay/Record only support "%s %u" templates */
+    BKNI_Snprintf(buf, bufsize, chunkTemplate, filename, chunk);
 }
 
 static ssize_t
@@ -118,21 +109,16 @@ chunk_write(bfile_io_write_t fd, const void *buf_, size_t length)
         ssize_t rc;
         char name[B_MAX_FILE_LEN];
 
-        if (file->chunk_budget==0) { /* time to open new file */
+        /* NOTE: we were getting a zero-byte chunk 0 file. This fixes that. */
+        if (!file->data || file->chunk_budget==0) { /* time to open new file */
             if(file->data) {
                 NEXUS_FileRecord_Close(file->data);
+                file->chunk++;
             }
-            file->chunk++;
-            get_chunk_name(name, file->base_name, file->chunk);
+            get_chunk_name(name, sizeof(name), file->settings.chunkTemplate, file->base_name, file->chunk);
             BDBG_MSG(("write opening %s", name));
             file->data = file->open_out(name, NULL);
             file->chunk_budget = file->settings.chunkSize;
-        }
-        if (!file->data) { /* if file isn't opened at this point we are dead */
-            if (result==0) {
-                result = -1;
-            }
-            break;
         }
 
         if (to_write>file->chunk_budget) {
@@ -164,6 +150,7 @@ chunk_trim(bfile_io_write_t fd, off_t trim_pos)
     return 0;
 }
 
+/* impl of NEXUS_ChunkedFileRecord */
 struct bfile_out_chunk {
     struct NEXUS_FileRecord self;
     struct bfile_io_write_chunk data;
@@ -204,10 +191,10 @@ NEXUS_ChunkedFileRecord_Open(const char *fname, const char *indexname, const NEX
     }
     file->data.settings = *pSettings;
     BKNI_Snprintf(file->data.base_name, sizeof(file->data.base_name), "%s", fname); /* dirty strcpy */
-    file->data.chunk = B_FIRST_CHUNK - 1;
+    file->data.chunk = 0;
     file->data.data = NULL;
     file->data.chunk_budget = 0; /* it would trigger open of data file on first call to write */
-    get_chunk_name(name, file->data.base_name, file->data.chunk);
+    get_chunk_name(name, sizeof(name), pSettings->chunkTemplate, file->data.base_name, file->data.chunk);
     file->data.open_out = NEXUS_FileRecord_OpenPosix; /* hard-coded, this may be exposed later if needed */
     file->index = file->data.open_out(name, indexname);
     if (!file->index) {
@@ -233,9 +220,10 @@ struct bfile_io_read_chunk {
     char base_name[B_MAX_FILE_LEN];
     off_t cur_pos;
     struct {
-      unsigned last_chunk;
-      off_t last_chunk_begin;
-      NEXUS_FilePlayHandle last_data; /* cached file for last chunk */
+        unsigned last_chunk;
+        off_t last_chunk_begin;
+        struct bfile_io_read_posix last_file;
+        bool last_file_open;
     } size;
     NEXUS_ChunkedFilePlayOpenSettings settings;
 };
@@ -247,7 +235,7 @@ chunk_read_open(const struct bfile_io_read_chunk *file, unsigned chunk)
     char name[B_MAX_FILE_LEN];
     NEXUS_FilePlayHandle data;
 
-    get_chunk_name(name, file->base_name, chunk);
+    get_chunk_name(name, sizeof(name), file->settings.chunkTemplate, file->base_name, chunk);
     BDBG_MSG((">read opening %s", name));
     data = file->open_in(name, NULL);
     BDBG_MSG(("<read opening %s %p", name, (void*)data));
@@ -272,24 +260,35 @@ chunk_read(bfile_io_read_t fd, void *buf_, size_t length)
                 BDBG_MSG(("read closing %p", (void*)file->data));
                 NEXUS_FilePlay_Close(file->data);
             }
-            file->data = chunk_read_open(file, file->chunk);
+            if (file->chunk < file->settings.firstChunkNumber) {
+                file->data = NULL;
+            }
+            else {
+                file->data = chunk_read_open(file, file->chunk);
+            }
             file->chunk_budget = file->settings.chunkSize;
         }
-        if (!file->data) { /* if file isn't open, return EOF */
-            break;
-        }
-
         if (to_read>file->chunk_budget) {
             to_read = file->chunk_budget;
         }
-        BDBG_MSG((">reading [%u/%u:%u] (%u/%u/%u) %#lx", (unsigned)result, file->chunk, (unsigned)file->cur_pos, (unsigned)to_read, (unsigned)length, (unsigned)file->chunk_budget, (unsigned long)buf));
-        rc = file->data->file.data->read(file->data->file.data, buf, to_read);
-        BDBG_MSG(("<reading [%u/%u:%u] (%u/%u/%u) %#lx->%d", (unsigned)result, file->chunk, (unsigned)file->cur_pos, (unsigned)to_read, (unsigned)length, (unsigned)file->chunk_budget, (unsigned long)buf, (int)rc));
-        if (rc<=0) {
-            if  (result==0) {
-                result = rc; /* propagate error */
+        if (file->chunk < file->settings.firstChunkNumber) {
+            BKNI_Memset(buf, 0, to_read);
+            rc = to_read;
+        }
+        else {
+            if (!file->data) { /* if file isn't open, return EOF */
+                break;
             }
-            break;
+
+            BDBG_MSG((">reading [%u/%u:%u] (%u/%u/%u) %#lx", (unsigned)result, file->chunk, (unsigned)file->cur_pos, (unsigned)to_read, (unsigned)length, (unsigned)file->chunk_budget, (unsigned long)buf));
+            rc = file->data->file.data->read(file->data->file.data, buf, to_read);
+            BDBG_MSG(("<reading [%u/%u:%u] (%u/%u/%u) %#lx->%d", (unsigned)result, file->chunk, (unsigned)file->cur_pos, (unsigned)to_read, (unsigned)length, (unsigned)file->chunk_budget, (unsigned long)buf, (int)rc));
+            if (rc<=0) {
+                if  (result==0) {
+                    result = rc; /* propagate error */
+                }
+                break;
+            }
         }
         result += rc;
         length -= (size_t) rc;
@@ -310,41 +309,37 @@ static int
 chunk_bounds(bfile_io_read_t fd, off_t *first, off_t *last)
 {
     struct bfile_io_read_chunk *file = (struct bfile_io_read_chunk *) fd;
-    NEXUS_FilePlayHandle data;
-    off_t size;
 
-    *first = 0;
+    *first = file->settings.firstChunkNumber * file->settings.chunkSize;
 
     BDBG_MSG((">bounds %p", (void*)fd));
-
-    /* we assume that file only grows, and changes to new chunk at fixed
-       offset, also that there are now stale files in the directory */
     for(;;) {
-        if (!file->size.last_data) {
-            data = chunk_read_open(file, file->size.last_chunk);
-        } else {
-            data = file->size.last_data;
+        off_t size, chunk_first;
+        if (!file->size.last_file_open) {
+            char name[B_MAX_FILE_LEN];
+            int rc;
+            get_chunk_name(name, sizeof(name), file->settings.chunkTemplate, file->base_name, file->size.last_chunk);
+            rc = bfile_io_read_posix_open(&file->size.last_file, name, false);
+            if (rc) {
+                *last = file->size.last_chunk_begin;
+                goto done;
+            }
+            file->size.last_file_open = true;
         }
-        if (data==NULL) {
-            BDBG_MSG(("<bounds last %u", (unsigned)file->size.last_chunk_begin));
-            *last = file->size.last_chunk_begin;
-            return 0;
-        }
-        data->file.data->bounds(data->file.data, first, &size);
-        file->size.last_data = data;
+        file->size.last_file.self.bounds(&file->size.last_file.self, &chunk_first, &size);
         if (size!=file->settings.chunkSize) {
-            BDBG_MSG(("<bounds %u", (unsigned)(file->size.last_chunk_begin+size)));
             *last = file->size.last_chunk_begin+size;
-            return 0;
+            goto done;
         }
         /* advance to the next file */
-        data->file.close(data);
-        file->size.last_data = NULL;
+        bfile_io_read_posix_close(&file->size.last_file);
+        file->size.last_file_open = false;
         file->size.last_chunk_begin += size;
-        file->size.last_chunk ++;
+        file->size.last_chunk++;
         BDBG_MSG(("<bounds next %u", file->size.last_chunk));
     }
-    *last = 0;
+done:
+    BDBG_MSG(("<bounds %u(%u) %u(%u)", (unsigned)*first, (unsigned)(*first/file->settings.chunkSize), (unsigned)*last, (unsigned)(*last/file->settings.chunkSize)));
     return 0;
 }
 
@@ -383,15 +378,20 @@ chunk_seek(bfile_io_read_t fd, off_t offset, int whence)
         return offset;
     }
     if (offset < 0 || offset >= size) {
-        BDBG_WRN(("<seek out out bounds 0..%d..%d", (int)offset, (int)size));
+        BDBG_WRN(("<seek out of bounds %d..%d..%d", (unsigned)off, (int)offset, (int)size));
         return -1;
     }
     /* we don't use 64 bit mult and divide because they are known to be buggy */
-    for(dest_chunk=B_FIRST_CHUNK,off=0;offset-off>(off_t)file->settings.chunkSize;off+=file->settings.chunkSize) {
+    for(dest_chunk=0,off=0;offset-off>=(off_t)file->settings.chunkSize;off+=file->settings.chunkSize) {
         dest_chunk++;
     }
     /* we know chunk at this point */
-    if (dest_chunk == file->chunk) {
+    if (dest_chunk < file->settings.firstChunkNumber) {
+        /* if before the first chunk, we will read zeroes */
+        file->chunk_budget = file->settings.chunkSize - (offset % file->settings.chunkSize);
+        goto done;
+    }
+    else if (dest_chunk == file->chunk && file->data) {
         /* use already opened file */
         data = file->data;
     } else {
@@ -422,6 +422,7 @@ done:
     return offset;
 }
 
+/* impl of NEXUS_ChunkedFilePlay */
 struct bfile_in_chunk {
     struct NEXUS_FilePlay self;
     struct bfile_io_read_chunk data;
@@ -436,8 +437,9 @@ chunk_close_in(NEXUS_FilePlayHandle f)
     if (file->data.data) {
         file->data.data->file.close(file->data.data);
     }
-    if (file->data.size.last_data) {
-        file->data.size.last_data->file.close(file->data.size.last_data);
+    if (file->data.size.last_file_open) {
+        bfile_io_read_posix_close(&file->data.size.last_file);
+        file->data.size.last_file_open = false;
     }
     if (file->index) {
         file->index->file.close(file->index);
@@ -452,6 +454,7 @@ NEXUS_ChunkedFilePlay_Open(const char *fname, const char *indexname, const NEXUS
     struct bfile_in_chunk *file;
     char name[B_MAX_FILE_LEN];
     NEXUS_ChunkedFilePlayOpenSettings openSettings;
+    off_t first, last;
 
     if (!fname) {
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -469,17 +472,17 @@ NEXUS_ChunkedFilePlay_Open(const char *fname, const char *indexname, const NEXUS
         pSettings = &openSettings;
     }
     file->data.settings = *pSettings;
-    /*bplayback_file_init(&file->self);*/
 
-    BKNI_Snprintf(file->data.base_name, sizeof(file->data.base_name), "%s", fname); /* dirty strcpy */
-    file->data.chunk = B_FIRST_CHUNK - 1;
+    b_strncpy(file->data.base_name, fname, sizeof(file->data.base_name));
+    file->data.chunk = pSettings->firstChunkNumber;
     file->data.data = NULL;
     file->data.chunk_budget = 0; /* it would trigger open of data file on first call to write */
     file->data.cur_pos = 0;
-    file->data.size.last_chunk = B_FIRST_CHUNK;
-    file->data.size.last_chunk_begin = 0;
-    file->data.size.last_data = NULL;
-    get_chunk_name(name, file->data.base_name, file->data.chunk);
+    file->data.size.last_chunk = pSettings->firstChunkNumber;
+    file->data.size.last_chunk_begin = (off_t)pSettings->firstChunkNumber * pSettings->chunkSize;
+    file->data.size.last_file_open = false;
+
+    get_chunk_name(name, sizeof(name), file->data.settings.chunkTemplate, file->data.base_name, file->data.chunk);
     file->data.open_in = NEXUS_FilePlay_OpenPosix;
 
     file->index = file->data.open_in(name, indexname);
@@ -497,4 +500,3 @@ NEXUS_ChunkedFilePlay_Open(const char *fname, const char *indexname, const NEXUS
     file->self.file.data = &file->data.self;
     return &file->self;
 }
-

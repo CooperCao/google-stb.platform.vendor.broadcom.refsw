@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -68,9 +68,6 @@ public:
     {
         memset(_strPartition, 0, sizeof(_strPartition));
         memset(_strDrive, 0, sizeof(_strDrive));
-        memset(_strDriveSerial, 0, sizeof(_strDriveSerial));
-        memset(_strDriveModel, 0, sizeof(_strDriveModel));
-        memset(_strDriveWWN, 0, sizeof(_strDriveWWN));
         memset(_strMountType, 0, sizeof(_strMountType));
         memset(_strMountPoint, 0, sizeof(_strMountPoint));
     }
@@ -92,11 +89,9 @@ public:
     int  _nPartition;
     char _strPartition[16];
     char _strDrive[16];
-    char _strDriveSerial[64];
-    char _strDriveModel[64];
-    char _strDriveWWN[64];
     char _strMountType[16];
     char _strMountPoint[32];
+    MString _strDriveGUID;
 };
 
 class CPower : public CResource
@@ -109,7 +104,6 @@ public:
             );
     ~CPower(void);
 
-    eRet       mountDrives(bool bMount);
     eRet       mountDrives(bool bMount, uint32_t nRetries);
     eRet       setMode(ePowerMode mode, CGraphics * pGraphics = NULL);
     ePowerMode getMode(void) { return((ePowerMode)_settings.mode); }

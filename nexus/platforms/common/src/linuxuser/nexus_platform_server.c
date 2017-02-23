@@ -63,6 +63,9 @@
 #include "server/nexus_server_prologue.h"
 #include "../common/ipc/nexus_ipc_server_api.h"
 #include "blst_queue.h"
+#if NEXUS_COMPAT_32ABI
+#include "nexus_base_compat.h"
+#endif
 
 
 BDBG_MODULE(nexus_platform_server);
@@ -71,15 +74,6 @@ BDBG_MODULE(nexus_platform_server);
 
 #define BDBG_MSG_TRACE(X) /* BDBG_MSG(X) */
 
-/**
-Must extern all module-specific functions. We cannot build a master header file of all modules.
-**/
-#define NEXUS_PLATFORM_P_DRIVER_MODULE(X) \
-    extern int nexus_server_##X##_open(struct nexus_driver_module_header **pHeader); \
-    extern int nexus_server_##X##_close(void); \
-    extern int nexus_server_##X##_process(void *driver_state, void *in_data, unsigned in_data_size, void *out_data, unsigned out_mem_size, struct nexus_p_server_process_output *out);
-#include "nexus_ipc_modules.h"
-#undef NEXUS_PLATFORM_P_DRIVER_MODULE
 
 /**
 index of g_nexus_server_handlers[] is the module id.
@@ -92,7 +86,7 @@ static const struct {
 } g_nexus_server_handlers[] = {
 #define NEXUS_PLATFORM_P_DRIVER_MODULE(X) \
     {#X, nexus_server_##X##_open, nexus_server_##X##_close, nexus_server_##X##_process},
-#include "nexus_ipc_modules.h"
+#include "nexus_driver_modules.h"
 #undef NEXUS_PLATFORM_P_DRIVER_MODULE
 };
 #define NEXUS_PLATFORM_P_NUM_DRIVERS (sizeof(g_nexus_server_handlers)/sizeof(g_nexus_server_handlers[0]))
@@ -237,7 +231,7 @@ struct NEXUS_Server
     unsigned num_clients;
     struct {
         NEXUS_ClientSettings clientSettings;
-        NEXUS_ClientAuthenticationSettings auth;
+        struct nexus_connect_info info;
     } thread_state;
 };
 
@@ -295,7 +289,6 @@ NEXUS_Error NEXUS_Platform_P_InitServer(void)
     }
     g_server = server;
 
-    BDBG_OBJECT_SET(&server->server_client_state, nexus_driver_client_state);
     if (g_NEXUS_platformSettings.mode == NEXUS_ClientMode_eVerified) {
         server->server_client_state.client.mode = NEXUS_ClientMode_eVerified;
     }
@@ -537,6 +530,7 @@ void NEXUS_Platform_StopServer(void)
     /* NEXUS_Platform_P_UninitServer does cleanup */
 }
 
+#if !defined(NEXUS_ABICOMPAT_MODE)
 /* route all address conversions through dedicated functions */
 void
 nexus_driver_send_addr(void **paddr)
@@ -560,6 +554,7 @@ nexus_driver_recv_addr_cached(void **paddr)
     }
     return;
 }
+#endif
 
 void NEXUS_Platform_P_UnregisterClient(NEXUS_ClientHandle);
 
@@ -659,11 +654,23 @@ static void nexus_server_write_callback_locked(struct b_server_callback_cxn *cal
 
     for(queue_entry = BLST_Q_FIRST(&callback_cxn->callback_queued);queue_entry;queue_entry=BLST_Q_FIRST(&callback_cxn->callback_queued)) {
         int rc;
-        BDBG_MSG_TRACE(("client %p: write callback %p(%p,%d)", callback_cxn->client, queue_entry->data.callback.callback, queue_entry->data.callback.context, queue_entry->data.callback.param));
-        rc = write(callback_cxn->fd, &queue_entry->data, sizeof(queue_entry->data));
+        unsigned callback_size = sizeof(queue_entry->data);
+        const void *callback_data = &queue_entry->data;
+#if NEXUS_COMPAT_32ABI
+        struct B_NEXUS_COMPAT_TYPE(nexus_callback_data) compat_data;
+
+        if(callback_cxn->client->client_state.abi!=NEXUS_P_NATIVE_ABI) {
+            compat_data.interface = NEXUS_Compat_To_Handle(queue_entry->data.interface);
+            NEXUS_Compat_To_NEXUS_CallbackDesc(&queue_entry->data.callback, &compat_data.callback);
+            callback_size = sizeof(compat_data);
+            callback_data = &compat_data;
+        }
+#endif
+        BDBG_MSG_TRACE(("client %p: write callback:%u %p(%p,%d)", (void *)callback_cxn->client, callback_size, (void *)(unsigned long)queue_entry->data.callback.callback, queue_entry->data.callback.context, queue_entry->data.callback.param));
+        rc = write(callback_cxn->fd, callback_data, callback_size);
         if(rc>0) {
-            if((unsigned)rc!=sizeof(queue_entry->data)) {
-                BDBG_ERR(("client %p: partial callback write (%d,%u)", (void *)callback_cxn->client, rc, (unsigned)sizeof(queue_entry->data)));
+            if((unsigned)rc!=callback_size) {
+                BDBG_ERR(("client %p: partial callback write (%d,%u)", (void *)callback_cxn->client, rc, callback_size));
                 break;
             }
             BLST_Q_REMOVE_HEAD(&callback_cxn->callback_queued, link);
@@ -699,6 +706,34 @@ static void nexus_server_cancel_callback(struct b_server_callback_cxn *callback_
     return;
 }
 
+static NEXUS_Error nexus_p_read_interface(const struct NEXUS_Client *client,void **interface)
+{
+    NEXUS_Error nrc;
+    int rc;
+    unsigned interface_size = sizeof(*interface);
+    void *interface_pointer = interface;
+#if NEXUS_COMPAT_32ABI
+    NEXUS_BaseObjectId objectId;
+    if(client->client_state.abi != NEXUS_P_NATIVE_ABI) {
+        interface_size = sizeof(objectId);
+        interface_pointer = &objectId;
+    }
+#endif
+
+    rc = b_nexus_read(client->fd, interface_pointer, interface_size);
+    if (rc != (int)interface_size) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+#if NEXUS_COMPAT_32ABI
+    if(client->client_state.abi != NEXUS_P_NATIVE_ABI) {
+        NEXUS_BaseObject *object;
+        nrc = NEXUS_BaseObject_FromId(objectId, &object);
+        /* don't test error code */
+        *interface = object;
+    }
+#endif
+    return NEXUS_SUCCESS;
+}
 static void nexus_server_thread(void *context)
 {
     struct NEXUS_Server *server = context;
@@ -815,11 +850,11 @@ static void nexus_server_thread(void *context)
                         case nexus_main_socket_message_type_stop_callbacks:
                             {
                                 void *interface;
-                                rc = b_nexus_read(client->fd, &interface, sizeof(interface));
-                                if (rc == sizeof(interface)) {
+                                NEXUS_Error nrc = nexus_p_read_interface(client, &interface);
+                                if (nrc == NEXUS_SUCCESS) {
                                     static unsigned stopCallbacksCount = 0; /* global id */
                                     NEXUS_CallbackDesc callback = NEXUS_CALLBACKDESC_INITIALIZER();
-                                    NEXUS_Error nrc;
+
                                     callback.param = ++stopCallbacksCount; /* grab the next id. no sync needed. */
 
                                     b_objdb_set_client(&client->client_state.client);
@@ -847,8 +882,8 @@ static void nexus_server_thread(void *context)
                         case nexus_main_socket_message_type_start_callbacks:
                             {
                                 void *interface;
-                                rc = b_nexus_read(client->fd, &interface, sizeof(interface));
-                                if (rc == sizeof(interface)) {
+                                NEXUS_Error nrc = nexus_p_read_interface(client, &interface);
+                                if (nrc == NEXUS_SUCCESS) {
                                     b_objdb_set_client(&client->client_state.client);
                                     if(b_objdb_verify_any_object(interface)==NEXUS_SUCCESS) {
                                         /* start production of callbacks for this interface */
@@ -902,8 +937,8 @@ static void nexus_server_thread(void *context)
                     if (i == 0) {
 
                         /* some manual ipc that matches nexus_platform_client.c code */
-                        rc = b_nexus_read(fd, &server->thread_state.auth, sizeof(server->thread_state.auth));
-                        if (rc != sizeof(server->thread_state.auth)) {
+                        rc = b_nexus_read(fd, &server->thread_state.info , sizeof(server->thread_state.info));
+                        if (rc != sizeof(server->thread_state.info)) {
                             BDBG_WRN(("unable to read authentication settings: %d", rc));
                             close(fd);
                             continue;
@@ -913,9 +948,9 @@ static void nexus_server_thread(void *context)
                         NEXUS_LockModule();
                         for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
                             if (client->fd == -1 && !client->dynamicallyCreated) {
-                                if (client->settings.authentication.certificate.length == server->thread_state.auth.certificate.length &&
-                                    server->thread_state.auth.certificate.length <= sizeof(server->thread_state.auth.certificate.data) &&
-                                    !BKNI_Memcmp(&client->settings.authentication.certificate.data, &server->thread_state.auth.certificate.data, server->thread_state.auth.certificate.length)) {
+                                if (client->settings.authentication.certificate.length == server->thread_state.info.auth.certificate.length &&
+                                    server->thread_state.info.auth.certificate.length <= sizeof(server->thread_state.info.auth.certificate.data) &&
+                                    !BKNI_Memcmp(&client->settings.authentication.certificate.data, &server->thread_state.info.auth.certificate.data, server->thread_state.info.auth.certificate.length)) {
                                     /* found it */
                                     BDBG_MSG(("authenticated client %p for pid %d", (void*)client, credentials.pid));
                                     break;
@@ -948,7 +983,9 @@ static void nexus_server_thread(void *context)
                         client->pid = credentials.pid;
                         client->fd = fd;
                         client->numJoins++;
-
+#if NEXUS_COMPAT_32ABI
+                        client->client_state.abi = server->thread_state.info.abi;
+#endif
                         nexus_platform_p_set_mmap_access(client, true);
                         BDBG_MSG(("client %p (pid %d) ready", (void *)client, credentials.pid));
                         done = 1;
@@ -1313,7 +1350,6 @@ NEXUS_ClientHandle NEXUS_Platform_RegisterClient(const NEXUS_ClientSettings *pSe
     client->pollnum = -1;
     client->server = server;
     client->settings = *pSettings;
-    BDBG_OBJECT_SET(&client->client_state, nexus_driver_client_state);
     client->client_state.client.resources.allowed = client->settings.configuration.resources;
     switch (client->settings.configuration.mode) {
     case NEXUS_ClientMode_eUnprotected: /* deprecated */
@@ -1638,17 +1674,6 @@ NEXUS_Error NEXUS_Platform_GetClientStatus( NEXUS_ClientHandle client, NEXUS_Cli
 struct b_objdb_client *nexus_p_platform_objdb_client(NEXUS_ClientHandle client)
 {
     return &client->client_state.client;
-}
-
-NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *type, void *object)
-{
-    return NEXUS_Platform_P_AcquireObject(nexus_p_platform_objdb_client(client), type, object);
-}
-
-void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *type, void *object)
-{
-    NEXUS_Platform_P_ReleaseObject(type, object);
-    return;
 }
 
 void NEXUS_Platform_GetClientResources( NEXUS_ClientHandle client, NEXUS_ClientResources *pResources )

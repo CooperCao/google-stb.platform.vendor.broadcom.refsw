@@ -114,8 +114,11 @@ typedef struct BVC5_P_CoreState
    /* Watchdog */
    uint32_t             uiTimeoutCount;
 
-   /* Bin/Render MMU state tracking */
-   uint32_t             uiBRCurrentPagetable;
+   /* MMU state tracking */
+   uint32_t             uiCurrentPagetable;
+
+   /* Cache flush tracking */
+   uint32_t             uiCacheFlushes;
 }
 BVC5_P_CoreState;
 
@@ -182,6 +185,13 @@ void BVC5_P_HardwareResetWatchdog(
    uint32_t    uiCoreIndex
 );
 
+/* BVC5_P_HardwareDeferCacheFlush */
+uint32_t BVC5_P_HardwareDeferCacheFlush(
+   BVC5_Handle hVC5,
+   uint32_t uiFlushes,
+   uint32_t uiJobMask
+);
+
 /* BVC5_P_HardwareIssueBinnerJob
 
    Submit a job to the binner.  Increments power-on count.
@@ -202,6 +212,17 @@ bool BVC5_P_HardwareIssueBinnerJob(
 void BVC5_P_HardwareIssueRenderJob(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex,
+   BVC5_P_InternalJob  *pJob
+);
+
+
+/* BVC5_P_HardwareProcessBarrierJob
+
+   Process a barrier job..
+
+ */
+void BVC5_P_HardwareProcessBarrierJob(
+   BVC5_Handle          hVC5,
    BVC5_P_InternalJob  *pJob
 );
 
@@ -291,19 +312,9 @@ void BVC5_P_HardwareAbandonJobs(
 );
 
 
-/* BVC5_P_HardwareIsCoreIdle
-
-   Abandons all jobs in specified core
-
-*/
-bool BVC5_P_HardwareIsCoreIdle(
-   BVC5_Handle    hVC5,
-   uint32_t       uiCoreIndex
-);
-
 /* BVC5_P_HardwareIsIdle
 
-   Are all cores idle?
+   Are all cores and the TFU idle?
 
 */
 bool BVC5_P_HardwareIsIdle(
@@ -373,31 +384,6 @@ void BVC5_P_WriteNonCoreRegister(
    uint32_t     uiValue
    );
 
-void BVC5_P_ClearL3Cache(
-   BVC5_Handle hVC5,
-   uint32_t uiCoreIndex
-   );
-
-void BVC5_P_FlushTextureCache(
-   BVC5_Handle hVC5,
-   uint32_t uiCoreIndex
-   );
-
-void BVC5_P_CleanTextureCache(
-   BVC5_Handle hVC5,
-   uint32_t uiCoreIndex
-   );
-
-void BVC5_P_ClearL2Cache(
-   BVC5_Handle hVC5,
-   uint32_t uiCoreIndex
-   );
-
-void BVC5_P_ClearSlicesCache(
-   BVC5_Handle hVC5,
-   uint32_t uiCoreIndex
-   );
-
 void BVC5_P_InterruptHandler_isr(
    void *pParm,
    int   iValue
@@ -430,6 +416,18 @@ bool BVC5_P_HardwareCacheClearBlocked(
    uint32_t    uiCoreIndex
    );
 
+bool BVC5_P_HardwareBinBlocked(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex,
+   BVC5_P_InternalJob *pNewJob
+);
+
+bool BVC5_P_HardwareRenderBlocked(
+   BVC5_Handle hVC5,
+   uint32_t    uiCoreIndex,
+   BVC5_P_InternalJob *pNewJob
+);
+
 void BVC5_P_HardwareReadEventFifos(
    BVC5_Handle          hVC5,
    uint32_t             uiCoreIndex
@@ -449,19 +447,6 @@ void BVC5_P_HardwareClearEventFifos(
 bool BVC5_P_SwitchSecurityMode(
    BVC5_Handle          hVC5,
    bool                 bSecure
-);
-
-void BVC5_P_HardwareSetupCoreMmu(
-   BVC5_Handle hVC5,
-   uint32_t uiCoreIndex,
-   uint64_t uiPagetablePhysical,
-   uint32_t uiMaxVirtualAddress
-);
-
-void BVC5_P_HardwareSetupTfuMmu(
-   BVC5_Handle hVC5,
-   uint64_t uiPagetablePhysical,
-   uint32_t uiMaxVirtualAddress
 );
 
 #endif /* BVC5_HARDWARE_H__ */

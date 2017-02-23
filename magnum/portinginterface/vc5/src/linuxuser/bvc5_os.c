@@ -38,8 +38,8 @@
  **************************************************************************/
 
 #include "bstd.h"
-#include "bmem.h"
 #include "bkni.h"
+#include "../src/bvc5_bin_pool_priv.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -68,14 +68,11 @@ BERR_Code BVC5_P_GetTime_isrsafe(uint64_t *pMicroseconds)
    }
 }
 
-void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
+void BVC5_P_DebugDumpHeapContents(uint64_t ulOffset, unsigned uSize, uint32_t uiCoreIndex)
 {
-   BMEM_HeapInfo hi;
    FILE          *fp;
 
    BSTD_UNUSED(uiCoreIndex);
-
-   BMEM_Heap_GetInfo(hHeap, &hi);
 
    fp = fopen("memdump.bin", "w");
    if (fp != NULL)
@@ -85,18 +82,18 @@ void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
       mem_fd = open("/dev/mem", O_RDONLY);
       if (mem_fd)
       {
-         uint32_t            offset = hi.ulOffset;
+         uint32_t            offset = ulOffset;
          size_t              chunk = 4 * 1024 * 1024;
 
          BKNI_Printf("\nDumping heap memory to memdump.bin ...\n");
 
-         while (offset < hi.ulOffset + hi.zSize)
+         while (offset < ulOffset + uSize)
          {
             void *mem_p;
             size_t blockSz = chunk;
 
-            if (hi.ulOffset + hi.zSize - offset < chunk)
-               blockSz = hi.ulOffset + hi.zSize - offset;
+            if (ulOffset + uSize - offset < chunk)
+               blockSz = ulOffset + uSize - offset;
 
             mem_p = mmap(NULL, blockSz, PROT_READ, MAP_SHARED, mem_fd, offset);
             if (mem_p != NULL)
@@ -118,7 +115,12 @@ void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
    }
 }
 
-#ifdef BVC5_USE_DRM
+/* Only Android without MMU combination supports programable bin pools */
+BVC5_BinPoolBlock_MemInterface *BVC5_P_GetBinPoolMemInterface(void)
+{
+   return NULL;
+}
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -134,7 +136,7 @@ void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
 #pragma GCC diagnostic ignored "-Wlong-long"
 #pragma GCC diagnostic ignored "-Wpedantic"
 
-#include <drm/brcmv3d_drm.h>
+#include "brcmv3d_drm.h"
 
 #pragma GCC diagnostic pop
 
@@ -143,7 +145,7 @@ void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
  */
 static int drmFd = -1;
 
-BERR_Code BVC5_P_DRMOpen(uint32_t uiDRMDevice)
+void BVC5_P_DRMOpen(uint32_t uiDRMDevice)
 {
    if (drmFd < 0)
    {
@@ -151,7 +153,6 @@ BERR_Code BVC5_P_DRMOpen(uint32_t uiDRMDevice)
       sprintf(drmDeviceName,"/dev/dri/card%u", uiDRMDevice);
       drmFd = open(drmDeviceName, O_RDWR);
    }
-   return (drmFd < 0) ? BERR_OS_ERROR : BERR_SUCCESS;
 }
 
 void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
@@ -164,14 +165,3 @@ void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
       ioctl(drmFd, DRM_IOCTL_V3D_SET_CLIENT_TERM, &s);
    }
 }
-#else
-void BVC5_P_DRMOpen(uint32_t uiDRMDevice)
-{
-   BSTD_UNUSED(uiDRMDevice);
-}
-
-void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
-{
-   BSTD_UNUSED(uiPlatformToken);
-}
-#endif

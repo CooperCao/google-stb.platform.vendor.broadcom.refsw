@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,15 +42,11 @@
 ***************************************************************************/
 #include "nexus_audio_module.h"
 #define RAAGA_DEBUG_LOG_CHANGES 1
+#if BAPE_DSP_SUPPORT
 #include "bdsp_raaga.h"
+#endif
 #if NEXUS_ARM_AUDIO_SUPPORT
 #include "bdsp_arm.h"
-#endif
-#ifndef NEXUS_NUM_AUDIO_MIXERS
-#define NEXUS_NUM_AUDIO_MIXERS 0
-#endif
-#ifndef NEXUS_NUM_AUDIO_PLAYBACKS
-#define NEXUS_NUM_AUDIO_PLAYBACKS 0
 #endif
 #include "priv/nexus_core_preinit.h"
 #if NEXUS_HAS_SECURITY
@@ -123,17 +119,22 @@ static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void);
 
 static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga );
 
+static void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps);
+
 static void NEXUS_AudioModule_Print(void)
 {
 #if BDBG_DEBUG_BUILD
-    int i,j;
+    unsigned i,j;
+    NEXUS_AudioCapabilities audioCapabilities;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
     BDBG_LOG(("Audio:"));
 
     BDBG_LOG((" handles: ape:%p dsp:%p", (void *)g_NEXUS_audioModuleData.apeHandle, (void *)g_NEXUS_audioModuleData.dspHandle));
     BDBG_LOG((" img ctxt:%p", (void *)g_NEXUS_audioModuleData.pImageContext));
     BDBG_LOG((" settings: wd:%d id:%d",g_NEXUS_audioModuleData.settings.watchdogEnabled,g_NEXUS_audioModuleData.settings.independentDelay));
 
-    for (i=0; i < NEXUS_NUM_AUDIO_DECODERS; i++) {
+    for (i=0; i < audioCapabilities.numDecoders; i++) {
         NEXUS_AudioDecoderStatus status;
         NEXUS_AudioDecoderHandle handle = g_decoders[i];
         if (handle) {
@@ -180,7 +181,7 @@ static void NEXUS_AudioModule_Print(void)
         }
     }
 
-    for (i=0; i < NEXUS_NUM_AUDIO_PLAYBACKS; i++) {
+    for (i=0; i < audioCapabilities.numPlaybacks; i++) {
         NEXUS_AudioPlaybackHandle playbackHandle = NEXUS_AudioPlayback_P_GetPlaybackByIndex(i);
         if (playbackHandle)
         {
@@ -199,7 +200,7 @@ static void NEXUS_AudioModule_Print(void)
         }
     }
 
-    for (i=0; i < NEXUS_NUM_AUDIO_MIXERS; i++) {
+    for (i=0; i < audioCapabilities.numMixers; i++) {
         NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioMixer_P_GetMixerByIndex(i);
         NEXUS_AudioMixerSettings mixerSettings;
         if (mixerHandle)
@@ -230,7 +231,9 @@ static void NEXUS_AudioModule_Print(void)
 void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *preInitState, NEXUS_AudioModuleSettings *pSettings)
 {
     BAPE_Settings apeSettings;
+#if BAPE_DSP_SUPPORT
     BDSP_RaagaSettings raagaSettings;
+#endif
     const char *pEnv;
     unsigned i;
     unsigned num_encoders = 0;
@@ -275,6 +278,7 @@ void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *
     pSettings->heapIndex = NEXUS_MAX_HEAPS;
     pSettings->firmwareHeapIndex = NEXUS_MAX_HEAPS;
 
+#if BAPE_DSP_SUPPORT
     BDSP_Raaga_GetDefaultSettings(&raagaSettings);
     for ( i = 0; i < NEXUS_AudioDspDebugType_eMax; i++ )
     {
@@ -286,6 +290,7 @@ void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *
     {
         pSettings->dspAlgorithmSettings.typeSettings[i].count = raagaSettings.maxAlgorithms[i];
     }
+#endif
 }
 
 void NEXUS_AudioModule_GetDefaultInternalSettings(
@@ -295,6 +300,7 @@ void NEXUS_AudioModule_GetDefaultInternalSettings(
     BKNI_Memset(pSettings, 0, sizeof(NEXUS_AudioModuleInternalSettings));
 }
 
+#if BAPE_DSP_SUPPORT
 static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
     const BBOX_Config *boxConfig,
     const NEXUS_AudioModuleSettings *pSettings,
@@ -325,7 +331,8 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
         {
             BDBG_WRN(("Enabling audio FW debug type %u [%s]", i, (i == NEXUS_AudioDspDebugType_eDramMessage)?"DRAM Message":
                                                                  (i == NEXUS_AudioDspDebugType_eUartMessage)?"UART Message":
-                                                                 "Core Dump"));
+                                                                 (i == NEXUS_AudioDspDebugType_eCoreDump)?"Core Dump":
+                                                                  "Target Print"));
         }
     }
 
@@ -344,6 +351,7 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
 
     raagaSettings->NumDsp = boxConfig->stAudio.numDsps;
 }
+#endif
 
 NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     const NEXUS_AudioModuleSettings *pSettings,
@@ -353,7 +361,9 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     BERR_Code errCode;
     NEXUS_ModuleSettings moduleSettings;
     BAPE_Settings apeSettings;
+    #if BAPE_DSP_SUPPORT
     BDSP_RaagaSettings raagaSettings;
+    #endif
     #if NEXUS_ARM_AUDIO_SUPPORT
     BDSP_ArmSettings armSettings;
     #endif
@@ -410,6 +420,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         goto err_heap;
     }
 
+#if BAPE_DSP_SUPPORT
     BDSP_Raaga_GetDefaultSettings(&raagaSettings);
 
     NEXUS_AudioModule_P_PopulateRaagaOpenSettings(g_pCoreHandles->boxConfig, pSettings, &raagaSettings);
@@ -441,7 +452,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     errCode = BDSP_Raaga_Open(&g_NEXUS_audioModuleData.dspHandle,
                               g_pCoreHandles->chp,
                               g_pCoreHandles->reg,
-                              g_pCoreHandles->heap[fwHeapIndex].mem,
+                              g_pCoreHandles->heap[fwHeapIndex].mma,
                               g_pCoreHandles->bint,
                               g_pCoreHandles->tmr,
                               g_pCoreHandles->box,
@@ -482,7 +493,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
             errCode = BDSP_Arm_Open(&g_NEXUS_audioModuleData.armHandle,
                                     g_pCoreHandles->chp,
                                     g_pCoreHandles->reg,
-                                    g_pCoreHandles->heap[fwHeapIndex].mem,
+                                    g_pCoreHandles->heap[fwHeapIndex].mma,
                                     g_pCoreHandles->bint,
                                     g_pCoreHandles->tmr,
                                     &armSettings);
@@ -494,6 +505,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         }
     }
     #endif
+    #endif /* BAPE_DSP_SUPPORT */
 
     BAPE_GetDefaultSettings(&apeSettings);
     apeSettings.maxDspTasks = pSettings->maxAudioDspTasks;
@@ -519,7 +531,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     errCode = BAPE_Open(&NEXUS_AUDIO_DEVICE_HANDLE,
                         g_pCoreHandles->chp,
                         g_pCoreHandles->reg,
-                        g_pCoreHandles->heap[heapIndex].mem,
+                        g_pCoreHandles->heap[heapIndex].mma,
                         g_pCoreHandles->bint,
                         g_pCoreHandles->tmr,
                         g_NEXUS_audioModuleData.dspHandle,
@@ -530,6 +542,9 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         (void)BERR_TRACE(errCode);
         goto err_ape;
     }
+
+    /* Save Capabilites */
+    NEXUS_P_GetAudioCapabilities(&g_NEXUS_audioModuleData.capabilities);
 
     BDBG_MSG(("Calling NEXUS_AudioDecoder_P_Init"));
     errCode = NEXUS_AudioDecoder_P_Init();
@@ -573,6 +588,7 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         goto err_debug;
     }
 #endif
+
     NEXUS_UnlockModule();
     return g_NEXUS_audioModule;
 err_debug:
@@ -595,8 +611,10 @@ err_input:
 err_decoder:
     BAPE_Close(NEXUS_AUDIO_DEVICE_HANDLE);
 err_ape:
+#if BAPE_DSP_SUPPORT
     BDSP_Close(g_NEXUS_audioModuleData.dspHandle);
 err_dsp:
+#endif
     NEXUS_UnlockModule();
     NEXUS_Module_Destroy(g_NEXUS_audioModule);
 err_heap:
@@ -626,6 +644,7 @@ void NEXUS_AudioModule_Uninit(void)
     {
         BAPE_Close(NEXUS_AUDIO_DEVICE_HANDLE);
     }
+    #if BAPE_DSP_SUPPORT
     if ( g_NEXUS_audioModuleData.armHandle )
     {
         BDSP_Close(g_NEXUS_audioModuleData.armHandle);
@@ -634,6 +653,7 @@ void NEXUS_AudioModule_Uninit(void)
     {
         BDSP_Close(g_NEXUS_audioModuleData.dspHandle);
     }
+    #endif
 
    #if NEXUS_HAS_SECURITY
     if ( g_NEXUS_audioModuleData.verifyFirmware )
@@ -768,6 +788,7 @@ NEXUS_AudioCodec NEXUS_Audio_P_MagnumToCodec(BAVC_AudioCompressionStd codec)
     return NEXUS_P_AudioCodec_FromMagnum(codec);
 }
 
+#if BAPE_DSP_SUPPORT
 BDSP_Algorithm NEXUS_Audio_P_PostProcessingToBdspAlgo(NEXUS_AudioPostProcessing pp)
 {
     switch (pp)
@@ -794,6 +815,7 @@ BDSP_Algorithm NEXUS_Audio_P_PostProcessingToBdspAlgo(NEXUS_AudioPostProcessing 
         return BDSP_Algorithm_eMax;
     }
 }
+#endif
 
 BAPE_PostProcessorType NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType(NEXUS_AudioPostProcessing procType)
 {
@@ -822,13 +844,16 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
     )
 {
     BERR_Code rc = NEXUS_SUCCESS;
+    NEXUS_AudioCapabilities audioCapabilities;
 
     BSTD_UNUSED(pSettings);
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
 #if NEXUS_POWER_MANAGEMENT
     if(enabled) {
     unsigned i;
-    for(i=0; i<NEXUS_NUM_AUDIO_DECODERS; i++) {
+    for(i=0; i<audioCapabilities.numDecoders; i++) {
         NEXUS_AudioDecoderHandle handle = g_decoders[i];
         /* Force decoder to stop; if not already stopped */
         if(handle && handle->started) {
@@ -837,7 +862,7 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
         }
     }
 
-    for (i=0; i < NEXUS_NUM_AUDIO_MIXERS; i++) {
+    for (i=0; i < audioCapabilities.numMixers; i++) {
         NEXUS_AudioMixerHandle mixerHandle = NEXUS_AudioMixer_P_GetMixerByIndex(i);
         if (mixerHandle && NEXUS_AudioMixer_P_IsStarted(mixerHandle))
         {
@@ -848,6 +873,7 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
     rc = BAPE_Standby(g_NEXUS_audioModuleData.apeHandle, NULL);
     if (rc) { rc = BERR_TRACE(rc); goto err; }
 
+    #if BAPE_DSP_SUPPORT
     rc = BDSP_Standby(g_NEXUS_audioModuleData.dspHandle, NULL);
     if (rc) { rc = BERR_TRACE(rc); goto err; }
 
@@ -867,9 +893,11 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
             }
         }
        #endif
+    #endif
 
     } else {
 
+        #if BAPE_DSP_SUPPORT
         rc = BDSP_Resume(g_NEXUS_audioModuleData.dspHandle);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
 
@@ -881,6 +909,7 @@ NEXUS_Error NEXUS_AudioModule_Standby_priv(
             rc = BDSP_Raaga_Initialize(g_NEXUS_audioModuleData.dspHandle);
             if (rc) { rc = BERR_TRACE(rc); goto err; }
         }
+        #endif
 
         rc = BAPE_Resume(g_NEXUS_audioModuleData.apeHandle);
         if (rc) { rc = BERR_TRACE(rc); goto err; }
@@ -894,7 +923,7 @@ err :
     return rc;
 }
 
-void NEXUS_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
+void NEXUS_P_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
 {
     BAPE_Capabilities apeCaps;
     unsigned i;
@@ -904,19 +933,40 @@ void NEXUS_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
 
     BKNI_Memset(pCaps, 0, sizeof(NEXUS_AudioCapabilities));
 
-    pCaps->numInputs.hdmi = apeCaps.numInputs.mai;
-    pCaps->numInputs.i2s = apeCaps.numInputs.i2s;
-    pCaps->numInputs.spdif = apeCaps.numInputs.spdif;
-
-    pCaps->numOutputs.audioReturnChannel = apeCaps.numOutputs.audioReturnChannel;
-    pCaps->numOutputs.capture = apeCaps.numOutputs.capture;
-    pCaps->numOutputs.dac = apeCaps.numOutputs.dac;
-    pCaps->numOutputs.dummy = apeCaps.numOutputs.dummy;
-    pCaps->numOutputs.hdmi = apeCaps.numOutputs.mai;
-    pCaps->numOutputs.i2s = apeCaps.numOutputs.i2s;
+    #ifdef NEXUS_NUM_HDMI_INPUTS
+    pCaps->numInputs.hdmi = NEXUS_NUM_HDMI_INPUTS < apeCaps.numInputs.mai ? NEXUS_NUM_HDMI_INPUTS : apeCaps.numInputs.mai;
+    #endif
+    #ifdef NEXUS_NUM_I2S_INPUTS
+    pCaps->numInputs.i2s = NEXUS_NUM_I2S_INPUTS < apeCaps.numInputs.i2s ? NEXUS_NUM_I2S_INPUTS : apeCaps.numInputs.i2s;
+    #endif
+    #ifdef NEXUS_NUM_SPDIF_INPUTS
+    pCaps->numInputs.spdif = NEXUS_NUM_SPDIF_INPUTS < apeCaps.numInputs.spdif ? NEXUS_NUM_SPDIF_INPUTS : apeCaps.numInputs.spdif;
+    #endif
+    #ifdef NEXUS_NUM_AUDIO_RETURN_CHANNEL
+    pCaps->numOutputs.audioReturnChannel = NEXUS_NUM_AUDIO_RETURN_CHANNEL < apeCaps.numOutputs.audioReturnChannel ? NEXUS_NUM_AUDIO_RETURN_CHANNEL : apeCaps.numOutputs.audioReturnChannel;
+    #endif
+    #ifdef NEXUS_NUM_AUDIO_CAPTURES
+    pCaps->numOutputs.capture = NEXUS_NUM_AUDIO_CAPTURES < apeCaps.numOutputs.capture ? NEXUS_NUM_AUDIO_CAPTURES : apeCaps.numOutputs.capture;
+    #endif
+    #ifdef NEXUS_NUM_AUDIO_DACS
+    pCaps->numOutputs.dac = NEXUS_NUM_AUDIO_DACS < apeCaps.numOutputs.dac ? NEXUS_NUM_AUDIO_DACS : apeCaps.numOutputs.dac;
+    #endif
+    #ifdef NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
+    pCaps->numOutputs.dummy = NEXUS_NUM_AUDIO_DUMMY_OUTPUTS < apeCaps.numOutputs.dummy ? NEXUS_NUM_AUDIO_DUMMY_OUTPUTS : apeCaps.numOutputs.dummy;
+    #endif
+    #ifdef NEXUS_NUM_HDMI_OUTPUTS
+    pCaps->numOutputs.hdmi = NEXUS_NUM_HDMI_OUTPUTS < apeCaps.numOutputs.mai ? NEXUS_NUM_HDMI_OUTPUTS : apeCaps.numOutputs.mai;
+    #endif
+    #ifdef NEXUS_NUM_I2S_OUTPUTS
+    pCaps->numOutputs.i2s = NEXUS_NUM_I2S_OUTPUTS < apeCaps.numOutputs.i2s ? NEXUS_NUM_I2S_OUTPUTS : apeCaps.numOutputs.i2s;
+    #endif
     pCaps->numOutputs.loopback = apeCaps.numOutputs.loopback;
-    pCaps->numOutputs.rfmod = apeCaps.numOutputs.rfmod;
-    pCaps->numOutputs.spdif = apeCaps.numOutputs.spdif;
+    #ifdef NEXUS_NUM_RFM_OUTPUTS
+    pCaps->numOutputs.rfmod = NEXUS_NUM_RFM_OUTPUTS < apeCaps.numOutputs.rfmod ? NEXUS_NUM_RFM_OUTPUTS : apeCaps.numOutputs.rfmod;
+    #endif
+    #ifdef NEXUS_NUM_SPDIF_OUTPUTS
+    pCaps->numOutputs.spdif = NEXUS_NUM_SPDIF_OUTPUTS < apeCaps.numOutputs.spdif ? NEXUS_NUM_SPDIF_OUTPUTS : apeCaps.numOutputs.spdif;
+    #endif
 
     #ifdef NEXUS_NUM_AUDIO_DECODERS
     pCaps->numDecoders = NEXUS_NUM_AUDIO_DECODERS < apeCaps.numDecoders ? NEXUS_NUM_AUDIO_DECODERS : apeCaps.numDecoders;
@@ -926,6 +976,9 @@ void NEXUS_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
     #endif
     #ifdef NEXUS_NUM_AUDIO_INPUT_CAPTURES
     pCaps->numInputCaptures = NEXUS_NUM_AUDIO_INPUT_CAPTURES < apeCaps.numInputCaptures ? NEXUS_NUM_AUDIO_INPUT_CAPTURES : apeCaps.numInputCaptures;
+    #endif
+    #ifdef NEXUS_NUM_AUDIO_MIXERS
+    pCaps->numMixers = NEXUS_NUM_AUDIO_MIXERS < apeCaps.numMixers ? NEXUS_NUM_AUDIO_MIXERS : apeCaps.numMixers;
     #endif
     pCaps->numVcxos = apeCaps.numVcxos;
     pCaps->numPlls = apeCaps.numPlls;
@@ -967,6 +1020,13 @@ void NEXUS_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
     {
         pCaps->dsp.processing[(NEXUS_AudioPostProcessing)i] = apeCaps.dsp.processing[NEXUS_AudioModule_P_NexusProcessingTypeToPiProcessingType((NEXUS_AudioPostProcessing)i)];
     }
+}
+
+void NEXUS_GetAudioCapabilities(NEXUS_AudioCapabilities *pCaps)
+{
+    BDBG_ASSERT(NULL != pCaps);
+    BDBG_ASSERT(NULL != &g_NEXUS_audioModuleData.capabilities);
+    BKNI_Memcpy(pCaps, &g_NEXUS_audioModuleData.capabilities, sizeof(NEXUS_AudioCapabilities));
 }
 
 void NEXUS_AudioOutputPll_GetSettings(
@@ -1017,6 +1077,7 @@ void NEXUS_GetAudioFirmwareVersion(
     NEXUS_AudioFirmwareVersion *pVersion /* [out] */
     )
 {
+    #if BAPE_DSP_SUPPORT
     BDSP_Status dspStatus;
 
     BDBG_ASSERT(NULL != pVersion);
@@ -1027,6 +1088,9 @@ void NEXUS_GetAudioFirmwareVersion(
     pVersion->minor = dspStatus.firmwareVersion.minorVersion;
     pVersion->branch[0] = dspStatus.firmwareVersion.branchVersion;
     pVersion->branch[1] = dspStatus.firmwareVersion.branchSubVersion;
+    #else
+    BKNI_Memset(pVersion, 0, sizeof(NEXUS_AudioFirmwareVersion));
+    #endif
 }
 
 const char * NEXUS_AudioCodecToString(
@@ -1124,6 +1188,7 @@ void NEXUS_AudioModule_GetDefaultUsageSettings(
 
     pSettings->dolbyCodecVersion = NEXUS_GetDolbyAudioCodecVersion();
 
+    #if BAPE_DSP_SUPPORT
     /* Populate Defaults */
     for ( i=0; i<NEXUS_AudioCodec_eMax; i++ )
     {
@@ -1136,6 +1201,7 @@ void NEXUS_AudioModule_GetDefaultUsageSettings(
             pSettings->encodeCodecEnabled[i] = true;
         }
     }
+    #endif
 }
 
 /**
@@ -1154,9 +1220,11 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
 {
     BAPE_Settings apeSettings;
     BAPE_MemoryEstimate apeEstimate;
+    #if BAPE_DSP_SUPPORT
     BDSP_RaagaSettings dspSettings;
     BDSP_RaagaUsageOptions dspUsage;
     BDSP_RaagaMemoryEstimate dspEstimate;
+    #endif
     NEXUS_AudioModuleSettings audioModuleSettings;
     NEXUS_AudioModuleUsageSettings usageSettings;
     bool compressed4xAlgoEnabled = false;
@@ -1172,6 +1240,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     /* Get defaults */
     NEXUS_AudioModule_GetDefaultSettings(NULL, &audioModuleSettings);
     BAPE_GetDefaultSettings(&apeSettings);
+    #if BAPE_DSP_SUPPORT
     BDSP_Raaga_GetDefaultSettings(&dspSettings);
     BKNI_Memset(&dspUsage, 0, sizeof(BDSP_RaagaUsageOptions));
 
@@ -1354,6 +1423,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     case NEXUS_AudioDolbyCodecVersion_eAc3:
         break;
     }
+    #endif
 
     /* Set up APE usage settings */
     apeSettings.maxIndependentDelay = usageSettings.maxIndependentDelay;
@@ -1381,6 +1451,7 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
     BAPE_GetMemoryEstimate(&apeSettings, &apeEstimate);
     BDBG_MODULE_MSG(nexus_audio_memest, ("FMM USAGE: %d bytes", apeEstimate.general));
 
+    #if BAPE_DSP_SUPPORT
     #if BDBG_DEBUG_BUILD
     for ( i=0; i<BDSP_Algorithm_eMax; i++ )
     {
@@ -1421,6 +1492,9 @@ NEXUS_Error NEXUS_AudioModule_GetMemoryEstimate(
 
     /* hardcode to mem controller 0 for now */
     pEstimate->memc[0].general = apeEstimate.general + dspEstimate.GeneralMemory + dspEstimate.FirmwareMemory;
+    #else
+    pEstimate->memc[0].general = apeEstimate.general;
+    #endif
 
     return NEXUS_SUCCESS;
 }
@@ -1436,6 +1510,7 @@ intersection of compile time defines and DSP FW present.
 static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void)
 {
     NEXUS_AudioDolbyCodecVersion dolbyCodecVersion = NEXUS_AudioDolbyCodecVersion_eAc3Plus;
+    #if BAPE_DSP_SUPPORT
     switch ( BAPE_GetDolbyMSVersion() )
     {
         case BAPE_DolbyMSVersion_eMS12:
@@ -1450,6 +1525,9 @@ static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void)
         default:
             break;
     }
+    #else
+    dolbyCodecVersion = NEXUS_AudioDolbyCodecVersion_eMax;
+    #endif
 
     return dolbyCodecVersion;
 }
@@ -1457,6 +1535,7 @@ static NEXUS_AudioDolbyCodecVersion NEXUS_GetDolbyAudioCodecVersion(void)
 
 static NEXUS_Error secureFirmwareAudio( BDSP_Handle hRagga )
 {
+#if BAPE_DSP_SUPPORT
     NEXUS_Error rc = NEXUS_SUCCESS;
     uint32_t firmwareOffset;
     uint32_t firmwareSize;
@@ -1511,6 +1590,10 @@ exit:
   #endif
 
     return rc;
+#else /* NEXUS_AUDIO_DECODER_SUPPORT */
+    BSTD_UNUSED(hRagga);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+#endif /* NEXUS_AUDIO_DECODER_SUPPORT */
 }
 
 int32_t NEXUS_Audio_P_ConvertDbToLinear(int index)

@@ -49,8 +49,8 @@ struct nexus_map_settings
     size_t size; /* size of memory in bytes from offset */
 
     /* real OS map/unmap functions */
-    void *(*mmap)(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type);
-    void (*munmap)(void *address, size_t length, NEXUS_MemoryMapType type);
+    void *(*mmap)(NEXUS_Addr offset, size_t length, NEXUS_AddrType type);
+    void (*munmap)(void *address, size_t length, NEXUS_AddrType type);
 };
 
 void nexus_p_get_default_map_settings(struct nexus_map_settings *p_settings);
@@ -60,10 +60,10 @@ int nexus_p_init_map(const struct nexus_map_settings *p_settings);
 
 void nexus_p_uninit_map(void);
 
-void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type);
+void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type);
 
 /* unmap memory mapped by nexus_p_map_memory */
-void nexus_p_unmap_memory( void *address, size_t length, NEXUS_MemoryMapType type);
+void nexus_p_unmap_memory( void *address, size_t length, NEXUS_AddrType type);
 
 #ifdef __cplusplus
 }

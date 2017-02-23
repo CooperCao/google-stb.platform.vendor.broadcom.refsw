@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "bmemperf_types64.h"
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -114,7 +112,7 @@ typedef enum {
 /**
  *  Function: This function will format an integer to output an indicator for kilo, mega, or giga.
  **/
-char *formatul(
+static char *formatul(
     unsigned long long int value
     )
 {
@@ -144,7 +142,7 @@ char *formatul(
  *  Function: This function will look in the provided string for the specified tag string. If the tag string is
  *  found on the line, the converted integer value will be returned.
  **/
-int scan_for_tag(
+static int scan_for_tag(
     const char             *line,
     const char             *tag,
     unsigned long long int *value
@@ -179,10 +177,112 @@ int scan_for_tag(
 }                                                          /* scan_for_tag */
 
 /**
+ *  Function: This function will use the 'ethtool' utility to read RX and TX data for the specified network interface.
+ *            Since the data from the ifconfig utility has been deemed to be unreliable, the kernel team has suggested
+ *            we use the 'ethtool' utility to get statistics for the "asp" interface.
+ **/
+static int get_ethtool_data(
+    unsigned int netStatsIdx;
+    )
+{
+    char *rc  = NULL;
+    char *pos = NULL;
+    FILE *cmd = NULL;
+    char  line[MAX_LINE_LENGTH];
+    unsigned int line_count = 0;
+    unsigned long long llu_bytes = 0;
+
+/* These counters are from the embedded network switch's perspective and thus are reversed.
+ * In other words, when ASP is streaming out, you will see the Rx Count on ASP device go up
+ * as it is receiving packets from ASP. Likewise, when ASP is receiving packets, the switch
+ * is transmitting those packets to ASP (which in turn came from a network client on another
+ * switch's port), and thus TxCount would go up!
+*/
+#define ASP_RX_SEARCH_TAG "TxOctets"
+#define ASP_TX_SEARCH_TAG "RxOctets"
+
+    /* create a line similar to this ... /bin/ethtool -S asp | grep "RxOctets|TxOctets"
+     * We should get two lines back similar to this:
+     *      RxOctets: 14259285
+     *      RxOctets: 432809372
+     */
+    sprintf( line, "%s -S %s | grep -E \"%s|%s\"", ETHTOOL_UTILITY, g_netStats[g_netStatsIdx].name, ASP_RX_SEARCH_TAG, ASP_TX_SEARCH_TAG );
+    cmd = popen( line, "r" );
+
+    /* we are only expecting to read 2 lines ... one for RX and one for TX */
+    while ( cmd && line_count < 2 )
+    {
+        char search_string[32];
+
+        memset( line, 0, sizeof( line ));
+        memset( search_string, 0, sizeof( search_string ));
+
+        rc = fgets( line, MAX_LINE_LENGTH, cmd );
+
+        /* if something was read in */
+        if ( rc )
+        {
+            /* remove end-of-line character if present */
+            pos = strchr( line, '\n' );
+            if (pos != NULL)
+            {
+                *pos = '\0';
+            }
+
+            PRINTF( "~%s: got len %u: line (%s)~", __FUNCTION__, (int) strlen( line ), line );
+
+            sprintf( search_string, "%s: ", ASP_TX_SEARCH_TAG );
+            pos = strstr( line, search_string );
+            if (pos != NULL)
+            {
+                pos += strlen( search_string ); /* advance pointer to where the byte could should be located */
+                sscanf( pos, "%llu", &llu_bytes );
+
+#if 0
+                /* CAD 2017-01-17: The ethtool appears to send back bytes even though tag is called Octets. */
+                /*                 Multiplying by 8 results in a number that is 8 times higher than expected. */
+                llu_bytes *= 8; /* convert from octets to bytes */
+#endif
+
+                g_netStats[g_netStatsIdx].txBytes = llu_bytes;
+                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_TX_SEARCH_TAG, g_netStats[g_netStatsIdx].name, llu_bytes );
+            }
+
+            sprintf( search_string, "%s: ", ASP_RX_SEARCH_TAG );
+            pos = strstr( line, search_string );
+            if (pos != NULL)
+            {
+                pos += strlen( search_string ); /* advance pointer to where the byte could should be located */
+                sscanf( pos, "%llu", &llu_bytes );
+
+#if 0
+                /* CAD 2017-01-17: The ethtool appears to send back bytes even though tag is called Octets. */
+                /*                 Multiplying by 8 results in a number that is 8 times higher than expected. */
+                llu_bytes *= 8; /* convert from octets to bytes */
+#endif
+
+                g_netStats[g_netStatsIdx].rxBytes = llu_bytes;
+                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_RX_SEARCH_TAG, g_netStats[g_netStatsIdx].name, llu_bytes );
+            }
+        }
+        else
+        {
+            break; /* once we get a read error, stop reading */
+        }
+
+        line_count++;
+    }
+
+    pclose( cmd );
+
+    return( 0 );
+} /* get_ethtool_data */
+
+/**
  *  Function: This function will return the version of the perf utility. This is used to determine if the kernel
  *  has been built with perf support or not.
  **/
-int get_perf_version(
+static int get_perf_version(
     char        *versionString,
     unsigned int versionStringLen
     )
@@ -190,10 +290,19 @@ int get_perf_version(
     char *pos = NULL;
     FILE *cmd = NULL;
     char  line[MAX_LINE_LENGTH];
+    struct stat statbuf;
 
     if (versionString == NULL)
     {
         return( -1 );
+    }
+
+    sprintf( line, "%s/perf", BIN_DIR );
+
+    if (lstat( line, &statbuf ) == -1)
+    {
+        PRINTF( "%s: Could not stat (%s)\n", __FUNCTION__, line );
+        return( 0 );
     }
 
     sprintf( line, "%s/perf --version", BIN_DIR );
@@ -220,7 +329,7 @@ int get_perf_version(
  *  Function: This function will output the common UI controls used for the Perf utilities. E.g. perf top, perf
  *  record, and perf stat.
  **/
-int output_profiling_controls(
+static int output_profiling_controls(
     const char *whichTop /* PerfTop or LinuxTop */
     )
 {
@@ -240,7 +349,7 @@ int output_profiling_controls(
     return( 0 );
 } /* output_profiling_controls */
 
-int output_profiling_error(
+static int output_profiling_error(
     void
     )
 {
@@ -259,7 +368,7 @@ int output_profiling_error(
 /**
  *  Function: This function will grab the current linux top data
  **/
-int GetLinuxTopData(
+static int GetLinuxTopData(
     void
     )
 {
@@ -292,7 +401,7 @@ int GetLinuxTopData(
  *  Function: This function will grab the current perf top data
  **/
 #define PERF_TOP_LIMIT 20
-int GetPerfTopData(
+static int GetPerfTopData(
     void
     )
 {
@@ -352,7 +461,7 @@ int GetPerfTopData(
 /**
  *  Function: This function will output the checkboxes used in the Memory row.
  **/
-int output_memory_controls(
+static int output_memory_controls(
     void
     )
 {
@@ -379,7 +488,7 @@ int output_memory_controls(
 /**
  *  Function: This function will perform a 10-second perf stat analysis
  **/
-int get_PerfCache_Results(
+static int get_PerfCache_Results(
     void
     )
 {
@@ -412,7 +521,7 @@ int get_PerfCache_Results(
  *  DISABLE the specified CPU; positive values mean we need to ENABLE the CPU. For example, a -3 means DISABLE
  *  CPU 3; a +3 means ENABLE CPU 3
  **/
-void change_cpu_state(
+static void change_cpu_state(
     int new_state
     )
 {
@@ -429,7 +538,7 @@ void change_cpu_state(
     system( line );
 }
 
-void get_PerfDeep_Results(
+static void get_PerfDeep_Results(
     void
     )
 {
@@ -466,7 +575,7 @@ void get_PerfDeep_Results(
 /**
  *  Function: This function will gather various network statistics
  **/
-int get_netstat_data(
+static int get_netstat_data(
     bsysperf_netStatistics *pNetStats
     )
 {
@@ -514,7 +623,7 @@ int get_netstat_data(
                 }
             }
 
-            /* if we haven't found the first interface name yet, keep looking for the next line */
+            /* if we are working on an interface that was successfully saved in the global structure (i.e. we haven't run out of space) */
             if (g_netStatsIdx >= 0)
             {
                 int rc = 0;
@@ -560,8 +669,18 @@ int get_netstat_data(
                 {
                     rc = scan_for_tag( line, " errors:", &pNetStats[g_netStatsIdx].txErrors );
                 }
-                scan_for_tag( line, "RX bytes:", &pNetStats[g_netStatsIdx].rxBytes );
-                scan_for_tag( line, "TX bytes:", &pNetStats[g_netStatsIdx].txBytes );
+                rc = scan_for_tag( line, "RX bytes:", &pNetStats[g_netStatsIdx].rxBytes );
+                /* if the RX bytes tag was found, now scan for the Tx bytes tag on the same line */
+                if (rc == 0)
+                {
+                    scan_for_tag( line, "TX bytes:", &pNetStats[g_netStatsIdx].txBytes );
+
+                    /* before moving on to the next interface device, check to see if we are processing the "asp" interface */
+                    if ( strcmp( pNetStats[g_netStatsIdx].name, "asp" ) == 0 )
+                    {
+                        get_ethtool_data( g_netStatsIdx );
+                    }
+                }
                 /*printf("~DEBUG~ip_addr (%s) ... TX bytes (%lld)~", pNetStats[g_netStatsIdx].ipAddress, pNetStats[g_netStatsIdx].txBytes );*/
             }
         }
@@ -576,7 +695,7 @@ int get_netstat_data(
 /**
  *  Function: This function will sort the irq details based on the number of interrupts.
  **/
-int sort_on_irq0(
+static int sort_on_irq0(
     const void *a,
     const void *b
     )
@@ -591,7 +710,7 @@ int sort_on_irq0(
     return( rc );
 }                                                          /* sort_on_irq0 */
 
-int create_uuid( char * strUuid )
+static int create_uuid( char * strUuid )
 {
     unsigned int  idx;
     unsigned long int myUuid[4];
@@ -765,6 +884,50 @@ static int Bsysperf_ReadIperfClientRate( const char *myUuid )
 
     return ( megabits );
 }
+
+static char * readProcFile ( const char * lProcFileFullname )
+{
+    static char buffer[128];
+
+    memset(buffer, 0, sizeof(buffer));
+
+    if ( lProcFileFullname )
+    {
+        int fd = open( lProcFileFullname, O_RDONLY );
+        if ( fd )
+        {
+            int numbytes = 0;
+            numbytes = read( fd, buffer, sizeof(buffer) - 1 );
+            close(fd);
+            /*printf("~DEBUG~%s: got %d bytes from (%s) ... (%s)~", __FUNCTION__, numbytes, lProcFileFullname, buffer );*/
+
+            if ( numbytes )
+            {
+                int len=strlen(buffer);
+                if ( len && buffer[len-1] == '\n')
+                {
+                    buffer[len-1] = '\0'; /* trim any carriage return at the end of the line */
+                }
+            }
+        }
+    }
+
+    return ( buffer );
+}
+
+static int writeProcFile ( const char * lProcFileFullname, const char * lProcFileContents )
+{
+    int fd = open( lProcFileFullname, O_RDWR);
+    if ( fd )
+    {
+        write( fd, lProcFileContents, strlen( lProcFileContents ) );
+        close( fd );
+        /*printf( "~ALERT~file (%s) ... contents (%s) ~", lProcFileFullname, lProcFileContents );*/
+    }
+
+    return ( 0 );
+}
+
 /**
  *  Function: This function is the main entry point for the BSYSPERF client app.
  **/
@@ -795,6 +958,7 @@ int main(
     int   memory           = 0;
     int   netStatsInit     = 0; // when true, send to browser the Net Stats html table structure
     int   netStatsUpdate   = 0; // when true, send network interface values from last second; browser will populate the html table structure
+    int   NetTuningInit    = 0;
     int   iperfInit        = 0;
     int   iperfPidClient   = 0;
     int   iperfPidServer   = 0;
@@ -831,6 +995,8 @@ int main(
     int    DvfsControl     = 0;
     int    GovernorSetting = 0;
     char   wifiDriverVersion[32];
+    char   ProcFileFullname[128];
+    char   ProcFileContents[128];
 
     if (argc > 1) {printf( "%s: no arguments are expected\n", argv[0] ); }
 
@@ -842,6 +1008,8 @@ int main(
     memset( iperfCmdLine, 0, sizeof(iperfCmdLine) );
     memset( &uname_info, 0, sizeof(uname_info));
     memset( &wifiDriverVersion, 0, sizeof(wifiDriverVersion));
+    memset( &ProcFileFullname, 0, sizeof(ProcFileFullname));
+    memset( &ProcFileContents, 0, sizeof(ProcFileContents));
 
     queryString   = getenv( "QUERY_STRING" );
 
@@ -853,6 +1021,7 @@ int main(
         scanForInt( queryString, "memory=", &memory );
         scanForInt( queryString, "netStatsInit=", &netStatsInit );
         scanForInt( queryString, "netStatsUpdate=", &netStatsUpdate );
+        scanForInt( queryString, "NetTuningInit=", &NetTuningInit );
         scanForInt( queryString, "iperfInit=", &iperfInit );
         scanForInt( queryString, "iperfPidClient=", &iperfPidClient);
         scanForInt( queryString, "iperfPidServer=", &iperfPidServer);
@@ -883,6 +1052,8 @@ int main(
         scanForInt( queryString, "DvfsControl=", &DvfsControl );
         scanForInt( queryString, "GovernorSetting=", &GovernorSetting );
         scanForStr( queryString, "uuid=", sizeof( strUuid ), strUuid );
+        scanForStr( queryString, "ProcFileFullname=", sizeof( ProcFileFullname ), ProcFileFullname );
+        scanForStr( queryString, "ProcFileContents=", sizeof( ProcFileContents ), ProcFileContents );
     }
     else
     {
@@ -1347,8 +1518,8 @@ int main(
         printf( "<tr><td class=whiteborders18 align=left style=\"font-weight:bold;width:320px;\" >Network Interface Statistics</td>" );
         printf( "<td style=\"width:20px;\" ><input type=checkbox id=checkboxiperfrow onclick=\"MyClick(event);\" ></td>");
         printf( "<td style=\"width:50px;\" align=left >iperf</td>" );
-        printf( "<td>&nbsp;</td>" );
-        printf( "<td>&nbsp;</td>" );
+        printf( "<td style=\"width:20px;\" ><input type=checkbox id=checkboxNetTuningRow onclick=\"MyClick(event);\" ></td>");
+        printf( "<td style=\"width:50px;\" align=left >Tuning</td>" );
         printf( "<td>&nbsp;</td>" );
         printf( "<td>&nbsp;</td>" );
         printf( "<td>&nbsp;</td>" );
@@ -1483,6 +1654,78 @@ int main(
             printf( "</table></div>~" ); /* end iperfInit */
         }
 
+        if (NetTuningInit)
+        {
+            long unsigned int values[3] = {0,0,0};
+
+            printf( "~NetTuningDefaults~rmem_max=%s,", readProcFile( "/proc/sys/net/core/rmem_max" ) );
+            printf( "wmem_max=%s,", readProcFile( "/proc/sys/net/core/wmem_max" ) );
+            printf( "tcp_limit_output_bytes=%s,", readProcFile( "/proc/sys/net/ipv4/tcp_limit_output_bytes" ) );
+            printf( "flush=%s,", readProcFile( "/proc/sys/net/ipv4/route/flush"  ) );
+            printf( "tcp_timestamps=%s,", readProcFile( "/proc/sys/net/ipv4/tcp_timestamps" ) );
+            printf( "tcp_sack=%s,", readProcFile( "/proc/sys/net/ipv4/tcp_sack" ) );
+            printf( "tcp_window_scaling=%s,", readProcFile( "/proc/sys/net/ipv4/tcp_window_scaling"  ) );
+            printf( "tcp_congestion_control=%s,", readProcFile( "/proc/sys/net/ipv4/tcp_congestion_control"  ) );
+            printf( "tcp_low_latency=%s,", readProcFile( "/proc/sys/net/ipv4/tcp_low_latency"  ) );
+
+            /* read the three integer values from the tcp_rmem file */
+            sscanf( readProcFile( "/proc/sys/net/ipv4/tcp_rmem" ), "%lu%lu%lu", &values[0], &values[1], &values[2] );
+            printf( "tcp_rmem1=%lu,tcp_rmem2=%lu,tcp_rmem3=%lu,", values[0], values[1], values[2] );
+
+            /* read the three integer values from the tcp_wmem file */
+            sscanf( readProcFile( "/proc/sys/net/ipv4/tcp_wmem" ), "%lu%lu%lu", &values[0], &values[1], &values[2] );
+            printf( "tcp_wmem1=%lu,tcp_wmem2=%lu,tcp_wmem3=%lu~", values[0], values[1], values[2] );
+
+
+            printf( "~NetTuningInit~" );
+            printf( "<table><tr><td class=whiteborders18 align=left style=\"font-weight:bold;width:320px;\" >Network&nbsp;Tuning</td>" );
+            printf( "<td><input type=checkbox id=checkboxNetTuningReset onclick=\"MyClick(event);\" ></td>" );
+            printf( "<td style=\"font-size:12.0pt;font-weight:normal;\" >Reset</td></tr></table>" );
+            printf( "<div style=\"border:1px solid black;\" >" );
+            printf( "<table cols=\"3\" style=\"border-collapse:collapse;borders:1px solid black;\" border=\"0\" cellpadding=\"3\" width=1000 >" );
+            printf( "<tr>" );
+            printf( "<td align=\"right\" >rmem_max</td><td align=\"left\" ><input type=text id=rmem_max style=\"width:10em;background-color:khaki;\" onkeyup=\"KeyupEntryBox(event);\" value=%s></td>", readProcFile( "/proc/sys/net/core/rmem_max" ) );
+            printf( "<td align=\"right\" >wmem_max</td><td align=\"left\" ><input type=text id=wmem_max style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s></td>", readProcFile( "/proc/sys/net/core/wmem_max" ) );
+            printf( "<td align=\"right\" >tcp_limit_output_bytes</td><td align=\"left\" ><input type=text id=tcp_limit_output_bytes style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s></td>", readProcFile( "/proc/sys/net/ipv4/tcp_limit_output_bytes" ) );
+            printf( "<td align=\"right\" >flush</td><td align=\"left\" ><input type=text id=flush    style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s> </td>", readProcFile( "/proc/sys/net/ipv4/route/flush" ) );
+            printf( "</tr>" );
+
+            printf( "<tr>" );
+            printf( "<td align=\"right\" >tcp_timestamps</td><td align=\"left\" ><input type=text id=tcp_timestamps style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s > </td>", readProcFile( "/proc/sys/net/ipv4/tcp_timestamps" ) );
+            printf( "<td align=\"right\" >tcp_sack</td><td align=\"left\" ><input type=text id=tcp_sack style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s > </td>", readProcFile( "/proc/sys/net/ipv4/tcp_sack" ) );
+            printf( "<td align=\"right\" >tcp_window_scaling</td><td align=\"left\" ><input type=text id=tcp_window_scaling style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s ></td>", readProcFile( "/proc/sys/net/ipv4/tcp_window_scaling" ) );
+            printf( "<td align=\"right\" >tcp_congestion_control</td><td align=\"left\" ><input type=text id=tcp_congestion_control style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s></td>", readProcFile( "/proc/sys/net/ipv4/tcp_congestion_control" ) );
+            printf( "</tr>" );
+
+            printf( "<tr>" );
+            printf( "<td align=\"right\" >tcp_low_latency</td><td align=\"left\" ><input type=text id=tcp_low_latency style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=%s></td>", readProcFile( "/proc/sys/net/ipv4/tcp_low_latency" ) );
+            printf( "<td align=\"right\" >&nbsp;</td><td align=\"left\" >&nbsp;</td>" );
+            printf( "<td align=\"right\" >&nbsp;</td><td align=\"left\" >&nbsp;</td>" );
+            printf( "<td align=\"right\" >&nbsp;</td><td align=\"left\" >&nbsp;</td>" );
+            printf( "</tr>" );
+
+            printf( "<tr>" );
+            printf( "<td align=\"right\" >tcp_rmem&nbsp;(3)</td><td align=\"left\" >" );
+
+            /* read the three integer values from the tcp_rmem file */
+            sscanf( readProcFile( "/proc/sys/net/ipv4/tcp_rmem" ), "%lu%lu%lu", &values[0], &values[1], &values[2] );
+
+            printf( "<input type=text id=tcp_rmem1 style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=\"%lu\"></td>", values[0] );
+            printf( "<td><input type=text id=tcp_rmem2 style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=\"%lu\"></td>", values[1] );
+            printf( "<td><input type=text id=tcp_rmem3 style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=\"%lu\"></td>", values[2] );
+            printf( "<td align=\"right\" >tcp_wmem&nbsp;(3)</td><td align=\"left\" >" );
+
+            /* read the three integer values from the tcp_wmem file */
+            sscanf( readProcFile( "/proc/sys/net/ipv4/tcp_wmem" ), "%lu%lu%lu", &values[0], &values[1], &values[2] );
+
+            printf( "<input type=text id=tcp_wmem1 style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=\"%lu\" > </td>", values[0] );
+            printf( "<td><input type=text id=tcp_wmem2 style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=\"%lu\" > </td>", values[1] );
+            printf( "<td><input type=text id=tcp_wmem3 style=\"width:10em;background-color:khaki;\" \" onkeyup=\"KeyupEntryBox(event);\" value=\"%lu\" > </td>", values[2] );
+            printf( "</tr>" );
+
+            printf( "</table></div>~" ); /* end NetTuningInit */
+        }
+
         if ( iperfRunningClient || iperfRunningServer )
         {
             char *iperf_processes = Bsysperf_GetProcessCmdline( "iperf -" );
@@ -1565,14 +1808,22 @@ int main(
             }
             else
             {
-                printf( "~iperfPidClient~0~iperfPidServer~0~" );
-                if ( iperfRunningServer )
+                /* if we just processed a new iperf command, do not report any failed pids during this pass */
+                if ( strlen(iperfCmdLine) == 0 )
                 {
-                    printf( "~iperfRunningClient~NONE~" );
+                    printf( "~iperfPidClient~0~iperfPidServer~0~" );
+                    if ( iperfRunningServer )
+                    {
+                        printf( "~iperfRunningClient~NONE~" );
+                    }
+                    if ( iperfRunningClient )
+                    {
+                        printf( "~iperfRunningServer~NONE~" );
+                    }
                 }
-                if ( iperfRunningClient )
+                else
                 {
-                    printf( "~iperfRunningServer~NONE~" );
+                    /*printflog("~DEBUG~Bsysperf_GetProcessCmdline() failed ... strlen(iperfCmdLine) %d ~\n", strlen(iperfCmdLine) );*/
                 }
             }
         }
@@ -1601,13 +1852,6 @@ int main(
 
         /* this row is where the results from the SCAN will be put */
         printf( "<tr><td colspan=8 ><table border=0 style=\"border-collapse:collapse;\" ><tbody id=WIFISCANRESULTS ></tbody></table></td></tr>");
-
-        #if 0
-        /* this row is where the AMPDU results will be put */
-        printf( "<tr><td colspan=8 ><table border=0 style=\"border-collapse:collapse;\" ><tbody id=WIFIAMPDURESULTS >\n");
-        Bsysperf_WifiAmpduInit();
-        printf( "</tbody></table></td></tr>");
-        #endif
 
         printf("</table>");
 
@@ -1734,14 +1978,12 @@ int main(
         }
         printf( "</tr>");
 
-#ifdef BWL_SUPPORT
         if ( wifiAmpduGraph )
         {
             memset( &lAmpduData, 0, sizeof(lAmpduData) );
 
             Bsysperf_WifiReadAmpduData( &lAmpduData );
         }
-#endif
 
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
         printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Chip Number:<span class=bluetext>%d (0x%x)</span></td> ", tRevInfo.ulChipNum, tRevInfo.ulChipNum );
@@ -1751,24 +1993,57 @@ int main(
         printf( "</tr>");
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
 
-#ifdef BWL_SUPPORT
-        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tot_mpdus:<span class=bluetext>%u</span></td> ", lAmpduData.tot_mpdus );
-        printf( "<td align=left colspan=2 class=silver_allborders >Tot_ampdus:<span class=bluetext>%u</span></td> ", lAmpduData.tot_ampdus );
-        printf( "<td align=left colspan=2 class=silver_allborders >MpdusPerAmdpu:<span class=bluetext>%u</span></td> ", lAmpduData.mpduperampdu );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >&nbsp;</td> " );
-        printf( "</tr>");
-#endif
         printf( "<tr>");
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tx Bytes:<span class=bluetext>%s </span></td> ", formatul( tCounters.txbyte ) );
         printf( "<td align=left colspan=2 class=silver_allborders >Tx Frames:<span class=bluetext>%s </span></td> ", formatul( tCounters.txframe ) );
         printf( "<td align=left colspan=2 class=silver_allborders >Tx Errors:<span class=bluetext>%s </span></td> ", formatul( tCounters.txerror ) );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Tx Re-trans:<span class=bluetext>%s </span></td> ", formatul( tCounters.txretrans ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Tx Serr:<span class=bluetext>%s </span></td> ", formatul( tCounters.txserr) );
         printf( "</tr>");
 
         printf( "<tr>");
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;border-bottom: solid thin black;\" >Rx Bytes:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxbyte ) );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >Rx Frames:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxframe ) );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" >Rx Errors:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxerror ) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tx PhyErr:<span class=bluetext>%s </span></td> ", formatul( tCounters.txphyerr) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Tx NoBuf:<span class=bluetext>%s </span></td> ", formatul( tCounters.txnobuf ) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Tx Retrans:<span class=bluetext>%s </span></td> ", formatul( tCounters.txretrans) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Reset:<span class=bluetext>%s </span></td> ", formatul( tCounters.reset) );
+        printf( "</tr>");
+
+        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >TX Total mpdus:<span class=bluetext>%lu</span></td> ", lAmpduData.tx_mpdus );
+        printf( "<td align=left colspan=2 class=silver_allborders >TX Total Ampdus:<span class=bluetext>%lu</span></td> ", lAmpduData.tx_ampdus );
+        printf( "<td align=left colspan=2 class=silver_allborders >TX MpdusPerAmdpu:<span class=bluetext>%lu</span></td> ", lAmpduData.tx_mpduperampdu );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >&nbsp;</td> " );
+        printf( "</tr>");
+
+        /* Put RX stats here */
+        printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >RX Total mpdus:<span class=bluetext>%lu</span></td> ", lAmpduData.rx_mpdus );
+        printf( "<td align=left colspan=2 class=silver_allborders >RX Total Ampdus:<span class=bluetext>%lu</span></td> ", lAmpduData.rx_ampdus );
+        printf( "<td align=left colspan=2 class=silver_allborders >RX MpdusPerAmdpu:<span class=bluetext>%lu</span></td> ", lAmpduData.rx_mpduperampdu );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >&nbsp;</td> " );
+        printf( "</tr>");
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Rx Bytes:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxbyte ) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Rx Frames:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxframe ) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Rx Error:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxerror) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Rx NonData:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxnondata) );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Rx FragErr:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxfragerr) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Rx NoBuf:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxnobuf) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Rx TooLate:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxtoolate) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Rx FrmTooShrt:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxfrmtooshrt) );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Rx BadCm:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxbadcm) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Rx BadFcs:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxbadfcs) );
+        printf( "<td align=left colspan=2 class=silver_allborders >Rx F0Ovfl:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxf0ovfl) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >Rx F1Ovfl:<span class=bluetext>%s </span></td> ", formatul( tCounters.rxf1ovfl) );
+        printf( "</tr>");
+
+        printf( "<tr>");
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;border-bottom: solid thin black;\" >PmqOvfl:<span class=bluetext>%s </span></td> ", formatul( tCounters.pmqovfl) );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" ><span class=bluetext>&nbsp;</span></td> " );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-bottom: solid thin black;\" ><span class=bluetext>&nbsp;</span></td> " );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;border-bottom: solid thin black;\" >&nbsp;</td> " );
         printf( "</tr>");
         printf( "</table>~" );
@@ -1777,14 +2052,12 @@ int main(
         frate = rate / 2.0;
         printf("~WIFIRATE~%5.3f~", frate );
 
-#ifdef BWL_SUPPORT
         if ( wifiAmpduGraph )
         {
             printf("~wifiAmpduGraph~");
             Bsysperf_WifiOutputAntennasHtml( &lAmpduData.antennas );
             printf("~");
         }
-#endif
     }
 
     if ( wifiScanResults != -1 )
@@ -1974,36 +2247,33 @@ int main(
 
     if ( DvfsControl == 1)
     {
-        int       numCpusConf   = 0;
-
-        numCpusConf = sysconf( _SC_NPROCESSORS_CONF );
-        if (numCpusConf > BMEMPERF_MAX_NUM_CPUS)
-        {
-            numCpusConf = BMEMPERF_MAX_NUM_CPUS;
-        }
-
-        printf( "~DvfsControl~" );
-        printf( "<table cols=9 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
-        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "DVFS Controls" );
-
-        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Power Saving Techniques" );
-        printf( "<tr style=\"outline: thin solid\" ><td colspan=9><table border=0 style=\"border-collapse:collapse;\" ><tr>");
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor1 value=1 onclick=\"MyClick(event);\" >Conservative</td>" );
-        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor2 value=2 onclick=\"MyClick(event);\" >Performance</td>" );
-        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
-        printf( "<td><input type=radio name=radioGovernor id=radioGovernor3 value=3 onclick=\"MyClick(event);\" >Power Save</td>" );
-        printf( "</tr></table></td></tr>" );
-
-        printf( "</table>~" ); /* end DvfsControl */
-
-        printf( "~GovernorSetting~%d~", get_governor_control( 0 ) );
+        Bsysperf_DvfsCreateHtml( false /* bIncludeFrequencies */ );
     }
 
     if ( GovernorSetting )
     {
         printf( "~GovernorSetting~%d~", GovernorSetting );
         set_governor_control ( 0, GovernorSetting );
+    }
+
+    if ( strlen(ProcFileFullname) > 0 && strlen(ProcFileContents) > 0 )
+    {
+        int   comma = 0;
+        char *pos=NULL;
+
+        /* The string from browser could have comma-separated values; replace the two commas with two tabs */
+        for(comma=0; comma<2; comma++ )
+        {
+            pos = strchr(ProcFileContents, ',');
+            if ( pos ) *pos = '\t';
+        }
+        writeProcFile( ProcFileFullname, ProcFileContents );
+
+        /* check to see if the value we wrote is the value that exists */
+        if ( strcmp( readProcFile( ProcFileFullname ), ProcFileContents ) != 0 )
+        {
+            printf( "~NetTuningError~%s,%s,%s~", ProcFileFullname, ProcFileContents, readProcFile( ProcFileFullname ) );
+        }
     }
 
     printf( "~STBTIME~%s~", DayMonDateYear( 0 ));

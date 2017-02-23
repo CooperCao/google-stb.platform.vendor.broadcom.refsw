@@ -43,13 +43,16 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 #if !B_REFSW_MINIMAL
 BDBG_MODULE(bape_custom_processing);
 
 BDBG_OBJECT_ID(BAPE_CustomProcessing);
 
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_CustomProcessing
 {
     BDBG_OBJECT(BAPE_CustomProcessing)
@@ -546,4 +549,131 @@ static void BAPE_CustomProcessing_P_RemoveInputCallback(struct BAPE_PathNode *pN
 {
     (void)BAPE_CustomProcessing_RemoveInput(pNode->pHandle, pConnector);
 }
-#endif
+
+#else /* #if BAPE_CHIP_HAS_POST_PROCESSING */
+typedef struct BAPE_CustomProcessing
+{
+    BDBG_OBJECT(BAPE_CustomProcessing)
+} BAPE_CustomProcessing;
+
+void BAPE_CustomProcessing_GetDefaultSettings(
+    BAPE_CustomProcessingSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_CustomProcessing_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_CustomProcessingSettings *pSettings,
+    BAPE_CustomProcessingHandle *pHandle
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+void BAPE_CustomProcessing_Destroy(
+    BAPE_CustomProcessingHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_CustomProcessing_GetSettings(
+    BAPE_CustomProcessingHandle handle,
+    BAPE_CustomProcessingSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+
+BERR_Code BAPE_CustomProcessing_SetSettings(
+    BAPE_CustomProcessingHandle handle,
+    const BAPE_CustomProcessingSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_CustomProcessing_GetAlgorithmSettings(
+    BAPE_CustomProcessingHandle handle,
+    void *pSettings,        /* [out] Should be defined as the correct data type for this custom algorithm */
+    size_t settingsSize     /* Size of the settings structure in bytes */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(settingsSize);
+}
+
+BERR_Code BAPE_CustomProcessing_SetAlgorithmSettings(
+    BAPE_CustomProcessingHandle handle,
+    const void *pSettings,  /* Should be defined as the correct data type for this custom algorithm */
+    size_t settingsSize     /* Size of the settings structure in bytes */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(settingsSize);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_CustomProcessing_GetConnector(
+    BAPE_CustomProcessingHandle handle,
+    BAPE_Connector *pConnector
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+}
+
+
+BERR_Code BAPE_CustomProcessing_AddInput(
+    BAPE_CustomProcessingHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_CustomProcessing_RemoveInput(
+    BAPE_CustomProcessingHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_CustomProcessing_RemoveAllInputs(
+    BAPE_CustomProcessingHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_CustomProcessing_GetAlgorithmStatus(
+    BAPE_CustomProcessingHandle handle,
+    void *pStatus,      /* [out] Should be defined as the correct data type for this custom algorithm */
+    size_t statusSize   /* Size of the status structure in bytes */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    BSTD_UNUSED(statusSize);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif /* #if BAPE_CHIP_HAS_POST_PROCESSING */
+#endif /* #if !B_REFSW_MINIMAL */

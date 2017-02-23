@@ -104,13 +104,14 @@ void scenario_player_p_print_scenario(ScenarioPlayerHandle player, const Scenari
     printf("details = %s\n", pScenario->details ? "on" : "off");
     printf("guide = %s\n", pScenario->guide ? "on" : "off");
     printf("gamut = %s\n", platform_get_colorimetry_name(pScenario->gamut));
-    printf("forceSdr = %s\n", pScenario->forceSdr ? "on" : "off");
+    printf("eotf = %s\n", platform_get_dynamic_range_name(pScenario->eotf));
 }
 
 void scenario_player_p_get_default_scenario(Scenario * pScenario)
 {
     memset(pScenario, 0, sizeof(*pScenario));
     pScenario->gamut = PlatformColorimetry_eAuto;
+    pScenario->eotf = PlatformDynamicRange_eAuto;
     pScenario->osd = true;
 }
 
@@ -226,13 +227,6 @@ void scenario_player_p_load_scenario(ScenarioPlayerHandle player, Scenario * pSc
                     pScenario->guide = true;
                 }
             }
-            else if (!strcmp(name, "forceSdr"))
-            {
-                if (!strcasecmp(value, "on") || strtoul(value, NULL, 0))
-                {
-                    pScenario->forceSdr = true;
-                }
-            }
             else if (!strcmp(name, "gamut"))
             {
                 if (!strcasecmp(value, "auto"))
@@ -254,6 +248,29 @@ void scenario_player_p_load_scenario(ScenarioPlayerHandle player, Scenario * pSc
                 else
                 {
                     pScenario->gamut = (PlatformColorimetry)strtoul(value, NULL, 0);
+                }
+            }
+            else if (!strcmp(name, "eotf"))
+            {
+                if (!strcasecmp(value, "auto"))
+                {
+                    pScenario->eotf = PlatformDynamicRange_eAuto;
+                }
+                else if (!strcasecmp(value, "sdr"))
+                {
+                    pScenario->eotf = PlatformDynamicRange_eSdr;
+                }
+                else if (!strcasecmp(value, "hlg"))
+                {
+                    pScenario->eotf = PlatformDynamicRange_eHlg;
+                }
+                else if (!strcasecmp(value, "hdr10"))
+                {
+                    pScenario->eotf = PlatformDynamicRange_eHdr10;
+                }
+                else
+                {
+                    pScenario->eotf = (PlatformDynamicRange)strtoul(value, NULL, 0);
                 }
             }
             else

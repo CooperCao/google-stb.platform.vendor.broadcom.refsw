@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -131,26 +131,28 @@ BERR_Code BDSP_Arm_P_InitMsgQueue(
     BERR_Code err=BERR_SUCCESS;
     uint32_t    ui32BaseAddrOffset=0;
     uint32_t    ui32EndAddrOffset=0;
-
+    BDSP_MMA_Memory Memory;
     BDBG_ENTER(BDSP_Arm_P_InitMsgQueue);
-    BDBG_MSG(("MSGQUEUE - uiBaseAddr %p, uiMsgQueueSize %u, i32MsgQID %d",
-        hMsgQueue->pBaseAddr,
+
+	BDBG_MSG(("MSGQUEUE - uiBaseAddr %p, uiMsgQueueSize %u, i32MsgQID %d",
+        hMsgQueue->Memory.pAddr,
         hMsgQueue->ui32Size,
         hMsgQueue->MsgQueueHandleIndex));
 
-    /* Conversion of address from virtual to physical*/
-    BDSP_MEM_P_ConvertAddressToOffset(pDevice->memHandle,(void *)hMsgQueue->pBaseAddr,&ui32BaseAddrOffset);
+    ui32BaseAddrOffset = hMsgQueue->Memory.offset;
     ui32EndAddrOffset = ui32BaseAddrOffset + hMsgQueue->ui32Size;
 
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32BaseAddr = ui32BaseAddrOffset;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32EndAddr  = ui32EndAddrOffset;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WrapAddr = ui32EndAddrOffset;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WriteAddr= ui32BaseAddrOffset;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32ReadAddr = ui32BaseAddrOffset;
-    BDSP_MEM_P_FlushCache(pDevice->memHandle,((void *)(&(pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex]))),sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER));
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32BaseAddr = ui32BaseAddrOffset;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32EndAddr  = ui32EndAddrOffset;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WrapAddr = ui32EndAddrOffset;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WriteAddr= ui32BaseAddrOffset;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32ReadAddr = ui32BaseAddrOffset;
 
-    hMsgQueue->psQueuePointer = &pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex];
-    hMsgQueue->hHeap = pDevice->memHandle;
+    Memory = pDevice->sArmInterfaceQ.Memory;
+    Memory.pAddr = &pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex];
+    BDSP_MMA_P_FlushCache(Memory, sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER));
+
+    hMsgQueue->psQueuePointer = &pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex];
 
     BDBG_LEAVE(BDSP_Arm_P_InitMsgQueue);
     return err;
@@ -163,19 +165,21 @@ BERR_Code BDSP_Arm_P_InvalidateMsgQueue(
 {
     BERR_Code   err = BERR_SUCCESS;
 
+    BDSP_MMA_Memory Memory;
+
     BDBG_ENTER(BDSP_Arm_P_InvalidateMsgQueue);
 
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32BaseAddr = BDSP_ARM_INVALID_DRAM_ADDRESS;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32EndAddr  = BDSP_ARM_INVALID_DRAM_ADDRESS;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WrapAddr = BDSP_ARM_INVALID_DRAM_ADDRESS;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WriteAddr= BDSP_ARM_INVALID_DRAM_ADDRESS;
-    pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32ReadAddr = BDSP_ARM_INVALID_DRAM_ADDRESS;
+    Memory = pDevice->sArmInterfaceQ.Memory;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32BaseAddr = BDSP_ARM_INVALID_DRAM_ADDRESS;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32EndAddr  = BDSP_ARM_INVALID_DRAM_ADDRESS;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WrapAddr = BDSP_ARM_INVALID_DRAM_ADDRESS;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32WriteAddr= BDSP_ARM_INVALID_DRAM_ADDRESS;
+    pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32ReadAddr = BDSP_ARM_INVALID_DRAM_ADDRESS;
 
-    BDSP_MEM_P_FlushCache(pDevice->memHandle,(void *)(&pDevice->armInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex].ui32BaseAddr),sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER));
+    Memory.pAddr = &pDevice->sArmInterfaceQ.parmInterfaceQHndl[hMsgQueue->MsgQueueHandleIndex];
+    BDSP_MMA_P_FlushCache(Memory, sizeof(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER));
 
     hMsgQueue->psQueuePointer = NULL;
-    hMsgQueue->hHeap = NULL;
-
     BDBG_LEAVE  (BDSP_Arm_P_InvalidateMsgQueue);
     return err;
 }
@@ -208,8 +212,7 @@ BERR_Code BDSP_Arm_P_CreateMsgQueue(
         err = BERR_TRACE(err);
         goto err_assign_freeinterfacequeuehandle;
     }
-
-    hHandle->pBaseAddr = (void *)psMsgQueueParams->pBaseAddr;
+    hHandle->Memory = psMsgQueueParams->Queue;
     hHandle->ui32Size  = psMsgQueueParams->uiMsgQueueSize;
 
     err = BDSP_Arm_P_InitMsgQueue(pDevice, hHandle);
@@ -253,7 +256,8 @@ BERR_Code BDSP_Arm_P_DestroyMsgQueue(
         BDBG_ERR(("BDSP_Arm_P_DestroyMsgQueue: Queue Destroy failed in Releasing of Handle Index!!!"));
         err = BERR_TRACE(err);
     }
-    hMsgQueue->pBaseAddr = NULL;
+	hMsgQueue->Memory.pAddr = NULL;
+	hMsgQueue->Memory.offset = 0;
     hMsgQueue->ui32Size  = 0;
     hMsgQueue->MsgQueueHandleIndex = 0xFFFF;
 
@@ -276,7 +280,7 @@ BERR_Code BDSP_Arm_P_WriteMsg_isr(
     uint32_t ui32dramWritePtr=0;
     uint32_t ui32maskReadPtr=0;
     uint32_t ui32maskWritePtr=0;
-    void *pvMsgQueueWriteAddr=NULL;
+	BDSP_MMA_Memory MsgQueueWriteAddr;
 
     BDBG_ENTER(BDSP_Arm_P_WriteMsg_isr);
 
@@ -380,7 +384,8 @@ BERR_Code BDSP_Arm_P_WriteMsg_isr(
     BDBG_MSG(("uiBufSize > %d", uiBufSize));
 
     /* hMsgQueue->pBaseAddr has the base address in cache format */
-    pvMsgQueueWriteAddr = (void *)((uint32_t)hMsgQueue->pBaseAddr + (ui32maskWritePtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
+	MsgQueueWriteAddr = hMsgQueue->Memory;
+	MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr + (ui32maskWritePtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
 
     /* Writing data in two chunks taking wrap-around into consideration */
     if ( (ui32maskWritePtr > ui32maskReadPtr)||
@@ -407,13 +412,16 @@ BERR_Code BDSP_Arm_P_WriteMsg_isr(
     for (i=0; i<(ui32chunk1/4); i++)
     {
         BDBG_MSG(("*((uint32_t *)pMsgBuf+i) > %x", *((uint32_t *)pMsgBuf+i)));
-
-        BDSP_P_MemWrite32_isr( hMsgQueue->hHeap,
-            (void *)((uint32_t)pvMsgQueueWriteAddr+(i*4)), *((uint32_t *)pMsgBuf+i));
+		err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf+i));
+		if(err != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Arm_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 1"));
+			goto end;
+		}
+		MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
 
         ui32dramWritePtr = ui32dramWritePtr + 4;
     }
-    BDSP_MEM_P_FlushCache_isr(hMsgQueue->hHeap,pvMsgQueueWriteAddr,ui32chunk2);
 
     /* Toggling the write pointer to wrap around */
     if((ui32maskWritePtr + ui32chunk1) == hMsgQueue->psQueuePointer->ui32EndAddr )
@@ -425,19 +433,23 @@ BERR_Code BDSP_Arm_P_WriteMsg_isr(
     /* Writing into chunk 2 */
     if ( ui32chunk2 > 0 )
     {
-        pvMsgQueueWriteAddr = (void *)((uint32_t)hMsgQueue->pBaseAddr + (ui32maskWritePtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
-
+		MsgQueueWriteAddr = hMsgQueue->Memory;
+		MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr + (ui32maskWritePtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
         for (i=0; i<(ui32chunk2/4); i++)
         {
             BDBG_MSG(("-->*((uint32_t *)pMsgBuf+i) > %x",
                        *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i)));
 
-            BDSP_P_MemWrite32_isr(hMsgQueue->hHeap,
-                (void *)((uint32_t)pvMsgQueueWriteAddr+(i*4)), *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i));
+			err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i));
+			if(err != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Arm_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 2"));
+				goto end;
+			}
+			MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
 
             ui32dramWritePtr = ui32dramWritePtr+4;
         }
-        BDSP_MEM_P_FlushCache_isr(hMsgQueue->hHeap,pvMsgQueueWriteAddr,ui32chunk2);
     }
 
     BDBG_MSG(("ui32dramReadPtr > %x",  ui32dramReadPtr));
@@ -445,10 +457,10 @@ BERR_Code BDSP_Arm_P_WriteMsg_isr(
 
     /* Updating write ptr in the handle */
     hMsgQueue->psQueuePointer->ui32WriteAddr = ui32dramWritePtr;
-    BDSP_MEM_P_FlushCache_isr(hMsgQueue->hHeap,(void *)(&hMsgQueue->psQueuePointer->ui32WriteAddr),sizeof(hMsgQueue->psQueuePointer->ui32WriteAddr));
+	BDSP_MMA_P_FlushCache_isr(hMsgQueue->Memory, sizeof(BDSP_Arm_P_MsgQueue));
 
-    BDBG_LEAVE(BDSP_Arm_P_WriteMsg_isr);
-
+end:
+	BDBG_LEAVE(BDSP_Arm_P_WriteMsg_isr);
     return err;
 
 }
@@ -551,7 +563,7 @@ BERR_Code BDSP_Arm_P_GetAsyncMsg_isr(
     uint32_t ui32chunk1=0,ui32chunk2=0,i = 0;
     int32_t  i32BytesToBeRead=0;
     uint32_t ui32ResponseSize = 0;
-    void     *pvMsgQueueReadAddr=NULL;
+	BDSP_MMA_Memory MsgQueueReadAddr;
     unsigned int uiMsgIndex = 0, uiContMsgs = 0, uiMoreMsgs = 0;
 
     BDBG_ENTER(BDSP_Arm_P_GetAsyncMsg_isr);
@@ -665,15 +677,16 @@ BERR_Code BDSP_Arm_P_GetAsyncMsg_isr(
     /* Revisit this if we make buffers a non-integral multiple of message size */
     *puiNumMsgs = i32BytesToBeRead/BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES;
 
-    pvMsgQueueReadAddr = (void *)((uint32_t)hMsgQueue->pBaseAddr + (ui32maskReadPtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
+	MsgQueueReadAddr = hMsgQueue->Memory;
+	MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr+(ui32maskReadPtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
 
     for(uiMsgIndex = 0; uiMsgIndex < uiContMsgs; uiMsgIndex++)
     {
         for(i=0; i<(ui32ResponseSize/4); i++)
         {
-            *((uint32_t *)pMsgBuf+(uiMsgIndex * BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i)
-                = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                    (void *)((uint32_t )pvMsgQueueReadAddr+(i*4) + (uiMsgIndex * BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES)));
+			*((uint32_t *)pMsgBuf+(uiMsgIndex * BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+			MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + 4);
+
         }
 
         ui32dramReadPtr +=  BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES;
@@ -682,16 +695,15 @@ BERR_Code BDSP_Arm_P_GetAsyncMsg_isr(
         hMsgQueue->psQueuePointer->ui32ReadAddr = ui32dramReadPtr;
     }
 
-    pvMsgQueueReadAddr = hMsgQueue->pBaseAddr;
-
+	MsgQueueReadAddr = hMsgQueue->Memory;
 
     for(uiMsgIndex = 0; uiMsgIndex < uiMoreMsgs; uiMsgIndex++)
     {
         for(i=0;i<(ui32ResponseSize/4);i++)
         {
-            *((uint32_t *)pMsgBuf+((uiMsgIndex+uiContMsgs) * BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i)
-                = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                (void *)((uint32_t )pvMsgQueueReadAddr+(i*4)+(uiMsgIndex * BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES)));
+			*((uint32_t *)pMsgBuf+((uiMsgIndex+uiContMsgs) * BDSP_ARM_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+			MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + 4);
+
         }
         ui32dramReadPtr = hMsgQueue->psQueuePointer->ui32BaseAddr +
                             (uiMsgIndex+1)*
@@ -723,7 +735,7 @@ BERR_Code BDSP_Arm_P_GetMsg_isr(
     uint32_t ui32chunk1=0,ui32chunk2=0,i;
     int32_t  i32BytesToBeRead=0;
     uint32_t ui32ResponseSize = 0;
-    void *   pvMsgQueueReadAddr=NULL;
+	BDSP_MMA_Memory MsgQueueReadAddr;
 
     BDBG_ENTER(BDSP_Arm_P_GetMsg_isr);
 
@@ -832,7 +844,8 @@ BERR_Code BDSP_Arm_P_GetMsg_isr(
      }
 
         /* hMsgQueue->pBaseAddr has the base address in cache format */
-    pvMsgQueueReadAddr = (void *)((uint32_t)hMsgQueue->pBaseAddr + (ui32maskReadPtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
+	MsgQueueReadAddr = hMsgQueue->Memory;
+	MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + (ui32maskReadPtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
 
     /* Reading data in two chunks taking wrap-around into consideration  */
     if ( (ui32maskReadPtr > ui32maskWritePtr)||
@@ -859,8 +872,8 @@ BERR_Code BDSP_Arm_P_GetMsg_isr(
     /* Reading from chunk1 */
     for(i=0;i<(ui32chunk1/4);i++)
     {
-        *((uint32_t *)pMsgBuf+i) = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                                    (void *)((uint32_t )pvMsgQueueReadAddr+(i*4)));
+		*((uint32_t *)pMsgBuf+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+		MsgQueueReadAddr.pAddr = (void *)((uint8_t * )MsgQueueReadAddr.pAddr + 4);
         ui32dramReadPtr = ui32dramReadPtr+4;
     }
 
@@ -874,14 +887,14 @@ BERR_Code BDSP_Arm_P_GetMsg_isr(
     /* Reading from chunk2 */
     if(ui32chunk2>0)
     {
-        pvMsgQueueReadAddr = (void *)((uint32_t)hMsgQueue->pBaseAddr + (ui32maskReadPtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
-
-        for(i=0;i<(ui32chunk2/4);i++)
-        {
-            *((uint32_t *)pMsgBuf+i) = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                (void *)((uint32_t) pvMsgQueueReadAddr+(i*4)));
-            ui32dramReadPtr = ui32dramReadPtr+4;
-        }
+		MsgQueueReadAddr = hMsgQueue->Memory;
+		MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr+ (ui32maskReadPtr - hMsgQueue->psQueuePointer->ui32BaseAddr ));
+		for(i=0;i<(ui32chunk2/4);i++)
+		{
+			*((uint32_t *)pMsgBuf+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+			MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + 4);
+			ui32dramReadPtr = ui32dramReadPtr+4;
+		}
     }
 
     BDBG_MSG(("ui32dramReadPtr > %x",  ui32dramReadPtr));
@@ -914,9 +927,8 @@ BERR_Code BDSP_Arm_P_GetMsg(
 }
 
 BERR_Code BDSP_Arm_P_GetAlgorithmSettings(
-    BMEM_Handle             hHeap,
     BDSP_Algorithm          eAlgorithm,
-    void                   *pConfigBufAddr,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory        *pMemory,
     uint32_t                ui32ConfigBufSize,    /* [in] Config Buf Size */
     void                   *pSettingsBuffer,
     size_t                  settingsBufferSize
@@ -942,7 +954,7 @@ BERR_Code BDSP_Arm_P_GetAlgorithmSettings(
 
     BDBG_ASSERT(settingsBufferSize <= ui32ConfigBufSize);
 
-    BDSP_P_CopyDataFromDram(hHeap, pSettingsBuffer,pConfigBufAddr,settingsBufferSize);
+    BDSP_MMA_P_CopyDataFromDram(pSettingsBuffer, pMemory, settingsBufferSize);
 
     BDBG_LEAVE( BDSP_Arm_P_GetAlgorithmSettings );
 
@@ -950,14 +962,14 @@ BERR_Code BDSP_Arm_P_GetAlgorithmSettings(
 }
 
 BERR_Code BDSP_Arm_P_SetAlgorithmSettings(
-    BMEM_Handle             hHeap,
     BDSP_Algorithm          eAlgorithm,
-    void                   *pConfigBufAddr,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory        *pMemory,
     uint32_t                ui32ConfigBufSize,    /* [in] Config Buf Size */
     const void             *pSettingsBuffer,
     size_t                  settingsBufferSize
     )
 {
+	BERR_Code err = BERR_SUCCESS;
     const BDSP_Arm_P_AlgorithmInfo *pInfo;
 
     BDBG_ENTER( BDSP_Arm_P_SetAlgorithmSettings );
@@ -978,17 +990,20 @@ BERR_Code BDSP_Arm_P_SetAlgorithmSettings(
 
     BDBG_ASSERT(settingsBufferSize <= ui32ConfigBufSize);
 
-    BDSP_P_CopyDataToDram(hHeap, (void *)pSettingsBuffer, pConfigBufAddr, settingsBufferSize);
+    err = BDSP_MMA_P_CopyDataToDram(pMemory, (void *)pSettingsBuffer, settingsBufferSize);
+	if(err != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Arm_P_SetAlgorithmSettings: Error in Copying the Settings buffer"));
+	}
 
     BDBG_LEAVE( BDSP_Arm_P_SetAlgorithmSettings );
 
-    return BERR_SUCCESS;
+	return err;
 }
 
 BERR_Code BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
-    BMEM_Handle     hHeap,
-    BDSP_Algorithm eAlgorithm,
-    void           *pConfigBufAddr,    /* [in] Config Buf Address */
+    BDSP_Algorithm  eAlgorithm,
+	BDSP_MMA_Memory *pConfigBuf,
     uint32_t        ui32ConfigBufSize,     /* [in] Config Buf Size */
     void           *pSettingsBuffer,
     size_t          settingsBufferSize
@@ -1014,7 +1029,7 @@ BERR_Code BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
 
     BDBG_ASSERT(settingsBufferSize <= ui32ConfigBufSize);
 
-    BDSP_P_CopyDataFromDram_isr(hHeap, pSettingsBuffer, pConfigBufAddr, settingsBufferSize);
+	BDSP_MMA_P_CopyDataFromDram_isr(pSettingsBuffer, pConfigBuf, settingsBufferSize);
 
     BDBG_LEAVE( BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr );
 
@@ -1022,9 +1037,8 @@ BERR_Code BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
 }
 
 BERR_Code BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
-    BMEM_Handle         hHeap,
     BDSP_Algorithm      eAlgorithm,
-    void               *pConfigBufAddr,    /* [in] Config Buf Address */
+	BDSP_MMA_Memory    *pConfigBuf,
     uint32_t            uiConfigBufSize,     /* [in] Config Buf Size */
     const void         *pSettingsBuffer,
     size_t              settingsBufferSize
@@ -1050,7 +1064,7 @@ BERR_Code BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
 
     BDBG_ASSERT(settingsBufferSize <= uiConfigBufSize);
 
-    BDSP_P_CopyDataToDram_isr(hHeap, (void *)pSettingsBuffer, pConfigBufAddr, settingsBufferSize);
+	BDSP_MMA_P_CopyDataToDram_isr(pConfigBuf, (void *)pSettingsBuffer, settingsBufferSize);
 
     BDBG_LEAVE( BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr );
 

@@ -564,7 +564,7 @@ typedef enum BCMD_GenKey_InCmd_e
     BCMD_GenKey_InCmd_eKeyLayer = (14 << 2) + 3,
     BCMD_GenKey_InCmd_eKeyTweak = (14 << 2) + 2,
     BCMD_GenKey_InCmd_eApplyKKCV  =  (14<<2)+1,
-    BCMD_GenKey_InCmd_eReserved_14_0  =  (14<<2)+0,
+    BCMD_GenKey_InCmd_eCwProtectionKeyIvSource = (14 << 2) + 0,
     BCMD_GenKey_InCmd_eKeyLadderOpera = (15 << 2) + 3,
     BCMD_GenKey_InCmd_eProcIn = (16 << 2),
     BCMD_GenKey_InCmd_eKeySize = (24 << 2) + 3,

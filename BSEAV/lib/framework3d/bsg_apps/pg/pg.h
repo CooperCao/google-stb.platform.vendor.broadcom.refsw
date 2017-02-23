@@ -74,6 +74,9 @@ extern float ChannelStride();
 class Metrics
 {
 public:
+   // Scale font texture sizes based on display resolution
+   static void SetPointScale(float scale);
+
    static bsg::Vec4  GetBackgroundColour();
    static bsg::Vec2  GetCurrentTimePosition();
    static bsg::Vec2  GetCurrentTimePositionOld();
@@ -146,6 +149,9 @@ public:
    static const char *GetNoProgrammeDescription();
 
    static bsg::Vec4  GetHighlightColour();
+
+private:
+   static float m_pointScale;
 };
 
 enum Priority

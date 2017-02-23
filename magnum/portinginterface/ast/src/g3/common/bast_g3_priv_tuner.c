@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bast.h"
@@ -42,6 +62,14 @@ BDBG_MODULE(bast_g3_priv_tuner);
 #define BAST_NORMALIZED_FILTER_CAL
 
 #define abs(x) ((x)<0?-(x):(x))
+
+#if ((BCHP_CHIP == 7344) || (BCHP_CHIP == 7346)) && (BCHP_VER == BCHP_VER_A0)
+#define BAST_TUNER_TOGGLE_DCO_WORKAROUND
+#endif
+
+#if ((BCHP_CHIP == 7346) || (BCHP_CHIP == 7344) || (BCHP_CHIP == 7358)) && (BCHP_VER < BCHP_VER_B0)
+#define BAST_TUNER_DAISY_IN_AVAIL
+#endif
 
 /* local routines */
 BERR_Code BAST_g3_P_TunerInit1_isr(BAST_ChannelHandle h);
@@ -70,7 +98,7 @@ BERR_Code BAST_g3_P_TunerQuickTune1_isr(BAST_ChannelHandle h);
 BERR_Code BAST_g3_P_TunerSetFreq1_isr(BAST_ChannelHandle h);
 BERR_Code BAST_g3_P_TunerSetFreq2_isr(BAST_ChannelHandle h);
 
-#if ((BCHP_CHIP == 7344) || (BCHP_CHIP == 7346)) && (BCHP_VER == BCHP_VER_A0)
+#ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
 BERR_Code BAST_g3_P_TunerToggleDcoClock_isr(BAST_ChannelHandle h);
 #endif
 
@@ -201,6 +229,7 @@ BERR_Code BAST_g3_P_TunerPowerDown(BAST_ChannelHandle h)
    BAST_TunerLnaOutputConfig inputChannel;
    bool bAllChannelsPoweredDown = true;
    BAST_ChannelHandle hChannel;
+   uint32_t powerDownMask = 0x0000000E;
    uint8_t i;
 
    /* power down tuner sub-blocks */
@@ -231,12 +260,20 @@ BERR_Code BAST_g3_P_TunerPowerDown(BAST_ChannelHandle h)
    /* power down shared components if all channels powered down */
    if (bAllChannelsPoweredDown)
    {
-      /* global power down bandgap, postdiv, refpll */
-      BAST_g3_P_AndRegister_isrsafe(hChn0, BCHP_SDS_TUNER_PWRUP_COMMON_R01, ~0x0000000F);
+      if ((hChn0Impl->tunerLnaSettings.out0 == BAST_TunerLnaOutputConfig_eOff) &&
+         (hChn0Impl->tunerLnaSettings.out1 == BAST_TunerLnaOutputConfig_eOff) &&
+         (hChn0Impl->tunerLnaSettings.daisy == BAST_TunerLnaOutputConfig_eOff))
+      {
+         /* include global power down if xbar unused */
+         powerDownMask |= 0x00000001;
+      }
+
+      /* power down bandgap, postdiv, refpll */
+      BAST_g3_P_AndRegister_isrsafe(hChn0, BCHP_SDS_TUNER_PWRUP_COMMON_R01, ~powerDownMask);
       if (h->pDevice->totalChannels > 2)
       {
          BAST_ChannelHandle hChn2 = (BAST_ChannelHandle)(h->pDevice->pChannels[2]);
-         BAST_g3_P_AndRegister_isrsafe(hChn2, BCHP_SDS_TUNER_PWRUP_COMMON_R01, ~0x0000000F);
+         BAST_g3_P_AndRegister_isrsafe(hChn2, BCHP_SDS_TUNER_PWRUP_COMMON_R01, ~powerDownMask);
       }
    }
 
@@ -1590,7 +1627,7 @@ BERR_Code BAST_g3_P_TunerWaitForDcoConverge_isr(BAST_ChannelHandle h)
    BERR_Code retCode;
    uint32_t val;
 
-#if ((BCHP_CHIP == 7344) || (BCHP_CHIP == 7346)) && (BCHP_VER == BCHP_VER_A0)
+#ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
    /* TBD skip DCO converge since DCO indirect access failure */
    hChn->funct_state = 2;
 #endif
@@ -1709,7 +1746,7 @@ BERR_Code BAST_g3_P_TunerSetFreq2_isr(BAST_ChannelHandle h)
    BAST_g3_P_WriteRegister_isrsafe(h, BCHP_SDS_AGC_AII, &val);
 #endif
 
-#if ((BCHP_CHIP == 7344) || (BCHP_CHIP == 7346)) && (BCHP_VER == BCHP_VER_A0)
+#ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
    /* toggle dco clocks as workaround */
    BAST_g3_P_TunerToggleDcoClock_isr(h);
 #endif
@@ -1759,11 +1796,10 @@ BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff)
       BAST_SCRIPT_AND(BCHP_SDS_FE_ADCPCTL, ~0x00000001),    /* clear ADC data capture FIFO reset */
       BAST_SCRIPT_WRITE(BCHP_SDS_AGC_AGCCTL, 0x00041E1E),   /* freeze IF AGC */
       BAST_SCRIPT_WRITE(BCHP_SDS_AGC_AII, 0x80000000),      /* set IF AGC integrator for appropriate DDFS tone level for LPF cal */
-
-   #if (BCHP_VER >= BCHP_VER_B0)
-      BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_MXFGA_R02, 0xC0000052),       /* hold LO phase shifters in reset, open I/Q mix switches */
-   #else
+   #ifdef BAST_TUNER_DAISY_IN_AVAIL
       BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_MXFGA_R02, 0xC0000012),       /* hold LO phase shifters in reset, open I/Q mix switches */
+   #else
+      BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_MXFGA_R02, 0xC0000052),       /* hold LO phase shifters in reset, open I/Q mix switches */
    #endif
       BAST_SCRIPT_OR(BCHP_SDS_TUNER_PWRUP_R01, 0x00000020),          /* power up cal DAC */
       BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_FILCAL_DDFS_CTL, 0x00100000), /* power up cal DAC clk, offset binary, no DDFS output shift */
@@ -1774,10 +1810,10 @@ BERR_Code BAST_g3_P_TunerCalFilter_isr(BAST_ChannelHandle h, uint8_t cutoff)
    {
       BAST_SCRIPT_AND(BCHP_SDS_TUNER_LPF_R01, ~0x00000001),          /* unbypass LPF */
       BAST_SCRIPT_AND(BCHP_SDS_TUNER_PWRUP_R01, ~0x00000020),        /* power down cal DAC */
-   #if (BCHP_VER >= BCHP_VER_B0)
-      BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_MXFGA_R02, 0xBF03F052),       /* release phase shifter reset, 12 phase Q, 12 phase I */
-   #else
+   #ifdef BAST_TUNER_DAISY_IN_AVAIL
       BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_MXFGA_R02, 0xBF03F012),       /* release phase shifter reset, 12 phase Q, 12 phase I */
+   #else
+      BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_MXFGA_R02, 0xBF03F052),       /* release phase shifter reset, 12 phase Q, 12 phase I */
    #endif
       BAST_SCRIPT_WRITE(BCHP_SDS_TUNER_FILCAL_DDFS_CTL, 0x00020000), /* power down cal DAC clk */
       BAST_SCRIPT_EXIT
@@ -2184,11 +2220,12 @@ BERR_Code BAST_g3_P_TunerConfigLna_isr(BAST_Handle h, BAST_TunerLnaSettings *pSe
 
    /* internal LNA crossbar always controlled from TUNER0 */
    BAST_g3_P_ReadRegister_isrsafe(hChn0, BCHP_SDS_TUNER_DAISY_R01, &daisy_ctl);
-#if (BCHP_VER >= BCHP_VER_B0)
-   daisy_ctl |= 0x00000001;   /* power down daisy output as default */
-#else
+#ifdef BAST_TUNER_DAISY_IN_AVAIL
    daisy_ctl |= 0x00001800;   /* power down daisy input output as default */
+#else
+   daisy_ctl |= 0x00000001;   /* power down daisy output as default */
 #endif
+
    hChn0Impl->tunerLnaSettings = *pSettings;
    hChn0Impl->tunerLnaStatus = 0;
 
@@ -2201,22 +2238,22 @@ BERR_Code BAST_g3_P_TunerConfigLna_isr(BAST_Handle h, BAST_TunerLnaSettings *pSe
          sw_ctl |= 0x01;   /* turn on input 0 to output 0 */
          break;
       case BAST_TunerLnaOutputConfig_eIn1:
-      #if (BCHP_VER >= BCHP_VER_B0)
-         /* input 1 to output 0 routing removed in B0 */
+      #ifdef BAST_TUNER_DAISY_IN_AVAIL
+         sw_ctl |= 0x08;   /* turn on input 1 to output 0 */
+      #else
+         /* input 1 to output 0 routing removed in new ip */
          hChn0Impl->tunerLnaStatus |= BAST_TUNER_LNA_STATUS_ERR_INVALID_CFG;
          return BERR_TRACE(BERR_INVALID_PARAMETER);
-      #else
-         sw_ctl |= 0x08;   /* turn on input 1 to output 0 */
       #endif
          break;
       case BAST_TunerLnaOutputConfig_eDaisy:
-      #if (BCHP_VER >= BCHP_VER_B0)
-         /* daisy input removed in B0 */
-         hChn0Impl->tunerLnaStatus |= BAST_TUNER_LNA_STATUS_ERR_INVALID_CFG;
-         return BERR_TRACE(BERR_INVALID_PARAMETER);
-      #else
+      #ifdef BAST_TUNER_DAISY_IN_AVAIL
          sw_ctl |= 0x40;   /* turn on daisy input to output 0 */
          daisy_ctl &= ~0x00000800;  /* power up daisy input */
+      #else
+         /* daisy input removed in new ip */
+         hChn0Impl->tunerLnaStatus |= BAST_TUNER_LNA_STATUS_ERR_INVALID_CFG;
+         return BERR_TRACE(BERR_INVALID_PARAMETER);
       #endif
          break;
       default:
@@ -2235,13 +2272,13 @@ BERR_Code BAST_g3_P_TunerConfigLna_isr(BAST_Handle h, BAST_TunerLnaSettings *pSe
          sw_ctl |= 0x10;   /* turn on input 1 to output 1 */
          break;
       case BAST_TunerLnaOutputConfig_eDaisy:
-      #if (BCHP_VER >= BCHP_VER_B0)
+      #ifdef BAST_TUNER_DAISY_IN_AVAIL
+         sw_ctl |= 0x80;   /* turn on daisy input to output 1 */
+         daisy_ctl &= ~0x00000800;  /* power up daisy input */
+      #else
          /* daisy input removed in B0 */
          hChn0Impl->tunerLnaStatus |= BAST_TUNER_LNA_STATUS_ERR_INVALID_CFG;
          return BERR_TRACE(BERR_INVALID_PARAMETER);
-      #else
-         sw_ctl |= 0x80;   /* turn on daisy input to output 1 */
-         daisy_ctl &= ~0x00000800;  /* power up daisy input */
       #endif
          break;
       default:
@@ -2255,20 +2292,20 @@ BERR_Code BAST_g3_P_TunerConfigLna_isr(BAST_Handle h, BAST_TunerLnaSettings *pSe
          break;
       case BAST_TunerLnaOutputConfig_eIn0:
          sw_ctl |= 0x04;   /* turn on input 0 to daisy output */
-      #if (BCHP_VER >= BCHP_VER_B0)
-         daisy_ctl &= ~0x00000001;  /* power up daisy output */
-      #else
+      #ifdef BAST_TUNER_DAISY_IN_AVAIL
          daisy_ctl &= ~0x00001000;  /* power up daisy output */
+      #else
+         daisy_ctl &= ~0x00000001;  /* power up daisy output */
       #endif
          break;
       case BAST_TunerLnaOutputConfig_eIn1:
-      #if (BCHP_VER >= BCHP_VER_B0)
+      #ifdef BAST_TUNER_DAISY_IN_AVAIL
+         sw_ctl |= 0x20;   /* turn on input 1 to daisy output */
+         daisy_ctl &= ~0x00001000;  /* power up daisy output */
+      #else
          /* input 1 to daisy routing removed in B0 */
          hChn0Impl->tunerLnaStatus |= BAST_TUNER_LNA_STATUS_ERR_INVALID_CFG;
          return BERR_TRACE(BERR_INVALID_PARAMETER);
-      #else
-         sw_ctl |= 0x20;   /* turn on input 1 to daisy output */
-         daisy_ctl &= ~0x00001000;  /* power up daisy output */
       #endif
          break;
       default:
@@ -2316,7 +2353,7 @@ BERR_Code BAST_g3_P_TunerGetLnaStatus(BAST_ChannelHandle h, BAST_TunerLnaStatus 
 }
 
 
-#if ((BCHP_CHIP == 7344) || (BCHP_CHIP == 7346)) && (BCHP_VER == BCHP_VER_A0)
+#ifdef BAST_TUNER_TOGGLE_DCO_WORKAROUND
 /******************************************************************************
  BAST_g3_P_TunerToggleDcoClock_isr() - emulate DCO clock
 ******************************************************************************/

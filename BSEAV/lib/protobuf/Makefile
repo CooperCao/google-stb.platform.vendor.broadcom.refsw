@@ -63,13 +63,15 @@ endif
 
 PROTOBUF_CONFIG_CXXFLAGS?= -O2 -fPIC -Wno-unused-local-typedefs -Wno-maybe-uninitialized -Wno-return-type
 
-.PHONY: source all clean
+.PHONY: source all clean build_protoc
 
 B_PROTOBUF_EXTRACT_REDIR :=
 
 ifeq ($(B_REFSW_PROTOBUF_IS_EXTERNAL),y)
     $(warning B_REFSW_PROTOBUF_IS_EXTERNAL=${B_REFSW_PROTOBUF_IS_EXTERNAL} Skipping build of Protobuf...)
 endif   #  ifeq ($(B_REFSW_PROTOBUF_IS_EXTERNAL),y)
+
+all : ${PROTOBUF_SOURCE_PATH}/.compiled
 
 build_protoc: source
 ifneq ($(PROTOBUF_VER), $(PROTOC_VER))
@@ -84,7 +86,7 @@ ifneq ($(PROTOBUF_VER), $(PROTOC_VER))
 		echo "================ PROTOBUF Configured"; \
 	fi
 	@echo "================ Building protoc for build server"
-	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} -j10 ${MAKE_SUFFIX}
+	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} ${MAKE_SUFFIX}
 	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} install ${MAKE_SUFFIX}
 	@if [ ! -e "${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/host/bin/protoc" ]; then \
 		echo "Filed to build protoc!"; exit 1; \
@@ -95,7 +97,7 @@ else
 	@echo "================ Use protoc installed in build server"
 endif # ifneq ($(PROTOBUF_VER), $(PROTOC_VER))
 
-all : build_protoc
+${PROTOBUF_SOURCE_PATH}/.compiled : | build_protoc
 	@echo "================ Configuring PROTOBUF"
 	@if [ ! -e "${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/Makefile" ]; then \
 		echo "================ Configure PROTOBUF"; \
@@ -115,8 +117,8 @@ all : build_protoc
 	fi
 
 	@echo "================ Compiling PROTOBUF==============================="
-	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} -j10 ${MAKE_SUFFIX}
-	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/gtest -j10 ${MAKE_SUFFIX}
+	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} ${MAKE_SUFFIX}
+	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/gtest ${MAKE_SUFFIX}
 	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} install ${MAKE_SUFFIX}
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
 		${STRIP} ${PROTOBUF_LIB_FOLDER}/*.so; \
@@ -158,5 +160,5 @@ clean :
 	@echo "================ MAKE CLEAN"
 	@rm -rf .libs
 	@rm -rf ${PROTOBUF_TAR_PATH}
-	@rm -rf all
+	@rm -rf ${PROTOBUF_SOURCE_PATH}/.compiled
 	@echo "================ Done"

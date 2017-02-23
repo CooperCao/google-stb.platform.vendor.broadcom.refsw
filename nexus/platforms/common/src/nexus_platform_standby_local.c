@@ -42,7 +42,7 @@
 #include "bstd.h"
 #include "bkni.h"
 
-#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
 #include <sys/ioctl.h>
 #include "wakeup_driver.h"
 #include "nexus_base_os.h"
@@ -184,7 +184,7 @@ int set_rtc_wake(unsigned timeout)
    return 0;
 }
 
-void NEXUS_Platform_P_FindSysWake(NEXUS_Platform_P_SysWake type)
+static void NEXUS_Platform_P_FindSysWake(NEXUS_Platform_P_SysWake type)
 {
     DIR * dir = opendir(g_sysWakePath[type].dir);
     struct dirent *ent;
@@ -308,7 +308,7 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
 #if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
     NEXUS_Error rc = NEXUS_SUCCESS;
 
-#if NEXUS_CPU_ARM
+#if defined(NEXUS_WKTMR)
     wakeup_devices wakeups;
 
     rc = NEXUS_Platform_P_InitWakeupDriver();
@@ -348,7 +348,7 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
     rc = NEXUS_Platform_SetStandbySettings_driver(pSettings);
     if (rc) { rc = BERR_TRACE(rc); }
 
-#if NEXUS_CPU_ARM
+#if defined(NEXUS_WKTMR)
     g_Standby_State.mode = pSettings->mode;
 #endif
 
@@ -362,7 +362,7 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
 NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus)
 {
 #if NEXUS_POWER_MANAGEMENT && !B_REFSW_SYSTEM_MODE_CLIENT
-#if NEXUS_CPU_ARM
+#if defined(NEXUS_WKTMR)
     NEXUS_Error rc = NEXUS_SUCCESS;
     wakeup_devices wakeups;
     unsigned int wktmr_count=0, wkgpio_count=0;
@@ -421,7 +421,7 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
 
 }
 
-#if NEXUS_POWER_MANAGEMENT && NEXUS_CPU_ARM && !B_REFSW_SYSTEM_MODE_CLIENT
+#if NEXUS_POWER_MANAGEMENT && defined(NEXUS_WKTMR) && !B_REFSW_SYSTEM_MODE_CLIENT
 NEXUS_Error NEXUS_Platform_P_InitWakeupDriver(void)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;

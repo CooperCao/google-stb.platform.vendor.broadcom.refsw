@@ -113,3 +113,8 @@ __aeabi_unwind_cpp_pr0:
 raise:
 	mov	r0, #0
 	mov	pc, lr
+
+	.global __getstack
+__getstack:
+	mov r0, sp
+	bx  lr

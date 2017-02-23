@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1140,6 +1140,25 @@ bool BXPT_PcrOffset_IsOffsetValid(
     Status = BXPT_PcrOffset_IsOffsetValid_isr( hPcrOff );
     BKNI_LeaveCriticalSection();
     return Status;
+}
+
+bool BXPT_PcrOffset_IsOffsetEnabled_isr(
+      BXPT_PcrOffset_Handle hChannel,
+      unsigned int PidChannel
+    )
+{
+   uint32_t RegAddr;
+
+   BDBG_ASSERT( hChannel );
+
+   if( PidChannel >= BXPT_NUM_PID_CHANNELS )
+   {
+       BDBG_ERR(( "PidChannelNum %u out of range!", PidChannel ));
+       return false;
+   }
+
+   RegAddr = BCHP_XPT_PCROFFSET_PID_CONFIG_TABLE_i_ARRAY_BASE + PidChannel * PID_CHNL_STEPSIZE;
+   return BCHP_GET_FIELD_DATA( BREG_Read32( hChannel->hReg, RegAddr ), XPT_PCROFFSET_PID_CONFIG_TABLE_i, PCROFFSET_EN ) == 1 ? true : false;
 }
 
 bool BXPT_PcrOffset_IsOffsetValid_isr(

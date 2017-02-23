@@ -896,6 +896,7 @@ static void NEXUS_Frontend_P_Uninit45216(NEXUS_45216Device *pDevice)
             BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
             pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
         }
+        BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
     }
 #endif
 

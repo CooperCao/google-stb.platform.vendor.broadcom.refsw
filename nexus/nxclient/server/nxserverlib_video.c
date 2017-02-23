@@ -357,26 +357,18 @@ struct video_decoder_resource *nx_video_decoder_p_malloc(struct b_connect *conne
 static bool nxserver_p_urr_on(nxserver_t server)
 {
     NEXUS_HeapRuntimeSettings heapSettings;
-#ifdef NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP
     if (server->platformConfig.heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP]) {
         NEXUS_Platform_GetHeapRuntimeSettings(server->platformConfig.heap[NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP], &heapSettings);
         return heapSettings.secure;
     }
-#else
-    BSTD_UNUSED(heapSettings);
-#endif
-#ifdef NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP
     if (server->platformConfig.heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP]) {
         NEXUS_Platform_GetHeapRuntimeSettings(server->platformConfig.heap[NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP], &heapSettings);
         return heapSettings.secure;
     }
-#endif
-#ifdef NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP
     if (server->platformConfig.heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP]) {
         NEXUS_Platform_GetHeapRuntimeSettings(server->platformConfig.heap[NEXUS_MEMC2_SECURE_PICTURE_BUFFER_HEAP], &heapSettings);
         return heapSettings.secure;
     }
-#endif
     return false;
 }
 #endif

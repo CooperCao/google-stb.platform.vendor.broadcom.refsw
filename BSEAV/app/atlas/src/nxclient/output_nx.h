@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,6 +66,7 @@ public:
     bool isValidHotplug(uint16_t count); /* see NxClient_CallbackStatus.hdmiOutputHotplug */
     bool isValidHdcp(uint16_t count);    /* see NxClient_CallbackStatus.hdmiOutputHdcpChanged */
     eRet setColorSpace(NEXUS_ColorSpace colorSpace);
+    eRet setColorDepth(uint8_t colorDepth);
 
 protected:
     NxClient_CallbackStatus _statusCallback;

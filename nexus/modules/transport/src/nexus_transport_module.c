@@ -378,7 +378,7 @@ void NEXUS_TransportModule_GetDefaultSettings(NEXUS_TransportModuleSettings *pSe
     return;
 }
 
-void NEXUS_InputBand_P_GetDefaultSettings(NEXUS_InputBand inputBand, NEXUS_InputBandSettings *pSettings)
+static void NEXUS_InputBand_P_GetDefaultSettings(NEXUS_InputBand inputBand, NEXUS_InputBandSettings *pSettings)
 {
 #if NEXUS_MAX_INPUT_BANDS
     BXPT_InputBandConfig cfg;
@@ -476,16 +476,26 @@ static void NEXUS_TransportModule_P_Print(void)
     NEXUS_P_HwPidChannel *pidChannel;
     BDBG_LOG(("transport"));
     #if NEXUS_MAX_INPUT_BANDS
-    for (i=0; i<NEXUS_MAX_INPUT_BANDS; i++) {
-        if (pTransport->inputBand[i].enabled) {
-            BDBG_LOG(("input band %d: enabled pktsize=%u", i, pTransport->inputBand[i].settings.packetLength));
-        }
+    {
+       bool foundOne = false;
+
+       for (i=0; i<NEXUS_MAX_INPUT_BANDS; i++) {
+           if (pTransport->inputBand[i].enabled) {
+               foundOne = true;
+               BDBG_LOG(("input band %d: enabled pktsize=%u", i, pTransport->inputBand[i].settings.packetLength));
+           }
+       }
+
+       if (foundOne && pTransport->overflow.inputBuffer) {
+          BDBG_LOG(("  %u input band buffer overflows", pTransport->overflow.inputBuffer));
+       }
     }
     #endif
 
     #if NEXUS_NUM_PARSER_BANDS
     for (i=0;i<NEXUS_NUM_PARSER_BANDS;i++) {
         NEXUS_ParserBandHandle pb = pTransport->parserBand[i];
+        NEXUS_ParserBandStatus status;
         if (pb) {
             const char *sourceTypeStr;
             unsigned long sourceIndex;
@@ -513,23 +523,26 @@ static void NEXUS_TransportModule_P_Print(void)
                 sourceIndex = pb->settings.sourceType;
                 break;
             }
-            BDBG_LOG(("parser band %d: source %s %#lx, enabled %c, pid channels %d, cc errors %d, tei errors %d, length errors %d",
+
+            NEXUS_ParserBand_GetStatus(pb->enumBand, &status);
+            BDBG_LOG(("parser band %d: source %s %#lx, enabled %c, pid channels %d, cc errors %d, tei errors %d, length errors %d, RS overflows %u",
                 pb->hwIndex, sourceTypeStr, sourceIndex,
                 pb->settings.sourceType == NEXUS_ParserBandSourceType_eMtsif?'-':pb->enabled?'y':'n',
-                pb->pidChannels, pb->ccErrorCount, pb->teiErrorCount, pb->lengthErrorCount));
+                pb->pidChannels, pb->ccErrorCount, pb->teiErrorCount, pb->lengthErrorCount, status.rsBufferStatus.overflowErrors));
         }
     }
     #endif
+
     #if NEXUS_NUM_PLAYPUMPS
     for (i=0;i<NEXUS_NUM_PLAYPUMPS;i++) {
         NEXUS_PlaypumpHandle p = pTransport->playpump[i].playpump;
         if (p) {
             NEXUS_PlaypumpStatus status;
             if (NEXUS_Playpump_GetStatus(p, &status)) continue;
-            BDBG_LOG(("playpump %d: %s, fifo %u/%u(%u%%) %uKB played", status.index,
+            BDBG_LOG(("playpump %d: %s, fifo %u/%u(%u%%) %uKB played, %u stream errors, %u sync errors, %u resyncs, %u pacing errors", status.index,
                 status.started?"started":"stopped",
                 (unsigned)status.fifoDepth, (unsigned)status.fifoSize, status.fifoSize?(unsigned)(status.fifoDepth*100/status.fifoSize):0,
-                (unsigned)(status.bytesPlayed/1024)));
+                (unsigned)(status.bytesPlayed/1024), status.streamErrors, status.syncErrors, status.resyncEvents, status.pacingTsRangeError));
         }
     }
     #endif
@@ -557,11 +570,16 @@ static void NEXUS_TransportModule_P_Print(void)
         if (NEXUS_P_HwPidChannel_GetStatus(pidChannel, &status)) continue;
 
         for (swPidChannel = BLST_S_FIRST(&pidChannel->swPidChannels); swPidChannel; swPidChannel = BLST_S_NEXT(swPidChannel, link)) {
-            BDBG_LOG(("pidchannel %p: ch %d, %s %u, pid %#x", (void *)swPidChannel, status.pidChannelIndex, status.playback?"playback":"parser",
-                status.playback ? status.playbackIndex : status.parserBand, status.pid));
+            BDBG_LOG(("pidchannel %p: ch %d, %s %u, pid %#x, %u cc errors, %u XC overflows", (void *)swPidChannel, status.pidChannelIndex, status.playback?"playback":"parser",
+                status.playback ? status.playbackIndex : status.parserBand, status.pid, status.continuityCountErrors, status.xcBufferStatus.overflowErrors ));
+            if (status.raveStatus.continuityCountErrors + status.raveStatus.emulationByteRemovalErrors + status.raveStatus.pusiErrors + status.raveStatus.teiErrors +
+                status.raveStatus.cdbOverflowErrors + status.raveStatus.itbOverflowErrors) {
+                BDBG_LOG(("    RAVE: %u cc errors, %u emulation byte errors, %u PUSI errors, %u TEI errors, %u CDB overflows, %u ITB overflows",
+                    status.raveStatus.continuityCountErrors, status.raveStatus.emulationByteRemovalErrors, status.raveStatus.pusiErrors, status.raveStatus.teiErrors,
+                    status.raveStatus.cdbOverflowErrors, status.raveStatus.itbOverflowErrors ));
+            }
         }
     }
-
 
     for (i=0;i<BXPT_NUM_RAVE_CONTEXTS;i++) {
         struct NEXUS_Rave* rave = pTransport->rave[0].context[i];

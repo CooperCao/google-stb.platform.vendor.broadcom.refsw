@@ -78,10 +78,12 @@
 #define BIN_DIR "/system/bin"
 #define SBIN_DIR "/sbin"
 #define IFCONFIG_UTILITY "/system/bin/netcfg"
+#define ETHTOOL_UTILITY "/system/bin/ethtool"
 #else
 #define BIN_DIR "/bin"
 #define SBIN_DIR "/sbin"
 #define IFCONFIG_UTILITY "/sbin/ifconfig"
+#define ETHTOOL_UTILITY "/bin/ethtool"
 #endif
 
 typedef enum

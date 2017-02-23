@@ -46,6 +46,11 @@ else
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux ), ${B_REFSW_ARCH})
 B_REFSW_CROSS_COMPILE ?= aarch64-linux-
 B_REFSW_LINUX_ARCH=arm64
+else
+ifeq ($(filter ${B_REFSW_ARCH}, mipsel-linux ), ${B_REFSW_ARCH})
+B_REFSW_CROSS_COMPILE ?= mipsel-linux-
+B_REFSW_LINUX_ARCH=mips
+endif
 endif
 endif
 
@@ -74,7 +79,7 @@ endif
 wakeup_drv-objs := wakeup_driver.o
 
 all: $(BCM_OBJ_PATH)
-	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) modules ARCH=$(B_REFSW_LINUX_ARCH) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
+	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) modules srctree=$(LINUX) ARCH=$(B_REFSW_LINUX_ARCH) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 
 clean: $(BCM_OBJ_PATH)
 	${Q_}${MAKE} -C $(LINUX_OUT) M=$(BCM_OBJ_PATH) clean

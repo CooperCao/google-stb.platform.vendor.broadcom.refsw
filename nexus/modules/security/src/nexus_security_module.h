@@ -60,6 +60,10 @@
 #include "nexus_keyladder_vista.h"
 #endif
 
+#if NEXUS_SECURITY_SCTE52
+#include "nexus_dsk_scte52.h"
+#endif
+
 #if NEXUS_SECURITY_IRDETO
 #include "nexus_irdeto.h"
 #endif

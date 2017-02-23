@@ -77,6 +77,7 @@ The following are specified region IDs remapping from Generic.
 **/
 #define BHSM_REGION_GLR  BHSM_GLOBAL_REGION         /* GLR - Global Region */
 #define BHSM_REGION_CRR  BHSM_RESTRICTED_REGION_0   /* CRR - Compresses Restricted Region, compressed referring to compressed media */
+#define BHSM_REGION_XRR  BHSM_RESTRICTED_REGION_1   /* XRR - Export Restricted Region */
 
 
 #define   BHSM_SLOT_NUM_INIT_VAL  (0xFFFF)
@@ -1703,6 +1704,7 @@ BERR_Code BHSM_InvalidateTransportKeySlots(
 
 BERR_Code BHSM_InitialiseBypassKeyslots( BHSM_Handle hHsm );
 
+BERR_Code BHSM_InitialiseBypassKeyslots_sage( BHSM_Handle hHsm );
 
 
 /**

@@ -79,7 +79,7 @@ void NEXUS_AudioProcessor_GetDefaultOpenSettings(
     }
 }
 
-NEXUS_Error NEXUS_AudioProcessor_P_GetPiSettings(
+static NEXUS_Error NEXUS_AudioProcessor_P_GetPiSettings(
     NEXUS_AudioProcessorHandle handle,
     NEXUS_AudioProcessorSettings *pSettings   /* [out] default settings */
     )

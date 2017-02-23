@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -130,9 +150,10 @@ const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
       BDBG_STRING_INLINE("Stripe Width"),
       BDBG_STRING_INLINE("X"),
       BDBG_STRING_INLINE("Y"),
-      BDBG_STRING_INLINE("MEMC Type"),
+      BDBG_STRING_INLINE("Word Size"),
       BDBG_STRING_INLINE("Bank Type"),
       BDBG_STRING_INLINE("Page Size"),
+      BDBG_STRING_INLINE("Grouping"),
     },
     {
       BDBG_STRING_INLINE("Response (Init)"),
@@ -156,7 +177,8 @@ const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
     {
       BDBG_STRING_INLINE("Command (Open)"),
       BDBG_STRING_INLINE("Channel ID"),
-      BDBG_STRING_INLINE("Non-Secure Buffer Base"),
+      BDBG_STRING_INLINE("Non-Secure Buffer Base (LSB)"),
+      BDBG_STRING_INLINE("Non-Secure Buffer Base (MSB)"),
       BDBG_STRING_INLINE("Non-Secure Buffer Size"),
       BDBG_STRING_INLINE("Secure Buffer Base"),
       BDBG_STRING_INLINE("Secure Buffer Size"),
@@ -232,9 +254,11 @@ const BVCE_P_CommandDebug BVCE_P_CommandLUT[] =
       BDBG_STRING_INLINE("Flags"),
       BDBG_STRING_INLINE("STC Index"),
       BDBG_STRING_INLINE("Context ID"),
-      BDBG_STRING_INLINE("ITB Buffer Offset"),
+      BDBG_STRING_INLINE("ITB Buffer Offset (LSB)"),
+      BDBG_STRING_INLINE("ITB Buffer Offset (MSB)"),
       BDBG_STRING_INLINE("ITB Buffer Size"),
-      BDBG_STRING_INLINE("CDB Buffer Offset"),
+      BDBG_STRING_INLINE("CDB Buffer Offset (LSB)"),
+      BDBG_STRING_INLINE("CDB Buffer Offset (MSB)"),
       BDBG_STRING_INLINE("CDB Buffer Size"),
       BDBG_STRING_INLINE("A2P Delay"),
       BDBG_STRING_INLINE("Min/Max Frame Rate"),
@@ -315,4 +339,6 @@ const char* const BVCE_P_Debug_EntryTypeLUT[BVCE_DebugFifo_EntryType_eMax] =
    BDBG_STRING_INLINE("RSP"),
    BDBG_STRING_INLINE("TR0"),
    BDBG_STRING_INLINE("TR1"),
+   BDBG_STRING_INLINE("CDO"),
+   BDBG_STRING_INLINE("ITO"),
 };

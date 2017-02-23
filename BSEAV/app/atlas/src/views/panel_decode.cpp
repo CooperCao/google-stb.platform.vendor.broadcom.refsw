@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -147,27 +147,27 @@ eRet CPanelDecode::initialize(
         _Video->setMenuTitle(NULL, "Video");
         _Video->setScroll(true);
         {
-            addDualLabelButton(_Video, "PID", &_Video_pid, &_Video_pidLabel, &_Video_pidValue, font12);
+            _Video->addDualLabelButton(this, "PID", &_Video_pid, &_Video_pidLabel, &_Video_pidValue, font12);
             _Video_pid->setFocusable(false);
             _Video_pidLabel->setText("PID:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Video_pidValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Video, "Codec", &_Video_codec, &_Video_codecLabel, &_Video_codecValue, font12);
+            _Video->addDualLabelButton(this, "Codec", &_Video_codec, &_Video_codecLabel, &_Video_codecValue, font12);
             _Video_codec->setFocusable(false);
             _Video_codecLabel->setText("Codec:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Video_codecValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Video, "Size", &_Video_size, &_Video_sizeLabel, &_Video_sizeValue, font12);
+            _Video->addDualLabelButton(this, "Size", &_Video_size, &_Video_sizeLabel, &_Video_sizeValue, font12);
             _Video_size->setFocusable(false);
             _Video_sizeLabel->setText("Size:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Video_sizeValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Video, "Frame Rate", &_Video_framerate, &_Video_framerateLabel, &_Video_framerateValue, font12);
+            _Video->addDualLabelButton(this, "Frame Rate", &_Video_framerate, &_Video_framerateLabel, &_Video_framerateValue, font12);
             _Video_framerate->setFocusable(false);
             _Video_framerateLabel->setText("Frame Rate:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Video_framerateValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Video, "Aspect", &_Video_aspect, &_Video_aspectLabel, &_Video_aspectValue, font12);
+            _Video->addDualLabelButton(this, "Aspect", &_Video_aspect, &_Video_aspectLabel, &_Video_aspectValue, font12);
             _Video_aspect->setFocusable(false);
             _Video_aspectLabel->setText("Aspect:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Video_aspectValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -179,22 +179,22 @@ eRet CPanelDecode::initialize(
         _Audio->setMenuTitle(NULL, "Audio");
         _Audio->setScroll(true);
         {
-            addDualLabelButton(_Audio, "PID", &_Audio_pid, &_Audio_pidLabel, &_Audio_pidValue, font12);
+            _Audio->addDualLabelButton(this, "PID", &_Audio_pid, &_Audio_pidLabel, &_Audio_pidValue, font12);
             _Audio_pid->setFocusable(false);
             _Audio_pidLabel->setText("PID:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Audio_pidValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Audio, "Codec", &_Audio_codec, &_Audio_codecLabel, &_Audio_codecValue, font12);
+            _Audio->addDualLabelButton(this, "Codec", &_Audio_codec, &_Audio_codecLabel, &_Audio_codecValue, font12);
             _Audio_codec->setFocusable(false);
             _Audio_codecLabel->setText("Codec:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Audio_codecValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Audio, "Channels", &_Audio_channels, &_Audio_channelsLabel, &_Audio_channelsValue, font12);
+            _Audio->addDualLabelButton(this, "Channels", &_Audio_channels, &_Audio_channelsLabel, &_Audio_channelsValue, font12);
             _Audio_channels->setFocusable(false);
             _Audio_channelsLabel->setText("Channels:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Audio_channelsValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
 
-            addDualLabelButton(_Audio, "Sample", &_Audio_sample, &_Audio_sampleLabel, &_Audio_sampleValue, font12);
+            _Audio->addDualLabelButton(this, "Sample", &_Audio_sample, &_Audio_sampleLabel, &_Audio_sampleValue, font12);
             _Audio_sample->setFocusable(false);
             _Audio_sampleLabel->setText("Sample:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Audio_sampleValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -206,7 +206,7 @@ eRet CPanelDecode::initialize(
         _Pcr->setMenuTitle(NULL, "PCR");
         _Pcr->setScroll(true);
         {
-            addDualLabelButton(_Pcr, "PID", &_Pcr_pid, &_Pcr_pidLabel, &_Pcr_pidValue, font12);
+            _Pcr->addDualLabelButton(this, "PID", &_Pcr_pid, &_Pcr_pidLabel, &_Pcr_pidValue, font12);
             _Pcr_pid->setFocusable(false);
             _Pcr_pidLabel->setText("PID:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
             _Pcr_pidValue->setText("", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -405,6 +405,9 @@ void CPanelDecode::processNotification(CNotification & notification)
 
         CHECK_PTR_ERROR_GOTO("decode start notification received with invalid decoder data", pAudioDecode, ret, eRet_Ok, error);
 
+        /* SW7439-895: we need to get a correct value- eUnknown so we can query and do this again when audio panel is requested.
+           temporary undetermenistic sleep, This gives audio a change to probe and get the correct value. */
+        BKNI_Sleep(500);
         ret = pAudioDecode->getStatus(&nDecodeStatus);
         CHECK_ERROR_GOTO("getting audio decoder status failed!", ret, error);
 

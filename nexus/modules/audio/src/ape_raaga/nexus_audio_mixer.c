@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -75,6 +75,8 @@ static NEXUS_AudioMixer g_mixers[NEXUS_NUM_AUDIO_MIXERS];
 static NEXUS_AudioMixer g_mixers[1];
 #endif
 
+#define min(A,B) ((A)<(B)?(A):(B))
+
 static NEXUS_Error NEXUS_AudioMixer_P_ApplyMixerVolume(NEXUS_AudioMixerHandle handle, NEXUS_AudioInputHandle input, const BAPE_MixerInputVolume *pInputVolume, const NEXUS_AudioMixerInputNode *pInputNode);
 
 /***************************************************************************
@@ -120,8 +122,13 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
     int i;
     NEXUS_Error rc=0;
     NEXUS_AudioMixerSettings * defaults = NULL;
+    NEXUS_AudioCapabilities audioCapabilities;
+    int mixerCount;
 
-    for ( i = 0; i < NEXUS_NUM_AUDIO_MIXERS; i++ )
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    mixerCount = min(audioCapabilities.numMixers, NEXUS_NUM_AUDIO_MIXERS);
+
+    for ( i = 0; i < mixerCount; i++ )
     {
         pMixer = &g_mixers[i];
         if ( !pMixer->opened )
@@ -133,7 +140,7 @@ NEXUS_AudioMixerHandle NEXUS_AudioMixer_Open(
         }
     }
 
-    if ( i >= NEXUS_NUM_AUDIO_MIXERS )
+    if ( i >= mixerCount )
     {
         BDBG_ERR(("Out of mixers"));
         rc=BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -395,7 +402,9 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
 {
     NEXUS_AudioMixerDolbySettings oldDolbySettings;
     NEXUS_AudioInputHandle oldMaster, newMaster;
-    bool loopbackVolMatrixChanged, outputVolumeChanged, mainDecodeFadeChanged;
+    bool loopbackVolMatrixChanged = false;
+    bool outputVolumeChanged = false;
+    bool mainDecodeFadeChanged = false;
     unsigned oldSampleRate;
     int oldMultiStreamBalance;
     NEXUS_Error errCode;
@@ -431,8 +440,8 @@ NEXUS_Error NEXUS_AudioMixer_SetSettings(
     oldDolbySettings = handle->settings.dolby;
     oldMultiStreamBalance = handle->settings.multiStreamBalance;
 
-    loopbackVolMatrixChanged = handle->settings.mixUsingDsp && (0 != BKNI_Memcmp(handle->settings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax));
     outputVolumeChanged = handle->settings.intermediate && (0 != BKNI_Memcmp(handle->settings.outputVolume, pSettings->outputVolume, sizeof(uint32_t)*NEXUS_AudioChannel_eMax) || handle->settings.outputMuted != pSettings->outputMuted);
+    loopbackVolMatrixChanged = handle->settings.mixUsingDsp && (0 != BKNI_Memcmp(handle->settings.loopbackVolumeMatrix, pSettings->loopbackVolumeMatrix, sizeof(int32_t)*NEXUS_AudioChannel_eMax*NEXUS_AudioChannel_eMax));
     mainDecodeFadeChanged = handle->settings.mixUsingDsp && BAPE_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 &&
         (handle->settings.mainDecodeFade.level != pSettings->mainDecodeFade.level || handle->settings.dolby.fade.continuousFading != pSettings->dolby.fade.continuousFading);
 
@@ -702,7 +711,11 @@ NEXUS_Error NEXUS_AudioMixer_AddInput(
         pInputNode->inputSettings.fade.type = piVolume.fade.type;
         BLST_Q_INSERT_TAIL(&handle->inputList, pInputNode, inputNode);
 
-        NEXUS_AudioInput_P_GetVolume(input, &inputVolume);
+        /* Because APE mixers default to unity with add input keep nexus in line
+           Proper volume should be set afterwards */
+        NEXUS_AudioInput_P_GetDefaultVolume(&inputVolume);
+        /*NEXUS_AudioInput_P_GetVolume(input, &inputVolume);*/
+
         errCode = NEXUS_AudioMixer_P_SetInputVolume(handle, input, &inputVolume);
         if ( errCode )
         {
@@ -1128,6 +1141,8 @@ NEXUS_AudioMixer_P_GetMixerByIndex(
     unsigned index
     )
 {
-    BDBG_ASSERT(index < NEXUS_NUM_AUDIO_MIXERS);
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+    BDBG_ASSERT(index < audioCapabilities.numMixers);
     return g_mixers[index].opened?&g_mixers[index]:NULL;
 }

@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bkni.h"
@@ -153,7 +150,7 @@ typedef void (*b_bare_os_special_interrupt_handler)(int linux_irq);
 
 #define NUM_IRQS (32*NEXUS_NUM_L1_REGISTERS)
 /* b_bare_os L1 interrupts are 0-based. linux is 1-based. */
-#if NEXUS_CPU_ARM
+#if NEXUS_CPU_ARM || (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1))
 #define LINUX_IRQ(i) (i+32)
 #define NEXUS_IRQ(i) (i-32)
 #else
@@ -348,20 +345,20 @@ void NEXUS_Platform_P_CmaVumap(void* virtAddr)
 
 /* IMPORTANT: the logic in NEXUS_Platform_P_MapMemory must be carefully paired with NEXUS_Platform_P_UnmapMemory */
 void *
-NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType type)
+NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_AddrType type)
 {
     void *addr = NULL;
-    bool cached = type==NEXUS_MemoryMapType_eCached;
+    bool cached = type==NEXUS_AddrType_eCached;
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
     /* TODO: use #if NEXUS_USE_CMA; provide non-cma mmap */
-    addr = NEXUS_Platform_P_CmaVmap(offset, length, type==NEXUS_MemoryMapType_eCached);
+    addr = NEXUS_Platform_P_CmaVmap(offset, length, type==NEXUS_AddrType_eCached);
     if (!addr) {
         BDBG_ERR(("vmap(" BDBG_UINT64_FMT ", %#x, %s) failed", BDBG_UINT64_ARG(offset), (unsigned)length, cached?"cached":"uncached"));
     }
 #elif LINUX_2631_3_2_OR_GREATER  
 
-    if (type==NEXUS_MemoryMapType_eCached)
+    if (type==NEXUS_AddrType_eCached)
         addr = ioremap_cachable(offset, length);
     else
         addr = ioremap_nocache(offset, length);
@@ -414,7 +411,7 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
 #endif
     {
 
-        addr = __ioremap(offset, length, type==NEXUS_MemoryMapType_eCached?_CACHE_CACHABLE_NONCOHERENT:_CACHE_UNCACHED);
+        addr = __ioremap(offset, length, type==NEXUS_AddrType_eCached?_CACHE_CACHABLE_NONCOHERENT:_CACHE_UNCACHED);
 
         if (!addr) {
             BDBG_ERR(("ioremap(" BDBG_UINT64_FMT ", %#x, %s) failed", BDBG_UINT64_ARG(offset), length, cached?"cached":"uncached"));
@@ -426,7 +423,7 @@ NEXUS_Platform_P_MapMemory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType
 }
 
 void
-NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_MemoryMapType memoryMapType)
+NEXUS_Platform_P_UnmapMemory(void *pMem, size_t length, NEXUS_AddrType memoryMapType)
 {
     unsigned long addr = (unsigned long)pMem;
 
@@ -478,7 +475,7 @@ NEXUS_Platform_P_MapRegisterMemory(unsigned long offset, unsigned long length)
     }
     return addr;
 #else
-    return NEXUS_Platform_P_MapMemory(offset, length, NEXUS_MemoryMapType_eUncached);
+    return NEXUS_Platform_P_MapMemory(offset, length, NEXUS_AddrType_eUncached);
 #endif
 }
 
@@ -489,7 +486,7 @@ NEXUS_Platform_P_UnmapRegisterMemory(void *pMem, unsigned long length)
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,1)
     iounmap(pMem);
 #else
-    return NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_MemoryMapType_eUncached);
+    return NEXUS_Platform_P_UnmapMemory(pMem, length, NEXUS_AddrType_eUncached);
 #endif
 }
 
@@ -572,7 +569,7 @@ NEXUS_Platform_P_Isr(unsigned long data)
                 if(status & (1<<i)) {
                     unsigned irq = i+bit;
                     /* print on runaway L1 */
-                    if (++state->table[irq].count % 10000 == 0) {
+                    if (++state->table[irq].count % 50000 == 0) {
                         if (!state->table[irq].print && !nexus_driver_state.uninit_pending) {
                             printk("<0>### %s (W%d, bit %d) fired %d times\n", state->table[irq].name, irq/32, irq%32, state->table[irq].count);
                             state->table[irq].print = true; /* only print once to maximize chance that system keeps running */
@@ -1066,126 +1063,31 @@ void NEXUS_Platform_P_TerminateProcess(unsigned id)
 }
 
 
-#if NEXUS_HAS_AUDIO && NEXUS_HAS_SOFT_AUDIO
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,3,0)
-	#include "asm/brcmstb/brcmstb.h"
-#endif
-
-/***************************************************************************
-Summary:
-Read reserved memory
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadReserved(
-    uint32_t physicalAddress
-    )
-{
-    volatile uint32_t *pMem;
-    BDBG_ASSERT(0 == (physicalAddress&0x3));
-
-    pMem = (volatile uint32_t *)phys_to_virt(physicalAddress);
-    return *pMem;
-}
-
-/***************************************************************************
-Summary:
-Write reserved memory
-***************************************************************************/
-void NEXUS_Platform_P_WriteReserved(
-    uint32_t physicalAddress,
-    uint32_t value
-    )
-{
-    volatile uint32_t *pMem;
-    BDBG_ASSERT(0 == (physicalAddress&0x3));
-
-    pMem = (volatile uint32_t *)phys_to_virt(physicalAddress);
-    *pMem = value;
-#if NEXUS_CPU_ARM
-    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
-#else
-    dma_cache_wback_inv((uint32_t)pMem, 4);
-#endif
-}
-
-#ifdef CONFIG_BMIPS4380
-/***************************************************************************
-Summary:
-Read core register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCoreReg(
-    uint32_t offset
-    )
-{
-    volatile uint32_t *pMem;
-    BDBG_ASSERT(0 == (offset&0x3));
-
-    pMem = (volatile uint32_t *)(BMIPS_GET_CBR() + offset);
-    return *pMem;
-}
-
-/***************************************************************************
-Summary:
-Write core register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCoreReg(
-    uint32_t offset,
-    uint32_t value
-    )
-{
-    volatile uint32_t *pMem;
-    BDBG_ASSERT(0 == (offset&0x3));
-
-    pMem = (volatile uint32_t *)(BMIPS_GET_CBR() + offset);
-    *pMem = value;
-}
-
-/***************************************************************************
-Summary:
-Read CMT Control Register
-***************************************************************************/
-uint32_t NEXUS_Platform_P_ReadCmtControl(void)
-{
-    uint32_t value = read_c0_brcm_cmt_ctrl();
-    return value;
-}
-
-/***************************************************************************
-Summary:
-Write CMT Control Register
-***************************************************************************/
-void NEXUS_Platform_P_WriteCmtControl(
-    uint32_t value
-    )
-{
-    write_c0_brcm_cmt_ctrl(value);
-}
-#endif  /* CONFIG_BMIPS4380 */
-#endif  /* LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30) */
-#endif /* NEXUS_HAS_AUDIO && NEXUS_HAS_SOFT_AUDIO */
-
-
 void NEXUS_Platform_P_StopCallbacks(void *interfaceHandle)
 {
-    NEXUS_Error rc = b_objdb_verify_any_object(interfaceHandle);
-    if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto done;}
+    if((uint8_t *)interfaceHandle >= (uint8_t *)NEXUS_BASEOBJECT_MIN_ID) {
+        NEXUS_Error rc = b_objdb_verify_any_object(interfaceHandle);
+        if(rc!=NEXUS_SUCCESS) { rc = BERR_TRACE(rc); goto done;}
 
-    NEXUS_Base_P_StopCallbacks(interfaceHandle);
-    NEXUS_P_Proxy_StopCallbacks(interfaceHandle);
+        NEXUS_Base_P_StopCallbacks(interfaceHandle);
+        NEXUS_P_Proxy_StopCallbacks(interfaceHandle);
+    }
 done:
     return;
 }
 
 void NEXUS_Platform_P_StartCallbacks(void *interfaceHandle)
 {
-    NEXUS_Error rc = b_objdb_verify_any_object(interfaceHandle);
-    if(rc!=NEXUS_SUCCESS) { 
-        /* XXX NEXUS_StartCallbacks could be used with bad handle, in particularly XXX_Close, is paired with auto generated Stop>Start callbacks, where Start called _after_ obhect was already destroyed */
-        goto done;
-    }
+    if((uint8_t *)interfaceHandle >= (uint8_t *)NEXUS_BASEOBJECT_MIN_ID) {
+        NEXUS_Error rc = b_objdb_verify_any_object(interfaceHandle);
+        if(rc!=NEXUS_SUCCESS) {
+            /* XXX NEXUS_StartCallbacks could be used with bad handle, in particularly XXX_Close, is paired with auto generated Stop>Start callbacks, where Start called _after_ obhect was already destroyed */
+            goto done;
+        }
 
-    NEXUS_Base_P_StartCallbacks(interfaceHandle);
-    NEXUS_P_Proxy_StartCallbacks(interfaceHandle);
+        NEXUS_Base_P_StartCallbacks(interfaceHandle);
+        NEXUS_P_Proxy_StartCallbacks(interfaceHandle);
+    }
 done:
     return;
 }
@@ -1278,6 +1180,21 @@ void NEXUS_Platform_P_UninitializeThermalMonitor(void)
 {
     return;
 }
+
+bool NEXUS_Platform_P_IsGisbTimeoutAvailable(void)
+{
+    bool is_available = true;
+#if BDBG_DEBUG_BUILD && !defined(NEXUS_CPU_ARM)
+#if defined(NEXUS_GISB_ARB)
+    is_available = false;
+#else
+    is_available = true;
+#endif
+#endif
+    return is_available;
+}
+
+#include "b_virtual_irq.h"
 
 #if NEXUS_HAS_GPIO
 #include "b_shared_gpio.h"

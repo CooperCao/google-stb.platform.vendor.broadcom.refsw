@@ -70,6 +70,7 @@ NEXUS_VIDEO_DECODER_SOURCES := \
     $(NEXUS_TOP)/modules/video_decoder/src/nexus_still_decoder_priv.c \
     $(NEXUS_TOP)/modules/video_decoder/src/nexus_video_decoder_trick.c
 
+NEXUS_VIDEO_DECODER_LOCAL_SOURCES := $(NEXUS_TOP)/modules/video_decoder/src/nexus_video_decoder_local.c
 
 # Look for DSP video decoder first 
 ifneq ($(findstring NEXUS_NUM_DSP_VIDEO_DECODERS, $(NEXUS_PLATFORM_DEFINES)),)

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,6 +61,7 @@ typedef struct NEXUS_AudioPlayback
     NEXUS_AudioPlaybackSettings settings;
     BKNI_EventHandle event;
     NEXUS_EventCallbackHandle eventCallback;
+    BMMA_Block_Handle lastBlock;
     void *pLastAddress;
     size_t bytesPlayed;
     bool started;
@@ -114,17 +115,20 @@ NEXUS_AudioPlaybackHandle NEXUS_AudioPlayback_Open(     /* attr{destructor=NEXUS
     BAPE_PlaybackInterruptHandlers interrupts;
     NEXUS_HeapHandle heap;
     BAPE_Connector input;
+    NEXUS_AudioCapabilities audioCapabilities;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     if (index == NEXUS_ANY_ID) {
-        for (index=0;(int)index<NEXUS_NUM_AUDIO_PLAYBACKS;index++) {
+        for (index=0;index<audioCapabilities.numPlaybacks;index++) {
             if (!g_playbacks[index].opened) break;
         }
-        if (index == NEXUS_NUM_AUDIO_PLAYBACKS) {
+        if (index == audioCapabilities.numPlaybacks) {
             BDBG_ERR(("No more playback channels available"));
             return NULL;
         }
     }
-    if ( (int)index >= NEXUS_NUM_AUDIO_PLAYBACKS )
+    if ( index >= audioCapabilities.numPlaybacks )
     {
         BDBG_ERR(("Playback channel %u not available on this chipset", index));
         errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -167,7 +171,7 @@ NEXUS_AudioPlaybackHandle NEXUS_AudioPlayback_Open(     /* attr{destructor=NEXUS
         (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
         goto err_heap;
     }
-    openSettings.heap = NEXUS_Heap_GetMemHandle(heap);
+    openSettings.heap = NEXUS_Heap_GetMmaHandle(heap);
     openSettings.numBuffers = 1;
     openSettings.bufferSize = pSettings->fifoSize;
     openSettings.watermarkThreshold = pSettings->threshold;
@@ -385,6 +389,7 @@ NEXUS_Error NEXUS_AudioPlayback_Start(
     handle->suspended = false;
     handle->startSettings = *pSettings;  
     handle->pLastAddress = NULL;
+    handle->lastBlock = NULL;
 
     /* Start Playback */
     errCode = BAPE_Playback_Start(handle->channel, &startSettings);
@@ -512,6 +517,7 @@ NEXUS_Error NEXUS_AudioPlayback_Resume(
 
 static NEXUS_Error NEXUS_AudioPlayback_P_GetBuffer(
     NEXUS_AudioPlaybackHandle handle,
+    BMMA_Block_Handle *hBlock,
     void **pBuffer, /* [out] attr{memory=cached} pointer to memory mapped region that is ready for playback data */
     size_t *pSize   /* [out] total number of writeable, contiguous bytes which buffer is pointing to */
     )
@@ -532,15 +538,13 @@ static NEXUS_Error NEXUS_AudioPlayback_P_GetBuffer(
 
     if ( bufferDescriptor.bufferSize > 0 )
     {
-        errCode = BMEM_Heap_ConvertAddressToCached(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer, pBuffer);
-        if ( errCode )
-        {
-            return BERR_TRACE(errCode);
-        }
+        *pBuffer = bufferDescriptor.buffers[BAPE_Channel_eLeft].pBuffer;
+        *hBlock = bufferDescriptor.buffers[BAPE_Channel_eLeft].block;
     }
     else
     {
         *pBuffer = NULL;
+        *hBlock = NULL;
     }
 
     return BERR_SUCCESS;
@@ -559,9 +563,10 @@ NEXUS_Error NEXUS_AudioPlayback_GetBuffer(
     size_t *pSize   /* [out] total number of writeable, contiguous bytes which buffer is pointing to */
     )
 {
+    BMMA_Block_Handle hBlock;
     BERR_Code errCode;
 
-    errCode = NEXUS_AudioPlayback_P_GetBuffer(handle, pBuffer, pSize);
+    errCode = NEXUS_AudioPlayback_P_GetBuffer(handle, &hBlock, pBuffer, pSize);
     if ( errCode ) 
     {
         return BERR_TRACE(errCode);
@@ -569,6 +574,7 @@ NEXUS_Error NEXUS_AudioPlayback_GetBuffer(
 
     if ( *pSize > 0 )
     {
+        handle->lastBlock = hBlock;
         handle->pLastAddress = *pBuffer;  /* Save this for the cacheflush on write complete */
     }
 
@@ -604,8 +610,9 @@ NEXUS_Error NEXUS_AudioPlayback_ReadComplete(
             BDBG_ERR(("You must call NEXUS_AudioPlayback_GetBuffer before calling NEXUS_AudioPlayback_ReadComplete"));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
-        BMEM_Heap_FlushCache(g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, handle->pLastAddress, amountWritten);
+        BMMA_FlushCache(handle->lastBlock, handle->pLastAddress, amountWritten);
     }
+    handle->lastBlock = NULL;
     handle->pLastAddress = NULL;
 
     errCode = BAPE_Playback_CommitData(handle->channel, amountWritten);
@@ -674,6 +681,7 @@ static void NEXUS_AudioPlayback_P_DataEvent(void *pParam)
 {
     NEXUS_Error errCode;
     NEXUS_AudioPlaybackHandle handle = pParam;
+    BMMA_Block_Handle hBlock;
     void *pBuffer;
     size_t size=0;
 
@@ -681,7 +689,7 @@ static void NEXUS_AudioPlayback_P_DataEvent(void *pParam)
 
     /* non-blocking get of buffer space */
     /* If it fails, or if there's no space available, don't send a callback */
-    errCode = NEXUS_AudioPlayback_P_GetBuffer(handle, &pBuffer, &size);
+    errCode = NEXUS_AudioPlayback_P_GetBuffer(handle, &hBlock, &pBuffer, &size);
     if ( errCode )
     {
         BDBG_MSG(("No space available"));
@@ -774,13 +782,18 @@ NEXUS_AudioPlayback_P_GetPlaybackByIndex(
     unsigned index
     )
 {
-#if NEXUS_NUM_AUDIO_PLAYBACKS
-    BDBG_ASSERT(index < NEXUS_NUM_AUDIO_PLAYBACKS);
-    return g_playbacks[index].opened?&g_playbacks[index]:NULL;
-#else
-    BSTD_UNUSED(index);
-    return NULL;
-#endif
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numPlaybacks > 0)
+    {
+        BDBG_ASSERT(index < audioCapabilities.numPlaybacks);
+        return g_playbacks[index].opened?&g_playbacks[index]:NULL;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 static void NEXUS_AudioPlayback_P_SetConnectorFormat(NEXUS_AudioPlaybackHandle handle, const NEXUS_AudioPlaybackStartSettings *pSettings)

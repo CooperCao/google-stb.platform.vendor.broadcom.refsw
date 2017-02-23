@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,12 +39,13 @@
 #define TZ_MEMORY_H_
 
 #include <cstdint>
-
+#include "config.h"
 #include "arm/arm.h"
 #include "arm/spinlock.h"
 #include "kernel.h"
 #include "lib_printf.h"
 
+#define MEMORY_DEBUG 0
 #define ENABLE_PAGE_TRACE 0
 
 #if ENABLE_PAGE_TRACE
@@ -99,15 +100,7 @@ public:
     }
 
     inline static void cacheFlush(const void *startAddr, int numBytes) {
-        const uint8_t *currLine = (const uint8_t *)startAddr;
-        const int numLines = numBytes/CORTEX_A15_CACHE_LINE_SIZE + 1;
-        for (int i=0; i<numLines; i++) {
-            asm volatile ("mcr p15, 0, %[rt], c7, c14, 1" : : [rt] "r" (currLine) : "memory"); //DCCIMVAC
-            currLine += CORTEX_A15_CACHE_LINE_SIZE;
-        }
-
-        asm volatile("dsb":::"memory");
-        asm volatile("isb":::"memory");
+        ARCH_SPECIFIC_CACHEFLUSH(startAddr,numBytes);
     }
 
     inline static unsigned long addressTranslateCPR(const unsigned long entry) {
@@ -120,7 +113,7 @@ public:
         return rv;
     }
 
-#ifdef MEMORY_DEBUG
+#if MEMORY_DEBUG
     // Debug dumps
     static void dumpRangeFrames();
     static void dumpPageFrames(int numPages);
@@ -150,7 +143,7 @@ private:
     static RangeFrame rangeFrames[TZ_MAX_NUM_RANGES];
     static int numRanges;
 
-    static spinlock_t lock;
+    static SpinLock lock;
 
 private:
     static void addRange(const unsigned long startAddrVirt, const unsigned long size);
@@ -160,7 +153,7 @@ private:
     }
 
     inline static void * frameNumToPage(const uint32_t pageFrameNum) {
-        return (void *)(pageFrameNum * PAGE_SIZE_4K_BYTES);
+        return (void *)((uintptr_t)pageFrameNum * PAGE_SIZE_4K_BYTES);
     }
 
     inline static uint32_t pageMapIdx(const PhysAddr pagePhysAddr) {

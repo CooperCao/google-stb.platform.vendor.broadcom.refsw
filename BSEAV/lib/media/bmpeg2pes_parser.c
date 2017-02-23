@@ -58,7 +58,7 @@ typedef enum {
 } b_mpeg2pes_parser_result;
 
 
-bmpeg2ts_parser_action 
+static bmpeg2ts_parser_action
 b_mpeg2pes_parser_stream_drop(bmpeg2pes_parser_stream *stream, unsigned flags, batom_accum_t src, batom_cursor *payload_start, size_t len)
 {
 	BSTD_UNUSED(payload_start);

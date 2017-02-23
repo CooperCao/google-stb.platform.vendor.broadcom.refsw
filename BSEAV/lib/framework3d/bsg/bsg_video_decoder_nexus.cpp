@@ -632,11 +632,13 @@ private:
             m_stcChannel = NULL;
          }
 
+#if NEXUS_HAS_AUDIO
          if (m_audioDecoder)
          {
             NEXUS_AudioDecoder_Close(m_audioDecoder);
             m_audioDecoder = NULL;
          }
+#endif
 
          if (m_videoDecoder)
          {
@@ -691,6 +693,7 @@ private:
 
             if (outputInfo.m_mode != eMOSAIC || m_fullScreenStreamIndex == (int32_t)m_globalStreamIndex)
             {
+#if NEXUS_HAS_AUDIO
                if (mediaData.m_audioCodec != NEXUS_AudioCodec_eUnknown)
                {
                   m_audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
@@ -715,6 +718,7 @@ private:
                      NEXUS_AudioDecoder_GetConnector(m_audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #endif
                }
+#endif
             }
 
             // bring up video decoder
@@ -845,6 +849,7 @@ private:
             m_videoProgram.pidChannel     = m_videoPidChannel;
             m_videoProgram.stcChannel     = m_stcChannel;
 
+#if NEXUS_HAS_AUDIO
             if (outputInfo.m_mode != eMOSAIC || m_fullScreenStreamIndex == (int32_t)m_globalStreamIndex)
             {
                NEXUS_AudioDecoder_GetDefaultStartSettings(&m_audioProgram);
@@ -852,6 +857,7 @@ private:
                m_audioProgram.pidChannel     = m_audioPidChannel;
                m_audioProgram.stcChannel     = m_stcChannel;
             }
+#endif
          }
          catch (Exception e)
          {
@@ -871,9 +877,11 @@ private:
                if (NEXUS_VideoDecoder_Start(m_videoDecoder, &m_videoProgram) != NEXUS_SUCCESS)
                   printf("Not started video decoder\n");
 
+#if NEXUS_HAS_AUDIO
             if (m_audioDecoder)
                if (NEXUS_AudioDecoder_Start(m_audioDecoder, &m_audioProgram) != NEXUS_SUCCESS)
                   printf("Not started audio decoder\n");
+#endif
 
             m_filePlayback.StartPlayback();
          }
@@ -889,8 +897,10 @@ private:
             if (m_videoDecoder)
                NEXUS_VideoDecoder_Stop(m_videoDecoder);
 
+#if NEXUS_HAS_AUDIO
             if (m_audioDecoder)
                NEXUS_AudioDecoder_Stop(m_audioDecoder);
+#endif
 
             m_filePlayback.StopPlayback();
          }
@@ -899,6 +909,7 @@ private:
       //! Set audio delay
       virtual void SetAudioDelay(uint32_t ms)
       {
+#if NEXUS_HAS_AUDIO
          if (m_audioDecoder)
          {
             NEXUS_PlatformConfiguration platformConfig;
@@ -923,6 +934,7 @@ private:
             NEXUS_AudioOutput_SetSettings(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]), &aoSettings);
 #endif
          }
+#endif
       }
 
       void DestripeToYV12(NEXUS_StripedSurfaceHandle src, NEXUS_SurfaceHandle dst)
@@ -1405,10 +1417,12 @@ private:
             m_videoProgram.settings.stcChannel = m_stcChannel;
             m_videoProgram.displayEnabled      = false;
 
+#if NEXUS_HAS_AUDIO
             NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&m_audioProgram);
             m_audioProgram.primary.codec      = mediaData.m_audioCodec;
             m_audioProgram.primary.pidChannel = m_audioPidChannel;
             m_audioProgram.primary.stcChannel = m_stcChannel;
+#endif
 
             /* connect client resources to server's resources */
             NxClient_ConnectSettings            connectSettings;

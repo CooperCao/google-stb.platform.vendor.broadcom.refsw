@@ -341,6 +341,9 @@ typedef struct BHSM_ReadDataSectIO {
     /* Out: 0 for success, otherwise failed */
     uint32_t                    unStatus;
 
+    /* Out: true means the data section is read protected, the output is sha1 of the data section. */
+    bool                        isReadProtected;
+
     /* Out: the returned 32 bytes from the OTP data section as specified */
     unsigned char                aucDataSectData[BHSM_READ_DATA_SECTION_DATA_LEN];
 

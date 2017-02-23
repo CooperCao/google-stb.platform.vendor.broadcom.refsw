@@ -753,8 +753,8 @@ static void BVDC_P_Window_SetBlender_isr
         BCHP_MASK(CMP_0_BLEND_0_CTRL, BLEND_SOURCE));
     BVDC_P_CMP_GET_REG_ADDR_DATA(ulBlendAddr) |= ulBlendSrcSel;
 
-    BVDC_P_GfxFeeder_AdjustBlend_isr(&eFrontBlendFactor, &eBackBlendFactor,
-        &ucConstantAlpha);
+    BVDC_P_GfxFeeder_AdjustBlend_isr(hWindow->stNewInfo.hSource->hGfxFeeder,
+        &eFrontBlendFactor, &eBackBlendFactor, &ucConstantAlpha);
 
     /* Blending factors */
     BVDC_P_CMP_GET_REG_ADDR_DATA(ulBlendAddr) &= ~(
@@ -1030,8 +1030,9 @@ void BVDC_P_Compositor_WindowsReader_isr
     /* bOutputXvYcc = false  : don't load special xvYCC matrices */
     if(!hCompositor->bIsBypass)
     {
-        hCompositor->eOutMatrixCoeffs =
-            BAVC_GetDefaultMatrixCoefficients_isrsafe(hCompositor->stCurInfo.pFmtInfo->eVideoFmt, false);
+        hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry =
+			BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
+				BAVC_GetDefaultMatrixCoefficients_isrsafe(hCompositor->stCurInfo.pFmtInfo->eVideoFmt, false), false);
     }
 
     /* set compositor size -- number of lines. */

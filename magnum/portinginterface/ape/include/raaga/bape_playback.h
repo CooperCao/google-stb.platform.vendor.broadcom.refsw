@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,7 +54,7 @@ Playback Open settings
 ***************************************************************************/
 typedef struct BAPE_PlaybackOpenSettings
 {
-    BMEM_Heap_Handle heap;          /* Heap used for allocating buffers.  If not set, the heap
+    BMMA_Heap_Handle heap;          /* Heap used for allocating buffers.  If not set, the heap
                                        provided in BAPE_Open will be used. */
     unsigned numBuffers;            /* Number of buffers to allocate.  For mono or interleaved stereo,
                                        one buffer is required.  For non-interleaved 7.1 data 8 buffers

@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2013 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,12 +34,8 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: utility_ids.h $
- * $brcm_Revision: 1 $
- * $brcm_Date: 4/10/14 5:18p $
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #ifndef UTILITY_H__
 #define UTILITY_H__
@@ -48,7 +44,6 @@
 typedef enum Utility_ModuleId_e{
     Utility_ModuleId_eHeartbeat = 0x01,
     Utility_ModuleId_eRsa       = 0x02,
-    Utility_ModuleId_eKeyLoader = 0x03
 }Utility_ModuleId_e;
 
 enum {
@@ -64,14 +59,7 @@ enum {
     Rsa_CommandId_ePublicDecrypt  = 0x104,
     Rsa_CommandId_ePrivateEncrypt = 0x105,
     Rsa_CommandId_ePrivateDecrypt = 0x106,
-    Rsa_CommandId_eMax,
-
-    /* Key Loader command IDs */
-    KeyLoader_CommandId_eAllocAndConfig = 0x200,
-    KeyLoader_CommandId_eLoadWrappedKey = 0x201,
-    KeyLoader_CommandId_eFreeKeyslot    = 0x202,
-    KeyLoader_CommandId_eUpdateIv       = 0x203,
-    KeyLoader_CommandId_eMax
+    Rsa_CommandId_eMax
 };
 
 

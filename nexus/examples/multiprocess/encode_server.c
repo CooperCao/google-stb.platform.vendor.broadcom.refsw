@@ -179,7 +179,6 @@ static struct {
 static int simple_encoder_create(NEXUS_AudioDecoderHandle audioDecoder)
 {
     NEXUS_DisplaySettings displaySettings;
-    NEXUS_StreamMuxCreateSettings streamMuxCreateSettings;
     NEXUS_StcChannelSettings stcSettings;
     NEXUS_AudioMixerSettings mixerSettings;
     unsigned i;
@@ -217,14 +216,6 @@ static int simple_encoder_create(NEXUS_AudioDecoderHandle audioDecoder)
         playpumpConfig.streamMuxCompatible = true;
         g_encoder.settings.playpump[i] = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpConfig);
     }
-
-    NEXUS_StreamMux_GetDefaultCreateSettings(&streamMuxCreateSettings);
-#if 0
-    /* because finished is set at create-time only, SimpleEncoder will need an external "finished" function. */
-    streamMuxCreateSettings.finished.callback = transcoderFinishCallback;
-    streamMuxCreateSettings.finished.context = pContext->finishEvent;
-#endif
-    g_encoder.settings.streamMux = NEXUS_StreamMux_Create(&streamMuxCreateSettings);
 
     NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
     stcSettings.stcIndex = 1; /* different from a/v */
@@ -268,7 +259,6 @@ static void simple_encoder_destroy(void)
     for (i=0;i<NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS;i++) {
         NEXUS_Playpump_Close(g_encoder.settings.playpump[i]);
     }
-    NEXUS_StreamMux_Destroy(g_encoder.settings.streamMux);
     NEXUS_StcChannel_Close(g_encoder.settings.stcChannelTranscode);
     memset(&g_encoder.settings, 0, sizeof(g_encoder.settings));
 }

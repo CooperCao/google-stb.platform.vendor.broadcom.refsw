@@ -358,6 +358,8 @@ Read data from the smartcard.
 Description:
 If read fails, you should call NEXUS_Smartcard_GetStatus in order to determine
 the state of the smartcard interface.
+Can return NEXUS_SMARTCARD_PARITY_EDC, BSCD_STATUS_READ_FAILED
+along with NEXUS_Error.
 
 See Also:
 NEXUS_Smartcard_Write
@@ -376,6 +378,7 @@ Write data to a smartcard.
 Description:
 If write fails, you should call NEXUS_Smartcard_GetStatus in order to determine
 the state of the smartcard interface.
+Can return NEXUS_SMARTCARD_SEND_FAILED along with NEXUS_Error.
 
 See Also:
 NEXUS_Smartcard_Read
@@ -398,6 +401,10 @@ NEXUS_Error NEXUS_Smartcard_GetStatus(
 
 /* When smartcard doesn't reset sucessfully, it can be deactivated. This represents smartcard deactivated status. */
 #define NEXUS_SMARTCARD_DEACTIVATED NEXUS_MAKE_ERR_CODE(0x10C, 0)
+#define NEXUS_SMARTCARD_PARITY_EDC NEXUS_MAKE_ERR_CODE(0x10C, 1)
+#define NEXUS_SMARTCARD_READ_FAILED NEXUS_MAKE_ERR_CODE(0x10C, 2)
+#define NEXUS_SMARTCARD_SEND_FAILED NEXUS_MAKE_ERR_CODE(0x10C, 3)
+#define NEXUS_SMARTCARD_NO_SC_RESPONSE NEXUS_MAKE_ERR_CODE(0x10C, 4)
 
 /***************************************************************************
 Summary:
@@ -405,7 +412,8 @@ Reset a smartcard.
 
 Description:
 Reset the smartcard itself.
-Can return NEXUS_SMARTCARD_DEACTIVATE along with NEXUS_Error.
+Can return NEXUS_SMARTCARD_DEACTIVATED or NEXUS_SMARTCARD_PARITY_EDC
+or NEXUS_SMARTCARD_NO_SC_RESPONSE along with NEXUS_Error.
 
 See Also:
 NEXUS_Smartcard_Read
@@ -426,6 +434,7 @@ Reprogram all the Broadcom smartcard interface, not the card.
 If you want to reset the card, use NEXUS_Smartcard_ResetCard.
 
 The interface must be reset whenever a card is inserted.
+Can return NEXUS_SMARTCARD_PARITY_EDC along with NEXUS_Error.
 
 See Also:
 NEXUS_Smartcard_Read

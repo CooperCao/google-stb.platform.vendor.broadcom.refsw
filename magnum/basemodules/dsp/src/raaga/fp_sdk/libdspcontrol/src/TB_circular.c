@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/****************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ****************************************************************************/
 
 /* NOTE: this file gets exported into the Raaga Magnum host library and so it
  *       must abide by a specific strict set of rules. Please use only ANSI C
@@ -70,7 +67,7 @@
 #include "libsyschip/tbuf_services.h"
 
 /* for DDR_START */
-#if IS_HOST(BM)
+#if IS_HOST(BM) && !(defined(CELIVERO) || defined(CELTRIX))
 #  include "DSP_bm.h"
 #else
 #  define DDR_START     0
@@ -121,6 +118,8 @@ void TB_storeShared(DSP *dsp, uint32_t tb_addr, DSP_ADDRESS_SPACE tb_addr_space,
     DSP_writeData(dsp, tb_addr, tb_addr_space, &temp, sizeof(TB_shared));
 }
 
+
+#if !B_REFSW_MINIMAL
 
 size_t TB_freeSpace(TB *tb)
 {
@@ -193,12 +192,14 @@ size_t TB_writeCircular(TB *tb, void *src, size_t size)
                       &local_tb.write_ptr,
                       sizeof(local_tb.write_ptr));
 
-        DSPLOG_DEBUG("TB: TB_shared %s, new write ptr=%#x, written %d bytes",
+        DSPLOG_DEBUG("TB: TB_shared %s, new write ptr=%#x, written %zu bytes",
                      tb->display_id, local_tb.write_ptr, written_amount);
     }
 
     return written_amount;
 }
+
+#endif /* !B_REFSW_MINIMAL */
 
 
 /* ------------------
@@ -213,7 +214,7 @@ void TB_init(TB *ret_value,
              uint16_t buff_len_KiB,
              const char *name)
 {
-#if defined(CELIVERO)
+#if defined(CELIVERO) || defined(CELTRIX)
     /* Celivero supports only DMA transfers on addresses 64 bit aligned (8 bytes) */
     if(buff_addr & 0x00000007)
         FATAL_ERROR("TB: on Celivero the shared buffer address must be 64 bit (8 bytes) aligned");
@@ -242,6 +243,8 @@ void TB_init(TB *ret_value,
     DSPLOG_DEBUG("TB: Attached to TB_shared %s at %#010x", ret_value->display_id, tb_addr);
 }
 
+
+#if !B_REFSW_MINIMAL
 
 void TB_attach(TB *ret_value,
                DSP *dsp,
@@ -310,6 +313,8 @@ size_t TB_availableData(TB *tb)
     return available_data;
 }
 
+#endif /* !B_REFSW_MINIMAL */
+
 
 size_t TB_discard(TB *tb, size_t amount)
 {
@@ -341,6 +346,8 @@ size_t TB_discard(TB *tb, size_t amount)
     return amount;
 }
 
+
+#if !B_REFSW_MINIMAL
 
 size_t TB_readCircular(TB *tb, void *buff, size_t size, bool discard_after_read)
 {
@@ -406,12 +413,14 @@ size_t TB_readCircular(TB *tb, void *buff, size_t size, bool discard_after_read)
                       &local_TB.read_ptr,
                       sizeof(local_TB.read_ptr));
 
-        DSPLOG_DEBUG("TB: TB_shared %s, new read ptr=%#x, read %d bytes",
+        DSPLOG_DEBUG("TB: TB_shared %s, new read ptr=%#x, read %zu bytes",
                      tb->display_id, local_TB.read_ptr, read_amount);
     }
 
     return read_amount;
 }
+
+#endif /* !B_REFSW_MINIMAL */
 
 
 #if FEATURE_IS(FILE_IO, AVAILABLE)

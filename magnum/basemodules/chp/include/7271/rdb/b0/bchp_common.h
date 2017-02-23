@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:49:43 2016
- *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
+ * Date:           Generated on               Tue Dec 13 10:41:54 2016
+ *                 Full Compile MD5 Checksum  3569507c301c8ecc2edaa056747f2c3c
  *                     (minus title and desc)
- *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
+ *                 MD5 Checksum               f5c451485c31535bef93cb504758197d
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1139
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -74,6 +74,7 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2190ae04 /* WLAN_DOT11_SLAVE is last */
 #define BCHP_REGISTER_SIZE                                 0x00642b81 /* Number of registers */
+#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
 #define BCHP_REGISTER_HAS_16_BIT                                    1 /* Has 16-bit wide register */
 #define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
 #define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */
@@ -1749,7 +1750,7 @@
 #define BCHP_WLAN_INTF_CTRL_REG_START                      0x217e0300
 #define BCHP_WLAN_INTF_CTRL_REG_END                        0x217e0320
 #define BCHP_WLAN_CHIPC_BASE_REG_START                     0x21800000
-#define BCHP_WLAN_CHIPC_BASE_REG_END                       0x21800388
+#define BCHP_WLAN_CHIPC_BASE_REG_END                       0x218000fc
 #define BCHP_WLAN_MAC_AQM_REG_START                        0x21801000
 #define BCHP_WLAN_MAC_AQM_REG_END                          0x21801bfc
 #define BCHP_WLAN_MAC_HC_HIN_REG_START                     0x21801000
@@ -1904,15 +1905,16 @@
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP1     14
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP2     15
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP3     16
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I0       32
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I1       33
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I2       34
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I3       35
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_PIP_L2NL          36
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_PIP_GFD0_OOTF     37
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_NL2L         48
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_L2NL         49
-#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_DLBV_CVM     54
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I0        32
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I1        33
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I2        34
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I3        35
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V1_L2NL           36
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_V1_OOTF           37
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_G0_NL2L           48
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_G0_L2NL           49
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_G0_DLBV_CVM       54
+#define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_G0_OOTF           55
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_VEC_NL2L          96
 #define BCHP_CMP_0_HDR_TYPE_LUT_HEADER_W0_LUT_ID_VEC_L2NL          97
 
@@ -2053,15 +2055,16 @@
 #define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP1           14
 #define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP2           15
 #define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP3           16
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I0             32
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I1             33
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I2             34
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I3             35
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_PIP_L2NL                36
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_PIP_GFD0_OOTF           37
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_NL2L               48
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_L2NL               49
-#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_DLBV_CVM           54
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I0              32
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I1              33
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I2              34
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I3              35
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V1_L2NL                 36
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_V1_OOTF                 37
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_G0_NL2L                 48
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_G0_L2NL                 49
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_G0_DLBV_CVM             54
+#define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_G0_OOTF                 55
 #define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_VEC_NL2L                96
 #define BCHP_GFD_TYPE_LUT_HEADER_W0_LUT_ID_VEC_L2NL                97
 
@@ -2144,15 +2147,16 @@
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP1 14
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP2 15
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V0_DLBV_COMP3 16
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I0   32
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I1   33
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I2   34
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_PIP_NL2L_I3   35
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_PIP_L2NL      36
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_PIP_GFD0_OOTF 37
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_NL2L     48
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_L2NL     49
-#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_GFD0_DLBV_CVM 54
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I0    32
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I1    33
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I2    34
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V1_NL2L_I3    35
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V1_L2NL       36
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_V1_OOTF       37
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_G0_NL2L       48
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_G0_L2NL       49
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_G0_DLBV_CVM   54
+#define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_G0_OOTF       55
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_VEC_NL2L      96
 #define BCHP_GFD_HSCL_ONLY_TYPE_LUT_HEADER_W0_LUT_ID_VEC_L2NL      97
 

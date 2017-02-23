@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2013 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -149,6 +144,7 @@ static int check_format(buserdata_t handle, unsigned format)
     return 0;
 }
 
+#if NEXUS_HAS_SIMPLE_DECODER
 int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDecoder, NEXUS_ClosedCaptionData *pData, unsigned totalEntries, unsigned *pNumRead)
 {
     unsigned char *bufferPtr;
@@ -247,3 +243,14 @@ int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDeco
 
     return 0;
 }
+#else
+int buserdata_parse(buserdata_t handle, NEXUS_SimpleVideoDecoderHandle videoDecoder, NEXUS_ClosedCaptionData *pData, unsigned totalEntries, unsigned *pNumRead)
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(videoDecoder);
+    BSTD_UNUSED(pData);
+    BSTD_UNUSED(totalEntries);
+    BSTD_UNUSED(pNumRead);
+    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+}
+#endif

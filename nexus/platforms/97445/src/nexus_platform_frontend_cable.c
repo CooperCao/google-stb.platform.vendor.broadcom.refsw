@@ -36,13 +36,11 @@
 *  ANY LIMITED REMEDY.
 *
 ***************************************************************************/
-#include "nexus_types.h"
-#include "nexus_platform.h"
+#include "nexus_platform_module.h"
 #include "priv/nexus_core.h"
 #if NEXUS_HAS_FRONTEND
 #include "nexus_frontend.h"
 #endif
-#include "nexus_platform_features.h"
 #include "nexus_platform_priv.h"
 #include "nexus_base.h"
 #include "nexus_input_band.h"

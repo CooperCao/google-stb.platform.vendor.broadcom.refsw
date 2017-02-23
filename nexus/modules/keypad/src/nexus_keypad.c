@@ -214,7 +214,7 @@ done:
 }
 #endif
 
-void NEXUS_Keypad_P_DataReady_isr(void *context, int param, void *unused)
+static void NEXUS_Keypad_P_DataReady_isr(void *context, int param, void *unused)
 {
     BERR_Code rc;
     NEXUS_KeypadHandle keypad = (NEXUS_KeypadHandle)context;

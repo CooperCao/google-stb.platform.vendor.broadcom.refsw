@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,9 +110,9 @@ int TzIoc::TzIocIoctl::clientOpen(void *arg)
         goto EXIT;
     }
 
-    clientOpenData.hClient   = (uint32_t)pClient;
+    clientOpenData.hClient   = (uintptr_t)pClient;
     clientOpenData.id        = (uint32_t)pClient->id;
-    clientOpenData.smemStart = smemStart;
+    clientOpenData.smemStart = (uintptr_t) psmem;
     clientOpenData.smemSize  = smemSize;
     clientOpenData.retVal    = 0;
 
@@ -228,7 +228,7 @@ int TzIoc::TzIocIoctl::msgSend(void *arg)
     static uint8_t aucPayload[TZIOC_MSG_PAYLOAD_MAX];
     if (pHdr->ulLen) {
         SysCalls::fromUser(
-            (void *)msgSendData.payloadAddr,
+            (void *)(uintptr_t)msgSendData.payloadAddr,
             aucPayload,
             pHdr->ulLen);
     }

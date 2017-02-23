@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 /* base modules */
@@ -56,7 +53,7 @@
 #include "bvce_image.h"
 
 #include "bvce_platform.h"
-#include "bvce_fw_api.h"
+#include "bvce_fw_api_common.h"
 #include "bvce_debug_priv.h"
 #include "bvce_telem.h"
 
@@ -190,7 +187,7 @@ BVCE_GetDefaultOpenSettings(
                BDBG_MODULE_MSG( BVCE_MEMORY, ("BVCE_GetDefaultOpenSettings(boxMode=?, instance=%d):", 0 ));
             }
          }
-#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%d bytes", pstOpenSettings->stMemoryConfig._field));
+#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%lu bytes", (unsigned long) pstOpenSettings->stMemoryConfig._field));
 #include "bvce_memconfig.inc"
       }
 
@@ -354,10 +351,10 @@ BVCE_P_SetupAllocators(
             return BERR_TRACE( rc );
          }
 
-         BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Firmware Memory Allocator[%d]: %08x bytes @ %08x",
+         BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Firmware Memory Allocator[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
             i,
-            BVCE_P_Allocator_GetSize( hVce->fw.memory[i].hAllocator ),
-            (uint32_t) BVCE_P_Allocator_GetDeviceOffset( hVce->fw.memory[i].hAllocator )
+            (unsigned long) BVCE_P_Allocator_GetSize( hVce->fw.memory[i].hAllocator ),
+            BDBG_UINT64_ARG(BVCE_P_Allocator_GetDeviceOffset( hVce->fw.memory[i].hAllocator ))
             ));
       }
    }
@@ -377,10 +374,10 @@ BVCE_P_SetupAllocators(
       return BERR_TRACE( rc );
    }
 
-   BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Memory Allocator[%d]: %08x bytes @ %08x",
+   BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Memory Allocator[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
       BVCE_P_HeapId_eSystem,
-      BVCE_P_Allocator_GetSize( hVce->ahAllocator[BVCE_P_HeapId_eSystem] ),
-      (uint32_t) BVCE_P_Allocator_GetDeviceOffset( hVce->ahAllocator[BVCE_P_HeapId_eSystem] )
+      (unsigned long) BVCE_P_Allocator_GetSize( hVce->ahAllocator[BVCE_P_HeapId_eSystem] ),
+      BDBG_UINT64_ARG(BVCE_P_Allocator_GetDeviceOffset( hVce->ahAllocator[BVCE_P_HeapId_eSystem] ))
       ));
 
    /* Picture Allocator */
@@ -409,10 +406,10 @@ BVCE_P_SetupAllocators(
       return BERR_TRACE( rc );
    }
 
-   BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Memory Allocator[%d]: %08x bytes @ %08x",
+   BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Memory Allocator[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
       BVCE_P_HeapId_ePicture,
-      BVCE_P_Allocator_GetSize( hVce->ahAllocator[BVCE_P_HeapId_ePicture] ),
-      (uint32_t) BVCE_P_Allocator_GetDeviceOffset( hVce->ahAllocator[BVCE_P_HeapId_ePicture] )
+      (unsigned long) BVCE_P_Allocator_GetSize( hVce->ahAllocator[BVCE_P_HeapId_ePicture] ),
+      BDBG_UINT64_ARG(BVCE_P_Allocator_GetDeviceOffset( hVce->ahAllocator[BVCE_P_HeapId_ePicture] ))
       ));
 
    /* Secure Allocator */
@@ -446,10 +443,10 @@ BVCE_P_SetupAllocators(
       return BERR_TRACE( rc );
    }
 
-   BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Memory Allocator[%d]: %08x bytes @ %08x",
+   BDBG_MODULE_MSG( BVCE_MEMORY, ("Created Memory Allocator[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
       BVCE_P_HeapId_eSecure,
-      BVCE_P_Allocator_GetSize( hVce->ahAllocator[BVCE_P_HeapId_eSecure] ),
-      (uint32_t) BVCE_P_Allocator_GetDeviceOffset( hVce->ahAllocator[BVCE_P_HeapId_eSecure] )
+      (unsigned long) BVCE_P_Allocator_GetSize( hVce->ahAllocator[BVCE_P_HeapId_eSecure] ),
+      BDBG_UINT64_ARG(BVCE_P_Allocator_GetDeviceOffset( hVce->ahAllocator[BVCE_P_HeapId_eSecure] ))
       ));
 
    return BERR_TRACE( BERR_SUCCESS );
@@ -484,9 +481,9 @@ BVCE_P_AllocateDeviceMemory(
       }
    }
 
-   BDBG_MODULE_MSG( BVCE_MEMORY, ("Allocate CABAC CMD Memory Buffer: %08x bytes @ %08x",
-      BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer ),
-      (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer )
+   BDBG_MODULE_MSG( BVCE_MEMORY, ("Allocate CABAC CMD Memory Buffer: %08lx bytes @ "BDBG_UINT64_FMT,
+      (unsigned long) BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer ),
+      BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer ))
       ));
 
    return BERR_TRACE( rc );
@@ -500,9 +497,9 @@ BVCE_P_FreeDeviceMemory(
    /* Free Memory */
    if ( NULL != hVce->hCabacCmdBuffer )
    {
-      BDBG_MODULE_MSG( BVCE_MEMORY, ("Free CABAC CMD Memory Buffer: %08x bytes @ %08x",
-         BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer ),
-         (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer )
+      BDBG_MODULE_MSG( BVCE_MEMORY, ("Free CABAC CMD Memory Buffer: %08lx bytes @ "BDBG_UINT64_FMT,
+         (unsigned long) BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer ),
+         BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer ))
          ));
    }
 
@@ -519,9 +516,9 @@ BVCE_P_FreeFirmwareMemory(
 
    for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
    {
-      BDBG_MODULE_MSG( BVCE_MEMORY, ("Free Firmware Code Buffer[%d]: @ %08x",
+      BDBG_MODULE_MSG( BVCE_MEMORY, ("Free Firmware Code Buffer[%d]: @ "BDBG_UINT64_FMT,
          i,
-         (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[i].hBuffer )
+         BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[i].hBuffer ))
          ));
 
       BVCE_P_Buffer_Free( hVce->fw.memory[i].hBuffer );
@@ -559,10 +556,10 @@ BVCE_P_AllocateFirmwareMemory(
          return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY );
       }
 
-      BDBG_MODULE_MSG( BVCE_MEMORY, ("Allocate Firmware Code Buffer[%d]: %08x bytes @ %08x",
+      BDBG_MODULE_MSG( BVCE_MEMORY, ("Allocate Firmware Code Buffer[%d]: %08lx bytes @ "BDBG_UINT64_FMT,
          i,
-         stAllocSettings.uiSize,
-         (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[i].hBuffer )
+         (unsigned long) stAllocSettings.uiSize,
+         BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[i].hBuffer ))
          ));
    }
 
@@ -576,7 +573,7 @@ BVCE_P_LoadFirmware(
 {
    BERR_Code rc;
    uint32_t i;
-   uint32_t uiRegValue;
+   uint64_t uiRegValue;
 
    for ( i = 0; i < BVCE_PLATFORM_P_NUM_ARC_CORES; i++ )
    {
@@ -619,9 +616,9 @@ BVCE_P_LoadFirmware(
 
       BVCE_P_Buffer_UnlockAddress( hVce->fw.memory[i].hBuffer );
 
-      uiRegValue = (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[i].hBuffer ) + ( (unsigned) hVce->fw.astFirmwareLoadInfo[i].stCode.pStartAddress - (unsigned) pCodeBufferCached );
+      uiRegValue = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[i].hBuffer ) + ( (uint8_t*) hVce->fw.astFirmwareLoadInfo[i].stCode.pStartAddress - (uint8_t*) pCodeBufferCached );
 
-      BREG_Write32(
+      BREG_WriteAddr(
                hVce->handles.hReg,
                hVce->stPlatformConfig.stCore[i].uiInstructionStartPhysicalAddress,
                uiRegValue
@@ -629,15 +626,15 @@ BVCE_P_LoadFirmware(
 
 #if BDBG_DEBUG_BUILD
          {
-           uint32_t uiRegValueActual = BREG_Read32(
+           uint64_t uiRegValueActual = BREG_ReadAddr(
                                                    hVce->handles.hReg,
                                                    hVce->stPlatformConfig.stCore[i].uiInstructionStartPhysicalAddress
                                                    );
 
-           BDBG_MSG(("@0x%08x <-- 0x%08x (0x%08x) - ARC[%d] %s",
+           BDBG_MSG(("@0x%08x <-- "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT") - ARC[%d] %s",
                     hVce->stPlatformConfig.stCore[i].uiInstructionStartPhysicalAddress,
-                    uiRegValue,
-                    uiRegValueActual,
+                    BDBG_UINT64_ARG(uiRegValue),
+                    BDBG_UINT64_ARG(uiRegValueActual),
                     i,
                     "Instruction Start Address"
                     ));
@@ -645,7 +642,7 @@ BVCE_P_LoadFirmware(
 #endif
 
       /* NOTE: This code assumes the data is loaded AFTER the code */
-      uiRegValue = (unsigned) hVce->fw.astFirmwareLoadInfo[i].stData.pStartAddress + hVce->fw.astFirmwareLoadInfo[i].stData.uiSize - (unsigned) hVce->fw.astFirmwareLoadInfo[i].stCode.pStartAddress;
+      uiRegValue = (uint8_t*) hVce->fw.astFirmwareLoadInfo[i].stData.pStartAddress + hVce->fw.astFirmwareLoadInfo[i].stData.uiSize - (uint8_t*) hVce->fw.astFirmwareLoadInfo[i].stCode.pStartAddress;
 
       BREG_Write32(
                hVce->handles.hReg,
@@ -657,7 +654,7 @@ BVCE_P_LoadFirmware(
       {
          uiRegValue = i ? 0x00000 : 0x00000; /* This is hard-coded */
 
-         BREG_Write32(
+         BREG_WriteAddr(
                   hVce->handles.hReg,
                   hVce->stPlatformConfig.stCore[i].uiDataSpaceStartSystemOffset,
                   uiRegValue
@@ -666,15 +663,15 @@ BVCE_P_LoadFirmware(
 
 #if BDBG_DEBUG_BUILD
       {
-           uint32_t uiRegValueActual = BREG_Read32(
+           uint64_t uiRegValueActual = BREG_Read32(
                                                    hVce->handles.hReg,
                                                    hVce->stPlatformConfig.stCore[i].uiDataSpaceStartRelativeOffset
                                                    );
 
-           BDBG_MSG(("@0x%08x <-- 0x%08x (0x%08x) - ARC[%d] %s",
+           BDBG_MSG(("@0x%08x <-- "BDBG_UINT64_FMT" ("BDBG_UINT64_FMT") - ARC[%d] %s",
                     hVce->stPlatformConfig.stCore[i].uiDataSpaceStartRelativeOffset,
-                    uiRegValue,
-                    uiRegValueActual,
+                    BDBG_UINT64_ARG(uiRegValue),
+                    BDBG_UINT64_ARG(uiRegValueActual),
                     i,
                     "Data Start Address"
                     ));
@@ -1122,7 +1119,7 @@ BVCE_P_Boot(
    BDBG_MSG(("ARC[0] PC = %08x, STATUS32 = %08x",
          BREG_Read32(
              hVce->handles.hReg,
-             hVce->stPlatformConfig.stDebug.uiPicArcPC
+             hVce->stPlatformConfig.stDebug.uiArcPC[0]
              ),
          BREG_Read32(
              hVce->handles.hReg,
@@ -1242,7 +1239,7 @@ BVCE_P_Boot(
        BDBG_MSG(("ARC[0] PC = %08x, STATUS32 = %08x, L2 = %08x, Host2Vice %08x, Vice2Host %08x",
                  BREG_Read32(
                              hVce->handles.hReg,
-                             hVce->stPlatformConfig.stDebug.uiPicArcPC
+                             hVce->stPlatformConfig.stDebug.uiArcPC[0]
                              ),
                  BREG_Read32(
                              hVce->handles.hReg,
@@ -1331,7 +1328,7 @@ void BVCE_P_ValidateStructSizes(void)
 
    BDBG_CWARNING( sizeof( ViceCmdInit_t ) == 13*4 );
    BDBG_CWARNING( sizeof( ViceCmdInitResponse_t ) == 11*4 );
-   BDBG_CWARNING( sizeof( ViceCmdOpenChannel_t ) == 7*4 );
+   BDBG_CWARNING( sizeof( ViceCmdOpenChannel_t ) == 8*4 );
    BDBG_CWARNING( sizeof( ViceCmdOpenChannelResponse_t ) == 3*4 );
    BDBG_CWARNING( sizeof( ViceCmdStartChannel_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdStartChannelResponse_t ) == 2*4 );
@@ -1339,7 +1336,7 @@ void BVCE_P_ValidateStructSizes(void)
    BDBG_CWARNING( sizeof( ViceCmdStopChannelResponse_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdCloseChannel_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdCloseChannelResponse_t ) == 2*4 );
-   BDBG_CWARNING( sizeof( ViceCmdConfigChannel_t ) == 31*4 );
+   BDBG_CWARNING( sizeof( ViceCmdConfigChannel_t ) == 33*4 );
    BDBG_CWARNING( sizeof( ViceCmdConfigChannelResponse_t ) == 2*4 );
    BDBG_CWARNING( sizeof( ViceCmdDebugChannel_t ) == (3*4 + COMMAND_BUFFER_SIZE_BYTES));
    BDBG_CWARNING( sizeof( ViceCmdDebugChannelResponse_t ) == 2*4 );
@@ -1365,9 +1362,6 @@ void BVCE_P_ValidateFrameRateEnum(void)
    BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_1000 == (unsigned) BAVC_FrameRateCode_e10 );
    BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_1500 == (unsigned) BAVC_FrameRateCode_e15 );
    BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_2000 == (unsigned) BAVC_FrameRateCode_e20 );
-#ifdef BVCE_P_PRERELEASE_TEST_MODE
-   BDBG_CASSERT( (unsigned) ENCODING_FRAME_RATE_CODE_1998 == (unsigned) BAVC_FrameRateCode_e19_98 );
-#endif
 }
 
 #define BVCE_P_WriteRegisters( handle, addr, buffer, size ) BVCE_P_WriteRegistersNew_isrsafe( handle, addr, buffer, size );
@@ -1409,17 +1403,17 @@ BVCE_P_WriteRegistersNew_isrsafe(
 #if BDBG_DEBUG_BUILD
       if ( true == bIsCommand )
       {
-         BDBG_MODULE_MSG( BVCE_CMD, ("@%08x <-- %08x - %s",
-                  uiRegStartAddress + (i*sizeof( uint32_t )),
-                  pBuffer[i],
+         BDBG_MODULE_MSG( BVCE_CMD, ("@%08lx <-- "BDBG_UINT64_FMT" - %s",
+                  (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
+                  BDBG_UINT64_ARG((uint64_t) pBuffer[i]),
                   BVCE_P_CommandLUT[uiCommandIndex].szCommandParameterName[i]
                   ));
       }
       else
       {
-         BDBG_MSG(("@%08x <-- %08x",
-                  uiRegStartAddress + (i*sizeof( uint32_t )),
-                  pBuffer[i]));
+         BDBG_MSG(("@%08lx <-- "BDBG_UINT64_FMT,
+                  (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
+                  BDBG_UINT64_ARG((uint64_t) pBuffer[i])));
       }
 #endif
      BREG_Write32(
@@ -1478,17 +1472,17 @@ BVCE_P_ReadRegistersNew_isrsafe(
 
      if ( true == bIsCommand )
      {
-        BDBG_MODULE_MSG( BVCE_RSP, ("@%08x --> %08x - %s",
-                 uiRegStartAddress + (i*sizeof( uint32_t )),
-                 pBuffer[i],
+        BDBG_MODULE_MSG( BVCE_RSP, ("@%08lx --> "BDBG_UINT64_FMT" - %s",
+                 (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
+                 BDBG_UINT64_ARG((uint64_t) pBuffer[i]),
                  BVCE_P_CommandLUT[uiCommandIndex].szResponseParameterName[i]
                  ));
      }
      else
      {
-        BDBG_MSG(("@%08x --> %08x",
-                  uiRegStartAddress + (i*sizeof( uint32_t )),
-                  pBuffer[i]));
+        BDBG_MSG(("@%08lx --> "BDBG_UINT64_FMT,
+                 (unsigned long) (uiRegStartAddress + (i*sizeof( uint32_t ))),
+                  BDBG_UINT64_ARG((uint64_t) pBuffer[i])));
      }
 #endif
    }
@@ -1513,6 +1507,8 @@ BVCE_P_SendCommand_impl(
 
       /* Write the command to the command buffer in DCCM */
       BDBG_MSG(("Sending Command"));
+
+      if ( NULL != hVce->stDebugFifo.hDebugFifo )
       {
          BVCE_P_DebugFifo_Entry *pstEntry;
          BDBG_Fifo_Token stToken;
@@ -1584,7 +1580,7 @@ BVCE_P_SendCommand_impl(
             BDBG_MSG(("ARC[0] PC = %08x, STATUS32 = %08x, L2 = %08x, Vice2Host %08x",
                        BREG_Read32(
                                    hVce->handles.hReg,
-                                   hVce->stPlatformConfig.stDebug.uiPicArcPC
+                                   hVce->stPlatformConfig.stDebug.uiArcPC[0]
                                    ),
                        BREG_Read32(
                                    hVce->handles.hReg,
@@ -1639,6 +1635,7 @@ BVCE_P_SendCommand_impl(
                        sizeof( BVCE_P_Response )
                        );
 
+            if ( NULL != hVce->stDebugFifo.hDebugFifo )
             {
                BVCE_P_DebugFifo_Entry *pstEntry;
                BDBG_Fifo_Token stToken;
@@ -1719,7 +1716,7 @@ typedef struct BVCE_P_FirmwareMemorySettings
    uint32_t    StripeWidth;                                /* DRAM Stripe width for the given platform                          */
    uint32_t    X;                                          /* X in Xn+Y formula which is used for NBMY calculation              */
    uint32_t    Y;                                          /* Y in Xn+Y formula which is used for NBMY calculation              */
-   uint32_t    WordSize;                                   /* 0: 16-bit.   1: 32-bit                                            */
+   uint32_t    WordSize;                                   /* 0: 16-bit.   1: 32-bit    2: 64-bit                               */
    uint32_t    BankType;                                   /* 0: 4 Banks.  1: 8 Banks.  2: 16 Banks.                            */
    uint32_t    PageSize;                                   /* 0: 1 Kbytes. 1: 2 Kbytes. 2: 4 Kbytes. 3: 8 Kbytes. 4: 16 Kbytes. */
    uint32_t    Grouping;                                   /* 0: Disable.  1: Enable.                                           */
@@ -1739,18 +1736,34 @@ BVCE_P_PopulateFirmwareMemorySettings(
    BKNI_Memset( pstFirmwareMemorySettings, 0, sizeof( BVCE_P_FirmwareMemorySettings ) );
 
    /* Set WordSize */
-   switch ( pstMemoryInfo->memc[0].width )
+   switch ( pstMemoryInfo->memc[0].mapVer )
    {
-      case 16:
-         pstFirmwareMemorySettings->WordSize = WORD_SIZE_GWORD;
+      case BCHP_ScbMapVer_eMap2:
+      case BCHP_ScbMapVer_eMap5:
+      {
+         switch ( pstMemoryInfo->memc[0].width )
+            {
+               case 16:
+                  pstFirmwareMemorySettings->WordSize = WORD_SIZE_GWORD;
+                  break;
+
+               case 32:
+                  pstFirmwareMemorySettings->WordSize = WORD_SIZE_JWORD;
+                  break;
+
+               default:
+                  BDBG_ERR(("Unsupported interface width (%d)", pstMemoryInfo->memc[0].width ));
+                  return BERR_TRACE( BERR_NOT_SUPPORTED );
+            }
+         }
          break;
 
-      case 32:
-         pstFirmwareMemorySettings->WordSize = WORD_SIZE_JWORD;
+      case BCHP_ScbMapVer_eMap8:
+         pstFirmwareMemorySettings->WordSize = WORD_SIZE_MWORD;
          break;
 
       default:
-         BDBG_ERR(("Unsupported interface width (%d)", pstMemoryInfo->memc[0].width ));
+         BDBG_ERR(("Unsupported map version (%d)", pstMemoryInfo->memc[0].mapVer ));
          return BERR_TRACE( BERR_NOT_SUPPORTED );
    }
 
@@ -1860,7 +1873,7 @@ BVCE_P_SendCommand_Init(
    hVce->fw.stCommand.type.stInit.DeviceEndianess = 0;
 #endif
 
-   hVce->fw.stCommand.type.stInit.DeviceSG_CABACCmdBuffPtr = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer );
+   hVce->fw.stCommand.type.stInit.DeviceSG_CABACCmdBuffPtr = (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->hCabacCmdBuffer ); /* Only used on 32-bit VICEv2, so safe to cast to 32-bit */
    hVce->fw.stCommand.type.stInit.DeviceSG_CABACCmdBuffSize = BVCE_P_Buffer_GetSize( hVce->hCabacCmdBuffer );
 
    hVce->fw.stCommand.type.stInit.VerificationModeFlags = 0;
@@ -1884,6 +1897,7 @@ BVCE_P_SendCommand_Init(
    hVce->fw.dccm.uiWatchdogErrorCodeBaseAddress[0] = hVce->fw.dccm.uiRegisterBaseAddress[0] + (uint32_t) hVce->fw.stResponse.type.stInit.pPicArcWdogErrCodeBase;
    hVce->fw.dccm.uiWatchdogErrorCodeBaseAddress[1] = hVce->fw.dccm.uiRegisterBaseAddress[1] + (uint32_t) hVce->fw.stResponse.type.stInit.pMbArcWdogErrCodeBase;
 
+   hVce->fw.stResponse.type.stInit.Version &= ~0x80000000;
    hVce->stVersionInfo.uiFirmwareVersion = hVce->fw.stResponse.type.stInit.Version;
    hVce->stVersionInfo.uiFirmwareApiVersion = hVce->fw.stResponse.type.stInit.FwApiVersion;
    hVce->stVersionInfo.uiBvn2ViceApiVersion = hVce->fw.stResponse.type.stInit.BvnApiVersion;
@@ -1913,7 +1927,7 @@ BVCE_P_SendCommand_Init(
          pCachedAddress = BVCE_P_Buffer_LockAddress( hVce->fw.memory[0].hBuffer );
          if ( NULL != pCachedAddress )
          {
-            szVersionCached = (void*) ((unsigned) pCachedAddress + ((uint32_t) hVce->fw.stResponse.type.stInit.pszVersionStr - (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[0].hBuffer )));
+            szVersionCached = (void*) ((uint8_t*) pCachedAddress + (hVce->fw.stResponse.type.stInit.pszVersionStr - (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[0].hBuffer )));
 
             BVCE_P_Buffer_FlushCache_isr(
                hVce->fw.memory[0].hBuffer,
@@ -1982,9 +1996,9 @@ BVCE_P_SendCommand_OpenChannel(
 
    hVce->fw.stCommand.type.stOpenChannel.Command = VICE_CMD_OPEN_CHANNEL;
    hVce->fw.stCommand.type.stOpenChannel.uiChannel_id = hVceCh->stOpenSettings.uiInstance;
-   hVce->fw.stCommand.type.stOpenChannel.pNonSecureBufferBase = BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer);
+   BVCE_P_SET_32BIT_HI_LO_FROM_64( hVce->fw.stCommand.type.stOpenChannel.pNonSecureBufferBase, BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer) );
    hVce->fw.stCommand.type.stOpenChannel.uiNonSecureBufferSize = BVCE_P_Buffer_GetSize(hVceCh->memory[BVCE_P_HeapId_ePicture].hBuffer);
-   hVce->fw.stCommand.type.stOpenChannel.pSecureBufferBase = BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer);
+   hVce->fw.stCommand.type.stOpenChannel.pSecureBufferBase = (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer); /* Only used on 32-bit VICEv2, so safe to cast to 32-bit */
    hVce->fw.stCommand.type.stOpenChannel.uiSecureBufferSize = BVCE_P_Buffer_GetSize(hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer);
    if (  BVCE_MultiChannelMode_eCustom == hVceCh->stOpenSettings.eMultiChannelMode )
    {
@@ -2077,6 +2091,20 @@ static const uint32_t BVCE_P_ProfileMPEG4LUT[BAVC_VideoCompressionProfile_eMax] 
  BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eBaseline */
 };
 
+static const uint32_t BVCE_P_ProfileHEVCLUT[BAVC_VideoCompressionProfile_eMax] =
+{
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eUnknown */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSimple */
+ ENCODING_HEVC_PROFILE_MAIN, /* BAVC_VideoCompressionProfile_eMain */
+ ENCODING_HEVC_PROFILE_HIGH, /* BAVC_VideoCompressionProfile_eHigh */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvance */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eJizhun */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSnrScalable */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eSpatiallyScalable */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eAdvancedSimple */
+ BVCE_P_VIDEOCOMPRESSIONPROFILE_UNSUPPORTED, /* BAVC_VideoCompressionProfile_eBaseline */
+};
+
 #define BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED 0xFFFFFFFF
 
 static const uint32_t BVCE_P_LevelH264LUT[BAVC_VideoCompressionLevel_eMax] =
@@ -2163,6 +2191,34 @@ static const uint32_t BVCE_P_LevelMPEG4LUT[BAVC_VideoCompressionLevel_eMax] =
  BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh1440 */
 };
 
+static const uint32_t BVCE_P_LevelHEVCLUT[BAVC_VideoCompressionLevel_eMax] =
+{
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eUnknown */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e00 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e10 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e1B */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e11 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e12 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e13 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e20 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e21 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e22 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e30 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e31 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e32 */
+ ENCODING_HEVC_LEVEL_40, /* BAVC_VideoCompressionLevel_e40 */
+ ENCODING_HEVC_LEVEL_41, /* BAVC_VideoCompressionLevel_e41 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e42 */
+ ENCODING_HEVC_LEVEL_50, /* BAVC_VideoCompressionLevel_e50 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e51 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e60 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_e62 */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eLow */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eMain */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh */
+ BVCE_P_VIDEOCOMPRESSIONLEVEL_UNSUPPORTED, /* BAVC_VideoCompressionLevel_eHigh1440 */
+};
+
 static const uint32_t BVCE_P_InputTypeLUT[BAVC_ScanType_eProgressive + 1] =
 {
  ENCODER_INPUT_TYPE_INTERLACED, /* BAVC_ScanType_eInterlaced */
@@ -2233,6 +2289,7 @@ static const uint32_t BVCE_P_ErrorMaskLUT[32] =
  ( 1 << VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_UNSUPPORTED_DISPLAY_FMT_IN_2_CH_MODE */
  ( 1 << VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_MAX_RESOLUTION_FOR_LEVEL_EXCEEDED */
  ( 1 << VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_BITRATE_TOO_LOW */
+ ( 1 << VICE_ERROR_UNSUPPORTED_FRAME_RATE_FOR_THIS_RESOLUTION_AND_GOP_STRUCTURE ), /* BVCE_CHANNEL_STATUS_FLAGS_ERROR_FRAMERATE_NOT_SUPPORTED_FOR_RESOLUTION_AND_GOP_STRUCTURE */
 };
 
 static const uint32_t BVCE_P_EventMaskReverseLUT[32] =
@@ -2296,7 +2353,7 @@ static const uint32_t BVCE_P_ErrorMaskReverseLUT[32] =
  BVCE_CHANNEL_STATUS_FLAGS_ERROR_UNSUPPORTED_DISPLAY_FMT_IN_2_CH_MODE, /* VICE_ERROR_RES_AND_FRAMERATE_NOT_SUPPORTED_IN_2_CH_MODE */
  BVCE_CHANNEL_STATUS_FLAGS_ERROR_MAX_RESOLUTION_FOR_LEVEL_EXCEEDED, /* VICE_ERROR_RESOLUTION_IS_TOO_HIGH_FOR_THIS_LEVEL */
  BVCE_CHANNEL_STATUS_FLAGS_ERROR_BITRATE_TOO_LOW, /* VICE_ERROR_FW_INCREASED_BITRATE_TO_MINIMUM_SUPPORTED */
- 0,
+ BVCE_CHANNEL_STATUS_FLAGS_ERROR_FRAMERATE_NOT_SUPPORTED_FOR_RESOLUTION_AND_GOP_STRUCTURE, /* VICE_ERROR_UNSUPPORTED_FRAME_RATE_FOR_THIS_RESOLUTION_AND_GOP_STRUCTURE */
  0,
  0,
  0,
@@ -2459,7 +2516,10 @@ BVCE_P_VerifyGopStructure(
       case ENCODING_GOP_STRUCT_IBBP:
          /* supported in AVC and MPEG 2, not supported in all others ... */
          if ((ENCODING_STD_H264 != hVce->fw.stCommand.type.stConfigChannel.Protocol)
-            && (ENCODING_STD_MPEG2 != hVce->fw.stCommand.type.stConfigChannel.Protocol))
+            && (ENCODING_STD_MPEG2 != hVce->fw.stCommand.type.stConfigChannel.Protocol)
+            && (ENCODING_STD_HEVC != hVce->fw.stCommand.type.stConfigChannel.Protocol)
+            && (ENCODING_STD_VP9 != hVce->fw.stCommand.type.stConfigChannel.Protocol)
+            )
          {
             BDBG_ERR(("GOP Structure of IBBP not supported"));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -2650,7 +2710,7 @@ BVCE_P_SendCommand_ConfigChannel(
       else
       {
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, "count,nrt,pipeline low delay,adaptive low delay,protocol,profile,level,input type,stc index,output index,rate buffer delay,num parallel encodes,force entropy coding,single ref P,required patches only,segment rc,segment duration,segment upper tolerance,segment upper slope factor,segment lower tolerance,segment lower slope factor" );
-         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
+         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) <= 144 );
 
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",on input change,new rap,fast channel change");
          BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
@@ -2728,6 +2788,7 @@ BVCE_P_SendCommand_ConfigChannel(
    }
 #endif
 
+   if ( NULL != hVceCh->hVce->stDebugFifo.hDebugFifo )
    {
       BVCE_P_DebugFifo_Entry *pstEntry;
       BDBG_Fifo_Token stToken;
@@ -2793,6 +2854,16 @@ BVCE_P_SendCommand_ConfigChannel(
 
       case ENCODING_STD_VP8:
          hVce->fw.stCommand.type.stConfigChannel.Profile = ENCODING_VP8_PROFILE_STANDARD_LF;
+         hVce->fw.stCommand.type.stConfigChannel.Level = 0;
+         break;
+
+      case ENCODING_STD_HEVC:
+         hVce->fw.stCommand.type.stConfigChannel.Profile = BVCE_P_ProfileHEVCLUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eProfile];
+         hVce->fw.stCommand.type.stConfigChannel.Level = BVCE_P_LevelHEVCLUT[hVceCh->stStartEncodeSettings.stProtocolInfo.eLevel];
+         break;
+
+      case ENCODING_STD_VP9:
+         hVce->fw.stCommand.type.stConfigChannel.Profile = ENCODING_VP9_PROFILE;
          hVce->fw.stCommand.type.stConfigChannel.Level = 0;
          break;
 
@@ -2972,6 +3043,14 @@ BVCE_P_SendCommand_ConfigChannel(
       return BERR_TRACE( BERR_INVALID_PARAMETER );
    }
 
+   /* Prevent interlaced encoding if VP9 is used */
+   if ( ( BAVC_VideoCompressionStd_eVP9 == hVceCh->stStartEncodeSettings.stProtocolInfo.eProtocol )
+        && ( BAVC_ScanType_eInterlaced == hVceCh->stStartEncodeSettings.eInputType ) )
+   {
+      BDBG_ERR(("Interlaced transcode not allowed with VP9"));
+      return BERR_TRACE( BERR_INVALID_PARAMETER );
+   }
+
    if ( hVceCh->stStartEncodeSettings.eInputType > BAVC_ScanType_eProgressive )
    {
       BDBG_ERR(("Unrecognized input type (%d)", hVceCh->stStartEncodeSettings.eInputType));
@@ -3035,9 +3114,9 @@ BVCE_P_SendCommand_ConfigChannel(
    }
 
    hVce->fw.stCommand.type.stConfigChannel.ContextID = hVceCh->stStartEncodeSettings.hOutputHandle->stOpenSettings.uiInstance;
-   hVce->fw.stCommand.type.stConfigChannel.ITBBufPtr = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stITB.hBuffer );
+   BVCE_P_SET_32BIT_HI_LO_FROM_64( hVce->fw.stCommand.type.stConfigChannel.ITBBufPtr, BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stITB.hBuffer ) );
    hVce->fw.stCommand.type.stConfigChannel.ITBBufSize = BVCE_P_Buffer_GetSize( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stITB.hBuffer );
-   hVce->fw.stCommand.type.stConfigChannel.CDBBufPtr = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stCDB.hBuffer );
+   BVCE_P_SET_32BIT_HI_LO_FROM_64( hVce->fw.stCommand.type.stConfigChannel.CDBBufPtr, BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stCDB.hBuffer ) );
    hVce->fw.stCommand.type.stConfigChannel.CDBBufSize = BVCE_P_Buffer_GetSize( hVceCh->stStartEncodeSettings.hOutputHandle->hOutputBuffers->stCDB.hBuffer );
 
    /* Set ITFP Mode */
@@ -3545,8 +3624,8 @@ BVCE_P_AllocateDebugLog(
       rc = BDBG_Fifo_Create(&hVce->stDebugFifo.hDebugFifo, &stCreateSettings);
       if ( BERR_SUCCESS != rc )
       {
-         BVCE_Close( hVce );
-         return BERR_TRACE( rc );
+         BDBG_WRN(("BDBG_Fifo is not supported"));
+         hVce->stDebugFifo.hDebugFifo = NULL;
       }
    }
 
@@ -3585,15 +3664,15 @@ BVCE_P_SetupDebugLog(
 
          stDebugBufferInfo.uiSize = hVce->stOpenSettings.uiDebugLogBufferSize[i];
 
+         BVCE_P_SET_32BIT_HI_LO_FROM_64( stDebugBufferInfo.uiPhysicalOffset, BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.debug[i].hBuffer ) );
 
-         stDebugBufferInfo.uiPhysicalOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.debug[i].hBuffer );
-         stDebugBufferInfo.uiReadOffset = stDebugBufferInfo.uiPhysicalOffset;
-         stDebugBufferInfo.uiWriteOffset = stDebugBufferInfo.uiPhysicalOffset;
+         stDebugBufferInfo.uiReadOffset = 0;
+         stDebugBufferInfo.uiWriteOffset = 0;
 
-         BDBG_MSG(("Debug Log[%d] @%08x (%d bytes)",
+         BDBG_MSG(("Debug Log[%d] @"BDBG_UINT64_FMT" (%lu bytes)",
                   i,
-                  (uint32_t) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.debug[i].hBuffer ),
-                  BVCE_P_Buffer_GetSize( hVce->fw.debug[i].hBuffer )
+                  BDBG_UINT64_ARG(BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.debug[i].hBuffer )),
+                  (unsigned long) BVCE_P_Buffer_GetSize( hVce->fw.debug[i].hBuffer )
                  ));
 
          BVCE_P_WriteRegisters(
@@ -3652,7 +3731,7 @@ BVCE_Open(
 
    /* TODO: Print Settings */
    BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_Open():"));
-#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_OpenSettings.stMemoryConfig."#_field"=%d bytes", hVce->stOpenSettings.stMemoryConfig._field));
+#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_OpenSettings.stMemoryConfig."#_field"=%lu bytes", (unsigned long) hVce->stOpenSettings.stMemoryConfig._field));
 #include "bvce_memconfig.inc"
 
 #if BVCE_P_ENABLE_UART
@@ -3963,7 +4042,7 @@ BVCE_Debug_P_ReadBuffer_impl(
          return BERR_TRACE( BERR_UNKNOWN );
       }
 
-      pInputBuffer0 = ((uint8_t*)pBufferCached) + (stDebugBufferInfo.uiReadOffset - stDebugBufferInfo.uiPhysicalOffset);
+      pInputBuffer0 = ((uint8_t*)pBufferCached) + stDebugBufferInfo.uiReadOffset;
 
       if ( stDebugBufferInfo.uiReadOffset <= stDebugBufferInfo.uiWriteOffset )
       {
@@ -3971,10 +4050,10 @@ BVCE_Debug_P_ReadBuffer_impl(
       }
       else
       {
-         uiInputLength0 = (stDebugBufferInfo.uiPhysicalOffset + stDebugBufferInfo.uiSize) - stDebugBufferInfo.uiReadOffset;
+         uiInputLength0 = stDebugBufferInfo.uiSize - stDebugBufferInfo.uiReadOffset;
 
          pInputBuffer1 = (uint8_t*)pBufferCached;
-         uiInputLength1 = (stDebugBufferInfo.uiWriteOffset - stDebugBufferInfo.uiPhysicalOffset);
+         uiInputLength1 = stDebugBufferInfo.uiWriteOffset;
       }
 
       BVCE_P_Buffer_FlushCache_isr(
@@ -4046,7 +4125,7 @@ BVCE_Debug_P_ReadBuffer_impl(
    if ( 0 != uiInputLengthRead )
    {
       stDebugBufferInfo.uiReadOffset += uiInputLengthRead;
-      if ( stDebugBufferInfo.uiReadOffset >= ( stDebugBufferInfo.uiPhysicalOffset + stDebugBufferInfo.uiSize ) )
+      if ( stDebugBufferInfo.uiReadOffset >= stDebugBufferInfo.uiSize )
       {
          stDebugBufferInfo.uiReadOffset -= stDebugBufferInfo.uiSize;
       }
@@ -4055,7 +4134,7 @@ BVCE_Debug_P_ReadBuffer_impl(
       /* coverity[callee_ptr_arith] */
       BVCE_P_WriteRegisters(
                hVce,
-               hVce->fw.debug[eARCInstance].uiBufferInfoBaseAddress + ( ((uint32_t)(&stDebugBufferInfo.uiReadOffset)) - ((uint32_t)&stDebugBufferInfo)),
+               hVce->fw.debug[eARCInstance].uiBufferInfoBaseAddress + ( ((uint8_t*)(&stDebugBufferInfo.uiReadOffset)) - ((uint8_t*)&stDebugBufferInfo)),
                (uint32_t*) (&stDebugBufferInfo.uiReadOffset),
                sizeof( stDebugBufferInfo.uiReadOffset )
                );
@@ -4286,7 +4365,7 @@ BVCE_Channel_Debug_P_DumpState_impl(
       BVCE_Debug_Log_Handle hLog;
       char fname[256];
       static unsigned uiStatusLogInstance[BVCE_PLATFORM_P_NUM_ENCODE_INSTANCES][BVCE_PLATFORM_P_NUM_ENCODE_CHANNELS][BVCE_P_BufferType_eMax];
-      unsigned uiBufferOffset;
+      uint64_t uiBufferOffset;
       unsigned uiBufferBase;
       unsigned uiSize;
       void* pBuffer;
@@ -4302,14 +4381,26 @@ BVCE_Channel_Debug_P_DumpState_impl(
          for ( i = 0; i < hVceCh->hVce->stPlatformConfig.stWatchdogRegisterDumpList.uiCount; i++ )
          {
             unsigned uiAddress = hVceCh->hVce->stPlatformConfig.stWatchdogRegisterDumpList.astRegisters[i].uiAddress + hVceCh->hVce->stPlatformConfig.stWatchdogRegisterDumpList.iInstanceOffset;
-
-            BVCE_Debug_P_WriteLog_isr( hLog, "@%08x = %08x (%s)\n", uiAddress, BREG_Read32( hVceCh->hVce->handles.hReg, uiAddress ), hVceCh->hVce->stPlatformConfig.stWatchdogRegisterDumpList.astRegisters[i].szName);
+            uint64_t uiRegValue;
+#if BCHP_REGISTER_HAS_64_BIT
+            if ( true == hVceCh->hVce->stPlatformConfig.stWatchdogRegisterDumpList.astRegisters[i].bIs64Bit )
+            {
+               uiRegValue = BREG_Read64( hVceCh->hVce->handles.hReg, uiAddress );
+            }
+            else
+            {
+#endif
+            uiRegValue = BREG_Read32( hVceCh->hVce->handles.hReg, uiAddress );
+#if BCHP_REGISTER_HAS_64_BIT
+     }
+#endif
+            BVCE_Debug_P_WriteLog_isr( hLog, "@%08x = "BDBG_UINT64_FMT" (%s)\n", uiAddress, BDBG_UINT64_ARG(uiRegValue), hVceCh->hVce->stPlatformConfig.stWatchdogRegisterDumpList.astRegisters[i].szName);
          }
          BVCE_Debug_P_CloseLog( hLog );
       }
 
       /* CMD Buffer */
-      if ( true == pstDumpStateSettings->bDumpCmdBuffer )
+      if ( ( true == pstDumpStateSettings->bDumpCmdBuffer ) && ( 0 != hVceCh->hVce->stPlatformConfig.stDebug.stCmd.uiBasePointer ) )
       {
          sprintf(fname, "BVCE_BUFFER_CMD_%02d_%02d_%03d.bin", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance, uiStatusLogInstance[hVceCh->hVce->stOpenSettings.uiInstance][hVceCh->stOpenSettings.uiInstance][BVCE_P_BufferType_eCmd] );
          uiStatusLogInstance[hVceCh->hVce->stOpenSettings.uiInstance][hVceCh->stOpenSettings.uiInstance][BVCE_P_BufferType_eCmd]++;
@@ -4322,20 +4413,20 @@ BVCE_Channel_Debug_P_DumpState_impl(
          {
             BVCE_P_Buffer_FlushCache_isr( hVceCh->hVce->hCabacCmdBuffer, pBuffer, uiSize );
             BVCE_Debug_P_OpenLog( fname, &hLog );
-            BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((unsigned)pBuffer + uiBufferOffset), uiSize );
+            BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
             BVCE_Debug_P_CloseLog( hLog );
             BVCE_P_Buffer_UnlockAddress( hVceCh->hVce->hCabacCmdBuffer );
          }
       }
 
       /* BIN Buffer */
-      if ( true == pstDumpStateSettings->bDumpBinBuffer )
+      if ( ( true == pstDumpStateSettings->bDumpBinBuffer ) && ( 0 != hVceCh->hVce->stPlatformConfig.stDebug.stBin[hVceCh->stOpenSettings.uiInstance].uiBasePointer ) )
       {
          sprintf(fname, "BVCE_BUFFER_BIN_%02d_%02d_%03d.bin", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance, uiStatusLogInstance[hVceCh->hVce->stOpenSettings.uiInstance][hVceCh->stOpenSettings.uiInstance][BVCE_P_BufferType_eBin] );
          uiStatusLogInstance[hVceCh->hVce->stOpenSettings.uiInstance][hVceCh->stOpenSettings.uiInstance][BVCE_P_BufferType_eBin]++;
 
-         uiBufferBase = BREG_Read32( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stDebug.stBin[hVceCh->stOpenSettings.uiInstance].uiBasePointer );
-         uiSize = 1 + BREG_Read32( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stDebug.stBin[hVceCh->stOpenSettings.uiInstance].uiEndPointer ) - uiBufferBase;
+         uiBufferBase = BREG_ReadAddr( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stDebug.stBin[hVceCh->stOpenSettings.uiInstance].uiBasePointer );
+         uiSize = 1 + BREG_ReadAddr( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stDebug.stBin[hVceCh->stOpenSettings.uiInstance].uiEndPointer ) - uiBufferBase;
 
          uiBufferOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer ) - uiBufferBase;
          pBuffer = BVCE_P_Buffer_LockAddress( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer );
@@ -4343,7 +4434,7 @@ BVCE_Channel_Debug_P_DumpState_impl(
          {
             BVCE_P_Buffer_FlushCache_isr( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer, pBuffer, uiSize );
             BVCE_Debug_P_OpenLog( fname, &hLog );
-            BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((unsigned)pBuffer + uiBufferOffset), uiSize );
+            BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
             BVCE_Debug_P_CloseLog( hLog );
             BVCE_P_Buffer_UnlockAddress( hVceCh->memory[BVCE_P_HeapId_eSecure].hBuffer );
          }
@@ -4359,8 +4450,8 @@ BVCE_Channel_Debug_P_DumpState_impl(
          {
              sprintf(fname, "BVCE_BUFFER_ITB_%02d_%02d_%03d.bin", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance, uiStatusLogInstance[hVceCh->hVce->stOpenSettings.uiInstance][hVceCh->stOpenSettings.uiInstance][BVCE_P_BufferType_eItb] );
 
-             uiBufferBase = BREG_Read32( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stITB.uiBasePointer );
-             uiSize = 1 + BREG_Read32( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stITB.uiEndPointer ) - uiBufferBase;
+             uiBufferBase = BREG_ReadAddr( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stITB.uiBasePointer );
+             uiSize = 1 + BREG_ReadAddr( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stITB.uiEndPointer ) - uiBufferBase;
 
              uiBufferOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stITB.hBuffer ) - uiBufferBase;
              pBuffer = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stITB.hBuffer );
@@ -4368,7 +4459,7 @@ BVCE_Channel_Debug_P_DumpState_impl(
              {
                 BVCE_P_Buffer_FlushCache_isr( hVceOutput->hOutputBuffers->stITB.hBuffer, pBuffer, uiSize );
                 BVCE_Debug_P_OpenLog( fname, &hLog );
-                BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((unsigned)pBuffer + uiBufferOffset), uiSize );
+                BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
                 BVCE_Debug_P_CloseLog( hLog );
                 BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stITB.hBuffer );
              }
@@ -4379,8 +4470,8 @@ BVCE_Channel_Debug_P_DumpState_impl(
          {
              sprintf(fname, "BVCE_BUFFER_CDB_%02d_%02d_%03d.bin", hVceCh->hVce->stOpenSettings.uiInstance, hVceCh->stOpenSettings.uiInstance, uiStatusLogInstance[hVceCh->hVce->stOpenSettings.uiInstance][hVceCh->stOpenSettings.uiInstance][BVCE_P_BufferType_eCdb] );
 
-             uiBufferBase = BREG_Read32( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stCDB.uiBasePointer );
-             uiSize = 1 + BREG_Read32( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stCDB.uiEndPointer ) - uiBufferBase;
+             uiBufferBase = BREG_ReadAddr( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stCDB.uiBasePointer );
+             uiSize = 1 + BREG_ReadAddr( hVceCh->hVce->handles.hReg, hVceCh->hVce->stPlatformConfig.stOutput[hVceCh->stOpenSettings.uiInstance].stCDB.uiEndPointer ) - uiBufferBase;
 
              uiBufferOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceOutput->hOutputBuffers->stCDB.hBuffer ) - uiBufferBase;
              pBuffer = BVCE_P_Buffer_LockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
@@ -4388,7 +4479,7 @@ BVCE_Channel_Debug_P_DumpState_impl(
              {
                 BVCE_P_Buffer_FlushCache_isr( hVceOutput->hOutputBuffers->stCDB.hBuffer, pBuffer, uiSize );
                 BVCE_Debug_P_OpenLog( fname, &hLog );
-                BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((unsigned)pBuffer + uiBufferOffset), uiSize );
+                BVCE_Debug_P_WriteLogBuffer_isr( hLog, (void*)((uint8_t*)pBuffer + uiBufferOffset), uiSize );
                 BVCE_Debug_P_CloseLog( hLog );
                 BVCE_P_Buffer_UnlockAddress( hVceOutput->hOutputBuffers->stCDB.hBuffer );
              }
@@ -4693,7 +4784,7 @@ BVCE_Channel_GetDefaultOpenSettings(
                BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_Channel_GetDefaultOpenSettings(boxMode=?):"));
             }
          }
-#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%d bytes", stMemoryConfig._field));
+#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%lu bytes", (unsigned long) stMemoryConfig._field));
 #include "bvce_memconfig.inc"
       }
    }
@@ -4914,7 +5005,7 @@ BVCE_Channel_P_Open_impl(
       astAllocSettings[BVCE_P_HeapId_eSecure].uiSize = hVceCh->stOpenSettings.stMemoryConfig.uiSecureMemSize;
 
       BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_Channel_Open():"));
-#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_Channel_OpenSettings.stMemoryConfig."#_field"=%d bytes", hVceCh->stOpenSettings.stMemoryConfig._field));
+#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, ("BVCE_Channel_OpenSettings.stMemoryConfig."#_field"=%lu bytes", (unsigned long) hVceCh->stOpenSettings.stMemoryConfig._field));
 #include "bvce_memconfig.inc"
 
       for ( eHeapId = 0; eHeapId < BVCE_P_HeapId_eMax; eHeapId++ )
@@ -6414,6 +6505,7 @@ BVCE_Channel_P_GetStatus_impl(
       BVCE_Debug_P_WriteLog_isr( hVceCh->hStatusLog, "\n" );
    }
 #endif
+      if ( NULL != hVceCh->hVce->stDebugFifo.hDebugFifo )
       {
          BVCE_P_DebugFifo_Entry *pstEntry;
          BDBG_Fifo_Token stToken;
@@ -6554,8 +6646,9 @@ BVCE_UserData_P_ParsePacketDescriptor_isrsafe(
    )
 {
    unsigned i;
-   volatile void * pCCPayload = (void*) ((uint32_t) pFWPacketDescriptor + BVCE_FW_P_UserData_PacketDescriptor_CCPayload_OFFSET);
+   volatile void * pCCPayload = (void*) ((uint8_t*) pFWPacketDescriptor + BVCE_FW_P_UserData_PacketDescriptor_CCPayload_OFFSET);
 
+   if ( NULL == pFWPacketDescriptor ) return;
    BKNI_Memset( pFWPacketDescriptor, 0, BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH );
 
    BDBG_ASSERT( BVCE_P_UserData_PacketType_UNSUPPORTED != BVCE_P_UserData_PacketTypeLUT[pPacketDescriptor->ePacketFormat] );
@@ -6584,7 +6677,7 @@ BVCE_UserData_P_ParsePacketDescriptor_isrsafe(
             }
             else
             {
-               volatile uint8_t* p608Payload = (uint8_t*)((uint32_t) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get608Line_OFFSET(uiNumValid608Lines));
+               volatile uint8_t* p608Payload = (uint8_t*)((uint8_t*) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get608Line_OFFSET(uiNumValid608Lines));
 
                p608Payload[0] = 0;
                p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_MASK;
@@ -6618,7 +6711,7 @@ BVCE_UserData_P_ParsePacketDescriptor_isrsafe(
             }
             else
             {
-               volatile uint8_t* p708Payload = (uint8_t*)((uint32_t) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get708Line_OFFSET(uiNumValid708Lines));
+               volatile uint8_t* p708Payload = (uint8_t*)((uint8_t*) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get708Line_OFFSET(uiNumValid708Lines));
 
                p708Payload[0] = 0;
 
@@ -6725,9 +6818,8 @@ BVCE_Channel_UserData_AddBuffers_isr(
             BVCE_FW_P_UserData_PacketType ePacketType;
             unsigned uiSourceDescNum = 0;
             unsigned uiTargetDescNum = 0;
-            unsigned uiDescriptorOffset = ( hVceCh->userdata.stUserDataQueue.uiWriteOffset * BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH * BVCE_UserData_P_PacketDescriptor_MAX_PER_FIELD);
-            unsigned uiBaseFWPacketDescriptorOffset = BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->userdata.hBuffer ) + uiDescriptorOffset;
-            void *pBaseFWPacketDescriptor =  (void*) ( (uint32_t) pDescriptorBufferCached + uiDescriptorOffset );
+            uint32_t uiDescriptorOffset = ( hVceCh->userdata.stUserDataQueue.uiWriteOffset * BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH * BVCE_UserData_P_PacketDescriptor_MAX_PER_FIELD);
+            void *pBaseFWPacketDescriptor =  (void*) ( (uint8_t*) pDescriptorBufferCached + uiDescriptorOffset );
 
             BDBG_ASSERT( BVCE_UserData_P_PacketDescriptor_MAX_PER_FIELD >= pstUserDataFieldInfo->uiNumDescriptors );
 
@@ -6742,7 +6834,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
                   /* Only add packet types that FW understands */
                   if ( ePacketType == BVCE_P_UserData_PacketTypeLUT[pstUserDataFieldInfo->stPacketDescriptor[uiSourceDescNum].ePacketFormat] )
                   {
-                     void *pFWPacketDescriptor = (void*) ( (uint32_t) pBaseFWPacketDescriptor + uiTargetDescNum*BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH );
+                     void *pFWPacketDescriptor = (void*) ( (uint8_t*) pBaseFWPacketDescriptor + uiTargetDescNum*BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH );
                      const BUDP_Encoder_PacketDescriptor *pPacketDescriptor = &pstUserDataFieldInfo->stPacketDescriptor[uiSourceDescNum];
 
                      /* Populate BVCE_FW_P_UserData_PacketDescriptor */
@@ -6782,8 +6874,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
             }
 
             hVceCh->userdata.stUserDataQueue.astQueue[hVceCh->userdata.stUserDataQueue.uiWriteOffset].uiMetadata |= ( ( BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH * uiTargetDescNum ) << BVCE_FW_P_UserData_QueueEntry_Metadata_Length_SHIFT ) & BVCE_FW_P_UserData_QueueEntry_Metadata_Length_MASK;
-
-            hVceCh->userdata.stUserDataQueue.astQueue[hVceCh->userdata.stUserDataQueue.uiWriteOffset].uiOffset = uiBaseFWPacketDescriptorOffset;
+            hVceCh->userdata.stUserDataQueue.astQueue[hVceCh->userdata.stUserDataQueue.uiWriteOffset].uiOffset = uiDescriptorOffset;
 
    #if BVCE_P_DUMP_USERDATA_LOG
             /* Debug */
@@ -6793,7 +6884,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
 
                for ( i = 0; i < uiTargetDescNum; i++ )
                {
-                  void *pFWPacketDescriptor = (void*) ( (uint32_t) pBaseFWPacketDescriptor + i*BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH );
+                  void *pFWPacketDescriptor = (void*) ( (uint8_t*) pBaseFWPacketDescriptor + i*BVCE_FW_P_UserData_PacketDescriptor_MAX_LENGTH );
 
                   {
                      unsigned uiNum608Lines = ((uint8_t*) pFWPacketDescriptor)[BVCE_FW_P_UserData_PacketDescriptor_CCPayload_OFFSET + BVCE_FW_P_UserData_CCPayload_NumValid608Lines_OFFSET];
@@ -6866,6 +6957,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
                      (hVceCh->userdata.stUserDataQueue.astQueue[hVceCh->userdata.stUserDataQueue.uiWriteOffset].uiMetadata & BVCE_FW_P_UserData_QueueEntry_Metadata_Polarity_MASK) >> BVCE_FW_P_UserData_QueueEntry_Metadata_Polarity_SHIFT,
                      (hVceCh->userdata.stUserDataQueue.astQueue[hVceCh->userdata.stUserDataQueue.uiWriteOffset].uiMetadata & BVCE_FW_P_UserData_QueueEntry_Metadata_Length_MASK) >> BVCE_FW_P_UserData_QueueEntry_Metadata_Length_SHIFT,
                      hVceCh->userdata.stUserDataQueue.astQueue[hVceCh->userdata.stUserDataQueue.uiWriteOffset].uiOffset
+                     );
                }
             }
 #endif
@@ -6882,7 +6974,11 @@ BVCE_Channel_UserData_AddBuffers_isr(
          {
             /* Update FW Queue Info */
             /* Update Queue First */
-            unsigned uiWriteOffset = ( (uint32_t) (hVceCh->userdata.stUserDataQueue.astQueue) - (uint32_t) (&hVceCh->userdata.stUserDataQueue.uiReadOffset) );
+            unsigned uiWriteOffset = ( (uint8_t*) (hVceCh->userdata.stUserDataQueue.astQueue) - (uint8_t*) (&hVceCh->userdata.stUserDataQueue.uiReadOffset) );
+
+            /* Set base offset */
+            BVCE_P_SET_32BIT_HI_LO_FROM_64( hVceCh->userdata.stUserDataQueue.uiBaseOffset, BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVceCh->userdata.hBuffer ) );
+
             /* coverity[address_of] */
             /* coverity[callee_ptr_arith] */
             BVCE_P_WriteRegisters_isr(
@@ -6893,7 +6989,7 @@ BVCE_Channel_UserData_AddBuffers_isr(
                      );
 
             /* Update Write Offset AFTER queue is updated */
-            uiWriteOffset = ( (uint32_t) (&hVceCh->userdata.stUserDataQueue.uiWriteOffset) - (uint32_t) (&hVceCh->userdata.stUserDataQueue.uiReadOffset) );
+            uiWriteOffset = ( (uint8_t*) (&hVceCh->userdata.stUserDataQueue.uiWriteOffset) - (uint8_t*) (&hVceCh->userdata.stUserDataQueue.uiReadOffset) );
             /* coverity[address_of] */
             /* coverity[callee_ptr_arith] */
             BVCE_P_WriteRegisters_isr(
@@ -7026,6 +7122,16 @@ BVCE_GetA2PDelayInfo(
 
             case ENCODING_STD_VP8:
                uiProfile = ENCODING_VP8_PROFILE_STANDARD_LF;
+               uiLevel = 0;
+               break;
+
+            case ENCODING_STD_HEVC:
+               uiProfile = BVCE_P_ProfileHEVCLUT[pstChStartEncodeSettings->stProtocolInfo.eProfile];
+               uiLevel = BVCE_P_LevelHEVCLUT[pstChStartEncodeSettings->stProtocolInfo.eLevel];
+               break;
+
+            case ENCODING_STD_VP9:
+               uiProfile = ENCODING_VP9_PROFILE;
                uiLevel = 0;
                break;
 
@@ -7181,7 +7287,7 @@ BVCE_GetMemoryConfig(
    {
       BDBG_MODULE_MSG( BVCE_MEMORY, ("BVCE_GetMemoryConfig():" ));
    }
-#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%d bytes", pstMemoryConfig->_field));
+#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%lu bytes", (unsigned long) pstMemoryConfig->_field));
 #include "bvce_memconfig.inc"
 
    BDBG_LEAVE( BVCE_GetMemoryConfig );
@@ -7335,7 +7441,7 @@ BVCE_Channel_GetMemoryConfig(
             ));
       }
    }
-#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%d bytes", pstMemoryConfig->_field));
+#define BVCE_MEMCONFIG_FIELD(_field) BDBG_MODULE_MSG(BVCE_MEMORY, (#_field"=%lu bytes", (unsigned long) pstMemoryConfig->_field));
 #include "bvce_memconfig.inc"
 
    BDBG_LEAVE( BVCE_Channel_GetMemoryConfig );

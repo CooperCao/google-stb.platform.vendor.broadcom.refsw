@@ -283,7 +283,7 @@ b_mpeg2pes_player_open_file(bmpeg2pes_player_t player)
     }
 }
 
-void 
+static void
 b_mpeg2pes_player_payload(void *packet_cnxt, batom_accum_t src, batom_cursor *payload_start, size_t len, const bmpeg2pes_atom_info *info)
 {	
 	bmpeg2pes_player_t player = (bmpeg2pes_player_t)packet_cnxt;

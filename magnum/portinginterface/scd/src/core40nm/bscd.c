@@ -907,7 +907,22 @@ BERR_Code BSCD_Channel_Open(
                         BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_onoff_gpio_058_SHIFT)));
+#elif (BCHP_CHIP == 7260)
+                        ulVal = BREG_Read32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2);
+                        ulVal &= ~(BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_013_MASK |
+                                   BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_014_MASK |
+                                   BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_015_MASK |
+                                   BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_016_MASK);
+                        BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2,
+                                (ulVal | (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_013_SHIFT) |
+                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_014_SHIFT) |
+                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_015_SHIFT) |
+                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2_gpio_016_SHIFT)));
 
+                        ulVal = BREG_Read32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
+                        ulVal &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_017_MASK;
+                        BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,
+                                (ulVal | (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_017_SHIFT)));
 #endif
             break;
         case 1:
@@ -2691,7 +2706,35 @@ BERR_Code BSCD_Channel_SetVccLevel(
 											BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1,ulValue );
 											break;
                                 }
-#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
+#elif (BCHP_CHIP == 7260)
+                                switch (in_channelHandle->ucChannelNumber) {
+                                case 0:
+                                    /* Set GPIO_020 for SC0_VPP output */
+                                    ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
+                                    ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_020_MASK ;
+                                    ulValue |= (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_020_SHIFT);
+                                    BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,ulValue );
+                                    BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_LO, 1 << 20, 0);
+
+                                    /* Set GPIO_034 as gpio_034 (input)
+                                     * This is required for 97260SV board where gpio_034 is connected to SC_VCTRL,
+                                     * but should not be needed on 972604DV */
+                                    ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5);
+                                    ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5_gpio_034_MASK ;
+                                    BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5, ulValue );
+
+                                    BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_HI, 1 << (34 - 32), 1 << (34 - 32));
+                                    break;
+                                case 1:
+                                    ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
+                                            BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
+                                    ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1_gpio_008_MASK ;
+                                    ulValue |=(0x00000005 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1_gpio_008_SHIFT);
+                                    BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1,ulValue );
+
+                                    break;
+                                }
+#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268)
 				switch( in_channelHandle->ucChannelNumber){
 					case 0:
 						ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
@@ -2773,6 +2816,8 @@ BERR_Code BSCD_Channel_SetVccLevel(
         case  BSCD_VccLevel_e1P8V:
 #if (BCHP_CHIP==7250)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (92 - 64), 0);
+#elif (BCHP_CHIP == 7260)
+            BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_HI, 1 << (34 - 32), 0);
 #else
             BDBG_WRN(("1.8V is not supported in BRCM ref board, please add customer code here."));
 #endif
@@ -3203,7 +3248,7 @@ BERR_Code BSCD_Channel_Receive(
                  */
                 if(*outp_ulNumRcvBytes == in_ulMaxReadBytes)
                 {
-                    BKNI_Delay(20);
+                    BKNI_Delay(100);
                 }
                 ev2cnt = BREG_Read32(
                         in_channelHandle->moduleHandle->regHandle,

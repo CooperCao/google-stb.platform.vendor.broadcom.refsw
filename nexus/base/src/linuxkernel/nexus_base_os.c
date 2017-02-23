@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -389,6 +389,7 @@ const char *
 NEXUS_GetEnv(const char *name)
 {
     unsigned i;
+    NEXUS_P_CheckEnv(name);
     for(i=0;i<NEXUS_P_OsEnv.count;i++) {
         if (NEXUS_P_OsEnv.env[i].key[0] && NEXUS_P_Base_StrCmp(NEXUS_P_OsEnv.env[i].key, name)==0) {
             return NEXUS_P_OsEnv.env[i].value;
@@ -403,6 +404,7 @@ NEXUS_SetEnv(const char *name, const char *value)
     unsigned i;
     unsigned freeslot = NEXUS_P_OsEnv.count;
 
+    NEXUS_P_CheckEnv(name);
     for(i=0;i<NEXUS_P_OsEnv.count;i++) {
         if (!NEXUS_P_OsEnv.env[i].key[0] && freeslot == NEXUS_P_OsEnv.count) {
             freeslot = i;

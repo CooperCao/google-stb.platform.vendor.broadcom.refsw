@@ -241,7 +241,7 @@ static void BXVD_P_Relf_WriteOutput( BXVD_Handle hXvd,
 
    BDBG_MSG(("BXVD_P_Relf_WriteOutput: size is %x at address %x", size, addr));
 
-   virt_addr = hXvd->uiFWMemBaseVirtAddr + (addr - hXvd->uiFWMemBasePhyAddr);
+   virt_addr = hXvd->uiFWMemBaseVirtAddr + (addr - hXvd->FWMemBasePhyAddr);
 
    while ( size > 3 )
    {

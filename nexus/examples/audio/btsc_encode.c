@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
 ******************************************************************************/
 /* Nexus example app: single live a/v decode from an input band with output to DAC, SPDIF, and BTSC encoded DAC */
@@ -87,6 +79,10 @@ int main(int argc, char **argv)
     NEXUS_VideoDecoderStartSettings videoProgram;
     NEXUS_AudioDecoderHandle pcmDecoder, compressedDecoder;
     NEXUS_AudioDecoderStartSettings audioProgram;
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSecondDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
 #if !NEXUS_NUM_RFM_OUTPUTS
     NEXUS_RfAudioEncoderHandle rfEncoder;
 #endif
@@ -97,6 +93,28 @@ int main(int argc, char **argv)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 1)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+        audioSecondDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[1]);
+    }
+    else if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
 
     /* Get the streamer input band from Platform. Platform has already configured the FPGA with a default streamer routing */
     NEXUS_Platform_GetStreamerInputBand(0, &inputBand);
@@ -145,50 +163,51 @@ int main(int argc, char **argv)
     compressedDecoder = NEXUS_AudioDecoder_Open(1, NULL);
 
 #if NEXUS_NUM_RFM_OUTPUTS
-#if NEXUS_NUM_AUDIO_DACS
-    /* Stereo to DAC 0 */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        /* Stereo to DAC 0 */
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
     /* Connect RFM as Slave to DAC 0 */
     NEXUS_AudioOutput_AddInput(
         NEXUS_Rfm_GetAudioConnector(platformConfig.outputs.rfm[0]),
         NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
 #else /* No Hardware RFM, use DSP modulation */
     rfEncoder = NEXUS_RfAudioEncoder_Open(NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    /* Stereo to DAC 0 */
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-    #if NEXUS_NUM_AUDIO_DACS > 1
-    /* BTSC (default encoding) to DAC1 */
-    NEXUS_RfAudioEncoder_AddInput(
-        rfEncoder,
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[1]),
-        NEXUS_RfAudioEncoder_GetConnector(rfEncoder));
-    #endif
-#endif
-
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
-    {
-        /* Only pass through AC3 */
+    if (audioDacHandle) {
+        /* Stereo to DAC 0 */
         NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-            NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
-    }
-    else
-    {
-        NEXUS_AudioOutput_AddInput(
-            NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            audioDacHandle,
             NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     }
+    if (audioSecondDacHandle) {
+        /* BTSC (default encoding) to DAC1 */
+        NEXUS_RfAudioEncoder_AddInput(
+            rfEncoder,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        NEXUS_AudioOutput_AddInput(
+            audioSecondDacHandle,
+            NEXUS_RfAudioEncoder_GetConnector(rfEncoder));
+    }
 #endif
+
+    if (audioSpdifHandle) {
+        if ( audioProgram.codec == NEXUS_AudioCodec_eAc3 )
+        {
+            /* Only pass through AC3 */
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(compressedDecoder, NEXUS_AudioDecoderConnectorType_eCompressed));
+        }
+        else
+        {
+            NEXUS_AudioOutput_AddInput(
+                audioSpdifHandle,
+                NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+        }
+    }
+
     /* Bring up display and outputs */
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.format = NEXUS_VideoFormat_eNtsc;

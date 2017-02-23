@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:49:01 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:51:53 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,12 +70,12 @@
 /***************************************************************************
  *MEMC_MISC_0 - MEMSYS Misc (Soft-Resets/Configuration) Registers
  ***************************************************************************/
-#define BCHP_MEMC_MISC_0_SOFT_RESET              0x21105000 /* [CFG] MEMC_TOP layout block Soft Reset */
-#define BCHP_MEMC_MISC_0_MEMC_STRAP_DDR_CONFIG   0x21105004 /* [CFG] MEMC_STRAP_DDR_CONFIG Control Register */
-#define BCHP_MEMC_MISC_0_MEMC_TOP_TM_CNTRL       0x21105008 /* [CFG] MEMC MBIST TM Control Register */
-#define BCHP_MEMC_MISC_0_FSBL_STATE              0x2110500c /* [CFG] Firmware State Scratchpad */
-#define BCHP_MEMC_MISC_0_SCRATCH_0               0x21105010 /* [CFG] Scratch Register */
-#define BCHP_MEMC_MISC_0_SCRATCH_1               0x21105014 /* [CFG] Scratch Register 1 */
+#define BCHP_MEMC_MISC_0_SOFT_RESET              0x21105000 /* [CFG][32] MEMC_TOP layout block Soft Reset */
+#define BCHP_MEMC_MISC_0_MEMC_STRAP_DDR_CONFIG   0x21105004 /* [CFG][32] MEMC_STRAP_DDR_CONFIG Control Register */
+#define BCHP_MEMC_MISC_0_MEMC_TOP_TM_CNTRL       0x21105008 /* [CFG][32] MEMC MBIST TM Control Register */
+#define BCHP_MEMC_MISC_0_FSBL_STATE              0x2110500c /* [CFG][32] Firmware State Scratchpad */
+#define BCHP_MEMC_MISC_0_SCRATCH_0               0x21105010 /* [CFG][32] Scratch Register */
+#define BCHP_MEMC_MISC_0_SCRATCH_1               0x21105014 /* [CFG][32] Scratch Register 1 */
 
 /***************************************************************************
  *SOFT_RESET - MEMC_TOP layout block Soft Reset

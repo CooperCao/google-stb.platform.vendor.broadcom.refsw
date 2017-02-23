@@ -1,51 +1,41 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
- *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- **************************************************************************/
+*  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
+*  and may only be used, duplicated, modified or distributed pursuant to the terms and
+*  conditions of a separate, written license agreement executed between you and Broadcom
+*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+*  no license (express or implied), right to use, or waiver of any kind with respect to the
+*  Software, and Broadcom expressly reserves all rights in and to the Software and all
+*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+*  Except as expressly set forth in the Authorized License,
+*
+*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+*  USE OR PERFORMANCE OF THE SOFTWARE.
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+*  ANY LIMITED REMEDY.
+*
+***************************************************************************/
 #include "nexus_file_module.h"
 #include "bfile_io.h"
 #include "nexus_file_pvr.h"
@@ -84,6 +74,7 @@ struct NEXUS_File_P_Item {
     NEXUS_File_Callback callback;
     NEXUS_ModuleHandle module;
     ssize_t result;
+    NEXUS_Time arrival;
 };
 
 BLST_S_HEAD(NEXUS_File_P_Queue, NEXUS_File_P_Item);
@@ -99,6 +90,8 @@ struct NEXUS_File_P_Scheduler {
     BKNI_EventHandle signal; /* signal to wakeup the thread */
     unsigned kill_count; /* number of task to be killed */
     unsigned workerThreads;
+    unsigned idleThreads;
+    unsigned lockThreads;
     struct NEXUS_File_P_Queue free, queued, completed;
     struct NEXUS_File_P_Item *items;
     NEXUS_TimerHandle timer;
@@ -221,6 +214,7 @@ NEXUS_File_AsyncRead(NEXUS_FileReadHandle fd, void *buf, size_t length, NEXUS_Mo
         e->module = module;
         e->callback = callback;
         e->result = -1;
+        NEXUS_Time_Get_isrsafe(&e->arrival);
         BLST_S_INSERT_HEAD(&pScheduler->queued, e, list);
         BDBG_MSG_TRACE(("rd: queue %#lx", (unsigned long)e));
         BKNI_SetEvent(pScheduler->signal);
@@ -254,6 +248,7 @@ NEXUS_File_AsyncWrite(NEXUS_FileWriteHandle fd, const void *buf, size_t length, 
         e->module = module;
         e->callback = callback;
         e->result = -1;
+        NEXUS_Time_Get_isrsafe(&e->arrival);
         BLST_S_INSERT_HEAD(&pScheduler->queued, e, list);
         BDBG_MSG_TRACE(("wr: queue %#lx", (unsigned long)e));
         BKNI_SetEvent(pScheduler->signal);
@@ -266,11 +261,23 @@ NEXUS_File_AsyncWrite(NEXUS_FileWriteHandle fd, const void *buf, size_t length, 
     return;
 }
 
+static const char * ioTypeStrings[] =
+{
+    "read",
+    "write",
+    "mux read",
+    "mux write",
+    NULL
+};
+
+#define MAX_WORK_ITEM_AGE 100 /* ms */
+
 /* calls all completed callbacks */
 static void
-NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched)
+NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched, bool timerContext)
 {
     if(BLST_S_FIRST(&pScheduler->completed)) {
+        bool locker = false;
         struct NEXUS_File_P_Item *e;
         struct NEXUS_File_P_Queue completed = sched->completed; /* save copy of completed queue */
         BLST_S_INIT(&sched->completed); /* clear completed queue */
@@ -279,16 +286,47 @@ NEXUS_P_File_TryCompleted(struct NEXUS_File_P_Scheduler *sched)
             bool locked;
 
             BLST_S_REMOVE_HEAD(&completed, list);
-            NEXUS_UnlockModule();
-            locked = NEXUS_Module_TryLock(e->module);
-            queue = &sched->completed;
-            if(locked) {
+            /* A. timerContext can't do lock, only tryLock because the timer
+             * thread is shared
+             * B. if we have as many idle threads as those potentially waiting
+             * on Lock (rather than TryLock) then we have enough idle threads to
+             * attempt another Lock
+             */
+            if ((sched->idleThreads >= sched->lockThreads) && !timerContext)
+            {
+                sched->lockThreads++; /* needs to be RMW in file module lock */
+                locker = true; /* this thread is going to use Lock rather than TryLock */
+            }
+            NEXUS_UnlockModule(); /* now we can unlock file module */
+            if (locker) {
+                NEXUS_Module_Lock(e->module);
+                locked = true;
+            }
+            else {
+                locked = NEXUS_Module_TryLock(e->module);
+            }
+            if (locked) {
                 queue = &sched->free;
                 /* call callback and add into the free list */
                 e->callback(e->cntx, e->result);
                 NEXUS_Module_Unlock(e->module);
             }
-            NEXUS_LockModule();
+            else {
+                NEXUS_Time now;
+                unsigned age;
+                queue = &sched->completed;
+                NEXUS_Time_Get_isrsafe(&now);
+                age = NEXUS_Time_Diff_isrsafe(&now, &e->arrival);
+                if (age > MAX_WORK_ITEM_AGE) {
+                    BDBG_ERR(("NEXUS_P_File_TryCompleted: work item { %s %u bytes @ %p } too old %u ms -> may see buffer xflow events", ioTypeStrings[e->ioType], (unsigned)e->length, e->buf, age));
+                    BDBG_ERR(("Do you have a busy loop holding nexus playback, record, or mux module locks?"));
+                }
+            }
+            NEXUS_LockModule(); /* back into file module lock */
+            if (locker) /* this thread was a Lock user, rather than a TryLock user */
+            {
+                sched->lockThreads--; /* needs to be RMW in file module lock */
+            }
             BLST_S_INSERT_HEAD(queue, e, list);
         }
     }
@@ -301,7 +339,7 @@ NEXUS_P_File_CallCompleted(void *s)
     struct NEXUS_File_P_Scheduler *sched = s;
     BDBG_MSG_TRACE(("NEXUS_P_File_CallCompleted: %#lx", (unsigned long)s));
     sched->timer = NULL;
-    NEXUS_P_File_TryCompleted(sched);
+    NEXUS_P_File_TryCompleted(sched, true);
     if(BLST_S_FIRST(&pScheduler->completed)) {
         sched->timer = NEXUS_ScheduleTimer(10, NEXUS_P_File_CallCompleted, sched);
     }
@@ -324,11 +362,13 @@ NEXUS_P_File_FindAndDeque(struct NEXUS_File_P_Scheduler *sched, struct NEXUS_Fil
 
     BSTD_UNUSED(worker);
     if(!e) {
+        sched->idleThreads++;
         NEXUS_UnlockModule(); /* drop lock */
         BDBG_MSG(("%u: queue is empty", worker->no));
         /* coverity[check_return] */
         BKNI_WaitForEvent(sched->signal, 100); /* wait for 100 ms */
         NEXUS_LockModule(); /* restore lock */
+        sched->idleThreads--;
         return 0;
     }
     BDBG_MSG_TRACE(("%u: ready %#lx", worker->no, (unsigned long)e));
@@ -442,6 +482,7 @@ NEXUS_Playback_P_CheckWaitingIo timeout. */
     }
 
     e->result = size;
+    /* it is ok to fail the lock here as it will get cleaned up later by timer callback or an idle thread */
     locked = NEXUS_Module_TryLock(e->module);
     BDBG_MSG_TRACE(("NEXUS_P_File_FindAndDeque: %#lx:%#lx %slocked", (unsigned long)sched, (unsigned long)e, locked?"":"not"));
 
@@ -476,7 +517,7 @@ NEXUS_P_File_Scheduler_Thread(void *w)
             sched->kill_count--;
             break;
         }
-        NEXUS_P_File_TryCompleted(sched);
+        NEXUS_P_File_TryCompleted(sched, false);
         if (NEXUS_P_File_FindAndDeque(sched, worker)) {
             goto zombie;
         }
@@ -607,6 +648,7 @@ NEXUS_File_AsyncMuxWrite(NEXUS_MuxFileIoHandle fd, off_t offset, const NEXUS_Fil
         e->module = module;
         e->callback = callback;
         e->result = -1;
+        NEXUS_Time_Get_isrsafe(&e->arrival);
         BLST_S_INSERT_HEAD(&pScheduler->queued, e, list);
         BDBG_MSG_TRACE(("muxWr: queue %#lx", (unsigned long)e));
         BKNI_SetEvent(pScheduler->signal);
@@ -643,6 +685,7 @@ NEXUS_File_AsyncMuxRead(NEXUS_MuxFileIoHandle fd, off_t offset, const NEXUS_File
         e->module = module;
         e->callback = callback;
         e->result = -1;
+        NEXUS_Time_Get_isrsafe(&e->arrival);
         BLST_S_INSERT_HEAD(&pScheduler->queued, e, list);
         BDBG_MSG_TRACE(("muxRd: queue %#lx", (unsigned long)e));
         BKNI_SetEvent(pScheduler->signal);

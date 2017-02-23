@@ -942,6 +942,8 @@ static void NEXUS_Frontend_P_Uninit4538(NEXUS_4538Device *pDevice)
         BMXT_Close(pDevice->pGenericDeviceHandle->mtsifConfig.mxt);
         pDevice->pGenericDeviceHandle->mtsifConfig.mxt = NULL;
     }
+    BKNI_Memset((void *)&pDevice->pGenericDeviceHandle->mtsifConfig, 0, sizeof(pDevice->pGenericDeviceHandle->mtsifConfig));
+
 #endif
 
     for ( i=0; i < pDevice->numChannels && NULL != pDevice->astChannels[i]; i++) {

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2012-2013 Broadcom Corporation
+*  Copyright (C) 2012-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,14 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #ifndef NEXUS_BASE_PLATFORM_H
 #define NEXUS_BASE_PLATFORM_H
@@ -62,7 +54,7 @@ See Also:
 void *NEXUS_Platform_P_MapMemory(
     NEXUS_Addr offset,
     size_t length,
-    NEXUS_MemoryMapType type
+    NEXUS_AddrType type
     );
 
 /***************************************************************************
@@ -72,7 +64,7 @@ Summary:
 void NEXUS_Platform_P_UnmapMemory(
     void *pMem,
     size_t length,
-    NEXUS_MemoryMapType type
+    NEXUS_AddrType type
     );
 
 #endif /* NEXUS_BASE_PLATFORM_H */

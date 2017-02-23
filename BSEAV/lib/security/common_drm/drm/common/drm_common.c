@@ -92,14 +92,12 @@ static int DRM_Common_P_CheckAndFreeContext(
 
 /* OTP  */
 static DrmRC DRM_Common_P_DetermineAskmMode(void);
-static bool bAskmEnabled = 0;
+static uint8_t askmMode = 0;
 static uint8_t askmProcInForKey3[16] = {0x00};
 static uint8_t askmProcInForKey4[16] = {0x00};
 
 
 #define MAX_DMA_BLOCKS 5
-
-#define BDBG_MSG(x) BDBG_LOG(x)
 
 /* Add module to BDBG */
 BDBG_MODULE(drm_common);
@@ -496,22 +494,34 @@ DrmRC DRM_Common_KeyConfigOperation(DrmCommonOperationStruct_t *pDrmCommonOpStru
 
                 cipheredKeySettings.keySlot = pDrmCommonOpStruct->keyConfigSettings.keySlot;
                 cipheredKeySettings.keySlotType = pDrmCommonOpStruct->keyConfigSettings.settings.keySlotType;
-
-                if((bAskmEnabled == true) && (pDrmCommonOpStruct->keySrc == CommonCrypto_eOtpKey))
+                if (pDrmCommonOpStruct->keySrc == CommonCrypto_eOtpKey)
                 {
-                    BDBG_MSG(("%s - ASKM ENABLED, overriding variables *******************************", __FUNCTION__));
-                    cipheredKeySettings.keySrc = CommonCrypto_eCustKey;
-                    BKNI_Memcpy(pDrmCommonOpStruct->pKeyLadderInfo->procInForKey3, askmProcInForKey3, 16);
-                    BKNI_Memcpy(pDrmCommonOpStruct->pKeyLadderInfo->procInForKey4, askmProcInForKey4, 16);
-                    pDrmCommonOpStruct->pKeyLadderInfo->custKeySelect = 0x35;
-                    pDrmCommonOpStruct->pKeyLadderInfo->keyVarHigh = 0xC9;
-                    pDrmCommonOpStruct->pKeyLadderInfo->keyVarLow = 0xC6;
-                }
-                else
+                   if(askmMode == 0x03 || askmMode == 0x02 || askmMode == 0x00)
+                   {
+                       BDBG_MSG(("case 1--%s - ASKM mode is 0x%02x*******************************", __FUNCTION__,askmMode));
+                       pDrmCommonOpStruct->pKeyLadderInfo->askmSupport = false;
+                       cipheredKeySettings.settings.askmSupport = false;
+                       cipheredKeySettings.keySrc = pDrmCommonOpStruct->keySrc;
+		       cipheredKeySettings.settings.swizzleType   =  NEXUS_SecuritySwizzleType_eNone;
+                   }
+                   else if(askmMode == 0x01)
+                   {
+                       BDBG_MSG(("case 2--%s - ASKM mode is 0x%02x *******************************", __FUNCTION__,askmMode));
+                       cipheredKeySettings.settings.askmSupport = true;
+                       pDrmCommonOpStruct->pKeyLadderInfo->askmSupport = true;
+                       cipheredKeySettings.settings.swizzleType   =  NEXUS_SecuritySwizzleType_eNone;
+                       cipheredKeySettings.keySrc = pDrmCommonOpStruct->keySrc;
+                   }
+                } else if (pDrmCommonOpStruct->keySrc == CommonCrypto_eCustKey)
                 {
-                    cipheredKeySettings.keySrc = pDrmCommonOpStruct->keySrc;
+                       BDBG_MSG(("case 3--%s - ASKM mode is 0x%02x *******************************", __FUNCTION__,askmMode));
+                       cipheredKeySettings.keySrc = CommonCrypto_eCustKey;
+                       cipheredKeySettings.settings.swizzleType   =  NEXUS_SecuritySwizzleType_eSwizzle0;
+                } else
+                {
+                       BDBG_ERR(("case 4--%s - invalid parameters *******************************", __FUNCTION__));
+                       rc = Drm_CryptoConfigErr;
                 }
-
                 /* check if caller wants to override keyladder operations (default should be false) */
                 if(pDrmCommonOpStruct->pKeyLadderInfo->overwriteKeyLadderOperation == true)
                 {
@@ -894,38 +904,34 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     BDBG_MSG(("%s - mspDataBuf = 0x%02x 0x%02x 0x%02x 0x%02x \n\n", __FUNCTION__,
             mspStruct.mspDataBuf[0], mspStruct.mspDataBuf[1], mspStruct.mspDataBuf[2], mspStruct.mspDataBuf[3]));
 
-    bAskmEnabled = (0x01 & mspStruct.mspDataBuf[3]);
-    BDBG_MSG(("%s - bAskmEnabled = '%u'", __FUNCTION__, bAskmEnabled));
+    askmMode = (0x03 & mspStruct.mspDataBuf[3]);
+    BDBG_MSG(("%s - askmMode = '0x%2x'", __FUNCTION__, askmMode));
 
-    if(bAskmEnabled == true)
+    rc = DRM_KeyBinding_FetchDeviceIds(&BindStruct);
+    if(rc != Drm_Success)
     {
-        rc = DRM_KeyBinding_FetchDeviceIds(&BindStruct);
-        if(rc != Drm_Success)
-        {
-            BDBG_ERR(("%s - Error fetching device IDs", __FUNCTION__));
-            goto ErrorExit;
-        }
-
-        BKNI_Memcpy(arg_buffer, BindStruct.devIdA, 8);
-        for(i=8; i<16; i++)
-        {
-            arg_buffer[i] = BindStruct.devIdA[15-i];
-        }
-
-        rc = DRM_Common_SwSha256(arg_buffer, digest, 16);
-        if(rc != Drm_Success)
-        {
-            BDBG_ERR(("%s - Error computing SHA", __FUNCTION__));
-            goto ErrorExit;
-        }
-        DRM_MSG_PRINT_BUF("digest", digest, 32);
-        BKNI_Memcpy(askmProcInForKey3, digest, 16);
-        BKNI_Memcpy(askmProcInForKey4, &digest[16], 16);
+        BDBG_ERR(("%s - Error fetching device IDs", __FUNCTION__));
+        goto ErrorExit;
     }
 
-ErrorExit:
-    BDBG_MSG(("%s - ... Exiting function (bAskmEnabled = %u)", __FUNCTION__, bAskmEnabled));
+    BKNI_Memcpy(arg_buffer, BindStruct.devIdA, 8);
+    for(i=8; i<16; i++)
+    {
+         arg_buffer[i] = BindStruct.devIdA[15-i];
+    }
 
+    rc = DRM_Common_SwSha256(arg_buffer, digest, 16);
+    if(rc != Drm_Success)
+    {
+        BDBG_ERR(("%s - Error computing SHA", __FUNCTION__));
+        goto ErrorExit;
+    }
+    DRM_MSG_PRINT_BUF("digest", digest, 32);
+    BKNI_Memcpy(askmProcInForKey3, digest, 16);
+    BKNI_Memcpy(askmProcInForKey4, &digest[16], 16);
+
+ErrorExit:
+    BDBG_MSG(("%s - ... Exiting function (askmMode = 0x%02x)", __FUNCTION__, askmMode));
     return rc;
 }
 

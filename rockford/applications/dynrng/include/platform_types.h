@@ -111,7 +111,7 @@ typedef enum PlatformInputEvent
     PlatformInputEvent_eToggleOsd,
     PlatformInputEvent_eToggleGuide,
     PlatformInputEvent_eCycleColorimetry,
-    PlatformInputEvent_eToggleForcedSdr,
+    PlatformInputEvent_eCycleOutputEotf,
     PlatformInputEvent_eNextThumbnail,
     PlatformInputEvent_ePrevThumbnail,
     PlatformInputEvent_eCycleBackground,

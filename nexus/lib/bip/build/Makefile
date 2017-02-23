@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,7 +70,6 @@ define BIP_HELP_TEXT
 \n          livemedia                                                      \
 \n          blive_ext                                                      \
 \n          tshdrbuilder                                                   \
-\n          psip                                                           \
 \n          openssl                                                        \
 \n          playback_ip                                                    \
 \n          dtcp_ip                                                        \
@@ -281,8 +280,8 @@ install_b_os: $(B_OS_INSTALL)
 # Suppress LiveMedia Output for non VERBOSE builds
 ifneq ($(LIVEMEDIA_SUPPORT),n)
 
-    include $(BSEAV)/lib/livemedia/b_livemedia_targets.inc
-    include $(BSEAV)/lib/livemedia/blive_ext/build/b_blive_ext_targets.inc
+    include $(BSEAV)/opensource/livemedia/b_livemedia_targets.inc
+    include $(BSEAV)/opensource/livemedia/blive_ext/build/b_blive_ext_targets.inc
 
     ifneq ($(B_BUILD_DEPS),n)
         B_LIVEMEDIA_BUILD := b_livemedia_target_build
@@ -322,22 +321,6 @@ clean_tshdrbuilder: $(B_TSHDRBUILDER_CLEAN)
 install_tshdrbuilder: $(B_TSHDRBUILDER_INSTALL)
 
 ###############################################################################
-#  psip Targets  ("psip", "clean_psip", "install_psip").
-###############################################################################
-include $(BSEAV)/../rockford/lib/psip/b_psip_targets.inc
-
-ifneq ($(B_BUILD_DEPS),n)
-    B_PSIP_BUILD := b_psip_target_build
-    B_PSIP_CLEAN := b_psip_target_clean_all
-    B_PSIP_INSTALL := $(B_PSIP_BUILD)
-endif
-
-.PHONY: psip clean_psip install_psip
-psip: $(B_PSIP_BUILD)
-clean_psip: $(B_PSIP_CLEAN)
-install_psip: $(B_PSIP_INSTALL)
-
-###############################################################################
 #  openssl Targets  ("openssl", "clean_openssl", "install_openssl").
 #
 #  We'll take some shortcuts here, because the OpenSSL makefile takes quite
@@ -349,7 +332,7 @@ install_psip: $(B_PSIP_INSTALL)
 #  "make openssl_veryclean" that will force it to be rebuilt.
 ###############################################################################
 
-include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+include $(BSEAV)/opensource/openssl/b_openssl_targets.inc
 
 # Build a list of places that we need to put the test CA certificate "host.cert".
 SSL_CERT_FILE := host.cert

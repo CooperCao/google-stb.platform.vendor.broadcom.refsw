@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -99,15 +99,17 @@ NEXUS_VideoOutput COutputComponent::getConnectorV()
     return(NEXUS_ComponentOutput_GetConnector(_outputComponent));
 }
 
-eRet COutputComponent::setColorSpace(NEXUS_ColorSpace colorSpace)
+eRet COutputComponent::setColorSpace(NEXUS_ColorSpace * pColorSpace)
 {
     NEXUS_ComponentOutputSettings settings;
     NEXUS_Error                   nError = NEXUS_SUCCESS;
     eRet ret                             = eRet_Ok;
 
+    BDBG_ASSERT(NULL != pColorSpace);
+
     NEXUS_ComponentOutput_GetSettings(getOutput(), &settings);
 
-    switch (colorSpace)
+    switch (*pColorSpace)
     {
     case NEXUS_ColorSpace_eAuto:
     case NEXUS_ColorSpace_eYCbCr422:
@@ -1084,22 +1086,60 @@ NEXUS_AudioOutput COutputHdmi::getConnectorA()
     return(NEXUS_HdmiOutput_GetAudioConnector(_outputHdmi));
 }
 
-eRet COutputHdmi::setColorSpace(NEXUS_ColorSpace colorSpace)
+eRet COutputHdmi::setColorSpace(NEXUS_ColorSpace * pColorSpace)
 {
     eRet                     ret    = eRet_Ok;
     NEXUS_Error              nError = NEXUS_SUCCESS;
     NEXUS_HdmiOutputSettings settings;
 
-    BDBG_ASSERT(NEXUS_ColorSpace_eMax > colorSpace);
+    BDBG_ASSERT(NEXUS_ColorSpace_eMax > *pColorSpace);
 
     NEXUS_HdmiOutput_GetSettings(getOutput(), &settings);
-    settings.colorSpace = colorSpace;
+    settings.colorSpace = *pColorSpace;
     nError              = NEXUS_HdmiOutput_SetSettings(getOutput(), &settings);
     CHECK_NEXUS_ERROR_GOTO("error setting hdmi color space settings", ret, nError, error);
 
 error:
+    /* color space takes a few display vsyncs to complete */
+    BKNI_Sleep(50);
+
+    NEXUS_HdmiOutput_GetSettings(getOutput(), &settings);
+    if (*pColorSpace != settings.colorSpace)
+    {
+        ret = eRet_NotSupported;
+    }
+
+    *pColorSpace = settings.colorSpace;
     return(ret);
 } /* setColorSpace */
+
+eRet COutputHdmi::setColorDepth(uint8_t * pColorDepth)
+{
+    eRet                     ret    = eRet_Ok;
+    NEXUS_Error              nError = NEXUS_SUCCESS;
+    NEXUS_HdmiOutputSettings settings;
+
+    BDBG_ASSERT(NULL != pColorDepth);
+    BDBG_ASSERT((12 == *pColorDepth) || (10 == *pColorDepth) || (8 == *pColorDepth));
+
+    NEXUS_HdmiOutput_GetSettings(getOutput(), &settings);
+    settings.colorDepth = *pColorDepth;
+    nError              = NEXUS_HdmiOutput_SetSettings(getOutput(), &settings);
+    CHECK_NEXUS_ERROR_GOTO("error setting hdmi color depth settings", ret, nError, error);
+
+error:
+    /* color depth takes a few display vsyncs to complete */
+    BKNI_Sleep(50);
+
+    NEXUS_HdmiOutput_GetSettings(getOutput(), &settings);
+    if (*pColorDepth != settings.colorDepth)
+    {
+        ret = eRet_NotSupported;
+    }
+
+    *pColorDepth = settings.colorDepth;
+    return(ret);
+} /* setColorDepth */
 
 eRet COutputHdmi::connect(NEXUS_AudioInput input)
 {

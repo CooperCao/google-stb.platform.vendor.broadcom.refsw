@@ -1,0 +1,178 @@
+diff -ruN binutils-2.25.1/bfd/config.bfd binutils-2.25.1-arm-tzos/bfd/config.bfd
+--- binutils-2.25.1/bfd/config.bfd	2014-10-14 03:32:02.000000000 -0400
++++ binutils-2.25.1-arm-tzos/bfd/config.bfd	2016-01-14 16:45:43.587871520 -0500
+@@ -342,6 +342,10 @@
+     targ_defvec=arm_elf32_le_vec
+     targ_selvecs=arm_elf32_be_vec
+     ;;
++  arm-tzos*-* | arm-*-tzos* | arm-tzos*-*-* | arm-*-tzos*-* )
++    targ_defvec=arm_elf32_le_vec
++    targ_selvecs=arm_elf32_be_vec
++    ;;
+   arm*-*-vxworks | arm*-*-windiss)
+     targ_defvec=arm_elf32_vxworks_le_vec
+     targ_selvecs=arm_elf32_vxworks_be_vec
+diff -ruN binutils-2.25.1/config.sub binutils-2.25.1-arm-tzos/config.sub
+--- binutils-2.25.1/config.sub	2014-10-14 03:32:02.000000000 -0400
++++ binutils-2.25.1-arm-tzos/config.sub	2016-01-14 16:37:24.415857739 -0500
+@@ -127,6 +127,10 @@
+     os=-linux-android
+     basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`-unknown
+     ;;
++  tzos-newlib* | tzos-musl* | tzos-uclibc* | tzos*)
++    os=-tzos
++    basic_machine=`echo $1 | sed 's/^\(.*\)-\([^-]*-[^-]*\)$/\1/'`
++    ;;
+   *)
+     basic_machine=`echo $1 | sed 's/-[^-]*$//'`
+     if [ $basic_machine != $1 ]
+@@ -1377,6 +1381,7 @@
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+ 	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
++	      | -tzos-newlib* | -tzos-musl* | -tzos-uclibc* | -tzos* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* | -moxiebox* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+diff -ruN binutils-2.25.1/gas/configure.tgt binutils-2.25.1-arm-tzos/gas/configure.tgt
+--- binutils-2.25.1/gas/configure.tgt	2015-07-21 04:20:58.000000000 -0400
++++ binutils-2.25.1-arm-tzos/gas/configure.tgt	2016-01-14 16:47:54.131875123 -0500
+@@ -144,6 +144,8 @@
+   arm*-*-freebsd*)			fmt=elf  em=armfbsdvfp ;;
+   arm-*-linux*aout*)			fmt=aout em=linux ;;
+   arm-*-linux-*eabi*)			fmt=elf  em=armlinuxeabi ;;
++  arm-tzos*-* | arm-*-tzos* | arm-tzos*-*-* | arm-*-tzos*-*)
++					fmt=elf  em=armeabi ;;
+   arm-*-linux-*)			fmt=elf  em=linux ;;
+   arm-*-uclinux*eabi*)			fmt=elf  em=armlinuxeabi ;;
+   arm-*-uclinux*)			fmt=elf  em=linux ;;
+diff -ruN binutils-2.25.1/ld/configure.tgt binutils-2.25.1-arm-tzos/ld/configure.tgt
+--- binutils-2.25.1/ld/configure.tgt	2014-10-14 03:32:04.000000000 -0400
++++ binutils-2.25.1-arm-tzos/ld/configure.tgt	2016-01-14 16:51:26.226740932 -0500
+@@ -118,6 +118,11 @@
+ 			targ_extra_emuls="armelf armelfb armelfb_linux"
+ 			targ_extra_libpath="armelfb_linux"
+ 			;;
++arm-tzos*-* | arm-*-tzos* | arm-tzos*-*-* | arm-*-tzos*-*)
++			targ_emul=armelf_tzos_eabi
++			targ_extra_emuls="armelf"
++			targ_extra_libpath=$targ_extra_emuls
++			;;
+ arm*b-*-nacl*)		targ_emul=armelfb_nacl
+ 			targ_extra_emuls="armelf_nacl elf_i386_nacl"
+ 			targ_extra_libpath=$targ_extra_emuls
+diff -ruN binutils-2.25.1/ld/emulparams/armelf_tzos_eabi.sh binutils-2.25.1-arm-tzos/ld/emulparams/armelf_tzos_eabi.sh
+--- binutils-2.25.1/ld/emulparams/armelf_tzos_eabi.sh	1969-12-31 19:00:00.000000000 -0500
++++ binutils-2.25.1-arm-tzos/ld/emulparams/armelf_tzos_eabi.sh	2016-01-14 15:47:47.810763371 -0500
+@@ -0,0 +1,9 @@
++. ${srcdir}/emulparams/armelf_tzos.sh
++
++# Use the ARM ABI-compliant exception-handling sections.
++OTHER_READONLY_SECTIONS="
++  .ARM.extab ${RELOCATING-0} : { *(.ARM.extab${RELOCATING+* .gnu.linkonce.armextab.*}) }
++  ${RELOCATING+ PROVIDE_HIDDEN (__exidx_start = .); }
++  .ARM.exidx ${RELOCATING-0} : { *(.ARM.exidx${RELOCATING+* .gnu.linkonce.armexidx.*}) }
++  ${RELOCATING+ PROVIDE_HIDDEN (__exidx_end = .); }"
++
+diff -ruN binutils-2.25.1/ld/emulparams/armelf_tzos.sh binutils-2.25.1-arm-tzos/ld/emulparams/armelf_tzos.sh
+--- binutils-2.25.1/ld/emulparams/armelf_tzos.sh	1969-12-31 19:00:00.000000000 -0500
++++ binutils-2.25.1-arm-tzos/ld/emulparams/armelf_tzos.sh	2016-01-14 15:48:06.818763896 -0500
+@@ -0,0 +1,24 @@
++ARCH=arm
++SCRIPT_NAME=elf
++OUTPUT_FORMAT="elf32-littlearm"
++BIG_OUTPUT_FORMAT="elf32-bigarm"
++LITTLE_OUTPUT_FORMAT="elf32-littlearm"
++MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
++COMMONPAGESIZE="CONSTANT (COMMONPAGESIZE)"
++TEMPLATE_NAME=elf32
++EXTRA_EM_FILE=armelf
++GENERATE_SHLIB_SCRIPT=yes
++GENERATE_PIE_SCRIPT=yes
++
++DATA_START_SYMBOLS='PROVIDE (__data_start = .);';
++OTHER_TEXT_SECTIONS='*(.glue_7t) *(.glue_7) *(.vfp11_veneer) *(.v4_bx)'
++OTHER_BSS_SYMBOLS='__bss_start__ = .;'
++OTHER_BSS_END_SYMBOLS='_bss_end__ = . ; __bss_end__ = . ;'
++OTHER_END_SYMBOLS='__end__ = . ;'
++OTHER_SECTIONS='.note.gnu.arm.ident 0 : { KEEP (*(.note.gnu.arm.ident)) }'
++
++TEXT_START_ADDR=0x00010000
++TARGET2_TYPE=got-rel
++
++# ARM does not support .s* sections.
++NO_SMALL_DATA=yes
+diff -ruN binutils-2.25.1/ld/Makefile.am binutils-2.25.1-arm-tzos/ld/Makefile.am
+--- binutils-2.25.1/ld/Makefile.am	2014-10-14 03:32:04.000000000 -0400
++++ binutils-2.25.1-arm-tzos/ld/Makefile.am	2016-01-14 15:55:05.262775447 -0500
+@@ -163,6 +163,8 @@
+ 	earmelf_fbsd.c \
+ 	earmelf_linux.c \
+ 	earmelf_linux_eabi.c \
++	earmelf_tzos.c \
++	earmelf_tzos_eabi.c \
+ 	earmelf_nacl.c \
+ 	earmelf_nbsd.c \
+ 	earmelf_vxworks.c \
+@@ -715,6 +717,15 @@
+   $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
+   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+
++earmelf_tzos.c: $(srcdir)/emulparams/armelf_tzos.sh \
++  $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
++earmelf_tzos_eabi.c: $(srcdir)/emulparams/armelf_tzos_eabi.sh \
++  $(srcdir)/emulparams/armelf_tzos.sh \
++  $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
+ earmelf_nacl.c: $(srcdir)/emulparams/armelf_nacl.sh \
+   $(srcdir)/emulparams/armelf_linux_eabi.sh \
+   $(srcdir)/emulparams/armelf_linux.sh \
+diff -ruN binutils-2.25.1/ld/Makefile.in binutils-2.25.1-arm-tzos/ld/Makefile.in
+--- binutils-2.25.1/ld/Makefile.in	2014-10-14 03:32:04.000000000 -0400
++++ binutils-2.25.1-arm-tzos/ld/Makefile.in	2016-01-14 16:21:23.441355572 -0500
+@@ -471,6 +471,8 @@
+ 	earmelf_fbsd.c \
+ 	earmelf_linux.c \
+ 	earmelf_linux_eabi.c \
++	earmelf_tzos.c \
++	earmelf_tzos_eabi.c \
+ 	earmelf_nacl.c \
+ 	earmelf_nbsd.c \
+ 	earmelf_vxworks.c \
+@@ -1066,6 +1068,8 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_fbsd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_linux.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_linux_eabi.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_tzos.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_tzos_eabi.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_nacl.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_nbsd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelf_vxworks.Po@am__quote@
+@@ -1073,6 +1077,8 @@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_fbsd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_linux.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_linux_eabi.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_tzos.Po@am__quote@
++@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_tzos_eabi.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_nacl.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmelfb_nbsd.Po@am__quote@
+ @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/earmnbsd.Po@am__quote@
+@@ -2156,6 +2162,15 @@
+   $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
+   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+
++earmelf_tzos.c: $(srcdir)/emulparams/armelf_tzos.sh \
++  $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
++earmelf_tzos_eabi.c: $(srcdir)/emulparams/armelf_tzos_eabi.sh \
++  $(srcdir)/emulparams/armelf_tzos.sh \
++  $(ELF_DEPS) $(srcdir)/emultempl/armelf.em \
++  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
++
+ earmelf_nacl.c: $(srcdir)/emulparams/armelf_nacl.sh \
+   $(srcdir)/emulparams/armelf_linux_eabi.sh \
+   $(srcdir)/emulparams/armelf_linux.sh \

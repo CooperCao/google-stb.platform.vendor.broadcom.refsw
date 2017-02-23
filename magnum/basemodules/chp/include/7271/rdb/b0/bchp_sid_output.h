@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *SID_OUTPUT - Output
  ***************************************************************************/
-#define BCHP_SID_OUTPUT_ADDRESS                  0x20980c00 /* [RW] OutputAddress */
-#define BCHP_SID_OUTPUT_CRC                      0x20980c04 /* [RW] Output CRC */
-#define BCHP_SID_OUTPUT_CTL                      0x20980c08 /* [RW] Output Control */
-#define BCHP_SID_OUTPUT_FIFO_DATA                0x20980c20 /* [WO] Output FIFO Data */
-#define BCHP_SID_OUTPUT_MAX_ADDR                 0x20980c24 /* [RW] Maximum SDRAM output address */
-#define BCHP_SID_OUTPUT_BYTE_COUNT               0x20980c28 /* [RO] Decoder Output Byte Count */
-#define BCHP_SID_OUTPUT_STATUS_FIFO              0x20980c2c /* [RO] Status bits for PDMA fifo */
-#define BCHP_SID_OUTPUT_STATUS_SW_PIXEL          0x20980c30 /* [RO] Soft reset and rpfsm status (debug) */
-#define BCHP_SID_OUTPUT_STATUS_START_STORE       0x20980c34 /* [RO] Current SDRAM write address (debug) */
-#define BCHP_SID_OUTPUT_STATUS_SD_ADDR           0x20980c38 /* [RO] current SDRAM write address (debug) */
-#define BCHP_SID_OUTPUT_STATUS_WR                0x20980c3c /* [RO] Status bits for SDRAM write (debug) */
-#define BCHP_SID_OUTPUT_STATUS_FRAG              0x20980c40 /* [RO] Status bits for frag count (debug) */
+#define BCHP_SID_OUTPUT_ADDRESS                  0x20980c00 /* [RW][32] OutputAddress */
+#define BCHP_SID_OUTPUT_CRC                      0x20980c04 /* [RW][32] Output CRC */
+#define BCHP_SID_OUTPUT_CTL                      0x20980c08 /* [RW][32] Output Control */
+#define BCHP_SID_OUTPUT_FIFO_DATA                0x20980c20 /* [WO][32] Output FIFO Data */
+#define BCHP_SID_OUTPUT_MAX_ADDR                 0x20980c24 /* [RW][32] Maximum SDRAM output address */
+#define BCHP_SID_OUTPUT_BYTE_COUNT               0x20980c28 /* [RO][32] Decoder Output Byte Count */
+#define BCHP_SID_OUTPUT_STATUS_FIFO              0x20980c2c /* [RO][32] Status bits for PDMA fifo */
+#define BCHP_SID_OUTPUT_STATUS_SW_PIXEL          0x20980c30 /* [RO][32] Soft reset and rpfsm status (debug) */
+#define BCHP_SID_OUTPUT_STATUS_START_STORE       0x20980c34 /* [RO][32] Current SDRAM write address (debug) */
+#define BCHP_SID_OUTPUT_STATUS_SD_ADDR           0x20980c38 /* [RO][32] current SDRAM write address (debug) */
+#define BCHP_SID_OUTPUT_STATUS_WR                0x20980c3c /* [RO][32] Status bits for SDRAM write (debug) */
+#define BCHP_SID_OUTPUT_STATUS_FRAG              0x20980c40 /* [RO][32] Status bits for frag count (debug) */
 
 /***************************************************************************
  *ADDRESS - OutputAddress

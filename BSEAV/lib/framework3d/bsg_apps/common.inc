@@ -1,5 +1,5 @@
 #############################################################################
-#    Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom.  All rights reserved.
+# Copyright (C) 2012-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,6 +41,10 @@ BSG_DIR          ?= $(shell cd ../../bsg; pwd)
 
 include $(BSG_DIR)/common.inc
 
+# zlib and png required
+include $(NEXUS_TOP)/../BSEAV/opensource/zlib/zlib.inc
+include $(NEXUS_TOP)/../BSEAV/opensource/libpng/libpng.inc
+
 # For spyhook_replat only
 ifeq ($(V3D_PREFIX),vc5)
 HOOK_NAME = gpumon_hook
@@ -63,11 +67,13 @@ TARGET_APP       := $(TARGET_DIR)/$(TARGET)
 # The commandmap.inc is located in vc5/tools/gpumon_hook and is valid for vc4 and vc5
 INCLUDES       += $(BSG_DIR)                                                \
                   $(V3D_DIR)/interface/khronos/include                      \
-                  $(NEXUS_TOP)/../rockford/middleware/vc5/tools/gpumon_hook
+                  $(V3D_DIR)/../../vc5/tools/gpumon_hook
 
-LDFLAGS += -L$(NEXUS_BIN_DIR) -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng -L$(B_REFSW_OBJ_ROOT)/BSEAV/lib/zlib/$(B_REFSW_ARCH)
-LDFLAGS += -lbsg -lrt -lm -lpng -lz -lfreetype -lnxpl -lv3ddriver -ldl
+LDFLAGS += -L$(NEXUS_BIN_DIR)
+LDFLAGS += -lbsg -lrt -lm -lfreetype -lnxpl -lv3ddriver -ldl
 LDFLAGS += -lnexus$(NEXUS_LIB_SUFFIX)
+LDFLAGS += $(LIBPNG_LDFLAGS)
+LDFLAGS += $(ZLIB_LDFLAGS)
 
 ifeq ($(WEBCPU_MODE),y)
 LDFLAGS += -lnexus_webcpu
@@ -90,7 +96,6 @@ info:
 	echo "OPENSOURCE       = $(OPENSOURCE)"; \
 	echo "NEXUS_TOP        = $(NEXUS_TOP)"; \
 	echo "NEXUS_BIN_DIR    = $(NEXUS_BIN_DIR)"; \
-	echo "ROCKFORD_TOP     = $(ROCKFORD_TOP)"; \
 	echo "V3D_DIR          = $(V3D_DIR)"; \
 	echo "V3D_PLATFORM_DIR = $(V3D_PLATFORM_DIR)"; \
 	echo "TARGET_DIR       = $(TARGET_DIR)"; \

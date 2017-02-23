@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -70,6 +62,7 @@ NEXUS_VideoDecoder_P_SetTrickState_Avd(NEXUS_VideoDecoderHandle videoDecoder, co
     BXVD_PlaybackRateSettings rate;
     BXVD_FrameRateSettings frameRateOverrideSettings;
     bool sparseMode;
+    BXVD_TrickModeSettings trickModeSettings;
 
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     BDBG_ASSERT(pState);
@@ -126,7 +119,19 @@ NEXUS_VideoDecoder_P_SetTrickState_Avd(NEXUS_VideoDecoderHandle videoDecoder, co
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_settings;}
     rc = BXVD_PVR_EnableReverseFields(dec, pState->reverseFields);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_settings;}
-    rc = BXVD_PVR_SetGopTrickMode(dec, pState->dqtEnabled);
+
+    BXVD_GetDefaultTrickModeSettings(&trickModeSettings);
+    trickModeSettings.stGopTrickMode.eMode = pState->dqtEnabled;
+    if (pState->dqtEnabled == NEXUS_VideoDecoderDqtMode_eMultiPass) {
+        BXVD_PTSInfo ptsInfo;
+        BKNI_EnterCriticalSection();
+        BXVD_GetPTS_isr(videoDecoder->dec, &ptsInfo);
+        BKNI_LeaveCriticalSection();
+        trickModeSettings.stGopTrickMode.uiTargetPTS = ptsInfo.ui32RunningPTS;
+        trickModeSettings.stGopTrickMode.eTargetPTSType = ptsInfo.ePTSType;
+        trickModeSettings.stGopTrickMode.uiTargetIndex = 0; /* unknowable on start up */
+    }
+    rc = BXVD_SetTrickModeSettings(dec, &trickModeSettings);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_settings;}
 
     /* BTP's are always processed by RAVE and XVD. No setting for this. */

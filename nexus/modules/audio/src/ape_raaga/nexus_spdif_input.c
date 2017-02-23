@@ -1,6 +1,6 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*  
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
@@ -9,32 +9,32 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
+*
 * API Description:
 *   API name: SpdifInput
 *    Specific APIs related to SPDIF Input
@@ -75,8 +75,12 @@ NEXUS_SpdifInputHandle NEXUS_SpdifInput_Open(  /* attr{destructor=NEXUS_SpdifInp
     NEXUS_SpdifInputHandle handle;
     BAPE_InputPort inputPort;
     BERR_Code errCode;
+    NEXUS_AudioCapabilities audioCapabilities;
+
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
     
-    if ( index >= NEXUS_NUM_SPDIF_INPUTS )
+    if ( index >= audioCapabilities.numInputs.spdif )
     {
         BDBG_ERR(("SPDIF Input %u not supported", index));
         (void)BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -311,6 +315,40 @@ NEXUS_AudioInputHandle NEXUS_SpdifInput_GetConnector( /* attr{shutdown=NEXUS_Aud
 {
     BSTD_UNUSED(handle);
     return NULL;
+}
+
+NEXUS_Error NEXUS_SpdifInput_P_SetFormatChangeInterrupt(
+    NEXUS_SpdifInputHandle handle,
+    void (*pCallback_isr)(void *, int),
+    void *pParam1,
+    int param2
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pCallback_isr);
+    BSTD_UNUSED(pParam1);
+    BSTD_UNUSED(param2);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+NEXUS_Error NEXUS_SpdifInput_P_SetStcIndex(
+    NEXUS_SpdifInputHandle handle,
+    unsigned stcIndex
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(stcIndex);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+NEXUS_Error NEXUS_SpdifInput_P_GetInputPortStatus(
+    NEXUS_SpdifInputHandle handle,
+    NEXUS_AudioInputPortStatus *pStatus     /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
 }
 
 #endif /* #if NEXUS_NUM_SPDIF_INPUTS */

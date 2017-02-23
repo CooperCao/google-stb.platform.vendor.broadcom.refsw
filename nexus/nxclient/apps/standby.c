@@ -632,6 +632,7 @@ int main(int argc, const char **argv)
     if (pContext->gui) {
         bgui_destroy(pContext->gui);
     }
+
 done:
 #ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
     if (gpio_enabled) {

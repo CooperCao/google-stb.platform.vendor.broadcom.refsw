@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,13 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * tzmqueue.h
- *
- *  Created on: Apr 6, 2015
- *      Author: gambhire
- */
 
 #ifndef INCLUDE_TZMQUEUE_H_
 #define INCLUDE_TZMQUEUE_H_
@@ -111,8 +104,8 @@ private:
     struct Entry {
         char mqName[256];
         MsgQueue *mq;
-        int refCount;
-        int linkCount;
+        uint32_t refCount;
+        uint32_t linkCount;
       public:
             Entry& operator = (const Entry& rhs) {
                 strcpy(mqName, rhs.mqName);
@@ -125,7 +118,7 @@ private:
 
     };
     static tzutils::Vector<Entry> msgQueues;
-    static spinlock_t creationLock;
+    static SpinLock creationLock;
     static ObjCacheAllocator<MsgQueue> mqAllocator;
 
     struct NotifyCtx {
@@ -147,7 +140,7 @@ private:
     uint16_t group;
     int mode;
 
-    spinlock_t lock;
+    SpinLock lock;
 
 };
 

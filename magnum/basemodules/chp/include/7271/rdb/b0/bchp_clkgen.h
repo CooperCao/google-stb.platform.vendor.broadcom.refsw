@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:49:51 2016
- *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
+ * Date:           Generated on               Tue Dec 13 10:42:02 2016
+ *                 Full Compile MD5 Checksum  3569507c301c8ecc2edaa056747f2c3c
  *                     (minus title and desc)
- *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
+ *                 MD5 Checksum               f5c451485c31535bef93cb504758197d
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1139
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -2442,7 +2442,7 @@
 /* CLKGEN :: PLL_SYS0_PLL_CHANNEL_CTRL_CH_2 :: MDIV_CH2 [08:01] */
 #define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_MASK   0x000001fe
 #define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_SHIFT  1
-#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_DEFAULT 0x00000009
+#define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_MDIV_CH2_DEFAULT 0x00000064
 
 /* CLKGEN :: PLL_SYS0_PLL_CHANNEL_CTRL_CH_2 :: CLOCK_DIS_CH2 [00:00] */
 #define BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_2_CLOCK_DIS_CH2_MASK 0x00000001
@@ -3015,12 +3015,12 @@
 /* CLKGEN :: PLL_V3D_PLL_RESET :: RESETD [01:01] */
 #define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETD_MASK                  0x00000002
 #define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETD_SHIFT                 1
-#define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETD_DEFAULT               0x00000000
+#define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETD_DEFAULT               0x00000001
 
 /* CLKGEN :: PLL_V3D_PLL_RESET :: RESETA [00:00] */
 #define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETA_MASK                  0x00000001
 #define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETA_SHIFT                 0
-#define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETA_DEFAULT               0x00000000
+#define BCHP_CLKGEN_PLL_V3D_PLL_RESET_RESETA_DEFAULT               0x00000001
 
 /***************************************************************************
  *PLL_V3D_PLL_SSC_MODE_CONTROL_HIGH - Higher bits of Spread Spectrum mode control

@@ -77,6 +77,7 @@ typedef struct bmedia_info_aac {
     uint8_t sampling_frequency_index;
     uint8_t channel_configuration;
     uint8_t profile;
+    unsigned sampling_frequency; /* only valid if sampling_frequency_index==0x0F */
 } bmedia_info_aac;
 
 bool bmedia_info_aac_set_sampling_frequency_index(bmedia_info_aac *aac, unsigned sampling_frequency);

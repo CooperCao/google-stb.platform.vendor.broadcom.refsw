@@ -41,247 +41,7 @@
 #include "bchp.h"
 #include "bchp_gfd_0.h"
 
-BDBG_MODULE(BVDC_GFX_CSC);
-
-
-#define BVDC_P_IS_XVYCC     (1)
-#define BVDC_P_NOT_XVYCC    (0)
-
-#define BVDC_P_IS_CL_IN     (1)
-#define BVDC_P_NOT_CL_IN    (0)
-
-#if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2))
-/* 7271 A and up */
-
-/***************************************************************************
- * Matrices for Non-Linear CSC version 2 and up
- *
- **************************************************************************/
-
-/* MA: YCbCr -> R'G'B'
- */
-
-/* BT709 YCbCr -> R'G'B' (typically HD) */
-static const BVDC_P_CscAbCoeffs  s_GFD_BT709_YCbCr_to_RGB_AlphaBlend = BVDC_P_MAKE_GFD_CSC_AB
-    (  1.168950,   0.000000,   1.799771,  -249.073939,   0.000000,
-       1.168950,  -0.214085,  -0.534999,    77.179562,   0.000000,
-       1.168950,   2.120686,   0.000000,  -290.150968,   0.000000 );
-#if 0
-/* 170M YCbCr -> R'G'B' (typically Ntsc SD, or HDMI Pal SD) */
-static const BVDC_P_CscAbCoeffs  s_GFD_170M_YCbCr_to_RGB_AlphaBlend = BVDC_P_MAKE_GFD_CSC_AB
-    (  1.168950,   0.000000,   1.602286,  -223.795768,   0.000000,
-       1.168950,  -0.393299,  -0.816156,   136.106963,   0.000000,
-       1.168950,   2.025143,   0.000000,  -277.921482,   0.000000 );
-
-/* BT470_2_BG YCbCr -> R'G'B' (typically analog Pal SD) */
-static const BVDC_P_CscAbCoeffs  s_GFD_470_2_BG_YCbCr_to_RGB_AlphaBlend = BVDC_P_MAKE_GFD_CSC_AB
-    (  1.168950,   0.000000,   1.602286,  -223.795768,   0.000000,
-       1.168950,  -0.393299,  -0.816156,   136.106963,   0.000000,
-       1.168950,   2.025143,   0.000000,  -277.921482,   0.000000 );
-
-/* BT2020 YCbCr -> R'G'B' (typically UHD) */
-static const BVDC_P_CscAbCoeffs  s_GFD_BT2020_YCbCr_to_RGB_AlphaBlend = BVDC_P_MAKE_GFD_CSC_AB
-    (  1.168950,   0.000000,   1.685257,   -234.416111,   0.000000,
-       1.168950,   -0.188061,   -0.652975,   88.949376,   0.000000,
-       1.168950,   2.150171,   0.000000,   -293.925139,   0.000000 );
-#endif
-
-/* MC: R'G'B' -> YCbCr
- */
-
-/* BT709 R'G'B' -> YCbCr (typically HD) */
-static const BVDC_P_CscCoeffs  s_GFD_BT709_RGB_to_YCbCr_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.181873,   0.611831,   0.061765,    16.000000,   0.000000,
-      -0.100251,  -0.337249,   0.437500,   128.000000,   0.000000,
-       0.437500,  -0.397384,  -0.040116,   128.000000,   0.000000 );
-
-/* 170M R'G'B' -> YCbCr (typically Ntsc SD, or HDMI Pal SD) */
-static const BVDC_P_CscCoeffs  s_GFD_170M_RGB_to_YCbCr_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.255785,   0.502160,   0.097523,    16.000000,   0.000000,
-      -0.147644,  -0.289856,   0.437500,   128.000000,   0.000000,
-       0.437500,  -0.366352,  -0.071148,   128.000000,   0.000000 );
-
-/* BT470_2_BG R'G'B' -> YCbCr (typically analog Pal SD ) */
-static const BVDC_P_CscCoeffs  s_GFD_470_2_BG_RGB_to_YCbCr_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.255785,   0.502160,   0.097523,    16.000000,   0.000000,
-      -0.147644,  -0.289856,   0.437500,   128.000000,   0.000000,
-       0.437500,  -0.366352,  -0.071148,   128.000000,   0.000000 );
-
-/* BT2020 R'G'B' -> YCbCr (typically UHD) */
-static const BVDC_P_CscCoeffs  s_GFD_BT2020_RGB_to_YCbCr_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.224732,   0.580008,   0.050729,    16.000000,   0.000000,
-      -0.122176,  -0.315324,   0.437500,   128.000000,   0.000000,
-       0.437500,  -0.402312,  -0.035188,   128.000000,   0.000000 );
-
-/* TODO:  get real matrices */
-#define s_GFD_XvYCC601_RGB_to_YCbCr_AlphaBlend   s_GFD_170M_RGB_to_YCbCr_AlphaBlend
-
-static const BVDC_P_CscCoeffs *const s_aGFD_MC_AlphaBlend_Tbl[] =
-{
-    &s_GFD_BT709_RGB_to_YCbCr_AlphaBlend,     /* BVDC_P_MatrixCoeffs_eBt709 */
-    &s_GFD_170M_RGB_to_YCbCr_AlphaBlend,      /* BVDC_P_MatrixCoeffs_eSmpte170M */
-    &s_GFD_470_2_BG_RGB_to_YCbCr_AlphaBlend,  /* BVDC_P_MatrixCoeffs_eBt470_2_BG */
-    &s_GFD_BT2020_RGB_to_YCbCr_AlphaBlend,    /* BVDC_P_MatrixCoeffs_eBt2020_NCL */
-    &s_GFD_BT2020_RGB_to_YCbCr_AlphaBlend,    /* BVDC_P_MatrixCoeffs_eBt2020_CL */
-    &s_GFD_XvYCC601_RGB_to_YCbCr_AlphaBlend,  /* BVDC_P_MatrixCoeffs_eXvYcc601 */
-    &s_GFD_BT709_RGB_to_YCbCr_AlphaBlend      /* BVDC_P_MatrixCoeffs_eXvYcc709 */
-};
-
-/* GFX 1886 - > 2084 */
-const BVDC_P_CscLRangeAdj s_CMP_LRangeAdj_Gfx_1886_to_2084 = BVDC_P_MAKE_CMP_NL_LR_ADJ
-    (  3, /* number of points */
-       /*     x,        y,            m,  e */
-       0.000000, 0.000000, 0.6400000000, -5,
-       1.000000, 0.020000, 0.5000000000,  1,
-       1.000000, 1.000000, 0.5000000000,  1,
-       1.000000, 1.000000, 0.5000000000,  1,
-       1.000000, 1.000000, 0.5000000000,  1,
-       1.000000, 1.000000, 0.5000000000,  1,
-       1.000000, 1.000000, 0.5000000000,  1,
-       1.000000, 1.000000, 0.5000000000,  1 );
-
-extern const BVDC_P_CscLRangeAdj s_CMP_LRangeAdj_Identity;
-
-const BVDC_P_CscLRangeAdj * const s_aaCMP_LRangeAdj_Gfx_Tbl[4] =
-{
-    /* BAVC_HDMI_DRM_EOTF_eSDR */
-    &s_CMP_LRangeAdj_Identity,            /* BAVC_HDMI_DRM_EOTF_eSDR */
-    &s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eHDR */
-    &s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
-    &s_CMP_LRangeAdj_Identity             /* BAVC_HDMI_DRM_EOTF_eFuture */
-};
-
-extern const BVDC_P_CscAbCoeffs  s_CMP_AB_Identity;
-
-extern const BVDC_P_CscAbCoeffs *const s_aCMP_MA_Tbl[];
-extern const BVDC_P_CscCoeffs *const s_aCMP_MC_Tbl[];
-extern const BVDC_P_CscAbCoeffs * const s_aaCMP_MB_Tbl[][7];
-
-extern const uint8_t s_aCMP_CSC_NL2L_Tbl[];
-extern const uint8_t s_aCMP_CSC_L2NL_Tbl[];
-
-#endif /* #if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)) */
-
-
-/****************************************************************
- *  Color Conversion Matrix
- ****************************************************************/
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_RGBA_to_SdYCrCb_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.2570,  0.5040,  0.0980,  16.0000,  0.0000,
-      -0.1480, -0.2910,  0.4390, 128.0000,  0.0000,
-       0.4390, -0.3680, -0.0710, 128.0000,  0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_RGBA_to_HdYCrCb_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.1830,  0.6140,  0.0620,  16.0000,  0.0000,
-      -0.1010, -0.3380,  0.4390, 128.0000,  0.0000,
-       0.4390, -0.3990, -0.0400, 128.0000,  0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_HdRGBA_to_UhdYCrCb_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.181912,   0.611800,   0.061757,   16.000000,0.000000,
-      -0.091906,  -0.291101,   0.383006,  128.000000,0.000000,
-       0.289770,  -0.268632,  -0.021138,  128.000000,0.000000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_BT2020RGBA_to_UhdYCrCb_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.224732,  0.580008,  0.050729,   16.000000, 0.000000,
-      -0.122176, -0.315324,  0.437500,  128.000000, 0.000000,
-       0.437500, -0.402312, -0.035188,  128.000000, 0.000000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_SdYCbCr_to_RGBA_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.168950,  0.000000,  1.602425, -223.813572,  0.0000,
-       1.168950, -0.394860, -0.816582,  136.361359,  0.0000,
-       1.168950,  2.024147, -0.000000, -277.794001,  0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_HdYCbCr_to_RGBA_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.168950,  0.000000,  1.799682, -249.062527,  0.0000,
-       1.168950, -0.214073, -0.535094,   77.190243,  0.0000,
-       1.168950,  2.120703,  0.000000, -290.153216,  0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_HdYCbCr_to_UhdYCbCr_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.000000,  -0.000011,   0.000087,  -0.009648, 0.0000,
-       0.000000,   0.874557,  -0.009669,  17.294425, 0.0000,
-       0.000000,   0.012682,   0.665237,  41.226373, 0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_RGBA_to_SdYCrCb_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.2570,  0.5040,  0.0980,   0.0000,  16.0000,
-      -0.1480, -0.2910,  0.4390,   0.0000, 128.0000,
-       0.4390, -0.3680, -0.0710,   0.0000, 128.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_RGBA_to_HdYCrCb_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.1830,  0.6140,  0.0620,   0.0000,  16.0000,
-      -0.1010, -0.3380,  0.4390,   0.0000, 128.0000,
-       0.4390, -0.3990, -0.0400,   0.0000, 128.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_HdRGBA_to_UhdYCrCb_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.181912,   0.611800,   0.061757,  0.0000,   16.000000,
-      -0.091906,  -0.291101,   0.383006,  0.0000,  128.000000,
-       0.289770,  -0.268632,  -0.021138,  0.0000,  128.000000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_BT2020RGBA_to_UhdYCrCb_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.224732,  0.580008,  0.050729,  0.0000,   16.000000,
-      -0.122176, -0.315324,  0.437500,  0.0000,  128.000000,
-       0.437500, -0.402312, -0.035188,  0.0000,  128.000000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_SdYCbCr_to_RGBA_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.168950,  0.000000,  1.602425,  0.0000, -223.813572,
-       1.168950, -0.394860, -0.816582,  0.0000,  136.361359,
-       1.168950,  2.024147, -0.000000,  0.0000, -277.794001 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_HdYCbCr_to_RGBA_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.168950,  0.000000,  1.799682,  0.0000, -249.062527,
-       1.168950, -0.214073, -0.535094,  0.0000,   77.190243,
-       1.168950,  2.120703,  0.000000,  0.0000, -290.153216 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_Identity = BVDC_P_MAKE_GFD_CSC
-    (  1.000000,  0.000000,  0.000000,  0.000000,  0.000000,
-       0.000000,  1.000000,  0.000000,  0.000000,  0.000000,
-       0.000000,  0.000000,  1.000000,  0.000000,  0.000000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_HdYCbCr_to_UhdYCbCr_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.000000,  -0.000011,   0.000087,  0.0000, -0.009648,
-       0.000000,   0.874557,  -0.009669,  0.0000, 17.294425,
-       0.000000,   0.012682,   0.665237,  0.0000, 41.226373 );
-
-#if 0
-/* not used yet, because we don't have Uhd gfx surface yet */
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_RGBA_to_UhdYCrCb_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.1830,  0.6140,  0.0620,  16.0000,  0.0000,
-      -0.1010, -0.3380,  0.4390, 128.0000,  0.0000,
-       0.4390, -0.3990, -0.0400, 128.0000,  0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_UhdYCbCr_to_RGBA_AlphaBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.168950,  0.000000,  1.799682, -249.062527,  0.0000,
-       1.168950, -0.214073, -0.535094,   77.190243,  0.0000,
-       1.168950,  2.120703,  0.000000, -290.153216,  0.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs  s_RGBA_to_UhdYCrCb_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  0.1830,  0.6140,  0.0620,   0.0000,  16.0000,
-      -0.1010, -0.3380,  0.4390,   0.0000, 128.0000,
-       0.4390, -0.3990, -0.0400,   0.0000, 128.0000 );
-
-/*--------------------------------------------------------------------*/
-static const BVDC_P_CscCoeffs s_UhdYCbCr_to_RGBA_ConstBlend = BVDC_P_MAKE_GFD_CSC
-    (  1.168950,  0.000000,  1.799682,  0.0000, -249.062527,
-       1.168950, -0.214073, -0.535094,  0.0000,   77.190243,
-       1.168950,  2.120703,  0.000000,  0.0000, -290.153216 );
-#endif
+BDBG_MODULE(BVDC_GFX_TBL);
 
 /*---------------------------------------------------------------------
 The orginal instruction from Richard W:
@@ -318,11 +78,11 @@ step3 =
 
 ---------------------------------------------------------------------------*/
 
-#define DR_I_BITS   1
-#define DR_F_BITS  30
+#define DR_I_BITS   BVDC_P_CSC_SW_CX_I_BITS
+#define DR_F_BITS   BVDC_P_CSC_SW_CX_F_BITS
 
 #define DR_MAKE_E(e) \
-   (int32_t) BMTH_FIX_SIGNED_FTOFIX(e, DR_I_BITS, DR_F_BITS)
+   BMTH_FIX_SIGNED_FTOFIX(e, DR_I_BITS, DR_F_BITS)
 
 #define DR_MAKE_M(m000, m001, m002, m010, m011, m012, m020, m021, m022, \
                   m100, m101, m102, m110, m111, m112, m120, m121, m122, \
@@ -363,27 +123,21 @@ static const int32_t s_iM[3][3][3] = DR_MAKE_M(
 #define DR_MID_SLIDER   223
 #define DR_MAX_SLIDER   1023
 
-#define DR_ACCU_BITS    8
-#define SCL_MUL(s, x) \
-    BMTH_FIX_SIGNED_MUL(s, x, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS)
 #define DR_MUL(s, x) \
-    BMTH_FIX_SIGNED_MUL(s, x, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS, BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS + DR_ACCU_BITS)
-#define DR_MAKE_CX(x) \
-    (uint16_t)BMTH_FIX_SIGNED_CONVERT(x, BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS + DR_ACCU_BITS, BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS)
+    BMTH_FIX_SIGNED_MUL(s, x, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS, DR_I_BITS, DR_F_BITS)
 
-#define DR_MAKE_A(x) \
-    BVDC_P_MAKE_CSC_CX(x / (1 << BVDC_P_CSC_GFD_CO_VID_BITS), BVDC_P_CSC_GFD_CX_I_BITS, BVDC_P_CSC_GFD_CX_F_BITS)
 #define DR_MAKE_O(x) \
-    BVDC_P_MAKE_CSC_CO(x, BVDC_P_CSC_GFD_CO_I_BITS, BVDC_P_CSC_GFD_CO_F_BITS, BVDC_P_CSC_GFD_CO_VID_BITS, BVDC_P_CSC_GFD_CO_VID_TBL_BITS)
+    BMTH_FIX_SIGNED_FTOFIX(x, BVDC_P_CSC_SW_CO_I_BITS, BVDC_P_CSC_SW_CO_F_BITS)
 
+/* Calculate special SDR to HDR CSC adjustment for GFX
+ */
 void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
-    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder,
-      bool                         bConstantBlend )
+    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder )
 {
     int32_t iSlider;
     int32_t iYScl, iCbScl, iCrScl;
     BVDC_P_GfxFeederCfgInfo *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
-    BVDC_P_CscCoeffs *pCsc = &hGfxFeeder->stCscCoeffSdr2Hdr;
+    BVDC_P_Csc3x4 *pCsc = &hGfxFeeder->stCscSdr2Hdr;
 
     /* YScl range: [0.440165761116297, 0.751711283942877504], default: 0.508078421517399104
      *   0.000304541078031848 * 1023 + 0.440165761116297 = 0.751711283942877504
@@ -393,19 +147,19 @@ void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
      *   step = (0.2436328624254784 / 0x7FFF) * 0x8000 = 0.24364029773729899628284554582354
      * Y negative step:
      *   step = ((0.000304541078031848 * 223) / 0x8000) * 0x8000 = 0.067912660401102104
-     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sYSlider << (30 - 15);
+     * where " * 0x8000 " is for more accuracy, it is compensated by "-15" in sYSlider << (DR_F_BITS - 15);
      */
     if (pCurCfg->stSdrGfx2HdrAdj.sYSlider < 0)
     {
-        /* (0x8000 - sYSlider) / 0x8000 in fixed point with 30 frac bits */
-        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sYSlider) << (30-15);
-        iYScl = SCL_MUL(DR_MAKE_E(0.067912660401102104), iSlider) + DR_MAKE_E(0.440165761116297);
+        /* (0x8000 - abs(sYSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sYSlider) << (DR_F_BITS-15);
+        iYScl = DR_MUL(DR_MAKE_E(0.067912660401102104), iSlider) + DR_MAKE_E(0.440165761116297);
     }
     else
     {
-        /* sYSlider / 0x8000 in fixed point with 30 frac bits */
-        iSlider = pCurCfg->stSdrGfx2HdrAdj.sYSlider << (30-15);
-        iYScl = SCL_MUL(DR_MAKE_E(0.24364029773729899628284554582354), iSlider) + DR_MAKE_E(0.508078421517399104);
+        /* sYSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+        iSlider = pCurCfg->stSdrGfx2HdrAdj.sYSlider << (DR_F_BITS-15);
+        iYScl = DR_MUL(DR_MAKE_E(0.24364029773729899628284554582354), iSlider) + DR_MAKE_E(0.508078421517399104);
     }
 
     /* CbScl range: [0.4, 1.0], default: 0.65
@@ -413,19 +167,19 @@ void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
      *   step = ((1.0 - 0.65) / 0x7FFF) * 0x8000 = 0.35001068147831659901730399487289
      * Cb negative step:
      *   step = ((0.65 - 0.4) / 0x8000) * 0x8000 = 0.25
-     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCbSlider << (30 - 15);
+     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCbSlider << (DR_F_BITS - 15);
      */
     if (pCurCfg->stSdrGfx2HdrAdj.sCbSlider < 0)
     {
-        /* (0x8000 - sCbSlider) / 0x8000 in fixed point with 30 frac bits */
-        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCbSlider) << (30-15);
-        iCbScl = SCL_MUL(DR_MAKE_E(0.25), iSlider) + DR_MAKE_E(0.4);
+        /* (0x8000 - abs(sCbSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCbSlider) << (DR_F_BITS-15);
+        iCbScl = DR_MUL(DR_MAKE_E(0.25), iSlider) + DR_MAKE_E(0.4);
     }
     else
     {
-        /* sCbSlider / 0x8000 in fixed point with 30 frac bits */
-        iSlider = pCurCfg->stSdrGfx2HdrAdj.sCbSlider << (30-15);
-        iCbScl = SCL_MUL(DR_MAKE_E(0.35001068147831659901730399487289), iSlider) + DR_MAKE_E(0.65);
+        /* sCbSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+        iSlider = pCurCfg->stSdrGfx2HdrAdj.sCbSlider << (DR_F_BITS-15);
+        iCbScl = DR_MUL(DR_MAKE_E(0.35001068147831659901730399487289), iSlider) + DR_MAKE_E(0.65);
     }
 
     /* CrScl range: [0.5, 1.0]. default: 0.85
@@ -433,251 +187,36 @@ void BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr
      *   step = ((1.0 - 0.85) / 0x7FFF) * 0x8000 = 0.15000457777642139957884456923124
      * Cr negative step:
      *   step = ((0.85 - 0.5) / 0x8000) * 0x8000 = 0.35
-     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCrSlider << (30 - 15);
+     * where "* 0x8000" is for more accuracy, it is compensated by "-15" in sCrSlider << (DR_F_BITS - 15);
      */
     if (pCurCfg->stSdrGfx2HdrAdj.sCrSlider < 0)
     {
-        /* (0x8000 + sCrSlider) / 0x8000 in fixed point with 30 frac bits */
-        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCrSlider) << (30-15);
-        iCrScl = SCL_MUL(DR_MAKE_E(0.35), iSlider) + DR_MAKE_E(0.5);
+        /* (0x8000 + abs(sCrSlider)) / 0x8000 in fixed point with DR_F_BITS frac bits */
+        iSlider = ((int32_t)0x8000 + pCurCfg->stSdrGfx2HdrAdj.sCrSlider) << (DR_F_BITS-15);
+        iCrScl = DR_MUL(DR_MAKE_E(0.35), iSlider) + DR_MAKE_E(0.5);
     }
     else
     {
-        /* sCrSlider / 0x8000 in fixed point with 30 frac bits */
-        iSlider = pCurCfg->stSdrGfx2HdrAdj.sCrSlider << (30-15);
-        iCrScl = SCL_MUL(DR_MAKE_E(0.15000457777642139957884456923124), iSlider) + DR_MAKE_E(0.85);
+        /* sCrSlider / 0x8000 in fixed point with DR_F_BITS frac bits */
+        iSlider = pCurCfg->stSdrGfx2HdrAdj.sCrSlider << (DR_F_BITS-15);
+        iCrScl = DR_MUL(DR_MAKE_E(0.15000457777642139957884456923124), iSlider) + DR_MAKE_E(0.85);
     }
 
-    pCsc->usY0  = DR_MAKE_CX(DR_MUL(iYScl,s_iM[0][0][0]) + DR_MUL(iCbScl,s_iM[0][1][0]) + DR_MUL(iCrScl,s_iM[0][2][0]));
-    pCsc->usY1  = DR_MAKE_CX(DR_MUL(iYScl,s_iM[0][0][1]) + DR_MUL(iCbScl,s_iM[0][1][1]) + DR_MUL(iCrScl,s_iM[0][2][1]));
-    pCsc->usY2  = DR_MAKE_CX(DR_MUL(iYScl,s_iM[0][0][2]) + DR_MUL(iCbScl,s_iM[0][1][2]) + DR_MUL(iCrScl,s_iM[0][2][2]));
+    pCsc->m[0][0] = DR_MUL(iYScl,s_iM[0][0][0]) + DR_MUL(iCbScl,s_iM[0][1][0]) + DR_MUL(iCrScl,s_iM[0][2][0]);
+    pCsc->m[0][1] = DR_MUL(iYScl,s_iM[0][0][1]) + DR_MUL(iCbScl,s_iM[0][1][1]) + DR_MUL(iCrScl,s_iM[0][2][1]);
+    pCsc->m[0][2] = DR_MUL(iYScl,s_iM[0][0][2]) + DR_MUL(iCbScl,s_iM[0][1][2]) + DR_MUL(iCrScl,s_iM[0][2][2]);
 
-    pCsc->usCb0 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[1][0][0]) + DR_MUL(iCbScl,s_iM[1][1][0]) + DR_MUL(iCrScl,s_iM[1][2][0]));
-    pCsc->usCb1 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[1][0][1]) + DR_MUL(iCbScl,s_iM[1][1][1]) + DR_MUL(iCrScl,s_iM[1][2][1]));
-    pCsc->usCb2 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[1][0][2]) + DR_MUL(iCbScl,s_iM[1][1][2]) + DR_MUL(iCrScl,s_iM[1][2][2]));
+    pCsc->m[1][0] = DR_MUL(iYScl,s_iM[1][0][0]) + DR_MUL(iCbScl,s_iM[1][1][0]) + DR_MUL(iCrScl,s_iM[1][2][0]);
+    pCsc->m[1][1] = DR_MUL(iYScl,s_iM[1][0][1]) + DR_MUL(iCbScl,s_iM[1][1][1]) + DR_MUL(iCrScl,s_iM[1][2][1]);
+    pCsc->m[1][2] = DR_MUL(iYScl,s_iM[1][0][2]) + DR_MUL(iCbScl,s_iM[1][1][2]) + DR_MUL(iCrScl,s_iM[1][2][2]);
 
-    pCsc->usCr0 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[2][0][0]) + DR_MUL(iCbScl,s_iM[2][1][0]) + DR_MUL(iCrScl,s_iM[2][2][0]));
+    pCsc->m[2][0] = DR_MUL(iYScl,s_iM[2][0][0]) + DR_MUL(iCbScl,s_iM[2][1][0]) + DR_MUL(iCrScl,s_iM[2][2][0]);
+    pCsc->m[2][1] = DR_MUL(iYScl,s_iM[2][0][1]) + DR_MUL(iCbScl,s_iM[2][1][1]) + DR_MUL(iCrScl,s_iM[2][2][1]);
+    pCsc->m[2][2] = DR_MUL(iYScl,s_iM[2][0][2]) + DR_MUL(iCbScl,s_iM[2][1][2]) + DR_MUL(iCrScl,s_iM[2][2][2]);
 
-    pCsc->usCr1 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[2][0][1]) + DR_MUL(iCbScl,s_iM[2][1][1]) + DR_MUL(iCrScl,s_iM[2][2][1]));
-
-    pCsc->usCr2 = DR_MAKE_CX(DR_MUL(iYScl,s_iM[2][0][2]) + DR_MUL(iCbScl,s_iM[2][1][2]) + DR_MUL(iCrScl,s_iM[2][2][2]));
-
-    if (bConstantBlend)
-    {
-        pCsc->usYAlpha = 0;
-        pCsc->usCbAlpha = 0;
-        pCsc->usCrAlpha = 0;
-        pCsc->usYOffset = DR_MAKE_O(16.0);
-        pCsc->usCbOffset = DR_MAKE_O(128.0);
-        pCsc->usCrOffset = DR_MAKE_O(128.0);
-    }
-    else
-    {
-        pCsc->usYAlpha = DR_MAKE_A(16.0);
-        pCsc->usCbAlpha = DR_MAKE_A(128.0);
-        pCsc->usCrAlpha = DR_MAKE_A(128.0);
-        pCsc->usYOffset = 0;
-        pCsc->usCbOffset = 0;
-        pCsc->usCrOffset = 0;
-    }
-    pCsc->usCxIntBits = BVDC_P_CSC_GFD_CX_I_BITS;
-    pCsc->usCxFractBits = BVDC_P_CSC_GFD_CX_F_BITS;
-    pCsc->usCoIntBits = BVDC_P_CSC_GFD_CO_I_BITS;
-    pCsc->usCoFractBits = BVDC_P_CSC_GFD_CO_F_BITS;
-    pCsc->usCoVideoBits = BVDC_P_CSC_GFD_CO_VID_BITS;
-
-    BDBG_MSG(("GFD matrix for SDR gfx to HDR:"));
-    BVDC_P_Csc_Print_isr(pCsc);
-}
-
-/*------------------------------------------------------------------------
- * {private}
- * BVDC_P_GfxFeeder_DecideColorMatrix_isr
- *
- * output: color matrix to convert from active pixel format to output
- *         color primary (main video window's color primary)
- *
- * Note: Because of gamma effect, of not knowing how user treated alpha
- * when the src gfx surface was created, and of diff between Bt601 and
- * Bt709 is not very noticable for gfx, we decide to use idendity matrix
- * to convert between Bt601 and Bt709 (i.e. not conv).
- * Note: If display is Uhd, we assume gfx surface is Bt 709 color, we do
- * convert from BT 709 to BT 2020
- */
-BERR_Code BVDC_P_GfxFeeder_DecideColorMatrix_isr
-    ( BPXL_Format                  eActivePxlFmt,
-      BVDC_P_GfxFeeder_Handle      hGfxFeeder,
-      const BVDC_P_CscCoeffs     **ppaulRGBToYCbCr,
-      const BVDC_P_CscCoeffs     **ppaulYCbCrToRGB )
-{
-    BVDC_P_MatrixCoeffs eOutMatrixCoeffs;
-    BAVC_HDMI_DRM_EOTF eOutEotf;
-    bool bConstantBlend = hGfxFeeder->stCurCfgInfo.stFlags.bConstantBlending;
-    BVDC_P_CscCfg *pCscCfg = &(hGfxFeeder->stGfxCsc);
-
-    /* TODO: in the future, we should distinquish current hd/sd standard
-     * from legacy hd/sd, and NTSC sd from PAL sd */
-    BVDC_P_Window_GetCurrentOutMatrixCoeffs_isr( hGfxFeeder->hWindow, &eOutMatrixCoeffs );
-    BVDC_P_Window_GetCurrentOutEotf_isr( hGfxFeeder->hWindow, &eOutEotf );
-
-    if ( (BVDC_P_MatrixCoeffs_eBt2020_NCL == eOutMatrixCoeffs) ||
-         (BVDC_P_MatrixCoeffs_eBt709 == eOutMatrixCoeffs) )
-    {
-        *ppaulRGBToYCbCr = (bConstantBlend)?
-            &s_RGBA_to_HdYCrCb_ConstBlend : &s_RGBA_to_HdYCrCb_AlphaBlend;
-
-        *ppaulYCbCrToRGB = (bConstantBlend)?
-            &s_HdYCbCr_to_RGBA_ConstBlend : &s_HdYCbCr_to_RGBA_AlphaBlend;
-    }
-    else
-    {
-        *ppaulRGBToYCbCr = (bConstantBlend)?
-            &s_RGBA_to_SdYCrCb_ConstBlend : &s_RGBA_to_SdYCrCb_AlphaBlend;
-
-        *ppaulYCbCrToRGB = (bConstantBlend)?
-            &s_SdYCbCr_to_RGBA_ConstBlend : &s_SdYCbCr_to_RGBA_AlphaBlend;
-    }
-
-#ifndef BVDC_FOR_BOOTUPDATER
-
-    if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bSdrGfx2HdrAdj)
-    {
-        BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr(hGfxFeeder, bConstantBlend);
-    }
-
-#if (BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0)
-    pCscCfg->ucXvYcc = ((eOutMatrixCoeffs == BVDC_P_MatrixCoeffs_eXvYcc601) ||
-                        (eOutMatrixCoeffs == BVDC_P_MatrixCoeffs_eXvYcc709))? BVDC_P_IS_XVYCC : BVDC_P_NOT_XVYCC;
-    pCscCfg->ucInputCL = BVDC_P_NOT_XVYCC;
-    pCscCfg->pCscMA = &s_Identity;
-    pCscCfg->ulNLCnv = BVDC_P_NL_CSC_CTRL_SEL_BYPASS;
-
-#if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)
-    if (hGfxFeeder->bSupportEotfConv)
-    {
-        BVDC_P_EotfConvCfg *pEotfConvCfg = &(hGfxFeeder->stEotfConv);
-        BVDC_P_MatrixCoeffs eInMatrixCoeffs = BVDC_P_MatrixCoeffs_eBt709;
-        if (bConstantBlend)
-        {
-            pCscCfg->pCscAbMA = (BPXL_IS_RGB_FORMAT(eActivePxlFmt))? &s_CMP_AB_Identity : s_aCMP_MA_Tbl[eInMatrixCoeffs];
-            pCscCfg->pCscAbMB = s_aaCMP_MB_Tbl[eInMatrixCoeffs][eOutMatrixCoeffs];
-            pCscCfg->stCscMC = *(s_aCMP_MC_Tbl[eOutMatrixCoeffs]);
-        }
-        else
-        {
-            pCscCfg->pCscAbMA = (BPXL_IS_RGB_FORMAT(eActivePxlFmt))? &s_CMP_AB_Identity : &s_GFD_BT709_YCbCr_to_RGB_AlphaBlend;
-            pCscCfg->pCscAbMB = s_aaCMP_MB_Tbl[eInMatrixCoeffs][eOutMatrixCoeffs];
-            pCscCfg->stCscMC = *(s_aGFD_MC_AlphaBlend_Tbl[eOutMatrixCoeffs]);
-        }
-        pEotfConvCfg->ucNL2L = s_aCMP_CSC_NL2L_Tbl[BAVC_HDMI_DRM_EOTF_eSDR];
-        pEotfConvCfg->ucL2NL = s_aCMP_CSC_L2NL_Tbl[eOutEotf];
-        pEotfConvCfg->pLRangeAdj = s_aaCMP_LRangeAdj_Gfx_Tbl[eOutEotf];
-    }
-    else
-
-/* #if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2) */
-#elif defined(BCHP_GFD_0_NL_CSC_CTRL_SEL_CONV_R0_709_RGB_2_2020_RGB)
-
-    if ((BVDC_P_MatrixCoeffs_eBt2020_NCL == eOutMatrixCoeffs) &&
-        (hGfxFeeder->bSupportNLCsc) &&
-        (hGfxFeeder->bSupportMACsc || (BPXL_IS_RGB_FORMAT(eActivePxlFmt))) &&
-        ((BAVC_HDMI_DRM_EOTF_eSDR == eOutEotf) || (!BPXL_IS_RGB_FORMAT(eActivePxlFmt))))
-    {
-        if (!BPXL_IS_RGB_FORMAT(eActivePxlFmt))
-        {
-            pCscCfg->pCscMA = &s_HdYCbCr_to_RGBA_ConstBlend;
-        }
-        pCscCfg->ulNLCnv = BCHP_GFD_0_NL_CSC_CTRL_SEL_CONV_R0_709_RGB_2_2020_RGB;
-        pCscCfg->stCscMC = (bConstantBlend)?
-            s_BT2020RGBA_to_UhdYCrCb_ConstBlend : s_BT2020RGBA_to_UhdYCrCb_AlphaBlend;
-    }
-
-    else
-#endif /* #if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2) */
-
-#endif /* #if (BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) */
-
-    if( hGfxFeeder->hWindow->stCurInfo.bUserCsc )
-    {
-        BDBG_MSG(("Using User WIN CSC for GFX CSC Matrix"));
-
-        if( hGfxFeeder->stCurCfgInfo.stDirty.stBits.bCsc )
-        {
-            BVDC_P_Csc_FromMatrix_isr( &pCscCfg->stCscMC,
-                hGfxFeeder->hWindow->stCurInfo.pl32_Matrix, hGfxFeeder->hWindow->stCurInfo.ulUserShift);
-        }
-    }
-    else
-#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
-
-    if ( true == BPXL_IS_RGB_FORMAT(eActivePxlFmt) )
-    {
-        if (BAVC_HDMI_DRM_EOTF_eSDR != eOutEotf)
-        {
-            pCscCfg->stCscMC = hGfxFeeder->stCscCoeffSdr2Hdr;
-#if (BDBG_DEBUG_BUILD)
-            if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bSdrGfx2HdrAdj)
-            {
-                BDBG_MSG(("Using HDR CSC for GFD"));
-            }
-#endif
-        }
-        else if (BVDC_P_MatrixCoeffs_eBt2020_NCL == eOutMatrixCoeffs)
-        {
-            pCscCfg->stCscMC = (bConstantBlend)?
-                s_HdRGBA_to_UhdYCrCb_ConstBlend : s_HdRGBA_to_UhdYCrCb_AlphaBlend;
-        }
-        else
-        {
-            pCscCfg->stCscMC = **ppaulRGBToYCbCr;
-        }
-        /* this makes BVDC_P_Csc_ApplyAttenuationRGB_isr work */
-        *ppaulYCbCrToRGB = &s_Identity;
-        *ppaulRGBToYCbCr = &s_Identity;
-    }
-    else
-    {
-#ifndef BVDC_FOR_BOOTUPDATER
-        if (BVDC_P_MatrixCoeffs_eBt2020_NCL == eOutMatrixCoeffs)
-        {
-            pCscCfg->stCscMC = (bConstantBlend)?
-                s_HdYCbCr_to_UhdYCbCr_ConstBlend : s_HdYCbCr_to_UhdYCbCr_AlphaBlend;
-        }
-        else
-#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
-        {
-            pCscCfg->stCscMC = s_Identity;
-        }
-    }
-
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_GfxFeeder_InitColorMatrix
-    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder )
-{
-    BVDC_P_CscCfg *pCscCfg = &(hGfxFeeder->stGfxCsc);
-
-#ifndef BVDC_FOR_BOOTUPDATER
-
-#if (BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0)
-    pCscCfg->pCscMA = &s_Identity;
-    pCscCfg->ulNLCnv = BVDC_P_NL_CSC_CTRL_SEL_BYPASS;
-
-#if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)
-    if (hGfxFeeder->bSupportEotfConv)
-    {
-        pCscCfg->pCscAbMA = &s_CMP_AB_Identity;
-        pCscCfg->pCscAbMB = &s_CMP_AB_Identity;
-        hGfxFeeder->stEotfConv.pLRangeAdj = s_aaCMP_LRangeAdj_Gfx_Tbl[BAVC_HDMI_DRM_EOTF_eSDR];
-    }
-#endif /* #if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2) */
-#endif /* #if (BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) */
-#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
-
-    pCscCfg->stCscMC = s_Identity;
-
-    return BERR_SUCCESS;
+    pCsc->m[0][3] = DR_MAKE_O(16.0);
+    pCsc->m[1][3] = DR_MAKE_O(128.0);
+    pCsc->m[2][3] = DR_MAKE_O(128.0);
 }
 
 /****************************************************************

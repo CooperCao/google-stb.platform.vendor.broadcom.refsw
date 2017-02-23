@@ -76,6 +76,7 @@ BERR_Code BSAT_g1_P_AfecConfigPdLut0_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_AfecConfigPdLut1_isr(BSAT_ChannelHandle h, uint8_t lutMode);
 BERR_Code BSAT_g1_P_AfecSetVlcGain_isr(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_AfecSetDecoderParams_isr(BSAT_ChannelHandle h);
+BERR_Code BSAT_g1_P_AfecAcquire2_isr(BSAT_ChannelHandle h);
 
 
 /******************************************************************************
@@ -201,8 +202,10 @@ BERR_Code BSAT_g1_P_AfecOnHpLock_isr(BSAT_ChannelHandle h)
    }
 #endif
 
+#if 0 /* Xiaofen: we should not re-init the eq at this point */
    if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
       BSAT_g1_P_AfecInitEqTaps_isr(h);
+#endif
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecPowerUp_isr(h));
    BSAT_g1_P_AfecResetChannel_isr(h);
@@ -278,6 +281,25 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecSetPilotctl_isr(h));
 
+   if ((hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED) && (BSAT_MODE_IS_DVBS2_EXTENDED(hChn->actualMode)))
+      retCode = BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 20000, BSAT_g1_P_AfecAcquire2_isr);
+   else
+      retCode = BSAT_g1_P_AfecAcquire2_isr(h);
+
+   done:
+   return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_AfecAcquire2_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_AfecAcquire2_isr(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+   BERR_Code retCode;
+   uint32_t val;
+
    BSAT_g1_P_AndRegister_isrsafe(h, BCHP_SDS_EQ_EQMISCCTL, 0xFFFFFBFF); /* disable CMA */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 0xFFFF00FF, 0x0200); /* unfreze other taps */
 
@@ -290,6 +312,7 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
       BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00000004);     /* freeze front carrier loop */
    }
 #endif
+
    BSAT_g1_P_OrRegister_isrsafe(h, BCHP_SDS_HP_HPOVERRIDE, BCHP_SDS_HP_0_HPOVERRIDE_SNOREOV_MASK); /* override SNORE reset */
 
    BSAT_CHK_RETCODE(BSAT_g1_P_AfecSetVlcGain_isr(h));
@@ -326,10 +349,15 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
    }
    else
    {
-      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, ~BCHP_AFEC_0_ACM_MISC_0_SHORT_CODE_MASK);
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, ~(BCHP_AFEC_0_ACM_MISC_0_SHORT_CODE_MASK));
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_0, 0x54607E90);
       BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_ACM_SYM_CNT_1, 0x3F4832A0);
    }
+
+   if ((hChn->actualMode == BSAT_Mode_eDvbs2_8psk_3_5) && (hChn->bShortFrame == false))
+      BSAT_g1_P_AndRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, ~BCHP_AFEC_0_ACM_MISC_0_RATE_3o5_SWAP_MASK);
+   else
+      BSAT_g1_P_OrRegister_isrsafe(h, BCHP_AFEC_ACM_MISC_0, BCHP_AFEC_0_ACM_MISC_0_RATE_3o5_SWAP_MASK);
 
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_AFEC_RST, (BCHP_AFEC_0_RST_METGEN_S2XDP_RST_MASK | BCHP_AFEC_0_RST_METGEN_DP_RST_MASK), 0x00070100);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_INTR_CTRL2_CPU_CLEAR, 0xFFFFFFFF);
@@ -340,6 +368,7 @@ BERR_Code BSAT_g1_P_AfecAcquire1_isr(BSAT_ChannelHandle h)
    done:
    return retCode;
 }
+
 
 /******************************************************************************
  BSAT_g1_P_AfecReacquire1_isr()
@@ -467,7 +496,7 @@ bool BSAT_g1_P_AfecIsPilot_isr(BSAT_ChannelHandle h)
 
    if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_ENABLED)
    {
-      if (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_PILOT)
+      if ((hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_PILOT) && (hChn->dvbs2ScanState & BSAT_DVBS2_SCAN_STATE_FOUND))
          return true;
    }
    else if (hChn->acqSettings.options & BSAT_ACQ_PILOT)
@@ -1939,37 +1968,25 @@ BERR_Code BSAT_g1_P_AfecUpdateBlockCount_isrsafe(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
 {
+   BSAT_g1_P_Handle *pDev = (BSAT_g1_P_Handle*)(h->pDevice->pImpl);
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   BSAT_Mode mode = hChn->acqSettings.mode;
+   BSAT_Mode mode = hChn->actualMode;
    uint32_t metgen_sel, metgen_s2xdp_rst, metgen_dp_rst, ldpc_config_0, rst;
 
+#if BCHP_CHIP==45308
    ldpc_config_0 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0);
    rst = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_RST);
 
-   if ((mode >= BSAT_Mode_eDvbs2_Qpsk_1_4) && (mode <= BSAT_Mode_eDvbs2_8psk_9_10))
+   if ((mode >= BSAT_Mode_eDvbs2_Qpsk_1_4) && (mode <= BSAT_Mode_eDvbs2_32apsk_9_10))
    {
-      /* DVB-S2 QPSK and 8PSK */
-      metgen_sel = 1;
-      metgen_s2xdp_rst = 1;
-      metgen_dp_rst = 0;
-   }
-   else if ((mode >= BSAT_Mode_eDvbs2x_Qpsk_13_45) && (mode <= BSAT_Mode_eDvbs2x_8psk_13_18))
-   {
-      /* DVB-S2X QPSK, 8APSK, and 8PSK */
-      metgen_sel = 0;
-      metgen_s2xdp_rst = 0;
-      metgen_dp_rst = 1;
-   }
-   else if (BSAT_MODE_IS_DVBS2_EXTENDED(mode))
-   {
-      /* DVB-S2 16/32 APSK */
+      /* S2 metgen */
       metgen_sel = 1;
       metgen_s2xdp_rst = 1;
       metgen_dp_rst = 0;
    }
    else
    {
-      /* DVB-S2X 16/32 APSK and VCM */
+      /* S2X metgen */
       metgen_sel = 0;
       metgen_s2xdp_rst = 0;
       metgen_dp_rst = 1;
@@ -1981,6 +1998,8 @@ BERR_Code BSAT_g1_P_AfecResetChannel_isr(BSAT_ChannelHandle h)
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_LDPC_CONFIG_0, ldpc_config_0);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_AFEC_RST, rst);
+#endif
+
    BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_AFEC_RST, 0x3);
 
    return BERR_SUCCESS;

@@ -85,11 +85,10 @@ endif
 ifeq ($(NEXUS_SECURITY_FW_SIGN),y)
 # use presence of key2 file to determine whether to generate fw signatures
 ifneq ($(wildcard $(NEXUS_TOP)/../BSEAV/lib/security/fw_img_sign/key2/$(BCHP_CHIP)_nexus_security_regver_key.h),)
-NEXUS_SECURITY_REGVER_SIGNATURES := $(NEXUS_BUILD_DIR)/nexus_security_regver_signatures.inc
+NEXUS_SECURITY_REGVER_SIGNATURES := $(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_signatures.inc
 NEXUS_SECURITY_REGVER_SIGNATURES_STUB := $(NEXUS_TOP)/modules/security/src/nexus_security_regver_signatures_stub.c
-NEXUS_SECURITY_REGVER_KEY := $(NEXUS_BUILD_DIR)/nexus_security_regver_key.inc
+NEXUS_SECURITY_REGVER_KEY := $(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_key.inc
 NEXUS_SECURITY_REGVER_KEY_STUB := $(NEXUS_TOP)/modules/security/src/nexus_security_regver_key_stub.c
-NEXUS_SECURITY_PRIVATE_INCLUDES += $(NEXUS_BUILD_DIR)
 NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_FW_SIGN=1
 endif
 endif
@@ -398,6 +397,21 @@ ifeq ($(NEXUS_SECURITY_VISTA_CWC_SUPPORT),y)
     include ${NEXUS_TOP}/extensions/security/keyladder_vista/keyladder_vista.inc
     NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_VISTA_CWC=1
     BHSM_SUPPORT_KEYLADDER_VISTA=ON
+endif
+
+ifeq ($(NEXUS_SECURITY_DSK_SCTE52_SUPPORT),)
+    ifeq ($(HSM_SOURCE_AVAILABLE),n)
+        AR_OUT := $(shell ar t ${NEXUS_EXTRALIBS} nexus_dsk_scte52.${SEC_OBJ_EXT} 2>/dev/null)
+        NEXUS_SECURITY_DSK_SCTE52_SUPPORT := $(shell test -e ${NEXUS_SECURITY_EXTENSION}/keyladder/secure_ext.inc && test "${AR_OUT}" = "nexus_dsk_scte52.${SEC_OBJ_EXT}" && echo y)
+    else
+        NEXUS_SECURITY_DSK_SCTE52_SUPPORT := $(shell test -e $(MAGNUM)/portinginterface/hsm/src/keyladder/bhsm_restricted_dsk_scte52.c && echo y)
+    endif
+endif
+
+ifeq ($(NEXUS_SECURITY_DSK_SCTE52_SUPPORT),y)
+    include ${NEXUS_TOP}/extensions/security/dsk_scte52/dsk_scte52.inc
+    NEXUS_SECURITY_DEFINES += NEXUS_SECURITY_SCTE52=1
+    BHSM_SUPPORT_DSK_SCTE52=ON
 endif
 
 ifeq ($(OTPMSP_SUPPORT),y)

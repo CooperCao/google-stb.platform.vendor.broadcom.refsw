@@ -36,34 +36,6 @@
 * ANY LIMITED REMEDY.
 ******************************************************************************/
 
-#define BDEV_RD(x) (rf4ce_controller_readl(x))
-#define BDEV_WR(x, y) do { rf4ce_controller_writel(y, x); } while (0)
-#define BDEV_UNSET(x, y) do { BDEV_WR((x), BDEV_RD(x) & ~(y)); } while (0)
-#define BDEV_SET(x, y) do { BDEV_WR((x), BDEV_RD(x) | (y)); } while (0)
-
-/*
-#define BDEV_SET_RB(x, y) do { BDEV_SET((x), (y)); BDEV_RD(x); } while (0)
-#define BDEV_UNSET_RB(x, y) do { BDEV_UNSET((x), (y)); BDEV_RD(x); } while (0)
-#define BDEV_WR_RB(x, y) do { BDEV_WR((x), (y)); BDEV_RD(x); } while (0)
-
-#define BDEV_RD_F(reg, field) \
-    ((BDEV_RD(BCHP_##reg) & BCHP_##reg##_##field##_MASK) >> \
-     BCHP_##reg##_##field##_SHIFT)
-#define BDEV_WR_F(reg, field, val) do { \
-    BDEV_WR(BCHP_##reg, \
-    (BDEV_RD(BCHP_##reg) & ~BCHP_##reg##_##field##_MASK) | \
-    (((val) << BCHP_##reg##_##field##_SHIFT) & \
-     BCHP_##reg##_##field##_MASK)); \
-    } while (0)
-#define BDEV_WR_F_RB(reg, field, val) do { \
-    BDEV_WR(BCHP_##reg, \
-    (BDEV_RD(BCHP_##reg) & ~BCHP_##reg##_##field##_MASK) | \
-    (((val) << BCHP_##reg##_##field##_SHIFT) & \
-     BCHP_##reg##_##field##_MASK)); \
-    BDEV_RD(BCHP_##reg); \
-    } while (0)
-*/
-
 #define BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID            0x00000
 #define BCHP_AON_CTRL_ANA_XTAL_CONTROL              0x00074 /* [RW] Ana xtal gisb control */
 
@@ -72,26 +44,26 @@
 #define BCHP_RF4CE_CPU_CTRL_CTRL_HOSTIF_SEL_MASK                             0x00000020
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK   0x00000001
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK            0x00000002
-#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_SEM_INTR_MASK        0x00000004
-#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_MBOX_SEM_INTR_MASK            0x00000004
-#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_SEM_INTR_MASK             0x00000004
+//#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_SEM_INTR_MASK        0x00000004
+//#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_MBOX_SEM_INTR_MASK            0x00000004
+//#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_SEM_INTR_MASK             0x00000004
 #define BCHP_RF4CE_CPU_CTRL_MBOX_SEM_MBOX_SEM_MASK                           0x00000001
 #define BCHP_RF4CE_CPU_CTRL_MBOX_SEM_MBOX_SEM_SHIFT                          0
 #define BCHP_RF4CE_CPU_L2_CPU_STATUS_MBOX_H2Z_FULL_INTR_MASK                 0x01000000
 #define BCHP_RF4CE_CPU_L2_CPU_STATUS_MBOX_H2Z_FULL_INTR_SHIFT                24
 #define BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS_RST_PTR_MASK              0x00000001
 #define BCHP_RF4CE_CPU_L2_CPU_SET_MBOX_H2Z_FULL_INTR_MASK                    0x01000000
-#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_MBOX_SEM_INTR_MASK          0x00000004
+//#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_MBOX_SEM_INTR_MASK          0x00000004
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_MBOX_Z2H_FULL_INTR_MASK       0x00000001
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_Z2H_FULL_INTR_MASK        0x00000001
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_WDOG_INTR_MASK                 0x00000002
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_WDOG_INTR_MASK                0x00000002
-#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_SW_INTR_MASK                  0xfffffff8
+//#define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_SW_INTR_MASK                  0xfffffff8
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_MBOX_Z2H_FULL_INTR_MASK     0x00000001
 #define BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_WDOG_INTR_MASK              0x00000002
 
 #define BCHP_RF4CE_CPU_PROG0_MEM_WORDi_ARRAY_BASE    0x00000
-#define BCHP_RF4CE_CPU_DATA_MEM_REG_END              0x47ffc
+//#define BCHP_RF4CE_CPU_DATA_MEM_REG_END              0x47ffc
 #define BCHP_RF4CE_CPU_CTRL_REVID                    0x80000   /* [RO] RF4CE CPU Revision ID */
 #define BCHP_RF4CE_CPU_CTRL_CTRL                     0x80004   /* [RW] Main Control Register */
 #define BCHP_RF4CE_CPU_CTRL_ACCESS_LOCK              0x80008   /* [RW] Access Lock Register */

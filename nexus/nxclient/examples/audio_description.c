@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,7 @@
 #include <stdio.h>
 #include <string.h>
 
-BDBG_MODULE(playback);
+BDBG_MODULE(audio_description);
 
 #define MPEG_DESCRIPTION 0
 

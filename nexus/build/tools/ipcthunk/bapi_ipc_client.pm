@@ -54,8 +54,8 @@ sub generate
     print FILE bapi_util::header $module;
 
     print FILE "#define NEXUS_PROXY_THUNK_LAYER\n";
-    print FILE "#include \"client/nexus_client_prologue.h\"\n";
     print FILE "#include \"nexus_${module_lc}_module.h\"\n";
+    print FILE "#include \"client/nexus_client_prologue.h\"\n";
     print FILE "#include \"nexus_core_utils.h\"\n";
     print FILE "BDBG_MODULE(nexus_${module_lc}_ipc_client);\n";
     print FILE "\n\n";

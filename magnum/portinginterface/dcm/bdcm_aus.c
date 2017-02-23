@@ -113,16 +113,17 @@ BDCM_AusChannelHandle BDCM_Aus_OpenChannel(
     hChannel->rfFreq = 0;
     hChannel->symbolRate = 0;
 done:
-	if( retCode != BERR_SUCCESS )
-	{
-		if( hDevice != NULL )
-		{
-			BKNI_Free((void *) hChannel);
-		}
+    if( retCode != BERR_SUCCESS )
+    {
+        if( hDevice != NULL )
+        {
+            if ( hChannel != NULL )
+                BKNI_Free((void *) hChannel);
+        }
         hChannel = NULL;
-	}
-	BDBG_LEAVE(BDCM_Aus_OpenChannel);
-	return hChannel;
+    }
+    BDBG_LEAVE(BDCM_Aus_OpenChannel);
+    return hChannel;
 }
 
 BERR_Code BDCM_Aus_CloseChannel(BDCM_AusChannelHandle hChannel)

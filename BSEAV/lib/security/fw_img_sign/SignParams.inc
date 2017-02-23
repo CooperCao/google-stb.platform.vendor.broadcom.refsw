@@ -93,18 +93,33 @@ export KEY2_EXPONENT=0x1
 #Settings Specific to RAVE Firmware Signing
 export RAVE_EPOCH?=0x0
 export RAVE_FW_EPOCH ?= 0x0
+#export RAVE_MARKET_ID ?= 0x87654321
+#export RAVE_MARKET_ID_SEL ?= 0x1
+#export RAVE_SIG_VER ?= 0x2
 
 #Settings specific to RAAGA Firmware Signing
 export RAAGA_EPOCH?=0x0
 export RAAGA_FW_EPOCH ?= 0x0
+#export RAAGA_MARKET_ID ?= 0x87654321
+#export RAAGA_MARKET_ID_SEL ?= 0x1
+#export RAAGA_SIG_VER ?= 0x2
 
 #Settings specific to VCE Firmware Signing
 export VCE_EPOCH?=0x0
 export VCE_FW_EPOCH ?= 0x0
+#export VCE_MARKET_ID ?= 0x87654321
+#export VCE_MARKET_ID_SEL ?= 0x1
+#export VCE_SIG_VER ?= 0x2
 
 #Settings specific to AVD Firmware Signing
 export AVD_EPOCH?=0x0
 export AVD_FW_EPOCH ?= 0x0
+#export AVD_MARKET_ID ?= 0x87654321
+#export AVD_MARKET_ID_SEL ?= 0x1
+#export AVD_SIG_VER ?= 0x2
 
 #Settings specific to SID Firmware Signing
 export SID_EPOCH?=0x0
+#export SID_MARKET_ID ?= 0x87654321
+#export SID_MARKET_ID_SEL ?= 0x1
+#export SID_SIG_VER ?= 0x2

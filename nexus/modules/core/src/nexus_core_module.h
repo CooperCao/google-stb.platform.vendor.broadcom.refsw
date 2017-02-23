@@ -57,6 +57,7 @@
 #include "nexus_platform_features.h"
 #include "nexus_memory_priv.h"
 #include "bmma_pool.h"
+#include "nexus_core_compat.h"
 
 struct NEXUS_FileNameNode;
 BLST_AA_TREE_HEAD(NEXUS_P_FileNameTree, NEXUS_FileNameNode);

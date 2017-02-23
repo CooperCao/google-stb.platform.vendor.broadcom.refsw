@@ -1,43 +1,40 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ******************************************************************************/
 
 #ifndef _C_UTILS_INTERNAL_H_
 #define _C_UTILS_INTERNAL_H_
@@ -87,14 +84,53 @@
 #define CEIL_DIV(n, d)                      (((n) + (d) - 1) / (d))
 /** Calculates n % d. Requires x >= 0, y > 0 and a power of 2. */
 #define MOD_POW2(n, d)                      ((n) & ((d) - 1))
+/** Gets the min or max of two values.
+ *  Unsafe as it doesn't cope well with arguments with side effects. */
+#define UNSAFE_MIN(a, b)                    ((a) < (b) ? (a) : (b))
+#define UNSAFE_MAX(a, b)                    ((a) > (b) ? (a) : (b))
+
+
+/* Bit twiddling */
+/** Create a bit mask with only bit n set */
+#define BIT(n)                              (1 << (n))
+/** Create a bit mask with bits from b(ottom) to t(op) (inclusive) set */
+#define BITMASK(t, b)                       (BIT(1 + (t)) - BIT(b))
+
+
+#if !defined(__LINKER_SCRIPT__)     /* limit typed bitmasks to C sources */
+
+#if !defined(CHAR_BIT)
+#define CHAR_BIT 8
+#endif
+#define NBITS(type)                         (CHAR_BIT * sizeof(type))
+#define BIT_T(type, n)                      ((n) < NBITS(type) ? ((type) 1) << ((n) % NBITS(type)) : ((type) 0))
+#define BITMASK_T(type, t, b)               ((type)(BIT_T(type, 1 + (t)) - BIT_T(type, b)))
+
+/** Create a 32 bit mask with only bit n set */
+#define BIT_32(n)                           BIT_T(uint32_t, n)
+/** Create a 32 bit mask with bits from b(ottom) to t(op) (inclusive) set */
+#define BITMASK_32(t, b)                    BITMASK_T(uint32_t, t, b)
+/** Create a 64 bit mask with only bit n set */
+#define BIT_64(n)                           BIT_T(uint64_t, n)
+/** Create a 64 bit mask with bits from b(ottom) to t(op) (inclusive) set */
+#define BITMASK_64(t, b)                    BITMASK_T(uint64_t, t, b)
+
+#endif  /* !defined(__LINKER_SCRIPT__) */
 
 
 /* Debugging */
 /** Compile time assertion, to be used at function scope */
 /* technique borrowed from http://www.jaggersoft.com/pubs/CVu11_3.html */
-#define COMPILE_TIME_ASSERT(pred)       switch(0){case 0:case pred:;}
+#define COMPILE_TIME_ASSERT(pred)           switch(0){case 0:case pred:;}
 
 
 #endif /* !defined(ASMCPP) */
+
+
+/* Preprocessor */
+#define MACRO_EXPAND(x)         x
+#define STRINGIFY(x)            #x
+#define STRINGIFY_EXPANDED(x)   STRINGIFY(x)
+
 
 #endif /* _C_UTILS_INTERNAL_H_ */

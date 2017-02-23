@@ -1,51 +1,55 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
-
 
 #ifndef BDSP_RAAGA_MM_PRIV_H_
 #define BDSP_RAAGA_MM_PRIV_H_
+
 #include "libdspcontrol/DSP.h"
 #include "libdspcontrol/TB.h"
+
+#if (BCHP_CHIP == 7278)
+#include "bchp_raaga_dsp_l2c.h"
+#include "bchp.h"
+#endif
+
 #include "bdsp_raaga_fwinterface_priv.h"
 #include "bdsp_common_mm_priv.h"
+#include "bdsp_raaga_img_sizes.h"
 
 #define BDSP_RAAGA_MAX_MSGS_PER_QUEUE     10
 #define BDSP_RAAGA_MAX_ASYNC_MSGS_PER_QUEUE     40
@@ -88,9 +92,35 @@ BDSP_Raaga_P_DwnldBufUsageInfo DwnldBufUsageInfo[BDSP_RAAGA_MAX_DWNLD_BUFS] */
 #define BDSP_RAAGA_MAX_FW_TASK_PER_VIDEO_ENCODE_CTXT    1
 #define BDSP_RAAGA_MAX_SCM_CTXT                 (int32_t)1
 #define BDSP_RAAGA_MAX_FW_TASK_PER_SCM_CTXT     (int32_t)1
+#define BDSP_RAAGA_MAX_ATU_ENTRIES               ((int32_t) 15)
 
 /* MAX_DWNLD_BUFS will be the max of the above defines.I have kept it slightly more  */
 #define BDSP_RAAGA_MAX_DWNLD_BUFS BDSP_RAAGA_MAX_DECODE_CTXT + BDSP_RAAGA_MAX_ENCODE_CTXT
+
+#if (BCHP_CHIP ==7278)
+typedef enum BDSP_AF_P_Process
+{
+    BDSP_AF_P_Process_eMMServerProcess = 0,
+    BDSP_AF_P_Process_eFileServerProcess = 1,
+    BDSP_AF_P_Process_eProcManagerProcess = 2,
+    BDSP_AF_P_Process_eMaxProcess = 3
+}BDSP_AF_P_Process;
+
+#define BDSP_RAAGA_KERNEL_RW_MEM_SIZE      BDSP_IMG_KERNEL_RW_IMG_SIZE /* RW memory used by Kernel */
+#define BDSP_RAAGA_INIT_PROC_MEM_SIZE      (uint32_t) (200 * 1024) /* RW memory used by Init process */
+#define BDSP_RAAGA_APP_PROC_MEM_SIZE       (uint32_t) (512 * 1024) /* RW memory used by Init process */
+#define BDSP_RAAGA_OTHER_PROC_MEM_SIZE     (uint32_t) (200 * 1024) /* RW memory used for creation of each of processes */
+#define BDSP_RAAGA_MM_PROC_HEAP_SIZE       (uint32_t) (220 * 1024) /* RW memory used by MM process for allocations */
+#define BDSP_RAAGA_GUARD_RW_MEM_SIZE       (uint32_t) (2 * 1024)   /* RW Memory guard band to ensure 32-bit aligned addresses */
+
+#define ATU_PHYSICAL_ENTRY_MASK       (uint32_t) (0x7fffffff) /* b31 shall be set to 0 always */
+#define ATU_PHYSICAL_ADDR_MASK        (uint64_t) (0xffffffffff)
+#define ATU_VIRTUAL_ADDR_MASK         (uint32_t) (0xfffff000) /* b31 shall be set to 0 always */
+
+#define ATU_VIRTUAL_RO_MEM_START_ADDR (uint32_t) (0x0) /* RO memory mapped to addr : 0x0 */
+#define ATU_VIRTUAL_RW_MEM_START_ADDR (uint32_t) (0x10000000) /* RW memory mapped to addr : 0x10000000 (256MB)*/
+
+#endif
 
 /* Memory Block */
 typedef struct BDSP_Raaga_P_MemBlock
@@ -101,7 +131,7 @@ typedef struct BDSP_Raaga_P_MemBlock
 
 typedef struct BDSP_Raaga_P_DwnldBufUsageInfo
 {
-    void *pAddr;
+    BDSP_MMA_Memory Memory;
     BDSP_Algorithm algorithm;
     int32_t numUser;
     bool bIsExistingDwnldValid;
@@ -127,7 +157,11 @@ typedef struct BDSP_Raaga_P_DwnldMemInfo
     uint32_t ui32TotalSupportedBinSize; /* Sum of all binary sizes */
     uint32_t ui32AllocatedBinSize;      /* Memory allocated for heap in this run */
     uint32_t ui32AllocwithGuardBand;        /* Memory allocated for heap in this run */
-    void *pImgBuf;                      /* Start address of the complete image buf */
+#if (BCHP_CHIP == 7278)
+    uint32_t ui32SystemImgSize;        /* Memory allocated for heap in this run */
+    uint32_t ui32AllocatedAlgoSizes;        /* Memory allocated for heap in this run */
+#endif
+    BDSP_MMA_Memory ImgBuf;
     BDSP_Raaga_P_AlgoTypeImgBuf AlgoTypeBufs[BDSP_AlgorithmType_eMax];
 }BDSP_Raaga_P_DwnldMemInfo;
 
@@ -136,7 +170,7 @@ typedef struct BDSP_Raaga_P_TaskQueues
 {
     BDSP_Raaga_P_MsgQueueParams    sTaskSyncQueue;     /* Synchronous queue */
     BDSP_Raaga_P_MsgQueueParams    sTaskAsyncQueue;    /* Asynchronous queue */
-    BDSP_P_FwBuffer                sAsyncMsgBufmem;    /* Memory for Async */
+    BDSP_P_HostBuffer              sAsyncMsgBufmem;    /* Memory for Async */
 
     /*Video Task related Queues*/
     BDSP_Raaga_P_MsgQueueParams    sPDQueue;     /* PD queue */
@@ -196,14 +230,12 @@ typedef struct BDSP_Raaga_P_TaskMemoryRequirement
 
 typedef struct BDSP_Raaga_P_PerDSPMemory
 {
-    unsigned                        InUse[BDSP_RAAGA_MAX_BRANCH];
-    unsigned                        ui32GenericBufferStructAddr[BDSP_RAAGA_MAX_BRANCH];
-    unsigned                        ui32IoBuffCfgStructAddr[BDSP_RAAGA_MAX_BRANCH];
-    BDSP_AF_P_sIO_BUFFER            InterStageIOBuff[BDSP_RAAGA_MAX_BRANCH];
-    BDSP_AF_P_sIO_GENERIC_BUFFER    InterStageIOGenericBuff[BDSP_RAAGA_MAX_BRANCH];
-
-    BDSP_AF_P_sDRAM_BUFFER          ui32DspScratchMemGrant;
-
+    unsigned                        InUse[BDSP_AF_P_eSchedulingGroup_Max][BDSP_RAAGA_MAX_BRANCH];
+    unsigned                        ui32GenericBufferStructAddr[BDSP_AF_P_eSchedulingGroup_Max][BDSP_RAAGA_MAX_BRANCH];
+    unsigned                        ui32IoBuffCfgStructAddr[BDSP_AF_P_eSchedulingGroup_Max][BDSP_RAAGA_MAX_BRANCH];
+    BDSP_P_IOBuffer                 InterStageIOBuff[BDSP_AF_P_eSchedulingGroup_Max][BDSP_RAAGA_MAX_BRANCH];
+    BDSP_P_IOGenBuffer              InterStageIOGenericBuff[BDSP_AF_P_eSchedulingGroup_Max][BDSP_RAAGA_MAX_BRANCH];
+    BDSP_P_FwBuffer                 DspScratchMemGrant[BDSP_AF_P_eSchedulingGroup_Max];
 }BDSP_Raaga_P_PerDSPMemory;
 
 
@@ -217,18 +249,28 @@ typedef struct BDSP_Raaga_P_MemoryGrant
 
     BDSP_Raaga_P_MsgQueueParams    genRspQueueParams[BDSP_RAAGA_MAX_DSP];
                                 /* Generic (non-task) response queue per DSP */
+    BDSP_MMA_Memory DSPFifoAddrStruct[BDSP_RAAGA_MAX_DSP];
 
-    void *pDSPFifoAddrStruct[BDSP_RAAGA_MAX_DSP];   /*Dram buffer to store addresses of DSP Fifo's used for message queues*/
+    BDSP_P_FwBuffer FwDebugBuf[BDSP_RAAGA_MAX_DSP][BDSP_Raaga_DebugType_eLast];
 
-    BDSP_Raaga_P_MemBlock pFwDebugBuf[BDSP_RAAGA_MAX_DSP][BDSP_Raaga_DebugType_eLast];
     /* Structure used to initialise the libDspControl module  */
     DSP                   sLibDsp;
     TB                    sTbTargetPrint[BDSP_RAAGA_MAX_DSP]; /* TB support structure for targetprint */
-    unsigned char         *pTargetPrintBuffer[BDSP_RAAGA_MAX_DSP];
-    /* DRAM buffer for raaga system to swap its data memory with */
-    BDSP_Raaga_P_MemBlock   sRaagaSwapMemoryBuf[BDSP_RAAGA_MAX_DSP];
 
-    BDSP_Raaga_P_PerDSPMemory          sScratchandISBuff[BDSP_RAAGA_MAX_DSP];
+    BDSP_MMA_Memory        TargetPrintBuffer[BDSP_RAAGA_MAX_DSP];
+
+    /* DRAM buffer for raaga system to swap its data memory with */
+    BDSP_P_FwBuffer        sRaagaSwapMemoryBuf[BDSP_RAAGA_MAX_DSP];
+
+#if (BCHP_CHIP ==7278)
+    /* DRAM memory allocated for raaga rw memory
+     * This includes Message queues, Memory to hold Fifo pointers, Scratch and IS buffers */
+    BDSP_P_FwBuffer         sRaagaRWMemoryBuf;
+    uint32_t                ui32UsedRWMemsize;
+    uint32_t                ui32AvailableRWMemSize;
+    bool                    bIsATUEntryUsed[BDSP_RAAGA_MAX_ATU_ENTRIES];
+#endif
+    BDSP_Raaga_P_PerDSPMemory       sScratchandISBuff[BDSP_RAAGA_MAX_DSP];
                                 /* Open time scratch and IS memory info */
     BDSP_Raaga_P_DwnldMemInfo       sDwnldMemInfo;
 
@@ -267,6 +309,16 @@ BERR_Code BDSP_Raaga_P_FreeInitMemory(
 
 BERR_Code BDSP_Raaga_P_CalculateContextMemory(
     unsigned *pMemoryReq
+    );
+
+BERR_Code BDSP_Raaga_P_CalculateDebugMemoryReq(
+    void *pDeviceHandle,
+    uint32_t *ui32FWDebugMemReq
+    );
+
+BERR_Code BDSP_Raaga_P_CalculateProcRWMemory(
+    unsigned *pMemoryReq,
+    int32_t i32NumDsp
     );
 
 BERR_Code BDSP_Raaga_P_AllocateContextMemory (
@@ -312,6 +364,58 @@ BERR_Code BDSP_Raaga_P_FreeStageMemory(
 BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(
     void *pDeviceHandle
     );
+#if (BCHP_CHIP == 7278)
+/* Allocates memory from the RW memory buffer
+ * Allocates, Message queues, FIFO pointers, Scratch and IS buffers
+ * Debug buffers, swap memory, and Oher RW memory required by Processes */
+BERR_Code BDSP_Raaga_P_AllocateFWSharedMem (
+    void *pDeviceHandle,
+    int32_t i32DspIndex
+    );
+
+/* Allocates memory from the RW memory buffer
+ * Allocates, Core0 and Core1 RW memory and shared RW memory */
+BERR_Code BDSP_Raaga_P_AllocCoresRWMemory(
+    void *pDeviceHandle
+    );
+
+/* Allocates memory from the RW memory buffer
+ * Allocates, Memory for each of the Raaga processes
+ * Init, MM, Fileserver, ProcesManager, and application processes */
+BERR_Code BDSP_Raaga_P_AllocProcessRWMemory(
+    void *pDeviceHandle
+    );
+
+/* Assigns memory from the RW memory buffer for the given size */
+BERR_Code BDSP_Raaga_P_AssignFromRWMem(
+    void *pDeviceHandle,
+    uint32_t ui32Size,
+    BDSP_MMA_Memory *pBuffer
+    );
+
+/* This function calculates the RW memory used by Raaga core
+ * and gets a single contiguous memory chunk for the total memory required
+ * This includes, Memory for queues, Memory to hold FIFO pointers,
+ * IS and Scratch buffers, and Debug buffers*/
+BERR_Code BDSP_Raaga_P_CalcAndAllocRWMemoryReq(
+    void *pDeviceHandle
+    );
+BERR_Code BDSP_Raaga_P_FreeScratchISmem(
+    void *pDeviceHandle
+    );
+BERR_Code BDSP_Raaga_P_FreeFWSharedMem(
+    void *pDeviceHandle
+    );
+
+BERR_Code BDSP_Raaga_P_FreeRWMemRegion(
+    void *pDeviceHandle
+    );
+
+BERR_Code BDSP_Raaga_P_ResetAtuEntries(
+    void *pDeviceHandle
+    );
+
+#endif /* (BCHP_CHIP == 7278) */
 
 BERR_Code BDSP_MM_P_GetFwMemRequired(
     const BDSP_RaagaSettings  *pSettings,
@@ -331,6 +435,7 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
         uint32_t *pui32Numch,
+        BDSP_AF_P_eSchedulingGroup eSchedulingGroup,
         const BDSP_RaagaUsageOptions *pUsage
 );
 
@@ -338,14 +443,15 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq(
         uint32_t *pui32ScratchMem,
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
-        uint32_t *pui32Numch
+        uint32_t *pui32Numch,
+        BDSP_AF_P_eSchedulingGroup eSchedulingGroup
     );
 
 BERR_Code BDSP_MM_P_CalcStageMemPoolReq(
     void *pStageHandle
     );
-BERR_Code BDSP_Raaga_P_AssignMem_DwnldBuf(void * pDeviceHandle,
-                                            void *ptr);
+
+BERR_Code BDSP_Raaga_P_AssignMem_DwnldBuf(void *pDeviceHandle, BDSP_MMA_Memory *pMemory);
 
 void BDSP_Raaga_P_FreeFwExec(   void *pDeviceHandle);
 
@@ -353,4 +459,33 @@ void BDSP_Raaga_P_FreeFwExec(   void *pDeviceHandle);
                                ((BDSP_Raaga_P_DwnldBufUsageInfo*)pDwnldBuf)->bIsExistingDwnldValid = false;\
                                ((BDSP_Raaga_P_DwnldBufUsageInfo*)pDwnldBuf)->numUser = 0;
 
+#if (BCHP_CHIP == 7278)
+/* Returns Free ATU Index */
+int32_t BDSP_Raaga_P_GetFreeAtuIndex(
+        void *pDeviceHandle
+        );
+
+/* Add ATU Index */
+BERR_Code BDSP_Raaga_P_AddAtuEntries(
+        void *pDeviceHandle
+        );
+
+BERR_Code BDSP_Raaga_P_GetVirtualAddress(
+        void *pDeviceHandle,
+        uint64_t ui64PhysicalAddr,
+        uint32_t *pui32VirtualAddr
+        );
+
+/* Takes physical address as input and returns virtual address */
+BERR_Code BDSP_Raaga_P_GetVirtualAddress(
+        void *pDeviceHandle,
+        uint64_t ui64PhysicalAddr,
+        uint32_t *pui32VirtualAddr
+        );
+BERR_Code BDSP_Raaga_P_GetPhysicalAddress(
+        void *pDeviceHandle,
+        uint32_t ui32VirtualAddr,
+        uint64_t *pui64PhysicalAddr
+        );
+#endif /* (BCHP_CHIP ==7278) */
 #endif /*BDSP_RAAGA_MM_PRIV_H_*/

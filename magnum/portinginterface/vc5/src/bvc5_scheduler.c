@@ -94,6 +94,7 @@ static void BVC5_P_ProcessInterrupt(
                /* This job is done, so add to completed queue and remove from job state map */
                hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
                BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
+
             }
          } while (__sync_sub_and_fetch(&pState->uiCapturedRFC, 1) != 0);
       }
@@ -121,8 +122,9 @@ static void BVC5_P_ProcessInterrupt(
          hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, pJob->uiClientId);
          BVC5_P_ClientJobRunningToCompleted(hVC5, hClient, pJob);
 
-         /* Render job's dependency is resolved */
-         pJob->jobData.sBin.psInternalRenderJob->jobData.sRender.uiBinJobId = 0;
+         /* Render job's dependency is completed */
+         if (!pJob->jobData.sBin.psInternalRenderJob->jobData.sRender.bRenderOnlyJob)
+            pJob->jobData.sBin.psInternalRenderJob->jobData.sRender.uiBinJobId = BVC5_P_BIN_JOB_COMPLETED;
       }
    }
 
@@ -330,32 +332,30 @@ static bool BVC5_P_ScheduleSoftJobsForClient(
    return bIssued;
 }
 
-/* BVC5_P_CoreMatchPageTable
+/* BVC5_P_MatchPageTable
 
   Check the page table here and change if possible.
-  Can only change if the cores are idle.
+  Can only change if the cores and TFU are idle.
   The scheduler will ensure that each job gets a chance to set
   its page table and run its jobs by making sure that work
   that it wants to do (at least one bin, render and tfu job)
   is done before moving to the next client.
 
  */
-static bool BVC5_P_CoreMatchPageTable(
+static bool BVC5_P_MatchPageTable(
    BVC5_Handle           hVC5,
    BVC5_P_InternalJob   *pJob
 )
 {
    BVC5_JobBase *pBase = pJob->pBase;
 
-   if (hVC5->psCoreStates[0].uiBRCurrentPagetable != pBase->uiPagetablePhysAddr)
+   if (hVC5->psCoreStates[0].uiCurrentPagetable != pBase->uiPagetablePhysAddr)
    {
-      if (!BVC5_P_HardwareIsCoreIdle(hVC5, 0))
+      if (!BVC5_P_HardwareIsIdle(hVC5))
          return false;
 
-      hVC5->psCoreStates[0].uiBRCurrentPagetable = pBase->uiPagetablePhysAddr;
+      hVC5->psCoreStates[0].uiCurrentPagetable = pBase->uiPagetablePhysAddr;
    }
-
-   BVC5_P_HardwareSetupCoreMmu(hVC5, 0, pBase->uiPagetablePhysAddr, pBase->uiMmuMaxVirtAddr);
 
    return true;
 }
@@ -373,13 +373,21 @@ static bool BVC5_P_CoreJobIsRunnable(
 )
 {
    /* Workaround for GFXH-1181 */
-   if (!pJob->bFlushedV3D && BVC5_P_HardwareCacheClearBlocked(hVC5, 0))
-      return false;
+   if (!V3D_VER_AT_LEAST(3,3,0,0))
+   {
+      BDBG_ASSERT(hVC5->uiNumCores == 1);
+      if (  (pJob->uiNeedsCacheFlush & 1)
+         && (hVC5->psCoreStates[0].uiCacheFlushes & BVC5_CACHE_CLEAR_SUC)
+         && BVC5_P_HardwareCacheClearBlocked(hVC5, 0) )
+      {
+         return false;
+      }
+   }
 
    if (!BVC5_P_SwitchSecurityMode(hVC5, pJob->pBase->bSecure))
       return false;
 
-   if (!BVC5_P_CoreMatchPageTable(hVC5, pJob))
+   if (!BVC5_P_MatchPageTable(hVC5, pJob))
       return false;
 
    return true;
@@ -390,6 +398,10 @@ static bool BVC5_P_RenderJobIsRunnable(
    BVC5_P_InternalJob *pJob
 )
 {
+   if (BVC5_P_HardwareRenderBlocked(hVC5, 0, pJob))
+      return false;
+
+   /* CoreJobIsRunnable has MMU and security side effects so it must be last */
    return BVC5_P_CoreJobIsRunnable(hVC5, pJob);
 }
 
@@ -398,27 +410,13 @@ static bool BVC5_P_BinnerJobIsRunnable(
    BVC5_P_InternalJob *pJob
 )
 {
-   return BVC5_P_CoreJobIsRunnable(hVC5, pJob) &&
-          BVC5_P_BinPoolReplenish(BVC5_P_GetBinPool(hVC5));
-}
+   if (BVC5_P_HardwareBinBlocked(hVC5, 0, pJob))
+      return false;
+   if (!BVC5_P_BinPoolReplenish(BVC5_P_GetBinPool(hVC5)))
+      return false;
 
-/* BVC5_P_TFUMatchPageTable
-
-  Change the TFU page table here -- will always be possible at
-  present as we only have one TFU job running at a time and it
-  has its own MMU.
- */
-static bool BVC5_P_TFUMatchPageTable(
-   BVC5_Handle           hVC5,
-   BVC5_P_InternalJob   *pJob
-)
-{
-   BVC5_JobBase *pBase = pJob->pBase;
-
-   /* Currently the TFU has its own page table, so we can always swap */
-   BVC5_P_HardwareSetupTfuMmu(hVC5, pBase->uiPagetablePhysAddr, pBase->uiMmuMaxVirtAddr);
-
-   return true;
+   /* CoreJobIsRunnable has MMU and security side effects so it must be last */
+   return BVC5_P_CoreJobIsRunnable(hVC5, pJob);
 }
 
 /* BVC5_P_TFUJobIsRunnable
@@ -433,8 +431,14 @@ static bool BVC5_P_TFUJobIsRunnable(
    BVC5_P_InternalJob *pJob
 )
 {
+   /*
+       We assume the TFU and Core MMU are being kept in sync on v3.3 HW
+       to match the behaviour on V4 HW where there is only one MMU for the
+       whole subsystem. This also simplifies the code paths here and in
+       the actual hardware programming.
+   */
    return BVC5_P_SwitchSecurityMode(hVC5, pJob->pBase->bSecure) &&
-          BVC5_P_TFUMatchPageTable(hVC5, pJob);
+          BVC5_P_MatchPageTable(hVC5, pJob);
 }
 
 /* BVC5_P_ScheduleRenderJobs
@@ -579,6 +583,45 @@ static void BVC5_P_ScheduleTFUJobs(
    }
 }
 
+/* BVC5_P_ScheduleBarrierJobs
+
+   Issue barrier job if available and runnable in the current mode
+   Prefer the current client
+
+   POWER MUST BE ON
+
+ */
+static void BVC5_P_ScheduleBarrierJobs(
+   BVC5_Handle        hVC5,
+   uint32_t           uiNumClients
+)
+{
+   BVC5_P_SchedulerState *psState = &hVC5->sSchedulerState;
+
+   uint32_t uiClient;
+   for (uiClient = 0; uiClient < uiNumClients; ++uiClient)
+   {
+      BVC5_ClientHandle hClient = BVC5_P_SchedulerStateGetClient(psState, uiClient);
+      BVC5_P_InternalJob *barrierJob  = BVC5_P_JobQTop(hClient->hRunnableBarrierQ);
+
+      if (barrierJob)
+      {
+         if (BVC5_P_CoreJobIsRunnable(hVC5, barrierJob))
+         {
+            BVC5_P_HardwareProcessBarrierJob(hVC5, barrierJob);
+            BVC5_P_JobQPop(hClient->hRunnableBarrierQ);
+            BVC5_P_ClientSetGiven(hClient, BVC5_CLIENT_BARRIER);
+         }
+         else
+         {
+            /* The current client wanted to do a barrier job but was denied */
+            if (uiClient == 0)
+               break;
+         }
+      }
+   }
+}
+
 static void BVC5_P_ScheduleUsermodeJobs(
    BVC5_Handle        hVC5,
    uint32_t           uiNumClients,
@@ -666,6 +709,9 @@ static void BVC5_P_ScheduleRunnableJobs(
       BVC5_P_ScheduleRenderJobs(hVC5, uiNumClients);
       BVC5_P_ScheduleBinnerJobs(hVC5, uiNumClients);
       BVC5_P_ScheduleTFUJobs   (hVC5, uiNumClients);
+
+      /* TODO: If power is off then barrier jobs can be discarded. */
+      BVC5_P_ScheduleBarrierJobs(hVC5, uiNumClients);
 
       /* If we did the work for the favoured client, give someone else a go */
       BVC5_P_SchedulerStateNextClient(&hVC5->sSchedulerState);
@@ -778,6 +824,14 @@ static bool BVC5_P_AreDepsFinalizersDone(
    bool           bHasNoDependencies = true;
    unsigned int   i;
 
+   /* Special case when bin jobs are finalized due to the implicit dependency between
+    * render and bin. We must check the bin job's finalized state as it's not in the
+    * dependency list. */
+   BVC5_JobBase  *pBaseJob = pJob->pBase;
+   if (pBaseJob->eType == BVC5_JobType_eRender && !pJob->jobData.sRender.bRenderOnlyJob)
+      if (pJob->jobData.sRender.uiBinJobId != BVC5_P_BIN_JOB_FINALIZED)
+         return false;
+
    if (pJob->sFinDep_NotFinalized.uiNumDeps == 0)
       return true;
 
@@ -820,7 +874,9 @@ static bool BVC5_P_IsRunnable(
    {
    case BVC5_JobType_eRender:
       /* Has the bin finished? */
-      bIsRunnable = (pInternalJob->jobData.sRender.uiBinJobId == 0);
+      bIsRunnable = pInternalJob->jobData.sRender.bRenderOnlyJob ||
+                   (pInternalJob->jobData.sRender.uiBinJobId == BVC5_P_BIN_JOB_COMPLETED ||
+                    pInternalJob->jobData.sRender.uiBinJobId == BVC5_P_BIN_JOB_FINALIZED);
       break;
 
    case BVC5_JobType_eFenceWait:
@@ -1118,7 +1174,8 @@ void BVC5_P_WaitForJobCompletion(
 
  */
 void BVC5_P_MarkJobsFlushedV3D(
-   BVC5_Handle hVC5
+   BVC5_Handle hVC5,
+   uint32_t uiCoreIndex
 )
 {
    void                *pIter;
@@ -1128,6 +1185,6 @@ void BVC5_P_MarkJobsFlushedV3D(
         hClient != NULL;
         hClient = BVC5_P_ClientMapNext(hVC5->hClientMap, &pIter))
    {
-      BVC5_P_ClientMarkJobsFlushedV3D(hClient);
+      BVC5_P_ClientMarkJobsFlushedV3D(hClient, uiCoreIndex);
    }
 }

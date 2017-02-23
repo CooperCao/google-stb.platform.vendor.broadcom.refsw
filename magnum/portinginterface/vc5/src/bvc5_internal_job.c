@@ -108,6 +108,28 @@ BVC5_P_InternalJob *BVC5_P_JobCreateNull(
    return pJob;
 }
 
+BVC5_P_InternalJob *BVC5_P_JobCreateBarrier(
+   BVC5_Handle              hVC5,
+   uint32_t                 uiClientId,
+   const BVC5_JobBarrier   *psJob
+)
+{
+   BVC5_JobBarrier      *pBarrierJob = (BVC5_JobBarrier *)BKNI_Malloc(sizeof(BVC5_JobBarrier));
+   BVC5_P_InternalJob   *pJob = NULL;
+
+   if (pBarrierJob != NULL)
+   {
+      pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)pBarrierJob, (BVC5_JobBase *)psJob);
+
+      if (pJob != NULL)
+         BKNI_Memcpy(pBarrierJob, psJob, sizeof(BVC5_JobNull));
+      else
+         BKNI_Free(pBarrierJob);
+   }
+
+   return pJob;
+}
+
 BVC5_P_InternalJob *BVC5_P_JobCreateBin(
    BVC5_Handle              hVC5,
    uint32_t                 uiClientId,
@@ -169,7 +191,7 @@ BVC5_P_InternalJob *BVC5_P_JobCreateRender(
    return pJob;
 }
 
-static void BVC5_P_JobWaitCallback(void *context, void *param)
+static void BVC5_P_JobWaitCallback(void *context, uint64_t param)
 {
    BVC5_Handle        hVC5  = (BVC5_Handle)context;
    BSTD_UNUSED(param);
@@ -196,7 +218,7 @@ BVC5_P_InternalJob *BVC5_P_JobCreateFenceWait(
          int res;
          BKNI_Memcpy(pWaitJob, psJob, sizeof(BVC5_JobFenceWait));
 
-         res = BVC5_P_FenceWaitAsync(hVC5->hFences, uiClientId, psJob->iFence, BVC5_P_JobWaitCallback, hVC5, pJob,
+         res = BVC5_P_FenceWaitAsync(hVC5->hFences, uiClientId, psJob->iFence, BVC5_P_JobWaitCallback, hVC5, 0,
                &pJob->jobData.sWait.waitData);
          if (res < 0)
          {
@@ -238,15 +260,7 @@ BVC5_P_InternalJob *BVC5_P_JobCreateTFU(
       pJob = BVC5_P_CreateInternalJob(hVC5, uiClientId, (BVC5_JobBase *)psTFUJob, (BVC5_JobBase *)psJob);
 
       if (pJob != NULL)
-      {
          BKNI_Memcpy(psTFUJob, psJob, sizeof(BVC5_JobTFU));
-
-         /* Ensure sync flags are sensible for TFU jobs. */
-         psTFUJob->sBase.uiSyncFlags &= BVC5_SYNC_TFU_READ
-                                      | BVC5_SYNC_TFU_WRITE
-                                      | BVC5_SYNC_CPU_READ
-                                      | BVC5_SYNC_CPU_WRITE;
-      }
       else
          BKNI_Free(psTFUJob);
    }
@@ -319,7 +333,7 @@ void BVC5_P_JobDestroy(
       case BVC5_JobType_eFenceWait:
          if (pJob->jobData.sWait.waitData)
             BVC5_P_FenceWaitAsyncCleanup(hVC5->hFences, pJob->uiClientId,
-                  BVC5_P_JobWaitCallback, hVC5, pJob, pJob->jobData.sWait.waitData);
+                  BVC5_P_JobWaitCallback, hVC5, 0, pJob->jobData.sWait.waitData);
          break;
       default:
          break;

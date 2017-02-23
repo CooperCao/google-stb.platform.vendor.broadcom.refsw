@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,11 +70,11 @@
 /***************************************************************************
  *SCPU_MISB_BRIDGE - SCPU_MISB_BRIDGE Registers
  ***************************************************************************/
-#define BCHP_SCPU_MISB_BRIDGE_CORE_REV_ID        0x20310400 /* [RO] MISB Bridge Revision ID Register. */
-#define BCHP_SCPU_MISB_BRIDGE_EXCEPTION_VECTOR_OFFSET 0x20310404 /* [RW] "Exception Vector Offset Address" */
-#define BCHP_SCPU_MISB_BRIDGE_PROCESSOR_ID       0x20310408 /* [RO] Processor ID Register. */
-#define BCHP_SCPU_MISB_BRIDGE_WG_MODE_N_TIMEOUT  0x2031040c /* [RW] Write Gathering Mode & Timeout. */
-#define BCHP_SCPU_MISB_BRIDGE_MISB_SPLIT_MODE    0x20310410 /* [RW] MISB Split Mode */
+#define BCHP_SCPU_MISB_BRIDGE_CORE_REV_ID        0x20310400 /* [RO][32] MISB Bridge Revision ID Register. */
+#define BCHP_SCPU_MISB_BRIDGE_EXCEPTION_VECTOR_OFFSET 0x20310404 /* [RW][32] "Exception Vector Offset Address" */
+#define BCHP_SCPU_MISB_BRIDGE_PROCESSOR_ID       0x20310408 /* [RO][32] Processor ID Register. */
+#define BCHP_SCPU_MISB_BRIDGE_WG_MODE_N_TIMEOUT  0x2031040c /* [RW][32] Write Gathering Mode & Timeout. */
+#define BCHP_SCPU_MISB_BRIDGE_MISB_SPLIT_MODE    0x20310410 /* [RW][32] MISB Split Mode */
 
 /***************************************************************************
  *CORE_REV_ID - MISB Bridge Revision ID Register.

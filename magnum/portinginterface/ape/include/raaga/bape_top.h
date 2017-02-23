@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 
 #include "bchp.h"
 #include "bint.h"
-#include "bmem.h"
+#include "bmma.h"
 #include "breg_mem.h"
 #include "btmr.h"
 #include "bimg.h"
@@ -66,9 +66,7 @@ typedef void *BDSP_Handle;
 #include "bape_dolby_volume.h"
 #include "bape_processor.h"
 #include "bape_tru_volume.h"
-#if BAPE_DSP_SUPPORT
 #include "bape_custom_processing.h"
-#endif
 #include "bape_auto_volume_level.h"
 #include "bape_3d_surround.h"
 #include "bape_equalizer.h"
@@ -262,7 +260,7 @@ BERR_Code BAPE_Open(
     BAPE_Handle *pHandle,   /* [out] returned handle */
     BCHP_Handle chpHandle,
     BREG_Handle regHandle,
-    BMEM_Handle memHandle,
+    BMMA_Heap_Handle memHandle,
     BINT_Handle intHandle,
     BTMR_Handle tmrHandle,
     BDSP_Handle dspHandle,
@@ -407,6 +405,7 @@ typedef struct BAPE_Capabilities
     unsigned numNcos;                   /* Number of output NCO clocks */
     unsigned numCrcs;                   /* Number of CRC objects */
     unsigned numStcs;                   /* Number of STC objects */
+    unsigned numMixers;               /* Number of Mixers */
 
     unsigned numDsps;                   /* Number of audio DSPs */
     struct
@@ -466,6 +465,8 @@ void BAPE_GetCapabilities(
     BAPE_Capabilities *pCaps        /* [out] */
     );
 
+BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void);
+
 #if BAPE_DSP_SUPPORT
 /***************************************************************************
 Summary:
@@ -494,8 +495,6 @@ bool BAPE_CodecSupportsCompressed4x (
 bool BAPE_CodecSupportsCompressed16x (
     BAVC_AudioCompressionStd codec
     );
-
-BAPE_DolbyMSVersion BAPE_GetDolbyMSVersion (void);
 #endif
 
 #endif

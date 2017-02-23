@@ -37,8 +37,7 @@
 ############################################################
 
 NXCLIENT_APPS = \
-    heap_check \
-    heap_toggle
+    heap_check
 
 APPS = $(NXCLIENT_APPS)
 

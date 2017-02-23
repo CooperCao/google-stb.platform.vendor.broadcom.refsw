@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -118,16 +118,21 @@ public:
     eRet addRf4ceRemote(const char * remote_name);
     eRet removeRf4ceRemote(int pairingRefNum);
 #endif
-    eRet          tenKey(eKey key);
-    eRet          playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
-    eRet          playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
-    eRet          playbackStop(const char * MediaName = NULL, eWindowType windowType = eWindowType_Max, bool bTuneLast = true);
-    eRet          recordStart(CRecordData * pRecordData = NULL);
-    eRet          recordStop(CChannel * pChannel = NULL);
-    eRet          encodeStart(const char * fileName = NULL, const char * path = NULL);
-    eRet          encodeStop(CChannel * pChannel = NULL);
-    eRet          setAudioProgram(uint16_t pid);
-    eRet          setAudioProcessing(eAudioProcessing audioProcessing);
+    eRet tenKey(eKey key);
+    eRet playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
+    eRet playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
+    eRet playbackStop(const char * MediaName = NULL, eWindowType windowType = eWindowType_Max, bool bTuneLast = true);
+    eRet recordStart(CRecordData * pRecordData = NULL);
+    eRet recordStop(CChannel * pChannel = NULL);
+    eRet encodeStart(const char * fileName = NULL, const char * path = NULL);
+    eRet encodeStop(CChannel * pChannel = NULL);
+    eRet setAudioProgram(uint16_t pid);
+    eRet setAudioProcessing(eAudioProcessing audioProcessing);
+#ifdef CPUTEST_SUPPORT
+    eRet setCpuTestLevel(int nLevel);
+#endif
+    eRet          ipServerStart(void);
+    eRet          ipServerStop(void);
     eRet          setSpdifInput(eSpdifInput spdifInput);
     eRet          setHdmiAudioInput(eHdmiAudioInput hdmiInput);
     eRet          setAudioDownmix(eAudioDownmix audioDownmix);
@@ -135,6 +140,7 @@ public:
     eRet          setDolbyDRC(eDolbyDRC dolbyDRC);
     eRet          setDolbyDialogNorm(bool dolbyDialogNorm);
     eRet          setColorSpace(NEXUS_ColorSpace colorSpace);
+    eRet          setColorDepth(uint8_t colorDepth);
     eRet          setBoxDetect(bool bBoxDetect);
     eRet          setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio);
     eRet          setAutoVideoFormat(bool bAutoVideoFormat);

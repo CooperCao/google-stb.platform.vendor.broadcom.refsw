@@ -35,7 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-#if NEXUS_HAS_SIMPLE_DECODER
+#if NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_AUDIO
 #include "nexus_platform_client.h"
 #include "nexus_simple_audio_playback.h"
 #include <stdio.h>

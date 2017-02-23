@@ -102,8 +102,9 @@ do {                                        \
 #define SPI_CDRAM_PCS_PCS0          0x01
 #define SPI_CDRAM_PCS_PCS1          0x02
 #define SPI_CDRAM_PCS_PCS2          0x04
+#define SPI_CDRAM_PCS_PCS3          0x08
 
-#define SPI_CDRAM_PCS_DISABLE_ALL   (SPI_CDRAM_PCS_PCS0 | SPI_CDRAM_PCS_PCS1 | SPI_CDRAM_PCS_PCS2)
+#define SPI_CDRAM_PCS_DISABLE_ALL   (SPI_CDRAM_PCS_PCS0 | SPI_CDRAM_PCS_PCS1 | SPI_CDRAM_PCS_PCS2 | SPI_CDRAM_PCS_PCS3)
 
 #define SPI_POLLING_INTERVAL          10      /* in usecs */
 #define SPI_MUTEX_POLLING_INTERVAL    5       /* in millisecs */
@@ -441,6 +442,11 @@ BERR_Code BSPI_OpenChannel(
             #if MAX_SPI_CHANNELS > 2
                 case 2:
                     hChnDev->pcs = BSPI_Pcs_eUpgSpiPcs2;
+                    break;
+            #endif
+            #if MAX_SPI_CHANNELS > 3
+                case 3:
+                    hChnDev->pcs = BSPI_Pcs_eUpgSpiPcs3;
                     break;
             #endif
                 default:

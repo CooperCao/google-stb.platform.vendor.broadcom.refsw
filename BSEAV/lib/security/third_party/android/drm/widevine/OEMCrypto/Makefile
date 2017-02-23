@@ -82,7 +82,7 @@ CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
 
 # add Bcrypt flags
-#CFLAGS += -I$(BSEAV_TOP)/lib/openssl/$(NEXUS_PLATFORM)/include 
+#CFLAGS += -I$(BSEAV_TOP)/opensource/openssl/$(NEXUS_PLATFORM)/include
 CFLAGS += -I$(BSEAV_TOP)/lib/security/bcrypt/include
 
 

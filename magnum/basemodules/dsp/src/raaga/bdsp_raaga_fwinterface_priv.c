@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "bdsp_raaga_fwinterface_priv.h"
@@ -47,7 +44,6 @@ BDBG_MODULE(bdsp_raaga_fwinterface);
 
 BERR_Code BDSP_Raaga_P_CreateMsgQueue(
     BDSP_Raaga_P_MsgQueueParams    *psMsgQueueParams,    /* [in]*/
-    BMEM_Handle                     hHeap,               /* [in] */
     BREG_Handle                     hRegister,           /* [in] */
     uint32_t                        ui32DspOffset,       /* [in] */
     BDSP_Raaga_P_MsgQueueHandle    *hMsgQueue            /* [out]*/
@@ -64,16 +60,14 @@ BERR_Code BDSP_Raaga_P_CreateMsgQueue(
     BDBG_ENTER(BDSP_Raaga_P_CreateMsgQueue);
 
     BDBG_ASSERT(psMsgQueueParams);
-    BDBG_ASSERT(hHeap);
     BDBG_ASSERT(hRegister);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT((unsigned)psMsgQueueParams->i32FifoId != BDSP_RAAGA_FIFO_INVALID);
 
-    BDBG_MSG(("MSGQUEUE - pBaseAddr %p, Dsp index: %d uiMsgQueueSize %u, i32FifoId %d",
-        psMsgQueueParams->pBaseAddr,!!ui32DspOffset,/* dsp offset being non-zero says it is DSP 1 else it is DSP0*/
+    BDBG_MSG(("MSGQUEUE - pAddr %p, Dsp index: %d uiMsgQueueSize %u, i32FifoId %d",
+        psMsgQueueParams->Queue.pAddr,!!ui32DspOffset,/* dsp offset being non-zero says it is DSP 1 else it is DSP0*/
         psMsgQueueParams->uiMsgQueueSize,
         psMsgQueueParams->i32FifoId));
-
     /* Allocate memory for the Message Queue */
     hHandle =(BDSP_Raaga_P_MsgQueueHandle)
               BKNI_Malloc(sizeof(struct BDSP_Raaga_P_MsgQueue));
@@ -84,20 +78,18 @@ BERR_Code BDSP_Raaga_P_CreateMsgQueue(
         goto exit;
     }
     BKNI_Memset (hHandle, 0, sizeof(struct BDSP_Raaga_P_MsgQueue));
-    hHandle->pBaseAddr = psMsgQueueParams->pBaseAddr;
 
-    BKNI_Memset(psMsgQueueParams->pBaseAddr, 0, psMsgQueueParams->uiMsgQueueSize);
-    BDSP_MEM_P_FlushCache(hHeap, psMsgQueueParams->pBaseAddr, psMsgQueueParams->uiMsgQueueSize);
+    hHandle->Memory = psMsgQueueParams->Queue;
+    BKNI_Memset(psMsgQueueParams->Queue.pAddr, 0, psMsgQueueParams->uiMsgQueueSize);
+    BDSP_MMA_P_FlushCache(psMsgQueueParams->Queue, psMsgQueueParams->uiMsgQueueSize);
 
-    /* Conversion of address from virtual to physical*/
-    BDSP_MEM_P_ConvertAddressToOffset(
-            hHeap,psMsgQueueParams->pBaseAddr,&ui32BaseAddr);
-
+    ui32BaseAddr = psMsgQueueParams->Queue.offset;
 
     /*Initializing attributes of message queue in DRAM (device memory)*/
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-    BDSP_Write32(
+
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -106,30 +98,58 @@ BERR_Code BDSP_Raaga_P_CreateMsgQueue(
 
     ui32EndAddr = ui32BaseAddr + (psMsgQueueParams->uiMsgQueueSize);
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_END_OFFSET + ui32DspOffset,
         ui32EndAddr); /* end */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset,
         ui32BaseAddr); /* read */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_WRITE_OFFSET + ui32DspOffset,
         ui32BaseAddr); /* write */
 
-    /* Initializes attributes in the local copy(handle) in system memory*/
+#if (BCHP_CHIP ==7278)
+#if 0
+    BDBG_ERR(("ui32BaseAddr : %llx",ui32BaseAddr ));
+    BDBG_ERR(("ui32ReadAddr : %llx",  BDSP_ReadReg(
+            hRegister,
+            BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
+                (0) +
+                BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset)));
 
-    hHandle->hHeap          = hHeap;
+    BDBG_ERR(("ui32WriteAddr : %llx",  BDSP_ReadReg(
+                hRegister,
+                BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
+                    (0) +
+                    BDSP_RAAGA_P_FIFO_WRITE_OFFSET + ui32DspOffset)));
+
+    BDBG_ERR(("ui32BaseAddr : %llx",ui32BaseAddr ));
+    BDBG_ERR(("ui32ReadAddr : %llx",  BDSP_ReadReg(
+            hRegister,
+            BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
+                (ui32RegOffset * 1) +
+                BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset)));
+
+    BDBG_ERR(("ui32WriteAddr : %llx",  BDSP_ReadReg(
+                hRegister,
+                BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
+                    (ui32RegOffset * 1) +
+                    BDSP_RAAGA_P_FIFO_WRITE_OFFSET + ui32DspOffset)));
+#endif
+#endif
+
+    /* Initializes attributes in the local copy(handle) in system memory*/
     hHandle->hRegister      = hRegister;
     hHandle->ui32BaseAddr     = ui32BaseAddr ;
     hHandle->ui32EndAddr      = ui32EndAddr;
@@ -149,7 +169,6 @@ exit:
 
 BERR_Code BDSP_Raaga_P_InitMsgQueue(
     BDSP_Raaga_P_MsgQueueParams    *psMsgQueueParams ,  /* [in]*/
-    BMEM_Handle                     hHeap,              /* [in] */
     BREG_Handle                     hRegister,          /* [in] */
     uint32_t                        ui32DspOffset,      /* [in] */
     BDSP_Raaga_P_MsgQueueHandle    *hMsgQueue           /* [out]*/
@@ -166,30 +185,24 @@ BERR_Code BDSP_Raaga_P_InitMsgQueue(
     BDBG_ENTER(BDSP_Raaga_P_InitMsgQueue);
 
     BDBG_ASSERT(psMsgQueueParams);
-    BDBG_ASSERT(hHeap);
     BDBG_ASSERT(hRegister);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT((unsigned)psMsgQueueParams->i32FifoId != BDSP_RAAGA_FIFO_INVALID);
 
-    BDBG_MSG(("MSGQUEUE - ui32BaseAddr %p, uiMsgQueueSize %u, i32FifoId %d",
-        psMsgQueueParams->pBaseAddr,
+    BDBG_MSG(("MSGQUEUE - Base Address %p, uiMsgQueueSize %u, i32FifoId %d",
+        psMsgQueueParams->Queue.pAddr,
         psMsgQueueParams->uiMsgQueueSize,
         psMsgQueueParams->i32FifoId));
-
     hHandle = *hMsgQueue;
 
-    /* Conversion of address from virtual to physical*/
-    BDSP_MEM_P_ConvertAddressToOffset(
-            hHeap,psMsgQueueParams->pBaseAddr,&ui32BaseAddr);
-
-    BKNI_Memset(psMsgQueueParams->pBaseAddr, 0, psMsgQueueParams->uiMsgQueueSize);
-    BDSP_MEM_P_FlushCache(hHeap, psMsgQueueParams->pBaseAddr, psMsgQueueParams->uiMsgQueueSize);
-
+    ui32BaseAddr = psMsgQueueParams->Queue.offset;
+    BKNI_Memset(psMsgQueueParams->Queue.pAddr, 0, psMsgQueueParams->uiMsgQueueSize);
+    BDSP_MMA_P_FlushCache(psMsgQueueParams->Queue, psMsgQueueParams->uiMsgQueueSize);
     /*Initializing attributes of message queue in DRAM (device memory)*/
 
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -198,21 +211,21 @@ BERR_Code BDSP_Raaga_P_InitMsgQueue(
 
     ui32EndAddr = ui32BaseAddr + (psMsgQueueParams->uiMsgQueueSize);
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_END_OFFSET + ui32DspOffset,
         ui32EndAddr); /* end */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset,
         ui32BaseAddr); /* read */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -220,8 +233,6 @@ BERR_Code BDSP_Raaga_P_InitMsgQueue(
         ui32BaseAddr); /* write */
 
     /* Initializes attributes in the local copy(handle) in system memory*/
-
-    hHandle->hHeap          = hHeap;
     hHandle->hRegister      = hRegister;
     hHandle->ui32BaseAddr     = ui32BaseAddr ;
     hHandle->ui32EndAddr      = ui32EndAddr;
@@ -255,28 +266,28 @@ BERR_Code BDSP_Raaga_P_DestroyMsgQueue(
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_BASE_OFFSET + ui32DspOffset,
         BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* base */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_END_OFFSET + ui32DspOffset,
         BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* end */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset,
         BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* read */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
@@ -292,7 +303,6 @@ BERR_Code BDSP_Raaga_P_DestroyMsgQueue(
 
 BERR_Code BDSP_Raaga_P_CreateRdbQueue(
     BDSP_Raaga_P_RdbQueueParams    *psMsgQueueParams ,  /* [in]*/
-    BMEM_Handle                     hHeap,              /* [in] */
     BREG_Handle                     hRegister,          /* [in] */
     uint32_t                        ui32DspOffset,      /* [in] */
     BDSP_Raaga_P_MsgQueueHandle    *hMsgQueue           /* [out]*/
@@ -309,7 +319,6 @@ BERR_Code BDSP_Raaga_P_CreateRdbQueue(
     BDBG_ENTER(BDSP_Raaga_P_CreateRdbQueue);
 
     BDBG_ASSERT(psMsgQueueParams);
-    BDBG_ASSERT(hHeap);
     BDBG_ASSERT(hRegister);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT((unsigned)psMsgQueueParams->i32FifoId != BDSP_RAAGA_FIFO_INVALID);
@@ -338,7 +347,7 @@ BERR_Code BDSP_Raaga_P_CreateRdbQueue(
 
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
         (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -347,21 +356,21 @@ BERR_Code BDSP_Raaga_P_CreateRdbQueue(
 
     ui32EndAddr = ui32BaseAddr + (psMsgQueueParams->uiMsgQueueSize);
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_END_OFFSET + ui32DspOffset,
         ui32EndAddr); /* end */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset,
         ui32BaseAddr); /* read */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -369,8 +378,6 @@ BERR_Code BDSP_Raaga_P_CreateRdbQueue(
         ui32BaseAddr); /* write */
 
     /* Initializes attributes in the local copy(handle) in system memory*/
-
-    hHandle->hHeap          = hHeap;
     hHandle->hRegister      = hRegister;
     hHandle->ui32BaseAddr     = ui32BaseAddr ;
     hHandle->ui32EndAddr      = ui32EndAddr;
@@ -390,7 +397,6 @@ exit:
 
 BERR_Code BDSP_Raaga_P_InitRdbQueue(
     BDSP_Raaga_P_RdbQueueParams    *psMsgQueueParams ,  /* [in]*/
-    BMEM_Handle                     hHeap,              /* [in] */
     BREG_Handle                     hRegister,          /* [in] */
     uint32_t                        ui32DspOffset,      /* [in] */
     BDSP_Raaga_P_MsgQueueHandle    *hMsgQueue           /* [out]*/
@@ -407,7 +413,6 @@ BERR_Code BDSP_Raaga_P_InitRdbQueue(
     BDBG_ENTER(BDSP_Raaga_P_InitRdbQueue);
 
     BDBG_ASSERT(psMsgQueueParams);
-    BDBG_ASSERT(hHeap);
     BDBG_ASSERT(hRegister);
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT((unsigned)psMsgQueueParams->i32FifoId != BDSP_RAAGA_FIFO_INVALID);
@@ -427,7 +432,7 @@ BERR_Code BDSP_Raaga_P_InitRdbQueue(
 
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
         (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -436,21 +441,21 @@ BERR_Code BDSP_Raaga_P_InitRdbQueue(
 
     ui32EndAddr = ui32BaseAddr + (psMsgQueueParams->uiMsgQueueSize);
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_END_OFFSET + ui32DspOffset,
         ui32EndAddr); /* end */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset,
         ui32BaseAddr); /* read */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * psMsgQueueParams->i32FifoId) +
@@ -458,8 +463,6 @@ BERR_Code BDSP_Raaga_P_InitRdbQueue(
         ui32BaseAddr); /* write */
 
     /* Initializes attributes in the local copy(handle) in system memory*/
-
-    hHandle->hHeap          = hHeap;
     hHandle->hRegister      = hRegister;
     hHandle->ui32BaseAddr     = ui32BaseAddr ;
     hHandle->ui32EndAddr      = ui32EndAddr;
@@ -490,28 +493,28 @@ BERR_Code BDSP_Raaga_P_DestroyRdbQueue(
     ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
                     BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_BASE_OFFSET + ui32DspOffset,
         BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* base */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_END_OFFSET + ui32DspOffset,
         BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* end */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + ui32DspOffset,
         BDSP_RAAGA_INVALID_DRAM_ADDRESS); /* read */
 
-    BDSP_Write32(
+    BDSP_WriteReg(
         hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
             (ui32RegOffset * hMsgQueue->i32FifoId) +
@@ -537,25 +540,24 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     dramaddr_t  ui32dramWriteAddr=0;
     dramaddr_t  ui32maskReadAddr=0;
     dramaddr_t  ui32maskWriteAddr=0;
-    void *pvMsgQueueWriteAddr=NULL;
-
+    BDSP_MMA_Memory MsgQueueWriteAddr;
 
     BDBG_ENTER(BDSP_Raaga_P_WriteMsg_isr);
 
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsgBuf);
 
-    ui32dramReadAddr = BDSP_Read32_isr(
+    ui32dramReadAddr = BDSP_ReadReg_isr(
                         hMsgQueue->hRegister,
                         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                            (4 * 4 * hMsgQueue->i32FifoId) +
+                            (4 * sizeof(dramaddr_t) * hMsgQueue->i32FifoId) +
                             BDSP_RAAGA_P_FIFO_READ_OFFSET +
                             hMsgQueue->ui32DspOffset);
 
-    ui32dramWriteAddr = BDSP_Read32_isr(
+    ui32dramWriteAddr = BDSP_ReadReg_isr(
                         hMsgQueue->hRegister,
                         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                        (4 * 4 * hMsgQueue->i32FifoId) +
+                        (4 * sizeof(dramaddr_t) * hMsgQueue->i32FifoId) +
                         BDSP_RAAGA_P_FIFO_WRITE_OFFSET +
                         hMsgQueue->ui32DspOffset);
 
@@ -569,8 +571,10 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     if ( (ui32maskReadAddr > hMsgQueue->ui32EndAddr)||
          (ui32maskReadAddr<hMsgQueue->ui32BaseAddr))
     {
-        BDBG_ERR(("Read pointer not within bounds in Message Queue, Fifo ID =%d , DSPOffset = %d, ui32dramReadAddr = %d, hMsgQueue->ui32EndAddr = %d, hMsgQueue->ui32BaseAddr =%d"
-            ,hMsgQueue->i32FifoId,hMsgQueue->ui32DspOffset,ui32dramReadAddr,hMsgQueue->ui32EndAddr,hMsgQueue->ui32BaseAddr));
+        BDBG_ERR(("Read pointer not within bounds in Message Queue, Fifo ID =%d , DSPOffset = %d, ui32dramReadAddr = " BDSP_MSG_FMT
+                    ",hMsgQueue->ui32EndAddr = " BDSP_MSG_FMT ",hMsgQueue->ui32BaseAddr = " BDSP_MSG_FMT, hMsgQueue->i32FifoId,
+                    hMsgQueue->ui32DspOffset, BDSP_MSG_ARG(ui32dramReadAddr), BDSP_MSG_ARG(hMsgQueue->ui32EndAddr),
+                    BDSP_MSG_ARG(hMsgQueue->ui32BaseAddr)));
         BDBG_ASSERT(0);
         return BERR_TRACE(BDSP_ERR_BAD_DEVICE_STATE);
     }
@@ -592,8 +596,8 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     /* checking write ptrs */
     if((hMsgQueue->ui32WriteAddr)!=ui32maskWriteAddr)
     {
-        BDBG_ERR(("Write pointer corrupted in the Message Queue, hMsgQueue->ui32WriteAddr=%x , ui32dramWriteAddr = %x"
-            ,hMsgQueue->ui32WriteAddr,ui32dramWriteAddr));
+        BDBG_ERR(("Write pointer corrupted in the Message Queue, hMsgQueue->ui32WriteAddr= " BDSP_MSG_FMT ",ui32dramWriteAddr = " BDSP_MSG_FMT,
+            BDSP_MSG_ARG(hMsgQueue->ui32WriteAddr), BDSP_MSG_ARG(ui32dramWriteAddr)));
         BDBG_ASSERT(0);
         return BERR_TRACE(BDSP_ERR_BAD_DEVICE_STATE);
     }
@@ -665,8 +669,8 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     BDBG_MSG(("uiBufSize > %d", uiBufSize));
 
     /* hMsgQueue->pBaseAddr has the base address in cache format */
-    pvMsgQueueWriteAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskWriteAddr - hMsgQueue->ui32BaseAddr ));
-
+    MsgQueueWriteAddr = hMsgQueue->Memory;
+    MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr + (ui32maskWriteAddr - hMsgQueue->ui32BaseAddr ));
 
     /* Writing data in two chunks taking wrap-around into consideration */
     if ( (ui32maskWriteAddr > ui32maskReadAddr)||
@@ -693,9 +697,13 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     for (i=0; i<(ui32chunk1/4); i++)
     {
         BDBG_MSG(("*((uint32_t *)pMsgBuf+i) > %x", *((uint32_t *)pMsgBuf+i)));
-        BDSP_P_MemWrite32_isr( hMsgQueue->hHeap,
-            (uint8_t *)pvMsgQueueWriteAddr+(i*4), *((uint32_t *)pMsgBuf+i));
-
+        err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf+i));
+		if(err != BERR_SUCCESS)
+		{
+			BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 1"));
+			goto end;
+		}
+		MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
         ui32dramWriteAddr=ui32dramWriteAddr+4;
     }
 
@@ -709,37 +717,42 @@ BERR_Code BDSP_Raaga_P_WriteMsg_isr(
     /* Writing into chunk 2 */
     if ( ui32chunk2 > 0 )
     {
-
-        pvMsgQueueWriteAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskWriteAddr - hMsgQueue->ui32BaseAddr ));
+        MsgQueueWriteAddr = hMsgQueue->Memory;
+        MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr + (ui32maskWriteAddr - hMsgQueue->ui32BaseAddr ));
 
         for (i=0; i<(ui32chunk2/4); i++)
         {
             BDBG_MSG(("-->*((uint32_t *)pMsgBuf+i) > %x",
                        *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i)));
-            BDSP_P_MemWrite32_isr(hMsgQueue->hHeap,
-                (uint8_t *)pvMsgQueueWriteAddr+(i*4),
-                *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i)
-                );
+            err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf+(ui32chunk1/4)+i));
+			if(err != BERR_SUCCESS)
+			{
+				BDBG_ERR(("BDSP_Raaga_P_WriteMsg_isr: Error in updating the Data in the MSG Queue CHUNK 2"));
+				goto end;
+			}
+			MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr+4);
             ui32dramWriteAddr=ui32dramWriteAddr+4;
         }
     }
 
     /* Updating write ptr in the Queue Attribute Structure */
-    BDSP_Write32_isr(
+    BDSP_WriteReg_isr(
         hMsgQueue->hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-            (4 * 4 * hMsgQueue->i32FifoId) +
+            (4 * sizeof(dramaddr_t) * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_WRITE_OFFSET + hMsgQueue->ui32DspOffset,
         ui32dramWriteAddr); /* write */
 
-    BDBG_MSG(("ui32dramReadAddr > %x",  ui32dramReadAddr));
-    BDBG_MSG(("ui32dramWriteAddr > %x", ui32dramWriteAddr));
+#if (BCHP_CHIP == 7278)
+    BDBG_MSG(("ui32dramReadAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
+    BDBG_MSG(("ui32dramWriteAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
+#endif
 
     /* Updating write ptr in the handle */
     hMsgQueue->ui32WriteAddr = ui32dramWriteAddr;
 
+end:
     BDBG_LEAVE(BDSP_Raaga_P_WriteMsg_isr);
-
     return err;
 
 }
@@ -781,8 +794,13 @@ BERR_Code BDSP_Raaga_P_SendCommand_isr(
 
 
     if ( (psCommand->sCommandHeader.ui32CommandID != BDSP_PING_COMMAND_ID)
-        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID))
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_GET_SYSTEM_SWAP_MEMORY_COMMAND_ID)
+#if (BCHP_CHIP ==7278)
+        && (psCommand->sCommandHeader.ui32CommandID != BDSP_RAAGA_INIT_PROCESS_COMMAND_ID)
+#endif
+       )
     {
+        BDBG_ASSERT(pRaagaTask);
         /* When isStopped is true at that instance STOP/START commands can come
             and should be processed */
 
@@ -861,29 +879,28 @@ BERR_Code BDSP_Raaga_P_GetMsg_isr(
     uint32_t ui32chunk1=0,ui32chunk2=0,i;
     int32_t  i32BytesToBeRead=0;
     uint32_t ui32ResponseSize = 0;
-    void *   pvMsgQueueReadAddr=NULL;
-
+    BDSP_MMA_Memory MsgQueueReadAddr;
     BDBG_ENTER(BDSP_Raaga_P_GetMsg_isr);
 
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsgBuf);
 
-    ui32dramReadAddr = BDSP_Read32_isr(
+    ui32dramReadAddr = BDSP_ReadReg_isr(
                         hMsgQueue->hRegister,
                         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                            (4 * 4 * hMsgQueue->i32FifoId) +
+                            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
                             BDSP_RAAGA_P_FIFO_READ_OFFSET +
                             hMsgQueue->ui32DspOffset);
 
-    ui32dramWriteAddr = BDSP_Read32_isr(
+    ui32dramWriteAddr = BDSP_ReadReg_isr(
                         hMsgQueue->hRegister,
                         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                            (4 * 4 * hMsgQueue->i32FifoId) +
+                            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
                             BDSP_RAAGA_P_FIFO_WRITE_OFFSET +
                             hMsgQueue->ui32DspOffset);
 
-    BDBG_MSG(("ui32dramReadAddr > %x",  ui32dramReadAddr));
-    BDBG_MSG(("ui32dramWriteAddr > %x", ui32dramWriteAddr));
+    BDBG_MSG(("ui32dramReadAddr > " BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
+    BDBG_MSG(("ui32dramWriteAddr > " BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
 
     ui32maskReadAddr  = ui32dramReadAddr;
     ui32maskWriteAddr = ui32dramWriteAddr;
@@ -991,9 +1008,8 @@ BERR_Code BDSP_Raaga_P_GetMsg_isr(
      }
 
         /* hMsgQueue->pBaseAddr has the base address in cache format */
-    pvMsgQueueReadAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
-
-
+    MsgQueueReadAddr = hMsgQueue->Memory;
+    MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
 
     /* Reading data in two chunks taking wrap-around into consideration  */
     if ( (ui32maskReadAddr > ui32maskWriteAddr)||
@@ -1020,8 +1036,8 @@ BERR_Code BDSP_Raaga_P_GetMsg_isr(
     /* Reading from chunk1 */
     for(i=0;i<(ui32chunk1/4);i++)
     {
-        *((uint32_t *)pMsgBuf+i) = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                                    (uint8_t * )pvMsgQueueReadAddr+(i*4));
+        *((uint32_t *)pMsgBuf+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+        MsgQueueReadAddr.pAddr = (void *)((uint8_t * )MsgQueueReadAddr.pAddr + 4);
         ui32dramReadAddr=ui32dramReadAddr+4;
 
     }
@@ -1037,27 +1053,26 @@ BERR_Code BDSP_Raaga_P_GetMsg_isr(
     /* Reading from chunk2 */
     if(ui32chunk2>0)
     {
-
-        pvMsgQueueReadAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
-
+        MsgQueueReadAddr = hMsgQueue->Memory;
+        MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr+ (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
         for(i=0;i<(ui32chunk2/4);i++)
         {
-            *((uint32_t *)pMsgBuf+i) = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                (uint8_t *) pvMsgQueueReadAddr+(i*4));
+            *((uint32_t *)pMsgBuf+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+            MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + 4);
             ui32dramReadAddr=ui32dramReadAddr+4;
         }
     }
 
     /* Updating read ptr in the Queue Attribute Structure */
-    BDSP_Write32_isr(
+    BDSP_WriteReg_isr(
         hMsgQueue->hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-            (4 * 4 * hMsgQueue->i32FifoId) +
+            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + hMsgQueue->ui32DspOffset,
         ui32dramReadAddr);
 
-    BDBG_MSG(("ui32dramReadAddr > %x",  ui32dramReadAddr));
-    BDBG_MSG(("ui32dramWriteAddr > %x", ui32dramWriteAddr));
+    BDBG_MSG(("ui32dramReadAddr > " BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
+    BDBG_MSG(("ui32dramWriteAddr > " BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
 
     /* Updating read ptr in the handle */
     hMsgQueue->ui32ReadAddr = ui32dramReadAddr;
@@ -1068,9 +1083,8 @@ BERR_Code BDSP_Raaga_P_GetMsg_isr(
 }
 
 BERR_Code BDSP_Raaga_P_GetAlgorithmStatus(
-    BMEM_Handle         hHeap,
     BDSP_Algorithm      eAlgorithm,
-    void                *pStatusBuf,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory     *pStatusBuf,    /* [in] Config Buf Address */
     uint32_t            uiStatusBufSize,    /* [in] Config Buf Size */
     void               *pStatusBuffer,      /*[out]*/
     size_t              statusBufferSize
@@ -1097,7 +1111,7 @@ BERR_Code BDSP_Raaga_P_GetAlgorithmStatus(
 
     BDBG_ASSERT(statusBufferSize <= uiStatusBufSize);
 
-    BDSP_P_CopyDataFromDram(hHeap, pStatusBuffer, pStatusBuf, statusBufferSize);
+    BDSP_MMA_P_CopyDataFromDram(pStatusBuffer, pStatusBuf, statusBufferSize);
 
     if ( pInfo->statusValidOffset != 0xffffffff )
     {
@@ -1115,14 +1129,14 @@ BERR_Code BDSP_Raaga_P_GetAlgorithmStatus(
 }
 
 BERR_Code BDSP_Raaga_P_SetAlgorithmSettings(
-    BMEM_Handle             hHeap,
     BDSP_Algorithm          eAlgorithm,
-    void                    *pConfigBuf,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory         *pConfigBuf,    /* [in] Config Buf Address */
     uint32_t                uiConfigBufSize,    /* [in] Config Buf Size */
     const void             *pSettingsBuffer,
     size_t                  settingsBufferSize
     )
 {
+	BERR_Code err = BERR_SUCCESS;
     const BDSP_Raaga_P_AlgorithmInfo *pInfo;
 
     BDBG_ENTER( BDSP_Raaga_P_SetAlgorithmSettings );
@@ -1143,18 +1157,21 @@ BERR_Code BDSP_Raaga_P_SetAlgorithmSettings(
 
     BDBG_ASSERT(settingsBufferSize <= uiConfigBufSize);
 
-    BDSP_P_CopyDataToDram(hHeap, (void *)pSettingsBuffer, pConfigBuf, settingsBufferSize);
+    err = BDSP_MMA_P_CopyDataToDram(pConfigBuf, (void *)pSettingsBuffer, settingsBufferSize);
+	if(err != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_SetAlgorithmSettings: Error in Copying the Settings buffer"));
+	}
 
     BDBG_LEAVE( BDSP_Raaga_P_SetAlgorithmSettings );
 
-    return BERR_SUCCESS;
+	return err;
 }
 
 
 BERR_Code BDSP_Raaga_P_GetAlgorithmSettings(
-    BMEM_Handle             hHeap,
     BDSP_Algorithm          eAlgorithm,
-    void                    *pConfigBuf,        /* [in] Config Buf Address */
+    BDSP_MMA_Memory         *pConfigBuf,        /* [in] Config Buf Address */
     uint32_t                uiConfigBufSize,    /* [in] Config Buf Size */
     void                   *pSettingsBuffer,
     size_t                  settingsBufferSize
@@ -1180,7 +1197,7 @@ BERR_Code BDSP_Raaga_P_GetAlgorithmSettings(
 
     BDBG_ASSERT(settingsBufferSize <= uiConfigBufSize);
 
-    BDSP_P_CopyDataFromDram(hHeap,pSettingsBuffer,pConfigBuf,settingsBufferSize);
+    BDSP_MMA_P_CopyDataFromDram(pSettingsBuffer, pConfigBuf, settingsBufferSize);
 
     BDBG_LEAVE( BDSP_Raaga_P_GetAlgorithmSettings );
 
@@ -1188,9 +1205,8 @@ BERR_Code BDSP_Raaga_P_GetAlgorithmSettings(
 }
 
 BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(
-    BMEM_Handle     hHeap,
     BDSP_Algorithm eAlgorithm,
-    void            *pConfigBuf,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory *pConfigBuf,
     uint32_t        uiConfigBufSize,     /* [in] Config Buf Size */
     void           *pSettingsBuffer,
     size_t          settingsBufferSize
@@ -1215,8 +1231,7 @@ BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(
     }
 
     BDBG_ASSERT(settingsBufferSize <= uiConfigBufSize);
-
-    BDSP_P_CopyDataFromDram_isr(hHeap, (void *)pSettingsBuffer, pConfigBuf, settingsBufferSize);
+    BDSP_MMA_P_CopyDataFromDram_isr(pSettingsBuffer, pConfigBuf, settingsBufferSize);
 
     BDBG_LEAVE( BDSP_Raaga_P_SetAlgorithmSettings );
 
@@ -1224,9 +1239,8 @@ BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(
 }
 
 BERR_Code BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams_isr(
-    BMEM_Handle         hHeap,
     BDSP_Algorithm      eAlgorithm,
-    void                *pConfigBuf,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory *pConfigBuf,
     uint32_t            uiConfigBufSize,     /* [in] Config Buf Size */
     const void         *pSettingsBuffer,
     size_t              settingsBufferSize
@@ -1252,8 +1266,7 @@ BERR_Code BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams_isr(
 
     BDBG_ASSERT(settingsBufferSize <= uiConfigBufSize);
 
-    BDSP_P_CopyDataToDram_isr(hHeap, (void *)pSettingsBuffer, pConfigBuf, settingsBufferSize);
-
+    BDSP_MMA_P_CopyDataToDram_isr(pConfigBuf, (void *)pSettingsBuffer, settingsBufferSize);
     BDBG_LEAVE( BDSP_Raaga_P_SetAlgorithmSettings );
 
     return BERR_SUCCESS;
@@ -1274,7 +1287,7 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
     uint32_t ui32chunk1=0,ui32chunk2=0,i = 0;
     int32_t  i32BytesToBeRead=0;
     uint32_t ui32ResponseSize = 0;
-    void     *pvMsgQueueReadAddr=NULL;
+    BDSP_MMA_Memory MsgQueueReadAddr;
     unsigned int uiMsgIndex = 0, uiContMsgs = 0, uiMoreMsgs = 0;
 
     BDBG_ENTER(BDSP_Raaga_P_GetMsg);
@@ -1287,17 +1300,17 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
 
     *puiNumMsgs = 0;
 
-    ui32dramReadAddr = BDSP_Read32_isr(
+    ui32dramReadAddr = BDSP_ReadReg_isr(
                         hMsgQueue->hRegister,
                         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                            (4 * 4 * hMsgQueue->i32FifoId) +
+                            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
                             BDSP_RAAGA_P_FIFO_READ_OFFSET +
                             hMsgQueue->ui32DspOffset);
 
-    ui32dramWriteAddr = BDSP_Read32_isr(
+    ui32dramWriteAddr = BDSP_ReadReg_isr(
                         hMsgQueue->hRegister,
                         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-                            (4 * 4 * hMsgQueue->i32FifoId) +
+                            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
                             BDSP_RAAGA_P_FIFO_WRITE_OFFSET +
                             hMsgQueue->ui32DspOffset);
 
@@ -1408,49 +1421,45 @@ BERR_Code BDSP_Raaga_P_GetAsyncMsg_isr(
     /* Revisit this if we make buffers a non-integral multiple of message size */
     *puiNumMsgs = i32BytesToBeRead/BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES;
 
-    pvMsgQueueReadAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
+    MsgQueueReadAddr = hMsgQueue->Memory;
+    MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr+(ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
 
     for(uiMsgIndex = 0; uiMsgIndex < uiContMsgs; uiMsgIndex++)
     {
         for(i=0; i<(ui32ResponseSize/4); i++)
         {
-            *((uint32_t *)pMsgBuf+(uiMsgIndex * BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i)
-                = BDSP_P_MemRead32_isr(hMsgQueue->hHeap,
-                    (uint8_t * )pvMsgQueueReadAddr+(i*4) +
-                        (uiMsgIndex * BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES));
+            *((uint32_t *)pMsgBuf+(uiMsgIndex * BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+            MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + 4);
         }
 
        ui32dramReadAddr +=  BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES;
 
     /*updating read ptr in the Queue Attribute Structure*/
-    BDSP_Write32_isr(
+    BDSP_WriteReg_isr(
         hMsgQueue->hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-            (4 * 4 * hMsgQueue->i32FifoId) +
+            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + hMsgQueue->ui32DspOffset,
         ui32dramReadAddr
         );
     }
 
-    pvMsgQueueReadAddr = hMsgQueue->pBaseAddr;
-
+    MsgQueueReadAddr = hMsgQueue->Memory;
 
     for(uiMsgIndex = 0; uiMsgIndex < uiMoreMsgs; uiMsgIndex++)
     {
         for(i=0;i<(ui32ResponseSize/4);i++)
         {
-            *((uint32_t *)pMsgBuf+((uiMsgIndex+uiContMsgs) * BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i)
-                =BDSP_P_MemRead32_isr(hMsgQueue->hHeap,(uint8_t *)pvMsgQueueReadAddr+(i*4)+(uiMsgIndex * BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES));
+            *((uint32_t *)pMsgBuf+((uiMsgIndex+uiContMsgs) * BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES/4)+i) = BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
+            MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + 4);
         }
         ui32dramReadAddr = hMsgQueue->ui32BaseAddr +
                             (uiMsgIndex+1)*
                             BDSP_RAAGA_ASYNC_RESPONSE_SIZE_IN_BYTES;
-
-    /* Updating read ptr in the Queue Attribute Structure */
-    BDSP_Write32(
+    BDSP_WriteReg(
         hMsgQueue->hRegister,
         BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR +
-            (4 * 4 * hMsgQueue->i32FifoId) +
+            (BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId) +
             BDSP_RAAGA_P_FIFO_READ_OFFSET + hMsgQueue->ui32DspOffset,
         ui32dramReadAddr
         );
@@ -1475,20 +1484,20 @@ BERR_Code BDSP_Raaga_P_GetVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,/*
     dramaddr_t  ui32maskReadAddr=0;
     dramaddr_t  ui32maskWriteAddr=0;
     int32_t i32BytesToBeRead=0;
-    void *pvMsgQueueReadAddr=NULL;
+    BDSP_MMA_Memory MsgQueueReadAddr;
 
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsgBuf);
 
 
-    ui32dramReadAddr=BDSP_Read32_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + 4 * 4 * hMsgQueue->i32FifoId +
+    ui32dramReadAddr=BDSP_ReadReg_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId +
                     BDSP_RAAGA_P_FIFO_READ_OFFSET + hMsgQueue->ui32DspOffset);
 
-    ui32dramWriteAddr=BDSP_Read32_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + 4 * 4 * hMsgQueue->i32FifoId +
+    ui32dramWriteAddr=BDSP_ReadReg_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId +
                     BDSP_RAAGA_P_FIFO_WRITE_OFFSET + hMsgQueue->ui32DspOffset);
 
-    BDBG_MSG(("ui32dramReadAddr > %x", ui32dramReadAddr));
-    BDBG_MSG(("ui32dramWriteAddr > %x", ui32dramWriteAddr));
+    BDBG_MSG(("ui32dramReadAddr > " BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
+    BDBG_MSG(("ui32dramWriteAddr > " BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
     ui32maskReadAddr=ui32dramReadAddr;
     ui32maskWriteAddr=ui32dramWriteAddr;
 
@@ -1575,12 +1584,11 @@ BERR_Code BDSP_Raaga_P_GetVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,/*
         BDBG_ERR(("The Message Queue is empty.No message is present."));
         goto end;
     }
-
-    pvMsgQueueReadAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
+    MsgQueueReadAddr = hMsgQueue->Memory;
+    MsgQueueReadAddr.pAddr = (void *)((uint8_t *)MsgQueueReadAddr.pAddr + (ui32maskReadAddr - hMsgQueue->ui32BaseAddr ));
 
     /*Reading Message from the message queue into the message buffer*/
-    *pMsgBuf=BDSP_P_MemRead32_isr(hMsgQueue->hHeap,pvMsgQueueReadAddr);
-
+    *pMsgBuf=BDSP_MMA_P_MemRead32_isr(&MsgQueueReadAddr);
     BDBG_MSG(("In BRAP_P_GetMsg_isr *pMsgBuf = 0x%x",*pMsgBuf));
 
     if ((bReadUpdate == true)&&(i32BytesToBeRead!=0))
@@ -1590,10 +1598,10 @@ BERR_Code BDSP_Raaga_P_GetVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,/*
         ui32dramReadAddr=hMsgQueue->ui32BaseAddr;
 
         /*updating read ptr in the Queue Attribute Structure*/
-        BDSP_Write32_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + 4 * 4 * hMsgQueue->i32FifoId +
+        BDSP_WriteReg_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId +
         BDSP_RAAGA_P_FIFO_READ_OFFSET + hMsgQueue->ui32DspOffset, ui32dramReadAddr);
-        BDBG_MSG(("ui32dramReadAddr > %x", ui32dramReadAddr));
-        BDBG_MSG(("ui32dramWriteAddr > %x", ui32dramWriteAddr));
+        BDBG_MSG(("ui32dramReadAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
+        BDBG_MSG(("ui32dramWriteAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
 
         /*updating read ptr in the handle*/
         hMsgQueue->ui32ReadAddr = ui32dramReadAddr;
@@ -1615,15 +1623,15 @@ BERR_Code BDSP_Raaga_P_WriteVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle   hMsgQueue
     dramaddr_t  ui32dramWriteAddr=0;
     dramaddr_t  ui32maskReadAddr=0;
     dramaddr_t  ui32maskWriteAddr=0;
-    void *pvMsgQueueWriteAddr=NULL;
+    BDSP_MMA_Memory MsgQueueWriteAddr;
 
     BDBG_ASSERT(hMsgQueue);
     BDBG_ASSERT(pMsgBuf);
 
-    ui32dramReadAddr=BDSP_Read32_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + 4 * 4 * hMsgQueue->i32FifoId +
+    ui32dramReadAddr=BDSP_ReadReg_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId +
                     BDSP_RAAGA_P_FIFO_READ_OFFSET + hMsgQueue->ui32DspOffset);
 
-    ui32dramWriteAddr=BDSP_Read32_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + 4 * 4 * hMsgQueue->i32FifoId +
+    ui32dramWriteAddr=BDSP_ReadReg_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId +
                     BDSP_RAAGA_P_FIFO_WRITE_OFFSET + hMsgQueue->ui32DspOffset);
 
         ui32maskReadAddr=ui32dramReadAddr;
@@ -1722,13 +1730,17 @@ BERR_Code BDSP_Raaga_P_WriteVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle   hMsgQueue
     BDBG_ASSERT(!(uiBufSize%4));
     BDBG_MSG(("uiBufSize > %d", uiBufSize));
 
-
-    pvMsgQueueWriteAddr = (void *)((uint8_t *)hMsgQueue->pBaseAddr + (ui32maskWriteAddr - hMsgQueue->ui32BaseAddr ));
-
+    MsgQueueWriteAddr = hMsgQueue->Memory;
+    MsgQueueWriteAddr.pAddr = (void *)((uint8_t *)MsgQueueWriteAddr.pAddr + (ui32maskWriteAddr - hMsgQueue->ui32BaseAddr ));
 
     /*Writing into Message queue*/
     BDBG_MSG(("In BRAP_P_WriteMsg_isr *(uint32_t *)pMsgBuf > 0x%x", *((uint32_t *)pMsgBuf)));
-    BDSP_P_MemWrite32_isr(hMsgQueue->hHeap,pvMsgQueueWriteAddr, *((uint32_t *)pMsgBuf));
+    err = BDSP_MMA_P_MemWrite32_isr(&MsgQueueWriteAddr, *((uint32_t *)pMsgBuf));
+	if(err != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_WriteVideoMsg_isr: Error in updating the Data in the MSG Queue"));
+		goto end;
+	}
     ui32dramWriteAddr=ui32dramWriteAddr+4;
 
     /* Taking wrap-around into consideration*/
@@ -1736,10 +1748,10 @@ BERR_Code BDSP_Raaga_P_WriteVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle   hMsgQueue
     ui32dramWriteAddr=hMsgQueue->ui32BaseAddr;
 
     /*updating write ptr in the Queue Attribute Structure*/
-    BDSP_Write32_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + 4 * 4 * hMsgQueue->i32FifoId +
+    BDSP_WriteReg_isr(hMsgQueue->hRegister,BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + BDSP_RAAGA_FW_CFG_ADDR_SIZE * 4 * hMsgQueue->i32FifoId +
     BDSP_RAAGA_P_FIFO_WRITE_OFFSET + hMsgQueue->ui32DspOffset, ui32dramWriteAddr);
-    BDBG_MSG(("ui32dramReadAddr > %x", ui32dramReadAddr));
-    BDBG_MSG(("ui32dramWriteAddr > %x", ui32dramWriteAddr));
+    BDBG_MSG(("ui32dramReadAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramReadAddr)));
+    BDBG_MSG(("ui32dramWriteAddr >" BDSP_MSG_FMT, BDSP_MSG_ARG(ui32dramWriteAddr)));
 
     /*updating write ptr in the handle*/
     hMsgQueue->ui32WriteAddr=ui32dramWriteAddr;

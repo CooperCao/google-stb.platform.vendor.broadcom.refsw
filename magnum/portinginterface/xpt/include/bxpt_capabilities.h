@@ -103,11 +103,15 @@ extern "C" {
 #define BXPT_HAS_PB_PACKETSUB               1
 #if (BCHP_CHIP == 7278)
    #define BXPT_PSUB_40BIT_SUPPORT           1
+   #define BXPT_PACKETSUB_REQUIRES_FORCED_INSERTION 1
 #endif
 
 /* mpod */
 #define BXPT_HAS_MPOD_SCARD_SUPPORT         1
 #define BXPT_HAS_MPOD_RSBUF                 1
+#if (BCHP_CHIP == 7278)
+   #define BXPT_P_TSIO_MPOD_USE_SHARED_RSBUF  1
+#endif
 
 /* power management */
 #define BXPT_HAS_WAKEUP_PKT_SUPPORT         1
@@ -182,11 +186,6 @@ In the math below, the arrays are 0-based.
 #define BXPT_HAS_MEMDMA                      1
 #define BXPT_NUM_MEMDMA_PID_CHANNELS         (BXPT_P_PID_TABLE_SIZE - BXPT_NUM_PID_CHANNELS)
 #define BXPT_P_MEMDMA_PID_CHANNEL_START      BXPT_NUM_PID_CHANNELS
-#if (BCHP_CHIP == 7278)
-    #define BXPT_DMA_USE_HOST_AGGREGATOR            1
-    #define BXPT_DMA_HAS_WDMA_CHX                    1
-    #define BXPT_DMA_HAS_WDMA_SINGLE_CHX_HEADER     1        /* Channel-based, but RDB now has channel defines included in a single header. */
-#endif
 
 #if ( (BCHP_CHIP==7445 && BCHP_VER<BCHP_VER_D0) || (BCHP_CHIP==7439 && BCHP_VER<BCHP_VER_B0) ||\
         (BCHP_CHIP==7145 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7366 && BCHP_VER<BCHP_VER_B0) || \
@@ -285,6 +284,11 @@ In the math below, the arrays are 0-based.
     /* 7278 does NOT have an transport client buffers. */
 #else
     #define BXPT_HAS_XCBUF_HW                1
+#endif
+
+/* XPT 4.4 LPDDR RTS improvements. See SW_GUIDE_TO_XPTv4.4.doc from the hw team. */
+#if (BCHP_CHIP == 7278)
+   #define BXPT_P_HAS_224B_SLOT_SIZE      1
 #endif
 
 /* TODO: consider making these private, but shared for both 40nm and 28nm */

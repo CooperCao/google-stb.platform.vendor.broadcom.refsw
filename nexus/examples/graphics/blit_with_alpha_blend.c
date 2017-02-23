@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
  *****************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -53,6 +50,9 @@
 #include "bstd.h"
 #include "bkni.h"
 #include <stdlib.h>
+
+#undef min
+#define min(A,B) ((A)<(B)?(A):(B))
 
 /* this is a blit example, so make the fill terse */
 void simple_fill(NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface, uint32_t color)
@@ -73,6 +73,7 @@ int main(int argc, char **argv)
     NEXUS_SurfaceCreateSettings createSurfaceSettings;
     NEXUS_DisplayHandle display;
     NEXUS_DisplaySettings displaySettings;
+    NEXUS_DisplayCapabilities displayCap;
     NEXUS_GraphicsSettings graphicsSettings;
     NEXUS_Graphics2DHandle gfx;
     NEXUS_Graphics2DBlitSettings blitSettings;
@@ -97,6 +98,7 @@ int main(int argc, char **argv)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetDisplayCapabilities(&displayCap);
 
     NEXUS_Display_GetDefaultSettings(&displaySettings);
     displaySettings.format = NEXUS_VideoFormat_e720p;
@@ -116,7 +118,7 @@ int main(int argc, char **argv)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -124,10 +126,10 @@ int main(int argc, char **argv)
 
     NEXUS_Surface_GetDefaultCreateSettings(&createSurfaceSettings);
     createSurfaceSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-    createSurfaceSettings.width = info.width;
-    createSurfaceSettings.height = info.height;
+    createSurfaceSettings.width = min(displayCap.display[0].graphics.width, info.width);
+    createSurfaceSettings.height = min(displayCap.display[0].graphics.height, info.height);
     createSurfaceSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
-    framebuffer = NEXUS_Surface_Create(&createSurfaceSettings);
+    framebuffer = NEXUS_Display_CreateFramebuffer(display, &createSurfaceSettings);
 
     gfx = NEXUS_Graphics2D_Open(0, NULL);
     /* checkpoint isn't needed in this app because it's only blits, but this code is included as an example of polling checkpoint */
@@ -140,6 +142,8 @@ int main(int argc, char **argv)
 
     NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
     graphicsSettings.enabled = true;
+    graphicsSettings.clip.width = createSurfaceSettings.width;
+    graphicsSettings.clip.height = createSurfaceSettings.height;
     NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
     NEXUS_Display_SetGraphicsFramebuffer(display, framebuffer);
 

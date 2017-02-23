@@ -258,6 +258,14 @@ static NEXUS_Error NEXUS_HdmiOutputModule_P_LoadTA(
     void *image = NULL;
     NEXUS_Error rc = NEXUS_SUCCESS;
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+    BSTD_UNUSED(holder);
+    BSTD_UNUSED(img_interface);
+    BSTD_UNUSED(img_context);
+
+    return NEXUS_SUCCESS;
+#endif
+
     /* Prepare memory to load binfile */
     {
         uint32_t *size = NULL;

@@ -2340,7 +2340,7 @@ b_mp4_player_get_video_track(bmp4_player_t player)
     return false;
 }
 
-int
+static int
 b_mp4_player_stream_sample_next(b_mp4_track *track, bmp4_sample *sample)
 {
     size_t max_sample_count;

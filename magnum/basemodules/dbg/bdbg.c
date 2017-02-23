@@ -188,7 +188,7 @@ BDBG_P_StrCmp(const char *str1, const char *str2)
    }
 }
 
-char * BDBG_P_StrnCpy(char *dest, const char *src, size_t num)
+static char * BDBG_P_StrnCpy(char *dest, const char *src, size_t num)
 {
    char *p = dest;
 
@@ -201,7 +201,7 @@ char * BDBG_P_StrnCpy(char *dest, const char *src, size_t num)
    return p;
 }
 
-char * BDBG_P_StrChrNul(const char *str, int c)
+static char * BDBG_P_StrChrNul(const char *str, int c)
 {
    char *p = (char *) str;
    while ((*p != '\0') && (*p != c)) p++;

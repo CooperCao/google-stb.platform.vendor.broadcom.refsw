@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,27 +70,27 @@
 /***************************************************************************
  *AUD_FMM_IOP_OUT_MS_STRM_CFG_0 - MS_OUT Streams Config Control
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_ENABLE_STATUS 0x20cb4000 /* [RO] Enable Status Register */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_ENABLE_SET 0x20cb4004 /* [WO] Enable Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_ENABLE_CLEAR 0x20cb4008 /* [WO] Enable Clear Register */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG0 0x20cb400c /* [RW] FCI configuration for Stream0 - SPDIF */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG1 0x20cb4010 /* [RW] FCI configuration for Stream0 - MAI */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG2 0x20cb4014 /* [RW] FCI configuration for Stream0 - MAI_Multi_0 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG3 0x20cb4018 /* [RW] FCI configuration for Stream0 - MAI_MUlti_1 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG4 0x20cb401c /* [RW] FCI configuration  for Stream0 - MAI_MUlti_2 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG5 0x20cb4020 /* [RW] FCI configuration  for Stream0 - MAI_MUlti_3 */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG6 0x20cb4024 /* [RW] FCI configuration  for Stream0 - MAI_HBR */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_STREAM_ROUTE 0x20cb402c /* [RW] Stream routing */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_SPDIF_CFG_0 0x20cb4060 /* [RW] SPDIF 0 formatter configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_MULTI_GROUPING 0x20cb4068 /* [RW] Multi-channel MAI group */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_CFG 0x20cb4090 /* [RW] MAI formatter configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_FORMAT 0x20cb4094 /* [RW] MAI format */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_CROSSBAR 0x20cb4098 /* [RW] MAI crossbar control */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MCLK_CFG_SPDIF0 0x20cb4110 /* [RW] SPDIF 0 MCLK configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MCLK_CFG_MAI_MULTI 0x20cb4130 /* [RW] MAIM MCLK configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MCLK_CFG_FS0 0x20cb4160 /* [RW] Fs_0  MCLK configuration */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_SPDIF_MAI_OUT_MUX_SEL 0x20cb4170 /* [RW] OUTPUT_Mux_select for SPDIF/MAI */
-#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_DIAG_CFG 0x20cb41fc /* [RW] Diagnostic output configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_ENABLE_STATUS 0x20cb4000 /* [RO][32] Enable Status Register */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_ENABLE_SET 0x20cb4004 /* [WO][32] Enable Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_ENABLE_CLEAR 0x20cb4008 /* [WO][32] Enable Clear Register */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG0 0x20cb400c /* [RW][32] FCI configuration for Stream0 - SPDIF */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG1 0x20cb4010 /* [RW][32] FCI configuration for Stream0 - MAI */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG2 0x20cb4014 /* [RW][32] FCI configuration for Stream0 - MAI_Multi_0 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG3 0x20cb4018 /* [RW][32] FCI configuration for Stream0 - MAI_MUlti_1 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG4 0x20cb401c /* [RW][32] FCI configuration  for Stream0 - MAI_MUlti_2 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG5 0x20cb4020 /* [RW][32] FCI configuration  for Stream0 - MAI_MUlti_3 */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_FCI_CFG6 0x20cb4024 /* [RW][32] FCI configuration  for Stream0 - MAI_HBR */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_STREAM_ROUTE 0x20cb402c /* [RW][32] Stream routing */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_SPDIF_CFG_0 0x20cb4060 /* [RW][32] SPDIF 0 formatter configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_MULTI_GROUPING 0x20cb4068 /* [RW][32] Multi-channel MAI group */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_CFG 0x20cb4090 /* [RW][32] MAI formatter configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_FORMAT 0x20cb4094 /* [RW][32] MAI format */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MAI_CROSSBAR 0x20cb4098 /* [RW][32] MAI crossbar control */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MCLK_CFG_SPDIF0 0x20cb4110 /* [RW][32] SPDIF 0 MCLK configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MCLK_CFG_MAI_MULTI 0x20cb4130 /* [RW][32] MAIM MCLK configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_MCLK_CFG_FS0 0x20cb4160 /* [RW][32] Fs_0  MCLK configuration */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_SPDIF_MAI_OUT_MUX_SEL 0x20cb4170 /* [RW][32] OUTPUT_Mux_select for SPDIF/MAI */
+#define BCHP_AUD_FMM_IOP_OUT_MS_STRM_CFG_0_DIAG_CFG 0x20cb41fc /* [RW][32] Diagnostic output configuration */
 
 /***************************************************************************
  *ENABLE_STATUS - Enable Status Register

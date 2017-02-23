@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,7 +40,7 @@
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if NEXUS_HAS_AUDIO && (NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA)
+#if NEXUS_HAS_AUDIO
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
 #include "nexus_display.h"
@@ -112,12 +112,18 @@ int main(void)
     NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
     #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_Error rc;
     #endif
     unsigned i;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioSecondSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
+    NEXUS_AudioOutputHandle audioI2sHandle = NULL;
+    NEXUS_AudioOutputHandle audioSecondI2sHandle = NULL;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
@@ -127,6 +133,34 @@ int main(void)
     platformSettings.audioModuleSettings.numCompressed4xBuffers = 4;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders < 4 || audioCapabilities.numMixers == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 1) {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+        audioSecondSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[1]);
+    }
+    else if (audioCapabilities.numOutputs.spdif > 0) {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    if (audioCapabilities.numOutputs.i2s > 1) {
+        audioI2sHandle = NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]);
+        audioSecondI2sHandle = NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[1]);
+    }
+    else if (audioCapabilities.numOutputs.i2s > 1) {
+        audioI2sHandle = NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]);
+    }
+#if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0) {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+#endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -175,26 +209,26 @@ int main(void)
     }
 
     /* 4 x Compressed outputs */
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(compDec[0], NEXUS_AudioDecoderConnectorType_eCompressed));
-    #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS > 1
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[1]),
-        NEXUS_AudioDecoder_GetConnector(compDec[1], NEXUS_AudioDecoderConnectorType_eCompressed));
-    #endif
-    #if NEXUS_NUM_I2S_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[0]),
-        NEXUS_AudioDecoder_GetConnector(compDec[2], NEXUS_AudioDecoderConnectorType_eCompressed));
-    #endif
-    #if NEXUS_NUM_I2S_OUTPUTS > 1
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_I2sOutput_GetConnector(platformConfig.outputs.i2s[1]),
-        NEXUS_AudioDecoder_GetConnector(compDec[3], NEXUS_AudioDecoderConnectorType_eCompressed));
-    #endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioDecoder_GetConnector(compDec[0], NEXUS_AudioDecoderConnectorType_eCompressed));
+    }
+    if (audioSecondSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSecondSpdifHandle,
+            NEXUS_AudioDecoder_GetConnector(compDec[1], NEXUS_AudioDecoderConnectorType_eCompressed));
+    }
+    if (audioI2sHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioI2sHandle,
+            NEXUS_AudioDecoder_GetConnector(compDec[2], NEXUS_AudioDecoderConnectorType_eCompressed));
+    }
+    if (audioSecondI2sHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSecondI2sHandle,
+            NEXUS_AudioDecoder_GetConnector(compDec[3], NEXUS_AudioDecoderConnectorType_eCompressed));
+    }
 
     /* 4 x PCM outputs -> FMM Mixer -> HDMI */
     for (i = 0; i < NUM_AUDIO_DECODES; i++)
@@ -235,9 +269,11 @@ int main(void)
     }
 
     #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioMixer_GetConnector(hdmiMixer));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioMixer_GetConnector(hdmiMixer));
+    }
     #endif
 
     /* Bring up video display and outputs */
@@ -339,15 +375,15 @@ int main(void)
         NEXUS_AudioDecoder_Stop(audioDecoder[i]);
     }
     NEXUS_Playback_Destroy(playback);
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
+
     #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioHdmiHandle);
+    }
     #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+    }
     for (i = 0; i < NUM_AUDIO_DECODES; i++)
     {
         NEXUS_AudioDecoder_Close(compressedDecoder[i]);

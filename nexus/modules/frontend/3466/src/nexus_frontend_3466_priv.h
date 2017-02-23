@@ -129,7 +129,6 @@ typedef struct NEXUS_3466Device
         NEXUS_RfDaisyChain rfDaisyChain;
         bool enableRfLoopThrough;
         BODS_Handle ods;
-        NEXUS_FrontendDvbt2Status t2PartialStatus;
         BODS_SelectiveStatus odsStatus;
         unsigned maxDvbtChannels;
     } terrestrial;

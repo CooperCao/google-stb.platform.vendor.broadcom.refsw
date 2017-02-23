@@ -93,6 +93,10 @@ defines
 #define HDR_TAG_HOST            "HOST"
 #define HDR_ACTION_VALUE        "\"http://schemas.microsoft.com/DRM/2007/03/protocols/AcquireLicense\""
 #define HDR_TAG_LOCATION_VALUE  "Location"
+#define SECURE_TIME_AZURE_HOST "playreadysecuretime.azurewebsites.net"
+#define SECURE_TIME_SERVER_HOST "securetime.playready.microsoft.com"
+#define SECURE_TIME_REDIRECT    "drm_clock_acquire_redirect: "
+#define SECURE_TIME_CONTENT_TYPE "application/xml"
 
 /* zero-pad string macros
 */
@@ -596,8 +600,8 @@ PRDY_HTTP_Client_Connect(PRDY_HTTP_Engine* http, const char *host, uint32_t port
     return (0);
 }
 
-/* client function to send a request. specify method to be either 'get',
-   'post' or 'put', and urlstr to specify the url
+/* client function to send an http 1.0 request. specify method to be either get,
+   'post' or 'put', and urlstr to specify the url.
 */
 int32_t
 PRDY_HTTP_Client_SendRequest(PRDY_HTTP_Engine* http, const char *method, char *urlstr)
@@ -615,6 +619,7 @@ PRDY_HTTP_Client_SendRequest(PRDY_HTTP_Engine* http, const char *method, char *u
     } else keepalive = HTTP_KEEP_ALIVE_ON;
 
     query = url._query; if (!query || !*query) { query = "/"; }
+
     len = snprintf(buf, HTTP_MAX_HDR_LINE, "%s %s HTTP/1.0\r\n", method, query);
 
     if (PRDY_HTTP_Engine_InternalWrite(http, buf, len) == -1)
@@ -625,6 +630,47 @@ PRDY_HTTP_Client_SendRequest(PRDY_HTTP_Engine* http, const char *method, char *u
     {
         PRDY_HTTP_Engine_SetHeaders(http, "Connection", "Keep-Alive");
     }
+
+    http->_wroteHeaders = 0; http->_readHeaders = 0;
+
+    return 0; // (bdrm_http_status_ok);
+}
+
+/* client function to send an http 1.1 request. specify method to be either get,
+   'post' or 'put', urlstr to specify the url, and optional host URL string.
+*/
+int32_t
+PRDY_HTTP_Client_SendRequestV1_1(PRDY_HTTP_Engine* http, const char *method, char *urlstr, const char* host_str)
+{
+    bdrm_url url;
+    const char *query;
+    char buf[HTTP_MAX_HDR_LINE];
+    uint32_t len = 0;
+
+    burl_set(&url, urlstr);
+    if (http->_currentFd == -1) {
+        if (!url._host || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
+            return -1; //(bdrm_http_status_failed_connect);
+    } else {
+        BDBG_ERR(("%s: ERROR: unexpected status: _currentFD is invalid", __FUNCTION__));
+        return -1;
+    }
+
+    query = url._query; if (!query || !*query) { query = "/"; }
+
+    len = snprintf(buf, HTTP_MAX_HDR_LINE, "%s %s HTTP/1.1\r\n", method, query);
+    len += snprintf(&buf[len], (HTTP_MAX_HDR_LINE - len), "Host: %s\r\n", host_str);
+
+    if (PRDY_HTTP_Engine_InternalWrite(http, buf, len) == -1)
+        return -1; // (bdrm_http_status_failed_getpost);
+
+    PRDY_HTTP_Engine_HeadersCleanup(http);
+
+    /* For HTTP/1.1 need to explicitly close the connection or else
+     * we'll end up waiting for the server to timeout before we can
+     * process the response.
+     */
+    PRDY_HTTP_Engine_SetHeaders(http, "Connection", "close");
 
     http->_wroteHeaders = 0; http->_readHeaders = 0;
 
@@ -704,7 +750,240 @@ PRDY_HTTP_GetPetition(PRDY_HTTP_Engine* http, char *urlstr)
     return PRDY_HTTP_Client_ReadResponseHdr(http);
 }
 
-int32_t PRDY_HTTP_Client_GetPetition (
+int32_t
+PRDY_HTTP_GetPetitionV1_1(PRDY_HTTP_Engine* http, char *urlstr, const char *hoststr)
+{
+    bdrm_url url;
+    const char *query;
+    char buf[HTTP_MAX_HDR_LINE];
+    uint32_t len = 0;
+
+    burl_set(&url, urlstr);
+    if (http->_currentFd == -1) {
+        if (!url._host || PRDY_HTTP_Client_Connect(http, url._host, url._port) == -1)
+            return -1;
+    }
+
+    query = url._url;
+    if (!query || !*query) { query = "/";  }
+    /*else { query += 2; } */
+    printf("\t\t query: %s\n",query);
+    len = snprintf(buf, HTTP_MAX_HDR_LINE, "%s %s HTTP/1.1\r\n", "GET", query);
+    if (hoststr)
+    {
+        if (strlen(hoststr) > HTTP_MAX_HDR_LINE - len - 1)
+        {
+            BDBG_ERR(("%s:%d - HTTP 1.1 GET petition too long", __FUNCTION__,__LINE__));
+        }
+        len += snprintf(&buf[len], (HTTP_MAX_HDR_LINE - len), "Host: %s", hoststr);
+    }
+
+    if (PRDY_HTTP_Engine_InternalWrite(http, buf, len) == -1)
+    {
+        BDBG_ERR(("%s:%d - Couldn't write headers internal", __FUNCTION__,__LINE__));
+        return -1;
+    }
+
+    PRDY_HTTP_Engine_HeadersCleanup(http);
+    PRDY_HTTP_Engine_SetHeaders(http, "User-Agent", "Client-User-Agent");
+    /* For HTTP/1.1 need to explicitly close the connection or else
+     * we'll end up waiting for the server to timeout before we can
+     * process the response.
+     */
+    PRDY_HTTP_Engine_SetHeaders(http, "Connection", "close");
+    if (PRDY_HTTP_Engine_WriteHeaders(http) == -1) {
+            BDBG_ERR(("Couldn't write headers, errno %d", errno));
+            return (-1);
+    }
+
+    PRDY_HTTP_Engine_Flush(http);
+
+    return PRDY_HTTP_Client_ReadResponseHdr(http);
+}
+
+/*
+*/
+int32_t
+PRDY_HTTP_Client_GetForwardLinkUrl (
+    char* forward_link,             /* [in] forward link */
+    uint32_t *petition_response,    /* [out] either 301 or 302 */
+    char** forward_link_url         /* [out] the  forward link url */
+    )
+{
+    PRDY_HTTP_Engine http;
+    int32_t post_ret;
+
+    BDBG_ASSERT(forward_link != NULL);
+    BDBG_ASSERT(petition_response != NULL);
+    BDBG_ASSERT(forward_link_url != NULL);
+
+    if (*forward_link_url == NULL) return -1;
+
+    /* initialize http engine and post */
+    PRDY_HTTP_Engine_Init(&http);
+    /* printf("%s - http engine init success. \n",__FUNCTION__)*/
+    if ((post_ret = PRDY_HTTP_GetPetitionV1_1(&http, forward_link, NULL)) != 0) {
+        BDBG_WRN(("PRDY_HTTP_license_get failed on POST"));
+        return (post_ret);
+    }
+
+    *petition_response =  http._responseCode;
+    /* printf("%s - at line %d petition response code: %u \n", __FUNCTION__, __LINE__, *petition_response); */
+
+    if((*petition_response == 301) || (*petition_response == 302))
+    {
+        const char* clstr;
+
+        /*printf("%s:%d - the response from the petition server is redirect\n",__FUNCTION__,__LINE__);*/
+        clstr = PRDY_HTTP_Engine_GetHeader(&http,HDR_TAG_LOCATION_VALUE );
+        strcpy(*forward_link_url,clstr);
+    }
+    else
+    {
+        PRDY_HTTP_Engine_Close(&http);
+        PRDY_HTTP_Engine_HeadersCleanup(&http);
+        BDBG_ERR(("%s:%d - Response from the petition is unknown - %d\n",__FUNCTION__,__LINE__,*petition_response));
+        return -1;
+    }
+
+    PRDY_HTTP_Engine_Close(&http);
+    PRDY_HTTP_Engine_HeadersCleanup(&http);
+    http._wroteHeaders = 0; http._readHeaders = 0;
+    return 0; /*(bdrm_http_status_ok); */
+}
+
+int32_t PRDY_HTTP_Client_GetSecureTimeUrl (
+    char* forward_link_url,             /* [in] forward link */
+    uint32_t *petition_response,        /* [out] either 200, 301 or 302 */
+    char** secure_time_url              /* [out] the secure time url */
+    )
+{
+    PRDY_HTTP_Engine http;
+    int32_t post_ret;
+
+    BDBG_ASSERT(forward_link_url != NULL);
+    BDBG_ASSERT(petition_response != NULL);
+    BDBG_ASSERT(secure_time_url != NULL);
+
+    if (*secure_time_url == NULL) return -1;
+
+    /* initialize http engine and post */
+    PRDY_HTTP_Engine_Init(&http);
+    /* printf("%s - http engine init success. \n",__FUNCTION__)*/
+    if ((post_ret = PRDY_HTTP_GetPetitionV1_1(&http, forward_link_url, SECURE_TIME_AZURE_HOST)) != 0) {
+        BDBG_WRN(("PRDY_HTTP_license_get failed on POST"));
+        return (post_ret);
+    }
+
+    *petition_response =  http._responseCode;
+    /* printf("%s - at line %d petition response code: %u \n", __FUNCTION__, __LINE__, *petition_response); */
+
+    if((*petition_response == 301) || (*petition_response == 302))
+    {
+        const char* clstr;
+
+        /* printf("%s:%d - the response from the petition server is redirect\n",__FUNCTION__,__LINE__); */
+        clstr = PRDY_HTTP_Engine_GetHeader(&http, HDR_TAG_LOCATION_VALUE);
+        strcpy(*secure_time_url,clstr);
+    }
+    else if( *petition_response == 200)
+    {
+        char resp[HTTP_XMLRPC_BUFSIZE] = {0};
+        int32_t len;
+        char *pch = NULL;
+
+        pch = PRDY_HTTP_Engine_GetHeader(&http, HDR_TAG_CONTENT_LENGTH);
+        len = (pch) ? atoi(pch) : (HTTP_XMLRPC_BUFSIZE);
+
+        /* printf("%s - at line %d read body of length: %u \n", __FUNCTION__, __LINE__, len); */
+        /* look for a time Challenge URL */
+        len = PRDY_HTTP_Engine_Read(&http, (char *)resp, len);
+
+        if( len <= 0 )
+        {
+            BDBG_ERR(("%s:%d - The response from the petition is empty", __FUNCTION__,__LINE__));
+            return -1;
+        }
+
+        pch = strstr(resp, "http");
+        strcpy(*secure_time_url, pch);
+        /* printf("%s - at line %d secure time URL: %s \n", __FUNCTION__, __LINE__, *secure_time_url); */
+    }
+    else
+    {
+        PRDY_HTTP_Engine_Close(&http);
+        PRDY_HTTP_Engine_HeadersCleanup(&http);
+        BDBG_ERR(("%s:%d - Response from the petition is unknown - %d\n",__FUNCTION__,__LINE__,*petition_response));
+        return -1;
+    }
+
+    PRDY_HTTP_Engine_Close(&http);
+    PRDY_HTTP_Engine_HeadersCleanup(&http);
+    http._wroteHeaders = 0; http._readHeaders = 0;
+    return 0; /*(bdrm_http_status_ok); */
+}
+
+int32_t
+PRDY_HTTP_Client_SecureTimeChallengePost(char* url, char* chall, uint8_t non_quiet,
+                                          uint32_t app_sec, unsigned char** resp,
+                                          uint32_t *offset, uint32_t* out_resp_len
+                                          )
+{
+    PRDY_HTTP_Engine http;
+    int32_t post_ret;
+
+    int32_t len = 0;
+    int32_t resp_len = HTTP_XMLRPC_BUFSIZE;
+
+    BSTD_UNUSED(non_quiet);
+    BSTD_UNUSED(app_sec);
+    BDBG_ASSERT(resp != NULL); BDBG_ASSERT(out_resp_len != NULL);
+
+    if (*resp == NULL) return -1; //(bdrm_http_status_failed_internal);
+
+    /* append drm specific tokens */
+    len += sprintf((char *)*resp + len, "%s", chall);
+
+    /* initialize http engine and post */
+    PRDY_HTTP_Engine_Init(&http);
+    /* printf("%s - http engine init success. \n",__FUNCTION__);*/
+    /* Optimization Note: should read secure time server host info
+     * dynamically from the GetSecureTimeUrl operation.
+     */
+    if ((post_ret = PRDY_HTTP_Client_PostV1_1(&http, url, SECURE_TIME_SERVER_HOST)) != 0) {
+        BDBG_ERR(("%s:%d - failed on POST request",__FUNCTION__,__LINE__));
+        return (post_ret);
+    }
+
+    /* set headers, read response */
+    PRDY_HTTP_Engine_SetHeaders(&http, HDR_TAG_CONTENT_TYPE, SECURE_TIME_CONTENT_TYPE);
+    PRDY_HTTP_Engine_SetHeader(&http,  HDR_TAG_CONTENT_LENGTH, len);
+
+    PRDY_HTTP_Engine_Write(&http, (const char *)*resp, len);
+    PRDY_HTTP_Engine_Flush(&http);
+    if (PRDY_HTTP_Client_ReadResponseHdr(&http)) {
+        PRDY_HTTP_Engine_Close(&http);
+        PRDY_HTTP_Engine_HeadersCleanup(&http);
+        BDBG_WRN(("failed on readResponseHeader"));
+        return -1; //(bdrm_http_status_failed_response_read);
+    }
+
+    /* look for a license */
+    bzero(*resp, resp_len); len = PRDY_HTTP_Engine_Read(&http, (char *)*resp, resp_len);
+    /* printf("%s - get the len of the response message %d\n",__FUNCTION__,resp_len); */
+
+    *out_resp_len = len;
+    *offset = 0;
+
+    PRDY_HTTP_Engine_Close(&http);
+    PRDY_HTTP_Engine_HeadersCleanup(&http);
+    http._wroteHeaders = 0; http._readHeaders = 0;
+
+    return 0; //(bdrm_http_status_ok);
+}
+
+int32_t
+PRDY_HTTP_Client_GetPetition (
     char* petition_url,
     uint32_t *petition_response,
     char** time_chall_url
@@ -732,54 +1011,57 @@ int32_t PRDY_HTTP_Client_GetPetition (
         return (post_ret);
     }
 
-   *petition_response =  http._responseCode;
+    *petition_response =  http._responseCode;
 
-   if((*petition_response == 301) || (*petition_response == 302))
-   {
-     const char* clstr;
+    if((*petition_response == 301) || (*petition_response == 302))
+    {
+        const char* clstr;
 
-     /*printf("%s:%d - the response from the petition server is redirect\n",__FUNCTION__,__LINE__);*/
+        /*printf("%s:%d - the response from the petition server is redirect\n",__FUNCTION__,__LINE__);*/
 
-     clstr = PRDY_HTTP_Engine_GetHeader(&http,HDR_TAG_LOCATION_VALUE );
+        clstr = PRDY_HTTP_Engine_GetHeader(&http,HDR_TAG_LOCATION_VALUE );
 
-     strcpy(*time_chall_url,clstr);
-   }
-   else if( *petition_response == 200)
-   {
-       char resp[HTTP_XMLRPC_BUFSIZE] = {0};
-       int32_t len;
-       char *pch = NULL;
+        strcpy(*time_chall_url,clstr);
+    }
+    else if( *petition_response == 200)
+    {
+        char resp[HTTP_XMLRPC_BUFSIZE] = {0};
+        int32_t len;
+        char *pch = NULL;
 
-       /* look for a time Challenge URL */
-       bzero(resp, HTTP_XMLRPC_BUFSIZE);
-       len = PRDY_HTTP_Engine_Read(&http, (char *)resp, HTTP_XMLRPC_BUFSIZE);
+        /* look for a time Challenge URL */
+        bzero(resp, HTTP_XMLRPC_BUFSIZE);
+        len = PRDY_HTTP_Engine_Read(&http, (char *)resp, HTTP_XMLRPC_BUFSIZE);
 
-       if( len <= 0 )
-       {
-           BDBG_ERR(("%s:%d - The response from the petition is empty", __FUNCTION__,__LINE__));
-           return -1;
-       }
+        if( len <= 0 )
+        {
+            BDBG_ERR(("%s:%d - The response from the petition is empty", __FUNCTION__,__LINE__));
+            return -1;
+        }
 
-       pch = strstr(resp,"http");
-       strcpy( *time_chall_url,pch);
+        pch = strstr(resp,"http");
+        strcpy( *time_chall_url,pch);
 
-   }
-   else
-   {
-     BDBG_ERR(("%s:%d - Response from the petition is unknown - %d\n",__FUNCTION__,__LINE__,*petition_response));
-     return -1;
-   }
+    }
+    else
+    {
+        PRDY_HTTP_Engine_Close(&http);
+        PRDY_HTTP_Engine_HeadersCleanup(&http);
+        BDBG_ERR(("%s:%d - Response from the petition is unknown - %d\n",__FUNCTION__,__LINE__,*petition_response));
+        return -1;
+    }
 
-   PRDY_HTTP_Engine_HeadersCleanup(&http);
-   http._wroteHeaders = 0; http._readHeaders = 0;
-   return 0; //(bdrm_http_status_ok);
+    PRDY_HTTP_Engine_Close(&http);
+    PRDY_HTTP_Engine_HeadersCleanup(&http);
+    http._wroteHeaders = 0; http._readHeaders = 0;
+    return 0;
 }
 
 int32_t
-PRDY_HTTP_Client_TimeChallengePost  (char* url, char* chall, uint8_t non_quiet,
-                               uint32_t app_sec, unsigned char** resp,
-                               uint32_t *offset, uint32_t* out_resp_len
-                               )
+PRDY_HTTP_Client_SecureClockChallengePost(char* url, char* chall, uint8_t non_quiet,
+                                          uint32_t app_sec, unsigned char** resp,
+                                          uint32_t *offset, uint32_t* out_resp_len
+                                          )
 {
     PRDY_HTTP_Engine http;
     int32_t post_ret;
@@ -801,7 +1083,7 @@ PRDY_HTTP_Client_TimeChallengePost  (char* url, char* chall, uint8_t non_quiet,
     len += sprintf(buf, DRM_POST_PREFIX, app_sec, non_quiet);
     #endif
     len += sprintf((char *)*resp + len, "%s", chall);
-    /* printf("%s - %d get the len of the challenge %d\n",__FUNCTION__,__LINE__,len);*/
+    /* printf("%s - %d get the len of the challenge %d\n",__FUNCTION__,__LINE__,len); */
 
     /* initialize http engine and post */
     PRDY_HTTP_Engine_Init(&http);
@@ -814,6 +1096,7 @@ PRDY_HTTP_Client_TimeChallengePost  (char* url, char* chall, uint8_t non_quiet,
     /* set headers, read response */
     PRDY_HTTP_Engine_SetHeaders(&http, "Accept", "*/*");
     PRDY_HTTP_Engine_SetHeaders(&http, HDR_TAG_CONTENT_TYPE, HDR_VALUE_URLENCODED_CT);
+    PRDY_HTTP_Engine_SetHeaders(&http, HDR_TAG_CONTENT_TYPE, SECURE_TIME_CONTENT_TYPE);
     PRDY_HTTP_Engine_SetHeader(&http,  HDR_TAG_CONTENT_LENGTH, len);
     PRDY_HTTP_Engine_SetHeaders(&http, "User-Agent", "Client-User-Agent");
     PRDY_HTTP_Engine_SetHeaders(&http, "Proxy-Connection", "Keep-Alive");
@@ -822,6 +1105,8 @@ PRDY_HTTP_Client_TimeChallengePost  (char* url, char* chall, uint8_t non_quiet,
     PRDY_HTTP_Engine_Write(&http, (const char *)*resp, len);
     PRDY_HTTP_Engine_Flush(&http);
     if (PRDY_HTTP_Client_ReadResponseHdr(&http)) {
+        PRDY_HTTP_Engine_Close(&http);
+        PRDY_HTTP_Engine_HeadersCleanup(&http);
         BDBG_WRN(("failed on readResponseHeader"));
         return -1; //(bdrm_http_status_failed_response_read);
     }
@@ -831,7 +1116,7 @@ PRDY_HTTP_Client_TimeChallengePost  (char* url, char* chall, uint8_t non_quiet,
 
     /* look for a license */
     bzero(*resp, resp_len); len = PRDY_HTTP_Engine_Read(&http, (char *)*resp, resp_len);
-    /* printf("%s - get the len of the response message %d\n",__FUNCTION__,resp_len); */
+
     #if 0
     BDBG_MSG(("HTTP :: resp_len <%d>, buf<%s>", resp_len, buf));
     #endif
@@ -839,13 +1124,14 @@ PRDY_HTTP_Client_TimeChallengePost  (char* url, char* chall, uint8_t non_quiet,
     *out_resp_len = len;
     *offset = 0;
 
+    PRDY_HTTP_Engine_Close(&http);
     PRDY_HTTP_Engine_HeadersCleanup(&http);
     http._wroteHeaders = 0; http._readHeaders = 0;
 
     return 0; //(bdrm_http_status_ok);
 }
 
-/* 'http post' wrapper function
+/* 'http 1.0 post' wrapper function
 */
 int32_t
 PRDY_HTTP_Client_Post(PRDY_HTTP_Engine* http, char *url)
@@ -853,12 +1139,20 @@ PRDY_HTTP_Client_Post(PRDY_HTTP_Engine* http, char *url)
     return PRDY_HTTP_Client_SendRequest(http, "POST", url);
 }
 
-/* 'http put' wrapper function
+/* 'http 1.0 put' wrapper function
 */
 int32_t
 PRDY_HTTP_Client_Put(PRDY_HTTP_Engine* http, char *url)
 {
     return PRDY_HTTP_Client_SendRequest(http, "PUT", url);
+}
+
+/* 'http 1.1 post' wrapper function
+*/
+int32_t
+PRDY_HTTP_Client_PostV1_1(PRDY_HTTP_Engine* http, char *url, char *host_url)
+{
+    return PRDY_HTTP_Client_SendRequestV1_1(http, "POST", url, host_url);
 }
 
 /* drm license post function; feeds an XML challenge to a server, parses
@@ -1016,6 +1310,8 @@ PRDY_HTTP_Client_LicensePostSoap (char* url, uint8_t* chall, uint8_t non_quiet,
     PRDY_HTTP_Engine_Write(&http, (const char *)*resp, len);
     PRDY_HTTP_Engine_Flush(&http);
     if (PRDY_HTTP_Client_ReadResponseHdr(&http)) {
+        PRDY_HTTP_Engine_Close(&http);
+        PRDY_HTTP_Engine_HeadersCleanup(&http);
         BDBG_WRN(("failed on readResponseHeader"));
         return -1; //(bdrm_http_status_failed_response_read);
     }
@@ -1034,6 +1330,7 @@ PRDY_HTTP_Client_LicensePostSoap (char* url, uint8_t* chall, uint8_t non_quiet,
     *out_resp_len = len;
     *offset = 0;
 
+    PRDY_HTTP_Engine_Close(&http);
     PRDY_HTTP_Engine_HeadersCleanup(&http);
 
     return 0;

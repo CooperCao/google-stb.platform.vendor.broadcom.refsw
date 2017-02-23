@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -388,6 +388,8 @@ CSimpleAudioDecode::CSimpleAudioDecode(
         _pDecoders[i] = NULL;
     }
 
+    NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&_startSettings);
+
     BDBG_ASSERT(eRet_Ok == ret);
 }
 
@@ -404,6 +406,10 @@ eRet CSimpleAudioDecode::open(
     eRet        ret    = eRet_Ok;
     NEXUS_Error nError = NEXUS_SUCCESS;
     int         i      = 0;
+
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleAudioDecoderServerSettings settings;
@@ -1200,7 +1206,6 @@ eRet CSimpleAudioDecode::start(
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
-    NEXUS_SimpleAudioDecoderStartSettings settings;
 
     BDBG_ASSERT(true == isOpened());
 
@@ -1227,14 +1232,14 @@ eRet CSimpleAudioDecode::start(
     }
 #endif /* if 0 */
 
-    NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&settings);
-    settings.primary.codec      = pPid->getAudioCodec();
-    settings.primary.pidChannel = pPid->getPidChannel();
+    NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&_startSettings);
+    _startSettings.primary.codec      = pPid->getAudioCodec();
+    _startSettings.primary.pidChannel = pPid->getPidChannel();
 
     if (NULL != pStc)
     {
-        settings.primer.pcm        = isPrimerEnabled() && (pStc->getStcType() == eStcType_PvrPlayback);
-        settings.primer.compressed = settings.primer.pcm;
+        _startSettings.primer.pcm        = isPrimerEnabled() && (pStc->getStcType() == eStcType_PvrPlayback);
+        _startSettings.primer.compressed = _startSettings.primer.pcm;
 
         nerror = NEXUS_SimpleAudioDecoder_SetStcChannel(_simpleDecoder, pStc->getSimpleStcChannel());
         CHECK_NEXUS_ERROR_GOTO("starting simple audio decoder failed!", ret, nerror, error);
@@ -1246,7 +1251,7 @@ eRet CSimpleAudioDecode::start(
      * codec object call to enable 96khz mode (only applies to aac)
      */
 
-    nerror = NEXUS_SimpleAudioDecoder_Start(_simpleDecoder, &settings);
+    nerror = NEXUS_SimpleAudioDecoder_Start(_simpleDecoder, &_startSettings);
     CHECK_NEXUS_ERROR_GOTO("simple audio decoder failed to start", ret, nerror, error);
 
     /* save pid */

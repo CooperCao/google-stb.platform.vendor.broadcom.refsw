@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,7 +70,7 @@ static int cpuload_tdrv_msg_hello(void);
 
 static int cpuload_tdrv_msg_proc(
     tzioc_msg_hdr *pHdr,
-    uint32_t ulPrivData);
+    uintptr_t ulPrivData);
 
 /*
  * Variable Declarations
@@ -184,7 +184,7 @@ static int cpuload_tdrv_open(void)
         return -EFAULT;
     }
 
-    LOGI("client handle 0x%x, client id %d",
+    LOGI("client handle 0x%zx, client id %d",
          ptdrv->hClient,
          ptdrv->clientId);
 
@@ -287,7 +287,7 @@ static int cpuload_tdrv_msg_stop(void)
 
 
     /* switch to TZOS */
-    tzioc_call_smc(ptdrv->hClient, 0x7);
+    tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
     /* wait for rpy or timeout */
     timeout = 10;
@@ -335,14 +335,19 @@ static int cpuload_tdrv_msg_echo(void)
     if (err) {
         LOGE("failed to send echo msg");
         return err;
-        }
+    }
 
     spin_lock(&ptdrv->msgLock);
     ptdrv->msgCnt++;
     spin_unlock(&ptdrv->msgLock);
+    LOGI("switch to TZOS...");
 
     /* switch to TZOS */
-    tzioc_call_smc(ptdrv->hClient, 0x7);
+    err = tzioc_call_smc(ptdrv->hClient, 0x83000007);
+    if(err) {
+        LOGE("failed to switch to TZOS");
+        return err;
+    }
 
     /* wait for echo msgs or timeout */
     timeout = 10;
@@ -393,7 +398,7 @@ static int cpuload_tdrv_msg_hello(void)
 
 
     /* switch to TZOS */
-    tzioc_call_smc(ptdrv->hClient, 0x7);
+    tzioc_call_smc(ptdrv->hClient, 0x83000007);
 
     /* wait for rpy or timeout */
     timeout = 100;
@@ -411,7 +416,7 @@ static int cpuload_tdrv_msg_hello(void)
 
 static int cpuload_tdrv_msg_proc(
     tzioc_msg_hdr *pHdr,
-    uint32_t ulPrivData)
+    uintptr_t ulPrivData)
 {
     UNUSED(ulPrivData);
 

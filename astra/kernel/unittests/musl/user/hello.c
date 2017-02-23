@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,7 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,10 +77,6 @@ void test_fork() {
         pid_t rc = fork();
         if (rc == 0) {
             pid_t pid = getpid();
-            struct timespec now;
-            struct timespec sleepFor;
-            //char strTime[80];
-
             printf("Child process %d\n", pid);
 
 #if 0
@@ -96,11 +91,15 @@ void test_fork() {
             char *myPage = pages + (i*4096);
             memset(myPage, (char)pid, 4096);
 
+            struct timespec now;
+            //char strTime[80];
             //memset(strTime, 0, 80);
             clock_gettime(CLOCK_REALTIME, &now);
             //ctime_r(&now.tv_sec, strTime);
 
             printf("[Child %d] Time now %d:%d. Sleep for %d seconds\n", pid, (int)now.tv_sec, (int)now.tv_nsec, pid*2);
+
+            struct timespec sleepFor;
             sleepFor.tv_sec = pid*2;
             sleepFor.tv_nsec = 0;
             nanosleep(&sleepFor, NULL);
@@ -113,7 +112,6 @@ void test_fork() {
             assert(mmapTest[i*100] == 'b');
 
             mmapTest[i*100 + 1] = '0'+i;
-
             exit(i);
         }
         else
@@ -230,7 +228,7 @@ void test_exec() {
     if (rc == 0) {
         char *argv[] = {"hello2.elf", "mary", "had a", "little lamb", NULL};
         printf("In child process. Now calling execv\n");
-        execv("musl_userspace/hello2.elf", argv);
+        execv("hello2.elf", argv);
     }
     else {
         int status;
@@ -251,7 +249,7 @@ int main(int argc, char **argv) {
 
     printf("Hello world\n");
 
-    //mq_test();
+    mq_test();
 
     resolution.tv_sec = 0;
     resolution.tv_nsec = 0;
@@ -273,8 +271,8 @@ int main(int argc, char **argv) {
 
     test_fork();
     test_reparent();
-
     test_exec();
 
+    printf("All tests completed successfully.\n");
     return 0;
 }

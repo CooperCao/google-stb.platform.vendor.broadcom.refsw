@@ -309,13 +309,6 @@ static void NexusMemMinimum(NEXUS_MemoryConfigurationSettings *pSettings)
 
 static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_MemoryConfigurationSettings *memConfigSettings)
 {
-   NEXUS_PlatformConfiguration configuration;
-   NEXUS_HeapHandle            heap3D;
-   int                         heap3DIndex = -1;
-   int                         saved = 0;
-   int                         orig3DSize = 0;
-   int                         target3DSize = 430 * 1024 * 1024; /* If we have at least 430 MB, we're good to go */
-
    NEXUS_Error err = NEXUS_NOT_SUPPORTED;
 
    /* Bring Nexus up in default config ONLY because we can't find which is the 3D heap without it. */
@@ -328,10 +321,12 @@ static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_Mem
    }
    NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT", NULL);
 
+   NEXUS_PlatformConfiguration configuration;
    NEXUS_Platform_GetConfiguration(&configuration);
 
-   heap3D = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
+   NEXUS_HeapHandle heap3D = NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SURFACE);
 
+   int heap3DIndex = -1;
    if (configuration.heap[NEXUS_MEMC0_GRAPHICS_HEAP] == heap3D)
    {
       heap3DIndex = NEXUS_MEMC0_GRAPHICS_HEAP;
@@ -349,46 +344,15 @@ static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_Mem
       return false;
    }
 
-   orig3DSize = platformSettings->heap[heap3DIndex].size;
-
-   // If we resize the heaps or not, we will reinitialise the platform anyway
+   /* If we resize the heaps or not, we will reinitialise the platform anyway */
    NEXUS_Platform_Uninit();
 
-   /* Do we have enough 3D memory already? */
-   if (orig3DSize < target3DSize)
-   {
-      /* If we still don't have enough, reduce the main heap - leaving at least 64MB */
-      if (orig3DSize + saved < target3DSize && platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size > 64 * 1024 * 1024)
-      {
-         int need = target3DSize - (orig3DSize + saved);
-         int avail = platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size - 64 * 1024 * 1024;
-         int newSize;
+   /* 3D heap is everything left */
+   platformSettings->heap[heap3DIndex].size = -1;
 
-         if (avail < need)
-            newSize = 64 * 1024 * 1024;
-         else
-            newSize = platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size - need;
-
-         saved += platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size - newSize;
-         platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = newSize;
-
-         /* The only use is subIndex = 1 for MEMC0 memory above
-            the 256MB register hole or 760MB CMA barrier. Always 0 for MEMC1 and 2.*/
-         if (heap3DIndex == NEXUS_MEMC0_GRAPHICS_HEAP)
-         {
-            // Fit the graphics heap before the main heap
-            platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex=1;
-            platformSettings->heap[heap3DIndex].subIndex = 0;
-         }
-      }
-
-      /* Add the savings onto the 3D heap */
-      platformSettings->heap[heap3DIndex].size = orig3DSize + saved;
-
-      /* Minimise video memory usage */
-      NEXUS_GetDefaultMemoryConfigurationSettings(memConfigSettings);
-      NexusMemMinimum(memConfigSettings);
-   }
+   /* Minimise video memory usage */
+   NEXUS_GetDefaultMemoryConfigurationSettings(memConfigSettings);
+   NexusMemMinimum(memConfigSettings);
 
    return true;
 }

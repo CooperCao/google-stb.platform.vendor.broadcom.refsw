@@ -1,23 +1,43 @@
 /***************************************************************************
- *     Copyright (c) 2007-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * MP4 container parser library
- * 
- * Revision History:
- *
- * $brcm_Log: $
  * 
  *******************************************************************************/
 #include "bstd.h"
@@ -409,10 +429,10 @@ b_mp4_parse_sample_avc(batom_cursor *cursor, bmp4_sample_avc *avc, size_t entry_
             if(box_hdr_size==0) {
                 break;
             }
-            if(box.type==BMP4_TYPE('a','v','c','C')) {
+            if(entry_data_size > box_hdr_size && box.type==BMP4_TYPE('a','v','c','C')) {
                 codecprivate->offset = offset;
                 codecprivate->box = box;
-                return bmp4_parse_sample_avcC(cursor, avc, entry_data_size);
+                return bmp4_parse_sample_avcC(cursor, avc, entry_data_size-box_hdr_size);
             }
             /* skip unknown boxes */
             BDBG_WRN(("b_mp4_parse_sample_avc: discarding unknown sample " B_MP4_TYPE_FORMAT " %u:%u", B_MP4_TYPE_ARG(box.type), (unsigned)box.size, (unsigned)entry_data_size));
@@ -856,15 +876,6 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
             case BMP4_SAMPLE_AVC:
                 BDBG_MSG(("bmp4_parse_sample: avc video"));
                 type = bmp4_sample_type_avc;
-                entry_data_size =
-                    box_hdr_size +
-                    B_MP4_VISUAL_SAMPLE_ENTRY_SIZE +
-                    sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(uint8_t) /* AVCDecoderConfigurationRecord */;
-                if(entry_data_size>entry_box.size)  {
-                    BDBG_WRN(("bmp4_parse_sample: invalid size of AVC box %u>%u", (unsigned)entry_data_size, (unsigned)entry_box.size));
-                    goto error_sample;
-                }
-                entry_data_size = entry_box.size - entry_data_size;
                 break;
             case BMP4_SAMPLE_HVC1:
             case BMP4_SAMPLE_HEV1:
@@ -970,6 +981,13 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
             BDBG_ASSERT(protection_scheme_information_size <= sizeof(entry->protection_scheme_information));
             batom_cursor_copy(&protection_scheme_information_cursor, entry->protection_scheme_information, protection_scheme_information_size);
         }
+        entry_data_size = batom_cursor_pos(&cursor);
+        if(entry_data_size >= start_pos && entry_box.size > (entry_data_size - start_pos) ) {
+            entry_data_size = entry_box.size - (entry_data_size - start_pos);
+        } else {
+            BDBG_WRN(("bmp4_parse_sample: invalid size of codec box %u>%u", (unsigned)entry_box.size, (unsigned)(entry_data_size - start_pos)));
+            entry_data_size = 0;
+        }
         switch(type) {
         case bmp4_sample_type_avc:
             if(!b_mp4_parse_sample_avc(&cursor, &entry->codec.avc, entry_data_size, &entry->codecprivate)) {
@@ -978,10 +996,6 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
             }
             break;
         case bmp4_sample_type_mp4a:
-            entry_data_size = batom_cursor_pos(&cursor);
-            if(  entry_data_size >= start_pos && entry_box.size > (entry_data_size - start_pos) ) {
-                entry_data_size = entry_box.size - (entry_data_size - start_pos);
-            }
             if(!b_mp4_parse_sample_mp4a(&cursor, &entry->codec.mp4a, entry_data_size, &entry->codecprivate)) {
                 BDBG_WRN(("bmp4_parse_sample: error while parsing MP4A sample"));
                 entry->sample_type = bmp4_sample_type_unknown;
@@ -1012,10 +1026,6 @@ bmp4_parse_sample_info(batom_t box, bmp4_sample_info *sample, uint32_t handler_t
         case bmp4_sample_type_samr:
         case bmp4_sample_type_sawb:
         case bmp4_sample_type_sawp:
-            entry_data_size = batom_cursor_pos(&cursor);
-            if(  entry_data_size >= start_pos && entry_box.size > (entry_data_size - start_pos) ) {
-                entry_data_size = entry_box.size - (entry_data_size - start_pos);
-            }
             if(!b_mp4_parse_sample_amr(&cursor, &entry->codec.amr, entry_data_size)) {
                 entry->sample_type = bmp4_sample_type_unknown;
             }

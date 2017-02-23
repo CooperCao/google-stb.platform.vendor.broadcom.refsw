@@ -1,0 +1,38 @@
+# hdr demo boot script
+
+family=`/bin/od -X /proc/device-tree/bolt/family-id`
+chip=${family:22:2}${family:20:2}
+rev=`printf "%b" $(printf '\\%03o' $((${family:16:1}+65)))`0 # always use 0 for metal
+iptrackroot=/mnt/nfs/bandrews
+
+sleep 5;
+MOUNT_FAILED=0
+MAC=`/sbin/ip -o link list| /bin/grep -e "eth0"| /bin/sed -e "s/.*ether //" -e "s/ brd.*//" -e "s/://g"`
+IP=`/sbin/ip -o address list| /bin/grep -e "eth0 "| /bin/sed -e "s/.*inet //" -e "s#/.*##"`
+NAME=`cat /proc/device-tree/model`
+if [ ! -e $iptrackroot ]; then
+    echo "Mounting STBIRV..."
+    mount -o tcp stbirv-bld-1:/local/public/users /mnt/nfs;
+    MOUNT_FAILED=$?
+fi
+
+if [ "$IP" != "" -a "$MAC" != "" -a $MOUNT_FAILED -eq 0 ]; then
+    echo "${NAME}-${MAC} = $IP";
+    echo "$IP" > $iptrackroot/refsw/hosts/${NAME}-${MAC}.txt;
+else
+   echo "WIRED FAILED";
+fi
+
+if [ ! -e /dev/sda1 -a -e  /dev/mmcblk0p1 ]
+then
+    mount /dev/mmcblk0p1 /data
+    echo "** Mounting flash partition to /data *** "
+fi
+
+cd /data/$chip$rev/nexus/bin
+if [ "$chip" == "7260" ]; then
+    export B_REFSW_BOXMODE=1005;
+fi
+./nexus nxserver -display_format 3840x2160p60 -video_cdb 10.0 -memconfig videoDecoder,0,3840,2160 -maxDataRate 108 &
+sleep 5
+./nexus.client dynrng -rc /data/share/dynrng &

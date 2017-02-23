@@ -57,13 +57,6 @@ BVC5_BinPoolHandle BVC5_P_GetBinPool(
    return (hVC5->bSecure && hVC5->hSecureBinPool) ? hVC5->hSecureBinPool : hVC5->hBinPool;
 }
 
-BMEM_Heap_Handle BVC5_P_GetHeap(
-   BVC5_Handle hVC5
-)
-{
-   return (hVC5->bSecure && hVC5->hSecureHeap) ? hVC5->hSecureHeap : hVC5->hHeap;
-}
-
 BMMA_Heap_Handle BVC5_P_GetMMAHeap(
    BVC5_Handle hVC5
 )
@@ -108,11 +101,6 @@ void BVC5_GetDefaultOpenParameters(
 
       openParams->bNoBurstSplitting = false;
 
-#ifdef BVC5_USE_DRM
-      openParams->bDoDRMClientTerm = true;
-#else
-      openParams->bDoDRMClientTerm = false;
-#endif
       openParams->uiDRMDevice = 0;
    }
 }
@@ -147,10 +135,10 @@ BERR_Code BVC5_Open(
    BVC5_Handle          *phVC5,
    BCHP_Handle          hChp,
    BREG_Handle          hReg,
-   BMEM_Heap_Handle     hHeap,
    BMMA_Heap_Handle     hMMAHeap,
-   BMEM_Heap_Handle     hSecureHeap,
    BMMA_Heap_Handle     hSecureMMAHeap,
+   uint64_t             ulDbgHeapOffset,
+   unsigned             uDbgHeapSize,
    BINT_Handle          hInt,
    BVC5_OpenParameters *sOpenParams,
    BVC5_Callbacks      *sCallbacks
@@ -174,18 +162,11 @@ BERR_Code BVC5_Open(
    hVC5->hReg  = hReg;
    hVC5->hInt  = hInt;
 
-   /* Must both be set or both be unset */
-   if ((hSecureHeap != NULL) ^ (hSecureMMAHeap != NULL))
-   {
-      err = BERR_INVALID_PARAMETER;
-      goto exit;
-   }
-
    /* Heaps */
-   hVC5->hHeap          = hHeap;
-   hVC5->hMMAHeap       = hMMAHeap;
-   hVC5->hSecureHeap    = hSecureHeap;
-   hVC5->hSecureMMAHeap = hSecureMMAHeap;
+   hVC5->hMMAHeap          = hMMAHeap;
+   hVC5->hSecureMMAHeap    = hSecureMMAHeap;
+   hVC5->ulDbgHeapOffset   = ulDbgHeapOffset;
+   hVC5->uDbgHeapSize      = uDbgHeapSize;
 
    if (!BVC5_P_InitMmuSafePage(hVC5))
    {
@@ -217,7 +198,6 @@ BERR_Code BVC5_Open(
       " Reset on stall = %s\n"
       " Dump on stall = %s\n"
       " No burst splitting = %s\n"
-      " Do DRM client termination = %s\n"
       " DRM Device Number = %u\n",
       hVC5->sOpenParams.bUsePowerGating ? "on" : "off",
       hVC5->sOpenParams.bUseClockGating ? "on" : "off",
@@ -226,7 +206,6 @@ BERR_Code BVC5_Open(
       hVC5->sOpenParams.bResetOnStall ? "on" : "off",
       hVC5->sOpenParams.bMemDumpOnStall ? "on" : "off",
       hVC5->sOpenParams.bNoBurstSplitting ? "on" : "off",
-      hVC5->sOpenParams.bDoDRMClientTerm ? "on" : "off",
       hVC5->sOpenParams.uiDRMDevice
       ));
 
@@ -261,12 +240,7 @@ BERR_Code BVC5_Open(
          goto exit;
    }
 
-   if(hVC5->sOpenParams.bDoDRMClientTerm)
-   {
-      err = BVC5_P_DRMOpen(hVC5->sOpenParams.uiDRMDevice);
-      if (err != BERR_SUCCESS)
-         goto exit;
-   }
+   BVC5_P_DRMOpen(hVC5->sOpenParams.uiDRMDevice);
 
    /* "Create" the hardware */
 #if defined(BVC5_HARDWARE_SIMPENROSE)
@@ -745,8 +719,8 @@ BERR_Code BVC5_BinRenderJob(
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
    hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
-   if (hClient == NULL || !BVC5_P_ClientSetMaxJobId(hClient, pBin->sBase.uiJobId)
-                       || !BVC5_P_ClientSetMaxJobId(hClient, pRender->sBase.uiJobId))
+   if (hClient == NULL || (pBin ? !BVC5_P_ClientSetMaxJobId(hClient, pBin->sBase.uiJobId) : false) ||
+       !BVC5_P_ClientSetMaxJobId(hClient, pRender->sBase.uiJobId))
    {
       err = BERR_INVALID_PARAMETER;
       goto exit;
@@ -791,6 +765,51 @@ exit:
 
    return err;
 }
+
+BERR_Code BVC5_BarrierJob(
+   BVC5_Handle                 hVC5,       /* [in] Handle to VC5 module  */
+   uint32_t                    uiClientId, /* [in]                       */
+   const BVC5_JobBarrier      *pJob        /* [in]                       */
+   )
+{
+   BERR_Code             err;
+   BVC5_P_InternalJob   *pIntJob;
+   BVC5_ClientHandle     hClient;
+
+   BDBG_ENTER(BVC5_BarrierJob);
+
+   if (pJob == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   BKNI_AcquireMutex(hVC5->hModuleMutex);
+
+   hClient = BVC5_P_ClientMapGet(hVC5, hVC5->hClientMap, uiClientId);
+   if (hClient == NULL || !BVC5_P_ClientSetMaxJobId(hClient, pJob->sBase.uiJobId))
+   {
+      err = BERR_INVALID_PARAMETER;
+      goto exit;
+   }
+
+   /* Take a copy of the job */
+   pIntJob = BVC5_P_JobCreateBarrier(hVC5, uiClientId, pJob);
+   if (pIntJob == NULL)
+   {
+      err = BERR_OUT_OF_SYSTEM_MEMORY;
+      goto exit;
+   }
+
+   BVC5_P_AddJob(hVC5, hClient, pIntJob);
+
+   err = BERR_SUCCESS;
+
+exit:
+   BKNI_ReleaseMutex(hVC5->hModuleMutex);
+
+   BDBG_LEAVE(BVC5_BarrierJob);
+
+   return err;
+}
+
 
 BERR_Code BVC5_TestJob(
    BVC5_Handle                 hVC5,
@@ -1065,9 +1084,9 @@ BERR_Code BVC5_FenceRegisterWaitCallback(
    BVC5_Handle    hVC5,
    int            iFence,
    uint32_t       uiClientId,
-   void         (*pfnCallback)(void *, void *),
+   void         (*pfnCallback)(void *, uint64_t),
    void          *pContext,
-   void          *pParam
+   uint64_t       uiParam
 )
 {
    BVC5_FenceArrayHandle hFenceArr = hVC5->hFences;
@@ -1079,7 +1098,7 @@ BERR_Code BVC5_FenceRegisterWaitCallback(
    BDBG_ASSERT(pfnCallback != NULL);
 
    BVC5_P_FenceAddCallback(hFenceArr, iFence, uiClientId,
-         pfnCallback, pContext, pParam);
+         pfnCallback, pContext, uiParam);
 
    BDBG_LEAVE(BVC5_FenceRegisterWaitCallback);
 
@@ -1090,9 +1109,9 @@ BERR_Code BVC5_FenceUnregisterWaitCallback(
    BVC5_Handle    hVC5,
    int            iFence,
    uint32_t       uiClientId,
-   void         (*pfnCallback)(void *, void *),
+   void         (*pfnCallback)(void *, uint64_t),
    void          *pContext,
-   void          *pParam,
+   uint64_t       uiParam,
    bool          *bSignalled
 )
 {
@@ -1104,7 +1123,7 @@ BERR_Code BVC5_FenceUnregisterWaitCallback(
    BDBG_MSG(("BVC5_FenceUnregisterWaitCallback fence %d\n", iFence));
 
    signalled = BVC5_P_FenceRemoveCallback(hFenceArr, iFence, uiClientId,
-         pfnCallback, pContext, pParam);
+         pfnCallback, pContext, uiParam);
    if (bSignalled)
       *bSignalled = signalled;
 

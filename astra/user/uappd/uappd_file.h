@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,7 +46,7 @@ class UserAppDmon::PeerFile {
     friend class UserAppDmon;
 
 public:
-    PeerFile(uint8_t id, uint32_t cookie, int flags) :
+    PeerFile(uint8_t id, uintptr_t cookie, int flags) :
         id(id),
         cookie(cookie),
         access(flags),
@@ -56,7 +56,7 @@ public:
 
 private:
     uint8_t id;
-    uint32_t cookie;
+    uintptr_t cookie;
     int access;
     off_t offset;
 };
@@ -81,12 +81,12 @@ public:
 
     int fileWrite(
         PeerFile *pPFile,
-        uint32_t paddr,
+        uintptr_t paddr,
         size_t bytes);
 
     int fileRead(
         PeerFile *pPFile,
-        uint32_t paddr,
+        uintptr_t paddr,
         size_t bytes);
 
     int pfileAdd(PeerFile *pPFile);
@@ -94,7 +94,7 @@ public:
 
     PeerFile *pfileFind(
         uint8_t id,
-        uint32_t cookie);
+        uintptr_t cookie);
 
 private:
     string path;

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,11 +70,11 @@
 /***************************************************************************
  *SID_SYMB
  ***************************************************************************/
-#define BCHP_SID_SYMB_LONGEST_CODE               0x20983a00 /* [RW] HuffmanLongestCode */
-#define BCHP_SID_SYMB_PNG_XFER_CNT               0x20983a04 /* [RW] PngXferCnt */
-#define BCHP_SID_SYMB_JPEG_Y_PRED                0x20983a08 /* [RW] JPEG_Y_Pred */
-#define BCHP_SID_SYMB_JPEG_U_PRED                0x20983a0c /* [RW] JPEG_U_Pred */
-#define BCHP_SID_SYMB_JPEG_V_PRED                0x20983a10 /* [RW] JPEG_V_Pred */
+#define BCHP_SID_SYMB_LONGEST_CODE               0x20983a00 /* [RW][32] HuffmanLongestCode */
+#define BCHP_SID_SYMB_PNG_XFER_CNT               0x20983a04 /* [RW][32] PngXferCnt */
+#define BCHP_SID_SYMB_JPEG_Y_PRED                0x20983a08 /* [RW][32] JPEG_Y_Pred */
+#define BCHP_SID_SYMB_JPEG_U_PRED                0x20983a0c /* [RW][32] JPEG_U_Pred */
+#define BCHP_SID_SYMB_JPEG_V_PRED                0x20983a10 /* [RW][32] JPEG_V_Pred */
 
 /***************************************************************************
  *LONGEST_CODE - HuffmanLongestCode

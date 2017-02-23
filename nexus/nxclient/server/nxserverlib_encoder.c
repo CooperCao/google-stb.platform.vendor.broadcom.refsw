@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "nxserverlib_impl.h"
 
@@ -209,10 +208,9 @@ static void print_open_encoders(nxserver_t server)
         if (!server->settings.memConfigSettings.videoEncoder[index].used) continue;
         displayIndex = get_transcode_display_index(server, index);
         NEXUS_VideoFrameRate_GetRefreshRate(server->videoEncoder.cap.videoEncoder[index].memory.maxFrameRate, &rr);
-        BDBG_WRN(("  %d: %ux%u%c%u display %d, used %c, graphics %c, local %c", index,
+        BDBG_WRN(("  %d: %ux%up%u display %d, used %c, graphics %c, local %c", index,
             server->videoEncoder.cap.videoEncoder[index].memory.maxWidth,
             server->videoEncoder.cap.videoEncoder[index].memory.maxHeight,
-            server->videoEncoder.cap.videoEncoder[index].memory.interlaced?'i':'p',
             rr/1000,
             displayIndex,
             g_encoder[index].open?'y':'n',
@@ -242,52 +240,60 @@ static void nxserver_p_close_encoder_display(NEXUS_DisplayHandle display)
     NEXUS_Display_Close(display);
 }
 
+static unsigned video_encoder_cap(unsigned maxWidth, unsigned maxHeight, unsigned refreshRate)
+{
+    return (maxWidth+15)/16 * (maxHeight+15)/16 * refreshRate/1000;
+}
+
 struct encoder_resource *video_encoder_create(bool video_only, struct b_session *session, struct b_connect *connect)
 {
     struct encoder_resource *r;
     NEXUS_VideoEncoderOpenSettings encoderOpenSettings;
     NEXUS_AudioMuxOutputCreateSettings muxCreateSettings;
-    NEXUS_StreamMuxCreateSettings streamMuxCreateSettings;
-    NEXUS_StreamMuxConfiguration streamMuxConfigSettings;
     int displayIndex = -1;
     unsigned i;
     unsigned index;
     bool transcode = connect != NULL;
     unsigned r2;
+    unsigned cap2;
 
     /* find available encoder */
     if (NEXUS_VideoFrameRate_GetRefreshRate(connect->settings.simpleEncoder[0].encoderCapabilities.maxFrameRate, &r2)) {
-        r2 = 0;
+        r2 = 30000;
     }
+    cap2 = video_encoder_cap(connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth, connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight, r2);
     for (index=0; index < NEXUS_NUM_VIDEO_ENCODERS; index++) {
         unsigned r1;
         bool pick = true;
         if (!session->server->settings.memConfigSettings.videoEncoder[index].used) continue;
         displayIndex = get_transcode_display_index(session->server, index);
         if (NEXUS_VideoFrameRate_GetRefreshRate(session->server->videoEncoder.cap.videoEncoder[index].memory.maxFrameRate, &r1)) {
-            r1 = 0;
+            r1 = 30000;
         }
 
         if (g_encoder[index].open ||
             (displayIndex == -1) ||
             (!video_only && !session->server->display.cap.display[displayIndex].graphics.width) ||
             is_local_display(session->server, displayIndex)) pick = false;
-        if (pick && connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth && connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight) {
-            if (session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth < connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth ||
-                session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight < connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight) pick = false;
-        }
-        if (pick && r2) {
-            if (r1 < r2) pick = false;
+
+        if (pick) {
+            unsigned cap1 = video_encoder_cap(session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth, session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight, r1);
+            if (cap2 > cap1) {
+                pick = false;
+            }
+            else {
+                if ((r1 == 25000 || r1 == 50000) && r2 > 50000) {
+                    pick = false;
+                }
+            }
         }
 
-        BDBG_MSG(("compare encoder%u: %ux%u%c%u with connect: %dx%d%c%d --> %s", index,
+        BDBG_MSG(("compare encoder%u: %ux%up%u with connect: %dx%dp%d --> %s", index,
             session->server->videoEncoder.cap.videoEncoder[index].memory.maxWidth,
             session->server->videoEncoder.cap.videoEncoder[index].memory.maxHeight,
-            session->server->videoEncoder.cap.videoEncoder[index].memory.interlaced?'i':'p',
             r1/1000,
             connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth,
             connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight,
-            connect->settings.simpleEncoder[0].encoderCapabilities.interlaced?'i':'p',
             r2/1000,
             pick?"yes":"no"));
 
@@ -295,10 +301,9 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
     }
     if (index == NEXUS_NUM_VIDEO_ENCODERS) {
         /* because encoder systems are complex, give information that may explain the failure */
-        BDBG_WRN(("unable to get %ux%u%c%u video encoder from pool",
+        BDBG_WRN(("unable to get %ux%up%u video encoder from pool",
             connect->settings.simpleEncoder[0].encoderCapabilities.maxWidth,
             connect->settings.simpleEncoder[0].encoderCapabilities.maxHeight,
-            connect->settings.simpleEncoder[0].encoderCapabilities.interlaced?'i':'p',
             r2/1000));
         print_open_encoders(session->server);
         return NULL;
@@ -369,25 +374,6 @@ struct encoder_resource *video_encoder_create(bool video_only, struct b_session 
         if (!r->settings.playpump[i]) goto error;
     }
 
-    NEXUS_StreamMux_GetDefaultCreateSettings(&streamMuxCreateSettings);
-    /* Override default stream mux mem config:
-       Allow minimum stream mux memory config with one ts user data pid.
-       TODO: expose to nxclient API */
-    NEXUS_StreamMux_GetDefaultConfiguration(&streamMuxConfigSettings);
-    streamMuxConfigSettings.userDataPids = 1;
-    streamMuxConfigSettings.nonRealTime  = nxserver_p_connect_is_nonrealtime_encode(connect);
-    NEXUS_StreamMux_GetMemoryConfiguration(&streamMuxConfigSettings, &streamMuxCreateSettings.memoryConfiguration);
-#if 0
-    /* because finished is set at create-time only, SimpleEncoder will need an external "finished" function. */
-    streamMuxCreateSettings.finished.callback = transcoderFinishCallback;
-    streamMuxCreateSettings.finished.context = pContext->finishEvent;
-#endif
-    r->settings.streamMux = NEXUS_StreamMux_Create(&streamMuxCreateSettings);
-    if (!r->settings.streamMux) {
-        BERR_TRACE(NEXUS_NOT_AVAILABLE);
-        goto error;
-    }
-
     g_encoder[index].open = true;
     return r;
 
@@ -416,9 +402,6 @@ void video_encoder_destroy(struct encoder_resource *r)
         if (r->settings.playpump[i]) {
             NEXUS_Playpump_Close(r->settings.playpump[i]);
         }
-    }
-    if (r->settings.streamMux) {
-        NEXUS_StreamMux_Destroy(r->settings.streamMux);
     }
     if (r->settings.stcChannelTranscode) {
         BDBG_WRN(("STC channel was still valid during destroy; should have been released during encoder release"));

@@ -89,7 +89,7 @@ endif #DTCP_IP_SAGE_SUPPORT
 
 
 # Get OpenSSl make defines
-#include $(BSEAV)/lib/openssl/openssl.inc
+#include $(BSEAV)/opensource/openssl/openssl.inc
 #include applib definitions
 #include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_lib.inc
 include $(NEXUS_TOP)/lib/dtcp_ip_sage/dtcp_ip_lib.inc

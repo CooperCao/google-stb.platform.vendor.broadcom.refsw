@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -144,7 +144,7 @@ eRet CPanelAudio::initialize(
             MRect                rectPopup;
 
             /* PID */
-            ret = addLabelPopupButton(_settings, "Pid", &_Pid, &_PidLabel, &_PidPopup, font12, 25);
+            ret = _settings->addLabelPopupButton(this, "Pid", &_Pid, &_PidLabel, &_PidPopup, font12, 25);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Pid->setFocusable(false);
             _PidLabel->setText("Pid:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -156,7 +156,7 @@ eRet CPanelAudio::initialize(
                 (true == pFeatures->_dolbyVolume) ||
                 (true == pFeatures->_srsVolume))
             {
-                ret = addLabelPopupButton(_settings, "AudioProcessing", &_AudioProcessing, &_AudioProcessingLabel, &_AudioProcessingPopup, font12, 35);
+                ret = _settings->addLabelPopupButton(this, "AudioProcessing", &_AudioProcessing, &_AudioProcessingLabel, &_AudioProcessingPopup, font12, 35);
                 CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
                 _AudioProcessing->setFocusable(false);
                 _AudioProcessingLabel->setText("PCM:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -192,7 +192,7 @@ eRet CPanelAudio::initialize(
             }
 
             /* SPDIF */
-            ret = addLabelPopupButton(_settings, "Spdif", &_Spdif, &_SpdifLabel, &_SpdifPopup, font12, 35);
+            ret = _settings->addLabelPopupButton(this, "Spdif", &_Spdif, &_SpdifLabel, &_SpdifPopup, font12, 35);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Spdif->setFocusable(false);
             _SpdifLabel->setText("Spdif:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -220,7 +220,7 @@ eRet CPanelAudio::initialize(
                     COutputHdmi * pOutputHdmi = pAudioDecode->getOutputHdmi();
                     if (NULL != pOutputHdmi)
                     {
-                        ret = addLabelPopupButton(_settings, "Hdmi", &_Hdmi, &_HdmiLabel, &_HdmiPopup, font12, 35);
+                        ret = _settings->addLabelPopupButton(this, "Hdmi", &_Hdmi, &_HdmiLabel, &_HdmiPopup, font12, 35);
                         CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
                         _Hdmi->setFocusable(false);
                         _HdmiLabel->setText("Hdmi:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -254,7 +254,7 @@ eRet CPanelAudio::initialize(
             }
 
             /* DOWNMIX */
-            ret = addLabelPopupButton(_settings, "Downmix", &_Downmix, &_DownmixLabel, &_DownmixPopup, font12, 35);
+            ret = _settings->addLabelPopupButton(this, "Downmix", &_Downmix, &_DownmixLabel, &_DownmixPopup, font12, 35);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Downmix->setFocusable(false);
             _DownmixLabel->setText("Downmix:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -262,7 +262,7 @@ eRet CPanelAudio::initialize(
             /* buttons are codec dependent and will be populated in source changed callback */
 
             /* DUAL MONO */
-            ret = addLabelPopupButton(_settings, "DualMono", &_DualMono, &_DualMonoLabel, &_DualMonoPopup, font12, 45);
+            ret = _settings->addLabelPopupButton(this, "DualMono", &_DualMono, &_DualMonoLabel, &_DualMonoPopup, font12, 45);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _DualMono->setFocusable(false);
             _DualMonoLabel->setText("DualMono:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -283,7 +283,7 @@ eRet CPanelAudio::initialize(
             _DualMonoPopup->select(eAudioDualMono_Stereo);
 
             /* COMPRESSION */
-            ret = addLabelPopupButton(_settings, "Compression", &_Compression, &_CompressionLabel, &_CompressionPopup, font12);
+            ret = _settings->addLabelPopupButton(this, "Compression", &_Compression, &_CompressionLabel, &_CompressionPopup, font12);
             CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
             _Compression->setFocusable(false);
             _CompressionLabel->setText("Compression:", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
@@ -798,11 +798,13 @@ void CPanelAudio::processNotification(CNotification & notification)
 
     case eNotify_HdmiHotplugEvent:
     {
-        eRet                     ret          = eRet_Ok;
+        eRet                     ret          = eRet_NotAvailable;
         CSimpleAudioDecode *     pAudioDecode = _pModel->getSimpleAudioDecode();
         NEXUS_AudioDecoderStatus status;
 
-        ret = pAudioDecode->getStatus(&status);
+        if (pAudioDecode) {
+            ret = pAudioDecode->getStatus(&status);
+        }
         CHECK_ERROR_GOTO("unable to get Audio decoder status", ret, error);
 
         /* update hdmi setting */

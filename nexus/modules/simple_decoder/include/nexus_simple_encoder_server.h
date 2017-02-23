@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,20 +40,14 @@
 
 #include "nexus_simple_encoder.h"
 #include "nexus_playpump.h"
-#ifdef NEXUS_HAS_AUDIO
-#include "nexus_audio_mux_output.h"
-#include "nexus_audio_mixer.h"
-#else
-typedef void *NEXUS_AudioMuxOutputHandle;
-typedef void *NEXUS_AudioMixerHandle;
-#endif
 #ifdef NEXUS_HAS_STREAM_MUX
 #include "nexus_video_encoder.h"
 #include "nexus_stream_mux.h"
-#else
-typedef void *NEXUS_VideoEncoderHandle;
-typedef void *NEXUS_StreamMuxHandle;
 #endif
+#if NEXUS_HAS_AUDIO
+#include "nexus_audio_mixer.h"
+#endif
+#include "nexus_core_compat.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,7 +94,6 @@ typedef struct NEXUS_SimpleEncoderServerSettings
     NEXUS_VideoEncoderHandle videoEncoder;
 #define NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS 3
     NEXUS_PlaypumpHandle playpump[NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS];
-    NEXUS_StreamMuxHandle streamMux;
     NEXUS_StcChannelHandle stcChannelTranscode; /* only needed for realtime */
     NEXUS_Timebase timebase;
     NEXUS_AudioMixerHandle mixer; /* must be dsp mixer */

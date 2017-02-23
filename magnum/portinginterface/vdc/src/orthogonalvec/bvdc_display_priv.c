@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -71,7 +71,7 @@
 #ifdef BCHP_VCXO_0_RM_REG_START
 #include "bchp_vcxo_0_rm.h"
 #define BVDC_P_VCXO_RM_REG_COUNT \
-    ((BCHP_VCXO_0_RM_REG_END - BCHP_VCXO_0_RM_REG_START) / sizeof(uint32_t) + 1)
+    ((BCHP_VCXO_0_RM_SKIP_REPEAT_NUMBER - BCHP_VCXO_0_RM_REG_START) / sizeof(uint32_t) + 1)
 #endif
 #ifdef BCHP_VCXO_1_RM_REG_START
 #include "bchp_vcxo_1_rm.h"
@@ -192,7 +192,19 @@ BERR_Code BVDC_P_Display_Create
     /* (2) create a AppliedDone event. */
     BKNI_CreateEvent(&pDisplay->hAppliedDoneEvent);
 
-    /* (3) Save hDisplay in hVdc */
+    /* (3). get hw config for CFC.  TODO get HW_CONFIG */
+    pDisplay->stCfc.stCapability.stBits.bMc = 1;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
+    pDisplay->stCfc.stCapability.stBits.bMa = 1;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+    pDisplay->stCfc.stCapability.stBits.bNL2L = 1;
+    pDisplay->stCfc.stCapability.stBits.bL2NL = 1;
+    pDisplay->stCfc.stCapability.stBits.bMb = 1;
+    pDisplay->stCfc.stCapability.stBits.bLRngAdj = 1;
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
+
+    /* (4) Save hDisplay in hVdc */
     pVdc->ahDisplay[pDisplay->eId] = (BVDC_Display_Handle)pDisplay;
 
     *phDisplay = (BVDC_Display_Handle)pDisplay;
@@ -333,7 +345,7 @@ void BVDC_P_Display_Init
      * NOTE: primary and secondary displays will always take HD color space input
      * from compositors; while the bypass display input color space could be SD
      * or HD depends on the VDEC source format. */
-    hDisplay->stNewInfo.eCmpMatrixCoeffs = BVDC_P_MatrixCoeffs_eBt709;
+    hDisplay->stNewInfo.eCmpColorimetry = BAVC_P_Colorimetry_eBt709;
 
     /* Current display rate info, update at least once at initialization */
     hDisplay->stNewInfo.stRateInfo.ulPixelClkRate    = 0;
@@ -357,6 +369,7 @@ void BVDC_P_Display_Init
     hDisplay->stNewInfo.bEnableHdmi = false;
     hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf = BAVC_HDMI_DRM_EOTF_eSDR;
     hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorComponent = BAVC_Colorspace_eYCbCr444;
+    BVDC_P_Display_InitDviCfc(hDisplay);
 
     /* Default Dvo CSC */
     hDisplay->stDvoCscMatrix.ulMin       = 0x0000;
@@ -365,9 +378,9 @@ void BVDC_P_Display_Init
     hDisplay->stNewInfo.bUserCsc         = false;
 
     /* Dvo CSC adjustment values */
-    hDisplay->stNewInfo.lDvoAttenuationR = BMTH_FIX_SIGNED_ITOFIX(1, BVDC_P_CSC_DVO_CX_I_BITS, BVDC_P_CSC_DVO_CX_F_BITS);
-    hDisplay->stNewInfo.lDvoAttenuationG = BMTH_FIX_SIGNED_ITOFIX(1, BVDC_P_CSC_DVO_CX_I_BITS, BVDC_P_CSC_DVO_CX_F_BITS);
-    hDisplay->stNewInfo.lDvoAttenuationB = BMTH_FIX_SIGNED_ITOFIX(1, BVDC_P_CSC_DVO_CX_I_BITS, BVDC_P_CSC_DVO_CX_F_BITS);
+    hDisplay->stNewInfo.lDvoAttenuationR = BVDC_P_CFC_ITOFIX(1);
+    hDisplay->stNewInfo.lDvoAttenuationG = BVDC_P_CFC_ITOFIX(1);
+    hDisplay->stNewInfo.lDvoAttenuationB = BVDC_P_CFC_ITOFIX(1);
     hDisplay->stNewInfo.lDvoOffsetR      = 0;
     hDisplay->stNewInfo.lDvoOffsetG      = 0;
     hDisplay->stNewInfo.lDvoOffsetB      = 0;
@@ -1048,6 +1061,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
             pNewInfo->bRgb    = false;
             pNewInfo->bYPrPb  = false;
             pNewInfo->bMultiRateAllow = true;
+            pNewInfo->uiNumDacsOn = 0;
 
             /* if RFM is enable, treat it as CVBS */
             if(pNewInfo->eRfmOutput != BVDC_RfmOutput_eUnused)
@@ -1069,6 +1083,7 @@ static BERR_Code BVDC_P_Display_ValidateDacSettings
                     else
                     {
                         aNewUsedDac[j] = pNewInfo->aDacOutput[j];
+                        pNewInfo->uiNumDacsOn++;
                     }
 
                     switch(pNewInfo->aDacOutput[j])
@@ -1677,17 +1692,23 @@ void BVDC_P_Display_ApplyChanges_isr
         BDBG_MSG(("Display%d de-activated.", hDisplay->eId));
 
         /* disable triggers to complete shutdown display callbacks. */
-        BVDC_P_Display_EnableTriggers_isr(hDisplay, false);
-        hDisplay->eState = BVDC_P_State_eInactive;
-        for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
+#if BVDC_P_SUPPORT_STG /* graceful shutdown STG/VIP */
+        if (hDisplay->stStgChan.ulStg == BVDC_P_HW_ID_INVALID)
+#endif
         {
-            BRDC_Slot_Disable_isr(hDisplay->hCompositor->ahSlot[i]);
-        }
+            BVDC_P_Display_EnableTriggers_isr(hDisplay, false);
 
-        for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
-        {
-            BINT_DisableCallback_isr(hDisplay->hCompositor->ahCallback[i]);
-            BINT_ClearCallback_isr(hDisplay->hCompositor->ahCallback[i]);
+            hDisplay->eState = BVDC_P_State_eInactive;
+            for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
+            {
+                BRDC_Slot_Disable_isr(hDisplay->hCompositor->ahSlot[i]);
+            }
+
+            for(i = 0; i < BVDC_P_CMP_MAX_SLOT_COUNT; i++)
+            {
+                BINT_DisableCallback_isr(hDisplay->hCompositor->ahCallback[i]);
+                BINT_ClearCallback_isr(hDisplay->hCompositor->ahCallback[i]);
+            }
         }
 
         /* Free all the resources
@@ -1763,32 +1784,21 @@ void BVDC_P_Display_ApplyChanges_isr
 #endif
 #endif
 
-#if BVDC_P_SUPPORT_STG
-        if ((hDisplay->stStgChan.ulStg != BVDC_P_HW_ID_INVALID))
-        {
-            uint32_t  ulRegOffset = 0;
-            if(BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg))
-                ulRegOffset = (hDisplay->eMasterTg - BVDC_DisplayTg_eStg0) * sizeof(uint32_t);
-            else /* Slave mode */
-                ulRegOffset = hDisplay->stStgChan.ulStg * sizeof(uint32_t);
-            BREG_Write32(hDisplay->hVdc->hRegister,
-                BCHP_VEC_CFG_STG_0_SOURCE + ulRegOffset, BCHP_VEC_CFG_STG_0_SOURCE_SOURCE_DISABLE);
-        }
-        BVDC_P_FreeStgChanResources_isr(hDisplay->hCompositor->hVdc->hResource, hDisplay);
-#if BVDC_P_SUPPORT_VIP
-        if(hDisplay->hVip) /* put VIP back to auto drain mode */
-        {
-            #include "bchp_vice2_vip_0_0.h"
-            BREG_Write32_isr(hDisplay->hVdc->hRegister, BCHP_VICE2_VIP_0_0_CONFIG + hDisplay->hVip->ulRegOffset, 0);
-            hDisplay->stCurInfo.hVipHeap = NULL; /* to free vip buffers later */
-        }
-#endif
-#endif
-
         /* Clear dirty bits */
         BVDC_P_CLEAN_ALL_DIRTY(&(hDisplay->stNewInfo.stDirty));
         BVDC_P_CLEAN_ALL_DIRTY(&(hDisplay->stCurInfo.stDirty));
         BVDC_P_CLEAN_ALL_DIRTY(&(hDisplay->stPrevDirty));
+
+#if BVDC_P_SUPPORT_STG /* graceful shutdown STG/VIP; */
+        if (hDisplay->stStgChan.ulStg != BVDC_P_HW_ID_INVALID)
+        {
+            hDisplay->stNewInfo.bEnableStg = false;
+            hDisplay->stNewInfo.stDirty.stBits.bStgEnable = BVDC_P_DIRTY;
+            hDisplay->eStgState = BVDC_P_DisplayResource_eDestroy;
+            hDisplay->eState = BVDC_P_State_eShutDownPending; /* defer inactivation untile STG gracefully shutdowns */
+            BDBG_MSG(("Display %d STG state changed to eShutdownPending", hDisplay->eId));
+        } else
+#endif
 
         return;
     }
@@ -1834,11 +1844,19 @@ void BVDC_P_Display_ApplyChanges_isr
             }
         }
 
+        if (hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc || hDisplay->stCurInfo.stDirty.stBits.bHdmiSettings ||
+            hDisplay->stCurInfo.stDirty.stBits.bHdmiXvYcc ||
+            hDisplay->stCurInfo.stDirty.stBits.bTiming) /* for analogue */
+        {
+            BVDC_P_Compositor_UpdateOutColorSpace_isr(hDisplay->hCompositor, true);
+        }
+
         /* Mark user changes pending. Wait for next vsync ISR to build RUL and
          * clear the flags.
          */
         BKNI_ResetEvent(hDisplay->hAppliedDoneEvent);
         hDisplay->bSetEventPending = true;
+        BDBG_MSG(("Display[%d] setEventPending", hDisplay->eId));
     }
 
     /* No RUL has been executed yet, we've no triggers activated.  Must
@@ -2144,7 +2162,7 @@ void BVDC_P_Vec_BuildVsync_isr
 
 #if (BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_9)
     /* Read DAC detection status register */
-    if(hDisplay->hVdc->bDacDetectionEnable)
+    if(hDisplay->hVdc->bDacDetectionEnable && pCurInfo->uiNumDacsOn > 0)
     {
 #if BVDC_P_VEC_CABLE_DETECT_SW_WORKAROUND
         if(hDisplay->eId == BVDC_DisplayId_eDisplay0)
@@ -2513,14 +2531,12 @@ void  BVDC_P_Display_SetSourceInfo_isr
         hDisplay->bCmpBypassDviCsc = pSrcInfo->bBypassDviCsc;
         hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc = BVDC_P_DIRTY;
     }
-
-    if (hDisplay->stCurInfo.eCmpMatrixCoeffs != pSrcInfo->eCmpMatrixCoeffs)
+    if (hDisplay->stCurInfo.eCmpColorimetry != pSrcInfo->eCmpColorimetry)
     {
-        hDisplay->stNewInfo.eCmpMatrixCoeffs = pSrcInfo->eCmpMatrixCoeffs;
-        hDisplay->stCurInfo.eCmpMatrixCoeffs = pSrcInfo->eCmpMatrixCoeffs;
+        hDisplay->stNewInfo.eCmpColorimetry = pSrcInfo->eCmpColorimetry;
+        hDisplay->stCurInfo.eCmpColorimetry = pSrcInfo->eCmpColorimetry;
         hDisplay->stCurInfo.stDirty.stBits.bInputCS = BVDC_P_DIRTY;
     }
-
     if (hDisplay->stCurInfo.bFullRate!= pSrcInfo->bFullRate)
     {
         hDisplay->stCurInfo.bFullRate = pSrcInfo->bFullRate;

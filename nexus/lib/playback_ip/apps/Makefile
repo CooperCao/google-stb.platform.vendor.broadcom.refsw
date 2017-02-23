@@ -1,53 +1,40 @@
-############################################################
-#     (c)2008-2016 Broadcom Corporation
-#
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-#  and may only be used, duplicated, modified or distributed pursuant to the terms and
-#  conditions of a separate, written license agreement executed between you and Broadcom
-#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-#  no license (express or implied), right to use, or waiver of any kind with respect to the
-#  Software, and Broadcom expressly reserves all rights in and to the Software and all
-#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#
-#  Except as expressly set forth in the Authorized License,
-#
-#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-#  and to use this information only in connection with your use of Broadcom integrated circuit products.
-#
-#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-#  USE OR PERFORMANCE OF THE SOFTWARE.
-#
-#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-#  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
-############################################################
-
+#***************************************************************************
+#*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+#*
+#*  This program is the proprietary software of Broadcom and/or its licensors,
+#*  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#*  conditions of a separate, written license agreement executed between you and Broadcom
+#*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#*  no license (express or implied), right to use, or waiver of any kind with respect to the
+#*  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#*
+#*  Except as expressly set forth in the Authorized License,
+#*
+#*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#*  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#*
+#*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#*  USE OR PERFORMANCE OF THE SOFTWARE.
+#*
+#*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#*  ANY LIMITED REMEDY.
+#**************************************************************************
 SHELL := /bin/bash
 
 B_THIS_DIR:=nexus/lib/playback_ip/apps
@@ -85,7 +72,6 @@ IP_APPLIB_TEST_ODIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/playback_ip/apps
 BSEAV := $(NEXUS_TOP)/../BSEAV
 BSEAV_BIN_DIR = ${B_REFSW_OBJ_ROOT}/BSEAV/bin
 
-B_PSIP_TOP := $(NEXUS_TOP)/../rockford/lib/psip
 B_MPOD_TOP := $(NEXUS_TOP)/../rockford/lib/ocap/mpod
 B_MPOD_DRIVERDIR = $(B_MPOD_TOP)/src/driver/build/bcm$(NEXUS_PLATFORM)$(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')/linux
 
@@ -143,7 +129,7 @@ ifeq ($(USE_HTTP_CHUNK_ENCODING),y)
 endif
 
 # Get OpenSSl make defines
-include $(BSEAV)/lib/openssl/openssl.inc
+include $(BSEAV)/opensource/openssl/openssl.inc
 
 ifeq ($(RAD_EA_SUPPORT), y)
     CFLAGS += -DB_HAS_RAD_EA
@@ -157,7 +143,6 @@ include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_lib.inc
 IP_APPLIB_TEST_LDFLAGS += $(PLAYBACK_IP_LDFLAGS)
 
 include $(NEXUS_TOP)/lib/os/b_os_lib.inc
-include $(B_PSIP_TOP)/b_psip_lib.inc
 
 ifeq ($(STREAMER_CABLECARD_SUPPORT),y)
     ESTB_CFG_SUPPORT=y
@@ -190,6 +175,7 @@ IP_APPLIB_TEST_INCLUDE_PATH += \
     $(BSEAV)/lib/netaccel/include \
     $(BSEAV)/lib/media \
     $(BSEAV)/lib/bfile \
+	$(BSEAV)/lib/tspsi2/ \
 
 ifeq ($(DTCP_IP_SUPPORT),y)
     ifeq ($(DTCP_IP_SAGE_SUPPORT),y)
@@ -236,11 +222,13 @@ IP_APPLIB_TEST_DEFINES += MAJOR_VERSION=0 MINOR_VERSION=0 SUB_VERSION=1
 IP_CLIENT_APP = ip_client
 IP_CLIENT_SRCS = \
     ip_client.c \
-    ip_psi.c
+    ip_psi.c	\
+	$(BSEAV)/lib/tspsi2/tspsimgr2.c
 
 IP_CLIENT_FCC_APP = ip_client_fcc
 IP_CLIENT_FCC_SRCS = \
-    ip_client_fcc.c
+    ip_client_fcc.c	\
+	$(BSEAV)/lib/tspsi2/tspsimgr2.c
 
 IP_STREAMER_APP = ip_streamer
 IP_STREAMER_SRCS = \
@@ -259,7 +247,8 @@ IP_STREAMER_SRCS += \
     ip_streamer_ip_src.c \
     ip_streamer_ip_dst.c \
     ip_streamer_diags.c \
-    ip_streamer_rec_dst.c
+    ip_streamer_rec_dst.c \
+	$(BSEAV)/lib/tspsi2/tspsimgr2.c
 
 ifeq ($(VIDEO_ENCODER_SUPPORT),y)
     IP_STREAMER_SRCS += \
@@ -367,7 +356,6 @@ endif #DTCP_IP_SAGE_SUPPORT
 
 SUBLIBS += tshdrbuilder
 SUBLIBS += playback_ip
-SUBLIBS += psip
 
 ifeq ($(STREAMER_CABLECARD_SUPPORT),y)
     SUBLIBS += cablecard
@@ -562,7 +550,7 @@ livemedia:
 	$(B_TRACE_RECIPE_BEGIN)
     ifneq ($(LIVEMEDIA_SUPPORT),n)
 		@echo "[Build... livemedia]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia
+		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/opensource/livemedia
     endif #LIVEMEDIA_SUPPORT
 	$(B_TRACE_RECIPE_END)
 
@@ -571,7 +559,7 @@ clean_livemedia:
 	$(B_TRACE_RECIPE_BEGIN)
     ifneq ($(LIVEMEDIA_SUPPORT),n)
 		@echo "[Clean... livemedia]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia  clean
+		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/opensource/livemedia  clean
     endif #LIVEMEDIA_SUPPORT
 	$(B_TRACE_RECIPE_END)
 
@@ -584,7 +572,7 @@ blive_ext:          livemedia  # Can't build blive_ext until livemedia is build
 	$(B_TRACE_RECIPE_BEGIN)
     ifneq ($(LIVEMEDIA_SUPPORT),n)
 		@echo "[Build... blive_ext]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia/blive_ext/build
+		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/opensource/livemedia/blive_ext/build
     endif #LIVEMEDIA_SUPPORT
 	$(B_TRACE_RECIPE_END)
 
@@ -593,7 +581,7 @@ clean_blive_ext:
 	$(B_TRACE_RECIPE_BEGIN)
     ifneq ($(LIVEMEDIA_SUPPORT),n)
 		@echo "[Clean... blive_ext]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia/blive_ext/build clean
+		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/opensource/livemedia/blive_ext/build clean
     endif #LIVEMEDIA_SUPPORT
 	$(B_TRACE_RECIPE_END)
 
@@ -614,25 +602,6 @@ clean_tshdrbuilder:
 	@echo "[Clean... tshdrbuilder]"
 	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder clean
 	$(B_TRACE_RECIPE_END)
-
-
-###############################################################################
-#  psip Targets  ("psip", "clean_psip").
-###############################################################################
-.PHONY: psip
-psip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... psip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../rockford/lib/psip install
-	$(B_TRACE_RECIPE_END)
-
-.PHONY: clean_psip
-clean_psip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... psip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../rockford/lib/psip clean
-	$(B_TRACE_RECIPE_END)
-
 
 ###############################################################################
 #  dtcp_ip Targets  ("dtcp_ip", "clean_dtcp_ip").
@@ -814,7 +783,7 @@ $(NEXUS_BIN_DIR)/%crypto.so  $(NEXUS_BIN_DIR)/%ssl.so:   $(B_OPENSSL_LIB_INSTALL
 $(B_OPENSSL_LIB_INSTALL_DIR)/%crypto.so $(B_OPENSSL_LIB_INSTALL_DIR)/%ssl.so:
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Build... OpenSSL]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/openssl
+	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/opensource/openssl
 	$(B_TRACE_RECIPE_END)
 
 $(NEXUS_BIN_DIR)/$(SSL_CERT_FILE):  $(NEXUS_TOP)/lib/playback_ip/apps/$(SSL_CERT_FILE)
@@ -836,7 +805,7 @@ clean_openssl:
 	$(B_TRACE_RECIPE_BEGIN)
 ifneq ($(B_REFSW_OPENSSL_IS_EXTERNAL),y)
 	@echo "[Clean... OpenSSL]"
-	$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/openssl clean target-clean
+	$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/opensource/openssl clean target-clean
 	@rm -f $(NEXUS_BIN_DIR)/libcrypto.so*
 	@rm -f $(NEXUS_BIN_DIR)/libssl.so**
 	@rm -f $(NEXUS_BIN_DIR)/$(SSL_CERT_FILE)

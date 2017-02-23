@@ -32,7 +32,7 @@ class SpyToolReplay;
 
 // The latest version of the binary capture format we support
 #define CAPTURE_MAJOR_VER 1
-#define CAPTURE_MINOR_VER 4
+#define CAPTURE_MINOR_VER 5
 
 class Loader;
 
@@ -65,6 +65,7 @@ private:
    bool    ReadCommand(Command *cmd);
    void    PrimeBuffer();
    bool    FillBuffer(bool print);
+   bool    CaptureHasPointerSize();
 
 private:
    enum

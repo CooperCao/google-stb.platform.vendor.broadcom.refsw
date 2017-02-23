@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -170,6 +170,9 @@ static const BXVD_ChannelSettings s_stDefaultChannelSettings =
 
 #define BXVD_DECODESETTINGS_SIGNATURE INT32_C (0xeeeea1a1)
 
+/* SWSTB-3450: moved the initialization to BXVD_S_GetDecodeDefaultSettings */
+
+#if 0
 /* Default channel settings */
 static const BXVD_DecodeSettings s_stDefaultDecodeSettings =
 {
@@ -217,8 +220,23 @@ static const BXVD_DecodeSettings s_stDefaultDecodeSettings =
    false,                                 /* Disable Userdata in BTP mode */
    false,                                 /* Disable NRT decode mode */
    BXVD_PCRDiscontinuityMode_eDrop,       /* SWSTB-68: ePCRDiscontinuityModeAtStartup default to drop */
-   0                                      /* SWSTB-439: default error level is 0 */
+   0,                                     /* SWSTB-439: default error level is 0 */
+
+   {{          /* SWSTB-3450: default values for BXDM_PictureProvider_StartSettings. */
+      false,
+      BAVC_TransferCharacteristics_eUnknown,
+      {
+         0,
+         0,
+         {{0xFFFFFFFF,0xFFFFFFFF},{0xFFFFFFFF, 0xFFFFFFFF},{0xFFFFFFFF, 0xFFFFFFFF}},
+         {0xFFFFFFFF, 0xFFFFFFFF},
+         0xFFFFFFFF,
+         0xFFFFFFFF,
+         BAVC_TransferCharacteristics_eUnknown,
+      },
+   }}
 };
+#endif
 
 /* Default device VDC interrupt settings */
 static const BXVD_DeviceVdcInterruptSettings  s_stDefaultDevVdcIntrSettings =
@@ -1085,13 +1103,15 @@ BERR_Code BXVD_GetChannelDefaultSettings(BXVD_Handle          hXvd,
 BXVD_GetDecodeDefaultSettings:  Gets the default settings of the desired
                                 Decoder
 ****************************************************************************/
-BERR_Code BXVD_GetDecodeDefaultSettings
+static BERR_Code BXVD_S_GetDecodeDefaultSettings
 (
-   BXVD_ChannelHandle   hXvdCh,             /* [in] XVD channel handle */
-   BXVD_DecodeSettings  *pDecodeDefSettings /* [out] default channel settings */
-   )
+   BXVD_ChannelHandle   hXvdCh,              /* [in] XVD channel handle */
+   BXVD_DecodeSettings  *pDecodeDefSettings, /* [out] default channel settings */
+   bool                 bCompatibilityMode   /* [in] support backwards compatibility */
+)
 {
-   BDBG_ENTER(BXVD_GetDecodeDefaultSettings);
+   uint32_t i;
+   BDBG_ENTER(BXVD_S_GetDecodeDefaultSettings);
 
    BDBG_ASSERT(hXvdCh);
    BDBG_ASSERT(pDecodeDefSettings);
@@ -1103,9 +1123,94 @@ BERR_Code BXVD_GetDecodeDefaultSettings
       return BERR_TRACE(BXVD_ERR_INVALID_HANDLE);
    }
 
-   BKNI_Memcpy((void *)pDecodeDefSettings,
-               (void *)&s_stDefaultDecodeSettings,
-               sizeof(BXVD_DecodeSettings));
+   /* SWSTB-3450: get rid of s_stDefaultDecodeSettings to make it easier to
+    * add/initialize elements in the stXDMSettings sub structure.
+    *
+    * There was code  BXVD_StartDecode to initialize the default BXVD_DecodeSettings
+    * structure if BXVD_GetDecodeDefaultSettings had not been called.
+    * This code initialized a limited number of elements in the default BXVD_DecodeSettings.
+    * To maintain backwards compatibility, only initialize this limited number of elements
+    * when this routine is called from BXVD_StartDecode.  This compatibility mode is
+    * required in at least one instance, the code in BXVD_DecodeStillPicture does NOT call
+    * BXVD_GetDecodeDefaultSettings. BXVD_DecodeStillPicture could be updated to use
+    * BXVD_GetDecodeDefaultSettings, but there may still be legacy customer applications
+    * that don't call BXVD_GetDecodeDefaultSettings. */
+
+   if ( false == bCompatibilityMode )
+   {
+      BKNI_Memset( (void *)pDecodeDefSettings, 0, sizeof(BXVD_DecodeSettings) );
+
+      /* Set the default XVD default values. */
+      pDecodeDefSettings->eVideoCmprStd = BAVC_VideoCompressionStd_eMPEG2;    /* Compression Standard */
+      pDecodeDefSettings->ulMultiStreamId = 0;                                /* Deprecated, MultiStreamId */
+      pDecodeDefSettings->ulVideoSubStreamId = 0;                             /* Deprecated, VideoSubStreamId */
+      pDecodeDefSettings->bPlayback = false;                                  /* Playback boolean */
+      pDecodeDefSettings->bCrcMode = false;                                   /* CRCMode boolean */
+      pDecodeDefSettings->stDataXprtOutput.eXptOutputId = 0;                  /* Deprecated, BAVC_XptOutput */
+      pDecodeDefSettings->stDataXprtOutput.eXptSourceId = 0;
+      pDecodeDefSettings->eTimeBase = 0;                                      /* Deprecated, TimeBase */
+      pDecodeDefSettings->pContextMap = NULL;                                 /* Xpt ContextMap, must be specified */
+      for ( i=0; i < BXVD_NUM_EXT_RAVE_CONTEXT; i++ )                         /* Xpt ContextMap Extended, Optional */
+         pDecodeDefSettings->aContextMapExtended[i] = NULL;
+
+      pDecodeDefSettings->uiContextMapExtNum = 0;                             /* Xpt ContextMap Extended Number, Optional */
+      pDecodeDefSettings->eSTC = BXVD_STC_eZero;                              /* STC number, is STC0 for instance 0 and STC1 for instance 1 */;                            /* STC used by this channel */
+
+      pDecodeDefSettings->uiVDCRectangleNum = BXVD_DECODE_MODE_RECT_NUM_INVALID;     /* Rectangle Number, use channel number if invalid */
+
+      pDecodeDefSettings->eHITSMode = BXVD_HITSMode_eDisabled;                /* Disable MPEG HITS Mode */
+      pDecodeDefSettings->bZeroDelayOutputMode = false;                       /* Disable H264 Zero Delay Output Mode */
+      pDecodeDefSettings->eDefaultFrameRate = BAVC_FrameRateCode_eUnknown;    /* FrameRate */
+
+
+      pDecodeDefSettings->bBluRayDecode = false;                              /* Disable Blu-ray decode mode */
+
+      pDecodeDefSettings->eProgressiveOverrideMode = BXVD_ProgressiveOverrideMode_eTopBottom; /* TopBottom 480p/576p/1080p progressive override */
+
+      pDecodeDefSettings->eTimestampMode = BXVD_TimestampMode_eDecode;        /* timestamps are expected in display order */
+      pDecodeDefSettings->bIFrameAsRAP = false;                               /* Don't treat I Frame as RAP for AVC decode */
+      pDecodeDefSettings->bAVCErrorConcealmentMode = false;                   /* AVC error concealment disabled by default */            /* Enable AVC error concealment */
+      pDecodeDefSettings->bIOnlyFieldOutputMode = false;                      /* AVC I only field output mode, disabled by default */
+      pDecodeDefSettings->bIgnoreDPBOutputDelaySyntax = false;                /* SW3556-1058:: conditionally ignore the DPB output delay syntax */
+      pDecodeDefSettings->uiSEIMessageFlags = 0;                              /* SEI Message Flags */
+      pDecodeDefSettings->bPFrameSkipDisable = false;                         /* P frame skip mode enabled */
+
+      pDecodeDefSettings->bExternalPictureProviderMode = false;               /* External picture provider interface NOT in use */
+      pDecodeDefSettings->bAVCAspectRatioOverrideMode = false;                /* Disable AVC Aspect Ratio Override mode */
+      pDecodeDefSettings->bSVC3DModeEnable = false;                           /* Disable 3D decode for SVC protocol */
+      pDecodeDefSettings->bSWCoefAVCDecodeModeEnable = false;                 /* Disable SW Coefficient decode of AVC streams */
+      pDecodeDefSettings->bIgnoreNumReorderFramesEqZero = false;              /* Ignore AVC Num Reorder Frames equal zero */
+
+      pDecodeDefSettings->bEarlyPictureDeliveryMode = false;                  /* Disable Early Picture Delivery Mode */
+      pDecodeDefSettings->pstEnhancedSettings = NULL;                         /* SW7425-1064: with linked channels, BXVD_StartDecode will be called */
+      pDecodeDefSettings->bUserDataBTPModeEnable = false;                     /* Disable Userdata in BTP mode */
+      pDecodeDefSettings->bNRTModeEnable = false;                             /* Disable NRT decode mode */
+
+      pDecodeDefSettings->ePCRDiscontinuityModeAtStartup = BXVD_PCRDiscontinuityMode_eDrop;  /* SWSTB-68: ePCRDiscontinuityModeAtStartup default to drop */
+
+   }/* end of if ( false == bCompatibilityMode )*/
+
+   /* When this routine is called from BXVD_StartDecode, only initialize the
+    * following settings. */
+
+   pDecodeDefSettings->eDisplayInterrupt = BXVD_DisplayInterrupt_eZero;    /* FW PictDataRdy Interrupt to be used by this channel */
+   pDecodeDefSettings->bAstmMode = false;                                  /* Disable DM ASTM mode */
+   pDecodeDefSettings->bVsyncModeOnPcrDiscontinuity = true;                /* Disable DM bVsyncModeOnPcrDiscontinuity */
+   pDecodeDefSettings->uiPreRollRate = 0;                                  /* preroll rate of '0' */
+   pDecodeDefSettings->uiPreRollNumerator = 1;                             /* SW7445-2421: uiPreRollNumerator */
+   pDecodeDefSettings->eErrorHandling = BXVD_ErrorHandling_eOff;           /* picture error handling is off */
+   pDecodeDefSettings->uiErrorThreshold = 0;                               /* SWSTB-439: default error level is 0 */
+   pDecodeDefSettings->eFrameRateDetectionMode = BXVD_FrameRateDetectionMode_eOff;  /* Frame Rate Detection (FRD) is off */
+   pDecodeDefSettings->uiSignature = BXVD_DECODESETTINGS_SIGNATURE;        /* indicates BXVD_S_GetDecodeDefaultSettings has been called */
+
+   /* SWSTB-3450: get the default XDM settings. */
+   if ( NULL != hXvdCh->hPictureProvider )
+   {
+      BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
+         hXvdCh->hPictureProvider,
+         &(pDecodeDefSettings->stXDMSettings)
+         );
+   }
 
    /* AVD0 should use STC0 and AVD1 should use STC1 to maintain
     * backwards compatibility with pre-mosaic firmware */
@@ -1121,9 +1226,32 @@ BERR_Code BXVD_GetDecodeDefaultSettings
    /* VDC Rectangle number defaults to channel number */
    pDecodeDefSettings->uiVDCRectangleNum = hXvdCh->ulChannelNum;
 
-   BDBG_LEAVE(BXVD_GetDecodeDefaultSettings);
+   BDBG_LEAVE(BXVD_S_GetDecodeDefaultSettings);
    return BERR_TRACE(BERR_SUCCESS);
 
+}
+
+
+/* SWSTB-3450: A wrapper around BXVD_S_GetDecodeDefaultSettings to support
+ * backwards compatibility.  See BXVD_S_GetDecodeDefaultSettings for a more
+ * detailed explanation. */
+
+BERR_Code BXVD_GetDecodeDefaultSettings
+(
+   BXVD_ChannelHandle   hXvdCh,             /* [in] XVD channel handle */
+   BXVD_DecodeSettings  *pDecodeDefSettings /* [out] default channel settings */
+   )
+{
+   BDBG_ENTER(BXVD_GetDecodeDefaultSettings);
+
+   BDBG_ASSERT(hXvdCh);
+   BDBG_ASSERT(pDecodeDefSettings);
+
+   BXVD_S_GetDecodeDefaultSettings( hXvdCh, pDecodeDefSettings, false  );
+
+   BDBG_LEAVE(BXVD_GetDecodeDefaultSettings);
+
+   return BERR_TRACE(BERR_SUCCESS);
 }
 
 #if BXVD_P_POWER_MANAGEMENT
@@ -2167,7 +2295,13 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 {
    uint32_t uiContextReg;
    uint32_t uiContextRegExtend[BXVD_NUM_EXT_RAVE_CONTEXT];
-   uint32_t uiCDBBase;
+
+#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+   uint32_t CDBBase;
+#else
+   uint64_t CDBBase;
+#endif
+
    uint32_t uiChannelMode;
 
 #if !BXVD_P_FW_HIM_API
@@ -2176,6 +2310,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    uint32_t uiVecIndex;
    uint32_t i;
+   bool bDQTEnabled = false; /* SW7425-2686 */
 
    BXVD_P_Context *pXvd;
    BXVD_P_Channel *pXvdCh;
@@ -2251,46 +2386,10 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
    {
       BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - No signature found!  Using legacy defaults."));
 
-      /* AVD0 should use STC0 and AVD1 should use STC1 to maintain
-       * backwards compatibility with pre-mosaic firmware */
-      if (pXvd->uDecoderInstance == 0)
-      {
-         pXvdCh->sDecodeSettings.eSTC = BXVD_STC_eZero;
-      }
-      else
-      {
-         pXvdCh->sDecodeSettings.eSTC = BXVD_STC_eOne;
-      }
+      /* SWSTB-3450: call BXVD_S_GetDecodeDefaultSettings
+       * instead of using  s_stDefaultDecodeSettings */
 
-      /* Set the default display interrupt */
-      pXvdCh->sDecodeSettings.eDisplayInterrupt = s_stDefaultDecodeSettings.eDisplayInterrupt;
-
-      /* VDC Rectangle number defaults to channel number */
-      pXvdCh->sDecodeSettings.uiVDCRectangleNum = pXvdCh->ulChannelNum;
-
-      /* Set ASTM Mode to default */
-      pXvdCh->sDecodeSettings.bAstmMode = s_stDefaultDecodeSettings.bAstmMode;
-
-      /* Set Enable auto vsync mode to default */
-      pXvdCh->sDecodeSettings.bVsyncModeOnPcrDiscontinuity = s_stDefaultDecodeSettings.bVsyncModeOnPcrDiscontinuity;
-
-      /* Disable the preroll mode */
-      pXvdCh->sDecodeSettings.uiPreRollRate = s_stDefaultDecodeSettings.uiPreRollRate;
-      pXvdCh->sDecodeSettings.uiPreRollNumerator = s_stDefaultDecodeSettings.uiPreRollNumerator;
-
-      /* Picture error handling is off by default. */
-      pXvdCh->sDecodeSettings.eErrorHandling = s_stDefaultDecodeSettings.eErrorHandling;
-
-      /* SWSTB-439: error level is 0 by default. */
-      pXvdCh->sDecodeSettings.uiErrorThreshold = s_stDefaultDecodeSettings.uiErrorThreshold;
-
-      /* Frame Rate Detection (FRD) is off by default */
-      pXvdCh->sDecodeSettings.eFrameRateDetectionMode = s_stDefaultDecodeSettings.eFrameRateDetectionMode;
-
-      /* Set the signature, so we don't reset the decode settings when
-       * we are re-starting the decode in the case of a watchdog
-       * and/or flush */
-      pXvdCh->sDecodeSettings.uiSignature = BXVD_DECODESETTINGS_SIGNATURE;
+      BXVD_S_GetDecodeDefaultSettings( pXvdCh, &pXvdCh->sDecodeSettings, true  );
    }
 
    /* SW7425-1064: if this is the "enhanced" channel of a pair of linked channels,
@@ -2638,12 +2737,22 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
    uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read)+BXVD_XPT_WR_PTR_OFFSET);
-   uiCDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextReg );
 
-   if (uiCDBBase != (uiCDBBase & (~0xff)))
+#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+   CDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextReg );
+
+   if (CDBBase != (CDBBase & (~0xff)))
    {
-      BXVD_DBG_WRN(pXvdCh, ("CBD Base not 256 byte aligned: 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)uiCDBBase));
+      BXVD_DBG_WRN(pXvdCh, ("CBD Base not 256 byte aligned: 0x%08x", CDBBase));
    }
+#else
+   CDBBase = BXVD_Reg_Read64( pXvdCh->pXvd, uiContextReg );
+
+   if (CDBBase != (CDBBase & (~0xff)))
+   {
+      BXVD_DBG_WRN(pXvdCh, ("CBD Base not 256 byte aligned: " BDBG_UINT64_FMT, BDBG_UINT64_ARG(CDBBase)));
+   }
+#endif
 
 #if !BXVD_P_AVD_ARC600
    {
@@ -2685,13 +2794,22 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       {
          /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
          uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)+BXVD_XPT_WR_PTR_OFFSET);
-         uiCDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextRegExtend[i] );
 
-         if (uiCDBBase != (uiCDBBase & (~0xff)))
+#if  !BXVD_P_CORE_40BIT_ADDRESSABLE
+         CDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextRegExtend[i]);
+
+         if (CDBBase != (CDBBase & (~0xff)))
          {
-            BXVD_DBG_MSG(pXvdCh, ("Extended[%d] CBD Base not 256 byte aligned: 0x%08x", i, uiCDBBase));
+            BXVD_DBG_MSG(pXvdCh, ("Extended[%d] CBD Base not 256 byte aligned: 0x%08x", i, CDBBase));
          }
+#else
+         CDBBase = BXVD_Reg_Read64( pXvdCh->pXvd, uiContextRegExtend[i] );
 
+         if (CDBBase != (CDBBase & (~0xff)))
+         {
+            BXVD_DBG_MSG(pXvdCh, ("Extended[%d] CBD Base not 256 byte aligned: " BDBG_UINT64_FMT, i, BDBG_UINT64_ARG(CDBBase)));
+         }
+#endif
          /* Calculate the register address for the appropriate context */
          uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)-BXVD_XPT_WR_PTR_OFFSET);
 
@@ -2777,8 +2895,12 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       uiChannelMode |= VDEC_CHANNEL_MODE_ENA_IONLY_FIELD_OUTPUT;
    }
 
+   /* SW7425-2686: check for either the original DQT or MP DQT. */
+   bDQTEnabled = pXvdCh->stDecoderContext.bReversePlayback;
+   bDQTEnabled |= ( pXvdCh->stTrickModeSettings.stGopTrickMode.eMode != BXVD_DQTTrickMode_eDisable );
+
    /* If DQT mode is enabled, tell the decoder to use all available resources. */
-   if ( pXvdCh->stDecoderContext.bReversePlayback )
+   if ( true == bDQTEnabled )
    {
       uiChannelMode |= VDEC_CHANNEL_MODE_NON_LEGACY;
    }
@@ -2964,13 +3086,13 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    /* Using uncached address space for picture queue and DMS info */
 
-   uiVirtAddr = pXvdCh->uiFWGenMemBaseUncachedVirtAddr + ((uint32_t)pXvdCh->ulPicBuf - pXvdCh->uiFWGenMemBasePhyAddr);
+   uiVirtAddr = pXvdCh->uiFWGenMemBaseUncachedVirtAddr + ((uint32_t)pXvdCh->ulPicBuf - pXvdCh->FWGenMemBasePhyAddr);
    pXvdCh->stChBufferConfig.AVD_DMS2PI_Buffer.pPictureDeliveryQueue = (BXVD_P_PictureDeliveryQueue *)uiVirtAddr;
 
-   uiVirtAddr = pXvdCh->uiFWGenMemBaseUncachedVirtAddr + ((uint32_t)pXvdCh->ulPicRelBuf - pXvdCh->uiFWGenMemBasePhyAddr);
+   uiVirtAddr = pXvdCh->uiFWGenMemBaseUncachedVirtAddr + ((uint32_t)pXvdCh->ulPicRelBuf - pXvdCh->FWGenMemBasePhyAddr);
    pXvdCh->stChBufferConfig.AVD_DMS2PI_Buffer.pPictureReleaseQueue = (BXVD_P_PictureDeliveryQueue *)uiVirtAddr;
 
-   uiVirtAddr = pXvd->uiFWMemBaseUncachedVirtAddr + ((uint32_t)pXvdCh->ulPicInfoRelBuf - pXvd->uiFWMemBasePhyAddr);
+   uiVirtAddr = pXvd->uiFWMemBaseUncachedVirtAddr + ((uint32_t)pXvdCh->ulPicInfoRelBuf - pXvd->FWMemBasePhyAddr);
    pXvdCh->stChBufferConfig.pAVD_PI2DMS_Buffer = ( BXVD_P_DM2DMSInfo *)uiVirtAddr;
 
 #endif
@@ -3126,7 +3248,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
       if ( ( true == pXvdCh->stDecoderContext.bHostSparseMode )
            || ( BXVD_SkipMode_eDecode_IPB != pXvdCh->eCurrentSkipMode )
-           || ( true == pXvdCh->stDecoderContext.bReversePlayback )
+           || ( true == bDQTEnabled )
          )
       {
          ePictureProviderTrickMode = BXDM_PictureProvider_TrickMode_eSparsePictures;
@@ -3221,10 +3343,13 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 
    /* SW7425-1064: only need to start XDM on "standard" and "base" channels.
     * XDM for the "enhanced" channel is not used.
-    */
+    * SWSTB-3450: switch to the new BXDM_PictureProvider_Start_isr API. */
+
    if ( BXVD_P_ChannelType_eEnhanced != pXvdCh->eChannelType )
    {
-      BXDM_PictureProvider_StartDecode_isr( pXvdCh->hPictureProvider );
+      BXDM_PictureProvider_Start_isr(
+         pXvdCh->hPictureProvider,
+         &psDecodeSettings->stXDMSettings );
    }
 
    BKNI_LeaveCriticalSection();
@@ -3491,7 +3616,11 @@ BERR_Code BXVD_StopDecode(BXVD_ChannelHandle hXvdChannel)
     */
    if ( BXVD_P_ChannelType_eEnhanced != pXvdCh->eChannelType )
    {
-      BXDM_PictureProvider_StopDecode_isr(pXvdCh->hPictureProvider);
+      /* SWSTB-3450: switch to the new BXDM_PictureProvider_Stop_isr API.
+       * BXVD_StopSettings is not currently used. */
+      BXVD_StopSettings stStopSettings;
+
+      BXDM_PictureProvider_Stop_isr( pXvdCh->hPictureProvider, &stStopSettings );
    }
 
    /* SW7425-1064: when stopping, XDM cannot hold onto the last picture.  This is the only
@@ -6159,6 +6288,11 @@ BERR_Code BXVD_EnableInterrupt_isr(
                   BXDM_PictureProvider_Callback_eChunkDone,
                   eEnable
                   );
+         break;
+      case BXVD_Interrupt_eEndOfGOP:
+         /* SW7425-2686: multi-pass DQT: indicates that the end of the GOP has been
+          * reached and the system is beginning reverse playback.*/
+         hXvdCh->stCallbackReq.bEndOfGOP = eEnable;
          break;
       default:
          rc = BERR_INVALID_PARAMETER;
@@ -11436,6 +11570,76 @@ BERR_Code BXVD_DestroyXmo(
    return BERR_TRACE( rc );
 }
 #endif
+
+/***************************************************************************
+Summary:
+   SW7425-2686:  added for multi-pass DQT.  A "generic" API for setting
+   trick modes.
+
+****************************************************************************/
+
+void BXVD_GetDefaultTrickModeSettings(
+   BXVD_TrickModeSettings *pstTrickModeSettings
+   )
+{
+   BDBG_ENTER( BXVD_GetDefaultTrickModeSettings );
+   BDBG_ASSERT(pstTrickModeSettings);
+
+   BKNI_Memset( pstTrickModeSettings, 0, sizeof(BXVD_TrickModeSettings));
+
+   BDBG_LEAVE( BXVD_GetDefaultTrickModeSettings );
+   return;
+}
+
+BERR_Code BXVD_SetTrickModeSettings(
+   BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
+   const BXVD_TrickModeSettings *pstTrickModeSettings
+   )
+{
+   BERR_Code rc=BERR_SUCCESS;
+
+   BDBG_ENTER( BXVD_SetTrickModeSettings );
+
+   BDBG_ASSERT(hXvdCh);
+   BDBG_ASSERT(pstTrickModeSettings);
+
+   if ( pstTrickModeSettings->stGopTrickMode.eMode >= BXVD_DQTTrickMode_eMax )
+   {
+      BXVD_DBG_ERR( hXvdCh, ("%s:: eMode of %d is >= BXVD_DQTTrickMode_eMax",
+                                 __FUNCTION__,
+                                 pstTrickModeSettings->stGopTrickMode.eMode ));
+
+      rc = BERR_INVALID_PARAMETER;
+   }
+   else if ( pstTrickModeSettings->stGopTrickMode.eTargetPTSType >= BXVD_PTSType_eMaxPTSType )
+   {
+      BXVD_DBG_ERR( hXvdCh, ("%s:: eTargetPTSType of %d is >= BXVD_PTSType_eMaxPTSType",
+                                 __FUNCTION__,
+                                 pstTrickModeSettings->stGopTrickMode.eTargetPTSType ));
+
+      rc = BERR_INVALID_PARAMETER;
+   }
+   else
+   {
+      hXvdCh->stTrickModeSettings = *pstTrickModeSettings;
+   }
+
+   BDBG_LEAVE( BXVD_SetTrickModeSettings );
+   return BERR_TRACE(rc);
+}
+
+BERR_Code BXVD_GetTrickModeSettings(
+   BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
+   BXVD_TrickModeSettings *pstTrickModeSettings
+   )
+{
+   BDBG_ENTER( BXVD_GetTrickModeSettings );
+
+   *pstTrickModeSettings = hXvdCh->stTrickModeSettings;
+
+   BDBG_LEAVE( BXVD_GetTrickModeSettings );
+   return BERR_TRACE(BERR_SUCCESS);
+}
 
 /*******************/
 /* Deprecated APIs */

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,17 +86,17 @@
 
 
 bool TraceLog::enabled = false;
-uint32_t TraceLog::tracelogBase = 0;
-uint32_t TraceLog::commandReg = 0;
-uint32_t TraceLog::sentinelBase = 0;
-uint32_t TraceLog::sentinelSize = 0;
+uintptr_t TraceLog::tracelogBase = 0;
+uintptr_t TraceLog::commandReg = 0;
+uintptr_t TraceLog::sentinelBase = 0;
+uintptr_t TraceLog::sentinelSize = 0;
 TzMem::PhysAddr TraceLog::traceBuffPaddr = 0;
 TzMem::VirtAddr TraceLog::traceBuffVaddr = 0;
 
 
 void TraceLog::init(void) {
 
-    uint32_t versionReg = STB_REG_ADDR(STB_MEMC_TRACELOG_VERSION);
+    uintptr_t versionReg = STB_REG_ADDR(STB_MEMC_TRACELOG_VERSION);
 
     if (!versionReg) {
         warn_msg("TraceLog is not supported");
@@ -111,8 +111,8 @@ void TraceLog::init(void) {
     tracelogBase = versionReg;
     commandReg = STB_REG_ADDR(STB_MEMC_TRACELOG_COMMAND);
 
-    uint32_t sentinelStart = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START);
-    uint32_t sentinelEnd = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_END);
+    uintptr_t sentinelStart = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_START);
+    uintptr_t sentinelEnd = STB_REG_ADDR(STB_MEMC_SENTINEL_RANGE_END);
 
     sentinelBase = sentinelStart;
     sentinelSize = (sentinelEnd - sentinelStart) / 4 + 1;
@@ -135,10 +135,10 @@ void TraceLog::init(void) {
 
     // TZIOC shared mem could be mapped to a different address
     traceBuffPaddr = (TzMem::PhysAddr)
-        TzIoc::vaddr2paddr((uint32_t)traceBuffVaddr);
+        TzIoc::vaddr2paddr((uintptr_t)traceBuffVaddr);
 
     // Setup trace buffer
-    STB_REG_WR(STB_MEMC_TRACELOG_BUFFER_PTR, (uint32_t)traceBuffPaddr);
+    STB_REG_WR(STB_MEMC_TRACELOG_BUFFER_PTR, (uintptr_t)traceBuffPaddr);
     STB_REG_WR(STB_MEMC_TRACELOG_BUFFER_PTR_EXT, 0);
     STB_REG_WR(STB_MEMC_TRACELOG_BUFFER_SIZE, PAGE_SIZE_4K_BYTES);
 
@@ -198,7 +198,7 @@ int TraceLog::peerUp(void) {
     cmd.sentinelBase = sentinelBase;
     cmd.sentinelSize = sentinelSize;
 
-    cmd.traceBuffPaddr = (uint32_t)traceBuffPaddr;
+    cmd.traceBuffPaddr = (uintptr_t)traceBuffPaddr;
     cmd.traceBuffSize  = PAGE_SIZE_4K_BYTES;
 
     err = TzIoc::TzIocMsg::send(pClient, &hdr, (uint8_t *)&cmd);
@@ -220,13 +220,17 @@ void TraceLog::inval(void) {
     if (!enabled)
         return;
 
-    uint32_t kvaStart = (uint32_t)traceBuffVaddr;
-    uint32_t kvaLast  = (uint32_t)traceBuffVaddr + PAGE_SIZE_4K_BYTES - 1;
+    uintptr_t kvaStart = (uintptr_t)traceBuffVaddr;
+    uintptr_t kvaLast  = (uintptr_t)traceBuffVaddr + PAGE_SIZE_4K_BYTES - 1;
 
+    // CTR - Cache Type Register
+    register uint32_t ctr;
     register uint32_t mva;
-    for (mva = kvaStart; mva < kvaLast; mva += CORTEX_A15_CACHE_LINE_SIZE) {
+    ARCH_SPECIFIC_GET_CTR(ctr);
+    size_t lineSize = 4 << ((ctr >> 16) & 0xf);
+    for (mva = kvaStart; mva < kvaLast; mva += lineSize) {
         // DCIMVAC - Invalidate data cache by MVA to PoC
-        asm volatile ("mcr p15, 0, %0, c7, c6, 1" : : "r" (mva));
+        ARCH_SPECIFIC_DCIMVAC(mva);
     }
 }
 
@@ -236,10 +240,10 @@ void TraceLog::dump(void) {
         return;
 
     int entries = (STB_REG_RD(STB_MEMC_TRACELOG_BUFFER_WR_PTR) -
-        (uint32_t)traceBuffPaddr) / 16;
+        (uintptr_t)traceBuffPaddr) / 16;
 
     for (int i = 0; i < entries; i++) {
-        uint32_t *data = (uint32_t *)((uint32_t)traceBuffVaddr + 16 * i);
+        uintptr_t *data = (uintptr_t *)((uintptr_t)traceBuffVaddr + 16 * i);
 
         // Tracelog always write in blocks,
         // there may be fewer data.

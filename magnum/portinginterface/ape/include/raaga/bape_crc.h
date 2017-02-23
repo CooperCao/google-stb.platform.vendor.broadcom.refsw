@@ -93,7 +93,7 @@ typedef struct BAPE_CrcOpenSettings
     /*BAPE_CrcSourceType sourceType;*/      /* All open CRC objects must share the same source type */
     unsigned numChannelPairs;           /* Set to 1 for stereo or compressed capture, 3 for 5.1 or 4 for 7.1 */
     size_t bufferSize;                  /* Buffer size in bytes (allocated per channel pair) */
-    BMEM_Handle memHandle;              /* BMEM heap to use for allocation of CRC buffer */
+    BMMA_Heap_Handle memHandle;         /* BMEM heap to use for allocation of CRC buffer */
     unsigned samplingPeriod;            /* Number of samples to accumulate per CRC */
     BAPE_CrcDataWidth dataWidth;        /* Supported values are 16, 20, or 24 bits per sample */
     BAPE_CrcMode mode;                  /* Capture mode */

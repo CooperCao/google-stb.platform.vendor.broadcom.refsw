@@ -50,7 +50,6 @@ ASTRA_TOP := $(shell cd ../../../../astra; pwd)
 endif
 
 NEXUS_C_STD=gnu99
-B_LIB_OBJ_PREFIX := astra/linux/lib
 
 # Include library definitions
 include $(B_LIB_TOP)/build/b_lib_defs.inc
@@ -64,6 +63,10 @@ include $(ASTRA_TOP)/linux/libbcm_astra/libbcm_astra.inc
 # Instruct build system to build only this library and name it libbcm_astra
 B_BUILD_LIBS := LIBBCM_ASTRA
 B_LIB_OUTPUT_NAME := bcm_astra
+
+# Astra Linux lib prefix and directory
+B_LIB_OBJ_PREFIX := astra/linux/libbcm_astra/
+B_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/$(B_LIB_OBJ_PREFIX)$(B_REFSW_ARCH)
 
 # Include library rules
 include $(B_LIB_TOP)/build/b_lib_rules.inc

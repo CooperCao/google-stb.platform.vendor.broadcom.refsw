@@ -1,18 +1,40 @@
-/***************************************************************************
- * Copyright (c)2016 Broadcom
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License, version 2, as
- * published by the Free Software Foundation (the "GPL").
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License version 2 (GPLv2) for more details.
+ * Except as expressly set forth in the Authorized License,
  *
- * You should have received a copy of the GNU General Public License
- * version 2 (GPLv2) along with this source code.
- ***************************************************************************/
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 
 #if defined(CONFIG_SERIAL_BCM_VIRTCONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
 #define SUPPORT_SYSRQ
@@ -69,8 +91,11 @@
 
 #else /* defined(CONFIG_BRCM_SB_BUILD) */
 
-#include <bchp_common.h>
-#include <bchp_hif_top_ctrl.h>
+//#include <bchp_common.h>
+//#include <bchp_hif_top_ctrl.h>
+// TODO: Move these to DT
+#define BCHP_PHYSICAL_OFFSET           0xd0000000
+#define BCHP_HIF_TOP_CTRL_SCRATCH       0x20201b3c
 
 /* loopback mode */
 #define IS_SANDBOX_MODE()               0
@@ -605,10 +630,10 @@ static void __init bcm_early_vconsole_write(struct console *con, const char *s,
 }
 
 static struct console bcm_early_vconsole __initdata = {
-    .name	= BCM_VUART_TTYNAME,
-    .write	= bcm_early_vconsole_write,
-    .flags	= CON_PRINTBUFFER | CON_BOOT,
-    .index	= -1
+    .name   = BCM_VUART_TTYNAME,
+    .write  = bcm_early_vconsole_write,
+    .flags  = CON_PRINTBUFFER | CON_BOOT,
+    .index  = -1
 };
 
 static int bcm_early_vconsole_initialized __initdata;
@@ -820,7 +845,7 @@ static int bcm_vuart_probe(struct platform_device *pdev)
         }
         else {
             /* loopback mode */
-            port->mapbase = (uint32_t)vuart_mem.pvmemTx;
+            port->mapbase = (uintptr_t)vuart_mem.pvmemTx;
         }
 
         for (i = 0; i < NR_VUART_FIFO; i++) {

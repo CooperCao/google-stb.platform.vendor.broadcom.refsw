@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2011 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,23 +34,21 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #ifndef NEXUS_VIDEO_DECODER_SECURITY_H__
 #define NEXUS_VIDEO_DECODER_SECURITY_H__
 
 #include "nexus_video_decoder.h"
 
+#include "bchp_common.h"
+#undef NEXUS_NUM_XVD_DEVICES
+#if defined BCHP_HVD_INTR2_2_REG_START
+#define NEXUS_NUM_XVD_DEVICES 3
+#elif defined BCHP_HVD_INTR2_1_REG_START || defined BCHP_AVD_INTR2_1_REG_START
+#define NEXUS_NUM_XVD_DEVICES 2
+#else
+#define NEXUS_NUM_XVD_DEVICES 1
+#endif
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,13 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * tasksignals.cpp
- *
- *  Created on: Jan 30, 2015
- *      Author: gambhire
- */
 
 #include <hwtimer.h>
 #include <ioctl.h>
@@ -114,7 +107,7 @@ void TzTask::initSignalState() {
     signals[SIGPWR].defaultAction = Terminate;
 
 
-    va = kernelPageTable->reserveAddrRange((void *)KERNEL_HEAP_START, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
+    va = kernelPageTable->reserveAddrRange((void *)KERNEL_LOW_MEMORY, PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
     if (va == nullptr) {
         err_msg("Ran out of user virtual address space\n");
         System::halt();
@@ -467,7 +460,7 @@ bool TzTask::signalDispatch() {
     memset(uctx, 0, sizeof(ucontext_t));
 
     register int dfar;
-    asm volatile("MRC p15, 0, %[rt], c6, c0, 0":[rt] "=r" (dfar)::);
+    ARCH_SPECIFIC_GET_DFAR(dfar);
 
     uctx->uc_stack.ss_sp = (void *)base[SAVED_REG_SP_USR];
     uctx->uc_stack.ss_size = USER_SPACE_STACK_SIZE;

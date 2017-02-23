@@ -1,24 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2008 Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2006-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * BMedia library, H.265/HEVC video elementary stream probe
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *******************************************************************************/
 #include "bstd.h"
 #include "bhevc_video_probe.h"
@@ -61,7 +81,7 @@ struct bmedia_probe_video_hevc_video {
     uint8_t emulation_prention_buf[200];
 };
 
-void
+static void
 b_hevc_video_probe_reset(bmedia_probe_base_es_t probe)
 {
     bhevc_video_probe_t hevc_video = (bhevc_video_probe_t)probe;
@@ -81,7 +101,7 @@ b_hevc_video_probe_reset(bmedia_probe_base_es_t probe)
     return;
 }
 
-bmedia_probe_base_es_t
+static bmedia_probe_base_es_t
 b_hevc_video_probe_create(batom_factory_t factory)
 {
     bhevc_video_probe_t hevc_video;
@@ -104,7 +124,7 @@ err_alloc:
     return NULL;
 }
 
-void
+static void
 b_hevc_video_probe_destroy(bmedia_probe_base_es_t probe)
 {
     bhevc_video_probe_t hevc_video = (bhevc_video_probe_t)probe;
@@ -115,7 +135,7 @@ b_hevc_video_probe_destroy(bmedia_probe_base_es_t probe)
     return;
 }
 
-/* static */ void b_hevc_video_set_frame_mbs_only(bmedia_probe_h265_video *info, bool frame_mbs_only)
+static void b_hevc_video_set_frame_mbs_only(bmedia_probe_h265_video *info, bool frame_mbs_only)
 {
     info->frame_mbs_only = frame_mbs_only;
     return;

@@ -36,7 +36,7 @@
 # ANY LIMITED REMEDY.
 ############################################################
 
-PHONY=all server install clean nexus clean_nexus clean_apps
+PHONY=all server install clean nexus clean_nexus clean_apps nexus_headers
 .PHONY: $(PHONY)
 APPS = nxserver
 
@@ -57,9 +57,10 @@ endif
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 BINDIR := ${B_REFSW_OBJ_ROOT}/nexus/nxclient/server
+MAKEFLAGS += --no-print-directory
 
 ${PHONY} ${APPS}: ${BINDIR}/exists
-	@BINDIR=$(BINDIR) B_REFSW_REAL_MAKE=1 ${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} -f ${CURDIR}/Makefile $@
+	@BINDIR=$(BINDIR) ${MAKE} -C ${BINDIR} B_REFSW_REAL_NEXUS_TOP=${NEXUS_TOP} -f ${CURDIR}/Makefile B_REFSW_REAL_MAKE=1 $@
 
 ${BINDIR}/exists:
 	@mkdir -p $@
@@ -85,11 +86,14 @@ vpath %.c ${NEXUS_TOP}/utils
 CFLAGS += -I${NEXUS_TOP}/utils
 
 all: nxserver
+ifeq ($(NEXUS_HEADERS),y)
+all: nexus_headers
+endif
 
 server: nxserver
 
 IPC :=  ${NEXUS_TOP}/lib/ipc
-CFLAGS += -I${IPC} -I$(BINDIR)/../build/stubs -I$(NEXUS_TOP)/nxclient/server
+CFLAGS += -I${IPC} -I$(BINDIR)/stubs -I$(NEXUS_TOP)/nxclient/server
 EXTRA_OBJS := bipc_util.o bipc_server.o bipc_client.o
 vpath %.c ${IPC}
 
@@ -102,7 +106,6 @@ endif
 
 unexport BINDIR
 clean: clean_nexus clean_apps
-	@B_REFSW_REAL_MAKE= $(MAKE) -C $(NEXUS_TOP)/nxclient/build clean
 
 ifeq ($(NEXUS_PREBUILT_BINARY),y)
 SKIP_NEXUS := y
@@ -115,13 +118,14 @@ nexus:
 clean_nexus:
 else
 nexus:
-	$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build
+	${Q_}$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build
 clean_nexus:
-	$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build clean
+	${Q_}$(MAKE) $(NEXUS_BUILD_OPTIONS) -C $(NEXUS_TOP)/build clean
 endif
 
 clean_apps:
 	-$(RM) $(APPS) *.d *.o *.a
+	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f $(NEXUS_TOP)/nxclient/server/Makefile.lib clean
 
 # This is the minimum needed to compile and link with Nexus
 CFLAGS += -g $(NEXUS_CFLAGS) ${NEXUS_INTERNAL_CFLAGS} $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix -D,$(NEXUS_APP_DEFINES))
@@ -135,10 +139,10 @@ CFLAGS += -fPIC
 
 -include *.d
 
-nxserver nxserverlib_ipc.o: $(NXCLIENT_SHARED_LIB)
+nxserver nxserverlib_ipc.o nxserverlib_ipc_verify.o: $(NXCLIENT_SHARED_LIB)
 
 $(NXCLIENT_SHARED_LIB): nexus
-	@B_REFSW_REAL_MAKE= $(MAKE) -C $(NEXUS_TOP)/nxclient/build
+	${Q_}BINDIR=$(BINDIR) NEXUS_TOP=$(NEXUS_TOP) $(MAKE) -f $(NEXUS_TOP)/nxclient/server/Makefile.lib
 
 ifeq ($(B_REFSW_ANDROID),y)
 include $(NEXUS_TOP)/build/android.inc
@@ -158,11 +162,12 @@ NXSERVER_SRC = \
 NXCLIENT_SOCKET_INTF ?= $(NEXUS_TOP)/nxclient/server/nxclient_socket.c
 vpath %.c $(dir $(NXCLIENT_SOCKET_INTF))
 
-NXSERVERLIB_SRCS = \
+NXSERVERLIB_SRCS := \
     nxserver.c \
     nxserver_cmdline.c \
     nxserverlib.c \
     nxserverlib_ipc.c \
+    nxserverlib_ipc_verify.c \
     nxserverlib_audio.c \
     nxserverlib_encoder.c \
     nxserverlib_video.c \
@@ -177,6 +182,11 @@ NXSERVERLIB_SRCS = \
 ifneq ($(NXSERVER_CUSTOM_HOOK),)
 CFLAGS += -DNXSERVER_CUSTOM_HOOK=1
 NXSERVERLIB_SRCS += $(NXSERVER_CUSTOM_HOOK)
+endif
+
+ifeq ($(B_REFSW_ARCH), aarch64-linux)
+CFLAGS += -DB_IPC_COMPAT_SUPPORT=1
+NXSERVERLIB_SRCS += nxserverlib_compat.c
 endif
 
 NXSERVERLIB = libnxserver.a
@@ -197,5 +207,10 @@ nxserver: $(patsubst %.c,%.o,$(NXSERVER_SRC)) $(NXSERVERLIB)
 
 install: all
 	$(CP) $(APPS) ${NEXUS_BIN_DIR}
+
+nexus_headers:
+	${Q_}echo Copying header files to ${NEXUS_BIN_DIR}/include
+	${Q_}$(MKDIR) ${NEXUS_BIN_DIR}/include
+	${Q_}${CP} $(NEXUS_TOP)/nxclient/include/* ${NEXUS_BIN_DIR}/include
 
 endif # B_REFSW_REAL_MAKE

@@ -96,7 +96,8 @@ static void BV3D_P_ResetBinner(BV3D_Handle hV3d)
    BREG_Write32(hV3d->hReg, BCHP_V3D_CLE_BFC,   1);            /* Clear binning mode flush count to clear BMACTIVE in PCS */
 
    /* Give the PTB some bogus memory to chew on to clear OOM */
-   BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOA, BV3D_P_BinMemGetOverspill(hV3d->bSecure ? hV3d->hBinMemManagerSecure : hV3d->hBinMemManager));
+   BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOA, BV3D_P_BinMemGetOverspill(hV3d->bSecure && hV3d->hBinMemManagerSecure ?
+      hV3d->hBinMemManagerSecure : hV3d->hBinMemManager));
    BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOS, 8192);
    BREG_Write32(hV3d->hReg, BCHP_V3D_PTB_BPOS, 0);
 

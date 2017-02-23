@@ -56,11 +56,10 @@
 
 #define NEXUS_IPC_ID(module, id) (id)
 typedef struct NEXUS_Ipc_Header {
-   size_t packet_size; /* size of the entire packet, including this header */
+   unsigned packet_size; /* size of the entire packet, including this header */
    unsigned version;
-   unsigned client_id;
    unsigned function_id;
-   int result; /* ipc system rc, not the function's rc */
+   unsigned unused;
 } NEXUS_Ipc_Header;
 
 
@@ -79,6 +78,11 @@ struct nexus_callback_data
 {
     void *interface;
     NEXUS_CallbackDesc callback;
+};
+
+struct nexus_connect_info {
+    unsigned abi; /* sizeof(void *)*8 */
+    NEXUS_ClientAuthenticationSettings auth;
 };
 
 /* manual IPC on main socket */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -61,6 +61,11 @@ TzTask::TaskStartInfo::TaskStartInfo(ElfImage *image, const char *exeName, int n
 
     char *curr = paramsStart;
 
+    //if image is dynamically linked then use loader to start
+    if (image->LinkFlag == true) {
+        exeName = image->ldNamePtr();
+    }
+
     // Copy program name into the param page
     if (!fits(curr, paramsStop, exeName)) {
         err_msg("could not copy exeName. curr %p paramsStop %p\n", curr, paramsStop);
@@ -85,6 +90,13 @@ TzTask::TaskStartInfo::TaskStartInfo(ElfImage *image, const char *exeName, int n
     }
     numArgs = argCount;
 
+    if(!strcmp(progName,MUSL_LINKER_NAME)){
+        numArgs++;
+        argv[numArgs] = 0;
+        for (int i = (numArgs - 1); i > 0; i--)
+            argv[i] = argv[i-1];
+    }
+
     // Copy each environment variable into the param page
     unsigned int envCount = (nenvs < MAX_NUM_ENVS) ? nenvs : MAX_NUM_ENVS;
     for (int i=0; i<envCount; i++) {
@@ -103,26 +115,28 @@ TzTask::TaskStartInfo::TaskStartInfo(ElfImage *image, const char *exeName, int n
     unsigned int phdrCount = image->numProgramHeaders();
     if (phdrCount > MAX_NUM_PROG_HEADERS)
         phdrCount = MAX_NUM_PROG_HEADERS;
-    if ((curr + (phdrCount * sizeof(Elf32_Phdr))) >= paramsStop){
-        err_msg("could not copy program headers %d. curr %p run to %p paramsStop %p\n", phdrCount, curr, curr + (phdrCount * sizeof(Elf32_Phdr)), paramsStop);
+    if ((curr + (phdrCount * sizeof(Elf_Phdr))) >= paramsStop){
+        err_msg("could not copy program headers %d. curr %p run to %p paramsStop %p\n", phdrCount, curr, curr + (phdrCount * sizeof(Elf_Phdr)), paramsStop);
         return;
     }
 
+    if(strcmp(progName,MUSL_LINKER_NAME)){
     for (int i=0; i<phdrCount; i++) {
-        image->programHeader(i, (Elf32_Phdr *)curr);
-        phdrs[i] = (Elf32_Phdr *)curr;
-        curr += sizeof(Elf32_Phdr);
+        image->programHeader(i, (Elf_Phdr *)curr);
+        phdrs[i] = (Elf_Phdr *)curr;
+        curr += sizeof(Elf_Phdr);
+    }
     }
     numProgHeaders = phdrCount;
 
-    // Copy the hardware feature string
-    const char *featureStr = "arm v7 neon vfpv3 tls tzos";
-    if (!fits(curr, paramsStop, featureStr)){
-        err_msg("could not copy featureStr. curr %p paramsStop %p\n", curr, paramsStop);
+    // hardware capability bit field value
+    if ((curr + (sizeof(unsigned int))) >= paramsStop){
+        err_msg("could not copy hwCaps %d. curr %p run to %p paramsStop %p\n", hwCaps, curr, curr + (sizeof(unsigned int)), paramsStop);
         return;
     }
-    strcpy(curr, featureStr);
-    features = curr;
+
+    *((unsigned int *) curr) = hwCaps;
+    curr += sizeof(unsigned int);
 
     state = true;
 }
@@ -162,7 +176,7 @@ int TzTask::TaskStartInfo::prepareUserStack(TzMem::VirtAddr userStack) {
 
     // Next put the program header size AT_PHENT entry.
     auxTop->type = AT_PHENT;
-    auxTop->val = sizeof(Elf32_Phdr);
+    auxTop->val = sizeof(Elf_Phdr);
     auxTop--;
 
     // Next put the number of program headers
@@ -171,8 +185,13 @@ int TzTask::TaskStartInfo::prepareUserStack(TzMem::VirtAddr userStack) {
     auxTop--;
 
     // The program headers follow
+    if(!strcmp(progName, MUSL_LINKER_NAME)){
+        auxTop->type = AT_PHDR;
+        auxTop->val = (size_t)(LINKER_LOAD_ADDR+image->phOffset());
+    }else{
     auxTop->type = AT_PHDR;
     auxTop->val = (size_t )toUser(phdrs[0]);
+    }
     auxTop--;
 
     // The page size
@@ -199,7 +218,7 @@ int TzTask::TaskStartInfo::prepareUserStack(TzMem::VirtAddr userStack) {
 
     // Features string entry comes next
     auxTop->type = AT_HWCAP;
-    auxTop->val = (size_t)toUser(features);
+    auxTop->val = hwCaps;
 
     /*
      * Next in the stack come in the envps

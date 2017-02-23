@@ -45,6 +45,9 @@ NXCLIENT_SUPPORT ?= y
 
 USE_CURL ?= y
 
+# This will be turned on after DecryptOpaque is enabled in sage/playready
+USE_PR_DECRYPT_OPAQUE ?= n
+
 # Build the name of this makefile, relative to B_REFSW_TOP (used for recipe tracing)
 # Keep this line before any includes!
 B_THIS_MAKEFILE_NAME := $(subst $(abspath ${NEXUS_TOP}/..),,$(abspath $(lastword $(MAKEFILE_LIST))))
@@ -115,6 +118,13 @@ CFLAGS += -DTARGET_LITTLE_ENDIAN=1
 CFLAGS += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 CFLAGS += -I${BSEAV_TOP}/lib/drmrootfs
 CFLAGS += -I${BSEAV_TOP}/lib/playready/3.0/inc
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+CFLAGS += -DDRM_64BIT_TARGET=1 -D__arch64__
+endif
+endif
+
+ifeq ($(USE_PR_DECRYPT_OPAQUE), y)
+CFLAGS += -DUSE_PR_DECRYPT_OPAQUE
 endif
 
 ifeq ($(USE_CURL),y)

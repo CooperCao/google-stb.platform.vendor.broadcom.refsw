@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -529,14 +529,29 @@ AC3 Channel Coding Mode
 ***************************************************************************/
 typedef enum BAPE_Ac3Acmod
 {
-    BAPE_Ac3Acmod_e1_1,     /* 1+1 Dual Mono */
-    BAPE_Ac3Acmod_e1_0,     /* Center Mono */
-    BAPE_Ac3Acmod_e2_0,     /* Left Right Stereo */
-    BAPE_Ac3Acmod_e3_0,     /* Left, Center, Right */
-    BAPE_Ac3Acmod_e2_1,     /* Left, Right, Surround */
-    BAPE_Ac3Acmod_e3_1,     /* Left, Center, Right, Surround */
-    BAPE_Ac3Acmod_e2_2,     /* Left, Right, LeftSurround, RightSurround */
-    BAPE_Ac3Acmod_e3_2,     /* Left, Center, Right, LeftSurround, RightSurround */
+    BAPE_Ac3Acmod_e1_ch1_ch2,
+    BAPE_Ac3Acmod_e1_0_C,
+    BAPE_Ac3Acmod_e2_0_L_R,
+    BAPE_Ac3Acmod_e3_0_L_C_R,
+    BAPE_Ac3Acmod_e2_1_L_R_S,
+    BAPE_Ac3Acmod_e3_1_L_C_R_S,
+    BAPE_Ac3Acmod_e2_2_L_R_LS_RS,
+    BAPE_Ac3Acmod_e3_2_L_C_R_LS_RS,
+    BAPE_Ac3Acmod_e4_0_L_C_R_CVH,
+    BAPE_Ac3Acmod_e2_3_L_R_LS_RS_TS,
+    BAPE_Ac3Acmod_e3_3_L_R_C_LS_RS_TS,
+    BAPE_Ac3Acmod_e4_2_L_R_C_LS_RS_CVH,
+    BAPE_Ac3Acmod_e5_0_L_R_C_LC_RC,
+    BAPE_Ac3Acmod_e2_4_L_R_LS_RS_LW_RW,
+    BAPE_Ac3Acmod_e4_2_L_R_LS_RS_LVH_RVH,
+    BAPE_Ac3Acmod_e2_4_L_R_LS_RS_LSD_RSD,
+    BAPE_Ac3Acmod_e2_4_L_R_LS_RS_LRS_RRS,
+    BAPE_Ac3Acmod_e5_2_L_R_C_LS_RS_LC_RC,
+    BAPE_Ac3Acmod_e3_4_L_R_C_LS_RS_LW_RW,
+    BAPE_Ac3Acmod_e5_2_L_R_C_LS_RS_LVH_RVH,
+    BAPE_Ac3Acmod_e3_4_L_R_C_LS_RS_LSD_RSD,
+    BAPE_Ac3Acmod_e3_4_L_R_C_LS_RS_LRS_RRS,
+    BAPE_Ac3Acmod_e4_3_L_R_C_LS_RS_TS_CVH,
     BAPE_Ac3Acmod_eMax
 } BAPE_Ac3Acmod;
 

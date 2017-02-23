@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -439,7 +439,7 @@ int astra_file_read(
 
 int astra_call_smc(
     astra_client_handle hClient,
-    uint8_t ucMode)
+    uint32_t ucMode)
 {
     struct astra_client *pClient = (struct astra_client *)hClient;
 

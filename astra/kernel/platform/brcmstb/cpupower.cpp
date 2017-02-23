@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,14 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * cpupower.cpp
- *
- *  Created on: Mar 6, 2015
- *      Author: gambhire
- */
-
 #include <cstdint>
 
 #include "config.h"
@@ -73,8 +65,8 @@ enum {
 };
 
 static void cpuPowerOn(int cpuNum) {
-    uint32_t power_zone_base = STB_REG_ADDR(STB_HIF_CPUBIUCTRL_CPU0_PWR_ZONE_CNTRL_REG);
-    uint32_t power_zone_reg = power_zone_base + (cpuNum * 4);
+    uintptr_t power_zone_base = STB_REG_ADDR(STB_HIF_CPUBIUCTRL_CPU0_PWR_ZONE_CNTRL_REG);
+    uintptr_t power_zone_reg = power_zone_base + (cpuNum * 4);
 
 #ifdef AUTO_POWER_ON_SEQ
     REG_WR(power_zone_reg, ZONE_PWR_UP_REQ_MASK);
@@ -87,15 +79,15 @@ static void cpuPowerOn(int cpuNum) {
                28nm chips except for 7445a0 */
     uint32_t reg_val = REG_RD(power_zone_reg);
     reg_val = (reg_val & 0xffffff00) | ZONE_MAN_ISO_CNTL_MASK;
-    REG_WR(power_zone_reg, reg_val);
+    STB_REG_WR(power_zone_reg, reg_val);
 
     reg_val = REG_RD(power_zone_reg);
     reg_val = (reg_val & 0xffffffff) | ZONE_MANUAL_CONTROL_MASK;
-    REG_WR(power_zone_reg, reg_val);
+    STB_REG_WR(power_zone_reg, reg_val);
 
     reg_val = REG_RD(power_zone_reg);
     reg_val = (reg_val & 0xffffffff) | ZONE_RESERVED_1_MASK;
-    REG_WR(power_zone_reg, reg_val);
+    STB_REG_WR(power_zone_reg, reg_val);
 
     reg_val = REG_RD(power_zone_reg);
     reg_val = (reg_val & 0xffffffff) | ZONE_MAN_MEM_PWR_MASK;
@@ -107,7 +99,7 @@ static void cpuPowerOn(int cpuNum) {
 
     reg_val = REG_RD(power_zone_reg);
     reg_val = (reg_val & 0xffffffff) | ZONE_MAN_CLKEN_MASK;
-    REG_WR(power_zone_reg, reg_val);
+    STB_REG_WR(power_zone_reg, reg_val);
 
     val = REG_RD(power_zone_reg);
     while (!(val & ZONE_DPG_PWR_STATE_MASK))
@@ -128,9 +120,9 @@ static void cpuBoot(int cpuNum, void *physBootAddr) {
 
     STB_REG_WR_OFFSET(STB_HIF_CONTINUATION_STB_BOOT_HI_ADDR0, offset, 0);
 
-    STB_REG_WR_OFFSET(STB_HIF_CONTINUATION_STB_BOOT_ADDR0, offset, (unsigned long)physBootAddr);
+    STB_REG_WR_OFFSET(STB_HIF_CONTINUATION_STB_BOOT_ADDR0, offset, (uintptr_t)physBootAddr);
 
-    asm volatile ("dsb\r\n isb":::"memory");
+    ARCH_SPECIFIC_MEMORY_BARRIER;
 
     STB_REG_FLD_CLR(STB_HIF_CPUBIUCTRL_CPU_RESET_CONFIG_REG, BIT(cpuNum));
 }

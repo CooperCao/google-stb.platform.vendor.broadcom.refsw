@@ -581,7 +581,7 @@ bmkv_EditionEntry_init(bmkv_EditionEntry *edition_entry)
 /* size of read transaction for the data stream */
 #define B_MKV_PROBE_DATA_BLOCK_SIZE (60*1024)
 
-uint8_t *
+static uint8_t *
 b_mkv_probe_copy_string(uint8_t *buf, const bmkv_utf8 *utf8)
 {
     BKNI_Memcpy(buf, utf8->utf8_data, utf8->utf8_len);

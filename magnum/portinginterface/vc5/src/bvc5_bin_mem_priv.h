@@ -40,7 +40,6 @@
 #ifndef __BVC5_BIN_MEM_PRIV_H__
 #define __BVC5_BIN_MEM_PRIV_H__
 
-#include "bmem.h"
 #include "bvc5_bin_pool_priv.h"
 
 /* BVC5_P_BinMemArray

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,9 +34,8 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
 ******************************************************************************/
-#if NEXUS_HAS_DISPLAY && NEXUS_HAS_SIMPLE_DECODER
+#if NEXUS_HAS_DISPLAY && NEXUS_HAS_SIMPLE_DECODER && NEXUS_HAS_STREAM_MUX && !NEXUS_NUM_DSP_VIDEO_ENCODERS
 #include "bstd.h"
 #include "bkni.h"
 #include "nxclient.h"
@@ -54,8 +53,6 @@
 #include <pthread.h>
 
 BDBG_MODULE(encode_graphics_as_video);
-
-#if NEXUS_HAS_STREAM_MUX
 
 /* Uncomment this to run at 15fps instead of 60 */
 #if 1
@@ -219,13 +216,8 @@ int main(int argc, char **argv)
     NEXUS_SimpleVideoDecoder_SetStcChannel(videoDecoder, stcChannel);
 
     NEXUS_SimpleEncoder_GetSettings(encoder, &encoderSettings);
-#if NEXUS_NUM_DSP_VIDEO_ENCODERS && !NEXUS_DSP_ENCODER_ACCELERATOR_SUPPORT
-    encoderSettings.video.width = 720;
-    encoderSettings.video.height = 480;
-#else
     encoderSettings.video.width = 1280;
     encoderSettings.video.height = 720;
-#endif
     encoderSettings.video.interlaced = false;
     switch(framerate) {
     case 30:
@@ -258,7 +250,6 @@ int main(int argc, char **argv)
         encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e60;
         break;
     }
-    printf("Framerate = %u fps\n", framerate);
     NEXUS_SimpleEncoder_SetSettings(encoder, &encoderSettings);
 
     NEXUS_SimpleEncoder_GetDefaultStartSettings(&encStartSettings);
@@ -586,22 +577,15 @@ static void *encoder_thread(void *context)
     return NULL;
 
 }
-
-#else
-
-int main(int argc, char **argv)
-{
-    BSTD_UNUSED(argc);
-    BSTD_UNUSED(argv);
-    fprintf(stderr, "This platform does not support video encoding\n");
-    return 0;
-}
-#endif
 #else
 #include <stdio.h>
 int main(void)
 {
-    printf("This application is not supported on this platform (needs display and simple_decoder)!\n");
+#if NEXUS_NUM_DSP_VIDEO_ENCODERS
+    fprintf(stderr, "DSP encoding does not support graphics\n");
+#else
+    fprintf(stderr, "This platform does not support video encoding\n");
+#endif
     return 0;
 }
 #endif

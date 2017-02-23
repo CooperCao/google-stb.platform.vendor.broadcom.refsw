@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -163,11 +152,7 @@ int main(void)
     NEXUS_Surface_GetDefaultCreateSettings(&createSettings);
     createSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
     createSettings.width = 720; /* The width is fixed to 720 and will be upscaled */
-#if NEXUS_HAS_GFD_VERTICAL_UPSCALE
     createSettings.height = 480; /* The height is fixed to 480 and will be upscaled */
-#else
-    createSettings.height = 1080; /* The maximum height is 1080. For formats with height<1080, we clip. */
-#endif
     createSettings.heap = NEXUS_Platform_GetFramebufferHeap(0);
     framebuffer = NEXUS_Surface_Create(&createSettings);
 
@@ -198,11 +183,7 @@ int main(void)
 
         /* the clipping is the portion of the framebuffer we will use. */
         graphicsSettings.clip.width = 720; /* the difference between clip.width and position.width will trigger a GFD horizontal upscale. */
-#if NEXUS_HAS_GFD_VERTICAL_UPSCALE
         graphicsSettings.clip.height = 480; /* the difference between clip.height and position.height will trigger a GFD vertical upscale. */
-#else
-        graphicsSettings.clip.height = videoFormatInfo.height; /* there is no GFD vertical upscale, so this must equal position.height. */
-#endif
         rc = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
         BDBG_ASSERT(!rc);
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,11 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
-#include "nexus_types.h"
+#include "nexus_platform_module.h"
 #include "nexus_platform_priv.h"
-#include "nexus_platform.h"
 #include "priv/nexus_core.h"
 #include "nexus_platform_features.h"
 #include "nexus_base.h"
@@ -50,6 +48,7 @@ BDBG_MODULE(nexus_platform_frontend);
 
 #if NEXUS_HAS_FRONTEND && (NEXUS_USE_7439_SV || NEXUS_USE_7449S_CWM)
 #include "nexus_frontend.h"
+#include "priv/nexus_frontend_standby_priv.h"
 
 #include "nexus_gpio.h"
 
@@ -65,6 +64,20 @@ static NEXUS_GpioHandle gpioHandleReset = NULL;
 #ifdef NEXUS_PLATFORM_DAUGHTERCARD_USES_SPI
 static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS];
 #endif
+/* Example function to power down or power up SPI or I2C pads on the backend when transitioning to standby. */
+NEXUS_Error NEXUS_Platform_FrontendStandby(NEXUS_FrontendDeviceHandle handle, void *context, const NEXUS_FrontendStandbySettings *pSettings)
+{
+    NEXUS_Error rc = NEXUS_SUCCESS;
+
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(pSettings);
+
+    /* Platform specific SPI and GPIO code goes here */
+
+    return rc;
+}
+
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
@@ -256,8 +269,14 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 }
                 BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
             }
+            if (probeResults.chip.familyId == 0x3158) {
+                NEXUS_FrontendStandbyCallback callback;
+                callback.platformStandby = NEXUS_Platform_FrontendStandby;
+                /* Set platform specific context data */
+                NEXUS_Frontend_SetStandbyCallback_priv(device, &callback);
+            }
         } else {
-            BDBG_ERR(("No frontend found."));
+            BDBG_WRN(("No frontend found."));
         }
     }
 
@@ -295,6 +314,7 @@ void NEXUS_Platform_UninitFrontend(void)
     {
         if (deviceHandles[i])
         {
+            NEXUS_Frontend_SetStandbyCallback_priv(deviceHandles[i], NULL);
             NEXUS_FrontendDevice_Close(deviceHandles[i]);
             deviceHandles[i] = NULL;
         }
@@ -396,7 +416,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
             }
         } else {
-            BDBG_ERR(("No frontend found."));
+            BDBG_WRN(("No frontend found."));
         }
     }
 
@@ -1198,7 +1218,3 @@ NEXUS_FrontendHandle NEXUS_Platform_OpenFrontend(
     BSTD_UNUSED(id);
     return NULL;
 }
-
-
-
-

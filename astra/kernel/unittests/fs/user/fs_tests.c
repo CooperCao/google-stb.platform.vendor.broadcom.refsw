@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,12 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * fs_tests.c
- *
- *  Created on: Feb 24, 2015
- *      Author: gambhire
- */
 
 #include <unistd.h>
 #include <stdio.h>
@@ -408,7 +402,8 @@ static void ramfsTests() {
     close(fd);
 
     fd = open("/this/is/an///invalid/path", O_RDONLY);
-    assert(fd < 0); perror("Invalid path test 2: ");
+    assert(fd < 0);
+    //perror("Invalid path test 2: ");
 
     printf("directory resolution tests passed\n");
 }
@@ -456,7 +451,8 @@ static void cwdTests() {
     close(fd);
 
     rc = chdir("/this/is/not/a/valid/path");
-    assert(rc != 0); perror("bad path chdir test: ");
+    assert(rc != 0);
+    //perror("bad path chdir test: ");
 
     printf("cwdTests passed\n");
 }
@@ -471,7 +467,8 @@ static void renameTests() {
     close(fd);
 
     fd = open("/unittests/memory/init/kernel_init.cpp", O_RDONLY);
-    assert(fd <= 0); perror("renameTests - attempted open on old name: ");
+    assert(fd <= 0);
+    //perror("renameTests - attempted open on old name: ");
 
     rc = rename("/process/kernel_init.cpp","/unittests/memory/init/kernel_init.cpp");
     assert(rc == 0);
@@ -489,7 +486,8 @@ static void renameTests() {
     close(fd);
 
     fd = open("/unittests/memory/init/kernel_init.cpp", O_RDONLY);
-    assert(fd <= 0); perror("renameTests - attempted open on old name: ");
+    assert(fd <= 0);
+    //perror("renameTests - attempted open on old name: ");
 
     rc = rename("/process/init", "/unittests/memory/init");
     assert(rc == 0);
@@ -567,25 +565,27 @@ static void statTests() {
     int rc = stat("/unittests/memory/init/kernel_init.cpp", &statBuf);
     assert(rc == 0);
     printf("stat:\n");
-    printf("\tst_dev: %lld\n", statBuf.st_dev);
+    printf("\tst_dev: %zd\n", (size_t)statBuf.st_dev);
     printf("\tst_mode: 0x%x\n", statBuf.st_mode);
     printf("\tst_nlink: %d\n", statBuf.st_nlink);
     printf("\tst_uid: %d\n", statBuf.st_uid);
     printf("\tst_gid: %d\n", statBuf.st_gid);
-    printf("\tst_rdev: %lld\n", statBuf.st_rdev);
-    printf("\tst_size: %lld\n", statBuf.st_size);
+    printf("\tst_rdev: %zd\n", (size_t)statBuf.st_rdev);
+    printf("\tst_size: %zd\n", (size_t)statBuf.st_size);
     printf("\tst_blksize: %d\n", (int)statBuf.st_blksize);
-    printf("\tst_blocks: %lld\n", statBuf.st_blocks);
+    printf("\tst_blocks: %zd\n", (size_t)statBuf.st_blocks);
+#if 0
     printf("\tst_atim %d: %d\n", (int)statBuf.st_atim.tv_sec, (int)statBuf.st_atim.tv_nsec);
     printf("\tst_mtim %d: %d\n", (int)statBuf.st_mtim.tv_sec, (int)statBuf.st_mtim.tv_nsec);
     printf("\tst_ctim %d: %d\n", (int)statBuf.st_ctim.tv_sec, (int)statBuf.st_ctim.tv_nsec);
-    printf("\tst_ino %lld\n", statBuf.st_ino);
+#endif
+    printf("\tst_ino %zd\n", (size_t)statBuf.st_ino);
 
     int fd = open("/unittests/memory/init/kernel_init.cpp", O_RDONLY);
     assert(fd > 0);
 
     size_t len = (size_t)statBuf.st_size;
-    printf("Attempt mmap: size %lld len %d \n", statBuf.st_size, len);
+    printf("Attempt mmap: size %zd len %zd \n", (size_t)statBuf.st_size, len);
     void *mappedAddr = mmap(NULL, len, PROT_READ, MAP_SHARED, fd, 0);
     assert(mappedAddr != NULL);
 
@@ -617,5 +617,6 @@ int main(int argc, char **argv) {
     cwdTests();
     renameTests();
 
+    printf("All tests completed successfully.\n");
     return 0;
 }

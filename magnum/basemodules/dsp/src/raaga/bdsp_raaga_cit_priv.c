@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- ******************************************************************************/
+ *****************************************************************************/
 
 #include "bdsp_raaga_priv.h"
 #include "bdsp_raaga_fw_cit.h"
@@ -236,9 +236,10 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
             BDSP_RaagaStage *pPrimaryStageHandle,
             uint32_t dspIndex,
             BDSP_AF_P_sNODE_CONFIG          *psCit,
-            unsigned *ui32TotalNodes);
+            unsigned *ui32TotalNodes,
+            BDSP_AF_P_eSchedulingGroup eSchedulingGroup);
 
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
+static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
                         BDSP_RaagaTask *pRaagaTask,
                         BDSP_AF_P_sTASK_CONFIG  *psCit,
                         unsigned ui32TotalNodes);
@@ -264,12 +265,10 @@ static uint32_t BDSP_PopulateAlgoMode(
                 BDSP_RaagaStage *pRaagaPrimaryStage,
                 BDSP_CIT_P_sAlgoModePresent *sAlgoModePresent
                 );
-
 static uint32_t  BDSP_CITGEN_P_GetNumZeroFillSamples(
     uint32_t    *pui32ZeroFillSamples,
     BDSP_RaagaStage *pRaagaPrimaryStage
     );
-
 /*Modification*/
 
 static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
@@ -280,18 +279,6 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
                     BDSP_RaagaStage *pPrimaryStageHandle,
                     BDSP_SCM_P_sTASK_CONFIG         *psCit,
                     unsigned *ui32TotalNodes);
-/*- Optional Debug Function Prototype Declarations in CIT-Genn Module ---*/
-
-#ifdef ANALYSIS_IO_GEN_ENABLE
-
-static void BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(
-            BDSP_AF_P_sIO_BUFFER                    *psIoBuffStruct
-        );
-
-static void BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(
-            BDSP_AF_P_sIO_GENERIC_BUFFER            *psToGenericBuffStruct
-        );
-#endif
 
 uint32_t BDSP_P_GenNewCit(void* pTaskHandle)
 {
@@ -316,7 +303,8 @@ uint32_t BDSP_P_GenNewCit(void* pTaskHandle)
                     (void *) pRaagaTask->startSettings.primaryStage->pStageHandle,
                     pRaagaTask->settings.dspIndex,
                     &psCitOp->sCit.sNodeConfig[0]/*BDSP_AF_P_sTASK_CONFIG*/ ,
-                    &ui32TotalNodes);
+                    &ui32TotalNodes,
+                    pRaagaTask->eSchedulingGroup);
 
     if( ui32Err != BERR_SUCCESS || ui32TotalNodes == 0)
     {
@@ -329,7 +317,6 @@ uint32_t BDSP_P_GenNewCit(void* pTaskHandle)
         return(BERR_NOT_SUPPORTED);
     }
     BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
-
     /*  Fill the global task configuration into CIT */
     ui32Err = BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit(
                             (void *) pRaagaTask,
@@ -340,7 +327,6 @@ uint32_t BDSP_P_GenNewCit(void* pTaskHandle)
     {
         goto BDSP_CITGENMODULE_P_EXIT_POINT;
     }
-
 
     /* EXIT Point */
     BDSP_CITGENMODULE_P_EXIT_POINT:
@@ -447,7 +433,6 @@ static uint32_t BDSP_CITGEN_P_FillInputforVideoEncode (BDSP_RaagaTask *pRaagaTas
 
     uint32_t    ui32Error, ui32RegOffset;
     BDSP_RaagaStage *pRaagaPrimaryStage;
-    BDSP_Raaga *pRaagaDevice;
 
     BDBG_ENTER(BDSP_CITGEN_P_FillInputforVideoEncode);
 
@@ -455,7 +440,6 @@ static uint32_t BDSP_CITGEN_P_FillInputforVideoEncode (BDSP_RaagaTask *pRaagaTas
 
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
     pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
-    pRaagaDevice       = (BDSP_Raaga *)pRaagaPrimaryStage->pContext->pDevice;
 
     pRaagaPrimaryStage->sStageInput[0].eNodeValid              = BDSP_AF_P_eValid;
     pRaagaPrimaryStage->sStageInput[0].eConnectionType         = BDSP_ConnectionType_eRDBBuffer;
@@ -504,14 +488,8 @@ static uint32_t BDSP_CITGEN_P_FillInputforVideoEncode (BDSP_RaagaTask *pRaagaTas
 
     pRaagaPrimaryStage->totalInputs++;
 
-    BDSP_MEM_P_ConvertAddressToOffset(pRaagaDevice->memHandle,
-        pRaagaPrimaryStage->sStageInput[0].pIoBuffDesc,
-        &pRaagaPrimaryStage->sStageInput[0].ui32StageIOBuffCfgAddr);
-
-    BDSP_MEM_P_ConvertAddressToOffset(pRaagaDevice->memHandle,
-        pRaagaPrimaryStage->sStageInput[0].pIoGenBuffDesc,
-        &pRaagaPrimaryStage->sStageInput[0].ui32StageIOGenericDataBuffCfgAddr);
-
+    pRaagaPrimaryStage->sStageInput[0].StageIOBuffDescAddr = pRaagaPrimaryStage->sStageInput[0].IoBuffDesc.offset;
+    pRaagaPrimaryStage->sStageInput[0].StageIOGenericBuffDescAddr = pRaagaPrimaryStage->sStageInput[0].IoGenBuffDesc.offset;
     BDBG_LEAVE(BDSP_CITGEN_P_FillInputforVideoEncode);
 
     return ui32Error;
@@ -688,8 +666,7 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
     BDSP_RaagaStage *pRaagaPrimaryStage;
     BDSP_RaagaContext *pRaagaContext;
     BDSP_Raaga *pRaagaDevice;
-
-    void                            *pvRrqAddr=NULL;
+    BDSP_MMA_Memory  vRrqAddr;
     unsigned int                    i=0;
 
 #if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
@@ -721,17 +698,17 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
     /* From base Address of pRaagaTask->hRRQueue fill all the buffers. Fill RRQ in the beginning */
     /* This conversion is done to pass a virtual address as the second argument
         of BDSP_Raaga_P_MemWrite32 */
-    BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                        pRaagaTask->hRRQueue->ui32BaseAddr,
-                                            (void **)&pvRrqAddr);
-
+    vRrqAddr = pRaagaTask->hRRQueue->Memory;
     for(i = 0; i < BDSP_FWMAX_VIDEO_BUFF_AVAIL; i++)
     {
-        BDSP_P_MemWrite32(pRaagaDevice->memHandle,
-            (void *)((uint8_t *)pvRrqAddr+(i*4)),
-            psVEncoderCfgIp->sPPBs[i].ui32DramBufferAddress);
+        ui32Error = BDSP_MMA_P_MemWrite32(&vRrqAddr, psVEncoderCfgIp->sPPBs[i].ui32DramBufferAddress);
+        if(ui32Error != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit: Error in Updating the PPB Dram Buffer Address"));
+            goto end;
+        }
+        vRrqAddr.pAddr = (void *)((uint8_t *)vRrqAddr.pAddr + 4);
     }
-
     /* Common Parameters */
     psGlobalEncodeTaskConfig->ui32MaxFrameHeight = psVEncoderCfgIp->MaxFrameHeight;
     psGlobalEncodeTaskConfig->ui32MaxFrameWidth  = psVEncoderCfgIp->MaxFrameWidth;
@@ -842,6 +819,7 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
     psGlobalEncodeTaskConfig->sRawDataQueues.ui32BufferSizeInBytes
                 = SIZEOF(BDSP_AF_P_sIO_BUFFER);
 
+end:
     BDBG_LEAVE(BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit);
     return ui32Error;
 }
@@ -875,7 +853,8 @@ uint32_t BDSP_P_GenNewVideoCit( void                       *pTaskHandle,
                         pPrimaryStageHandle,
                         pRaagaTask->settings.dspIndex,
                         &psVideoCitOp->uVideoCit.sVideoDecTaskConfig.sNodeConfig[0],
-                        &ui32TotalNodes);
+                        &ui32TotalNodes,
+                        pRaagaTask->eSchedulingGroup);
     }
     else
     {
@@ -886,7 +865,8 @@ uint32_t BDSP_P_GenNewVideoCit( void                       *pTaskHandle,
                         pPrimaryStageHandle,
                         pRaagaTask->settings.dspIndex,
                         &psVideoCitOp->uVideoCit.sVideoEncTaskConfig.sNodeConfig[0],
-                        &ui32TotalNodes);
+                        &ui32TotalNodes,
+                        pRaagaTask->eSchedulingGroup);
     }
     if( ui32Err != BERR_SUCCESS)
     {
@@ -940,7 +920,8 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                     BDSP_RaagaStage *pPrimaryStageHandle,
                     uint32_t dspIndex,
                     BDSP_AF_P_sNODE_CONFIG  *psNodeCfg,
-                    unsigned *ui32TotalNodes)
+                    unsigned *ui32TotalNodes,
+                    BDSP_AF_P_eSchedulingGroup eSchedulingGroup)
 {
 
     uint32_t    errCode;
@@ -951,8 +932,6 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
     bool        collectResidue;
     BDSP_AF_P_sIO_GENERIC_BUFFER *pTempIoGenBuffer_Cached = NULL;
     BDSP_AF_P_sIO_BUFFER         *pTempIoBuffer_Cached = NULL;
-    void        *pTemp;
-
     uint32_t    j, k;
     uint32_t    ui32FmmPortDstCount[BDSP_AF_P_DistinctOpType_eMax] = {0};
 
@@ -1077,7 +1056,6 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                 BDBG_MSG(("ui32NodeIndex=%d", ui32NodeIndex));
                 BDBG_MSG(("sAlgoInfo->algoExecInfo.eAlgoIds[ui32Node]=%d, ui32Node=%d", sAlgoInfo->algoExecInfo.eAlgoIds[ui32Node], ui32Node));
 
-
                 /*  Code Buffer */
                 psNodeCfg->ui32VomAlgoAddr =
                                                 BDSP_sAlgoStartAddr.sVomAlgoStartAddr[psNodeCfg->eAlgoId];
@@ -1088,30 +1066,30 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
 
                 if(ui32Node == 0)
                 {
-
                     /*  Inter-Frame buffer */
                     psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramInterFrameBuffer.ui32DramBufferAddress +
+                                                    (dramaddr_t)pRaagaConnectStage->sDramInterFrameBuffer.Buffer.offset +
                                                     pRaagaConnectStage->sFrameSyncOffset.ui32IfOffset;
                     /*  User Config buffer*/
                     psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramUserConfigBuffer.ui32DramBufferAddress +
+                                                    (dramaddr_t)pRaagaConnectStage->sDramUserConfigBuffer.Buffer.offset +
                                                     pRaagaConnectStage->sFrameSyncOffset.ui32UserCfgOffset;
                     /*  Status buffer*/
                     psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramStatusBuffer.ui32DramBufferAddress +
+                                                    (dramaddr_t)pRaagaConnectStage->sDramStatusBuffer.Buffer.offset +
                                                     pRaagaConnectStage->sFrameSyncOffset.ui32StatusOffset;
+
                 }else if(ui32Node == 1)
                 {
                     /*  Inter-Frame buffer */
                     psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramInterFrameBuffer.ui32DramBufferAddress;
+                                                    pRaagaConnectStage->sDramInterFrameBuffer.Buffer.offset;
                     /*  User Config buffer */
                     psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramUserConfigBuffer.ui32DramBufferAddress;
+                                                    pRaagaConnectStage->sDramUserConfigBuffer.Buffer.offset;
                     /*  Status buffer */
                     psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramStatusBuffer.ui32DramBufferAddress;
+                                                    pRaagaConnectStage->sDramStatusBuffer.Buffer.offset;
                 }
                 else
                 {
@@ -1133,7 +1111,6 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                 psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes =
                                                 pRaagaDevice->imgCache[BDSP_IMG_ID_TABLE(psNodeCfg->eAlgoId)].size;
 
-
                 /*  Num Src and destination for the node */
                 psNodeCfg->ui32NumSrc = pRaagaConnectStage->totalInputs;/*inputs of all type*/
                 psNodeCfg->ui32NumDst = pRaagaConnectStage->totalOutputs; /*Use the modified Dst o/ps*/
@@ -1152,17 +1129,11 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
 
                     if(eNodeValid)
                     {
-                        BDBG_ASSERT(pRaagaConnectStage->sStageInput[ui32Ip].ui32StageIOBuffCfgAddr);
-                        BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                                    pRaagaConnectStage->sStageInput[ui32Ip].ui32StageIOBuffCfgAddr,
-                                                    &pTemp);
-                        pTempIoBuffer_Cached = pTemp;
+                        pTempIoBuffer_Cached = (BDSP_AF_P_sIO_BUFFER *)pRaagaConnectStage->sStageInput[ui32Ip].IoBuffDesc.pAddr;
+                        ui32IOPhysAddr = pRaagaConnectStage->sStageInput[ui32Ip].StageIOBuffDescAddr;
 
-                        BDBG_ASSERT(pRaagaConnectStage->sStageInput[ui32Ip].ui32StageIOGenericDataBuffCfgAddr);
-                        BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                                    pRaagaConnectStage->sStageInput[ui32Ip].ui32StageIOGenericDataBuffCfgAddr,
-                                                    &pTemp);
-                        pTempIoGenBuffer_Cached = pTemp;
+                        pTempIoGenBuffer_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pRaagaConnectStage->sStageInput[ui32Ip].IoGenBuffDesc.pAddr;
+                        ui32IOGenPhysAddr = pRaagaConnectStage->sStageInput[ui32Ip].StageIOGenericBuffDescAddr;
 
                         switch (pRaagaConnectStage->sStageInput[ui32Ip].eConnectionType)
                         {
@@ -1182,51 +1153,42 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                                     pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr=pRaagaConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32WrapAddr;
                                     pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr=pRaagaConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32WriteAddr;
                                 }
-                                BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoGenBuffer_Cached, sizeof(*pTempIoGenBuffer_Cached));
-                                BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoBuffer_Cached, sizeof(*pTempIoBuffer_Cached));
+                                BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
+                                BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
 
-                                pTemp = NULL;
-                                BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                                pRaagaConnectStage->sIdsStageOutput.ui32StageIOGenericDataBuffCfgAddr,
-                                                &pTemp);
-                                pTempIoGenBuffer_Cached = pTemp;
-
-
+                                pTempIoGenBuffer_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pRaagaConnectStage->sIdsStageOutput.IoGenBuffDesc.pAddr;
+                                ui32IOGenPhysAddr = pRaagaConnectStage->sIdsStageOutput.StageIOGenericBuffDescAddr;
                                 BDBG_MSG(("FMM,RAVE,RDB i/p connection,ui32Ip=%d",ui32Ip));
 
                                 break;
                             case BDSP_ConnectionType_eStage:
-
-                                for (i = 0; i < pTempIoBuffer_Cached->ui32NumBuffers; i++)
-                                {
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr
-                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer[i].ui32BaseAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr
-                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer[i].ui32EndAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr
-                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer[i].ui32ReadAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr
-                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer[i].ui32WriteAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr
-                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer[i].ui32WrapAddr;
-                                }
-
-                                pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr
-                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer.ui32BaseAddr;
-                                pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr
-                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer.ui32EndAddr;
-                                pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr
-                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer.ui32ReadAddr;
-                                pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr
-                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer.ui32WriteAddr;
-                                pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr
-                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[pRaagaConnectStage->ui32BranchId].sCircBuffer.ui32WrapAddr;
-                                BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoGenBuffer_Cached, sizeof(*pTempIoGenBuffer_Cached));
-                                BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoBuffer_Cached, sizeof(*pTempIoBuffer_Cached));
-
-                                BDBG_MSG(("Stage ip connection and Branch id of interstage=%d", pRaagaConnectStage->ui32BranchId));
+								for (i = 0; i < pTempIoBuffer_Cached->ui32NumBuffers; i++)
+								{
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr
+										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32BaseAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr
+										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32EndAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr
+										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32ReadAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr
+										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WriteAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr
+										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WrapAddr;
+								}
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr
+									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32BaseAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr
+									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32EndAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr
+									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32ReadAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr
+									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WriteAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr
+									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WrapAddr;
+                                BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
+                                BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
+								BDBG_MSG(("Stage Ip connection and Branch id of interstage=%d", pRaagaConnectStage->ui32BranchId));
                                 break;
-
                             case BDSP_ConnectionType_eInterTaskBuffer:
                                 /* Do nothing for inter task connection as the descriptors are populated
                                 at create inter task buffer and inter task buffer flush */
@@ -1236,17 +1198,6 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                                 BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_CITGEN_P_FillNodeCfgIntoNewCit",pRaagaConnectStage->sStageInput[ui32Ip].eConnectionType));
                                 break;
                         }
-
-                        /*convert to physical and */
-                        BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                                        (void *)pTempIoBuffer_Cached,
-                                                        &ui32IOPhysAddr
-                                                     );
-                        /*convert to physical and */
-                        BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                                        (void *)pTempIoGenBuffer_Cached,
-                                                        &ui32IOGenPhysAddr
-                                                     );
 
                         BDBG_MSG(("ui32Ip= %d of a stage,pRaagaConnectStage->algorithm=%d,ui32IOPhysAddr =%x,ui32IOGenPhysAddr=%x ",ui32Ip, pRaagaConnectStage->algorithm, ui32IOPhysAddr, ui32IOGenPhysAddr));
 
@@ -1266,19 +1217,11 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                     /* The output buffer descriptors for IDS (node 0 of a decode / mixer stage)
                     will always be the inter-stage buffer of branch 0 */
                     BDBG_MSG(("IDS of pRaagaConnectStage->algorithm=%d",pRaagaConnectStage->algorithm));
+                    pTempIoBuffer_Cached = (BDSP_AF_P_sIO_BUFFER *)pRaagaConnectStage->sIdsStageOutput.IoBuffDesc.pAddr;
+                    ui32IOPhysAddr = pRaagaConnectStage->sIdsStageOutput.StageIOBuffDescAddr;
 
-                    pTemp = NULL;
-                    BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                        pRaagaConnectStage->sIdsStageOutput.ui32StageIOBuffCfgAddr,
-                                        &pTemp);
-                    pTempIoBuffer_Cached = pTemp;
-
-                    pTemp = NULL;
-                    BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                        pRaagaConnectStage->sIdsStageOutput.ui32StageIOGenericDataBuffCfgAddr,
-                                        &pTemp);
-                    pTempIoGenBuffer_Cached = pTemp;
-
+                    pTempIoGenBuffer_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pRaagaConnectStage->sIdsStageOutput.IoGenBuffDesc.pAddr;
+                    ui32IOGenPhysAddr = pRaagaConnectStage->sIdsStageOutput.StageIOGenericBuffDescAddr;
 
                     /* Output IO buffer descriptor population */
                     pTempIoBuffer_Cached->eBufferType = BDSP_AF_P_BufferType_eDRAM_IS;
@@ -1289,27 +1232,19 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                     /* Output IO Generic buffer descriptor population */
                     pTempIoGenBuffer_Cached->eBufferType = BDSP_AF_P_BufferType_eDRAM_IS;
                     pTempIoGenBuffer_Cached->ui32NumBuffers = 1;
+                    pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr =
+                            pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][0].IOGenericBuff.sCircBuffer.ui32BaseAddr;
+                    pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr  =
+                                        pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][0].IOGenericBuff.sCircBuffer.ui32EndAddr;
+                    pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr =
+                                        pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][0].IOGenericBuff.sCircBuffer.ui32ReadAddr;
+                    pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr =
+                                        pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][0].IOGenericBuff.sCircBuffer.ui32WrapAddr;
+                    pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr=
+                                        pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][0].IOGenericBuff.sCircBuffer.ui32WriteAddr;
 
-                    pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr=pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[0].sCircBuffer.ui32BaseAddr;
-                    pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr=pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[0].sCircBuffer.ui32EndAddr;
-                    pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr=pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[0].sCircBuffer.ui32ReadAddr;
-                    pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr=pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[0].sCircBuffer.ui32WrapAddr;
-                    pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr=pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[0].sCircBuffer.ui32WriteAddr;
-
-                    BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoGenBuffer_Cached, sizeof(*pTempIoGenBuffer_Cached));
-                    BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoBuffer_Cached, sizeof(*pTempIoBuffer_Cached));
-
-
-                    /*convert to physical and */
-                    BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                                    (void *)pTempIoBuffer_Cached,
-                                                    &ui32IOPhysAddr
-                                                 );
-                    /*convert to physical and */
-                    BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                                    (void *)pTempIoGenBuffer_Cached,
-                                                    &ui32IOGenPhysAddr
-                                                 );
+                    BDSP_MMA_P_FlushCache(pRaagaConnectStage->sIdsStageOutput.IoBuffDesc,sizeof(BDSP_AF_P_sIO_BUFFER));
+                    BDSP_MMA_P_FlushCache(pRaagaConnectStage->sIdsStageOutput.IoGenBuffDesc,sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
                     psNodeCfg->ui32NodeOpBuffCfgAddr[0] = ui32IOPhysAddr;
                     psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[0] = ui32IOGenPhysAddr;
                     psNodeCfg->eNodeOpBuffDataType[0] = BDSP_AF_P_DistinctOpType_eGenericIsData;
@@ -1318,24 +1253,16 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                 }
                 else
                 {
-
                     for( ui32Op=0; ui32Op<BDSP_AF_P_MAX_OP_FORKS; ui32Op++ )
                     {
                         eNodeValid = pRaagaConnectStage->sStageOutput[ui32Op].eNodeValid;
                         if(eNodeValid)
                         {
-                            pTemp = NULL;
-                            BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                                pRaagaConnectStage->sStageOutput[ui32Op].ui32StageIOBuffCfgAddr,
-                                                &pTemp);
-                            pTempIoBuffer_Cached = pTemp;
+                            pTempIoBuffer_Cached = (BDSP_AF_P_sIO_BUFFER *)pRaagaConnectStage->sStageOutput[ui32Op].IoBuffDesc.pAddr;
+                            ui32IOPhysAddr = pRaagaConnectStage->sStageOutput[ui32Op].StageIOBuffDescAddr;
 
-                            pTemp = NULL;
-                            BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                                pRaagaConnectStage->sStageOutput[ui32Op].ui32StageIOGenericDataBuffCfgAddr,
-                                                &pTemp);
-                            pTempIoGenBuffer_Cached = pTemp;
-
+                            pTempIoGenBuffer_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pRaagaConnectStage->sStageOutput[ui32Op].IoGenBuffDesc.pAddr;
+                            ui32IOGenPhysAddr = pRaagaConnectStage->sStageOutput[ui32Op].StageIOGenericBuffDescAddr;
                             switch (pRaagaConnectStage->sStageOutput[ui32Op].eConnectionType)
                             {
                                 case BDSP_ConnectionType_eFmmBuffer:
@@ -1387,31 +1314,18 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                                         pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr=pRaagaConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32WrapAddr;
                                         pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr=pRaagaConnectStage->sStageOutput[ui32Op].IoBuffer.sCircBuffer[i].ui32WriteAddr;
                                     }
-                                    BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoGenBuffer_Cached, sizeof(*pTempIoGenBuffer_Cached));
-                                    BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)pTempIoBuffer_Cached, sizeof(*pTempIoBuffer_Cached));
-
                                     BDBG_MSG(("FMM RAVE RDB output connection"));
                                     break;
 
                                 case BDSP_ConnectionType_eInterTaskBuffer: /* Do nothing as descriptor is populated at inter task buffer create */
-                                case BDSP_ConnectionType_eStage: /*Populated during the Stage I/p itself. Since same descriptor for a stage-stage connection, no need to populate here*/
+                                case BDSP_ConnectionType_eStage: /* Interstage buffer descriptors are shared and gets populated in Input configuration*/
                                     break;
                                 default:
-
                                     BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_CITGEN_P_FillNodeCfgIntoNewCit",pRaagaConnectStage->sStageOutput[ui32Op].eConnectionType));
                                     break;
                             }
-
-                            /*convert to physical and */
-                            BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                                            (void *)pTempIoBuffer_Cached,
-                                                            &ui32IOPhysAddr);
-
-                            /*convert to physical and */
-                            BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                                            (void *)pTempIoGenBuffer_Cached,
-                                                            &ui32IOGenPhysAddr);
-
+                            BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageOutput[ui32Op].IoBuffDesc,sizeof(BDSP_AF_P_sIO_BUFFER));
+                            BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageOutput[ui32Op].IoGenBuffDesc,sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
                             BDBG_MSG(("ui32Op= %d of a stage,pRaagaConnectStage->algorithm=%d, ui32IOPhysAddr=%x, ui32IOGenPhysAddr=%x",ui32Op, pRaagaConnectStage->algorithm, ui32IOPhysAddr, ui32IOGenPhysAddr));
 
                             psNodeCfg->ui32NodeOpBuffCfgAddr[ui32Op] = ui32IOPhysAddr;
@@ -1446,42 +1360,36 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
 }
 
 /*  This function fills the global task configuration */
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
+static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
                         BDSP_RaagaTask *pRaagaTask,
                         BDSP_AF_P_sTASK_CONFIG  *psCit,
                         unsigned ui32TotalNodes)
 
 {
-    uint32_t    ui32Error;
+    BERR_Code ui32Error = BERR_SUCCESS;
     int32_t  taskindex, index, index2;
     BDSP_CIT_P_sAlgoModePresent sAlgoModePresent;
     BDSP_AF_P_DolbyMsUsageMode  eDolbyMsUsageMode;
-    BDSP_AF_P_sStcTrigConfig    psStcTrigConfig;
-    unsigned ui32ZeroFillSamples;
-    dramaddr_t ui32PhysAddr;
-    unsigned ui32TaskPortConfigAddr, ui32TaskGateOpenConfigAddr, ui32TaskFwHwCfgAddr;
-    unsigned ui32FwOpSamplingFreqMapLutAddr, ui32StcTriggerCfgAddr;
-    void *pTemp;
-    BDSP_AF_P_sFMM_DEST_CFG* psFmmDestCfg;
-
-    BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG    sTaskFmmGateOpenConfig;
+    BDSP_AF_P_sStcTrigConfig    sStcTrigConfig;
+    BDSP_AF_P_sFW_HW_CFG        sFwHwCfg;
+    BDSP_AF_P_sFMM_DEST_CFG     *psFmmDestCfg;
+    BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG    *psTaskFmmGateOpenConfig;
     BDSP_TaskGateOpenSettings   sDependentTaskGateOpenSettings;
     BDSP_AF_P_sFMM_GATE_OPEN_CONFIG *psFmmGateOpenConfig;
-    BDSP_AF_P_sFW_HW_CFG        sFwHwCfg;
+    unsigned ui32ZeroFillSamples;
+    BDSP_MMA_Memory TaskPortConfigAddr, TaskGateOpenConfigAddr, TaskFwHwCfgAddr;
+    BDSP_MMA_Memory FwOpSamplingFreqMapLutAddr, StcTriggerCfgAddr;
+
     BDSP_TaskStartSettings *pStartSettings;
     BDSP_AF_P_sIO_BUFFER   *pIOBuffer;
-
     BDSP_RaagaStage *pRaagaPrimaryStage;
     BDSP_RaagaContext *pRaagaContext;
-
     BDSP_Raaga *pRaagaDevice;
 
     BDSP_AF_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
+    BDSP_AF_P_eSchedulingGroup eSchedulingGroup = pRaagaTask->eSchedulingGroup;
 
     BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit);
-
-    ui32Error = BERR_SUCCESS;
-
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
     pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
@@ -1491,68 +1399,76 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
 
     pStartSettings = &pRaagaTask->startSettings;
 
-
-    /*seems like the following psOpPortInfo->ui32NumopPorts is always zero. check
-    If reqd, can be got from sTaskFmmGateOpenConfig->ui32NumPorts down and also populated there*/
-
     /*  Fill in the scratch buffer details */
-    psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].ui32DspScratchMemGrant.ui32DramBufferAddress;
-    psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].ui32DspScratchMemGrant.ui32BufferSizeInBytes;
+    psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].DspScratchMemGrant[eSchedulingGroup].Buffer.offset;
+    psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].DspScratchMemGrant[eSchedulingGroup].ui32Size;
 
     /*  Start node index */
     psGblTaskCfg->ui32StartNodeIndexOfCoreAudioAlgorithm = BDSP_CIT_P_NUM_SPECIAL_NODES;
 
-    /*  WARNING!!! Num zero fill frames not filled. This may be required
-        for bring up */
+    TaskPortConfigAddr         = pRaagaTask->taskMemGrants.sTaskCfgBufInfo.Buffer;
 
-    /*  WARNING!!! All other global task parameters are unfilled */
+    TaskGateOpenConfigAddr     = TaskPortConfigAddr;
+    TaskGateOpenConfigAddr.pAddr  =(void *)((uint8_t *)TaskGateOpenConfigAddr.pAddr + BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE);
+    TaskGateOpenConfigAddr.offset = TaskGateOpenConfigAddr.offset + BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE;
 
-    BDSP_MEM_P_ConvertAddressToOffset(  pRaagaDevice->memHandle,
-                                    pRaagaTask->taskMemGrants.sTaskCfgBufInfo.pBaseAddr,
-                                    &ui32PhysAddr
-                                 );
-    /*split the memory here */
+    TaskFwHwCfgAddr = TaskGateOpenConfigAddr;
+    TaskFwHwCfgAddr.pAddr = (void *)((uint8_t *)TaskGateOpenConfigAddr.pAddr + BDSP_CIT_P_TASK_FMM_GATE_OPEN_CONFIG);
+    TaskFwHwCfgAddr.offset = TaskFwHwCfgAddr.offset + BDSP_CIT_P_TASK_FMM_GATE_OPEN_CONFIG;
 
-    /* Adding port Config and SPDIF Config */
-    ui32TaskPortConfigAddr      =   ui32PhysAddr;
+    FwOpSamplingFreqMapLutAddr = TaskFwHwCfgAddr;
+    FwOpSamplingFreqMapLutAddr.pAddr = (void *)((uint8_t *)FwOpSamplingFreqMapLutAddr.pAddr + BDSP_CIT_P_TASK_HW_FW_CONFIG);
+    FwOpSamplingFreqMapLutAddr.offset = FwOpSamplingFreqMapLutAddr.offset + BDSP_CIT_P_TASK_HW_FW_CONFIG;
 
-    /* TaskGateOpenConfig */
-    ui32TaskGateOpenConfigAddr  =   ui32TaskPortConfigAddr + BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE;
-
-    /*PPM Configuration*/
-    ui32TaskFwHwCfgAddr         =   ui32TaskGateOpenConfigAddr + BDSP_CIT_P_TASK_FMM_GATE_OPEN_CONFIG;
-
-    ui32FwOpSamplingFreqMapLutAddr = ui32TaskFwHwCfgAddr    + BDSP_CIT_P_TASK_HW_FW_CONFIG;
-    /* STC trigger config  */
-    ui32StcTriggerCfgAddr   =   ui32FwOpSamplingFreqMapLutAddr + BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE;
-
-    pTemp = NULL;
-    BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaDevice->memHandle,
-                                         ui32TaskPortConfigAddr,
-                                         &pTemp);
-    psFmmDestCfg = pTemp;
+    StcTriggerCfgAddr = FwOpSamplingFreqMapLutAddr;
+    StcTriggerCfgAddr.pAddr = (void *)((uint8_t *)StcTriggerCfgAddr.pAddr + BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE);
+    StcTriggerCfgAddr.offset= StcTriggerCfgAddr.offset+ BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE;
 
     /*BDSP_CIT_P_TASK_STC_TRIG_CONFIG_SIZE;*/
+
+    psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)BKNI_Malloc(SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
+    if(NULL == psTaskFmmGateOpenConfig)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Couldn't Allocate Memory for Gate Open Config"));
+        return BERR_OUT_OF_DEVICE_MEMORY;
+    }
+
+    psFmmDestCfg = (BDSP_AF_P_sFMM_DEST_CFG *)BKNI_Malloc(SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS);
+    if(NULL == psFmmDestCfg)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Couldn't Allocate Memory for FMM DEST CONFIG"));
+        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+    }
+
     BDSP_P_InitializeFmmDstCfg(psFmmDestCfg);
-    BDSP_MEM_P_FlushCache(pRaagaDevice->memHandle, (void *)psFmmDestCfg, BDSP_CIT_P_TASK_PORT_CONFIG_MEM_SIZE);
-
-
+    ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskPortConfigAddr, (void *)psFmmDestCfg, (SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS));
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in copying the Initialised FMM settings for FMM Port"));
+        goto end;
+    }
     /* Add port Config and SPDIF Config */
-    psGblTaskCfg->ui32FmmDestCfgAddr = ui32TaskPortConfigAddr;
+    psGblTaskCfg->ui32FmmDestCfgAddr = TaskPortConfigAddr.offset;
 
-    BKNI_Memset(&sTaskFmmGateOpenConfig,0,sizeof(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
+    BKNI_Memset(psTaskFmmGateOpenConfig,0,sizeof(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
     if(true == pStartSettings->gateOpenReqd)
     {
         pRaagaPrimaryStage->pRaagaTask = pRaagaTask;
-        BDSP_Raaga_P_PopulateGateOpenFMMStages(
+        ui32Error = BDSP_Raaga_P_PopulateGateOpenFMMStages(
                                         (void *)pRaagaPrimaryStage,
-                                        &sTaskFmmGateOpenConfig,
+                                        psTaskFmmGateOpenConfig,
                                         pStartSettings->maxIndependentDelay
                                     );
+        if(ui32Error != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Populating the GateOpen Settings"));
+            goto end;
+        }
         if(pStartSettings->DependentTaskInfo.numTasks >= BDSP_MAX_DEPENDENT_TASK)
         {
             BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Total number of Dependent task to open their respective gates is %d exceeding limit %d !!!!!!!!!!",pStartSettings->DependentTaskInfo.numTasks, BDSP_MAX_DEPENDENT_TASK));
-            return BERR_INVALID_PARAMETER;
+            ui32Error = BERR_INVALID_PARAMETER;
+            goto end;
         }
 
         for(taskindex=0; taskindex<(int32_t)pStartSettings->DependentTaskInfo.numTasks; taskindex++)
@@ -1562,15 +1478,24 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
             if(NULL == sDependentTaskGateOpenSettings.psFmmGateOpenConfig)
             {
                 BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Couldn't allocated memory for retreiving the FMM config of dependent task"));
+                ui32Error = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+                goto end;
             }
 
-            BDSP_Task_RetrieveGateOpenSettings( pStartSettings->DependentTaskInfo.DependentTask[taskindex],
+            ui32Error = BDSP_Task_RetrieveGateOpenSettings( pStartSettings->DependentTaskInfo.DependentTask[taskindex],
                                                 &sDependentTaskGateOpenSettings);
-            if(sDependentTaskGateOpenSettings.ui32MaxIndepDelay != sTaskFmmGateOpenConfig.ui32MaxIndepDelay)
+            if(ui32Error != BERR_SUCCESS)
+            {
+                BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Retreiving the Gate Open Settings for Dependenttask %d",taskindex));
+                goto end;
+            }
+            if(sDependentTaskGateOpenSettings.ui32MaxIndepDelay != psTaskFmmGateOpenConfig->ui32MaxIndepDelay)
             {
                 BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Different Max Independent Delay provided: For Dependent task is (%d) and For Gate Open Incharge Task is (%d)",
                     sDependentTaskGateOpenSettings.ui32MaxIndepDelay,
-                    sTaskFmmGateOpenConfig.ui32MaxIndepDelay));
+                    psTaskFmmGateOpenConfig->ui32MaxIndepDelay));
+                ui32Error = BERR_INVALID_PARAMETER;
+                goto end;
             }
 
             /* Modify the Addresses Returned to Raaga based Address*/
@@ -1582,9 +1507,7 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
                     psFmmGateOpenConfig->uin32RingBufStartWrPointAddr[index2]=BDSP_RAAGA_REGSET_ADDR_FOR_DSP(psFmmGateOpenConfig->uin32RingBufStartWrPointAddr[index2]);
                 }
 
-                BDSP_MEM_P_ConvertOffsetToCacheAddr(pRaagaTask->pContext->pDevice->memHandle,
-                                    psFmmGateOpenConfig->uin32DramIoConfigAddr,
-                                    (void **)&pIOBuffer);
+                pIOBuffer =(BDSP_AF_P_sIO_BUFFER *)((BDSP_AF_P_sIO_BUFFER *)sDependentTaskGateOpenSettings.PortAddr.pAddr + index);
                 for(index2=0;index2< (int32_t)pIOBuffer->ui32NumBuffers;index2++)/*audio channels*/
                 {   /*ensure that the descriptors for FMM and RAVE that are passed are physical address*/
                    pIOBuffer->sCircBuffer[index2].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(pIOBuffer->sCircBuffer[index2].ui32BaseAddr);
@@ -1593,28 +1516,25 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
                    pIOBuffer->sCircBuffer[index2].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(pIOBuffer->sCircBuffer[index2].ui32WrapAddr);
                    pIOBuffer->sCircBuffer[index2].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(pIOBuffer->sCircBuffer[index2].ui32WriteAddr);
                 }
-
-                BDSP_MEM_P_FlushCache(pRaagaTask->pContext->pDevice->memHandle,
-                    (void *)pIOBuffer,
-                    sizeof(*pIOBuffer));
-
                 psFmmGateOpenConfig++;
             }
+            BDSP_MMA_P_FlushCache(sDependentTaskGateOpenSettings.PortAddr,(sDependentTaskGateOpenSettings.ui32NumPorts*sizeof(BDSP_AF_P_sIO_BUFFER)));
 
-            if((sTaskFmmGateOpenConfig.ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts)> BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK)
+            if((psTaskFmmGateOpenConfig->ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts)> BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK)
             {
                 BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Total number of FMM ports (%d) in the ecosystem exceeding the limit %d !!!!!!!!!!",
-                    (sTaskFmmGateOpenConfig.ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts),
+                    (psTaskFmmGateOpenConfig->ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts),
                     BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK));
                 BKNI_Free(sDependentTaskGateOpenSettings.psFmmGateOpenConfig);
-                return BERR_INVALID_PARAMETER;
+                ui32Error = BERR_INVALID_PARAMETER;
+                goto end;
             }
             else
             {
-                BKNI_Memcpy((void *)&(sTaskFmmGateOpenConfig.sFmmGateOpenConfig[sTaskFmmGateOpenConfig.ui32NumPorts]),
+                BKNI_Memcpy((void *)&(psTaskFmmGateOpenConfig->sFmmGateOpenConfig[psTaskFmmGateOpenConfig->ui32NumPorts]),
                             sDependentTaskGateOpenSettings.psFmmGateOpenConfig,
                             (sDependentTaskGateOpenSettings.ui32NumPorts * sizeof(BDSP_AF_P_sFMM_GATE_OPEN_CONFIG)));
-                sTaskFmmGateOpenConfig.ui32NumPorts += sDependentTaskGateOpenSettings.ui32NumPorts;
+                psTaskFmmGateOpenConfig->ui32NumPorts += sDependentTaskGateOpenSettings.ui32NumPorts;
             }
             BKNI_Free(sDependentTaskGateOpenSettings.psFmmGateOpenConfig);
         }
@@ -1625,85 +1545,96 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     }
 
     /*Adding Gate open */
-    BDSP_P_WriteToOffset(pRaagaDevice->memHandle,
-        (void *)&sTaskFmmGateOpenConfig,
-        ui32TaskGateOpenConfigAddr,
-        (uint32_t)SIZEOF(sTaskFmmGateOpenConfig));
-
-    psGblTaskCfg->ui32FmmGateOpenConfigAddr         = ui32TaskGateOpenConfigAddr;
+    ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskGateOpenConfigAddr, (void *)psTaskFmmGateOpenConfig, SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Copying the Gate Open Configurations to Firmware Offset"));
+        goto end;
+    }
+    psGblTaskCfg->ui32FmmGateOpenConfigAddr = TaskGateOpenConfigAddr.offset;
 
     /*Populating FwHw starts here*/
-    BDSP_P_PopulateFwHwBuffer(
-                                    (void *)pRaagaPrimaryStage,
-                                    &sFwHwCfg
-                                );
-    BDSP_P_WriteToOffset(pRaagaDevice->memHandle,
-        (void *)&sFwHwCfg,
-        ui32TaskFwHwCfgAddr,
-        SIZEOF(sFwHwCfg));
-
+    ui32Error = BDSP_P_PopulateFwHwBuffer((void *)pRaagaPrimaryStage, &sFwHwCfg);
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Populating the FwHwBuffer"));
+        goto end;
+    }
+    ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskFwHwCfgAddr, (void *)&sFwHwCfg, SIZEOF(BDSP_AF_P_sFW_HW_CFG));
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in copying the FwHwBuffer to Firmware Offset"));
+        goto end;
+    }
     /* Add Fw Hw cfg address*/
-    psGblTaskCfg->ui32TaskFwHwCfgAddr               = ui32TaskFwHwCfgAddr;
+    psGblTaskCfg->ui32TaskFwHwCfgAddr = TaskFwHwCfgAddr.offset;
 
-/*Populating LUTTable starts here*/
-
+    /*Populating LUTTable starts here*/
     /*First populate sAlgoModePresent, along with that get the number of nodes in Network also*/
-    BDSP_PopulateAlgoMode(pRaagaPrimaryStage, &sAlgoModePresent);
-
+    ui32Error = BDSP_PopulateAlgoMode(pRaagaPrimaryStage, &sAlgoModePresent);
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Populating the Algorithm Mode"));
+        goto end;
+    }
     if (pStartSettings->pSampleRateMap)
     {
         /*Filling the Fw Op sampling map LUT */
-        BDSP_P_WriteToOffset(pRaagaDevice->memHandle,
-            (void *)pStartSettings->pSampleRateMap,
-            (uint32_t)ui32FwOpSamplingFreqMapLutAddr,
-            (uint32_t)(BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE));
+        ui32Error = BDSP_MMA_P_CopyDataToDram(&FwOpSamplingFreqMapLutAddr,(void *)pStartSettings->pSampleRateMap, BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE);
+        if(ui32Error != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Copying the SampleRate LUT provided by APE for Firmware"));
+            goto end;
+        }
     }
     else
     {
         /*No idea at all where this eDolbyMsUsageMode has to be initialized*/
         eDolbyMsUsageMode = BDSP_AF_P_DolbyMsUsageMode_eSingleDecodeMode;
-        ui32Error = BDSP_P_FillSamplingFrequencyMapLut(
-                                        pRaagaDevice->memHandle,
-                                        eDolbyMsUsageMode,
-                                        ui32FwOpSamplingFreqMapLutAddr,
-                                        &sAlgoModePresent
-                                    );
+        ui32Error = BDSP_P_FillSamplingFrequencyMapLut(eDolbyMsUsageMode, &sAlgoModePresent, &FwOpSamplingFreqMapLutAddr);
+        if(ui32Error != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in filling the Samplerate LUT when APE doesnot provide the same"));
+            goto end;
+        }
     }
 
-    /*First populate sStcTrigConfig*/
-    BDSP_P_PopulateStcTrigConfig(&psStcTrigConfig, pStartSettings);
-
-
-    /* Populating the Stc trigger configuration registers-structures */
-    BDSP_P_WriteToOffset(pRaagaDevice->memHandle,
-                            (void *)&psStcTrigConfig,
-                            ui32StcTriggerCfgAddr,
-                            (uint32_t)SIZEOF(BDSP_AF_P_sStcTrigConfig));
-
-
-    /* Finding the Zero Fill Samples  */  /*Need to check whether FW is using */
-    ui32Error = BDSP_CITGEN_P_GetNumZeroFillSamples(
-        &ui32ZeroFillSamples,
-        pRaagaPrimaryStage);
-
-    psGblTaskCfg->ui32NumberOfNodesInTask = ui32TotalNodes;
-
-
     /* Add FW Op Sampling Frequency Cfg*/
-    psGblTaskCfg->ui32FwOpSamplingFreqMapLutAddr    = ui32FwOpSamplingFreqMapLutAddr;
+    psGblTaskCfg->ui32FwOpSamplingFreqMapLutAddr = FwOpSamplingFreqMapLutAddr.offset;
 
-    /* Zero Fill samples ::: Currently not used by FW */
-    psGblTaskCfg->ui32NumberOfZeroFillSamples       = ui32ZeroFillSamples;
+    /*First populate sStcTrigConfig*/
+    BDSP_P_PopulateStcTrigConfig(&sStcTrigConfig, pStartSettings);
 
-    /*Filling the time base type */
-    psGblTaskCfg->eTimeBaseType                     = pRaagaTask->startSettings.timeBaseType;
+    ui32Error = BDSP_MMA_P_CopyDataToDram(&StcTriggerCfgAddr, (void *)&sStcTrigConfig, SIZEOF(BDSP_AF_P_sStcTrigConfig));
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in copying the STCTrigger configuration to firmware offset"));
+        goto end;
+    }
 
     /* STC trigger config address */
-    psGblTaskCfg->ui32StcTrigConfigAddr             = ui32StcTriggerCfgAddr;
+    psGblTaskCfg->ui32StcTrigConfigAddr = StcTriggerCfgAddr.offset;
+
+    /* Finding the Zero Fill Samples  */  /*Need to check whether FW is using */
+    ui32Error = BDSP_CITGEN_P_GetNumZeroFillSamples(&ui32ZeroFillSamples, pRaagaPrimaryStage);
+    if(ui32Error != BERR_SUCCESS)
+    {
+        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in filling the Number of Zerofill samples"));
+        goto end;
+    }
+
+    /* Zero Fill samples ::: Currently not used by FW */
+    psGblTaskCfg->ui32NumberOfZeroFillSamples = ui32ZeroFillSamples;
+
+    psGblTaskCfg->ui32NumberOfNodesInTask = ui32TotalNodes;
+    psGblTaskCfg->eTimeBaseType = pRaagaTask->startSettings.timeBaseType;
+
+end:
+    BKNI_Free(psTaskFmmGateOpenConfig);
+    BKNI_Free(psFmmDestCfg);
 
     BDBG_LEAVE(BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit);
-
-    return ui32Error;
+    return ui32Error;;
 }
 
 static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
@@ -1803,28 +1734,27 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
                 {
                     /*  Inter-Frame buffer */
                     psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramInterFrameBuffer.ui32DramBufferAddress +
+                                                    pRaagaConnectStage->sDramInterFrameBuffer.Buffer.offset +
                                                     pRaagaConnectStage->sFrameSyncOffset.ui32IfOffset;
                     /*  User Config buffer*/
                     psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramUserConfigBuffer.ui32DramBufferAddress +
+                                                    pRaagaConnectStage->sDramUserConfigBuffer.Buffer.offset  +
                                                     pRaagaConnectStage->sFrameSyncOffset.ui32UserCfgOffset;
                     /*  Statusbuffer*/
                     psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramStatusBuffer.ui32DramBufferAddress +
+                                                    pRaagaConnectStage->sDramStatusBuffer.Buffer.offset  +
                                                     pRaagaConnectStage->sFrameSyncOffset.ui32StatusOffset;
                 }else if(ui32Node==1)
                 {
                     /*  Inter-Frame buffer */
                     psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramInterFrameBuffer.ui32DramBufferAddress;
+                                                    pRaagaConnectStage->sDramInterFrameBuffer.Buffer.offset;
                     /*  User Config buffer */
                     psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramUserConfigBuffer.ui32DramBufferAddress;
+                                                    pRaagaConnectStage->sDramUserConfigBuffer.Buffer.offset;
                     /*  Status buffer */
                     psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress =
-                                                    pRaagaConnectStage->sDramStatusBuffer.ui32DramBufferAddress;
-
+                                                    pRaagaConnectStage->sDramStatusBuffer.Buffer.offset;
                 }
                 else
                 {
@@ -1892,6 +1822,7 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
     BDSP_Raaga *pRaagaDevice;
 
     BDSP_SCM_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
+    BDSP_AF_P_eSchedulingGroup eSchedulingGroup = pRaagaTask->eSchedulingGroup;
 
     BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit);
 
@@ -1905,9 +1836,8 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
     psGblTaskCfg = &psCit->sGlobalTaskConfig;
 
     /*  Fill in the scratch buffer details */
-    psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].ui32DspScratchMemGrant.ui32DramBufferAddress;
-    psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].ui32DspScratchMemGrant.ui32BufferSizeInBytes;
-
+    psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].DspScratchMemGrant[eSchedulingGroup].Buffer.offset;
+    psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes = pRaagaDevice->memInfo.sScratchandISBuff[pRaagaTask->settings.dspIndex].DspScratchMemGrant[eSchedulingGroup].ui32Size;
     /*  Start node index */
     psGblTaskCfg->ui32StartNodeIndexOfCoreScmAlgo = BDSP_CIT_P_NODE0;
 

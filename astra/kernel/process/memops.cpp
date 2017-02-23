@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,14 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * memops.cpp
- *
- *  Created on: Mar 1, 2015
- *      Author: gambhire
- */
-
 #include "hwtimer.h"
 #include "arm/arm.h"
 #include "arm/spinlock.h"
@@ -163,11 +155,14 @@ int TzTask::mmap(TzMem::VirtAddr addr, TzMem::VirtAddr *allocated, size_t len, i
     bool shared = (flags & MAP_SHARED);
 
     if (!pageTable->isAddrRangeUnMapped(va, numPages*PAGE_SIZE_4K_BYTES)) {
-        if (flags & MAP_FIXED)
-            return -ENOMEM;
+        if (flags & MAP_FIXED){
+            uint8_t *lastva = (uint8_t *)va + numPages*PAGE_SIZE_4K_BYTES - 1;
+            pageTable->unmapPageRange(va, lastva);
+        }else{
         va = (uint8_t *)pageTable->reserveAddrRange(va, numPages*PAGE_SIZE_4K_BYTES, PageTable::ScanForward);
         if (va == nullptr)
             return -ENOMEM;
+        }
     }
 
     int rv = image->addMmapSection(va, numPages, accessPerms, noExec, shared, tid);

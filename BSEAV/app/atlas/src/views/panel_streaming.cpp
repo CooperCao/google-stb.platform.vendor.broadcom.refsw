@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,7 @@ BDBG_MODULE(panel_streaming);
 #define MENU_WIDTH_VIDEOS  200
 
 #define MENU_WIDTH_PROPS   250
-#define PROP_PERCENTAGE    45
+#define PROP_PERCENTAGE    30
 
 CPanelStreaming::CPanelStreaming(
         CWidgetEngine * pWidgetEngine,
@@ -92,7 +92,7 @@ eRet CPanelStreaming::addProperty(
 
     pProp = new CStreamingProp(this, pMenu, strName, font, PROP_PERCENTAGE, fill_eSolid);
     CHECK_PTR_ERROR_GOTO("unable to allocate streaming property", pProp, ret, eRet_OutOfMemory, error);
-    pProp->setTag(MString(strName));
+    pProp->setTag(MString(strName) + ":");
     pProp->setValue("");
     pProp->setTextColor(colorText);
     pProp->setBackgroundColor(colorBackground);
@@ -334,7 +334,7 @@ eRet CPanelStreaming::updateProperties(CPlaylist * pPlaylist)
         {
             pProp = _propListPlaylist.at(i);
 
-            pProp->setTag(pPlaylist->getMetadataTag(i));
+            pProp->setTag(MString(pPlaylist->getMetadataTag(i)) + ":");
             pProp->setValue(pPlaylist->getMetadataValue(i));
         }
 
@@ -395,7 +395,7 @@ eRet CPanelStreaming::updateProperties(CChannel * pChannel)
         {
             pProp = _propListChannel.at(i);
 
-            pProp->setTag(pChannel->getMetadataTag(i));
+            pProp->setTag(MString(pChannel->getMetadataTag(i)) + ":");
             pProp->setValue(pChannel->getMetadataValue(i));
         }
 

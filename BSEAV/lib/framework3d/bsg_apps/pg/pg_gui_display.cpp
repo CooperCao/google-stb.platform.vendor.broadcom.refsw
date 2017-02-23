@@ -47,7 +47,6 @@ using namespace pg;
 using namespace bsg;
 
 const float ROTATION_ANGLE       =  10.0f;
-const float FULL_ROTATION_ANGLE  =  360.0f;
 const Vec3  ROTATION_VEC         = Vec3(1.0f, 1.0f, 0.0f);
 const Vec3  ONE_TO_ONE_SCALE     = Vec3(1.0f, 1.0f, 1.0f);
 const Vec3  REDUCED_SCALE        = Vec3(0.8f, 0.8f, 0.8f);

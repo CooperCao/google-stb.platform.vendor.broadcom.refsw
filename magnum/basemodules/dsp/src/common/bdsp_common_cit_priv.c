@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -360,15 +360,13 @@ Returns:
         Error
 
 ******************************************************************************/
-uint32_t BDSP_P_FillSamplingFrequencyMapLut(
-                BMEM_Handle                 hHeap,
+BERR_Code BDSP_P_FillSamplingFrequencyMapLut(
                 BDSP_AF_P_DolbyMsUsageMode  eDolbyMsUsageMode,
-                uint32_t                    ui32FwOpSamplingFreqMapLutAddr,
-                BDSP_CIT_P_sAlgoModePresent *psAlgoModePresent
+                BDSP_CIT_P_sAlgoModePresent *psAlgoModePresent,
+                BDSP_MMA_Memory				*pFwOpSamplingFreqMapLUTAddr
             )
 {
-
-    uint32_t ui32Error;
+	BERR_Code	ui32Error = BERR_SUCCESS;
     BDSP_AF_P_sOpSamplingFreq   sOpSamplingFrequencyMapLut =    { {   /*QSF */
                                                                       32000,
                                                                       44100,
@@ -393,8 +391,6 @@ uint32_t BDSP_P_FillSamplingFrequencyMapLut(
                                                                 };
 
     BDBG_ENTER(BDSP_P_FillSamplingFrequencyMapLut);
-
-    ui32Error  = BERR_SUCCESS;
 
     /*Ms11 usage case */
 #if 0 /* To be enabled when SRC is integrated into DDP to output data at 48 kHx always */
@@ -434,13 +430,11 @@ uint32_t BDSP_P_FillSamplingFrequencyMapLut(
           )
         {
             /*Upsampling to 48K output sampling frequency */
-
             /*  8K-> 48K */
             /* 16K-> 48K */
             /* 32K-> 48K */
             /* 64K-> 48K */
             /* 128K->48K */
-
             sOpSamplingFrequencyMapLut.ui32OpSamplingFrequency[BDSP_AF_P_SampFreq_e8Khz] = 48000;
             sOpSamplingFrequencyMapLut.ui32OpSamplingFrequency[BDSP_AF_P_SampFreq_e16Khz] = 48000;
             sOpSamplingFrequencyMapLut.ui32OpSamplingFrequency[BDSP_AF_P_SampFreq_e32Khz] = 48000;
@@ -464,14 +458,12 @@ uint32_t BDSP_P_FillSamplingFrequencyMapLut(
         }
     }
 
-    BDSP_P_WriteToOffset(
-                    hHeap,
-                    (void *)&sOpSamplingFrequencyMapLut,
-                    (uint32_t)ui32FwOpSamplingFreqMapLutAddr,
-                    (uint32_t)(BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE)
-             );
+	ui32Error = BDSP_MMA_P_CopyDataToDram(pFwOpSamplingFreqMapLUTAddr, (void *)&sOpSamplingFrequencyMapLut, SIZEOF(BDSP_AF_P_sOpSamplingFreq));
+	if(ui32Error != BERR_SUCCESS)
+	{
+		BDBG_ERR(("Error in Copying the Sample Rate Map LUT from BDSP to Firmware Address"));
+	}
 
     BDBG_LEAVE(BDSP_P_FillSamplingFrequencyMapLut);
-
-    return(ui32Error);
+	return ui32Error;
 }

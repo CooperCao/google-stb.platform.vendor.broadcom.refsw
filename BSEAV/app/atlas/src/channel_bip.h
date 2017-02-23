@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,6 +113,7 @@ public:
     virtual eRet    sessionOpen(void)  { return((eRet)0); }
     virtual eRet    sessionSetup(void) { return((eRet)0); }
     virtual MString getTimeString(void);
+    virtual eRet    setAudioProgram(uint16_t pid);
 
 #if 0
     eRet readCompleteUrl(const char * pCompleteUrl);
@@ -121,36 +122,36 @@ public:
 
     virtual bool operator ==(CChannel &other);
 
-    eRet              initialize(PROGRAM_INFO_T * pProgramInfo);
-    eRet              initialize(void);
-    void              updateDescription(void);
-    eRet              getChannelInfo(CHANNEL_INFO_T * pChanInfo, bool bScanning);
-    eRet              getPsiInfo(void);
-    eRet              openPids(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
-    eRet              closePids(void);
-    eRet              start(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
-    eRet              play(void);
-    eRet              pause(void);
-    eRet              stop(void);
-    eRet              playAtRate(void);
-    eRet              frameAdvance(void);
-    eRet              frameRewind(void);
-    eRet              seek(bool relative, long int seekTime);
-    eRet              applyTrickMode(void);
-    eRet              trickmode(CPlaybackTrickData * pTrickModeData);
-    eRet              setTrickModeRate(int trickModeRate);
-    eRet              setTrickMode(bool fastFoward);
-    bool              timelineSupport() { return(true); }
-    unsigned int      getLastPosition(void);
-    unsigned int      getCurrentPosition(void);
-    void              setUrl(const char * pString);
-    MString           getUrl()                                   { return(_url); }
-    void              setAction(BMediaPlayerAction playerAction) { _playerCallbackAction = playerAction; }
-    eRet              setState(BMediaPlayerState state);
-    BMediaPlayerState getState(void)   { return(_playerState); }
-    uint16_t          getProgram(void) { return(_programNumber); }
-    void              setProgram(const char * str); /* program number can be set from url */
-    void              setProgram(uint16_t program)
+    eRet                 initialize(PROGRAM_INFO_T * pProgramInfo);
+    eRet                 initialize(void);
+    void                 updateDescription(void);
+    eRet                 getChannelInfo(CHANNEL_INFO_T * pChanInfo, bool bScanning);
+    eRet                 getPsiInfo(void);
+    eRet                 openPids(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
+    eRet                 closePids(void);
+    eRet                 start(CSimpleAudioDecode * pAudioDecode, CSimpleVideoDecode * pVideoDecode);
+    eRet                 play(void);
+    eRet                 pause(void);
+    eRet                 stop(void);
+    eRet                 playAtRate(void);
+    eRet                 frameAdvance(void);
+    eRet                 frameRewind(void);
+    eRet                 seek(bool relative, long int seekTime);
+    eRet                 applyTrickMode(void);
+    eRet                 trickmode(CPlaybackTrickData * pTrickModeData);
+    eRet                 setTrickModeRate(int trickModeRate);
+    eRet                 setTrickMode(bool fastFoward);
+    bool                 timelineSupport() { return(true); }
+    unsigned int         getLastPosition(void);
+    unsigned int         getCurrentPosition(void);
+    void                 setUrl(const char * pString);
+    MString              getUrl()                                   { return(_url); }
+    void                 setAction(BMediaPlayerAction playerAction) { _playerCallbackAction = playerAction; }
+    eRet                 setState(BMediaPlayerState state);
+    BMediaPlayerState    getState(void)   { return(_playerState); }
+    uint16_t             getProgram(void) { return(_programNumber); }
+    void                 setProgram(const char * str); /* program number can be set from url */
+    void                 setProgram(uint16_t program)
     {
         /* program number can be set locally.*/
         _programNumberValid = true;
@@ -181,14 +182,14 @@ protected:
     /* Cached Handles. */
     BIP_PlayerHandle _pPlayer;
 
-    BMediaPlayerState         _playerState;
-    BIP_Status                _asyncApiCompletionStatus;
-    BIP_CallbackDesc          _asyncCallbackDesc;  /* async completion callback. */
-    BIP_MediaInfoHandle       _pMediaInfo;
-    BIP_PlayerStreamInfo      _playerStreamInfo;
+    BMediaPlayerState    _playerState;
+    BIP_Status           _asyncApiCompletionStatus;
+    BIP_CallbackDesc     _asyncCallbackDesc;  /* async completion callback. */
+    BIP_MediaInfoHandle  _pMediaInfo;
+    BIP_PlayerStreamInfo _playerStreamInfo;
 
-    bool     _enableDynamicTrackSelection; /* this setting will be set to false when we get PIDS passed in
-                                              or when we have Multiple tracks. BIP Default is TRUE  */
+    bool _enableDynamicTrackSelection; /* this setting will be set to false when we get PIDS passed in
+                                        * or when we have Multiple tracks. BIP Default is TRUE  */
     bool     _programNumberValid;
     uint16_t _programNumber;
 

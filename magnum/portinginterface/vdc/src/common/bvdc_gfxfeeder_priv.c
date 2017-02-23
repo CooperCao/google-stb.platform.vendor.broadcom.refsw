@@ -67,6 +67,8 @@
 
 BDBG_MODULE(BVDC_GFX);
 BDBG_OBJECT_ID(BVDC_GFX);
+BDBG_FILE_MODULE(BVDC_CFC_1); /* print CFC in and out color space info */
+BDBG_FILE_MODULE(BVDC_CFC_2); /* print CFC configure */
 
 #define BVDC_P_MAKE_GFD(pGfxFeeder, id)                                                   \
 {                                                                                         \
@@ -134,17 +136,10 @@ BDBG_OBJECT_ID(BVDC_GFX);
 #define  GFD_NUM_REGS_ENABLE                1
 #define  GFD_NUM_REGS_LOAD_PALETTE          1
 #define  GFD_NUM_REGS_CTRL                  1
-#define  GFD_NUM_REGS_PIXEL_FORMAT          2
 #define  GFD_NUM_REGS_W_ALPHA               1
-#define  GFD_NUM_REGS_KEY                   4
 #define  GFD_NUM_REGS_ALPHA                 2
 #define  GFD_NUM_REGS_DISP                  1
 #define  GFD_NUM_REGS_COLOR_MATRIX          9
-#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
-#define  GFD_NUM_REGS_SRC                   5
-#else
-#define  GFD_NUM_REGS_SRC                   4
-#endif
 
 
 /***************************************************************************
@@ -285,20 +280,26 @@ BERR_Code BVDC_P_GfxFeeder_Create
     pGfxFeeder->bSupportVertScl = BVDC_P_GET_FIELD(
         ulHwCfg, GFD_0_HW_CONFIGURATION, VSCL);
 
-#ifdef BCHP_GFD_0_HW_CONFIGURATION_NL_MA_CSC_PRESENT_SHIFT
-    pGfxFeeder->bSupportMACsc = BVDC_P_GET_FIELD(
-        ulHwCfg, GFD_0_HW_CONFIGURATION, NL_MA_CSC_PRESENT);
-#endif
-#ifdef BCHP_GFD_0_HW_CONFIGURATION_NL_LUT_PRESENT_SHIFT
-    pGfxFeeder->bSupportNLCsc = BVDC_P_GET_FIELD(
-        ulHwCfg, GFD_0_HW_CONFIGURATION, NL_LUT_PRESENT);
-#endif
-#ifdef BCHP_GFD_0_HW_CONFIGURATION_HDR_VERSION_SHIFT
+    pGfxFeeder->stCfc.stCapability.stBits.bMc = 1;
     if (BAVC_SourceId_eGfx0 == pGfxFeeder->eId)
     {
-        pGfxFeeder->bSupportEotfConv = true;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1)
+        pGfxFeeder->stCfc.stCapability.stBits.bMa = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bNL2L = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bL2NL = 1;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+        pGfxFeeder->stCfc.stCapability.stBits.bMb = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bLRngAdj = 1;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+        pGfxFeeder->stCfc.stCapability.stBits.bHlgOotfAdj = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bAlphaDiv = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bCscBlendIn = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut = 1;
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_1) */
     }
-#endif
+
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_6)
     pGfxFeeder->ulVertLineBuf =
         BVDC_P_GET_FIELD(ulHwCfg, GFD_0_HW_CONFIGURATION, VSCL_LSBF_SIZE);
@@ -411,7 +412,7 @@ void BVDC_P_GfxFeeder_Init(
     /* init surface manager */
     BVDC_P_GfxSurface_Init(&hGfxFeeder->stGfxSurface);
 
-    BVDC_P_GfxFeeder_InitColorMatrix(hGfxFeeder);
+    BVDC_P_GfxFeeder_InitCfc(hGfxFeeder);
 
     BDBG_LEAVE(BVDC_P_GfxFeeder_Init);
     return;
@@ -876,7 +877,9 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
        new surface's pixel format corresponds. */
     pBoxVdc = &hGfxFeeder->hSource->hVdc->stBoxConfig.stVdc;
     if (pBoxVdc->astSource[hGfxFeeder->eId].bCompressed &&
-        !BPXL_IS_COMPRESSED_FORMAT(pNewSur->eInputPxlFmt))
+        !BPXL_IS_COMPRESSED_FORMAT(pNewSur->eInputPxlFmt) &&
+        pNewSur->ulHeight >= pBoxVdc->astSource[hGfxFeeder->eId].stSizeLimits.ulHeight &&
+        pNewSur->ulWidth  >= pBoxVdc->astSource[hGfxFeeder->eId].stSizeLimits.ulWidth)
     {
         BDBG_ERR(("Compressed surface for GFD%d has incorrect pixel format - %s.",
                    (hGfxFeeder->eId - BAVC_SourceId_eGfx0), BPXL_ConvertFmtToStr(pNewSur->eInputPxlFmt)));
@@ -1000,7 +1003,6 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
         pNewDirty->stBits.bSdrGfx2HdrAdj = BVDC_P_DIRTY;
     }
     if((pNewDirty->stBits.bSdrGfx2HdrAdj) ||
-       (pNewCfg->stFlags.bConstantBlending != pCurCfg->stFlags.bConstantBlending) ||
        (pWinNewInfo->stDirty.stBits.bCscAdjust) ||
        (pWinNewInfo->sHue                  != pWinCurInfo->sHue           ) ||
        (pWinNewInfo->sContrast             != pWinCurInfo->sContrast      ) ||
@@ -1015,8 +1017,6 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
        (pWinNewInfo->lOffsetB              != pWinCurInfo->lOffsetB       ) ||
        (pWinNewInfo->bCscRgbMatching       != pWinCurInfo->bCscRgbMatching) ||
        (pDispNewInfo->bXvYcc               != pDispCurInfo->bXvYcc)         ||
-       (pDispNewInfo->stHdmiSettings.stSettings.eMatrixCoeffs          != pDispCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs)    ||
-       (pDispNewInfo->stHdmiSettings.stSettings.eEotf != pDispCurInfo->stHdmiSettings.stSettings.eEotf)||
        (pDispNewInfo->stDirty.stBits.bTiming))
     {
         pNewDirty->stBits.bCsc = BVDC_P_DIRTY;
@@ -1150,19 +1150,20 @@ void BVDC_P_GfxFeeder_AbortChanges
  * validation performed here
  */
 static BERR_Code BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr
-    ( BVDC_P_GfxFeederCfgInfo       *pCurCfg,
-      uint32_t                     **ppulRulCur,
-      uint32_t                       ulRulOffset )
+    ( BVDC_P_GfxFeeder_Handle        hGfxFeeder,
+      BVDC_P_ListInfo               *pList )
 {
     BERR_Code  eResult = BERR_SUCCESS;
     uint32_t  *pulRulCur;
     uint32_t  ulOutWidth, ulOutHeight;
     uint32_t  ulClutAddr, ulClutSize;
     uint8_t  ucWinAlpha;
+    BVDC_P_GfxFeederCfgInfo *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
     BVDC_P_GfxDirtyBits  stDirty = pCurCfg->stDirty;
+    uint32_t ulRulOffset = hGfxFeeder->ulRegOffset;
 
     /* init RUL buffer pointers */
-    pulRulCur = *ppulRulCur;
+    pulRulCur = pList->pulCurrent;
 
     /* set RUL for output size */
     if ( stDirty.stBits.bOutRect )
@@ -1203,7 +1204,8 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr
         ucWinAlpha = (pCurCfg->stFlags.bConstantBlending) ?
             GFX_ALPHA_FULL: pCurCfg->ucWindowAlpha;
 
-        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( GFD_NUM_REGS_KEY );
+        BDBG_CASSERT(4 == (((BCHP_GFD_0_KEY_ALPHA - BCHP_GFD_0_KEY_MAX) / sizeof(uint32_t)) + 1));
+        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_KEY_ALPHA - BCHP_GFD_0_KEY_MAX) / sizeof(uint32_t)) + 1);
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_KEY_MAX ) + ulRulOffset;
         *pulRulCur++ = pCurCfg->ulKeyMaxAMNO;
         *pulRulCur++ = pCurCfg->ulKeyMinAMNO;
@@ -1222,7 +1224,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr
     }
 
     /* reset RUL buffer pointer */
-    *ppulRulCur = pulRulCur;
+    pList->pulCurrent = pulRulCur;
 
     return BERR_TRACE(eResult);
 }
@@ -1292,8 +1294,7 @@ static BERR_Code BVDC_P_GfxFeeder_CalcSurfaceOffset_isr
 static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     ( BVDC_P_GfxFeeder_Handle            hGfxFeeder,
       BAVC_Polarity                      eFieldId,
-      uint32_t                         **ppulRulCur,
-      uint32_t                           ulRulOffset )
+      BVDC_P_ListInfo                   *pList )
 {
     BERR_Code  eResult = BERR_SUCCESS;
     BVDC_P_GfxSurfaceContext  *pGfxSurface;
@@ -1307,7 +1308,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     bool  bChangeClipOrField;
     uint32_t  ulFirStepLow, ulFirStepInt;
     uint32_t  *pulCoeffs;
-
+    uint32_t  ulRulOffset = hGfxFeeder->ulRegOffset;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     uint32_t  ulEnDejag, ulEnDering, ulEnDemoMode;
     uint32_t  ulEnVscl, ulFilterOrder;
@@ -1320,7 +1321,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
 
     /* init RUL buffer pointers */
-    pulRulCur = *ppulRulCur;
+    pulRulCur = pList->pulCurrent;
 
     pGfxSurface = &hGfxFeeder->stGfxSurface;
     pCurCfg = &(hGfxFeeder->stCurCfgInfo);
@@ -1483,7 +1484,9 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE, PHASE, hGfxFeeder->ulFirInitPhase );
 #else
             /* 3D support */
-            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(2);
+            BDBG_CASSERT(2 == (((BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE) / sizeof(uint32_t)) + 1));
+            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS((
+                (BCHP_GFD_0_HORIZ_FIR_INIT_PHASE_R - BCHP_GFD_0_HORIZ_FIR_INIT_PHASE) / sizeof(uint32_t)) + 1);
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_HORIZ_FIR_INIT_PHASE ) + ulRulOffset;
             *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE,   PHASE, hGfxFeeder->ulFirInitPhase );
             *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_HORIZ_FIR_INIT_PHASE_R, PHASE, hGfxFeeder->ulFirInitPhase );
@@ -1498,16 +1501,15 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             (stFlags.bEnDecompression)? 4 * pCurSur->ulPitch :
 #endif
             (stFlags.bNeedVertScale || !stFlags.bInterlaced)? pCurSur->ulPitch : 2 * pCurSur->ulPitch;
-        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( GFD_NUM_REGS_SRC );
+
+        BDBG_CASSERT(2 == (((BCHP_GFD_0_SRC_HSIZE - BCHP_GFD_0_SRC_OFFSET) / sizeof(uint32_t)) + 1));
+        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_SRC_HSIZE - BCHP_GFD_0_SRC_OFFSET) / sizeof(uint32_t)) + 1);
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_OFFSET ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_OFFSET, BLANK_PIXEL_COUNT, ulOffsetPixInByte );
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_HSIZE,  HSIZE, pCurCfg->ulCntWidth );
-        *pulRulCur++ = 0; /* set later */
 
-#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
-        /* 3D support */
-        *pulRulCur++ = 0;
-#endif
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
+        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_PITCH ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_SRC_PITCH,  PITCH, ulMainSurPitch );
 
         /* vertical init phase will be diff for top and bot field, even if surface
@@ -1716,7 +1718,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     *pulRulCur++ = BRDC_REGISTER(pGfxSurface->ulVsyncCntrReg);
 
     /* reset RUL buffer pointer */
-    *ppulRulCur = pulRulCur;
+    pList->pulCurrent = pulRulCur;
 
     BDBG_LEAVE(BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr);
     return BERR_TRACE(eResult);
@@ -1786,11 +1788,9 @@ static BERR_Code BVDC_P_GfxFeeder_DecidePxlFmtType_isr
 static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
     ( BVDC_P_GfxFeeder_Handle            hGfxFeeder,
       BAVC_Polarity                      eFieldId,
-      uint32_t                         **ppulRulCur,
-      uint32_t                           ulRulOffset )
+      BVDC_P_ListInfo                   *pList )
 {
     BVDC_P_GfxFeederCfgInfo  *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
-    BVDC_P_CscCfg  *pGfxCsc = &hGfxFeeder->stGfxCsc;
     BVDC_P_SurfaceInfo  *pCurSur = &(hGfxFeeder->stGfxSurface.stCurSurInfo);
     BERR_Code   eResult = BERR_SUCCESS;
     uint32_t  *pulRulCur;
@@ -1798,9 +1798,10 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
     uint32_t   ulSurFormatType;
     BPXL_Format  eMainPxlFmt;
     BVDC_P_GfxDirtyBits  stDirty = pCurCfg->stDirty;
+    uint32_t   ulRulOffset = hGfxFeeder->ulRegOffset;
 
     /* init RUL buffer pointers */
-    pulRulCur = *ppulRulCur;
+    pulRulCur = pList->pulCurrent;
 
     /* set RUL for palatte color look up table loading */
     if (stDirty.stBits.bPaletteTable)
@@ -1828,7 +1829,9 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
     {
         eMainPxlFmt = pCurSur->eInputPxlFmt;
         BVDC_P_GfxFeeder_DecidePxlFmtType_isr( eMainPxlFmt, &ulSurFormatType );
-        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( GFD_NUM_REGS_PIXEL_FORMAT );
+
+        BDBG_CASSERT(2 == (((BCHP_GFD_0_FORMAT_DEF_2 - BCHP_GFD_0_FORMAT_DEF_1) / sizeof(uint32_t)) + 1));
+        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_FORMAT_DEF_2 - BCHP_GFD_0_FORMAT_DEF_1) / sizeof(uint32_t)) + 1);
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_FORMAT_DEF_1 ) + ulRulOffset;
         *pulRulCur++ =
             BCHP_FIELD_DATA( GFD_0_FORMAT_DEF_1, FORMAT_TYPE,  ulSurFormatType ) |
@@ -1849,8 +1852,8 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
     {
         if (!BPXL_IS_COMPRESSED_FORMAT(pCurSur->eInputPxlFmt))
         {
-            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(
-                BVDC_P_REGS_ENTRIES(GFD_0_DCXG_CFG, GFD_0_CROP_SRC_HSIZE));
+            BDBG_CASSERT(3 == (((BCHP_GFD_0_CROP_SRC_HSIZE - BCHP_GFD_0_DCXG_CFG) / sizeof(uint32_t)) + 1));
+            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_CROP_SRC_HSIZE - BCHP_GFD_0_DCXG_CFG) / sizeof(uint32_t)) + 1);
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_DCXG_CFG + ulRulOffset );
             *pulRulCur++ =
                 BCHP_FIELD_ENUM(GFD_0_DCXG_CFG, ENABLE, Disable) |
@@ -1870,8 +1873,10 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
                 BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, FRAME_OUT) : (eFieldId == BAVC_Polarity_eTopField)?
                 BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, TOP_FIELD_OUT) :
                 BCHP_FIELD_ENUM(GFD_0_CROP_CFG,  FIELD_SEL, BOT_FIELD_OUT);
-            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(
-                BVDC_P_REGS_ENTRIES(GFD_0_DCXG_CFG, GFD_0_CROP_SRC_HSIZE));
+
+
+            BDBG_CASSERT(3 == (((BCHP_GFD_0_CROP_SRC_HSIZE - BCHP_GFD_0_DCXG_CFG) / sizeof(uint32_t)) + 1));
+            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(((BCHP_GFD_0_CROP_SRC_HSIZE - BCHP_GFD_0_DCXG_CFG) / sizeof(uint32_t)) + 1);
             *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_DCXG_CFG + ulRulOffset );
             *pulRulCur++ =
                 BCHP_FIELD_ENUM(GFD_0_DCXG_CFG, ENABLE, Enable) |
@@ -1894,174 +1899,27 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
     if (stDirty.stBits.bCsc)
     {
 #if (BVDC_P_SUPPORT_GFD_VER_7 <= BVDC_P_SUPPORT_GFD_VER)
-            /* SW7445-767 disable gfd dither */
-            /* http://twiki-01.broadcom.com/bin/view/Arch/BVNChanges7445d0#BVN_dithering */
-            *pulRulCur++ = BRDC_OP_IMM_TO_REG();
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CSC_DITHER_CTRL) + ulRulOffset;
-            *pulRulCur++ =
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, MODE,       ROUNDING) |
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, OFFSET_CH2,  DEFAULT) |
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, SCALE_CH2,   DEFAULT) |
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, OFFSET_CH1,  DEFAULT) |
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, SCALE_CH1,   DEFAULT) |
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, OFFSET_CH0,  DEFAULT) |
-                BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, SCALE_CH0,   DEFAULT);
+        /* SW7445-767 disable gfd dither */
+        /* http://twiki-01.broadcom.com/bin/view/Arch/BVNChanges7445d0#BVN_dithering */
+        *pulRulCur++ = BRDC_OP_IMM_TO_REG();
+        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CSC_DITHER_CTRL) + ulRulOffset;
+        *pulRulCur++ =
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, MODE,       ROUNDING) |
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, OFFSET_CH2,  DEFAULT) |
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, SCALE_CH2,   DEFAULT) |
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, OFFSET_CH1,  DEFAULT) |
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, SCALE_CH1,   DEFAULT) |
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, OFFSET_CH0,  DEFAULT) |
+            BCHP_FIELD_ENUM(GFD_0_CSC_DITHER_CTRL, SCALE_CH0,   DEFAULT);
 #endif
-
-        /* write color elements from the table to rul */
-#if (BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0)
-
-#if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)
-        if (hGfxFeeder->bSupportEotfConv)
-        {
-            BVDC_P_EotfConvCfg *pEotfConv = &hGfxFeeder->stEotfConv;
-            const BVDC_P_CscLRangeAdj *pLRangeAdj;
-            const BVDC_P_CscAbCoeffs *pCscAb;
-
-            *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_NL_CSC_CTRL ) + ulRulOffset;
-            *pulRulCur++ =
-                BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, LRANGE_ADJ_EN,  ENABLE)             |
-                BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_L2NL,       pEotfConv->ucL2NL)  |
-                BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_NL2L,       pEotfConv->ucNL2L)  |
-                BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_CL_IN,      pGfxCsc->ucInputCL)
-#if BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2
-              | BCHP_FIELD_DATA(GFD_0_NL_CSC_CTRL, SEL_XVYCC,      pGfxCsc->ucXvYcc)   |
-                BCHP_FIELD_ENUM(GFD_0_NL_CSC_CTRL, NL_CSC,         ENABLE)
-#endif
-                ;
-
-            pLRangeAdj = pEotfConv->pLRangeAdj;
-            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS( 16 );
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_NL_LR_SLOPEi_ARRAY_BASE ) + ulRulOffset;
-
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[0];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[1];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[2];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[3];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[4];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[5];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[6];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjSlope[7];
-
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[0];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[1];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[2];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[3];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[4];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[5];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[6];
-            *pulRulCur++ = pLRangeAdj->aulLRangeAdjXY[7];
-
-            pCscAb = pGfxCsc->pCscAbMA;
-            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(
-                BVDC_P_REGS_ENTRIES(GFD_0_CSC_R0_MA_COEFF_C00, GFD_0_CSC_R0_MA_COEFF_C24));
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CSC_R0_MA_COEFF_C00 ) + ulRulOffset;
-
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C00, CSC_COEF_MULT, pCscAb->ulY0);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C01, CSC_COEF_MULT, pCscAb->ulY1);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C02, CSC_COEF_MULT, pCscAb->ulY2);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C03, CSC_COEF_MULT, pCscAb->ulYAlpha);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C04, CSC_COEF_ADD,  pCscAb->ulYOffset);
-
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C10, CSC_COEF_MULT, pCscAb->ulCb0);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C11, CSC_COEF_MULT, pCscAb->ulCb1);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C12, CSC_COEF_MULT, pCscAb->ulCb2);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C13, CSC_COEF_MULT, pCscAb->ulCbAlpha);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C14, CSC_COEF_ADD,  pCscAb->ulCbOffset);
-
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C20, CSC_COEF_MULT, pCscAb->ulCr0);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C21, CSC_COEF_MULT, pCscAb->ulCr1);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C22, CSC_COEF_MULT, pCscAb->ulCr2);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C23, CSC_COEF_MULT, pCscAb->ulCrAlpha);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C24, CSC_COEF_ADD,  pCscAb->ulCrOffset);
-
-            pCscAb = pGfxCsc->pCscAbMB;
-            *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(
-                BVDC_P_REGS_ENTRIES(GFD_0_CSC_R0_MB_COEFF_C00, GFD_0_CSC_R0_MB_COEFF_C23));
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CSC_R0_MB_COEFF_C00 ) + ulRulOffset;
-
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C00, CSC_COEF_MULT, pCscAb->ulY0);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C01, CSC_COEF_MULT, pCscAb->ulY1);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C02, CSC_COEF_MULT, pCscAb->ulY2);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C03, CSC_COEF_ADD,  pCscAb->ulYOffset);
-
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C10, CSC_COEF_MULT, pCscAb->ulCb0);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C11, CSC_COEF_MULT, pCscAb->ulCb1);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C12, CSC_COEF_MULT, pCscAb->ulCb2);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C13, CSC_COEF_ADD,  pCscAb->ulCbOffset);
-
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C20, CSC_COEF_MULT, pCscAb->ulCr0);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C21, CSC_COEF_MULT, pCscAb->ulCr1);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C22, CSC_COEF_MULT, pCscAb->ulCr2);
-            *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MB_COEFF_C23, CSC_COEF_ADD,  pCscAb->ulCrOffset);
-        }
-        else
-
-#endif /* #if (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2) */
-
-        if (hGfxFeeder->bSupportNLCsc)
-        {
-#if defined(BCHP_GFD_0_NL_CSC_CTRL_NL_CSC_R0_ENABLE)
-            *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
-            *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_NL_CSC_CTRL ) + ulRulOffset;
-            *pulRulCur++ = (pGfxCsc->ulNLCnv == BVDC_P_NL_CSC_CTRL_SEL_BYPASS) ? 0 :
-                (BCHP_FIELD_ENUM( GFD_0_NL_CSC_CTRL, NL_CSC_R0, ENABLE) |
-                 BCHP_FIELD_DATA( GFD_0_NL_CSC_CTRL, SEL_CONV_R0, pGfxCsc->ulNLCnv));
-
-            if (hGfxFeeder->bSupportMACsc && (pGfxCsc->ulNLCnv != BVDC_P_NL_CSC_CTRL_SEL_BYPASS))
-            {
-                const BVDC_P_CscCoeffs *pCscMA = pGfxCsc->pCscMA;
-                *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(
-                    BVDC_P_REGS_ENTRIES(GFD_0_CSC_R0_MA_COEFF_C00, GFD_0_CSC_R0_MA_COEFF_C24));
-                *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CSC_R0_MA_COEFF_C00 ) + ulRulOffset;
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C00, CSC_COEFF_C0, pCscMA->usY0);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C01, CSC_COEFF_C1, pCscMA->usY1);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C02, CSC_COEFF_C2, pCscMA->usY2);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C03, CSC_COEFF_C3, pCscMA->usYAlpha);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C04, CSC_COEFF_C4, pCscMA->usYOffset);
-
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C10, CSC_COEFF_C0, pCscMA->usCb0);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C11, CSC_COEFF_C1, pCscMA->usCb1);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C12, CSC_COEFF_C2, pCscMA->usCb2);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C13, CSC_COEFF_C3, pCscMA->usCbAlpha);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C14, CSC_COEFF_C4, pCscMA->usCbOffset);
-
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C20, CSC_COEFF_C0, pCscMA->usCr0);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C21, CSC_COEFF_C1, pCscMA->usCr1);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C22, CSC_COEFF_C2, pCscMA->usCr2);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C23, CSC_COEFF_C3, pCscMA->usCrAlpha);
-                *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_R0_MA_COEFF_C24, CSC_COEFF_C4, pCscMA->usCrOffset);
-            }
-#endif /* #if defined(BCHP_GFD_0_NL_CSC_CTRL_NL_CSC_R0_ENABLE) */
-        }
-#endif /* #if (BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) */
-
-        *pulRulCur++ = BRDC_OP_IMMS_TO_REGS(
-            BVDC_P_REGS_ENTRIES(GFD_0_CSC_COEFF_C00, GFD_0_CSC_COEFF_C24));
-        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CSC_COEFF_C00 ) + ulRulOffset;
-
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C00, CSC_COEFF_C0, pGfxCsc->stCscMC.usY0);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C01, CSC_COEFF_C1, pGfxCsc->stCscMC.usY1);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C02, CSC_COEFF_C2, pGfxCsc->stCscMC.usY2);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C03, CSC_COEFF_C3, pGfxCsc->stCscMC.usYAlpha);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C04, CSC_COEFF_C4, pGfxCsc->stCscMC.usYOffset);
-
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C10, CSC_COEFF_C0, pGfxCsc->stCscMC.usCb0);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C11, CSC_COEFF_C1, pGfxCsc->stCscMC.usCb1);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C12, CSC_COEFF_C2, pGfxCsc->stCscMC.usCb2);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C13, CSC_COEFF_C3, pGfxCsc->stCscMC.usCbAlpha);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C14, CSC_COEFF_C4, pGfxCsc->stCscMC.usCbOffset);
-
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C20, CSC_COEFF_C0, pGfxCsc->stCscMC.usCr0);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C21, CSC_COEFF_C1, pGfxCsc->stCscMC.usCr1);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C22, CSC_COEFF_C2, pGfxCsc->stCscMC.usCr2);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C23, CSC_COEFF_C3, pGfxCsc->stCscMC.usCrAlpha);
-        *pulRulCur++ = BCHP_FIELD_DATA(GFD_0_CSC_COEFF_C24, CSC_COEFF_C4, pGfxCsc->stCscMC.usCrOffset);
     }
 
     /* reset RUL buffer pointer */
-    *ppulRulCur = pulRulCur;
+    pList->pulCurrent = pulRulCur;
+
+    /* Build RUL for cfc inside a GFD
+     */
+    BVDC_P_GfxFeeder_BuildCfcRul_isr(hGfxFeeder, pList);
 
     return BERR_TRACE(eResult);
 }
@@ -2077,8 +1935,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
 static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     ( BVDC_P_GfxFeeder_Handle        hGfxFeeder,
       BVDC_P_State                   eVnetState,
-      uint32_t                     **ppulRulCur,
-      uint32_t                       ulRulOffset )
+      BVDC_P_ListInfo               *pList )
 {
     BVDC_P_GfxFeederCfgInfo  *pCurCfg = &(hGfxFeeder->stCurCfgInfo);
     BERR_Code  eResult = BERR_SUCCESS;
@@ -2086,21 +1943,25 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     uint32_t  ulEnClrMtrx, ulEnGamma, ulDoneAlphaPreMul, ulEnKey, ulEnHscl, ulEnBstc = 0;
     uint32_t  ulPointSample, ulContinue, ulEnGfd;
     BVDC_P_GfxCfgFlags  stFlags;
+    uint32_t  ulRulOffset = hGfxFeeder->ulRegOffset;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
     uint32_t ulInOrientation, ulOutOrientation;
     BFMT_Orientation  eInOrientation = pCurCfg->eInOrientation;
     uint32_t ulEnMA = 0;
-#if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER < BVDC_P_NL_CSC_VER_2))
-    BVDC_P_CscCfg  *pGfxCsc = &hGfxFeeder->stGfxCsc;
-    if (hGfxFeeder->bSupportMACsc && (pGfxCsc->ulNLCnv != BVDC_P_NL_CSC_CTRL_SEL_BYPASS))
+#if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_1)
+    if (hGfxFeeder->stCfc.stCapability.stBits.bMa &&
+        (hGfxFeeder->stCfc.ucSelBlackBoxNL != BVDC_P_CFC_NL_SEL_BYPASS))
     {
         ulEnMA = BCHP_FIELD_DATA( GFD_0_CTRL, CSC_R0_MA_ENABLE, 1 );
     }
 #endif
 #endif
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+    uint32_t ulEnAlphaDiv = 0;
+#endif
 
     /* init RUL buffer pointers */
-    pulRulCur = *ppulRulCur;
+    pulRulCur = pList->pulCurrent;
 
     /* set RUL for GFD_0_CTRL,
      * must be done after scale and color matrix are decided,
@@ -2109,10 +1970,21 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
      */
     /* note: for alpha pre-multiply, our concept is the opposite of HW! */
     stFlags = pCurCfg->stFlags;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+    /* 7271 A/B */
+    if (hGfxFeeder->hWindow)
+    {
+        ulEnAlphaDiv  = (BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))? 1 : 0;
+    }
+#endif
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+    ulEnClrMtrx       = (hGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut)? ulEnAlphaDiv : stFlags.bNeedColorSpaceConv;
+#else
     ulEnClrMtrx       = stFlags.bNeedColorSpaceConv;
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
     ulEnHscl          = stFlags.bNeedHorizScale;
     ulEnGamma         = stFlags.bEnableGammaCorrection;
-    ulDoneAlphaPreMul = (stFlags.bEnGfdHwAlphaPreMultiply)? 0: 1; /* NOT 1: 0*/
+    ulDoneAlphaPreMul = (stFlags.bEnGfdHwAlphaPreMultiply)? 0: 1; /* NOT 1: 0 */
     ulEnKey           = (stFlags.bEnableKey) && (false == stFlags.bConstantBlending);
     ulPointSample     = (BVDC_FilterCoeffs_ePointSample == pCurCfg->eHorzScaleCoeffs)? 1: 0;
     BDBG_MSG(("ulEnClrMtrx %d ", stFlags.bNeedColorSpaceConv));
@@ -2132,6 +2004,9 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
     *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
     *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_CTRL + ulRulOffset );
     *pulRulCur++ = ulEnMA | ulEnBstc |
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+        BCHP_FIELD_DATA( GFD_0_CTRL, ALPHA_DIV_EN,     ulEnAlphaDiv )      |
+#endif
         BCHP_FIELD_DATA( GFD_0_CTRL, CSC_ENABLE,       ulEnClrMtrx )       |
         BCHP_FIELD_DATA( GFD_0_CTRL, GC_ENABLE,        ulEnGamma )         |
         BCHP_FIELD_DATA( GFD_0_CTRL, HFIR_ENABLE,      ulEnHscl )          |
@@ -2168,7 +2043,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr
         BCHP_FIELD_DATA( GFD_0_ENABLE, ENABLE_CTRL, ulContinue );
 
     /* reset RUL buffer pointer */
-    *ppulRulCur = pulRulCur;
+    pList->pulCurrent = pulRulCur;
 
     return BERR_TRACE(eResult);
 }
@@ -2263,9 +2138,7 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     BVDC_P_SurfaceInfo  *pCurSur;
     BVDC_P_GfxFeederCfgInfo  *pCurCfg;
     BVDC_P_GfxDirtyBits  stCurDirty;
-    BVDC_P_CscCoeffs const *pRGBToYCbCr, *pYCbCrToRGB;
-    uint32_t  *pulRulCur;
-    uint32_t  ulRulOffset;
+    BVDC_P_Csc3x4 const *pRGBToYCbCr, *pYCbCrToRGB;
 
     BDBG_ENTER(BVDC_P_GfxFeeder_BuildRul_isr);
 
@@ -2281,10 +2154,6 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     /* If surface has been set by *SetSurface_isr, or src pic call back func is
      * installed, we activate it now */
     BVDC_P_GfxFeeder_HandleIsrSurface_isr( hGfxFeeder, pCurSrcInfo, eFieldId );
-
-    /* init RUL buffer pointers */
-    pulRulCur = pList->pulCurrent;
-    ulRulOffset = hGfxFeeder->ulRegOffset;
 
     /* this copy should be after HandleIsrSurface_isr since it might change Dirty */
     stCurDirty = pCurCfg->stDirty;
@@ -2324,7 +2193,7 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     {
         /*remove the software init after 7435A*/
 #if (BVDC_P_SUPPORT_GFD_VER < BVDC_P_SUPPORT_GFD_VER_6)
-        BVDC_P_BUILD_RESET(pulRulCur,
+        BVDC_P_BUILD_RESET(pList->pulCurrent,
             hGfxFeeder->ulResetRegAddr, hGfxFeeder->ulResetMask);
 #endif
         hGfxFeeder->ulInitVsyncCntr --;
@@ -2333,25 +2202,54 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     /* resolve color conversion state */
     if (hGfxFeeder->hWindow)
     {
-        if ( stCurDirty.stBits.bCsc )
+        if (hGfxFeeder->stCurCfgInfo.stDirty.stBits.bSdrGfx2HdrAdj)
         {
-            BVDC_P_GfxFeeder_DecideColorMatrix_isr( pCurSur->eActivePxlFmt, hGfxFeeder, &pRGBToYCbCr, &pYCbCrToRGB);
+            BVDC_P_GfxFeeder_CalculateSdr2HdrCsc_isr(hGfxFeeder);
+        }
 
+        if ( stCurDirty.stBits.bCsc ||
+             hGfxFeeder->hWindow->hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace )
+        {
+            if (!hGfxFeeder->stCfc.stCapability.stBits.bLRngAdj &&
+                BPXL_IS_RGB_FORMAT(pCurSur->eActivePxlFmt) &&
+                !BVDC_P_IS_SDR(hGfxFeeder->stCfc.pColorSpaceOut->stAvcColorSpace.eColorTF))
+            {
+                BDBG_MODULE_MSG(BVDC_CFC_1,("Cmp%d_G0-Cfc0: sdr -> hdr", hGfxFeeder->stCfc.eId - BVDC_P_CfcId_eComp0_G0));
+                BDBG_MODULE_MSG(BVDC_CFC_2,("   Using special SDR to HDR CSC adjustment for GFX"));
+                hGfxFeeder->stCfc.stMc = hGfxFeeder->stCscSdr2Hdr;
+                hGfxFeeder->stCfc.ucSelBlackBoxNL = BVDC_P_CFC_NL_SEL_BYPASS;
+            }
+            else
+            {
+                if (stCurDirty.stBits.bCsc)
+                {
+                    BVDC_P_GfxFeeder_UpdateGfxInputColorSpace_isr(pCurSur, &hGfxFeeder->stCfc.stColorSpaceIn);
+                }
+                BVDC_P_Cfc_UpdateCfg_isr(&hGfxFeeder->stCfc, false, true);
+                if( hGfxFeeder->hWindow->stCurInfo.bUserCsc )
+                {
+                    BDBG_MODULE_MSG(BVDC_CFC_2,("Using User WIN CSC for GFX CFC"));
+                    BVDC_P_Cfc_FromMatrix_isr( &hGfxFeeder->stCfc,
+                        hGfxFeeder->hWindow->stCurInfo.pl32_Matrix, hGfxFeeder->hWindow->stCurInfo.ulUserShift);
+                }
+            }
+
+            BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hGfxFeeder->hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
 #ifndef BVDC_FOR_BOOTUPDATER
         /* color adjustment */
-            BVDC_P_Csc_ApplyContrast_isr(hGfxFeeder->hWindow->stCurInfo.sContrast, &hGfxFeeder->stGfxCsc.stCscMC);
-            BVDC_P_Csc_ApplyBrightness_isr(hGfxFeeder->hWindow->stCurInfo.sBrightness, &hGfxFeeder->stGfxCsc.stCscMC);
-            BVDC_P_Csc_ApplySaturationAndHue_isr(
+            BVDC_P_Cfc_ApplyContrast_isr(hGfxFeeder->hWindow->stCurInfo.sContrast, &hGfxFeeder->stCfc.stMc);
+            BVDC_P_Cfc_ApplyBrightness_isr(hGfxFeeder->hWindow->stCurInfo.sBrightness, &hGfxFeeder->stCfc.stMc);
+            BVDC_P_Cfc_ApplySaturationAndHue_isr(
                 hGfxFeeder->hWindow->stCurInfo.sSaturation,
-                hGfxFeeder->hWindow->stCurInfo.sHue, &hGfxFeeder->stGfxCsc.stCscMC);
-            BVDC_P_Csc_ApplyAttenuationRGB_isr(
+                hGfxFeeder->hWindow->stCurInfo.sHue, &hGfxFeeder->stCfc.stMc);
+            BVDC_P_Cfc_ApplyAttenuationRGB_isr(
                 hGfxFeeder->hWindow->stCurInfo.lAttenuationR,
                 hGfxFeeder->hWindow->stCurInfo.lAttenuationG,
                 hGfxFeeder->hWindow->stCurInfo.lAttenuationB,
                 hGfxFeeder->hWindow->stCurInfo.lOffsetR,
                 hGfxFeeder->hWindow->stCurInfo.lOffsetG,
                 hGfxFeeder->hWindow->stCurInfo.lOffsetB,
-                &hGfxFeeder->stGfxCsc.stCscMC,
+                &hGfxFeeder->stCfc.stMc,
                 pYCbCrToRGB, /* YCbCr->RGB */
                 pRGBToYCbCr, /* RGB->YCbCr */
                 hGfxFeeder->hWindow->stCurInfo.bUserCsc);
@@ -2360,13 +2258,13 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     }
 
     /* set RULs, gfx should be enabled at the last of config */
-    BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr( pCurCfg, &pulRulCur, ulRulOffset );
+    BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr( hGfxFeeder, pList );
 
-    BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr( hGfxFeeder, eFieldId, &pulRulCur, ulRulOffset );
+    BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr( hGfxFeeder, eFieldId, pList );
 
-    BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr( hGfxFeeder, eFieldId, &pulRulCur, ulRulOffset );
+    BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr( hGfxFeeder, eFieldId, pList );
 
-    BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr( hGfxFeeder, eVnetState, &pulRulCur, ulRulOffset );
+    BVDC_P_GfxFeeder_BuildRulForEnableCtrl_isr( hGfxFeeder, eVnetState, pList );
 
     /* copy dirty bits to PrevDirty in case this RUL never goes to HW */
     hGfxFeeder->stPrevDirty = stCurDirty;
@@ -2374,7 +2272,6 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     BVDC_P_CLEAN_ALL_DIRTY(&(pCurCfg->stDirty));
     pCurSur->bChangeSurface = false; /* must reset after BuildRulForSurCtrl_isr */
 
-    pList->pulCurrent = pulRulCur;
     BDBG_LEAVE(BVDC_P_GfxFeeder_BuildRul_isr);
     return;
 }
@@ -2430,7 +2327,8 @@ BERR_Code BVDC_P_GfxFeeder_ValidateBlend
  * values before calling this function
  */
 BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
-    ( BVDC_BlendFactor            *peSrcBlendFactor,
+    ( BVDC_P_GfxFeeder_Handle      hGfxFeeder,
+      BVDC_BlendFactor            *peSrcBlendFactor,
       BVDC_BlendFactor            *peDstBlendFactor,
       uint8_t                     *pucConstantAlpha )
 {
@@ -2453,6 +2351,17 @@ BERR_Code BVDC_P_GfxFeeder_AdjustBlend_isr
             *peSrcBlendFactor = BVDC_BlendFactor_eConstantAlpha;
             *pucConstantAlpha = GFX_ALPHA_FULL;
         }
+
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+        /* when blen-matrix is enabled, we would enable alpha-div, so the output pixel
+         * from GFD has alpha removed from the YCbCr value */
+        if (hGfxFeeder->hWindow && BVDC_P_NEED_BLEND_MATRIX(hGfxFeeder->hWindow->hCompositor))
+        {
+            *peSrcBlendFactor = BVDC_BlendFactor_eSrcAlpha;
+        }
+#else
+        BSTD_UNUSED(hGfxFeeder);
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
     }
     else
     {

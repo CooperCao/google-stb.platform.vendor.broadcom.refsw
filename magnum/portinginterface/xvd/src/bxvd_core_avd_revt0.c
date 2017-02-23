@@ -60,7 +60,7 @@ BDBG_MODULE(BXVD_CORE_AVD_REVT0);
 BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
                               uint32_t uiDecoderInstance)
 {
-   uint32_t uiEndOfCode;
+   uint64_t uiEndOfCode;
    uint32_t uiILSize;
 
    void *pvCmdBuffer;
@@ -117,7 +117,7 @@ BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
    hXvd->astFWBootInfo[0].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
    hXvd->astFWBootInfo[0].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-   hXvd->uiOuterLoopInstructionBase = hXvd->uiFWMemBasePhyAddr;
+   hXvd->uiOuterLoopInstructionBase = hXvd->FWMemBasePhyAddr;
 
    uiEndOfCode = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
@@ -171,7 +171,7 @@ BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
    hXvd->astFWBootInfo[1].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
    hXvd->astFWBootInfo[1].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-   hXvd->uiInnerLoopInstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
+   hXvd->uiInnerLoopInstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
    uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
    BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", hXvd->uiInnerLoopInstructionBase));
@@ -213,7 +213,7 @@ BERR_Code BXVD_P_FWLoad_Revt0(BXVD_Handle hXvd,
       hXvd->astFWBootInfo[2].stCode.pStartAddress = stBAFLoadInfo.stCode.pStartAddress;
       hXvd->astFWBootInfo[2].stCode.uiSize = stBAFLoadInfo.stCode.uiSize;
 
-      hXvd->uiInnerLoop2InstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
+      hXvd->uiInnerLoop2InstructionBase = hXvd->FWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
       uiEndOfCode = hXvd->uiInnerLoop2InstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
       BXVD_DBG_MSG(hXvd, ("IL 2 Start of Code: %08x", hXvd->uiInnerLoop2InstructionBase));

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,7 @@
 #include "objalloc.h"
 #include "tztask.h"
 #include "lib_string.h"
+#include "atomic.h"
 
 static ObjCacheAllocator<RamFS::Directory> dirAllocator;
 static ObjCacheAllocator<RamFS::Directory::Entry> entryAllocator;
@@ -249,7 +250,7 @@ RamFS::Directory::Directory(uint16_t uid, uint16_t gid, IDirectory *parent, uint
     numRefs = 0;
     numEntries = 0;
 
-    spinlock_init("ramfs.dir.lock", &lock);
+    spinLockInit(&lock);
 
     // Every directory starts its life with two entries: "." and ".."
     // These are created when the directory is created and these entries
@@ -533,8 +534,6 @@ void resetLabel(RamFS::Directory::Entry* readEntry)
 
 }
 
-
-
 void labelDir(RamFS::Directory::Entry* readEntry)
 {
 
@@ -793,19 +792,19 @@ void RamFS::Directory::accessTimes(AccessTimes *tm) {
 
 void RamFS::Directory::print(int level) {
 #ifdef DO_DIR_PRINTF
-    SpinLocker locker(&lock);
+   SpinLocker locker(&lock);
 
-    Entry *entryStack[1024];
+    Entry *entryStack[16];
     int top = -1;
     entryStack[++top] = firstEntry;
 
-    while (top >= 0) {
+    while (top >= 0 && top < 16) {
         Entry *entry = entryStack[top--];
         for (int i=0; i<level; i++) printf("\t");
 
         printf("%s\n", entry->name);
         if ((entry->type == DirEntry) && (strcmp(entry->name, ".")) && (strcmp(entry->name, "..")))
-            entry->dir->print(level+1);
+                entry->dir->print(level+1);
 
         if (entry->rightChild != nullptr)
             entryStack[++top] = entry->rightChild;

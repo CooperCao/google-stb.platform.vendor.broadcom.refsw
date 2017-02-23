@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,12 +47,14 @@ endif
 CP := cp -fp
 
 # arch defines
-ARCH := arm
-CROSS_COMPILE := arm-linux-
+ARCH ?= arm
+CROSS_COMPILE ?= arm-linux-
 
 # path defines
 TOP_DIR ?= $(CURDIR)/../..
-ASTRA_DIR ?= $(TOP_DIR)/linux/bcm_astra
+B_REFSW_OBJ_ROOT ?= $(TOP_DIR)/../obj$(TZ_ARCH)/astra
+ASTRA_TDRV_OBJ_DIR ?= $(B_REFSW_OBJ_ROOT)/linux/astra_tdrv
+ASTRA_DIR ?= $(B_REFSW_OBJ_ROOT)/linux/bcm_astra
 ifneq ($(LINUX),)
 KDIR ?= $(LINUX)
 endif
@@ -78,11 +80,13 @@ NEXUS_BUILD := n
 endif
 
 # target rules
-.PHONY: all check_symvers clean install
+.PHONY: all check_symvers objdirs clean install
 
 all: check_symvers
+	cp -f Kbuild $(ASTRA_TDRV_OBJ_DIR)
 	${Q_}$(MAKE) -C $(KDIR) \
-		M=$(CURDIR) \
+		M=$(ASTRA_TDRV_OBJ_DIR) \
+		src=$(CURDIR) \
 		ARCH=$(ARCH) \
 		CROSS_COMPILE=$(CROSS_COMPILE) \
 		TOP_DIR=$(TOP_DIR) \
@@ -90,26 +94,25 @@ all: check_symvers
 		TARGET=$(TARGET) \
 		TARGET_REV=$(TARGET_REV) \
 		NEXUS_BUILD=$(NEXUS_BUILD) \
-		KBUILD_EXTRA_SYMBOLS=$(CURDIR)/$(ASTRA_SYMVERS) \
+		KBUILD_EXTRA_SYMBOLS=$(ASTRA_TDRV_OBJ_DIR)/$(ASTRA_SYMVERS) \
 		modules
 
-check_symvers:
+check_symvers: objdirs
 ifeq ($(wildcard $(ASTRA_SYMVERS)),)
 	@echo "[Copy... "$@" from "$(ASTRA_DIR)"]";
-	cp $(ASTRA_DIR)/Module.symvers $(ASTRA_SYMVERS)
+	cp $(ASTRA_DIR)/Module.symvers $(ASTRA_TDRV_OBJ_DIR)/$(ASTRA_SYMVERS)
 endif
 
+objdirs:
+	mkdir -p $(ASTRA_TDRV_OBJ_DIR)
+
 clean:
-	${Q_}$(RM) *.o *.ko .*.cmd *.mod.c
-	${Q_}$(RM) -r .tmp_versions
-	${Q_}$(RM) Module.markers
-	${Q_}$(RM) Module.symvers
-	${Q_}$(RM) modules.order
+	${Q_}$(RM) -r $(ASTRA_TDRV_OBJ_DIR)
 
 install: all
 ifeq ($(INSTALL_DIR),)
 	$(error INSTALL_DIR is undefined)
 else
 	@echo "[Install... "$(ASTRA_TDRV)"]"
-	${Q_}$(CP) $(ASTRA_TDRV) $(INSTALL_DIR)
+	${Q_}$(CP) $(ASTRA_TDRV_OBJ_DIR)/$(ASTRA_TDRV) $(INSTALL_DIR)
 endif

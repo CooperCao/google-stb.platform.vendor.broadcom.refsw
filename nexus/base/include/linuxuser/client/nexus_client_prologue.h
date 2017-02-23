@@ -71,6 +71,13 @@ void *NEXUS_P_ClientCall_OffsetToAddr(NEXUS_Addr addr);
 NEXUS_Addr NEXUS_P_ClientCall_AddrToOffset(const void *ptr);
 void NEXUS_P_ClientCall_OutVarArg(NEXUS_P_ClientCall_State *state, unsigned vararg_size, void *dest, int field);
 
+/* define prototypes for init/uninit functions */
+#define NEXUS_PLATFORM_P_DRIVER_MODULE(module) \
+BERR_Code nexus_client_##module##_init(NEXUS_P_ClientModuleHandle module); \
+void nexus_client_##module##_uninit(void);
+#include "nexus_driver_modules.h"
+#undef NEXUS_PLATFORM_P_DRIVER_MODULE
+
 
 
 #endif /* _NEXUS_CLIENT_PROLOGUE_H_ */

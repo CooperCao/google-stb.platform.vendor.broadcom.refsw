@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -246,34 +246,34 @@ int _tzioc_msg_receive(
     return 0;
 }
 
-uint32_t _tzioc_offset2vaddr(
+uintptr_t _tzioc_offset2vaddr(
     struct tzioc_client *pClient,
     uint32_t ulOffset)
 {
     if (ulOffset < pClient->smemSize)
-        return ulOffset + (uint32_t)pClient->psmem;
+        return ulOffset + (uintptr_t)pClient->psmem;
     else
-        return (uint32_t)-1;
+        return (uintptr_t)-1;
 }
 
-uint32_t _tzioc_vaddr2offset(
+uintptr_t _tzioc_vaddr2offset(
     struct tzioc_client *pClient,
-    uint32_t ulVaddr)
+    uintptr_t ulVaddr)
 {
-    if (ulVaddr >= (uint32_t)pClient->psmem &&
-        ulVaddr <  (uint32_t)pClient->psmem + pClient->smemSize)
-        return ulVaddr - (uint32_t)pClient->psmem;
+    if (ulVaddr >= (uintptr_t)pClient->psmem &&
+        ulVaddr <  (uintptr_t)pClient->psmem + pClient->smemSize)
+        return ulVaddr - (uintptr_t)pClient->psmem;
     else
-        return (uint32_t)-1;
+        return (uintptr_t)-1;
 }
 
 void *_tzioc_map_paddr(
     struct tzioc_client *pClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize,
     uint32_t ulFlags)
 {
-    uint32_t ulVaddr;
+    uintptr_t ulVaddr;
     int err = 0;
 
     err = _tzioc_ioctl_map_paddr(
@@ -292,7 +292,7 @@ void *_tzioc_map_paddr(
 
 void _tzioc_unmap_paddr(
     struct tzioc_client *pClient,
-    uint32_t ulPaddr,
+    uintptr_t ulPaddr,
     uint32_t ulSize)
 {
     int err = 0;

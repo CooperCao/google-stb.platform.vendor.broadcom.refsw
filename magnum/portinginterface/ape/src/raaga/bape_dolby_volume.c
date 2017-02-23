@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,54 +9,49 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: DolbyVolume
 *    Specific APIs related to Dolby Volume Audio Processing
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_dolby_volume);
 
 BDBG_OBJECT_ID(BAPE_DolbyVolume);
 
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_DolbyVolume
 {
     BDBG_OBJECT(BAPE_DolbyVolume)
@@ -379,4 +374,99 @@ static void BAPE_DolbyVolume_P_RemoveInputCallback(struct BAPE_PathNode *pNode, 
 {
     (void)BAPE_DolbyVolume_RemoveInput(pNode->pHandle, pConnector);
 }
+#else
+typedef struct BAPE_DolbyVolume
+{
+    BDBG_OBJECT(BAPE_DolbyVolume)
+} BAPE_DolbyVolume;
 
+void BAPE_DolbyVolume_GetDefaultSettings(
+    BAPE_DolbyVolumeSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+/***************************************************************************
+Summary:
+    Open an SRS DolbyVolume stage
+***************************************************************************/
+BERR_Code BAPE_DolbyVolume_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_DolbyVolumeSettings *pSettings,
+    BAPE_DolbyVolumeHandle *pHandle
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_DolbyVolume_Destroy(
+    BAPE_DolbyVolumeHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_DolbyVolume_GetSettings(
+    BAPE_DolbyVolumeHandle handle,
+    BAPE_DolbyVolumeSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_DolbyVolume_SetSettings(
+    BAPE_DolbyVolumeHandle handle,
+    const BAPE_DolbyVolumeSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+void BAPE_DolbyVolume_GetConnector(
+    BAPE_DolbyVolumeHandle handle,
+    BAPE_Connector *pConnector
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+}
+
+
+BERR_Code BAPE_DolbyVolume_AddInput(
+    BAPE_DolbyVolumeHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_DolbyVolume_RemoveInput(
+    BAPE_DolbyVolumeHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_DolbyVolume_RemoveAllInputs(
+    BAPE_DolbyVolumeHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -130,7 +130,6 @@ static void bwinTunerLockStatusCallback(
     }
 } /* bwinTunerLockStatusCallback */
 
-
 BIP_Status CChannelBip::restartDecode(void)
 {
     BIP_PlayerSettings playerSettings;
@@ -236,6 +235,10 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     BIP_PlayerStatus playerStatus;
     CModel *         pModel = getModel();
 
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
+
     if (_pPlayer == NULL)
     {
         goto error;
@@ -244,6 +247,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     if (playerAction == BMediaPlayerAction_eUnTune)
     {
         BDBG_MSG(("Player action to untune"));
+        _playerState = BMediaPlayerState_eMax;
         goto error;
     }
 
@@ -299,28 +303,32 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             BDBG_MSG(("BIP_Player_ConnectAsync Success!, BipStatus %d", bipStatus));
 
             /* BIP_Player_ConnectAsync() is successful, print & parse any custom HTTP response headers. */
-
-            BDBG_WRN(("In Connected state, start Probe processing.."));
-            BIP_Player_GetDefaultProbeMediaInfoSettings(&probeMediaInfoSettings);
-            _asyncApiCompletionStatus = BIP_INF_IN_PROGRESS;
-            _pMediaInfo               = NULL;
-
             if (_pidMgr.isEmpty() && _enableDynamicTrackSelection)
             {
-               bipStatus                 = BIP_Player_ProbeMediaInfoAsync(_pPlayer, &probeMediaInfoSettings, &_pMediaInfo, &_asyncCallbackDesc, &_asyncApiCompletionStatus);
-               if ((bipStatus != BIP_INF_IN_PROGRESS) && (bipStatus != BIP_SUCCESS))
-               {
-                   BDBG_ERR(("BIP_Player_ProbeAsync Failed!"));
-                   goto error;
-               }
+                BIP_Player_GetDefaultProbeMediaInfoSettings(&probeMediaInfoSettings);
+                _asyncApiCompletionStatus = BIP_INF_IN_PROGRESS;
+                _pMediaInfo               = NULL;
 
-               BDBG_MSG(("Media Probe processing started.."));
-               setState(BMediaPlayerState_eWaitingForProbe);
-            } else
+                BDBG_WRN(("In Connected state, start Probe processing.."));
+                bipStatus = BIP_Player_ProbeMediaInfoAsync(_pPlayer, &probeMediaInfoSettings, &_pMediaInfo, &_asyncCallbackDesc, &_asyncApiCompletionStatus);
+                if ((bipStatus != BIP_INF_IN_PROGRESS) && (bipStatus != BIP_SUCCESS))
+                {
+                    BDBG_ERR(("BIP_Player_ProbeAsync Failed!"));
+                    goto error;
+                }
+
+                BDBG_MSG(("Media Probe processing started.."));
+                setState(BMediaPlayerState_eWaitingForProbe);
+            }
+            else
             {
-               BDBG_MSG((" Dynamic Tracks , use pids in pidMgr, Skip to Prepare"));
-               setState(BMediaPlayerState_eWaitingForPrepare);
-               notifyObservers(eNotify_NonTunerLockStatus, this);
+                /* SWSTB-3854: This is an issue in BIP , We must sleep to give BIP engouh time to get ready
+                   for Prepare. Without delay when _enableDynamicTrackEnable is set to false resources are not
+                   released quickly. */
+                BKNI_Sleep(1000);
+                BDBG_MSG((" Dynamic Tracks , use pids in pidMgr, Skip to Prepare"));
+                setState(BMediaPlayerState_eWaitingForPrepare);
+                notifyObservers(eNotify_NonTunerLockStatus, this);
             }
         }
         break;
@@ -347,7 +355,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
         BIP_CHECK_GOTO((_asyncApiCompletionStatus == BIP_INF_IN_PROGRESS || _asyncApiCompletionStatus == BIP_SUCCESS), ("BIP_Player_PrepareAsync() Failed!"), error, _asyncApiCompletionStatus, bipStatus);
         BDBG_MSG(("In BMediaPlayerState_eWaitingForPrepare . "));
         /* Need to make sure that we set that PIDS are preset and we don't need BIP to prepare */
-        if ((_enableDynamicTrackSelection ==false) || ((_asyncApiCompletionStatus == BIP_SUCCESS) && (playerAction == BMediaPlayerAction_ePrepare)))
+        if ((_enableDynamicTrackSelection == false) || ((_asyncApiCompletionStatus == BIP_SUCCESS) && (playerAction == BMediaPlayerAction_ePrepare)))
         {
             BIP_PlayerPrepareSettings prepareSettings;
             BIP_PlayerSettings        playerSettings;
@@ -359,30 +367,31 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             /* Fill in after we get the Default Settings */
             BIP_Player_GetSettings(_pPlayer, &playerSettings);
 
-            if(!_enableDynamicTrackSelection)
+            if (!_enableDynamicTrackSelection)
             {
-               /* send this info to the player because we are in Dynamic mode now. Pids are set! */
-               playerSettings.enableDynamicTrackSelection = false;
-               playerSettings.videoTrackId = (_pidMgr.getPid(0,ePidType_Video))->getPid();
-               playerSettings.audioTrackId = (_pidMgr.getPid(0,ePidType_Audio))->getPid();
-               playerSettings.videoTrackSettings.pidTypeSettings.video.codec = (_pidMgr.getPid(0,ePidType_Video))->getVideoCodec();
-               playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = (_pidMgr.getPid(0,ePidType_Audio))->getAudioCodec();
+                /* send this info to the player because we are in Dynamic mode now. Pids are set! */
+                playerSettings.enableDynamicTrackSelection                                = false;
+                playerSettings.videoTrackId                                               = (_pidMgr.getPid(0, ePidType_Video))->getPid();
+                playerSettings.audioTrackId                                               = (_pidMgr.getPid(0, ePidType_Audio))->getPid();
+                playerSettings.videoTrackSettings.pidTypeSettings.video.codec             = (_pidMgr.getPid(0, ePidType_Video))->getVideoCodec();
+                playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = (_pidMgr.getPid(0, ePidType_Audio))->getAudioCodec();
 
                 /* Add PCR pid only for Transport TS  */
-                if ( _pidMgr.getTransportType() == NEXUS_TransportType_eTs )
+                if (_pidMgr.getTransportType() == NEXUS_TransportType_eTs)
                 {
-                   /* All fields should have been copied over, but overwrite the PCR field */
-                   _playerStreamInfo.mpeg2Ts.pcrPid = (_pidMgr.getPid(0,ePidType_Pcr))->getPid();
-                   _playerStreamInfo.containerType = BIP_PlayerContainerType_eNexusTransportType;
-                   _playerStreamInfo.transportType = NEXUS_TransportType_eTs;
+                    /* All fields should have been copied over, but overwrite the PCR field */
+                    _playerStreamInfo.mpeg2Ts.pcrPid = (_pidMgr.getPid(0, ePidType_Pcr))->getPid();
+                    _playerStreamInfo.containerType  = BIP_PlayerContainerType_eNexusTransportType;
+                    _playerStreamInfo.transportType  = NEXUS_TransportType_eTs;
                 }
 
-                BIP_Player_SetSettings(_pPlayer,&playerSettings);
-            } else
+                BIP_Player_SetSettings(_pPlayer, &playerSettings);
+            }
+            else
             {
                 /* Double check playerStreamInfo when Stream Pids are not Hardcoded */
                 BIP_Player_GetProbedStreamInfo(_pPlayer, &_playerStreamInfo);
-               setDurationInMsecs(_playerStreamInfo.durationInMs);
+                setDurationInMsecs(_playerStreamInfo.durationInMs);
             }
 
             BDBG_MSG(("Settings trackGroupId to this programNumber %d", _programNumber));
@@ -442,7 +451,27 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     {
         if (playerAction == BMediaPlayerAction_eStart)
         {
-            bipStatus = BIP_Player_Start(_pPlayer, NULL);
+            BIP_PlayerStartSettings playerStartSettings;
+            BIP_Player_GetDefaultStartSettings(&playerStartSettings);
+
+            /* give bip player the simple decoder start settings if available.  this
+               will allow bip player to then stop/start decoders if necessary */
+            if ((NULL != _pAudioDecode) && (NULL != _pAudioDecode->getStartSettings()))
+            {
+                NEXUS_SimpleAudioDecoderStartSettings * pAudioStartSettings = _pAudioDecode->getStartSettings();
+
+                /* transfer simple audio decoder start settings if available */
+                playerStartSettings.simpleAudioStartSettings = *pAudioStartSettings;
+            }
+            if ((NULL != _pVideoDecode) && (NULL != _pVideoDecode->getStartSettings()))
+            {
+                NEXUS_SimpleVideoDecoderStartSettings * pVideoStartSettings = _pVideoDecode->getStartSettings();
+
+                /* transfer simple video decoder start settings if available */
+                playerStartSettings.simpleVideoStartSettings = *pVideoStartSettings;
+            }
+
+            bipStatus = BIP_Player_Start(_pPlayer, &playerStartSettings);
             if (bipStatus != BIP_SUCCESS)
             {
                 BDBG_ERR(("BIP_Player_Start Failed: URL=%s", BIP_String_GetString(_pUrl)));
@@ -552,6 +581,7 @@ CChannelBip::CChannelBip(
     _pPlayer(NULL),
     _playerState(BMediaPlayerState_eDisconnected),
     _asyncApiCompletionStatus(BIP_SUCCESS),
+    _enableDynamicTrackSelection(true),
     _pMediaInfo(NULL),
     _programNumberValid(false),
     _programNumber(0),
@@ -569,6 +599,7 @@ CChannelBip::CChannelBip(
 
     _pUrl = BIP_String_Create();
     CHECK_PTR_ERROR(("BIP_String_Create() Failed"), (_pUrl), bipStatus, BIP_ERR_OUT_OF_SYSTEM_MEMORY);
+    memset(&_playerStreamInfo, 0, sizeof(_playerStreamInfo));
 }
 
 CChannelBip::CChannelBip(void) :
@@ -597,7 +628,7 @@ CChannelBip::CChannelBip(void) :
 
     _pUrl = BIP_String_Create();
     CHECK_PTR_ERROR(("BIP_String_Create() Failed"), (_pUrl), bipStatus, BIP_ERR_OUT_OF_SYSTEM_MEMORY);
-
+    memset(&_playerStreamInfo, 0, sizeof(_playerStreamInfo));
     updateDescription();
 }
 
@@ -627,6 +658,7 @@ CChannelBip::CChannelBip(CConfiguration * pCfg) :
 
     _pUrl = BIP_String_Create();
     CHECK_PTR_ERROR(("BIP_String_Create() Failed"), (_pUrl), bipStatus, BIP_ERR_OUT_OF_SYSTEM_MEMORY);
+    memset(&_playerStreamInfo, 0, sizeof(_playerStreamInfo));
     updateDescription();
 }
 
@@ -639,7 +671,7 @@ CChannelBip::CChannelBip(const CChannelBip & bipCh) :
     _pPlayer(NULL),
     _playerState(BMediaPlayerState_eDisconnected),
     _asyncApiCompletionStatus(BIP_SUCCESS),
-    _enableDynamicTrackSelection(_enableDynamicTrackSelection),
+    _enableDynamicTrackSelection(bipCh._enableDynamicTrackSelection),
     _pMediaInfo(NULL),
     _playerStreamInfo(bipCh._playerStreamInfo),
     _programNumberValid(false),
@@ -669,8 +701,8 @@ CChannelBip::CChannelBip(const CChannelBip & bipCh) :
         BDBG_ERR(("Cannot Create _pUrl"));
     }
     setDurationInMsecs(bipCh._playerStreamInfo.durationInMs);
-    memset(&_playerStreamInfo,0,sizeof(_playerStreamInfo));
-    memcpy(&_playerStreamInfo,&bipCh._playerStreamInfo,sizeof(_playerStreamInfo));
+    memset(&_playerStreamInfo, 0, sizeof(_playerStreamInfo));
+    memcpy(&_playerStreamInfo, &bipCh._playerStreamInfo, sizeof(_playerStreamInfo));
     updateDescription();
 }
 
@@ -706,10 +738,10 @@ void CChannelBip::updateDescription()
     addMetadata("Port", MString(mUrl.port()).s());
     addMetadata("Url Path", getUrlPath());
     addMetadata("Url Query", getUrlQuery());
-    addMetadata("Security:", "None");
+    addMetadata("Security", "None");
     addMetadata("CA Cert", "None");
-    addMetadata("DTCP AKE Port", "None");
-    addMetadata("DTCP Key Format", "None");
+    addMetadata("AKE Port", "None");
+    addMetadata("Key Format", "None");
     addMetadata("CKC Check", "False");
 } /* updateDescription */
 
@@ -750,8 +782,8 @@ eRet CChannelBip::readXML(MXmlElement * xmlElemChannel)
 
         if (!_pidMgr.isEmpty())
         {
-           /* set dynamic flag so we do not query BIP for PIDS */
-           _enableDynamicTrackSelection = false;
+            /* set dynamic flag so we do not query BIP for PIDS */
+            _enableDynamicTrackSelection = false;
         }
     }
 
@@ -786,6 +818,11 @@ void CChannelBip::close()
 {
     _tuned = false;
 
+    if (NULL != _pWidgetEngine)
+    {
+        _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_BIP);
+    }
+
     if (_pPlayer)
     {
         BDBG_MSG((" BIP Player is valid, close"));
@@ -794,9 +831,54 @@ void CChannelBip::close()
         BIP_Player_Destroy(_pPlayer);
         _pPlayer = NULL;
     }
+
     _pAudioDecode = NULL;
     _pVideoDecode = NULL;
 } /* close */
+
+eRet CChannelBip::setAudioProgram(uint16_t pid)
+{
+    BIP_PlayerSettings playerSettings;
+    CPid *             pPid   = NULL;
+    BIP_Status         status = BIP_SUCCESS;
+    eRet               ret    = eRet_Ok;
+
+    pPid = _pidMgr.findPid(pid, ePidType_Audio);
+    CHECK_PTR_ERROR_GOTO("unable to find given audio pid", pPid, ret, eRet_NotAvailable, error);
+
+    if (_pPlayer)
+    {
+         /* send this info to the player because we are in Dynamic mode now. Pids are set! */
+        BIP_Player_GetSettings(_pPlayer, &playerSettings);
+        playerSettings.enableDynamicTrackSelection                                = false;
+        playerSettings.audioTrackId                                               = pPid->getPid();
+        playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = pPid->getAudioCodec();
+
+        status = BIP_Player_SetSettings(_pPlayer, &playerSettings);
+        CHECK_BIP_ERROR_GOTO("setAudioProgram failure", ret, status, error);
+
+        /* BIP is going to change the nexus audio pid so we will update our copy of
+           it here - we will need it in case we need to stop/start decode */
+        {
+            BIP_Status       retBip = BIP_SUCCESS;
+            BIP_PlayerStatus statusPlayer;
+
+            CHECK_PTR_ERROR_GOTO("audio decode not set in CChannelBip", _pAudioDecode, ret, eRet_NotAvailable, error);
+
+            retBip = BIP_Player_GetStatus(_pPlayer, &statusPlayer);
+            CHECK_BIP_ERROR_GOTO("unable to retrieve newly changed audio pid channel", ret, retBip, error);
+
+            pPid->setPidChannel(statusPlayer.hAudioPidChannel);
+            _pAudioDecode->setPid(pPid);
+        }
+    }
+
+    goto done;
+error:
+    BDBG_ASSERT(false);
+done:
+    return(ret);
+} /* setAudioProgram() */
 
 void CChannelBip::gotoBackGroundRecord(void)
 {
@@ -830,26 +912,27 @@ eRet CChannelBip::getChannelInfo(
         bool             bScanning
         )
 {
-    CPid *                      pid                  = NULL;
-    eRet                        ret                  = eRet_Ok;
-    int                         i                    = 0;
-    bool                        trackGroupPresent    = false;
-    unsigned                    videoTrackId         = 0;
-    const BIP_MediaInfoStream * pMediaInfoStream     = NULL;
-    BIP_MediaInfoTrackGroup *   pMediaInfoTrackGroup = NULL;
-    BIP_MediaInfoTrack        * pFirstTrackInfoForStream = NULL;
-    int num_video_pids = 0;
-    int num_audio_pids = 0;
-    BIP_MediaInfoTrack        * pMediaInfoTrack;
-    MString     prgNum;
+    CPid *                      pid                      = NULL;
+    eRet                        ret                      = eRet_Ok;
+    int                         i                        = 0;
+    bool                        trackGroupPresent        = false;
+    unsigned                    videoTrackId             = 0;
+    const BIP_MediaInfoStream * pMediaInfoStream         = NULL;
+    BIP_MediaInfoTrackGroup *   pMediaInfoTrackGroup     = NULL;
+    BIP_MediaInfoTrack *        pFirstTrackInfoForStream = NULL;
+    int                         num_video_pids           = 0;
+    int                         num_audio_pids           = 0;
+    BIP_MediaInfoTrack *        pMediaInfoTrack;
+    MString                     prgNum;
 
     BDBG_ASSERT(NULL != pChanInfo);
     BSTD_UNUSED(bScanning);
 
-    if (!_enableDynamicTrackSelection) {
-       BDBG_MSG((" No need to getChannelInfo. pidManager contains all pids needed"));
-       BDBG_ASSERT(_pidMgr.isEmpty());
-       goto error;
+    if (!_enableDynamicTrackSelection)
+    {
+        BDBG_MSG((" No need to getChannelInfo. pidManager contains all pids needed"));
+        BDBG_ASSERT(_pidMgr.isEmpty());
+        goto error;
     }
 
     /* Get the Stream object associated w/ this MediaInfo */
@@ -861,26 +944,26 @@ eRet CChannelBip::getChannelInfo(
     /* Check the tracks*/
     if (pMediaInfoStream->numberOfTrackGroups > 1)
     {
-        pMediaInfoTrackGroup    = pMediaInfoStream->pFirstTrackGroupInfo;
-        pMediaInfoTrack         = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
-        trackGroupPresent       = true;
-        pChanInfo->num_programs = pMediaInfoStream->numberOfTrackGroups;
+        pMediaInfoTrackGroup         = pMediaInfoStream->pFirstTrackGroupInfo;
+        pMediaInfoTrack              = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+        trackGroupPresent            = true;
+        pChanInfo->num_programs      = pMediaInfoStream->numberOfTrackGroups;
         _enableDynamicTrackSelection = false;
         BDBG_MSG(("pMediaInfoStream->numberOfTrackGroups = %d", pMediaInfoStream->numberOfTrackGroups));
 
         /* Code to check for Program Number. This only takes effect if there are multiple programs in a Stream
-           If <stream> pids are set then program number will be ignored */
+         * If <stream> pids are set then program number will be ignored */
         prgNum = getUrlProgram();
         if (prgNum && !prgNum.isEmpty() && (prgNum.toInt() <= pChanInfo->num_programs))
         {
-           pChanInfo->num_programs = 1; /* there is only 1 program now that we will use  */
-           for(i =1;i < prgNum.toInt();i++)
-           {
-               pMediaInfoTrackGroup = pMediaInfoTrackGroup->pNextTrackGroup;
-           }
-           /*reset i*/
-           i =0;
-           pMediaInfoTrack         = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+            pChanInfo->num_programs = 1; /* there is only 1 program now that we will use  */
+            for (i = 1; i < prgNum.toInt(); i++)
+            {
+                pMediaInfoTrackGroup = pMediaInfoTrackGroup->pNextTrackGroup;
+            }
+            /*reset i*/
+            i               = 0;
+            pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
         }
 
         /* Continue normally if program is not working correctly. */
@@ -888,8 +971,8 @@ eRet CChannelBip::getChannelInfo(
     else
     {
         /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.
-           In this case we will always query the stream to get pid information. Pids are not saved since they can
-           dynamically chnage from IP source */
+         * In this case we will always query the stream to get pid information. Pids are not saved since they can
+         * dynamically chnage from IP source */
         BDBG_MSG((" Only one program"));
         pChanInfo->num_programs = 1;
         pMediaInfoTrack         = pMediaInfoStream->pFirstTrackInfoForStream;
@@ -898,78 +981,82 @@ eRet CChannelBip::getChannelInfo(
     /* check the MediaInfoTrack */
     CHECK_PTR_ERROR_GOTO("pMediaInfotrack is NULL", pMediaInfoTrack, ret, eRet_ExternalError, error);
 
-    while (i < pChanInfo->num_programs) {
-       num_video_pids = 0;
-       num_audio_pids = 0;
-       pChanInfo->program_info[i].program_number = i+1; /*pMediaInfoTrackGroup->trackGroupId;*/
-       while (pMediaInfoTrack)
-       {
-           BDBG_MSG(("Program is %d , Found trackType=%s with trackId=%d",i, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType), pMediaInfoTrack->trackId));
+    while (i < pChanInfo->num_programs)
+    {
+        num_video_pids                            = 0;
+        num_audio_pids                            = 0;
+        pChanInfo->program_info[i].program_number = i+1; /*pMediaInfoTrackGroup->trackGroupId;*/
+        while (pMediaInfoTrack)
+        {
+            BDBG_MSG(("Program is %d , Found trackType=%s with trackId=%d", i, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType), pMediaInfoTrack->trackId));
 
-           switch (pMediaInfoTrack->trackType)
-           {
-
-           case BIP_MediaInfoTrackType_eVideo:
-               pChanInfo->program_info[i].video_pids[num_video_pids].pid        = pMediaInfoTrack->trackId;
-               pChanInfo->program_info[i].video_pids[num_video_pids].streamType = pMediaInfoTrack->info.video.codec;
+            switch (pMediaInfoTrack->trackType)
+            {
+            case BIP_MediaInfoTrackType_eVideo:
+                pChanInfo->program_info[i].video_pids[num_video_pids].pid        = pMediaInfoTrack->trackId;
+                pChanInfo->program_info[i].video_pids[num_video_pids].streamType = pMediaInfoTrack->info.video.codec;
 #ifndef MPOD_SUPPORT
-               pChanInfo->program_info[i].maxHeight[num_video_pids] = pMediaInfoTrack->info.video.height;
-               pChanInfo->program_info[i].maxWidth[num_video_pids] = pMediaInfoTrack->info.video.width;
+                pChanInfo->program_info[i].maxHeight[num_video_pids] = pMediaInfoTrack->info.video.height;
+                pChanInfo->program_info[i].maxWidth[num_video_pids]  = pMediaInfoTrack->info.video.width;
 #endif
-               num_video_pids++;
-               pChanInfo->program_info[i].num_video_pids = num_video_pids;
-               BDBG_MSG((" Program pid found %d, VIDEO Pid #", pMediaInfoTrack->trackId, num_video_pids+1));
-               break;
+                num_video_pids++;
+                pChanInfo->program_info[i].num_video_pids = num_video_pids;
+                BDBG_MSG((" Program pid found %d, VIDEO Pid #", pMediaInfoTrack->trackId, num_video_pids+1));
+                break;
 
-           case BIP_MediaInfoTrackType_eAudio:
-               pChanInfo->program_info[i].audio_pids[num_audio_pids].pid        = pMediaInfoTrack->trackId;
-               pChanInfo->program_info[i].audio_pids[num_audio_pids].streamType = pMediaInfoTrack->info.audio.codec;
-               num_audio_pids++;
-               pChanInfo->program_info[i].num_audio_pids = num_audio_pids;
-               BDBG_MSG(("Audio Program pid found %d, Audio Pid #", pMediaInfoTrack->trackId, num_audio_pids+1));
-               break;
-           case BIP_MediaInfoTrackType_ePcr:
-              pChanInfo->program_info[i].pcr_pid = pMediaInfoTrack->trackId;
-              BDBG_MSG(("PCR Program pid found %d", pMediaInfoTrack->trackId));
-              break;
-           default:
-               BDBG_ERR(("Not Supported "));
-               break;
-           } /* switch */
+            case BIP_MediaInfoTrackType_eAudio:
+                pChanInfo->program_info[i].audio_pids[num_audio_pids].pid        = pMediaInfoTrack->trackId;
+                pChanInfo->program_info[i].audio_pids[num_audio_pids].streamType = pMediaInfoTrack->info.audio.codec;
+                num_audio_pids++;
+                pChanInfo->program_info[i].num_audio_pids = num_audio_pids;
+                BDBG_MSG(("Audio Program pid found %d, Audio Pid #", pMediaInfoTrack->trackId, num_audio_pids+1));
+                break;
+            case BIP_MediaInfoTrackType_ePcr:
+                pChanInfo->program_info[i].pcr_pid = pMediaInfoTrack->trackId;
+                BDBG_MSG(("PCR Program pid found %d", pMediaInfoTrack->trackId));
+                break;
+            default:
+                BDBG_ERR(("Not Supported "));
+                break;
+            } /* switch */
 
-           if (trackGroupPresent == true) {
-              BDBG_MSG((" TrackGroup Present grab next track %d", i));
-              pMediaInfoTrack  = pMediaInfoTrack->pNextTrackForTrackGroup;
-           } else{
-              pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
-           }
+            if (trackGroupPresent == true)
+            {
+                BDBG_MSG((" TrackGroup Present grab next track %d", i));
+                pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
+            }
+            else
+            {
+                pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
+            }
+        }
 
-       }
+        if (prgNum && !prgNum.isEmpty())
+        {
+            BDBG_MSG(("There was a program number used in the URL string, exit now"));
+            break;
+        }
 
-       if (prgNum && !prgNum.isEmpty())
-       {
-          BDBG_MSG(("There was a program number used in the URL string, exit now"));
-          break;
-       }
-
-       /* after we leave. grab next Track group pointer */
-       if (true == trackGroupPresent)
-       {
-          pMediaInfoTrackGroup = pMediaInfoTrackGroup->pNextTrackGroup;
-          if (pMediaInfoTrackGroup)
-          {
-             i++; /* increase pointer for the program info */
-             pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
-          } else
-          {
-             BDBG_MSG(("No More Groups to query. Pid extraction has been completed"));
-             break;
-          }
-       } else
-       {
-          BDBG_MSG(("Only one track"));
-          break;
-       }
+        /* after we leave. grab next Track group pointer */
+        if (true == trackGroupPresent)
+        {
+            pMediaInfoTrackGroup = pMediaInfoTrackGroup->pNextTrackGroup;
+            if (pMediaInfoTrackGroup)
+            {
+                i++; /* increase pointer for the program info */
+                pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+            }
+            else
+            {
+                BDBG_MSG(("No More Groups to query. Pid extraction has been completed"));
+                break;
+            }
+        }
+        else
+        {
+            BDBG_MSG(("Only one track"));
+            break;
+        }
     }
 
     /* Save StreamInfo to be copied */
@@ -983,54 +1070,54 @@ error:
 /* Must create Pids. pidMgr Function only does traditional TS PMT parsing */
 eRet CChannelBip::initialize(PROGRAM_INFO_T * pProgramInfo)
 {
-    eRet     ret          = eRet_Ok;
-    CPid   * pid          = NULL;
-    int      i            = 0;
+    eRet   ret = eRet_Ok;
+    CPid * pid = NULL;
+    int    i   = 0;
 
     BDBG_ASSERT(NULL != pProgramInfo);
 
     setProgramNum(pProgramInfo->program_number);
-   _pidMgr.clearPids();
+    _pidMgr.clearPids();
 
     /* check PCR pid with first Video Pid allocate PCR pid first
-       Logic in use Cases will remove PCR pid if it is the same
-       as an Audio Pid or other Video Pid */
-    if ( pProgramInfo->pcr_pid != 0)
+     * Logic in use Cases will remove PCR pid if it is the same
+     * as an Audio Pid or other Video Pid */
+    if (pProgramInfo->pcr_pid != 0)
     {
-       pid = new CPid(pProgramInfo->pcr_pid, ePidType_Pcr);
-       _pidMgr.setPcrPid(pid);
-       BDBG_MSG((" Creating PCR PID %d",pProgramInfo->pcr_pid));
+        pid = new CPid(pProgramInfo->pcr_pid, ePidType_Pcr);
+        _pidMgr.setPcrPid(pid);
+        BDBG_MSG((" Creating PCR PID %d", pProgramInfo->pcr_pid));
     }
 
-    BDBG_MSG((" Num of Video Pids #%d",pProgramInfo->num_video_pids ));
+    BDBG_MSG((" Num of Video Pids #%d", pProgramInfo->num_video_pids));
 
-    for (i=0; i < pProgramInfo->num_video_pids;i++)
+    for (i = 0; i < pProgramInfo->num_video_pids; i++)
     {
-               BDBG_MSG((" Program pid found %d, VIDEO Pid #%d", pProgramInfo->video_pids[i].pid, i));
-               pid = new CPid(pProgramInfo->video_pids[i].pid, ePidType_Video);
-               pid->setVideoCodec((NEXUS_VideoCodec)pProgramInfo->video_pids[i].streamType);
-               _pidMgr.addPid(pid);
+        BDBG_MSG((" Program pid found %d, VIDEO Pid #%d", pProgramInfo->video_pids[i].pid, i));
+        pid = new CPid(pProgramInfo->video_pids[i].pid, ePidType_Video);
+        pid->setVideoCodec((NEXUS_VideoCodec)pProgramInfo->video_pids[i].streamType);
+        _pidMgr.addPid(pid);
 
-               /* double check to make sure no PCR pids were stored that match the video pid */
-               CPid * pcrPid;
-               pcrPid = _pidMgr.getPid(0, ePidType_Pcr);
+        /* double check to make sure no PCR pids were stored that match the video pid */
+        CPid * pcrPid;
+        pcrPid = _pidMgr.getPid(0, ePidType_Pcr);
 
-               /* possibly move to PidMgr:  */
-               if (pcrPid && (pProgramInfo->pcr_pid == pProgramInfo->video_pids[i].pid))
-               {
-                   BDBG_MSG(("found pcr pid already stored in pidMgr that matches video pid, remove it"));
-                   _pidMgr.removePid(pcrPid);
-                   delete pcrPid;
-                   pid->setPcrType(true);
-                   _pidMgr.setPcrPid(pid);
-               }
+        /* possibly move to PidMgr:  */
+        if (pcrPid && (pProgramInfo->pcr_pid == pProgramInfo->video_pids[i].pid))
+        {
+            BDBG_MSG(("found pcr pid already stored in pidMgr that matches video pid, remove it"));
+            _pidMgr.removePid(pcrPid);
+            delete pcrPid;
+            pid->setPcrType(true);
+            _pidMgr.setPcrPid(pid);
+        }
     }
 
     pid = NULL;
-    BDBG_MSG((" Num of Audio Pids #%d",pProgramInfo->num_audio_pids ));
-    for (i=0; i < pProgramInfo->num_audio_pids;i++)
+    BDBG_MSG((" Num of Audio Pids #%d", pProgramInfo->num_audio_pids));
+    for (i = 0; i < pProgramInfo->num_audio_pids; i++)
     {
-        BDBG_MSG(("Audio Program pid found %d, Audio Pid #%d ", pProgramInfo->audio_pids[i].pid,i));
+        BDBG_MSG(("Audio Program pid found %d, Audio Pid #%d ", pProgramInfo->audio_pids[i].pid, i));
         pid = new CPid(pProgramInfo->audio_pids[i].pid, ePidType_Audio);
         pid->setAudioCodec((NEXUS_AudioCodec)pProgramInfo->audio_pids[i].streamType);
         _pidMgr.addPid(pid);
@@ -1053,12 +1140,13 @@ eRet CChannelBip::initialize(PROGRAM_INFO_T * pProgramInfo)
     setWidth(pProgramInfo->maxWidth[0]);
     setHeight(pProgramInfo->maxHeight[0]);
 #endif
-    /* set this flag to indicate we are not using the BIP mediaInfo extraction*/
+    /* set this flag to indicate we are not using the BIP mediaInfo extraction
+       the channel has the PIDS and there is no need to re-probe */
     _enableDynamicTrackSelection = false;
 
 error:
     return(ret);
-}
+} /* initialize */
 
 eRet CChannelBip::initialize(void)
 {
@@ -1139,8 +1227,16 @@ eRet CChannelBip::tune(
     }
 
     _tuned = true;
+    goto done;
 
 error:
+    /* Remove the WidgetCallback */
+    if (NULL != _pWidgetEngine)
+    {
+        _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_BIP);
+    }
+
+done:
     return(ret);
 } /* tune */
 
@@ -1160,21 +1256,21 @@ eRet CChannelBip::unTune(
 
     BDBG_MSG(("UNTUNE"));
 
+        /* Remove the WidgetCallback */
+    if (NULL != _pWidgetEngine)
+    {
+        _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_BIP);
+    }
+
     bipStatus = mediaStateMachine(playerAction);
     if (bipStatus != BIP_SUCCESS)
     {
         ret = eRet_ExternalError;
     }
 
-    /* Remove the WidgetCallback */
-    if (NULL != _pWidgetEngine)
-    {
-        _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_BIP);
-    }
-
     if (_enableDynamicTrackSelection)
     {
-       _pidMgr.clearPids();
+        _pidMgr.clearPids();
     }
     _tuned = false;
     return(ret);
@@ -1252,6 +1348,8 @@ error:
 
 eRet CChannelBip::closePids()
 {
+    /* BIP handles pids internally.  cchannelbip will have a copy of the pids/handles
+       but should not create or free them */
     return(eRet_Ok);
 }
 
@@ -1264,8 +1362,8 @@ eRet CChannelBip::start(
     BIP_Status         bipStatus    = BIP_SUCCESS;
     BMediaPlayerAction playerAction = BMediaPlayerAction_eStart;
 
-    BSTD_UNUSED(pAudioDecode);
-    BSTD_UNUSED(pVideoDecode);
+    if (NULL != pVideoDecode) { _pVideoDecode = pVideoDecode; }
+    if (NULL != pAudioDecode) { _pAudioDecode = pAudioDecode; }
 
     if (getState() == BMediaPlayerState_eStarted)
     {
@@ -1662,24 +1760,22 @@ MString CChannelBip::getUrlProgram()
 {
     MString tempString1 = _url;
     MString prgNum;
-    int index = -1;
+    int     index = -1;
 
     index = tempString1.find("program=", 0, true);
 
     if (index != -1)
     {
-       prgNum = tempString1.mid(index + 8, (tempString1.length() - index)); /* index + 8 to go past the = char.*/
-       if (false == prgNum.isEmpty())
-       {
-          _programNumber      = prgNum.toInt();
-          _programNumberValid = true;
-       }
-
+        prgNum = tempString1.mid(index + 8, (tempString1.length() - index)); /* index + 8 to go past the = char.*/
+        if (false == prgNum.isEmpty())
+        {
+            _programNumber      = prgNum.toInt();
+            _programNumberValid = true;
+        }
     }
 
-    return prgNum;
-}
-
+    return(prgNum);
+} /* getUrlProgram */
 
 void CChannelBip::setHost(const char * pString)
 {

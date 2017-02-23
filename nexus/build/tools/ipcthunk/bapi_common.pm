@@ -140,6 +140,8 @@ sub process_function_param {
             elsif($attr eq 'null_allowed') {
                 $null_allowed = $value;
             }
+            elsif($attr eq 'handle_verify' && $value eq 'no' ) {
+            }
             else {
                 print STDERR "ERROR: Unsupported attribute $attr = $value for $param->{NAME} in $func->{FUNCNAME}\n";
             }
@@ -482,6 +484,8 @@ sub process_function_attributes {
                         push @driver_post_success, "/* convert address to the device offset */";
                         push @driver_post_success, "NEXUS_DRIVER_SEND_ADDR($driver_out_arg.$name, cached);";
                     }
+                }
+                elsif($attr eq 'handle_verify' && $value eq 'no' ) {
                 }
                 else {
                     print STDERR "ERROR: Unsupported attribute $attr = $value for $param->{NAME} in $func->{FUNCNAME}\n";

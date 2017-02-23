@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "nxclient.h"
 #include "nexus_base_os.h"
@@ -55,6 +44,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <errno.h>
+#if NEXUS_HAS_VIDEO_ENCODER
+#include "nexus_video_encoder.h"
+#endif
 
 BDBG_MODULE(nxclient_common);
 
@@ -113,6 +105,7 @@ void NxClient_GetDefaultConnectSettings( NxClient_ConnectSettings *pSettings )
     for (i=0;i<NXCLIENT_MAX_IDS;i++) {
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxWidth = 1920;
         pSettings->simpleVideoDecoder[i].windowCapabilities.maxHeight = 1080;
+        /* leave encoderCapabilities max values defaulted to 0, which picks any, so we can adapt to various box modes and configurations */
     }
 }
 

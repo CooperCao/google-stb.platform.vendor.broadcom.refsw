@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -168,8 +188,8 @@ typedef struct BMRC_P_CheckerContext
     uint16_t usCheckerId;
     bool bExclusive;
     uint32_t ulRegOffset;
-    uint32_t ulStart;
-    uint32_t ulSize;
+    BSTD_DeviceOffset ulStart;
+    uint64_t ulSize;
     BMRC_AccessType eCheckType;
     BMRC_AccessType eBlockType;
     uint32_t aulReadClients[BMRC_P_CLIENTS_ARRAY_SIZE];
@@ -415,8 +435,8 @@ BERR_Code BMRC_Checker_Create
             pCurChecker->hMrc = hMrc;
             pCurChecker->usCheckerId = i;
 #if (BMRC_P_CHECKER_USE_MEMC_GEN_VER == 2) /* hack for 7435's MEMC ARC arraingment */
-            pCurChecker->ulRegOffset = (i * BMRC_P_CHECKER_REG_OFFSET(hMrc)) + ((i >= 4)? 
-				                       (BCHP_MEMC_GEN_2_0_ARC_4_CNTRL - BCHP_MEMC_GEN_0_MEMC64_MBIST_TM_CNTRL): 0);
+            pCurChecker->ulRegOffset = (i * BMRC_P_CHECKER_REG_OFFSET(hMrc)) + ((i >= 4)?
+                                       (BCHP_MEMC_GEN_2_0_ARC_4_CNTRL - BCHP_MEMC_GEN_0_MEMC64_MBIST_TM_CNTRL): 0);
 #else
             pCurChecker->ulRegOffset = i * BMRC_P_CHECKER_REG_OFFSET(hMrc);
 #endif
@@ -625,27 +645,27 @@ BERR_Code BMRC_Checker_SetClient
     }
 
     if (eAccessType == BMRC_AccessType_eWrite)
-	{
+    {
         hChecker->aulReadClients[ulClientsIdx] &= ~ulClientsMask;
         hChecker->aulWriteClients[ulClientsIdx] |= ulClientsMask;
-	}
-		
-	if (eAccessType == BMRC_AccessType_eBoth)
+    }
+
+    if (eAccessType == BMRC_AccessType_eBoth)
     {
         hChecker->aulReadClients[ulClientsIdx] |= ulClientsMask;
         hChecker->aulWriteClients[ulClientsIdx] |= ulClientsMask;
     }
 
-	if (eAccessType == BMRC_AccessType_eNone)
-	{
+    if (eAccessType == BMRC_AccessType_eNone)
+    {
         hChecker->aulReadClients[ulClientsIdx] &= ~ulClientsMask;
         hChecker->aulWriteClients[ulClientsIdx] &= ~ulClientsMask;
-	}
+    }
 
 #if 0
     {
-        /* this snipped could be used to block MRC from disabling read/write access for certain clients, 
-         * it could be usefull if internal table in MRC differes from the actial HW, 
+        /* this snipped could be used to block MRC from disabling read/write access for certain clients,
+         * it could be usefull if internal table in MRC differes from the actial HW,
          * and this causes fatal failure (like MRC blocks CPU from accessing memory) */
         unsigned i;
         for(i=0;i<sizeof(hChecker->aulReadClients)/sizeof(hChecker->aulReadClients[0]);i++) {
@@ -721,8 +741,8 @@ BERR_Code BMRC_Checker_EnableCallback
         return BERR_TRACE(BMRC_CHECKER_ERR_NO_CALLBACK_SET);
     }
 
-	rc = BINT_EnableCallback(hChecker->hCallback);
-	if (rc) return BERR_TRACE(rc);
+    rc = BINT_EnableCallback(hChecker->hCallback);
+    if (rc) return BERR_TRACE(rc);
     hChecker->interruptEnabled = true;
 
     return BERR_SUCCESS;
@@ -742,7 +762,7 @@ BERR_Code BMRC_Checker_DisableCallback
     }
 
     rc = BINT_DisableCallback(hChecker->hCallback);
-	if (rc) return BERR_TRACE(rc);
+    if (rc) return BERR_TRACE(rc);
     hChecker->interruptEnabled = false;
 
     return BERR_SUCCESS;
@@ -787,7 +807,7 @@ BERR_Code BMRC_Checker_DisableCallback_isr
     }
 
     rc = BINT_DisableCallback_isr(hChecker->hCallback);
-	if (rc) return BERR_TRACE(rc);
+    if (rc) return BERR_TRACE(rc);
     hChecker->interruptEnabled = false;
 
     return BERR_SUCCESS;
@@ -860,18 +880,26 @@ void BMRC_P_Checker_Violation_isr
     pCheckerInfo->ulNmbx = BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_HIGH, NMBX);
 #endif
 
-#else
+#else /* #if !BMRC_P_CHECKER_USE_NEW_NAME_SUFFIX */
     ulReg = BMRC_P_Checker_Read32(hMrc, hChecker, ARC_0_VIOLATION_INFO_START_ADDR);
-    pCheckerInfo->ulAddress = BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_START_ADDR, ADDRESS) << BMRC_P_MEMC_ADRS_SHIFT;
+    pCheckerInfo->ulAddress = ((uint64_t)BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_START_ADDR, ADDRESS)) << BMRC_P_MEMC_ADRS_SHIFT;
+#if defined(BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR_MSB)
+    ulReg = BMRC_P_Checker_Read32(hMrc, hChecker, ARC_0_VIOLATION_INFO_END_ADDR + (BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR_MSB - BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_START_ADDR));
+    pCheckerInfo->ulAddress += ((uint64_t)BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_START_ADDR_MSB, ADDRESS) << BMRC_P_MEMC_ADRS_SHIFT) << 32;
+#endif
 
     ulReg = BMRC_P_Checker_Read32(hMrc, hChecker, ARC_0_VIOLATION_INFO_END_ADDR);
-    pCheckerInfo->ulAddressEnd = BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_END_ADDR, ADDRESS) << BMRC_P_MEMC_ADRS_SHIFT;
+    pCheckerInfo->ulAddressEnd = ((uint64_t)BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_END_ADDR, ADDRESS)) << BMRC_P_MEMC_ADRS_SHIFT;
+#if defined(BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR_MSB)
+    ulReg = BMRC_P_Checker_Read32(hMrc, hChecker, ARC_0_VIOLATION_INFO_END_ADDR + (BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR_MSB - BCHP_MEMC_ARC_0_ARC_0_VIOLATION_INFO_END_ADDR));
+    pCheckerInfo->ulAddressEnd += ((uint64_t)BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_END_ADDR_MSB, ADDRESS) << BMRC_P_MEMC_ADRS_SHIFT) << 32;
+#endif
 
     ulReg = BMRC_P_Checker_Read32(hMrc, hChecker, ARC_0_VIOLATION_INFO_CMD);
     pCheckerInfo->ulReqType = BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_CMD, REQ_TYPE);
     pCheckerInfo->usClientId = BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_CMD, CLIENTID);
     pCheckerInfo->ulNmbxId = BMRC_P_GET_FIELD_DATA(ulReg, ARC_0_VIOLATION_INFO_CMD, NMB);
-#endif
+#endif /* #if !BMRC_P_CHECKER_USE_NEW_NAME_SUFFIX */
     BMRC_Checker_P_GetClientInfo_isrsafe(hMrc->stSettings.usMemcId, BMRC_P_GET_CLIENT_ENUM_isrsafe(hMrc->usMemcId, pCheckerInfo->usClientId), &stClientInfo);
     pCheckerInfo->pchClientName = stClientInfo.pchClientName;
 
@@ -928,18 +956,18 @@ BERR_Code BMRC_P_Checker_WriteRegs
     ulReg |= hChecker->aulWriteClients[0];
     BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_LOW, ulReg);
 
-	if (((hMrc->usMemcId == 0) && BCHP_MEMC_0_ARC_0_READ_RIGHTS_HIGH) ||
-		((hMrc->usMemcId == 1) && BCHP_MEMC_1_ARC_0_READ_RIGHTS_HIGH) ||
-		((hMrc->usMemcId == 2) && BCHP_MEMC_2_ARC_0_READ_RIGHTS_HIGH))
-	{
-		ulReg = 0;
-		ulReg |= hChecker->aulReadClients[1];
-		BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_HIGH, ulReg);
+    if (((hMrc->usMemcId == 0) && BCHP_MEMC_0_ARC_0_READ_RIGHTS_HIGH) ||
+        ((hMrc->usMemcId == 1) && BCHP_MEMC_1_ARC_0_READ_RIGHTS_HIGH) ||
+        ((hMrc->usMemcId == 2) && BCHP_MEMC_2_ARC_0_READ_RIGHTS_HIGH))
+    {
+        ulReg = 0;
+        ulReg |= hChecker->aulReadClients[1];
+        BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_READ_RIGHTS_HIGH, ulReg);
 
-		ulReg = 0;
-		ulReg |= hChecker->aulWriteClients[1];
-		BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_HIGH, ulReg);
-	}
+        ulReg = 0;
+        ulReg |= hChecker->aulWriteClients[1];
+        BMRC_P_Checker_Write32(hMrc, hChecker, ARC_0_WRITE_RIGHTS_HIGH, ulReg);
+    }
 
 #elif BMRC_P_CLIENTS_MAX >= 128
     ulReg = 0;
@@ -1082,7 +1110,7 @@ void BMRC_Standby( BMRC_Handle hMrc )
     BDBG_OBJECT_ASSERT(hMrc, BMRC);
     if(hMrc->suspended) {(void)BERR_TRACE(BERR_NOT_SUPPORTED);return;}
     BKNI_EnterCriticalSection(); /* set a barrier */
-    hMrc->suspended = true; 
+    hMrc->suspended = true;
     BKNI_LeaveCriticalSection();
     for (i = 0; i < hMrc->usMaxCheckers; i++) {
         BMRC_P_CheckerContext *checker = &hMrc->aCheckers[i];
@@ -1137,6 +1165,14 @@ void BMRC_PrintBlockingArcs(BREG_Handle reg)
             }
         }
     }
+}
+
+int BMRC_P_GetClientId (
+    BMRC_Client eClient,   /* [in]  The client to get the info of */
+    unsigned memc       /* [in] memory controller number */
+  )
+{
+   return BMRC_P_GET_CLIENT_ID(memc, eClient);
 }
 
 /* End of File */

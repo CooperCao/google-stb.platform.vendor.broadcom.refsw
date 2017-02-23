@@ -1,43 +1,40 @@
-/******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *****************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ ************************************************************************/
 
 /***
  *                           ##                   #
@@ -103,95 +100,163 @@
 #define _CHIP_H_
 
 /* We have to give a value to any macro we use as a literal or they will all default to 0 */
-#define BCM93160A0_bm                                            42
-#define BCM93160A0_si                                            43
-#define BCM93160A0_wkstn                                         44
-#define BCM960500_bm                                             45
-#define BCM960500_si                                             46
-#define BCM960500_wkstn                                          47
-#define BCM961750_bm                                             48
-#define BCM961750_si                                             49
-#define BCM961750_si_no_dsp                                      50
-#define BCM961750_wkstn                                          51
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF        52
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_UNBUFF      53
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE               54
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE            55
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET          56
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE 57
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_LOOPBACK      58
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE          59
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_MEMORY          60
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL            61
-#define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO           62
-#define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_BIG               63
-#define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE            64
-#define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE           65
-#define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE         66
-#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_SUPPORTED     67
-#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED   68
-#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_SUPPORTED         69
-#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED       70
-#define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING           71
-#define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED                 72
-#define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED           73
-#define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED         74
-#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_FREERTOS            75
-#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX               76
-#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_MAGNUM        77
-#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD      78
-#define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR         79
-#define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER      80
-#define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE             81
-#define BFPSDK_LIBDSPCONTROL_HOST_ENV_BM                         82
-#define BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS                   83
-#define BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON                    84
-#define Pike_bm                                                  85
-#define Pike_haps                                                86
-#define Pike_wkstn                                               87
-#define RaagaFP2008_bm                                           88
-#define RaagaFP2008_si_magnum                                    89
-#define RaagaFP2008_si_rockford_no_dsp                           90
-#define RaagaFP2008_wkstn                                        91
-#define RaagaFP2011_bm                                           92
-#define RaagaFP2011_si_magnum                                    93
-#define RaagaFP2011_si_rockford                                  94
-#define RaagaFP2011_si_rockford_no_dsp                           95
-#define RaagaFP2011_wkstn                                        96
-#define RaagaFP2012_bm                                           97
-#define RaagaFP2012_si_magnum                                    98
-#define RaagaFP2012_si_rockford                                  99
-#define RaagaFP2012_si_rockford_no_dsp                           100
-#define RaagaFP2012_wkstn                                        101
+#define BCM93160A0_OFDMA_Rx_bm                                   42
+#define BCM93160A0_OFDMA_Rx_si                                   43
+#define BCM93160B0_USOOB_bm                                      44
+#define BCM93160_wkstn                                           45
+#define BCM960500_bm                                             46
+#define BCM960500_si                                             47
+#define BCM960500_wkstn                                          48
+#define BCM961750_bm                                             49
+#define BCM961750_si                                             50
+#define BCM961750_si_no_dsp                                      51
+#define BCM961750_wkstn                                          52
+#define BCM961800_bm                                             53
+#define BCM961800_wkstn                                          54
+#define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO                 55
+#define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_YES                56
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF        57
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_UNBUFF      58
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER       59
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER_MP    60
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE               61
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE            62
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET          63
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE 64
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_FPOS_DEBUG    65
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_LOOPBACK      66
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK    67
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE          68
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_MEMORY          69
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL            70
+#define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO           71
+#define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_BIG               72
+#define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE            73
+#define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE           74
+#define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE         75
+#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_SUPPORTED     76
+#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED   77
+#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_SUPPORTED         78
+#define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED       79
+#define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING           80
+#define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED                 81
+#define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED           82
+#define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED         83
+#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_FREERTOS            84
+#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX               85
+#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_MAGNUM        86
+#define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD      87
+#define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR         88
+#define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER      89
+#define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE             90
+#define BFPSDK_LIBDSPCONTROL_HOST_ENV_BM                         91
+#define BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS                   92
+#define BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON                    93
+#define GenericFPM1015_bm                                        94
+#define Leap_Phy_bm                                              95
+#define Pike_bm                                                  96
+#define Pike_haps                                                97
+#define Pike_wkstn                                               98
+#define RaagaFP2008_bm                                           99
+#define RaagaFP2008_si_magnum                                    100
+#define RaagaFP2008_si_rockford_no_dsp                           101
+#define RaagaFP2008_wkstn                                        102
+#define RaagaFP2011_bm                                           103
+#define RaagaFP2011_si_magnum                                    104
+#define RaagaFP2011_si_rockford                                  105
+#define RaagaFP2011_si_rockford_no_dsp                           106
+#define RaagaFP2011_wkstn                                        107
+#define RaagaFP2012_bm                                           108
+#define RaagaFP2012_si_magnum                                    109
+#define RaagaFP2012_si_rockford                                  110
+#define RaagaFP2012_si_rockford_no_dsp                           111
+#define RaagaFP2012_wkstn                                        112
+#define RaagaFP4015_barebone                                     113
+#define RaagaFP4015_bm                                           114
+#define RaagaFP4015_haps                                         115
+#define RaagaFP4015_haps_bm                                      116
+#define RaagaFP4015_si_magnum                                    117
+#define RaagaFP4015_wkstn                                        118
+#define YellowstoneA0_bm                                         119
+#define YellowstoneA0_si                                         120
 
 /* Only one, recognisable, TARGET_SOC defined */
 #if !defined(BFPSDK_LIBDSPCONTROL_TARGET_SOC)
-#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be defined and be one of RaagaFP2008_si_rockford_no_dsp, BCM961750_si_no_dsp, BCM93160A0_wkstn, RaagaFP2011_si_magnum, RaagaFP2012_si_rockford_no_dsp, RaagaFP2012_bm, BCM961750_si, BCM961750_wkstn, BCM93160A0_si, Pike_bm, RaagaFP2011_bm, RaagaFP2012_si_rockford, RaagaFP2011_si_rockford_no_dsp, RaagaFP2011_si_rockford, BCM960500_si, RaagaFP2012_wkstn, RaagaFP2008_bm, BCM93160A0_bm, RaagaFP2012_si_magnum, Pike_haps, RaagaFP2008_si_magnum, RaagaFP2011_wkstn, BCM960500_wkstn, Pike_wkstn, BCM961750_bm, RaagaFP2008_wkstn, BCM960500_bm"
-#elif !((BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_rockford_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_bm))
-#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be one of RaagaFP2008_si_rockford_no_dsp, BCM961750_si_no_dsp, BCM93160A0_wkstn, RaagaFP2011_si_magnum, RaagaFP2012_si_rockford_no_dsp, RaagaFP2012_bm, BCM961750_si, BCM961750_wkstn, BCM93160A0_si, Pike_bm, RaagaFP2011_bm, RaagaFP2012_si_rockford, RaagaFP2011_si_rockford_no_dsp, RaagaFP2011_si_rockford, BCM960500_si, RaagaFP2012_wkstn, RaagaFP2008_bm, BCM93160A0_bm, RaagaFP2012_si_magnum, Pike_haps, RaagaFP2008_si_magnum, RaagaFP2011_wkstn, BCM960500_wkstn, Pike_wkstn, BCM961750_bm, RaagaFP2008_wkstn, BCM960500_bm"
+#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be defined and be one of RaagaFP2011_si_rockford_no_dsp, RaagaFP2008_si_rockford_no_dsp, BCM961800_bm, RaagaFP2011_wkstn, BCM961750_si_no_dsp, BCM960500_si, RaagaFP2012_wkstn, YellowstoneA0_si, BCM93160A0_OFDMA_Rx_bm, RaagaFP4015_haps_bm, RaagaFP4015_haps, Leap_Phy_bm, RaagaFP2008_bm, GenericFPM1015_bm, RaagaFP4015_si_magnum, RaagaFP4015_barebone, RaagaFP2012_si_rockford_no_dsp, YellowstoneA0_bm, RaagaFP2012_si_magnum, RaagaFP4015_wkstn, RaagaFP2008_si_magnum, RaagaFP2012_bm, BCM961750_si, BCM93160B0_USOOB_bm, BCM961750_wkstn, Pike_haps, BCM960500_wkstn, Pike_bm, BCM93160_wkstn, RaagaFP2011_si_rockford, BCM961750_bm, RaagaFP2011_si_magnum, RaagaFP2008_wkstn, RaagaFP2011_bm, BCM93160A0_OFDMA_Rx_si, Pike_wkstn, RaagaFP2012_si_rockford, BCM961800_wkstn, RaagaFP4015_bm, BCM960500_bm"
+#elif !((BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_rockford_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Leap_Phy_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFPM1015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_barebone) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160B0_USOOB_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_si) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_wkstn) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_bm) || (BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_bm))
+#  error "An unsupported BFPSDK_LIBDSPCONTROL_TARGET_SOC has been provided"
+#  error "BFPSDK_LIBDSPCONTROL_TARGET_SOC must be one of RaagaFP2011_si_rockford_no_dsp, RaagaFP2008_si_rockford_no_dsp, BCM961800_bm, RaagaFP2011_wkstn, BCM961750_si_no_dsp, BCM960500_si, RaagaFP2012_wkstn, YellowstoneA0_si, BCM93160A0_OFDMA_Rx_bm, RaagaFP4015_haps_bm, RaagaFP4015_haps, Leap_Phy_bm, RaagaFP2008_bm, GenericFPM1015_bm, RaagaFP4015_si_magnum, RaagaFP4015_barebone, RaagaFP2012_si_rockford_no_dsp, YellowstoneA0_bm, RaagaFP2012_si_magnum, RaagaFP4015_wkstn, RaagaFP2008_si_magnum, RaagaFP2012_bm, BCM961750_si, BCM93160B0_USOOB_bm, BCM961750_wkstn, Pike_haps, BCM960500_wkstn, Pike_bm, BCM93160_wkstn, RaagaFP2011_si_rockford, BCM961750_bm, RaagaFP2011_si_magnum, RaagaFP2008_wkstn, RaagaFP2011_bm, BCM93160A0_OFDMA_Rx_si, Pike_wkstn, RaagaFP2012_si_rockford, BCM961800_wkstn, RaagaFP4015_bm, BCM960500_bm"
 #endif
 
 /* Is CHIP defined from outside or should we set it from the TARGET_SOC? */
-#if (defined(MCPHY) || defined(PIKE) || defined(DUNA) || defined(CELIVERO) || defined(RAAGA))
+#if (defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(YELLOWSTONE) || defined(CELTRIX))
 /* Check if multiple CHIPs are defined */
-#  if !(!((defined(MCPHY) && ((defined(PIKE) || defined(DUNA) || defined(CELIVERO) || defined(RAAGA)))) || (defined(PIKE) && ((defined(MCPHY) || defined(DUNA) || defined(CELIVERO) || defined(RAAGA)))) || (defined(DUNA) && ((defined(MCPHY) || defined(PIKE) || defined(CELIVERO) || defined(RAAGA)))) || (defined(CELIVERO) && ((defined(MCPHY) || defined(PIKE) || defined(DUNA) || defined(RAAGA)))) || (defined(RAAGA) && ((defined(MCPHY) || defined(PIKE) || defined(DUNA) || defined(CELIVERO))))))
+#  if !(!((defined(PIKE) && ((defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(CELIVERO) && ((defined(PIKE) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(RAAGA) && ((defined(PIKE) || defined(CELIVERO) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(LEAP_PHY) && ((defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(MCPHY) && ((defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(GENERIC) || defined(DUNA) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(DUNA) && ((defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(GENERIC) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(GENERIC) && ((defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(YELLOWSTONE) || defined(CELTRIX)))) || (defined(YELLOWSTONE) && ((defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(CELTRIX)))) || (defined(CELTRIX) && ((defined(PIKE) || defined(CELIVERO) || defined(RAAGA) || defined(LEAP_PHY) || defined(MCPHY) || defined(DUNA) || defined(GENERIC) || defined(YELLOWSTONE))))))
 #    error "Multiple 'CHIP' macros defined - check your external defines"
 #  endif
 #else
 /* Define CHIP from TARGET_SOC */
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp
+#    define RAAGA
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_rockford_no_dsp
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_bm
+#    define CELTRIX
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn
 #    define RAAGA
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp
 #    define CELIVERO
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_wkstn
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_si
+#    define DUNA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_wkstn
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_si
+#    define YELLOWSTONE
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_bm
 #    define MCPHY
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps_bm
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Leap_Phy_bm
+#    define LEAP_PHY
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFPM1015_bm
+#    define GENERIC
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_barebone
 #    define RAAGA
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_bm
+#    define YELLOWSTONE
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_wkstn
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_magnum
 #    define RAAGA
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm
@@ -200,61 +265,52 @@
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si
 #    define CELIVERO
 #  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160B0_USOOB_bm
+#    define MCPHY
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn
 #    define CELIVERO
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_si
-#    define MCPHY
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm
-#    define PIKE
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_si
-#    define DUNA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_wkstn
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_bm
-#    define MCPHY
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum
-#    define RAAGA
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps
 #    define PIKE
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_magnum
-#    define RAAGA
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn
-#    define RAAGA
-#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_wkstn
 #    define DUNA
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm
 #    define PIKE
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160_wkstn
+#    define MCPHY
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford
+#    define RAAGA
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_bm
 #    define CELIVERO
 #  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum
+#    define RAAGA
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_wkstn
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_si
+#    define MCPHY
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
+#    define PIKE
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford
+#    define RAAGA
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_wkstn
+#    define CELTRIX
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_bm
 #    define RAAGA
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_bm
@@ -263,53 +319,26 @@
 #endif
 
 /* Is MACH defined from outside or should we set it from the TARGET_SOC? */
-#if (defined(__FP2011__) || defined(__FP2008__) || defined(__FP4014__) || defined(__FP2012__))
+#if (defined(__FP2011__) || defined(__FP4015__) || defined(__FP2008__) || defined(__FP2012__) || defined(__FPM1015__) || defined(__FP4014__))
 /* Check if multiple MACHs are defined */
-#  if !(!((defined(__FP2011__) && ((defined(__FP2008__) || defined(__FP4014__) || defined(__FP2012__)))) || (defined(__FP2008__) && ((defined(__FP2011__) || defined(__FP4014__) || defined(__FP2012__)))) || (defined(__FP2012__) && ((defined(__FP2011__) || defined(__FP2008__) || defined(__FP4014__)))) || (defined(__FP4014__) && ((defined(__FP2011__) || defined(__FP2008__) || defined(__FP2012__))))))
+#  if !(!((defined(__FP2011__) && ((defined(__FPM1015__) || defined(__FP2008__) || defined(__FP2012__) || defined(__FP4015__) || defined(__FP4014__)))) || (defined(__FP4015__) && ((defined(__FP2011__) || defined(__FPM1015__) || defined(__FP2008__) || defined(__FP2012__) || defined(__FP4014__)))) || (defined(__FPM1015__) && ((defined(__FP2011__) || defined(__FP2008__) || defined(__FP2012__) || defined(__FP4015__) || defined(__FP4014__)))) || (defined(__FP2008__) && ((defined(__FP2011__) || defined(__FPM1015__) || defined(__FP2012__) || defined(__FP4015__) || defined(__FP4014__)))) || (defined(__FP4014__) && ((defined(__FP2011__) || defined(__FPM1015__) || defined(__FP2008__) || defined(__FP4015__) || defined(__FP2012__)))) || (defined(__FP2012__) && ((defined(__FP2011__) || defined(__FPM1015__) || defined(__FP2008__) || defined(__FP4015__) || defined(__FP4014__))))))
 #    error "Multiple 'MACH' macros defined - check your external defines"
 #  endif
 #else
 /* Define MACH from TARGET_SOC */
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_rockford_no_dsp
-#    define __FP2008__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp
-#    define __FP2011__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_wkstn
-#    define __FP2012__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum
-#    define __FP2011__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp
-#    define __FP2012__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm
-#    define __FP2012__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si
-#    define __FP2011__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn
-#    define __FP2011__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_si
-#    define __FP2012__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm
-#    define __FP4014__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm
-#    define __FP2011__
-#  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford
-#    define __FP2012__
-#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp
 #    define __FP2011__
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_rockford_no_dsp
+#    define __FP2008__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_bm
+#    define __FP2011__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn
+#    define __FP2011__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp
 #    define __FP2011__
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_si
@@ -318,35 +347,101 @@
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_wkstn
 #    define __FP2012__
 #  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_si
+#    define __FP4014__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_bm
+#    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps_bm
+#    define __FP4015__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps
+#    define __FP4015__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Leap_Phy_bm
+#    define __FPM1015__
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm
 #    define __FP2008__
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_bm
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFPM1015_bm
+#    define __FPM1015__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum
+#    define __FP4015__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_barebone
+#    define __FP4015__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp
 #    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_bm
+#    define __FP4014__
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum
 #    define __FP2012__
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps
-#    define __FP4014__
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_wkstn
+#    define __FP4015__
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_magnum
 #    define __FP2008__
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm
+#    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si
 #    define __FP2011__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160B0_USOOB_bm
+#    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn
+#    define __FP2011__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps
+#    define __FP4014__
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_wkstn
 #    define __FP2011__
 #  endif
-#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm
 #    define __FP4014__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160_wkstn
+#    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford
+#    define __FP2011__
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_bm
 #    define __FP2011__
 #  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum
+#    define __FP2011__
+#  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_wkstn
 #    define __FP2008__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm
+#    define __FP2011__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_si
+#    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
+#    define __FP4014__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford
+#    define __FP2012__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_wkstn
+#    define __FP2011__
+#  endif
+#  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_bm
+#    define __FP4015__
 #  endif
 #  if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_bm
 #    define __FP2011__
@@ -354,13 +449,32 @@
 #endif
 
 /* Per-TARGET_SOC features */
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2011_si_rockford_no_dsp"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
 #if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_rockford_no_dsp
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2008_si_rockford_no_dsp"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -369,88 +483,15 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_wkstn
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_MAGNUM
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM961800_bm"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -459,13 +500,15 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2011_wkstn"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -474,103 +517,32 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_si
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_BIG
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_MEMORY
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_FREERTOS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_LOOPBACK
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford_no_dsp
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si_no_dsp
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM961750_si_no_dsp"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
 #if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_si
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM960500_si"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -580,12 +552,14 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
 #if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2012_wkstn"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -594,28 +568,32 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_si
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "YellowstoneA0_si"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_BIG
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_bm
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM93160A0_OFDMA_Rx_bm"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -624,13 +602,100 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP4015_haps_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER_MP
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_FPOS_DEBUG
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_haps
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP4015_haps"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Leap_Phy_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "Leap_Phy_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_LOOPBACK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2008_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == GenericFPM1015_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "GenericFPM1015_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_LOOPBACK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_si_magnum
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP4015_si_magnum"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL
@@ -639,13 +704,83 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_barebone
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP4015_barebone"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_YES
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford_no_dsp
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2012_si_rockford_no_dsp"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == YellowstoneA0_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "YellowstoneA0_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_magnum
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2012_si_magnum"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_MAGNUM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP4015_wkstn"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -655,12 +790,14 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
 #if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_si_magnum
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2008_si_magnum"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL
@@ -669,58 +806,32 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_wkstn
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_wkstn
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
-#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_UNBUFF
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
-#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
-#endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_bm
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2012_bm"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_si
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM961750_si"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -729,13 +840,32 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_wkstn
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160B0_USOOB_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM93160B0_USOOB_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_FREERTOS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM961750_wkstn"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
@@ -744,13 +874,253 @@
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
 #endif
-#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_bm
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_haps
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "Pike_haps"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM960500_wkstn"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "Pike_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_MISC_BLOCK
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM93160_wkstn"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_rockford
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2011_si_rockford"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961750_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM961750_bm"
 #  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_si_magnum
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2011_si_magnum"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_NULL
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_MAGNUM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2008_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2008_wkstn"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2011_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2011_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM93160A0_OFDMA_Rx_si
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM93160A0_OFDMA_Rx_si"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_FREESTANDING
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_BIG
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_MULTIBUFFER
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_MEMORY
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_FREERTOS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_UNAVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == Pike_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "Pike_wkstn"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_UNBUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP2012_si_rockford
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP2012_si_rockford"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_SILICON
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_BRIDGE_BUFF
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_RAAGA_ROCKFORD
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM961800_wkstn
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM961800_wkstn"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_DSP_LESS
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_NONE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == RaagaFP4015_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "RaagaFP4015_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_DEBUG_SERVER_MP
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_FPOS_DEBUG
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST       BFPSDK_LIBDSPCONTROL_FEATURE_SW_HOST_LINUX
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_OVERLAY_UNSUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS       BFPSDK_LIBDSPCONTROL_FEATURE_SOCKETS_SUPPORTED
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO       BFPSDK_LIBDSPCONTROL_FEATURE_FILE_IO_AVAILABLE
+#endif
+#if BFPSDK_LIBDSPCONTROL_TARGET_SOC == BCM960500_bm
+#  define BFPSDK_LIBDSPCONTROL_TARGET_NAME           "BCM960500_bm"
+#  define BFPSDK_LIBDSPCONTROL_HOST_ENV              BFPSDK_LIBDSPCONTROL_HOST_ENV_BM
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE      BFPSDK_LIBDSPCONTROL_FEATURE_BAREBONE_NO
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE      BFPSDK_LIBDSPCONTROL_FEATURE_DBG_CORE_NONE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_LIBC          BFPSDK_LIBDSPCONTROL_FEATURE_LIBC_HOSTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM     BFPSDK_LIBDSPCONTROL_FEATURE_IMAGE_VOM_UNSUPPORTED
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT    BFPSDK_LIBDSPCONTROL_FEATURE_TB_VARIANT_CIRCULAR
+#  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF BFPSDK_LIBDSPCONTROL_FEATURE_DBG_TARGET_IF_DEBUG_CONSOLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS     BFPSDK_LIBDSPCONTROL_FEATURE_ENDIANESS_LITTLE
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF   BFPSDK_LIBDSPCONTROL_FEATURE_DBG_HOST_IF_SOCKET
 #  define BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK   BFPSDK_LIBDSPCONTROL_FEATURE_DSPLOG_SINK_STDIO

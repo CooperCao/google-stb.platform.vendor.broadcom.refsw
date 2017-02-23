@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -337,7 +337,6 @@ void main()
 #define BXVD_H__
 
 #include "bchp.h"          /* Chip information */
-#include "bmem.h"          /* Chip memory access. */
 #include "bmma.h"          /* New Chip memory access. */
 #include "breg_mem.h"      /* Chip register access */
 #include "bfmt.h"          /* Video timing format */
@@ -1300,6 +1299,8 @@ typedef enum BXVD_Interrupt
 
    BXVD_Interrupt_eChunkDone,               /* SW7425-3358: FNRT, executed when the last picture of a chunk is sent to VDC */
 
+   BXVD_Interrupt_eEndOfGOP,                /* SW7425-2686: multi-pass DQT: the end of the GOP has been reached, beginning reverse playback. */
+
    BXVD_Interrupt_eMaxInterrupts            /* Not a Real interrupt just the max no of XVD interrupts */
 } BXVD_Interrupt;
 
@@ -1937,6 +1938,49 @@ typedef enum BXVD_240iScanMode
 
 /***************************************************************************
 Summary:
+   SW7425-2686: for multi-pass DQT, add a generic structure for setting
+   trick modes as well MP DQT specific enums and structure.
+
+   The BXVD_Interrupt_eEndOfGOP callback will return a BXVD_DQTStatus structure.
+
+****************************************************************************/
+
+typedef struct BXVD_DQTStatus
+{
+   uint32_t uiIntraGOPIndex;  /* Trigger index for the next pass. A '0' indicates that
+                               * this GOP has been full displayed.  */
+
+   uint32_t uiOpenGopPictures;   /* The number of open GOP pictures in this GOP. Should be
+                                  * added to the value passed by the "display_n" BTP command. */
+} BXVD_DQTStatus;
+
+typedef enum BXVD_DQTTrickMode
+{
+   BXVD_DQTTrickMode_eDisable,         /* normal playback. */
+   BXVD_DQTTrickMode_eDQT,             /* enables the orignal DQT logic. */
+   BXVD_DQTTrickMode_eMultiPassDQT,    /* enables the multi-pass DQT logic. */
+   BXVD_DQTTrickMode_eMax
+
+} BXVD_DQTTrickMode;
+
+typedef struct BXVD_TrickModeSettings
+{
+   /* TODO: Add other XVD trick mode settings here (e.g. Sparse Mode, etc) */
+
+   struct
+   {
+      BXVD_DQTTrickMode eMode;
+      /* The following are only used when eMode == BXVD_DQTTrickMode_eMultiPassDQT */
+      uint32_t          uiTargetPTS;      /* PTS on which to begin reverse playback. */
+      BXVD_PTSType      eTargetPTSType;   /* Need to know if the target PTS is a coded PTS. */
+      uint32_t          uiTargetIndex;    /* Position of the picture within the GOP, 1 based. */
+   } stGopTrickMode;
+
+
+} BXVD_TrickModeSettings;
+
+/***************************************************************************
+Summary:
 XVD callback function typedef. This is different from the BINT_CallbackFunc
 definition in that it allows for an extra parameter to be passed to the
 callback which contains XVD specific data.
@@ -1944,6 +1988,16 @@ callback which contains XVD specific data.
 typedef void (*BXVD_IntCallbackFunc)(void *pParm1, int parm2, void *pXVD_data);
 
 #define BXVD_NUM_EXT_RAVE_CONTEXT 1
+
+
+/***************************************************************************
+Summary:
+SWSTB-3450: add support for passing in the XDM start/stop parameters.  This is
+part of a long term goal of getting away from all the separate Set/Get API's.
+****************************************************************************/
+
+#define BXVD_StartSettings BXDM_PictureProvider_StartSettings
+#define BXVD_StopSettings BXDM_PictureProvider_StopSettings
 
 /***************************************************************************
  * Summary:
@@ -2023,6 +2077,8 @@ typedef struct BXVD_DecodeSettings
   uint32_t uiErrorThreshold;  /* SWSTB-439: drop a picture if the percentage of macro blocks with an error
                                * is greater than or equal to this value. The range of uiErrorThreshold is 0:100.
                                * Evaluated when eErrorHandlingMode is either ePicture or ePrognostic. */
+
+  BXVD_StartSettings stXDMSettings; /* SWSTB-3450: the XDM start settings. */
 
 } BXVD_DecodeSettings;
 
@@ -5376,6 +5432,28 @@ BERR_Code BXVD_UninstallFilter(
    BXVD_FilterInterface * pstFilterInterface
    );
 #endif
+
+/***************************************************************************
+Summary:
+   SW7425-2686: added for multi-pass DQT.  A "generic" API for setting
+   trick modes.
+
+****************************************************************************/
+
+void BXVD_GetDefaultTrickModeSettings(
+   BXVD_TrickModeSettings *pstTrickModeSettings
+);
+
+BERR_Code BXVD_SetTrickModeSettings(
+   BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
+   const BXVD_TrickModeSettings *pstTrickModeSettings
+);
+
+BERR_Code BXVD_GetTrickModeSettings(
+   BXVD_ChannelHandle hXvdCh, /* [In] XVD channel handle */
+   BXVD_TrickModeSettings *pstTrickModeSettings
+);
+
 /*******************/
 /* Deprecated APIs */
 /*******************/

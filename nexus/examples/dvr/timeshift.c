@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,23 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 /* Nexus example app: timeshifting with FileFifo */
 
 #include "nexus_platform.h"
 #include <stdio.h>
-#if NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_AUDIO && NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD
 #include "nexus_parser_band.h"
 #include "nexus_video_decoder.h"
 #include "nexus_stc_channel.h"
@@ -67,15 +56,16 @@
 #if NEXUS_HAS_HDMI_OUTPUT
 #include "nexus_hdmi_output.h"
 #endif
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD
 #include "nexus_playback.h"
 #include "nexus_file.h"
 #include "nexus_file_fifo.h"
+#include "nexus_file_fifo_chunk.h"
 #include "nexus_record.h"
-#endif
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
+#include <glob.h>
 #include "bstd.h"
 #include "bkni.h"
 
@@ -91,9 +81,11 @@ BDBG_MODULE(timeshift);
 #define VIDEO_PID 0x31
 #define AUDIO_PID 0x34
 
+#define PERMANENT_CHUNK_FILENAME "videos/chunk_stream.mpg"
+#define PERMANENT_CHUNK_INDEXNAME "videos/chunk_stream.nav"
+
 /* global app state makes the callbacks easier to implement. in a real app, this state
 should be passed into the callbacks by reference. */
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD
 typedef struct b_app_context {
     enum {
         decode_state_stopped,
@@ -101,7 +93,7 @@ typedef struct b_app_context {
         decode_state_playback
     } decode_state;
     int rate;
-    NEXUS_FifoRecordSettings fifoRecordSettings;
+    unsigned fifoInterval;
     NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackLoopMode beginningOfStreamAction;
     NEXUS_VideoDecoderHandle videoDecoder;
@@ -113,6 +105,9 @@ typedef struct b_app_context {
     NEXUS_StcChannelHandle stcChannel;
     NEXUS_ParserBand parserBand;
     uint32_t startAtTimestamp;
+    NEXUS_FifoRecordHandle fifofile;
+    NEXUS_ChunkedFifoRecordHandle chunkedFifofile;
+    unsigned chunksize;
 } b_app_context;
 
 void jump_to_beginning(b_app_context *app)
@@ -124,7 +119,7 @@ void jump_to_beginning(b_app_context *app)
     rc = NEXUS_Playback_GetStatus(app->playback, &playbackStatus);
     BDBG_ASSERT(!rc);
     pos = playbackStatus.first;
-    if (playbackStatus.last - playbackStatus.first > app->fifoRecordSettings.interval * 1000 / 2) {
+    if (playbackStatus.last - playbackStatus.first > app->fifoInterval * 1000 / 2) {
         /* once we've reached half of the timeshift buffer, we should not jump to the absolute beginning.
         the beginning of the file is truncated in blocks.
         if we jump to the absolute beginning, we might get an undesired beginningOfStream action when that truncation occurs. */
@@ -155,7 +150,7 @@ static void start_live_decode(b_app_context *app)
 
     NEXUS_StcChannel_GetSettings(app->stcChannel, &stcSettings);
     stcSettings.mode = NEXUS_StcChannelMode_ePcr;
-    stcSettings.modeSettings.pcr.pidChannel = app->pcrPidChannel;
+    stcSettings.modeSettings.pcr.pidChannel = app->pcrPidChannel ? app->pcrPidChannel : app->videoPidChannel;
     rc = NEXUS_StcChannel_SetSettings(app->stcChannel, &stcSettings);
     BDBG_ASSERT(!rc);
     
@@ -235,9 +230,11 @@ static void start_playback_decode(b_app_context *app)
     rc = NEXUS_AudioDecoder_Start(app->audioDecoder, &audioProgram);
     BDBG_ASSERT(!rc);
 
-    /* Linking Playback to Record allows Playback to sleep until Record writes data. Avoids a busyloop near live. */
-    rc = NEXUS_Record_AddPlayback(app->record, app->playback);
-    BDBG_ASSERT(!rc);
+    if (app->record) {
+        /* Linking Playback to Record allows Playback to sleep until Record writes data. Avoids a busyloop near live. */
+        rc = NEXUS_Record_AddPlayback(app->record, app->playback);
+        BDBG_ASSERT(!rc);
+    }
 
     rc = NEXUS_Playback_Start(app->playback, app->playbackfile, NULL);
     BDBG_ASSERT(!rc);
@@ -260,9 +257,11 @@ static void stop_decode(b_app_context *app)
     
     if (app->decode_state == decode_state_playback) {
         NEXUS_Playback_Stop(app->playback);
-        NEXUS_Record_RemovePlayback(app->record, app->playback);
+        if (app->record) {
+            NEXUS_Record_RemovePlayback(app->record, app->playback);
+        }
     }
-    else {
+    else if (app->record) {
         NEXUS_RecordStatus recordStatus;
         NEXUS_Record_GetStatus(app->record, &recordStatus);
         app->startAtTimestamp = recordStatus.lastTimestamp;
@@ -283,7 +282,6 @@ static void stop_decode(b_app_context *app)
     
     app->decode_state = decode_state_stopped;
 }
-#endif
 
 void beginning_of_stream(void *context, int param)
 {
@@ -320,9 +318,81 @@ void end_of_stream(void *context, int param)
     }
 }
 
-int main(void)
+static void print_usage(void)
 {
-#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_RECORD
+    printf(
+    "timeshift\n"
+    "-chunk SIZE       Use ChunkedFileFifo. SIZE in MB. If 0, use FileFifo.\n"
+    "-interval MIN     Time for loop around. Default is 1 minute.\n"
+    "-play             Do playback only from previously recorded fifo.\n"
+    );
+}
+
+static void set_interval(b_app_context *app, unsigned interval)
+{
+    int rc;
+    if (app->chunkedFifofile) {
+        NEXUS_ChunkedFifoRecordSettings fifoRecordSettings;
+        NEXUS_ChunkedFifoRecord_GetSettings(app->chunkedFifofile, &fifoRecordSettings);
+        fifoRecordSettings.interval = interval;
+        fifoRecordSettings.data.chunkSize = app->chunksize * 1024*1024;
+        rc = NEXUS_ChunkedFifoRecord_SetSettings(app->chunkedFifofile, &fifoRecordSettings);
+        BDBG_ASSERT(!rc);
+    }
+    else {
+        NEXUS_FifoRecordSettings fifoRecordSettings;
+        NEXUS_FifoRecord_GetSettings(app->fifofile, &fifoRecordSettings);
+        fifoRecordSettings.interval = interval;
+        rc = NEXUS_FifoRecord_SetSettings(app->fifofile, &fifoRecordSettings);
+        BDBG_ASSERT(!rc);
+    }
+    app->fifoInterval = interval;
+}
+
+static int glob_errfunc(const char *epath, int eerrno)
+{
+    BDBG_ERR(("glob_errfunc %s %d", epath, eerrno));
+    return -1;
+}
+
+static void delete_chunked_file(const char *filename, const char *indexname)
+{
+    char path[64];
+    int rc;
+    glob_t glb;
+    unsigned i;
+
+    snprintf(path, sizeof(path), "%s_[0-9]*", filename);
+    rc = glob(path, 0, glob_errfunc, &glb);
+    if (rc) {
+        /* could be no files, so no BER_TRACE */
+        return;
+    }
+    for (i=0;i<glb.gl_pathc;i++) {
+        BDBG_WRN(("deleting %s", glb.gl_pathv[i]));
+        unlink(glb.gl_pathv[i]);
+
+    }
+    BDBG_WRN(("deleting %s", indexname));
+    unlink(indexname);
+    globfree(&glb);
+}
+
+static void query_chunk_filenames(char *filename, unsigned filenamesize, char *indexname, unsigned indexnamesize)
+{
+    printf("filename [%s] : ", PERMANENT_CHUNK_FILENAME);
+    fgets(filename, filenamesize-1, stdin);
+    filename[strlen(filename)-1] = 0;
+    if (!filename[0]) strcpy(filename, PERMANENT_CHUNK_FILENAME);
+
+    printf("indexname [%s] : ", PERMANENT_CHUNK_INDEXNAME);
+    fgets(indexname, indexnamesize-1, stdin);
+    indexname[strlen(indexname)-1] = 0;
+    if (!indexname[0]) strcpy(indexname, PERMANENT_CHUNK_INDEXNAME);
+}
+
+int main(int argc, char **argv)
+{
     NEXUS_ParserBandSettings parserBandSettings;
     NEXUS_PlatformConfiguration platformConfig;
     NEXUS_StcChannelSettings stcSettings;
@@ -334,7 +404,6 @@ int main(void)
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
 #endif
-    NEXUS_FifoRecordHandle fifofile;
     NEXUS_FileRecordHandle recordfile;
     NEXUS_RecpumpHandle recpump;
     NEXUS_RecordPidChannelSettings pidSettings;
@@ -345,56 +414,87 @@ int main(void)
     const char *datafilename = DATA_FILE_NAME;
     const char *indexfilename = INDEX_FILE_NAME;
     b_app_context appinstance, *app = &appinstance;
+    int curarg = 1;
+    unsigned interval = 1;
+    bool playbackOnly = false;
+
+    memset(app, 0, sizeof(*app));
+    app->rate = 1;
+
+    while (curarg < argc) {
+        if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
+            print_usage();
+            return 0;
+        }
+        else if (!strcmp(argv[curarg], "-chunk") && curarg+1<argc) {
+            app->chunksize = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-interval") && curarg+1<argc) {
+            interval = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg], "-play")) {
+            playbackOnly = true;
+        }
+        else {
+            print_usage();
+            return -1;
+        }
+        curarg++;
+    }
+    interval *= 60; /* convert to seconds */
 
     rc = NEXUS_Platform_Init(NULL);
     if (rc) return -1;
     
     NEXUS_Platform_GetConfiguration(&platformConfig);
-    BKNI_Memset(app, 0, sizeof(*app));
-    app->rate = 1;
 
     /******************************
     * start record
     **/
+    if (!playbackOnly) {
+        app->parserBand = NEXUS_ParserBand_e0;
+        NEXUS_ParserBand_GetSettings(app->parserBand, &parserBandSettings);
+        parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
+        NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
+        parserBandSettings.transportType = TRANSPORT_TYPE;
+        NEXUS_ParserBand_SetSettings(app->parserBand, &parserBandSettings);
 
-    app->parserBand = NEXUS_ParserBand_e0;
-    NEXUS_ParserBand_GetSettings(app->parserBand, &parserBandSettings);
-    parserBandSettings.sourceType = NEXUS_ParserBandSourceType_eInputBand;
-    NEXUS_Platform_GetStreamerInputBand(0, &parserBandSettings.sourceTypeSettings.inputBand);
-    parserBandSettings.transportType = TRANSPORT_TYPE;
-    NEXUS_ParserBand_SetSettings(app->parserBand, &parserBandSettings);
+        recpump = NEXUS_Recpump_Open(0, NULL);
+        app->record = NEXUS_Record_Create();
+        NEXUS_Record_GetSettings(app->record, &recordSettings);
+        recordSettings.recpump = recpump;
+        NEXUS_Record_SetSettings(app->record, &recordSettings);
 
-    recpump = NEXUS_Recpump_Open(0, NULL);
-    app->record = NEXUS_Record_Create();
-    NEXUS_Record_GetSettings(app->record, &recordSettings);
-    recordSettings.recpump = recpump;
-    NEXUS_Record_SetSettings(app->record, &recordSettings);
+        if (app->chunksize) {
+            app->chunkedFifofile = NEXUS_ChunkedFifoRecord_Create(datafilename, indexfilename);
+            recordfile = NEXUS_ChunkedFifoRecord_GetFile(app->chunkedFifofile);
+        }
+        else {
+            app->fifofile = NEXUS_FifoRecord_Create(datafilename, indexfilename);
+            recordfile = NEXUS_FifoRecord_GetFile(app->fifofile);
+        }
+        set_interval(app, interval);
 
-    fifofile = NEXUS_FifoRecord_Create(datafilename, indexfilename);
+        NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
+        pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
+        pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
+        pidSettings.recpumpSettings.pidTypeSettings.video.codec = VIDEO_CODEC;
 
-    NEXUS_FifoRecord_GetSettings(fifofile, &app->fifoRecordSettings);
-    app->fifoRecordSettings.interval = 60;
-    rc = NEXUS_FifoRecord_SetSettings(fifofile, &app->fifoRecordSettings);
-    BDBG_ASSERT(!rc);
+        pidChannel[0] = NEXUS_PidChannel_Open(app->parserBand, VIDEO_PID, NULL);
+        rc = NEXUS_Record_AddPidChannel(app->record, pidChannel[0], &pidSettings);
+        BDBG_ASSERT(!rc);
 
-    recordfile = NEXUS_FifoRecord_GetFile(fifofile);
+        pidChannel[1] = NEXUS_PidChannel_Open(app->parserBand, AUDIO_PID, NULL);
+        rc = NEXUS_Record_AddPidChannel(app->record, pidChannel[1], NULL);
+        BDBG_ASSERT(!rc);
 
-    NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
-    pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
-    pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-    pidSettings.recpumpSettings.pidTypeSettings.video.codec = VIDEO_CODEC;
-
-    pidChannel[0] = NEXUS_PidChannel_Open(app->parserBand, VIDEO_PID, NULL);
-    rc = NEXUS_Record_AddPidChannel(app->record, pidChannel[0], &pidSettings);
-    BDBG_ASSERT(!rc);
-
-    pidChannel[1] = NEXUS_PidChannel_Open(app->parserBand, AUDIO_PID, NULL);
-    rc = NEXUS_Record_AddPidChannel(app->record, pidChannel[1], NULL);
-    BDBG_ASSERT(!rc);
-
-    BDBG_WRN(("start record"));
-    rc = NEXUS_Record_Start(app->record, recordfile);
-    BDBG_ASSERT(!rc);
+        BDBG_WRN(("start record"));
+        rc = NEXUS_Record_Start(app->record, recordfile);
+        BDBG_ASSERT(!rc);
+    }
+    else {
+        pidChannel[0] = pidChannel[1] = NULL;
+    }
 
     /******************************
     * open playback, but don't start
@@ -405,7 +505,12 @@ int main(void)
     app->playback = NEXUS_Playback_Create();
     BDBG_ASSERT(app->playback);
 
-    app->playbackfile = NEXUS_FifoPlay_Open(datafilename, indexfilename, fifofile);
+    if (app->chunksize) {
+        app->playbackfile = NEXUS_ChunkedFifoPlay_Open(datafilename, indexfilename, app->chunkedFifofile);
+    }
+    else {
+        app->playbackfile = NEXUS_FifoPlay_Open(datafilename, indexfilename, app->fifofile);
+    }
     if (!app->playbackfile) {
         BDBG_ERR(("can't open files:%s %s", datafilename, indexfilename));
         return -1;
@@ -422,8 +527,13 @@ int main(void)
     app->pcrPidChannel = pidChannel[0];
     
     NEXUS_Timebase_GetSettings(stcSettings.timebase, &timebaseSettings);
-    timebaseSettings.sourceType = NEXUS_TimebaseSourceType_ePcr;
-    timebaseSettings.sourceSettings.pcr.pidChannel = app->pcrPidChannel;
+    if (app->pcrPidChannel) {
+        timebaseSettings.sourceType = NEXUS_TimebaseSourceType_ePcr;
+        timebaseSettings.sourceSettings.pcr.pidChannel = app->pcrPidChannel;
+    }
+    else {
+        timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
+    }
     rc = NEXUS_Timebase_SetSettings(stcSettings.timebase, &timebaseSettings);
     BDBG_ASSERT(!rc);
 
@@ -496,7 +606,12 @@ int main(void)
     
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(app->videoDecoder));
 
-    start_live_decode(app);
+    if (playbackOnly) {
+        start_playback_decode(app);
+    }
+    else {
+        start_live_decode(app);
+    }
 
 #if 1
     for(;;) {
@@ -504,55 +619,61 @@ int main(void)
         NEXUS_VideoDecoderStatus videoStatus;
         NEXUS_AudioDecoderStatus audioStatus;
         uint32_t stc;
-        NEXUS_FilePosition first, last;
         char cmd[16];
         unsigned i;
         bool quit=false;
         NEXUS_PlaybackTrickModeSettings trickmode_settings;
 
-
-        printf("CMD:>");
+        printf("timeshift>");
         if(fgets(cmd, sizeof(cmd)-1, stdin)==NULL) {
             break;
         }
         for(i=0;cmd[i]!='\0';i++) {
             switch(cmd[i]) {
             case '?':
-                printf("? - this help\n"
-                       "f - Fast Forward\n"
-                       "r - Rewind\n"
-                       "s - pauSe\n"
-                       "p - Play\n"
-                       "a - frame Advance\n"
-                       "w - Wait 30msec\n"
-                       "+ - Jump forward 5 seconds\n"
-                       "- - Jump backward 5 seconds\n"
-                       "0 - Jump to the beginning\n"
-                       "9 - Jump to the end (catchup to live)\n"
-                       "q - Quit\n"
-                       );
-                break;
-            case 's':
-                printf( "pause\n" );
-                app->rate = 0;
-                if (app->decode_state == decode_state_live) {
-                    
-                    /* if live, just stop decode and keep the last picture visible. next operation will start playback. */
-                    stop_decode(app);
+                printf(
+                "? - this help\n"
+                "f - Fast Forward\n"
+                "r - Rewind\n"
+                "p - Play and Pause toggle\n"
+                "a - frame Advance\n"
+                "w - Wait 30msec\n"
+                "+ - Jump forward 5 seconds\n"
+                "- - Jump backward 5 seconds\n"
+                "0 - Jump to the beginning\n"
+                "9 - Jump to the end (catchup to live)\n"
+                "x - Extend interval to MAX to stop looping\n"
+                );
+                if (app->chunksize) {
+                printf(
+                "s - Save permanent chunked file\n"
+                "d - Delete permanent chunked file\n"
+                );
                 }
-                else {
-                    start_playback_decode(app);
-                    NEXUS_Playback_Pause(app->playback);
-                }
+                printf(
+                "q - Quit\n"
+                );
                 break;
             case 'p':
-                {
+                if (app->rate == 0) {
                     bool stopped_live = (app->decode_state == decode_state_stopped);
                     printf( "play\n" );
                     app->rate = 1;
                     start_playback_decode(app);
                     if (!stopped_live) {
                         NEXUS_Playback_Play(app->playback);
+                    }
+                }
+                else {
+                    printf( "pause\n" );
+                    app->rate = 0;
+                    if (app->decode_state == decode_state_live) {
+                        /* if live, just stop decode and keep the last picture visible. next operation will start playback. */
+                        stop_decode(app);
+                    }
+                    else {
+                        start_playback_decode(app);
+                        NEXUS_Playback_Pause(app->playback);
                     }
                 }
                 break;
@@ -623,8 +744,13 @@ int main(void)
                 }
                 break;
             case '9':
-                app->rate = 1;
-                start_live_decode(app);
+                if (playbackOnly) {
+                    /* TODO */
+                }
+                else {
+                    app->rate = 1;
+                    start_live_decode(app);
+                }
                 break;
             case '\n':
             case ' ':
@@ -641,17 +767,100 @@ int main(void)
                 if (app->decode_state == decode_state_playback) {
                     rc = NEXUS_Playback_GetStatus(app->playback, &playbackStatus);
                     BDBG_ASSERT(!rc);
-                    NEXUS_FifoRecord_GetPosition(fifofile, &first, &last);
-                    printf("rate=%d file %u:%u, playback %u%% position=%u.%03u sec\n",
-                        (int)playbackStatus.trickModeSettings.rate,
-                        (unsigned)first.mpegFileOffset,  (unsigned)last.mpegFileOffset,
+                    printf("playback rate=%u fifo=%u%% first=%u last=%u position=%u sec\n",
+                        playbackStatus.trickModeSettings.rate,
                         playbackStatus.fifoSize ? (playbackStatus.fifoDepth * 100) / playbackStatus.fifoSize : 0,
-                        (unsigned)playbackStatus.position/1000, (unsigned)playbackStatus.position%1000
+                        (unsigned)playbackStatus.first/1000, (unsigned)playbackStatus.last/1000,
+                        (unsigned)playbackStatus.position/1000);
+                }
+                if (app->record) {
+                    NEXUS_FilePosition first, last;
+                    if (app->chunksize) {
+                        NEXUS_ChunkedFifoRecord_GetPosition(app->chunkedFifofile, &first, &last);
+                    }
+                    else {
+                        NEXUS_FifoRecord_GetPosition(app->fifofile, &first, &last);
+                    }
+                    printf("record file %u:%u\n",
+                        (unsigned)first.mpegFileOffset,  (unsigned)last.mpegFileOffset
                         );
                 }
                 break;
             case 'q':
                 quit = true;
+                break;
+            case 'x':
+                set_interval(app, 0xFFFFFFFF);
+                break;
+            case 's':
+                if (app->chunksize) {
+                    char filename[128], indexname[128], timerange[64];
+                    NEXUS_ChunkedFifoRecordExportSettings settings;
+                    int rc;
+                    NEXUS_ChunkedFifoRecordExportHandle exportHandle;
+                    char *s;
+
+                    NEXUS_ChunkedFifoRecord_GetDefaultExportSettings(&settings);
+
+                    query_chunk_filenames(filename, sizeof(filename), indexname, sizeof(indexname));
+                    settings.filename = filename;
+                    settings.indexname = indexname;
+
+                    settings.first.timestamp = 0 * 1000;
+                    settings.last.timestamp = 60 * 1000;
+                    printf("time in seconds [%u,%u] : ", settings.first.timestamp/1000, settings.last.timestamp/1000);
+                    fgets(timerange, sizeof(timerange), stdin);
+                    timerange[strlen(timerange)-1] = 0;
+                    s = strchr(timerange,',');
+                    if (s) {
+                        *s++ = 0;
+                        settings.first.timestamp = atoi(timerange) * 1000;
+                        settings.last.timestamp = atoi(s) * 1000;
+                    }
+
+                    /* deleting old chunks allows the playback_chunk autodetect of first chunk/chunk size to be reliable */
+                    delete_chunked_file(filename, indexname);
+
+                    /* NOTE: if chunkTemplate contains a subdir, app is responsible to mkdir first:
+                        strcpy(settings.chunkTemplate, "%s/chunk.%u%03u");
+                        mkdir(settings.filename);
+                    */
+                    strcpy(settings.chunkTemplate, "%s_%04u");
+                    exportHandle = NEXUS_ChunkedFifoRecord_StartExport(app->chunkedFifofile, &settings);
+                    if (exportHandle) {
+                        NEXUS_ChunkedFifoRecordExportStatus status;
+                        while (1) {
+                            NEXUS_ChunkedFifoRecord_GetExportStatus(exportHandle, &status);
+                            if (status.state >= NEXUS_ChunkedFifoRecordExportState_eFailed) break;
+                            BKNI_Sleep(250);
+                        }
+                        NEXUS_ChunkedFifoRecord_StopExport(exportHandle);
+                        if (status.state == NEXUS_ChunkedFifoRecordExportState_eFailed) {
+                            BDBG_ERR(("export failed"));
+                        }
+                        else {
+                            BDBG_WRN(("saved %s: timestamp %lu..%lu, chunk %u..%u, offset " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT,
+                                filename,
+                                status.first.timestamp, status.last.timestamp,
+                                status.first.chunkNumber, status.last.chunkNumber,
+                                BDBG_UINT64_ARG(status.first.offset), BDBG_UINT64_ARG(status.last.offset)
+                                ));
+                        }
+                    }
+                }
+                else {
+                    BDBG_ERR(("save only supported with chunked fifo"));
+                }
+                break;
+            case 'd':
+                if (app->chunksize) {
+                    char filename[128], indexname[128];
+                    query_chunk_filenames(filename, sizeof(filename), indexname, sizeof(indexname));
+                    delete_chunked_file(filename, indexname);
+                }
+                else {
+                    BDBG_ERR(("save only supported with chunked fifo"));
+                }
                 break;
             default:
                 break;
@@ -670,33 +879,32 @@ int main(void)
 
     /* stop decode & playback */
     stop_decode(app);
-    /* stop record */
-    NEXUS_Record_Stop(app->record);
-    NEXUS_Record_RemoveAllPidChannels(app->record);
-    NEXUS_PidChannel_Close(pidChannel[0]);
-    NEXUS_PidChannel_Close(pidChannel[1]);
-
+    if (app->record) {
+        /* stop record */
+        NEXUS_Record_Stop(app->record);
+        NEXUS_Record_RemoveAllPidChannels(app->record);
+        NEXUS_PidChannel_Close(pidChannel[0]);
+        NEXUS_PidChannel_Close(pidChannel[1]);
+    }
     NEXUS_FilePlay_Close(app->playbackfile);
-    NEXUS_FileRecord_Close(recordfile);
     NEXUS_Playback_Destroy(app->playback);
     NEXUS_Playpump_Close(app->playpump);
-    NEXUS_Record_Destroy(app->record);
-    NEXUS_Recpump_Close(recpump);
+    if (app->record) {
+        NEXUS_FileRecord_Close(recordfile);
+        NEXUS_Record_Destroy(app->record);
+        NEXUS_Recpump_Close(recpump);
+    }
     NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(app->videoDecoder));
     NEXUS_VideoDecoder_Close(app->videoDecoder);
     NEXUS_AudioDecoder_Close(app->audioDecoder);
     NEXUS_Display_Close(display);
     NEXUS_Platform_Uninit();
-
-#else
-    printf("This application is not supported on this platform!\n");
-#endif
     return 0;
 }
 #else
 int main(void)
 {
-    printf("This application is not supported on this platform (needs video decoder)!\n");
+    printf("This application is not supported on this platform\n");
     return 0;
 }
 #endif

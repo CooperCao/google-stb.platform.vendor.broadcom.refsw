@@ -79,12 +79,22 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+    const NEXUS_PlatformMemory *pMemory = &g_platformMemory; /* g_platformMemory is completely initialized already */
     BSTD_UNUSED(boxMode);
     /* kernel suggested boot options bmem=192M@64M bmem=512M@512M for boards with >750M memory
        bmem=192M@64M bmem=192M@512M for the boards with 512 Mbytes of memory */
+
+    /* nexus default heap, also used for SD2 FB */
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memcIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = -1;   /* use all the available memory not reserved by kernel */
+    /* if there is no bmem in lower 256MB, heap[0] must move to upper memory. we must also shrink NEXUS_MEMC0_GRAPHICS_HEAP */
+    if (pMemory->osRegion[0].base >= 512*1024*1024) {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 1;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 192 * 1024 * 1024;
+    }
+    else {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 0;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = -1;
+    }
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType = NEXUS_MemoryType_eFull;
 
     pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].memcIndex = 0;

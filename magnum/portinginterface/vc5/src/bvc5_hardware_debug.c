@@ -165,17 +165,14 @@ static void BVC5_P_PrintBinJobDumpRunInfo(
 
          if (psBinMemArray && psBinMemArray->uiNumBinBlocks > 0)
          {
-            BMEM_HeapInfo hi;
-            BMEM_Heap_GetInfo(BVC5_P_GetHeap(hVC5), &hi);
-
             BKNI_Printf("  tile_alloc_addr = 0x%08X, size = %d\n\n",
                         psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
                         psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
 
             BKNI_Printf("The following command will convert the dump to a clif file (don't run on silicon):\n");
 
-            BKNI_Printf("dump_run b 0x%08X memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
-                        hi.ulOffset, pJobBin->uiStart[0], pJobBin->uiEnd[0],
+            BKNI_Printf("dump_run b " BDBG_UINT64_FMT " memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
+                        BDBG_UINT64_ARG(hVC5->ulDbgHeapOffset), pJobBin->uiStart[0], pJobBin->uiEnd[0],
                         psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
                         psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
          }
@@ -201,17 +198,14 @@ static void BVC5_P_PrintRenderJobDumpRunInfo(
 
       if (psBinMemArray && psBinMemArray->uiNumBinBlocks > 0)
       {
-         BMEM_HeapInfo hi;
-         BMEM_Heap_GetInfo(BVC5_P_GetHeap(hVC5), &hi);
-
          BKNI_Printf("  render job tile_alloc_addr = 0x%08X, size = %d\n\n",
                      psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
                      psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
 
          BKNI_Printf("The following command will convert the dump to a clif file (don't run on silicon):\n");
 
-         BKNI_Printf("dump_run r 0x%08X memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
-                     hi.ulOffset, pJobRender->uiStart[0], pJobRender->uiEnd[0],
+         BKNI_Printf("dump_run r " BDBG_UINT64_FMT " memdump.bin 0x%08X 0x%08X 0x%08X %u toclif\n",
+                     BDBG_UINT64_ARG(hVC5->ulDbgHeapOffset), pJobRender->uiStart[0], pJobRender->uiEnd[0],
                      psBinMemArray->pvBinMemoryBlocks[0]->uiPhysOffset,
                      psBinMemArray->pvBinMemoryBlocks[0]->uiNumBytes);
 
@@ -342,8 +336,14 @@ void BVC5_P_DebugDump(
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_IDENT2),     BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_IDENT3),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT0), BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT1),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT2), BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_HUB_CTL_IDENT3),
-       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_ERRSTAT),  BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_DBGE),
-       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_FDBG0),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_FDBGB),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_ERRSTAT),
+#if !V3D_VER_AT_LEAST(4,0,0,0)
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_DBGE),
+#else
+       0,
+#endif
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_FDBG0),
+       BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_FDBGB),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_FDBGR),    BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_ERROR_FDBGS),
        BVC5_P_ReadRegister(hVC5, uiCoreIndex, BCHP_V3D_PTB_BXCF)
        );
@@ -397,11 +397,11 @@ void BVC5_P_DebugDump(
           BVC5_P_PrintBinJobDumpRunInfo(hVC5, hVC5->psCoreStates[uiCoreIndex].sBinnerState.psJob);
 
        /* If there is a render job active - print its info so it can be debugged via dump_run */
-       if (hVC5->psCoreStates[uiCoreIndex].sRenderState.psJob)
+       if (hVC5->psCoreStates[uiCoreIndex].sRenderState.psJob[BVC5_P_HW_QUEUE_RUNNING])
           BVC5_P_PrintRenderJobDumpRunInfo(hVC5, hVC5->psCoreStates[uiCoreIndex].sRenderState.psJob[BVC5_P_HW_QUEUE_RUNNING]);
 
        /* Drop the entire heap into a file */
        /* Can't dump the secure heap */
-       BVC5_P_DebugDumpHeapContents(hVC5->hHeap, uiCoreIndex);
+       BVC5_P_DebugDumpHeapContents(hVC5->ulDbgHeapOffset, hVC5->uDbgHeapSize, uiCoreIndex);
     }
 }

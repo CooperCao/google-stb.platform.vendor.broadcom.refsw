@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -152,11 +152,11 @@ namespace RamFS {
         uint16_t uid;
         uint16_t gid;
 
-        int linkCount;
-        int numRefs;
+        uint32_t linkCount;
+        uint32_t numRefs;
 
         AccessTimes times;
-        spinlock_t lock;
+        SpinLock lock;
 
     protected:
         int addRef();
@@ -251,12 +251,12 @@ namespace RamFS {
         Entry *firstEntry; // Binary search tree of sentries ordered by nameHash.
         Entry *shadowed; // Linked list of entries.
         Entry *readEntry;
-        int linkCount;
-        int numEntries;
-        int numRefs;
+        uint32_t linkCount;
+        uint32_t numEntries;
+        uint32_t numRefs;
 
         AccessTimes times;
-        spinlock_t lock;
+        SpinLock lock;
 
     private:
         Directory(uint16_t uid, uint16_t gid, IDirectory *parent = nullptr, uint32_t permissions = DEFAULT_DIR_UMASK);

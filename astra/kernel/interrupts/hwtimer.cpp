@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,8 +40,9 @@
 #include "hwtimer.h"
 #include "clock.h"
 #include "interrupt.h"
-
+#include "gic.h"
 #include "utils/priorityqueue.h"
+#include "arch_timer.h"
 
 PerCPU<TzTimers::Timers> TzTimers::timers;
 static uint64_t nextTimerId;
@@ -49,170 +50,173 @@ static uint64_t nextTimerId;
 typedef ObjCacheAllocator<TzTimers::TimerEntry> TimerAllocator;
 static PerCPU<TimerAllocator> allocator;
 
-spinlock_t TzTimers::lock;
+SpinLock TzTimers::lock;
 
 ISRStatus tzTimerISR(int intrNum) {
-    UNUSED(intrNum);
+	UNUSED(intrNum);
 
-    // disable timer interrupts CNTP_CTL.
-    register uint32_t enable = 0;
-    asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (enable) :);
-
-    TzTimers::hwTimerFired();
-    return IntrDone;
+	// disable timer interrupts CNTV_CTL.
+	Arch::Timer::disable();
+	TzTimers::hwTimerFired();
+	return IntrDone;
 }
 
-void TzTimers::init() {
-    nextTimerId = 0;
-    Interrupt::isrRegister(CORTEX_A15_SECURE_TIMER_INTERRUPT, tzTimerISR);
-    spinlock_init("timers.lock", &lock);
+void TzTimers::init(void *deviceTree) {
+	Arch::Timer::init(deviceTree);
 
-    TimerEntry::init();
-    timers.cpuLocal().init();
+	nextTimerId = 0;
+	Interrupt::isrRegister(Arch::Timer::irqNum(), tzTimerISR);
+	spinLockInit(&lock);
+
+	TimerEntry::init();
+	timers.cpuLocal().init();
+
+	GIC::intrEnable(Arch::Timer::irqNum());
 }
 
 void TzTimers::secondaryCpuInit() {
-    Interrupt::isrRegister(CORTEX_A15_SECURE_TIMER_INTERRUPT, tzTimerISR);
+	Interrupt::isrRegister(Arch::Timer::irqNum(), tzTimerISR);
 
-    TimerEntry::init();
-    timers.cpuLocal().init();
+	TimerEntry::init();
+	timers.cpuLocal().init();
 }
 
 void TzTimers::TimerEntry::init() {
-    allocator.cpuLocal().init();
+	allocator.cpuLocal().init();
 }
 
 void *TzTimers::TimerEntry::operator new (size_t sz) {
-    UNUSED(sz);
-    TzTimers::TimerEntry *rv = allocator.cpuLocal().alloc();
-    return rv;
+	UNUSED(sz);
+	TzTimers::TimerEntry *rv = allocator.cpuLocal().alloc();
+	return rv;
 }
 
 void TzTimers::TimerEntry::operator delete(void *te) {
-    allocator.cpuLocal().free((TimerEntry *)te);
+	allocator.cpuLocal().free((TimerEntry *)te);
 }
 
 void TzTimers::restartHwTimer() {
-    // Read CNTP_CTL to check if the timer is enabled
-    register unsigned long cntpctl;
-    asm volatile("mrc p15, 0, %[rt], c14, c2, 1" : [rt] "=r" (cntpctl) : :);
-    bool hwTimerEnabled = (cntpctl & 1) && ((cntpctl & 2) == 0);
+	uint64_t hwTimerFiresAt = 0xffffffffffffffff;
+	hwTimerFiresAt = Arch::Timer::firesAt();
 
-    uint64_t hwTimerFiresAt = 0xffffffffffffffff;
-    if (hwTimerEnabled) {
-        // Get the current CNTP_CVAL
-        register uint32_t timeHigh, timeLow;
-        asm volatile("MRRC p15, 2, %[low], %[high], c14" : [low] "=r" (timeLow), [high] "=r" (timeHigh) : : );
-        hwTimerFiresAt = ((uint64_t) timeHigh << 32) | timeLow;
-    }
+	//Check the timer value at the head of the queue
+	TimerEntry *headEntry = timers.cpuLocal().head();
+	if (headEntry == nullptr)
+		return;
 
-    //Check the timer value at the head of the queue
-    TimerEntry *headEntry = timers.cpuLocal().head();
-    if (headEntry == nullptr)
-        return;
+	uint64_t headTime = headEntry->fireAt;
+	if (headTime < hwTimerFiresAt) {
 
-    uint64_t headTime = headEntry->fireAt;
-    if ((headEntry != nullptr) && (headTime < hwTimerFiresAt)) {
-
-        // Set the hardware timer to fire at headTime
-        register uint32_t fireAtLow = (uint32_t)(headTime & 0xffffffff);
-        register uint32_t fireAtHigh = (uint32_t)(headTime >> 32);
-        asm volatile("MCRR p15, 2, %[low], %[high], c14" : :[low] "r" (fireAtLow), [high] "r" (fireAtHigh):);
-
-        register uint32_t enable = 0x1;
-        asm volatile("mcr p15, 0, %[rt], c14, c2, 1" : : [rt] "r" (enable):);
-
-        // printf("%s: fires at 0x%lx%lx\n", __FUNCTION__, fireAtLow, fireAtHigh);
-    }
+		// Set the hardware timer to fire at headTime
+		Arch::Timer::fireAt(headTime);
+		//printf("%s: fires at 0x%lx\n", __FUNCTION__, headTime);
+		Arch::Timer::enable();
+	}
 }
 
-Timer TzTimers::create(unsigned long delta, OnExpiry handler, void *ctx) {
-    SpinLocker locker(&lock);
+Timer TzTimers::create(uint32_t delta, OnExpiry handler, void *ctx) {
+	SpinLocker locker(&lock);
 
-    TzTimers::TimerEntry *te = new TzTimers::TimerEntry();
-    te->fireAt = TzHwCounter::timeNow() + delta;
-    te->callback = handler;
-    te->ctx = ctx;
-    te->handle = ++nextTimerId;
-    te->period = 0;
-    te->periodicTimer = false;
+	TzTimers::TimerEntry *te = new TzTimers::TimerEntry();
+	te->fireAt = TzHwCounter::timeNow() + delta;
+	te->callback = handler;
+	te->ctx = ctx;
+	te->handle = ++nextTimerId;
+	te->period = 0;
+	te->periodicTimer = false;
 
-    timers.cpuLocal().enqueue(te);
-    restartHwTimer();
+	timers.cpuLocal().enqueue(te);
+	restartHwTimer();
 
-    return te->id();
+	return te->id();
 }
 
 Timer TzTimers::create(uint64_t fireAt, OnExpiry handler, void *ctx) {
-    SpinLocker locker(&lock);
+	SpinLocker locker(&lock);
 
-    TzTimers::TimerEntry *te = new TzTimers::TimerEntry();
-    te->fireAt = fireAt;
-    te->callback = handler;
-    te->ctx = ctx;
-    te->handle = ++nextTimerId;
-    te->period = 0;
-    te->periodicTimer = false;
+	TzTimers::TimerEntry *te = new TzTimers::TimerEntry();
+	te->fireAt = fireAt;
+	te->callback = handler;
+	te->ctx = ctx;
+	te->handle = ++nextTimerId;
+	te->period = 0;
+	te->periodicTimer = false;
 
-    timers.cpuLocal().enqueue(te);
-    restartHwTimer();
+	timers.cpuLocal().enqueue(te);
+	restartHwTimer();
 
-    return te->id();
+	return te->id();
 }
 
 Timer TzTimers::create(uint64_t fireAt, uint64_t period, OnExpiry handler, void *ctx) {
-    SpinLocker locker(&lock);
+	SpinLocker locker(&lock);
 
-    TzTimers::TimerEntry *te = new TzTimers::TimerEntry();
-    te->fireAt = fireAt;
-    te->callback = handler;
-    te->ctx = ctx;
-    te->handle = ++nextTimerId;
-    te->period = period;
-    te->periodicTimer = true;
+	TzTimers::TimerEntry *te = new TzTimers::TimerEntry();
+	te->fireAt = fireAt;
+	te->callback = handler;
+	te->ctx = ctx;
+	te->handle = ++nextTimerId;
+	te->period = period;
+	te->periodicTimer = true;
 
-    timers.cpuLocal().enqueue(te);
-    restartHwTimer();
+	timers.cpuLocal().enqueue(te);
+	restartHwTimer();
 
-    return te->id();
+	return te->id();
 }
 
 
 void TzTimers::destroy(Timer th) {
-    SpinLocker locker(&lock);
+	SpinLocker locker(&lock);
 
-    TzTimers::TimerEntry *te = timers.cpuLocal().remove(th);
-    if (te != nullptr) {
-        delete te;
-    }
+	TzTimers::TimerEntry *te = timers.cpuLocal().remove(th);
+	if (te != nullptr) {
+		delete te;
+	}
 
-    restartHwTimer();
+	restartHwTimer();
 }
 
 void TzTimers::hwTimerFired() {
-    SpinLocker locker(&lock);
+	SpinLocker locker(&lock);
 
-    // Get the current time ( CNTPCT ).
-    register uint32_t timeHigh, timeLow;
-    asm volatile("MRRC p15, 0, %[low], %[high], c14" : [low] "=r" (timeLow), [high] "=r" (timeHigh) : : );
-    uint64_t timeNow = ((uint64_t) timeHigh << 32) | timeLow;
+	// Get the current time ( CNTVCT ).
+	register uint64_t timeNow;
+	timeNow = Arch::Timer::ticks();
 
-    // Trigger the timer callback for all entries smaller than the current time.
-    TimerEntry *nextEntry = timers.cpuLocal().head();
-    while ((nextEntry != nullptr) && (nextEntry->fireAt <= timeNow)) {
+	// Trigger the timer callback for all entries smaller than the current time.
+	TimerEntry *nextEntry = timers.cpuLocal().head();
+	while ((nextEntry != nullptr) && (nextEntry->fireAt <= timeNow)) {
 
-        nextEntry->callback(nextEntry->id(), nextEntry->ctx);
-        timers.cpuLocal().dequeue();
+		nextEntry->callback(nextEntry->id(), nextEntry->ctx);
+		timers.cpuLocal().dequeue();
 
-        if(nextEntry->isPeriodic()){
-            /* Do not delete the Timer entry. Setup next fireAt value */
-            nextEntry->fireAt += nextEntry->period;
-            timers.cpuLocal().enqueue(nextEntry);
-        }else{
-            delete nextEntry;
-        }
-        nextEntry = timers.cpuLocal().head();
-    }
+		if(nextEntry->isPeriodic()){
+			/* Do not delete the Timer entry. Setup next fireAt value */
+			nextEntry->fireAt += nextEntry->period;
+			timers.cpuLocal().enqueue(nextEntry);
+		} else {
+			delete nextEntry;
+		}
+		nextEntry = timers.cpuLocal().head();
+	}
 
-    restartHwTimer();
+	restartHwTimer();
+}
+
+unsigned long TzHwCounter::frequency() {
+	register unsigned long rv;
+	rv = Arch::Timer::frequency();
+	return rv;
+}
+
+uint64_t TzHwCounter::timeNow() {
+	register uint64_t currTime;
+	currTime = Arch::Timer::ticks();
+
+#if 0
+	currTime += System::cpuBootedAt[arm::smpCpuNum()];
+#endif
+
+	return currTime;
 }

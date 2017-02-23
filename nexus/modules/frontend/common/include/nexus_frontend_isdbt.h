@@ -133,7 +133,7 @@ typedef struct NEXUS_FrontendIsdbtStatus
 {
     NEXUS_FrontendIsdbtStatusType type;
 
-    union
+    struct
     {
         NEXUS_FrontendIsdbtBasicStatus basic;
     } status;

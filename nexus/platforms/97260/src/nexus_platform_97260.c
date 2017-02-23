@@ -75,8 +75,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 {
 
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128 * MB;
-    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 48 * MB;
-    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 128 * MB;
+    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 56 * MB;
+    pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64 * MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
 
     switch(boxMode)
@@ -87,11 +87,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
             pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 64 * MB;
             break;
         }
-    }
-
-    /* Increase graphics heap size if we have more than 1GB of RAM */
-    if (g_platformMemory.memoryLayout.memc[0].size > (1024 * MB)) {
-        pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size *= 2;
     }
 }
 

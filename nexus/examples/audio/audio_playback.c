@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -165,6 +165,7 @@ int main(int argc, char **argv)
     NEXUS_AudioPlaybackHandle handle;
     NEXUS_AudioPlaybackStartSettings settings;
     dataCallbackParameters dataCBParams;
+    NEXUS_AudioCapabilities audioCapabilities;
 #if NEXUS_HAS_HDMI_OUTPUT
     NEXUS_DisplayHandle display=NULL;
     NEXUS_DisplaySettings displaySettings;
@@ -178,6 +179,9 @@ int main(int argc, char **argv)
     uint8_t *pCopyBuffer;
     size_t bufferSize;
     FILE *pFile = NULL;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
 
     if (argc > 1)
     {
@@ -193,6 +197,27 @@ int main(int argc, char **argv)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&config);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numPlaybacks == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0) {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0) {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0) {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]);
+    }
+    #endif
 
     BKNI_CreateEvent(&event);
 
@@ -221,23 +246,23 @@ int main(int argc, char **argv)
             break;
         }
         BKNI_Sleep(10);
-    }        
+    }
+
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+            NEXUS_AudioPlayback_GetConnector(handle));
+    }
 #endif
 
     /* Connect DAC to playback */
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]),
-                               NEXUS_AudioPlayback_GetConnector(handle));
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]),
-                               NEXUS_AudioPlayback_GetConnector(handle));
-#endif
-#if NEXUS_HAS_HDMI_OUTPUT
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]),
-        NEXUS_AudioPlayback_GetConnector(handle));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(audioDacHandle,
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                   NEXUS_AudioPlayback_GetConnector(handle));
+    }
 
     NEXUS_AudioPlayback_GetDefaultStartSettings(&settings);
     if ( argc > 2 )
@@ -529,21 +554,23 @@ int main(int argc, char **argv)
     {
     case 32000:
     case 44100:
-#if NEXUS_NUM_AUDIO_DACS
-        NEXUS_AudioOutput_GetSettings(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]), &outputSettings);
-        outputSettings.defaultSampleRate = settings.sampleRate;
-        NEXUS_AudioOutput_SetSettings(NEXUS_AudioDac_GetConnector(config.outputs.audioDacs[0]), &outputSettings);
-#endif
-#if NEXUS_NUM_SPDIF_OUTPUTS
-        NEXUS_AudioOutput_GetSettings(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]), &outputSettings);
-        outputSettings.defaultSampleRate = settings.sampleRate;
-        NEXUS_AudioOutput_SetSettings(NEXUS_SpdifOutput_GetConnector(config.outputs.spdif[0]), &outputSettings);
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-        NEXUS_AudioOutput_GetSettings(NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]), &outputSettings);
-        outputSettings.defaultSampleRate = settings.sampleRate;
-        NEXUS_AudioOutput_SetSettings(NEXUS_HdmiOutput_GetAudioConnector(config.outputs.hdmi[0]), &outputSettings);
-#endif
+        if (audioDacHandle) {
+            NEXUS_AudioOutput_GetSettings(audioDacHandle, &outputSettings);
+            outputSettings.defaultSampleRate = settings.sampleRate;
+            NEXUS_AudioOutput_SetSettings(audioDacHandle, &outputSettings);
+        }
+        if (audioSpdifHandle) {
+            NEXUS_AudioOutput_GetSettings(audioSpdifHandle, &outputSettings);
+            outputSettings.defaultSampleRate = settings.sampleRate;
+            NEXUS_AudioOutput_SetSettings(audioSpdifHandle, &outputSettings);
+        }
+        #if NEXUS_NUM_HDMI_OUTPUTS
+        if (audioHdmiHandle) {
+            NEXUS_AudioOutput_GetSettings(audioHdmiHandle, &outputSettings);
+            outputSettings.defaultSampleRate = settings.sampleRate;
+            NEXUS_AudioOutput_SetSettings(audioHdmiHandle, &outputSettings);
+        }
+        #endif
         break;
     default:
         break;

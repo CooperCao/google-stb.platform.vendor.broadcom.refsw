@@ -128,16 +128,16 @@ IMAGE_MOVE = mv $(IMAGE_DUMP_DIR)/*.bin $(FW_IMAGE_DIR)/
 COMMAND_FILE = $(OUT_DIR)/$(BCHP_ID).in
 SIG_COMMAND_FILE = $(OUT_DIR)/$(BCHP_ID)_signature.in
 
-KEY2_FILE=$(NEXUS_BUILD_DIR)/nexus_security_regver_key.inc
+KEY2_FILE=$(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_key.inc
 KEY2_COPY = cp $(OUT_DIR)/$(KEY2_FILE_NAME) $(KEY2_FILE)
 STOCK_KEY2 = key2/$(BCHP_ID)_$(KEY2_FILE_NAME)
 STOCK_KEY2_COPY ?= cp $(STOCK_KEY2) $(KEY2_FILE)
 
-SIGNATURE_FILE = $(NEXUS_BUILD_DIR)/nexus_security_regver_signatures.inc
+SIGNATURE_FILE = $(NEXUS_SYNCTHUNK_DIR)/nexus_security_regver_signatures.inc
 SIGNATURE_COPY = cp $(OUT_DIR)/$(SIGNATURE_FILE_NAME) $(SIGNATURE_FILE)
 
 $(OUT)/AutomatedSigning: $(OBJS) prep_dir
-	gcc -o $@ $(OBJS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 
 $(OUT)/%.o: $(SRC)/%.c $(DEPS) prep_dir
 	$(CC) -c  -o $@ $< $(CFLAGS)
@@ -151,7 +151,7 @@ dump_run: prep_dir ${IMAGE_DUMP_BIN}
 
 prep_dir:
 	mkdir -p $(OUT_DIR)
-	mkdir -p $(NEXUS_BUILD_DIR)
+	mkdir -p $(NEXUS_SYNCTHUNK_DIR)
 
 sign: dump_run $(OUT)/AutomatedSigning
 	perl scripts/sign_command.pl fw

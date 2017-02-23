@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -299,6 +299,13 @@ eRet COutputHdmiNx::setColorSpace(NEXUS_ColorSpace colorSpace)
 {
     BSTD_UNUSED(colorSpace);
     BDBG_WRN(("colorspace cannot be set using the hdmi output in nxclient mode"));
+    return(eRet_NotAvailable);
+}
+
+eRet COutputHdmiNx::setColorDepth(uint8_t colorDepth)
+{
+    BSTD_UNUSED(colorDepth);
+    BDBG_WRN(("colordepth cannot be set using the hdmi output in nxclient mode"));
     return(eRet_NotAvailable);
 }
 

@@ -63,9 +63,9 @@ struct NEXUS_AudioDecoderPrimer
     bool overflow;
     bool full;
     struct {
-        unsigned base, end;
+        BSTD_DeviceOffset base, end;
     } cdb, itb;
-    uint32_t sitb_read; /* shadow read register */
+    BSTD_DeviceOffset sitb_read; /* shadow read register */
     bool playback; /* true for playback TSM, not playback feed */
     struct {
         unsigned cnt, itb_valid;
@@ -75,8 +75,8 @@ struct NEXUS_AudioDecoderPrimer
     in this case, "GOP" is the set of audio frames delimited by a coded PTS. */
 #define MAX_GOPS 100
     struct {
-        uint32_t cdb_read;
-        uint32_t itb_read;
+        BSTD_DeviceOffset cdb_read;
+        BSTD_DeviceOffset itb_read;
         uint32_t pts;
         uint32_t pcr_offset;
     } gops[MAX_GOPS];
@@ -84,8 +84,8 @@ struct NEXUS_AudioDecoderPrimer
     unsigned consumed_gop; /* the GOP that we've consumed up to */
 
     /* last base_address and pcr_offset ITB's seen */
-    uint32_t cdb_base_entry; /* address in cdb pointed by last base_address ITB. if 0, none seen. */
-    uint32_t itb_base_entry; /* address of base_address itb */
+    BSTD_DeviceOffset cdb_base_entry; /* address in cdb pointed by last base_address ITB. if 0, none seen. */
+    BSTD_DeviceOffset itb_base_entry; /* address of base_address itb */
     uint32_t pcr_offset;     /* only valid if pcr_offset_set is true */
     bool pcr_offset_set;
     uint32_t last_pts;
@@ -108,9 +108,9 @@ static void NEXUS_AudioDecoderPrimer_P_ReleaseStartResources(NEXUS_AudioDecoderP
 
 static unsigned nexus_audiodecoder_p_cdb_depth(NEXUS_AudioDecoderPrimerHandle primer)
 {
-    uint32_t valid, read;
-    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
-    read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
+    BSTD_DeviceOffset valid, read;
+    valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
+    read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
     if (valid != primer->cdb.base) valid++;
     if (read != primer->cdb.base) read++;
     return (valid>=read?valid-read:(valid-primer->cdb.base)+(primer->cdb.end-read)) * 100 / (primer->cdb.end-primer->cdb.base);
@@ -118,16 +118,16 @@ static unsigned nexus_audiodecoder_p_cdb_depth(NEXUS_AudioDecoderPrimerHandle pr
 
 static unsigned nexus_audiodecoder_p_itb_depth(NEXUS_AudioDecoderPrimerHandle primer)
 {
-    uint32_t valid, read;
-    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-    read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    BSTD_DeviceOffset valid, read;
+    valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
     if (valid != primer->itb.base) valid++;
     if (read != primer->itb.base) read++;
     return (valid>=read?valid-read:(valid-primer->itb.base)+(primer->itb.end-read)) * 100 / (primer->itb.end-primer->itb.base);
 }
 
 #ifdef DEBUG_PRIMER
-static void NEXUS_AudioDecoder_P_PrintItb2(NEXUS_AudioDecoderPrimerHandle primer, uint32_t from, uint32_t to)
+static void NEXUS_AudioDecoder_P_PrintItb2(NEXUS_AudioDecoderPrimerHandle primer, BSTD_DeviceOffset from, BSTD_DeviceOffset to)
 {
     struct itb_entry_t *from_itb;
     struct itb_entry_t *to_itb;
@@ -144,7 +144,7 @@ static void NEXUS_AudioDecoder_P_PrintItb2(NEXUS_AudioDecoderPrimerHandle primer
     NEXUS_FlushCache(from_itb, (to_itb-from_itb)*sizeof(struct itb_entry_t));
     count = 0;
     while (from_itb < to_itb) {
-        BDBG_MSG(("primer: %p ITB %p: %08x %08x %08x %08x", primer, from_itb, from_itb->word0, from_itb->word1, from_itb->word2, from_itb->word3));
+        BDBG_MSG(("primer: %p ITB %p: %08x %08x %08x %08x", (void*)primer, (void*)from_itb, from_itb->word0, from_itb->word1, from_itb->word2, from_itb->word3));
         from_itb++;
         if (++count == 20) break;
     }
@@ -152,36 +152,41 @@ static void NEXUS_AudioDecoder_P_PrintItb2(NEXUS_AudioDecoderPrimerHandle primer
 
 static void NEXUS_AudioDecoder_P_PrintItb(NEXUS_AudioDecoderPrimerHandle primer)
 {
-    uint32_t itb_valid, itb_read;
-    itb_valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-    itb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    BSTD_DeviceOffset itb_valid, itb_read;
+    itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    itb_read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
 
     if (itb_valid < itb_read) {
-        uint32_t itb_wrap;
-        itb_wrap = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
-        BDBG_MSG(("PrintItb %08x->%08x, %08x->%08x", itb_read, itb_wrap, primer->itb.base, itb_valid));
+        BSTD_DeviceOffset itb_wrap;
+        itb_wrap = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
+        BDBG_MSG(("PrintItb " BDBG_UINT64_FMT "->" BDBG_UINT64_FMT ", " BDBG_UINT64_FMT "->" BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(itb_read), BDBG_UINT64_ARG(itb_wrap), BDBG_UINT64_ARG(primer->itb.base), BDBG_UINT64_ARG(itb_valid)));
         NEXUS_AudioDecoder_P_PrintItb2(primer, itb_read, itb_wrap);
         NEXUS_AudioDecoder_P_PrintItb2(primer, primer->itb.base, itb_valid);
     }
     else {
-        BDBG_MSG(("PrintItb %08x->%08x", itb_read, itb_valid));
+        BDBG_MSG(("PrintItb " BDBG_UINT64_FMT "->" BDBG_UINT64_FMT,
+            BDBG_UINT64_ARG(itb_read), BDBG_UINT64_ARG(itb_valid)));
         NEXUS_AudioDecoder_P_PrintItb2(primer, itb_read, itb_valid);
     }
 }
 
 static void NEXUS_AudioDecoder_P_DumpRegisters(NEXUS_AudioDecoderPrimerHandle primer)
 {
-    uint32_t valid, read;
+    BSTD_DeviceOffset valid, read;
+    unsigned depth;
 
-    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-    read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
-    BDBG_MSG(("ITB: valid=%08x read=%08x base=%08x end=%08x depth=%d%%", valid, read, primer->itb.base, primer->itb.end,
-        (valid>=read?valid-read:(valid-primer->itb.base)+(primer->itb.end-read)) * 100 / (primer->itb.end-primer->itb.base)
-        ));
+    valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    depth = (valid>=read?valid-read:(valid-primer->itb.base)+(primer->itb.end-read)) * 100 / (primer->itb.end-primer->itb.base);
+    BDBG_MSG(("ITB: valid=" BDBG_UINT64_FMT " read=" BDBG_UINT64_FMT " base=" BDBG_UINT64_FMT " end=" BDBG_UINT64_FMT " depth=%d%%",
+        BDBG_UINT64_ARG(valid), BDBG_UINT64_ARG(read), BDBG_UINT64_ARG(primer->itb.base), BDBG_UINT64_ARG(primer->itb.end),
+        depth));
 
-    valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
-    read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
-    BDBG_MSG(("CDB: valid=%08x read=%08x base=%08x end=%08x depth=%d%%", valid, read, primer->cdb.base, primer->cdb.end,
+    valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
+    read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read);
+    BDBG_MSG(("CDB: valid=" BDBG_UINT64_FMT " read=" BDBG_UINT64_FMT " base=" BDBG_UINT64_FMT " end=" BDBG_UINT64_FMT " depth=%d%%",
+        BDBG_UINT64_ARG(valid), BDBG_UINT64_ARG(read), BDBG_UINT64_ARG(primer->cdb.base), BDBG_UINT64_ARG(primer->cdb.end),
         nexus_audiodecoder_p_cdb_depth(primer)));
 }
 #endif
@@ -200,7 +205,10 @@ static void NEXUS_AudioDecoder_P_PrimerCompare(NEXUS_AudioDecoderPrimerHandle pr
     int diff = primer->gops[*i].pts - stc;
 
 #if 0
-    BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x at %#x/%#x", primer, *i, stc, primer->gops[*i].pts, primer->gops[*i].cdb_read, primer->gops[*i].itb_read));
+    BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x at " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT,
+        (void*)primer, *i, stc, primer->gops[*i].pts,
+        BDBG_UINT64_ARG(primer->gops[*i].cdb_read),
+        BDBG_UINT64_ARG(primer->gops[*i].itb_read)));
 #endif
     if (diff <= 0) {
         if (*gop_index == -1 || diff > *min_diff) {
@@ -210,13 +218,16 @@ static void NEXUS_AudioDecoder_P_PrimerCompare(NEXUS_AudioDecoderPrimerHandle pr
     }
 
     *i = (*i + 1) % MAX_GOPS;
-    BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x diff=%d index=%d min=%d at %#x/%#x", primer, *i, stc, primer->gops[*i].pts, diff, *gop_index, *min_diff, primer->gops[*i].cdb_read, primer->gops[*i].itb_read));
+    BDBG_MSG_TRACE(("%p: eval%d stc=%#x pts=%#x diff=%d index=%d min=%d at " BDBG_UINT64_FMT "/" BDBG_UINT64_FMT,
+        (void*)primer, *i, stc, primer->gops[*i].pts, diff, *gop_index, *min_diff,
+        BDBG_UINT64_ARG(primer->gops[*i].cdb_read),
+        BDBG_UINT64_ARG(primer->gops[*i].itb_read)));
 }
 
 static void NEXUS_AudioDecoder_P_SetReadPtr(NEXUS_AudioDecoderPrimerHandle primer)
 {
     struct itb_entry_t *itb;
-    unsigned itb_read;
+    BSTD_DeviceOffset itb_read;
 
     if (!primer->playback) {
         /* back up and write one pcr_offset ITB */
@@ -237,13 +248,13 @@ static void NEXUS_AudioDecoder_P_SetReadPtr(NEXUS_AudioDecoderPrimerHandle prime
     }
 
     {
-        unsigned temp = primer->gops[primer->consumed_gop].cdb_read;
-        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, temp);
+        BSTD_DeviceOffset temp = primer->gops[primer->consumed_gop].cdb_read;
+        BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read, temp);
 
         /* ITB_READ has inclusive semantics (that is, it points to the last byte read), so a conversion is necessary. Nexus has exclusive logic. */
         temp = primer->gops[primer->consumed_gop].itb_read;
         if (temp != primer->itb.base) temp--;
-        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, temp);
+        BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read, temp);
     }
 }
 
@@ -259,7 +270,11 @@ static void NEXUS_AudioDecoder_P_PrimerSetRave(NEXUS_AudioDecoderPrimerHandle pr
     if (primer->playback) {
         /* In playback, HW pcr offset will be zero and mosaic will use SW pcr offset.
         So, we get GetStc which returns SerialStc + HW or SW pcr offset. */
-        NEXUS_StcChannel_GetStc(primer->startSettings.stcChannel, &serialStc);
+        NEXUS_StcChannelStatus stcStatus;
+        int rc;
+        rc = NEXUS_StcChannel_GetStatus(primer->startSettings.stcChannel, &stcStatus);
+        if (rc || !stcStatus.stcValid) return;
+        serialStc = stcStatus.stc;
     }
     else {
         LOCK_TRANSPORT();
@@ -283,7 +298,7 @@ static void NEXUS_AudioDecoder_P_PrimerSetRave(NEXUS_AudioDecoderPrimerHandle pr
     
     if (gop_index == -1) {
 #if 0
-        BDBG_MSG_TRACE(("%p: no action. Serial STC=%08x, closest diff %5d, %d %d", primer, serialStc, min_diff, primer->consumed_gop, primer->next_gop));
+        BDBG_MSG_TRACE(("%p: no action. Serial STC=%08x, closest diff %5d, %d %d", (void*)primer, serialStc, min_diff, primer->consumed_gop, primer->next_gop));
 #endif
         return;
     }
@@ -310,7 +325,7 @@ static void NEXUS_AudioDecoder_P_PrimerSetRave(NEXUS_AudioDecoderPrimerHandle pr
     }
 }
 
-static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle primer, uint32_t itb_valid)
+static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle primer, BSTD_DeviceOffset itb_valid)
 {
     NEXUS_Error rc;
     struct itb_entry_t * pitb;
@@ -338,7 +353,7 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
             return;
         }
 
-        BDBG_MSG_TRACE(("%p: w0=%08x %08x %08x %08x", primer, pitb->word0, pitb->word1, pitb->word2, pitb->word3));
+        BDBG_MSG_TRACE(("%p: w0=%08x %08x %08x %08x", (void*)primer, pitb->word0, pitb->word1, pitb->word2, pitb->word3));
         /* determine entry type */
         type = pitb->word0 >> 24;
         switch(type)
@@ -399,7 +414,11 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 #define CDB_OVERFLOW 0x10000
 #define ITB_OVERFLOW 0x20000
         case 0x20: /* base_address  */
+        case 0x28: /* base_address offset entry (for 40 bit addressing) */
             primer->cdb_base_entry = pitb->word1;
+            if (type == 0x28) {
+                primer->cdb_base_entry += primer->cdb.base;
+            }
             primer->itb_base_entry = NEXUS_AddrToOffset(pitb);
             if (!primer->itb_base_entry) {
                  rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -408,8 +427,8 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 
             if(0 != ( (CDB_OVERFLOW|ITB_OVERFLOW) & pitb->word2)){
 
-                BDBG_ERR(("%p: %s %s RAVE signalled overflow L%d", (void *)primer, (CDB_OVERFLOW & pitb->word2) ? "CDB":"" ,
-                                                            (ITB_OVERFLOW & pitb->word2) ? "ITB":"" , __LINE__ ));
+                BDBG_ERR(("%p: %s %s RAVE signaled overflow", (void *)primer, (CDB_OVERFLOW & pitb->word2) ? "CDB":"" ,
+                                                            (ITB_OVERFLOW & pitb->word2) ? "ITB":""));
                 primer->overflow = true;
             }
             break;
@@ -434,13 +453,13 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 static void NEXUS_AudioDecoder_P_PrimerCallback(void *context)
 {
     NEXUS_AudioDecoderPrimerHandle primer = context;
-    uint32_t itb_valid, itb_wrap;
+    BSTD_DeviceOffset itb_valid, itb_wrap;
 
     primer->timer = NULL;
     
     /* convert ITB_Valid and ITB_Wrap to standard ring buffer semantics in this function. instead of pointing to the last byte of the ITB it should point
     to the first byte of the next ITB. Note that RAVE has an exception when valid == base. */
-    itb_valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+    itb_valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
     if (itb_valid != primer->itb.base) itb_valid++;
 
     /* fifo watchdog: if CDB fills, flush CDB and ITB */
@@ -467,7 +486,7 @@ static void NEXUS_AudioDecoder_P_PrimerCallback(void *context)
     /* check for itb wrap around and handle it */
     if (itb_valid < primer->sitb_read) {
         /* for this to be true, the HW must have wrapped. */
-        itb_wrap = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
+        itb_wrap = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Wrap);
         if (!itb_wrap) goto resched;
         itb_wrap++;
         NEXUS_AudioDecoder_P_PrimerProcessItb(primer, itb_wrap);
@@ -604,7 +623,7 @@ static void reset_primer(NEXUS_AudioDecoderPrimerHandle primer)
 
 void NEXUS_AudioDecoderPrimer_Flush( NEXUS_AudioDecoderPrimerHandle primer )
 {
-    uint32_t valid;
+    BSTD_DeviceOffset valid;
     
     BDBG_OBJECT_ASSERT(primer, NEXUS_AudioDecoderPrimer);
 
@@ -620,12 +639,12 @@ void NEXUS_AudioDecoderPrimer_Flush( NEXUS_AudioDecoderPrimerHandle primer )
     if (primer->active)
     {
         /* empty the buffer */
-        valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
-        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.CDB_Read, valid);
+        valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Valid);
+        BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Read, valid);
 
         /* ITB_READ and ITB_VALID both have inclusive semantics, so we can copy directly to flush. */
-        valid = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
-        BREG_Write32(g_pCoreHandles->reg, primer->cx_map.ITB_Read, valid);
+        valid = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Valid);
+        BREG_WriteAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read, valid);
     }
 }
 
@@ -679,11 +698,11 @@ static NEXUS_Error NEXUS_AudioDecoder_P_StartPrimer( NEXUS_AudioDecoderPrimerHan
     }
 
     primer->cx_map    = raveStatus.xptContextMap;
-    primer->itb.base  = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
-    primer->itb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_End)+1;
-    primer->cdb.base  = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_Base);
-    primer->cdb.end   = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.CDB_End)+1;
-    primer->sitb_read = BREG_Read32(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
+    primer->itb.base  = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Base);
+    primer->itb.end   = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_End)+1;
+    primer->cdb.base  = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_Base);
+    primer->cdb.end   = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.CDB_End)+1;
+    primer->sitb_read = BREG_ReadAddr(g_pCoreHandles->reg, primer->cx_map.ITB_Read);
     if (primer->sitb_read & 0xF) {
         /* READ ptr can come from HW as inclusive, but we treat it as exclusive */
         primer->sitb_read++;

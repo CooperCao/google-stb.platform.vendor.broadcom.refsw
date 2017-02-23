@@ -1,7 +1,7 @@
 ###############################################################################################
-#    (c)2014 Broadcom Corporation
+#    Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -41,10 +41,10 @@ include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 
 DRM_APPS = playready_svp
 DRM_APP_SRCS = playready_svp.c
-DRM_APP_INCLUDES = $(URSR_TOP)/nexus/nxclient/include $(NXCLIENT_INCLUDES)
+DRM_APP_INCLUDES = $(URSR_TOP)/nexus/nxclient/include
 DRM_APP_CFLAGS = $(NXCLIENT_CFLAGS)
 DRM_APP_LDFLAGS = $(NXCLIENT_LDFLAGS)
-CFLAGS              += -I${NXCLIENT_INCLUDES}
+CFLAGS              += -I${NXCLIENT_CFLAGS}
 else
 DRM_APPS = playready_svp_single
 DRM_APP_SRCS = playready_svp_single.c

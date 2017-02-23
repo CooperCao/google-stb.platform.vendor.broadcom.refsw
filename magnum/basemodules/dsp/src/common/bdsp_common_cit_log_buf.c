@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,7 @@ BDBG_MODULE(bdsp_buf);
 void BDSP_P_Analyse_CIT_PrintBufferAddrSize(BDSP_AF_P_sDRAM_BUFFER Buffer, uint32_t count)
 {
 	if(Buffer.ui32DramBufferAddress)
-		BDBG_MSG(("		Buffer[%d]	Addr:0x%x	  Size: 0x%x",count,Buffer.ui32DramBufferAddress, Buffer.ui32BufferSizeInBytes));
+		BDBG_MSG(("		Buffer[%d]	Addr: " BDSP_MSG_FMT "\tSize: 0x%x",count, BDSP_MSG_ARG(Buffer.ui32DramBufferAddress), Buffer.ui32BufferSizeInBytes));
 }
 void BDSP_P_Analyse_CIT_PrintBufferAddr(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psCircBuff, BDSP_AF_P_BufferType eBufferType)
 {
@@ -53,21 +53,21 @@ void BDSP_P_Analyse_CIT_PrintBufferAddr(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psCircB
 		( eBufferType == BDSP_AF_P_BufferType_eRAVE ) )
 	{
 		/*	The circular buffer will contain address of registers and not the actual DRAM addresses */
-		BDBG_MSG(("      Address of Base Register : 0x%x ",psCircBuff->ui32BaseAddr));
-		BDBG_MSG(("      Address of End Register  : 0x%x ",psCircBuff->ui32EndAddr));
-		BDBG_MSG(("      Address of Write Register: 0x%x ",psCircBuff->ui32WriteAddr));
-		BDBG_MSG(("      Address of Read Register : 0x%x ",psCircBuff->ui32ReadAddr));
-		BDBG_MSG(("      Address of Wrap Register : 0x%x ",psCircBuff->ui32WrapAddr));
+		BDBG_MSG(("      Address of Base Register : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32BaseAddr)));
+		BDBG_MSG(("      Address of End Register  : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32EndAddr)));
+		BDBG_MSG(("      Address of Write Register: " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32WriteAddr)));
+		BDBG_MSG(("      Address of Read Register : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32ReadAddr)));
+		BDBG_MSG(("      Address of Wrap Register : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32WrapAddr)));
 	}
 	else if((eBufferType == BDSP_AF_P_BufferType_eDRAM_IS )||
 			(eBufferType == BDSP_AF_P_BufferType_eDRAM))
 	{
 		/*	The circular buffer the actual DRAM addresses as the buffer is Inter-stage */
-		BDBG_MSG(("      DRAM Base Address : 0x%x ",psCircBuff->ui32BaseAddr));
-		BDBG_MSG(("      DRAM End Address  : 0x%x ",psCircBuff->ui32EndAddr));
-		BDBG_MSG(("      DRAM Write Address: 0x%x ",psCircBuff->ui32WriteAddr));
-		BDBG_MSG(("      DRAM Read Address : 0x%x ",psCircBuff->ui32ReadAddr));
-		BDBG_MSG(("      DRAM Wrap Address : 0x%x ",psCircBuff->ui32WrapAddr));
+		BDBG_MSG(("      DRAM Base Address : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32BaseAddr)));
+		BDBG_MSG(("      DRAM End Address  : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32EndAddr)));
+		BDBG_MSG(("      DRAM Write Address: " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32WriteAddr)));
+		BDBG_MSG(("      DRAM Read Address : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32ReadAddr)));
+		BDBG_MSG(("      DRAM Wrap Address : " BDSP_MSG_FMT, BDSP_MSG_ARG(psCircBuff->ui32WrapAddr)));
 	}
 	else
 	{

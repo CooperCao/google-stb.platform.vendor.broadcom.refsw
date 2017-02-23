@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,13 +35,6 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *****************************************************************************/
-
-/*
- * svc_utils.h
- *
- *  Created on: Jan 26, 2015
- *      Author: gambhire
- */
 
 #ifndef INCLUDE_SVCUTILS_H_
 #define INCLUDE_SVCUTILS_H_
@@ -90,6 +83,7 @@ private:
     static void doSetTidAddress(TzTask *currTask);
 
     static void doPoll(TzTask *currTask);
+    static void doPPoll(TzTask *currTask);
 
     static void doIoctl(TzTask *currTask);
 
@@ -116,6 +110,7 @@ private:
     static void doExecve(TzTask *currTask);
 
     static void doOpen(TzTask *currTask);
+    static void doOpenat(TzTask *currTask);
     static void doRead(TzTask *currTask);
     static void doWrite(TzTask *currTask);
     static void doClose(TzTask *currTask);
@@ -124,8 +119,12 @@ private:
     static void doCreat(TzTask *currTask);
 
     static void dogetdents(TzTask *currTask);
+    static void commonLink(TzTask *currTask, unsigned long arg0, unsigned long arg1);
     static void doLink(TzTask *currTask);
+    static void doLinkat(TzTask *currTask);
+    static void commonUnlink(TzTask *currTask, unsigned long arg0);
     static void doUnlink(TzTask *currTask);
+    static void doUnlinkat(TzTask *currTask);
 
     static void doChdir(TzTask *currTask);
     static void doFchdir(TzTask *currTask);
@@ -159,8 +158,12 @@ private:
     static void doSync(TzTask *currTask);
     static void doFSync(TzTask *currTask);
 
+    static void commonRename(TzTask *currTask, unsigned long arg0, unsigned long arg1);
     static void doRename(TzTask *currTask);
+    static void doRenameat(TzTask *currTask);
+    static void commonMkdir(TzTask *currTask, unsigned long arg0, unsigned long arg1);
     static void doMkdir(TzTask *currTask);
+    static void doMkdirat(TzTask *currTask);
     static void doRmdir(TzTask *currTask);
 
     static void doDup(TzTask *currTask);
@@ -173,6 +176,8 @@ private:
     static void doGetScheduler(TzTask *currTask);
     static void doSetScheduler(TzTask *currTask);
 
+    static void commonStat(TzTask *currTask, unsigned long arg0, unsigned long arg1);
+    static void doFstatat(TzTask *currTask);
     static void doStat64(TzTask *currTask);
     static void doFStat64(TzTask *currTask);
 
@@ -230,8 +235,8 @@ private:
     static TzMem::PhysAddr paramsPagePhys;
     static TzMem::VirtAddr paramsPage;
 
-    static spinlock_t execLock;
-    static spinlock_t fopsLock;
+    static SpinLock execLock;
+    static SpinLock fopsLock;
 };
 
 

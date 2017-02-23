@@ -54,9 +54,6 @@
 #if (BVDC_P_SUPPORT_VEC_VF_VER >=2)
     #include "automation/bvdc_automation_vftable_v2_priv.c"
     #include "bvdc_vffilter_ntsc_v2_priv.c"
-#elif (BVDC_P_SUPPORT_VEC_VF_VER == 1)
-    #include "automation/bvdc_automation_vftable_v1_priv.c"
-    #include "bvdc_vffilter_ntsc_v1_priv.c"
 #else
     #error Unsupported VF_VER
 #endif

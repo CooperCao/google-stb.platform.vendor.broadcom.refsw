@@ -1,5 +1,5 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 * This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -17,8 +17,8 @@
 * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 * and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+* 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+* AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
 * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
@@ -26,7 +26,7 @@
 * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 * USE OR PERFORMANCE OF THE SOFTWARE.
 *
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+* 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
 * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
 * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
 * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -37,7 +37,7 @@
 ******************************************************************************/
 
 #include "nexus_platform.h"
-#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT
+#if NEXUS_HAS_HDMI_OUTPUT && NEXUS_HAS_HDMI_INPUT && NEXUS_HAS_AUDIO
 
 #include "nexus_pid_channel.h"
 #include "nexus_display.h"
@@ -986,24 +986,10 @@ exit_menu:
     return 0;
 }
 #else
-#include "bstd.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#ifndef NEXUS_NUM_HDMI_INPUTS
-#define NEXUS_NUM_HDMI_INPUTS 0
-#endif
-
-#ifndef NEXUS_NUM_HDMI_OUTPUTS
-#define NEXUS_NUM_HDMI_OUTPUTS 0
-#endif
-
-int main(int argc, char **argv)
+int main(void)
 {
-    BSTD_UNUSED(argc);
-
-    printf("%s not supported on the %d platform.\n", argv[0], BCHP_CHIP) ;
-    return 0 ;
+    printf("This application is not supported on this platform.\n");
+    return 0;
 }
 #endif

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -75,7 +75,7 @@ Description:
     32-bit, 64-bit).
 ******************************************************************************/
 
-typedef uint32_t astra_paddr_t;
+typedef uintptr_t astra_paddr_t;
 
 /*****************************************************************************
 Summary:
@@ -764,7 +764,7 @@ Returns:
 
 int astra_call_smc(
     astra_client_handle hClient,
-    uint8_t mode);
+    uint32_t mode);
 
 void astra_uapp_coredump(
     astra_uapp_handle hUapp);

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,7 +42,7 @@
 #include "arm/arm.h"
 #include "fs/ramfs.h"
 #include "config.h"
-
+#include "libfdt.h"
 #include "kernel.h"
 #include "tztask.h"
 #include "scheduler.h"
@@ -52,14 +52,15 @@
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 extern "C" unsigned long _binary_ramfs_cpio_start;
+extern "C" void tzKernelSecondary();
 
 void tzKernelSecondary() {
 
-    System::initSecondaryCpu();
+	System::initSecondaryCpu();
 
-    asm volatile("cpsid if":::);
+	ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
-    schedule();
+	schedule();
 }
 
 void tzKernelInit(const void *devTree) {
@@ -71,10 +72,10 @@ void tzKernelInit(const void *devTree) {
         return;
     }
 
-    System::init(devTree);
+	System::init(devTree);
 
-    // Enable user control of performance monitoring
-    asm volatile("mcr p15, 0, %[val], c9, c14, 0" : :[val] "r"(0x1));
+	// Enable user control of performance monitoring
+	ARCH_SPECIFIC_ENABLE_USER_PERF_MON;
 
     IDirectory *root = System::root();
     IFile *uappdFile;
@@ -84,10 +85,10 @@ void tzKernelInit(const void *devTree) {
     assert(rc == 0);
     assert(dir == nullptr);
     printf("%s: resolved uappd.elf\n", __FUNCTION__);
-
+    char *argv[2] = {(char *)"uappd.elf", (char *)NULL};
     TzTask *uappdTask;
 
-    uappdTask = new TzTask(uappdFile, 50, dir, "uappdTask");
+    uappdTask = new TzTask(uappdFile, 50, dir, "uappdTask", NULL, argv, argv);
     if (uappdTask == nullptr) {
         err_msg("Uappd task creation failed\n");
         kernelHalt("Could not create uappd task");
@@ -101,17 +102,17 @@ void tzKernelInit(const void *devTree) {
     Scheduler::addTask(uappdTask);
     printf("%s: added uappd task to scheduler\n", __FUNCTION__);
 
-    asm volatile("cpsid if":::);
+	ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
-    schedule();
+	schedule();
 }
 
 void kernelHalt(const char *reason) {
-    err_msg("%s\n", reason);
-    while (true) {}
+	err_msg("%s\n", reason);
+	while (true) {}
 }
 
 extern "C" void __cxa_pure_virtual() {
-    err_msg("Pure virtual function called !\n");
-    kernelHalt("Pure virtual function call");
+	err_msg("Pure virtual function called !\n");
+	kernelHalt("Pure virtual function call");
 }

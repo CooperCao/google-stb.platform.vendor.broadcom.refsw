@@ -4039,7 +4039,30 @@ DRM_Prdy_Error_e DRM_Prdy_Cleanup_LicenseStores( DRM_Prdy_Handle_t   pPrdyContex
     return DRM_Prdy_ok;
 
 ErrorExit:
-    BDBG_ERR(("%s: failed to cleanup licens store [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    BDBG_ERR(("%s: failed to cleanup license store [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
+    return DRM_Prdy_fail;
+}
+
+DRM_Prdy_Error_e DRM_Prdy_Cleanup_Expired_LicenseStores( DRM_Prdy_Handle_t   pPrdyContext)
+{
+    DRM_RESULT dr = DRM_SUCCESS;
+
+    BDBG_MSG(("%s - entering", __FUNCTION__));
+
+    BDBG_ASSERT(pPrdyContext != NULL);
+
+    ChkDR(Drm_StoreMgmt_CleanupStore( pPrdyContext->pDrmAppCtx,
+                                      (DRM_STORE_CLEANUP_DELETE_EXPIRED_LICENSES
+                                      |DRM_STORE_CLEANUP_DELETE_REMOVAL_DATE_LICENSES),
+                                      NULL,
+                                      5,
+                                      NULL));
+
+    BDBG_MSG(("%s: Exiting\n", __FUNCTION__));
+    return DRM_Prdy_ok;
+
+ErrorExit:
+    BDBG_ERR(("%s: failed to delete expired licenses from license store [0x%X], exiting...\n", __FUNCTION__,(unsigned int)dr));
     return DRM_Prdy_fail;
 }
 

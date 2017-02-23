@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,13 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-/*
- * threadops.cpp
- *
- *  Created on: Feb 26, 2015
- *      Author: gambhire
- */
-
 
 #include <cstdint>
 #include "tzerrno.h"
@@ -69,6 +62,7 @@ void SysCalls::doSetThreadArea(TzTask *currTask) {
         return;
     }
 
+    currTask->SetThreadInfo((uintptr_t) argUser);
     int rv = currTask->setThreadArea(&userDesc);
     if (rv != 0) {
         currTask->writeUserReg(TzTask::UserRegs::r0, rv);
@@ -257,15 +251,18 @@ void SysCalls::doFutex(TzTask *currTask) {
 
 void SysCalls::doClone(TzTask *currTask) {
     unsigned long flags = (unsigned long)currTask->userReg(TzTask::UserRegs::r0);
+    if(flags==SIGCHLD) {
+        return doFork(currTask);
+    }
     void *childStack = (void *)currTask->userReg(TzTask::UserRegs::r1);
     void *ctid = (void *)currTask->userReg(TzTask::UserRegs::r2);
-    void *ptid = (void *)currTask->userReg(TzTask::UserRegs::r3);
+    void *ptid = (void *)currTask->userReg(TzTask::UserRegs::r4);
     // void *ptRegs = (void *)currTask->userReg(TzTask::UserRegs::r4);
     // void *entryPoint = (void *)currTask->userReg(TzTask::UserRegs::r5);
-    uint8_t *tls = (uint8_t *)currTask->userReg(TzTask::UserRegs::r6);
-    tls = tls - 8 + 192; // Look at TP_ADJ macro in MUSL pthread_arch.h. sizeof(struct pthread) = 192.
+    uint8_t *tls = (uint8_t *)currTask->userReg(TzTask::UserRegs::r3);
+    //tls = tls - 8 + 192; // Look at TP_ADJ macro in MUSL pthread_arch.h. sizeof(struct pthread) = 192.
 
-    //printf("---->%s: ptid %p ctid %p tls %p childStack %p flags %lx\n", __FUNCTION__, ptid, ctid, tls, childStack,flags);
+    //printf("---->%s: ptid %p ctid %p tls %p childStack %p flags %lx\n", __FUNCTION__, ptid, ctid, tls, childStack, flags);
 
     if (ptid != nullptr) {
         if (!validateUserMemAccess(ptid, sizeof(void *))) {

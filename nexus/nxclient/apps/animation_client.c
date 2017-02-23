@@ -54,6 +54,7 @@
 #include <string.h>
 #include <time.h>
 #include "nxapps_cmdline.h"
+#include "namevalue.h"
 
 BDBG_MODULE(animation_client);
 
@@ -94,6 +95,7 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     );
     printf(
     "  -secure\n"
+    "  -compress                submit compressed surfaces\n"
     );
     nxapps_cmdline_print_usage(cmdline);
 }
@@ -154,6 +156,20 @@ static void draw_surface(unsigned total_pushes, NEXUS_SurfaceHandle surface)
     }
 }
 
+static unsigned check_standby(void)
+{
+    NxClient_StandbyStatus standbyStatus;
+    NEXUS_Error rc;
+
+    rc = NxClient_GetStandbyStatus(&standbyStatus);
+    BDBG_ASSERT(!rc);
+    if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
+        printf("'animation_client' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
+        NxClient_AcknowledgeStandby(true);
+    }
+    return (standbyStatus.settings.mode != NEXUS_PlatformStandbyMode_eOn);
+}
+
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
@@ -182,7 +198,8 @@ int main(int argc, const char **argv)
     NEXUS_SurfaceComposition comp;
     bool bypass = false;
     bool secure = false;
-    
+    bool compress = false;
+
     srand(time(NULL));
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_SurfaceComposition);
@@ -217,6 +234,9 @@ int main(int argc, const char **argv)
         }
         else if (!strcmp(argv[curarg], "-bypass")) {
             bypass = true;
+        }
+        else if (!strcmp(argv[curarg], "-compress")) {
+            compress = true;
         }
         else if (!strcmp(argv[curarg], "-n") && argc>curarg+1) {
             g_queue.numsurfaces = atoi(argv[++curarg]);
@@ -260,15 +280,15 @@ int main(int argc, const char **argv)
     allocSettings.surfaceClient = 1;
     rc = NxClient_Alloc(&allocSettings, &allocResults);
     if (rc) return BERR_TRACE(rc);
-    
+
     /* No NxClient_Connect needed for SurfaceClient */
-    
+
     blit_client = NEXUS_SurfaceClient_Acquire(allocResults.surfaceClient[0].id);
     if (!blit_client) {
         BDBG_ERR(("NEXUS_SurfaceClient_Acquire failed"));
         return -1;
     }
-    
+
     NEXUS_SurfaceClient_GetSettings(blit_client, &client_settings);
     client_settings.recycled.callback = complete;
     client_settings.recycled.context = recycledEvent;
@@ -295,7 +315,7 @@ int main(int argc, const char **argv)
     g_queue.gfx = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, &openSettings);
 
     NEXUS_Graphics2D_GetDefaultFillSettings(&g_queue.fillSettings);
-    
+
     NEXUS_Graphics2D_GetSettings(g_queue.gfx, &gfxSettings);
     gfxSettings.checkpointCallback.callback = complete;
     gfxSettings.checkpointCallback.context = g_queue.checkpointEvent;
@@ -305,8 +325,8 @@ int main(int argc, const char **argv)
     BDBG_ASSERT(!rc);
 
     NEXUS_Surface_GetDefaultCreateSettings(&g_queue.surfaceCreateSettings);
-    
-    g_queue.surfaceCreateSettings.pixelFormat = NEXUS_PixelFormat_eR5_G6_B5;
+
+    g_queue.surfaceCreateSettings.pixelFormat = compress?NEXUS_PixelFormat_eCompressed_A8_R8_G8_B8:NEXUS_PixelFormat_eR5_G6_B5;
     if (bypass) {
         NEXUS_SurfaceClientStatus status;
         NEXUS_SurfaceClient_GetStatus(blit_client, &status);
@@ -332,6 +352,8 @@ int main(int argc, const char **argv)
     /* push already-rendered surfaces in as fast as possible. allow display vsync to flow control. */
     fps.time = starttime = b_get_time();
     while (1) {
+        if(check_standby()) continue;
+
         if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
             recycle_next(blit_client);
             if (g_queue.surface[g_queue.submit_ptr].submitted || g_queue.depth >= max_depth) {
@@ -340,7 +362,7 @@ int main(int argc, const char **argv)
                 continue;
             }
         }
-        
+
         draw_surface(total_pushes, g_queue.surface[g_queue.submit_ptr].handle);
 
         BDBG_MSG(("PUSH %u:%p(%s)", g_queue.submit_ptr, (void *)g_queue.surface[g_queue.submit_ptr].handle, infront?"infront":""));
@@ -373,11 +395,11 @@ int main(int argc, const char **argv)
             NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
         }
     }
-    
+
     NEXUS_SurfaceClient_Clear(blit_client);
     for (i=0;i<g_queue.numsurfaces;i++) {
         NEXUS_Surface_Destroy(g_queue.surface[i].handle);
-    } 
+    }
     NEXUS_SurfaceClient_Release(blit_client);
     BKNI_DestroyEvent(recycledEvent);
     BKNI_DestroyEvent(g_queue.checkpointEvent);
@@ -400,7 +422,7 @@ static void recycle_next(NEXUS_SurfaceClientHandle blit_client)
         NEXUS_SurfaceHandle surface[MAX_RECYCLE];
         NEXUS_Error rc;
         unsigned i;
-        
+
         rc = NEXUS_SurfaceClient_RecycleSurface(blit_client, surface, MAX_RECYCLE, &num);
         BDBG_ASSERT(!rc);
         BDBG_MSG(("Recycle %u", (unsigned)num));

@@ -83,7 +83,8 @@ my @div_functions = (
         "M2MC", "M2MC0", "M2MC1",
         "V3D", "V3D0", "V3D1",
         "VICE2", "VICE20", "VICE21",
-        "SID", "SID0", "SID1"
+        "SID", "SID0", "SID1",
+        "XPT"
     );
 
 sub is_nexus_function {
@@ -277,10 +278,15 @@ sub parse_rdb_file {
             $clk_tree->{$resource}{_polarity} = $1;
         } elsif (/^\/\/PMLogic:\s*(.*?)\s*$/) {
             $clk_tree->{$resource}{_div} = $1;
-        } elsif (/^\/\/PMPState:\s*STB:(.*?)(\d+):(.*?)(\d+):(\d+)/) {
-            $clk_tree->{$resource}{_pmap}{$2}{_pstate}{$4} = $5;
-            if (($2+1) > $num_profiles) {
-                $num_profiles = $2+1;
+        } elsif (/^\/\/PMPState:\s*STB:PMap(\d+):P(\d+):(\d+)/) {
+            $clk_tree->{$resource}{_pmap}{$1}{_pstate}{$2} = $3;
+            if (($1+1) > $num_profiles) {
+                $num_profiles = $1+1;
+            }
+        } elsif (/^\/\/PMPState:\s*PMap(\d+):P(\d+):(\d+)/) {
+            $clk_tree->{$resource}{_pmap}{$1}{_pstate}{$2} = $3;
+            if (($1+1) > $num_profiles) {
+                $num_profiles = $1+1;
             }
         } elsif (/^\/\/PMPowerProfile:\s*STB\s*:\s*(.*?)\s*:\s*PMap(\d+)/) {
             $profiles[$2] = $1;
@@ -711,7 +717,13 @@ sub generate_user_defined_nodes {
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{$node}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2)}++;
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($2*2+1)}++;
+        } elsif($node =~ /^(VIP)(\d*)$/) {
+            my $idx = $2 ne ""?$2:0;
+            $nodes->{"VDC_STG".($idx)}{_list}{$node}++;
 
+            $nodes->{"BINT_OPEN"}{_list}{$node}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$node}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{"VDC_STG".($idx)}++;
         } elsif($node =~ /^(XPT)(_XMEMIF)$/) {
             $nodes->{$1}{_list}{$1."_PARSER"}++;
             $nodes->{$1}{_list}{$1."_PLAYBACK"}++;
@@ -970,7 +982,7 @@ sub generate_bchp_impl_c_file {
     print $fh "#include \"bdbg.h\"\n";
     print $fh "#include \"bkni.h\"\n";
     print $fh "#include \"bchp_clkgen.h\"\n";
-    print $fh "#include \"bchp_avs_top_ctrl.h\"\n";
+    #print $fh "#include \"bchp_avs_top_ctrl.h\"\n";
     print $fh "#include \"bchp_sun_top_ctrl.h\"\n";
     print $fh "\n";
     print $fh "BDBG_MODULE(BCHP_PWR_IMPL);\n";
@@ -1338,7 +1350,12 @@ sub generate_dv_table
                         }
                         foreach my $profile (0..$num_profiles) {
                             if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}) {
-                                push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0});
+                                if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0}) {
+                                    push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0});
+                                } else {
+                                    print "Undefined PMap $profile for $reg:$type. Using default $hw_desc->{$_}{$reg}{_field}{$type}{$field}\n";
+                                    push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{$field});
+                                }
                             } else {
                                 if($profile == $num_profiles) {
                                     push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{$field});
@@ -1394,7 +1411,7 @@ sub generate_dv_table
             next;
         }
         if ($prediv == 0 && $mult == 0 && $postdiv == 0) {
-            print "No pmap for $_\n";
+            print "No Pmap for $_\n";
             delete $div_table{$_};
         }
 
@@ -1449,7 +1466,7 @@ sub generate_mx_table
                             }
                         }
                     } else {
-                        print "no PMAP found for $reg:$elem\n";
+                        print "No PMap found for $reg:$elem\n";
                         foreach my $profile (0..$num_profiles-1) {
                             push(@{$mux_table{$_}}, $hw_desc->{$_}{$reg}{_field}{_mux}{$elem});
                         }
@@ -1645,7 +1662,7 @@ sub main {
     my @files;
 
     foreach (@ARGV) {
-        if(/^\d\d\d\d$/) {
+        if(/^\d\d\d\d\d?$/) {
             $chp = $_;
         }
         if(/^[a-zA-Z]\d$/) {

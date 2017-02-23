@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 
@@ -104,11 +96,14 @@ static int audio_decoder_switch(int argc, const char *argv[])
     NEXUS_PlaypumpHandle playpump;
     NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackSettings playbackSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_Error rc;
 #endif
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     const char *fname = FILE_NAME;
 
     if (argc > 1) {
@@ -120,6 +115,25 @@ static int audio_decoder_switch(int argc, const char *argv[])
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform.\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -135,16 +149,18 @@ static int audio_decoder_switch(int argc, const char *argv[])
 
     /* Bring up audio decoders and outputs */
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #endif
 
     /* Bring up video display and outputs */
     display = NEXUS_Display_Open(0, NULL);
@@ -167,7 +183,7 @@ static int audio_decoder_switch(int argc, const char *argv[])
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -256,9 +272,9 @@ static int audio_decoder_switch(int argc, const char *argv[])
     NEXUS_FilePlay_Close(file);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(videoDecoder));
     NEXUS_VideoDecoder_Close(videoDecoder);
@@ -267,7 +283,7 @@ static int audio_decoder_switch(int argc, const char *argv[])
     NEXUS_Platform_Uninit();
 
 #else
-	printf("This application is not supported on this platform!\n");
+    printf("This application is not supported on this platform!\n");
 #endif
     return 0;
 }
@@ -294,11 +310,14 @@ static int playback_seek(int argc, const char *argv[])
     NEXUS_PlaybackHandle playback;
     NEXUS_PlaybackSettings playbackSettings;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
+    NEXUS_AudioCapabilities audioCapabilities;
 #if NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_DisplaySettings displaySettings;
     NEXUS_Error rc;
 #endif
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     const char *fname = FILE_NAME;
 
     if (argc > 1) {
@@ -310,6 +329,19 @@ static int playback_seek(int argc, const char *argv[])
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     playpump = NEXUS_Playpump_Open(0, NULL);
     assert(playpump);
@@ -325,16 +357,18 @@ static int playback_seek(int argc, const char *argv[])
 
     /* Bring up audio decoders and outputs */
     audioDecoder = NEXUS_AudioDecoder_Open(0, NULL);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #endif
 
     /* Bring up video display and outputs */
     display = NEXUS_Display_Open(0, NULL);
@@ -357,7 +391,7 @@ static int playback_seek(int argc, const char *argv[])
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -499,9 +533,9 @@ static int playback_seek(int argc, const char *argv[])
     NEXUS_FilePlay_Close(file);
     NEXUS_Playback_Destroy(playback);
     NEXUS_Playpump_Close(playpump);
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(audioDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
     NEXUS_VideoInput_Shutdown(NEXUS_VideoDecoder_GetConnector(videoDecoder));
     NEXUS_VideoDecoder_Close(videoDecoder);
@@ -510,7 +544,7 @@ static int playback_seek(int argc, const char *argv[])
     NEXUS_Platform_Uninit();
 
 #else
-	printf("This application is not supported on this platform!\n");
+    printf("This application is not supported on this platform!\n");
 #endif
     return 0;
 }

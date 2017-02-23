@@ -1,23 +1,43 @@
 /***************************************************************************
- *     Copyright (c) 2007-2009, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2007-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * MPEG4 stream parsing 
- * 
- * Revision History:
- *
- * $brcm_Log: $
  * 
  *******************************************************************************/
 #include "bstd.h"
@@ -141,6 +161,7 @@ bmpeg4_parse_es_descriptor(batom_cursor *cursor, bmpeg4_es_descriptor *descripto
             descriptor->decoder.iso_14496_3.audioObjectType = info_aac.profile;
             descriptor->decoder.iso_14496_3.channelConfiguration = info_aac.channel_configuration;
             descriptor->decoder.iso_14496_3.samplingFrequencyIndex = info_aac.sampling_frequency_index;
+            descriptor->decoder.iso_14496_3.samplingFrequency = info_aac.sampling_frequency;
             descriptor->decoder.iso_14496_3.aac_info_size = 0;
 
             if( size <= sizeof(descriptor->decoder.iso_14496_3.aac_info)) {
@@ -174,7 +195,6 @@ bool
 bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
 {
     int temp;
-    int byte;
     bool delay_flag;
     bool ext_flag;
     bool fl_flag;
@@ -186,28 +206,31 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
     
     batom_bitstream_init(&bs, cursor);
     /* Table 1.14 Syntax of GetAudioObjectType() */
+    aac->sampling_frequency = 0;
     aac->profile = batom_bitstream_bits(&bs,5);
+    if(batom_bitstream_eof(&bs)) { goto error_eof; }
+
     if(aac->profile == 31) {
         aac->profile = 32 + batom_bitstream_bits(&bs,6);
     }
     aac->sampling_frequency_index = batom_bitstream_bits(&bs,4);
+    if(batom_bitstream_eof(&bs)) { goto error_eof; }
 
     if (aac->sampling_frequency_index == 0x0F)
     {
-        unsigned sampling_frequency;
-        sampling_frequency = batom_bitstream_bits(&bs, 24);
+        aac->sampling_frequency = batom_bitstream_bits(&bs, 24);
     }
     aac->channel_configuration = batom_bitstream_bits(&bs,4);
-    
-    
+    if(batom_bitstream_eof(&bs)) { goto error_eof; }
+
     if (aac->profile == 5)
     {
         aac->sampling_frequency_index = batom_bitstream_bits(&bs,4);
+        if(batom_bitstream_eof(&bs)) { goto error_eof; }
 
         if (aac->sampling_frequency_index == 0x0F)
         {
-            BDBG_WRN(("bmedia_info_probe_aac_info: AudioSpecificConfig not supported samplingFrequencyIndex %#x, try basic parse", aac->sampling_frequency_index));
-            goto basic_parse;
+            aac->sampling_frequency = batom_bitstream_bits(&bs, 24);
         }
         batom_bitstream_drop_bits(&bs, 5);
     }
@@ -228,6 +251,7 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
         case 23:
             fl_flag = batom_bitstream_bit(&bs);
             delay_flag = batom_bitstream_bit(&bs);
+            if(batom_bitstream_eof(&bs)) { goto error_eof; }
             if(delay_flag) 
             {                    
                 /* Delay is 14 bits */
@@ -235,7 +259,8 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
             }
             
             ext_flag = batom_bitstream_bit(&bs);
-            
+            if(batom_bitstream_eof(&bs)) { goto error_eof; }
+
             if (aac->profile == 6 ||
                 aac->profile == 20)
             {
@@ -257,6 +282,7 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
                 }
                 
                 ext_flag = batom_bitstream_bit(&bs);
+                if(batom_bitstream_eof(&bs)) { goto error_eof; }
             }
             break;
 
@@ -276,6 +302,7 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
         case 26:
         case 27:
             temp = batom_bitstream_bits(&bs,2);
+            if(batom_bitstream_eof(&bs)) { goto error_eof; }
             if (temp == 2 || temp == 3)
             {
                 batom_bitstream_drop(&bs);
@@ -289,45 +316,52 @@ bmedia_info_probe_aac_info(batom_cursor *cursor, bmedia_info_aac *aac)
     if (aac->profile != 5)
     {
         temp = batom_bitstream_bits(&bs,11);
+        if(batom_bitstream_eof(&bs)) { goto error_eof; }
         if (temp == 0x2b7)
         {
             temp = batom_bitstream_bits(&bs,5);
+            if(batom_bitstream_eof(&bs)) { goto error_eof; }
             if (temp == 0x5)
             { 
                 sbr = batom_bitstream_bit(&bs);
+                if(batom_bitstream_eof(&bs)) { goto error_eof; }
                 if (sbr)
                 {
                     aac->profile  = temp;
                     aac->sampling_frequency_index = batom_bitstream_bits(&bs,4);
+                    if(batom_bitstream_eof(&bs)) { goto error_eof; }
 
                     if (aac->sampling_frequency_index == 0x0F)
                     {
-                        BDBG_WRN(("bmedia_info_probe_aac_info: AudioSpecificConfig not supported samplingFrequencyIndex %#x, try basic parse", aac->sampling_frequency_index));
-                        goto basic_parse;
+                        aac->sampling_frequency = batom_bitstream_bits(&bs, 24);
                     }
                 }
             }
         }
     }
-    BDBG_MSG(("aac_info: profile:%u sampling_frequency_index:%u channel_configuration:%u", aac->profile, aac->sampling_frequency_index, aac->channel_configuration));
+    BDBG_MSG(("aac_info: profile:%u sampling_frequency_index:%u channel_configuration:%u sampling_frequency:%u", aac->profile, aac->sampling_frequency_index, aac->channel_configuration, aac->sampling_frequency));
 
     return true;
 
+#if 0
 basic_parse:
     /* Table 1.8 . Syntax of AudioSpecificConfig , ISO/IEC 14496-3 MPEG4 Part-3, page 3 */
     batom_cursor_rollback(cursor,&check_point);
     byte = batom_cursor_uint16_be(cursor);
     if(byte==BATOM_EOF) {
-        return false;
+        goto error_eof;
     }
     aac->profile = B_GET_BITS(byte, 15, 11);
     aac->sampling_frequency_index = B_GET_BITS(byte, 10, 7);
     if(aac->sampling_frequency_index ==0x0F) {
-        BDBG_WRN(("bmedia_info_probe_aac_info: AudioSpecificConfig not supported samplingFrequencyIndex %#x", aac->sampling_frequency_index));
-        return false;
+        aac->sampling_frequency = batom_bitstream_bits(&bs, 24);
     }
     aac->channel_configuration = B_GET_BITS(byte, 6, 3);
-    BDBG_MSG(("aac_info:basic profile:%u sampling_frequency_index:%u channel_configuration:%u", aac->profile, aac->sampling_frequency_index, aac->channel_configuration));
+    BDBG_MSG(("aac_info:basic profile:%u sampling_frequency_index:%u channel_configuration:%u sampling_frequency:%u", aac->profile, aac->sampling_frequency_index, aac->channel_configuration, aac->sampling_frequency));
 
     return true;
+#endif
+error_eof:
+    BDBG_ERR(("bmedia_info_probe_aac_info:%p: Can't parse AudoSpecificConfig", (void *)cursor));
+    return false;
 }

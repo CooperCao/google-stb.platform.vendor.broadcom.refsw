@@ -46,13 +46,11 @@
 into some part of a nexus driver. it should have no dependency other than BDBG and NEXUS_ModuleHandle. */
 
 BDBG_MODULE(b_objdb);
+BDBG_FILE_MODULE(b_objdb_id);
 BDBG_OBJECT_ID(b_objdb);
 BDBG_OBJECT_ID(b_objdb_module);
 
 #define BDBG_MSG_TRACE(X) 
-
-/* ID's below this are reserved for the legacy 'enum' pseudo objects */
-#define NEXUS_BASEOBJECT_MIN_ID 0x100
 
 static struct b_objdb_client *b_objdb_default_client = NULL;
 /*
@@ -229,7 +227,7 @@ static int b_objdb_insert(struct b_objdb_module *db, const NEXUS_BaseClassDescri
                     base_object->state.insert_operation = operation;
                     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
                     base_object->id = b_objdb_get_unique_id_locked(db->db);
-                    BDBG_MSG(("Object %s:%p -> Id:%#x", p_class->type_name, (void *)base_object, base_object->id));
+                    BDBG_MODULE_MSG(b_objdb_id,("Register: Object %s:%p -> Id:%#x", p_class->type_name, (void *)base_object, base_object->id));
                     BLST_AA_TREE_INSERT(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object, base_object);
                     BLST_AA_TREE_INSERT(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object->id, base_object);
 #if BDBG_DEBUG_BUILD
@@ -333,6 +331,7 @@ And because we remove unconditionally, these BDBG_WRN's are only for internal de
         }
         if(base_object->state.client==NULL && base_object->state.acquired_client==NULL) {
             BDBG_OBJECT_ASSERT(db->db, b_objdb);
+            BDBG_MODULE_MSG(b_objdb_id,("Remove Object %p -> Id:%#x", (void *)base_object, base_object->id));
             BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
             BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
@@ -510,6 +509,7 @@ static void b_objdb_module_uninit_entry_locked(struct b_objdb_module *db, NEXUS_
         BDBG_MSG(("auto-remove: [order %u] %s:%p client=%p", base_object->state.order, descriptor->type_name, (void *)handle, (void *)client));
         /* remove from database prior to calling destructor */
         BDBG_OBJECT_ASSERT(db->db, b_objdb);
+        BDBG_MODULE_MSG(b_objdb_id,("AutoRemove: Object %p -> Id:%#x", (void *)base_object, base_object->id));
         BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
         BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectTree, &db->db->object_tree, base_object);
         BLST_AA_TREE_REMOVE(NEXUS_P_BaseObjectIdTree, &db->db->id_tree, base_object);
@@ -704,15 +704,42 @@ b_objdb_get_object_list_result b_objdb_get_object_list(const struct b_objdb_clie
     return rc;
 }
 
-NEXUS_BaseObject *NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id)
+NEXUS_Error NEXUS_BaseObject_FromId(NEXUS_BaseObjectId id, NEXUS_BaseObject **object )
 {
     const struct b_objdb *db = &s_nexus_objdb;
     NEXUS_BaseObject *base_object;
+    NEXUS_Error rc = NEXUS_SUCCESS;
 
     BDBG_OBJECT_ASSERT(db, b_objdb);
     BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
     base_object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectIdTree, &db->id_tree, id);
     BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
-    BDBG_MSG(("Id %#x -> Object:%p", id, (void *)base_object));
-    return base_object;
+    BDBG_MODULE_MSG(b_objdb_id,("Id:%#x -> Object:%p", id, (void *)base_object));
+    *object = base_object;
+    if(base_object==NULL) {
+        BDBG_MSG(("Can't map ID:%#x to object", (unsigned)id));
+        rc = NEXUS_NOT_AVAILABLE; /* no BERR_TRACE */
+    }
+    return rc;
+}
+
+NEXUS_Error NEXUS_BaseObject_GetId(const NEXUS_BaseObject *base_object,NEXUS_BaseObjectId *id)
+{
+    NEXUS_Error rc;
+    NEXUS_BaseObject *object;
+    const struct b_objdb *db = &s_nexus_objdb;
+
+    BKNI_AcquireMutex(NEXUS_P_Base_State.baseObject.lock);
+    object = BLST_AA_TREE_FIND(NEXUS_P_BaseObjectTree, &db->object_tree, (NEXUS_BaseObject *)base_object);
+    if(object==base_object) {
+        *id = base_object->id;
+        rc = NEXUS_SUCCESS;
+    } else {
+        *id = 0;
+        BDBG_MSG(("NEXUS_BaseObject_GetId:%p Invalid Object", (void *)base_object));
+        rc = NEXUS_INVALID_PARAMETER; /* no BERR_TRACE */
+    }
+    BKNI_ReleaseMutex(NEXUS_P_Base_State.baseObject.lock);
+    BDBG_MODULE_MSG(b_objdb_id,("Object:%p -> Id:%#x", (void *)base_object,(unsigned)*id));
+    return rc;
 }

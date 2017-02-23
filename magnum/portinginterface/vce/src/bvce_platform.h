@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -75,6 +75,8 @@ typedef struct BVCE_P_GetFeatureInfo
 #include "bvce_platform_7439.h"
 #elif (BCHP_CHIP == 7366)
 #include "bvce_platform_7366.h"
+#elif (BCHP_CHIP == 7278)
+#include "bvce_platform_7278.h"
 #else
 #warning "No Platform Config Specified"
 #endif
@@ -126,8 +128,11 @@ typedef struct BVCE_Platform_P_RegisterSetting
 {
       char *szDescription;
       uint32_t uiAddress;
-      uint32_t uiValue;
-      uint32_t uiMask;
+      uint64_t uiValue;
+      uint64_t uiMask;
+#if BCHP_REGISTER_HAS_64_BIT
+      bool bIs64Bit;
+#endif
 } BVCE_Platform_P_RegisterSetting;
 
 typedef struct BVCE_Platform_P_RegisterSettingsArray
@@ -141,6 +146,9 @@ typedef struct BVCE_Platform_P_Register
       uint32_t uiAddress;
       char *szName;
       char *szDescription;
+#if BCHP_REGISTER_HAS_64_BIT
+      bool bIs64Bit;
+#endif
 } BVCE_Platform_P_Register;
 
 typedef struct BVCE_Platform_P_RegisterList

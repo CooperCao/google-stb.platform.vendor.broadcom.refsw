@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,6 +38,9 @@
 #if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
 #include "media_player.h"
 #include "media_player_priv.h"
+#include "glob.h"
+#include "nexus_file_chunk.h"
+#include <sys/stat.h>
 
 BDBG_MODULE(media_player);
 
@@ -61,7 +64,9 @@ void media_player_get_default_start_settings( media_player_start_settings *psett
 {
     memset(psettings, 0, sizeof(*psettings));
     psettings->decrypt.algo = NEXUS_SecurityAlgorithm_eMax; /* none */
+#if NEXUS_HAS_AUDIO
     psettings->audio.dolbyDrcMode = NEXUS_AudioDecoderDolbyDrcMode_eMax; /* none */
+#endif
     psettings->stcTrick = true;
     psettings->video.pid = 0x1fff;
     psettings->video.scanMode = NEXUS_VideoDecoderScanMode_eAuto;
@@ -267,10 +272,12 @@ static int media_player_p_connect(media_player_t player)
             connectSettings.simpleVideoDecoder[0].decoderCapabilities.secureVideo = player->start_settings.video.secure;
             connectSettings.simpleVideoDecoder[0].windowCapabilities.type = player->start_settings.videoWindowType;
         }
+#if NEXUS_HAS_AUDIO
         if (player->audioProgram.primary.pidChannel) {
             connectSettings.simpleAudioDecoder.id = player->allocResults.simpleAudioDecoder.id;
             connectSettings.simpleAudioDecoder.primer = (player->start_settings.audio_primers == media_player_audio_primers_immediate);
         }
+#endif
     }
     rc = NxClient_Connect(&connectSettings, &player->connectId);
     if (rc) return BERR_TRACE(rc);
@@ -503,6 +510,51 @@ int media_player_set_settings(media_player_t player, const media_player_settings
     return 0;
 }
 
+static int glob_errfunc(const char *epath, int eerrno)
+{
+    BDBG_ERR(("glob_errfunc %s %d", epath, eerrno));
+    return -1;
+}
+
+static int detect_chunk(const char *fname, off_t *chunk_size, unsigned *first_chunk_number)
+{
+    char path[64];
+    int rc;
+    glob_t glb;
+    unsigned i;
+
+    snprintf(path, sizeof(path), "%s_*", fname);
+    rc = glob(path, 0, glob_errfunc, &glb);
+    if (rc) {
+        BDBG_ERR(("no chunk files found with name %s", fname));
+        return -1;
+    }
+    if (glb.gl_pathc) {
+        /* TODO: first file may not be first chunk more than 9*64 */
+        unsigned fname_len = strlen(fname);
+        unsigned len = strlen(glb.gl_pathv[0]);
+        struct stat st;
+        unsigned n;
+
+        if (len <= fname_len) {
+            rc = BERR_TRACE(-1);
+            goto done;
+        }
+
+        n = atoi(&glb.gl_pathv[0][fname_len+1]);
+        *first_chunk_number = ((n/1000)*64) + n%1000;
+
+        rc = stat(glb.gl_pathv[0], &st);
+        if (rc) {BERR_TRACE(rc); goto done;}
+        *chunk_size = st.st_size;
+        printf("found file %s with chunk size %u, first chunk %u\n", glb.gl_pathv[0], (unsigned)*chunk_size, *first_chunk_number);
+        rc = 0;
+    }
+done:
+    globfree(&glb);
+    return rc;
+}
+
 int media_player_start( media_player_t player, const media_player_start_settings *psettings )
 {
     NEXUS_PlaybackPidChannelSettings playbackPidSettings;
@@ -523,6 +575,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
     }
 
     player->start_settings = *psettings;
+    NEXUS_Playback_GetDefaultTrickModeSettings(&player->trickMode);
 
     /* open pid channels and configure start settings based on probe */
     NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&player->audioProgram);
@@ -566,6 +619,22 @@ int media_player_start( media_player_t player, const media_player_start_settings
         const char *index_url = NULL;
         NEXUS_SimpleVideoDecoderStartSettings videoProgram;
         NEXUS_SimpleStcChannelSettings stcSettings;
+        NEXUS_ChunkedFilePlayOpenSettings chunkedFilePlayOpenSettings;
+        const char *probe_file;
+        char first_chunk_name[128];
+
+        if (psettings->chunked) {
+            NEXUS_ChunkedFilePlay_GetDefaultOpenSettings(&chunkedFilePlayOpenSettings);
+            /* firstChunkNumber can be obtained from NEXUS_ChunkedFifoRecordExportStatus.last.chunkNumber in an integrated app.
+            For modular examples, we detect it. */
+            detect_chunk(url.path, &chunkedFilePlayOpenSettings.chunkSize, &chunkedFilePlayOpenSettings.firstChunkNumber);
+            strcpy(chunkedFilePlayOpenSettings.chunkTemplate, "%s_%04u");
+            snprintf(first_chunk_name, sizeof(first_chunk_name), chunkedFilePlayOpenSettings.chunkTemplate, url.path, chunkedFilePlayOpenSettings.firstChunkNumber);
+            probe_file = first_chunk_name;
+        }
+        else {
+            probe_file = url.path;
+        }
 
         NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&videoProgram);
 
@@ -578,7 +647,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         else {
             struct probe_request probe_request;
             probe_media_get_default_request(&probe_request);
-            probe_request.streamname = url.path;
+            probe_request.streamname = probe_file;
             probe_request.program = psettings->program;
             probe_request.quiet = psettings->quiet;
             probe_request.decrypt.algo = psettings->decrypt.algo;
@@ -587,7 +656,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
             probe_request.decrypt.key.size = settings.key.size;
             rc = probe_media_request(&probe_request, &probe_results);
             if (rc) {
-                BDBG_ERR(("media probe can't parse '%s'", url.path));
+                BDBG_ERR(("media probe can't parse '%s'", probe_file));
                 rc = -1;
                 goto error;
             }
@@ -623,7 +692,12 @@ int media_player_start( media_player_t player, const media_player_start_settings
             (void)NEXUS_Playback_SetSettings(player->playback, &playbackSettings);
         }
 
-        player->file = NEXUS_FilePlay_OpenPosix(url.path, index_url);
+        if (psettings->chunked) {
+            player->file = NEXUS_ChunkedFilePlay_Open(url.path, index_url, &chunkedFilePlayOpenSettings);
+        }
+        else {
+            player->file = NEXUS_FilePlay_OpenPosix(url.path, index_url);
+        }
         if (!player->file) {
             BDBG_ERR(("can't open '%s' and '%s'", url.path, index_url));
             rc = -1;
@@ -704,6 +778,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         rc = NEXUS_Playback_SetSettings(player->playback, &playbackSettings);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
 
+#if NEXUS_HAS_AUDIO
         if (probe_results.num_audio && player->audioDecoder) {
             NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
             playbackPidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
@@ -712,6 +787,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
             player->audioProgram.primary.pidChannel = NEXUS_Playback_OpenPidChannel(player->playback, probe_results.audio[0].pid, &playbackPidSettings);
             player->audioProgram.primary.codec = playbackPidSettings.pidSettings.pidTypeSettings.audio.codec;
         }
+#endif
         if (probe_results.num_video && player->videoDecoder) {
             if (probe_results.video[0].enhancement.pid) {
                 NEXUS_Playback_GetDefaultPidChannelSettings(&playbackPidSettings);
@@ -755,7 +831,11 @@ int media_player_start( media_player_t player, const media_player_start_settings
             player->colorDepth = probe_results.video[0].colorDepth;
         }
 
-        if (!videoProgram.settings.pidChannel && !player->audioProgram.primary.pidChannel) {
+        if (!videoProgram.settings.pidChannel
+#if NEXUS_HAS_AUDIO
+            && !player->audioProgram.primary.pidChannel
+#endif
+            ) {
             BDBG_WRN(("no content found for program %d", psettings->program));
             goto error;
         }
@@ -796,13 +876,16 @@ int media_player_start( media_player_t player, const media_player_start_settings
         if (player->videoProgram.settings.pidChannel) {
             settings.pid[total++] = player->videoProgram.settings.pidChannel;
         }
+#if NEXUS_HAS_AUDIO
         if (player->audioProgram.primary.pidChannel) {
             settings.pid[total++] = player->audioProgram.primary.pidChannel;
         }
+#endif
         player->crypto = dvr_crypto_create(&settings);
         /* if it fails, keep going */
     }
 
+#if NEXUS_HAS_AUDIO
     /* apply codec settings */
     if (player->start_settings.audio.dolbyDrcMode < NEXUS_AudioDecoderDolbyDrcMode_eMax) {
         NEXUS_AudioDecoderCodecSettings settings;
@@ -823,21 +906,24 @@ int media_player_start( media_player_t player, const media_player_start_settings
     case NEXUS_AudioCodec_eAc4: player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone; break;
     default: /* just ignore */ break;
     }
+#endif
 
     /* set StcChannel to all decoders before starting any */
     if (player->videoProgram.settings.pidChannel && player->stcChannel) {
         rc = NEXUS_SimpleVideoDecoder_SetStcChannel(player->videoDecoder, player->stcChannel);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
+#if NEXUS_HAS_AUDIO
     if (player->audioProgram.primary.pidChannel && player->stcChannel) {
         rc = NEXUS_SimpleAudioDecoder_SetStcChannel(player->audioDecoder, player->stcChannel);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
-
+#endif
     if (player->videoProgram.settings.pidChannel) {
         rc = NEXUS_SimpleVideoDecoder_Start(player->videoDecoder, &player->videoProgram);
         if (rc) { rc = BERR_TRACE(rc); goto error; }
     }
+#if NEXUS_HAS_AUDIO
     if (player->audioProgram.primary.pidChannel) {
         player->audioProgram.primer.pcm =
         player->audioProgram.primer.compressed = player->start_settings.audio_primers;
@@ -846,6 +932,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
         if (rc) { rc = BERR_TRACE(rc); goto error; }
         /* decode may fail if audio codec not supported */
     }
+#endif
 
     if (player->ipActive) {
         if(player->usePbip) {
@@ -918,10 +1005,12 @@ void media_player_stop(media_player_t player)
         {
             player->videoProgram.settings.pidChannel = NULL;
         }
+#if NEXUS_HAS_AUDIO
         if (player->audioProgram.primary.pidChannel)
         {
             player->audioProgram.primary.pidChannel = NULL;
         }
+#endif
         if(player->colorDepth)
         {
             player->colorDepth = 0;
@@ -940,10 +1029,12 @@ void media_player_stop(media_player_t player)
                 NEXUS_Playback_ClosePidChannel(player->playback, player->videoProgram.settings.pidChannel);
                 player->videoProgram.settings.pidChannel = NULL;
             }
+#if NEXUS_HAS_AUDIO
             if (player->audioProgram.primary.pidChannel) {
                 NEXUS_Playback_ClosePidChannel(player->playback, player->audioProgram.primary.pidChannel);
                 player->audioProgram.primary.pidChannel = NULL;
             }
+#endif
             if (player->pcrPidChannel) {
                 NEXUS_Playback_ClosePidChannel(player->playback, player->pcrPidChannel);
                 player->pcrPidChannel = NULL;
@@ -958,6 +1049,7 @@ void media_player_stop(media_player_t player)
 
 int media_player_ac4_status( media_player_t player, int action )
 {
+#if NEXUS_HAS_AUDIO
     NEXUS_AudioDecoderStatus audStatus;
     NEXUS_AudioDecoderCodecSettings codecSettings;
 
@@ -1023,7 +1115,7 @@ int media_player_ac4_status( media_player_t player, int action )
             NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
         }
     }
-
+#endif
       return 0;
 }
 
@@ -1094,6 +1186,10 @@ void media_player_destroy(media_player_t player)
 
 int media_player_trick( media_player_t player, int rate)
 {
+    enum { smooth_rewind_mpeg, smooth_rewind, by_rate } rewind = by_rate;
+    NEXUS_PlaybackTrickModeSettings trickMode;
+    int rc;
+
     BDBG_OBJECT_ASSERT(player, media_player);
     if (!player->started) {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -1106,18 +1202,73 @@ int media_player_trick( media_player_t player, int rate)
             return media_player_bip_trick(player->bip, rate);
         }
     }
+
+    if (player->start_settings.index_url) {
+        NEXUS_PlaybackSettings playbackSettings;
+        NEXUS_Playback_GetSettings(player->playback, &playbackSettings);
+        if (playbackSettings.playpumpSettings.transportType == NEXUS_TransportType_eTs) {
+            switch (player->videoProgram.settings.codec) {
+            case NEXUS_VideoCodec_eMpeg2:
+                if (rate == -1000) {
+                    rewind = smooth_rewind_mpeg;
+                }
+                else if (rate == -2000) {
+                    rewind = smooth_rewind;
+                }
+                break;
+            case NEXUS_VideoCodec_eH264:
+            case NEXUS_VideoCodec_eH265:
+                if (rate == -1000) {
+                    rewind = smooth_rewind;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    NEXUS_Playback_GetDefaultTrickModeSettings(&trickMode);
+
     if (rate == NEXUS_NORMAL_DECODE_RATE) {
-        return NEXUS_Playback_Play(player->playback);
+        rc = NEXUS_Playback_Play(player->playback);
     }
     else if (rate == 0) {
-        return NEXUS_Playback_Pause(player->playback);
+        trickMode.rate = 0;
+        rc = NEXUS_Playback_Pause(player->playback);
     }
     else {
-        NEXUS_PlaybackTrickModeSettings settings;
-        NEXUS_Playback_GetDefaultTrickModeSettings(&settings);
-        settings.rate = rate;
-        return NEXUS_Playback_TrickMode(player->playback, &settings);
+        if (rewind != by_rate) {
+            trickMode.skipControl = NEXUS_PlaybackSkipControl_eHost;
+            trickMode.rateControl = NEXUS_PlaybackRateControl_eDecoder;
+            trickMode.rate = NEXUS_NORMAL_DECODE_RATE;
+
+            /* For MPEG TS with index, do BRCM trick, MDqtIP, then I frame.
+            For AVC/HEVC TS with index, do MDqtIP, then I frame. */
+            if (rewind == smooth_rewind_mpeg) {
+                trickMode.mode = NEXUS_PlaybackHostTrickMode_ePlayBrcm;
+                trickMode.mode_modifier = -1;
+            }
+            else {
+                trickMode.mode = NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP;
+                trickMode.mode_modifier = -1;
+            }
+        }
+        else {
+            trickMode.rate = rate;
+        }
+        rc = NEXUS_Playback_TrickMode(player->playback, &trickMode);
     }
+    if (!rc) {
+        player->trickMode = trickMode;
+    }
+    return rc;
+}
+
+void media_player_get_trick_mode( media_player_t player, NEXUS_PlaybackTrickModeSettings *trickMode )
+{
+    BDBG_OBJECT_ASSERT(player, media_player);
+    *trickMode = player->trickMode;
 }
 
 int media_player_frame_advance( media_player_t player, bool forward )

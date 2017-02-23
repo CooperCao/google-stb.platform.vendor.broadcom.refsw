@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,8 +63,8 @@
 
 #define CLIENT_TEST_REP         16
 #define FILE_TEST_REP           2
-#define UAPP_HELLO_TEST_REP     2
-#define UAPP_TAPP_TEST_REP      2
+#define UAPP_HELLO_TEST_REP     1
+#define UAPP_TAPP_TEST_REP      1
 #define PEER_TAPP_TEST_REP      2
 #define MSG_HELLO_TEST_REP      3
 #define MEM_ALLOC_TEST_REP      4
@@ -237,8 +237,8 @@ static int astra_tdrv_info(void)
     /* get astra config */
     astra_config_get(&ptdrv->config);
 
-    LOGI("Astra shared  mem size: 0x%x", ptdrv->config.smemSize);
-    LOGI("Astra private mem size: 0x%x", ptdrv->config.pmemSize);
+    LOGI("Astra shared  mem size: 0x%zx", (size_t)ptdrv->config.smemSize);
+    LOGI("Astra private mem size: 0x%zx", (size_t)ptdrv->config.pmemSize);
 
     /* get astra status */
     astra_status_get(&ptdrv->status);
@@ -341,8 +341,8 @@ static int astra_tdrv_file(void)
             wchecksum += *(uint32_t *)(vaddr + i);
         }
 
-        LOGD("file write: paddr 0x%x size 0x%x checksum 0x%x",
-             (unsigned int)__pa(vaddr), FILE_BUFF_SIZE, wchecksum);
+        LOGD("file write: paddr 0x%zx size 0x%x checksum 0x%x",
+             (size_t)paddr, FILE_BUFF_SIZE, wchecksum);
 
         /* write to file */
         wbytes = astra_file_write(
@@ -351,7 +351,7 @@ static int astra_tdrv_file(void)
             FILE_BUFF_SIZE);
 
         if (wbytes != FILE_BUFF_SIZE) {
-            LOGE("failed to write to file %d", wbytes);
+            LOGE("failed to write to file %zd", (size_t)wbytes);
             return -EIO;
         }
 
@@ -571,7 +571,7 @@ static int astra_tdrv_msg_hello(void)
     }
 
     /* switch to TZOS */
-    astra_call_smc(ptdrv->hClient, 0x7);
+    astra_call_smc(ptdrv->hClient, 0x83000007);
 
     /* wait for rpy or timeout */
     timeout = 10;
@@ -633,7 +633,7 @@ static int astra_tdrv_mem_alloc(void)
             checksum += *(uint32_t *)(vaddr + i);
         }
 
-        LOGD("mem alloc local: offset 0x%x size 0x%x checksum 0x%x",
+        LOGI("mem alloc local: offset 0x%x size 0x%x checksum 0x%x",
              offset, buffsize, checksum);
 
         /* send mem alloc cmd to peer */
@@ -666,7 +666,7 @@ static int astra_tdrv_mem_alloc(void)
             spin_unlock(&ptdrv->msgLock);
 
             /* switch to TZOS */
-            astra_call_smc(ptdrv->hClient, 0x7);
+            astra_call_smc(ptdrv->hClient, 0x83000007);
 
             /* wait for rpy or timeout */
             timeout = 10;
@@ -701,7 +701,7 @@ static int astra_tdrv_mem_alloc(void)
 static int astra_tdrv_mem_protect(void)
 {
     uint8_t *vaddrSmem, *vaddrProt;
-    uint32_t paddrSmem, paddrProt;
+    uintptr_t paddrSmem, paddrProt;
     struct page *pageProt;
     int rep;
     uint32_t offset, data;
@@ -800,7 +800,7 @@ static void astra_tdrv_msg_proc(
                     return;
                 }
 
-                LOGD("mem alloc rpy: checksum 0x%x", pRpy->checksum);
+                LOGE("mem alloc rpy: checksum 0x%x", pRpy->checksum);
 
                 /* remember checksum */
                 ptdrv->checksum = pRpy->checksum;

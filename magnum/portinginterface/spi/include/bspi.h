@@ -153,8 +153,10 @@ Description:
 See Also:
 
 ****************************************************************************/
-#if (BCHP_CHIP==3548) || (BCHP_CHIP==3556) || (BCHP_CHIP==7346) || (BCHP_CHIP==7425) || (BCHP_CHIP==7445) || (BCHP_CHIP==73465) || \
-(BCHP_CHIP==73466) || (BCHP_CHIP==7364) || (BCHP_CHIP==7439)
+#if (BCHP_CHIP==7278)
+#define MAX_SPI_CHANNELS    4
+#elif (BCHP_CHIP==3548) || (BCHP_CHIP==3556) || (BCHP_CHIP==7346) || (BCHP_CHIP==7425) || (BCHP_CHIP==7445) || (BCHP_CHIP==73465) || \
+(BCHP_CHIP==73466) || (BCHP_CHIP==7364) || (BCHP_CHIP==7439) || (BCHP_CHIP==7278)
 #define MAX_SPI_CHANNELS    3
 #else
 #define MAX_SPI_CHANNELS    2
@@ -230,7 +232,8 @@ typedef enum BSPI_Pcs
 {
    BSPI_Pcs_eUpgSpiPcs0 = 0,
    BSPI_Pcs_eUpgSpiPcs1,
-   BSPI_Pcs_eUpgSpiPcs2
+   BSPI_Pcs_eUpgSpiPcs2,
+   BSPI_Pcs_eUpgSpiPcs3
 } BSPI_Pcs;
 
 /***************************************************************************

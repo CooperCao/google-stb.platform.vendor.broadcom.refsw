@@ -193,7 +193,7 @@ sub get_classes
         }
     }
 
-    my @c = values %classes;
+    my @c = sort {$a->{CLASS_TYPE} cmp $b->{CLASS_TYPE}} (values %classes);
     return \@c;
 }
 
@@ -268,7 +268,7 @@ sub generate_meta
     my $func;
     my $name;
 
-    for $func (@$funcs) {
+    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @$funcs) {
         my $params = $func->{PARAMS};
         my $param;
         my $in_args;

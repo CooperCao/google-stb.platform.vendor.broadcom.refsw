@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -384,6 +384,8 @@ CSimpleVideoDecode::CSimpleVideoDecode(
      * regular video decoder type */
     setType(eBoardResource_simpleDecodeVideo);
 
+    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&_startSettings);
+
     BDBG_ASSERT(eRet_Ok == ret);
 }
 
@@ -555,7 +557,6 @@ eRet CSimpleVideoDecode::start(
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
-    NEXUS_SimpleVideoDecoderStartSettings simpleSettings;
 
     BDBG_ASSERT(true == isOpened());
 
@@ -578,18 +579,18 @@ eRet CSimpleVideoDecode::start(
     }
 #endif /* if 0 */
 
-    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&simpleSettings);
-    simpleSettings.settings.codec      = pPid->getVideoCodec();
-    simpleSettings.settings.pidChannel = pPid->getPidChannel();
-    simpleSettings.settings.frameRate  = pPid->getVideoFrameRate();
+    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&_startSettings);
+    _startSettings.settings.codec      = pPid->getVideoCodec();
+    _startSettings.settings.pidChannel = pPid->getPidChannel();
+    _startSettings.settings.frameRate  = pPid->getVideoFrameRate();
     if ((0 < _maxWidth) && (0 < _maxHeight))
     {
-        simpleSettings.maxWidth  = _maxWidth;
-        simpleSettings.maxHeight = _maxHeight;
+        _startSettings.maxWidth  = _maxWidth;
+        _startSettings.maxHeight = _maxHeight;
     }
 
     BDBG_MSG(("Simple Video Decoder set maxWidth:%d maxHeight:%d", _maxWidth, _maxHeight));
-    nerror = NEXUS_SimpleVideoDecoder_Start(_simpleDecoder, &simpleSettings);
+    nerror = NEXUS_SimpleVideoDecoder_Start(_simpleDecoder, &_startSettings);
     CHECK_NEXUS_ERROR_GOTO("starting simple video decoder failed!", ret, nerror, error);
 
     /* save pid */
@@ -914,6 +915,7 @@ eRet CSimpleVideoDecode::setColorDepth(uint8_t depth)
     NEXUS_Error                nError = NEXUS_SUCCESS;
     NEXUS_VideoDecoderSettings videoDecoderSettings;
 
+    /* set color depth in primary video decoder only */
     NEXUS_SimpleVideoDecoder_GetSettings(_simpleDecoder, &videoDecoderSettings);
     videoDecoderSettings.colorDepth = depth;
     nError                          = NEXUS_SimpleVideoDecoder_SetSettings(_simpleDecoder, &videoDecoderSettings);

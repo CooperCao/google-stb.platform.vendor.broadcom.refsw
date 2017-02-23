@@ -38,9 +38,10 @@
  **************************************************************************/
 
 #include "bstd.h"
-#include "bmem.h"
 
 #include <linux/ktime.h>
+#include <linux/module.h>
+#include "bvc5_bin_pool_alloc_priv.h"
 
 BDBG_MODULE(BVC5);
 
@@ -57,35 +58,85 @@ BERR_Code BVC5_P_GetTime_isrsafe(uint64_t *pMicroseconds)
    return BERR_SUCCESS;
 }
 
-void BVC5_P_DebugDumpHeapContents(BMEM_Heap_Handle hHeap, uint32_t uiCoreIndex)
+void BVC5_P_DebugDumpHeapContents(uint64_t ulOffset, unsigned uSize, uint32_t uiCoreIndex)
 {
    /* Not implemented in kernel mode */
-   BSTD_UNUSED(hHeap);
+   BSTD_UNUSED(ulOffset);
+   BSTD_UNUSED(uSize);
    BSTD_UNUSED(uiCoreIndex);
 
    BDBG_MSG(("Warning: Debug memory dump is not available in kernel mode"));
 }
 
-BERR_Code BVC5_P_DRMOpen(uint32_t uiDRMDevice)
+void BVC5_P_DRMOpen(uint32_t uiDRMDevice)
 {
    /* Nothing to do in kernel mode */
    BSTD_UNUSED(uiDRMDevice);
+}
+
+/*
+ * Exported entrypoint into the DRM kernel driver just for this module to use
+ *
+ * ARM compiler inserts relative branches here, which are not big enough to patch
+ * during insmod.  Trampoline via a uintptr_t function pointer, to force to be
+ * big enough for the relocation to work.
+ */
+extern uintptr_t v3d_drm_term_client_p __attribute__((weak));
+
+void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
+{
+   if (&v3d_drm_term_client_p)
+   {
+      void (*v3d_drm_term_client)(uint64_t) = (void (*)(uint64_t))v3d_drm_term_client_p;
+      v3d_drm_term_client(uiPlatformToken);
+   }
+}
+
+/* We have no BVC5 module handle to store the interface under, so it has to be
+ * static here. This means that only one Android can be present at any time. */
+static BVC5_BinPoolBlock_MemInterface s_memInterface;
+
+/***************************************************************************/
+/* Register Android's bin memory interface                                 */
+BERR_Code BVC5_RegisterAlternateMemInterface(
+   struct module                  *psModule,
+   BVC5_BinPoolBlock_MemInterface *pMemInterface
+   )
+{
+   if (pMemInterface->BinPoolBlock_Alloc  == NULL ||
+       pMemInterface->BinPoolBlock_Free   == NULL ||
+       pMemInterface->BinPoolBlock_Lock   == NULL ||
+       pMemInterface->BinPoolBlock_Unlock == NULL)
+      return BERR_INVALID_PARAMETER;
+
+   if (!try_module_get(psModule))
+      return BERR_NOT_AVAILABLE;
+
+   /* only allow overridable bin memory on a non MMU system */
+   /* coverity[dead_error_condition] */
+   if (&v3d_drm_term_client_p == NULL)
+   {
+      /* no override for DRM devices, as the bin memory must translate
+         to pre existing MMU pages */
+      s_memInterface = *pMemInterface;
+   }
+
    return BERR_SUCCESS;
 }
 
-#ifdef BVC5_USE_DRM
-/*
- * Exported entrypoint into the DRM kernel driver just for this module to use
- */
-extern void v3d_drm_term_client(uint64_t);
+void BVC5_UnregisterAlternateMemInterface(
+   struct module *psModule
+   )
+{
+   BKNI_Memset(&s_memInterface, 0, sizeof(BVC5_BinPoolBlock_MemInterface));
+   module_put(psModule);
+}
 
-void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
+EXPORT_SYMBOL(BVC5_RegisterAlternateMemInterface);
+EXPORT_SYMBOL(BVC5_UnregisterAlternateMemInterface);
+
+/***************************************************************************/
+BVC5_BinPoolBlock_MemInterface *BVC5_P_GetBinPoolMemInterface(void)
 {
-   v3d_drm_term_client(uiPlatformToken);
+   return &s_memInterface;
 }
-#else
-void BVC5_P_DRMTerminateClient(uint64_t uiPlatformToken)
-{
-   BSTD_UNUSED(uiPlatformToken);
-}
-#endif

@@ -387,8 +387,8 @@ void BVDC_P_Vfc_SetInfo_isr
     BDBG_OBJECT_ASSERT(hVfc, BVDC_VFC);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    ulDstVSize = pPicture->pXsrcOut->ulHeight >> (BAVC_Polarity_eFrame!=pPicture->eSrcPolarity);
-    if((hVfc->ulPrevWidth  != pPicture->pXsrcOut->ulWidth) ||
+    ulDstVSize = pPicture->pVfcIn->ulHeight >> (BAVC_Polarity_eFrame!=pPicture->eSrcPolarity);
+    if((hVfc->ulPrevWidth  != pPicture->pVfcIn->ulWidth) ||
        (hVfc->ulPrevHeight != ulDstVSize) ||  /* no vrt scl */
        (pPicture->eOrigSrcOrientation != hVfc->ePrevSrcOrientation)    ||
        (pPicture->eDispOrientation    != hVfc->ePrevDispOrientation)   ||
@@ -397,7 +397,7 @@ void BVDC_P_Vfc_SetInfo_isr
        !BVDC_P_VFC_COMPARE_FIELD_DATA(hVfc, VFC_0_ENABLE, ENABLE, 1))
     {
         /* for next "dirty" check */
-        hVfc->ulPrevWidth = pPicture->pXsrcOut->ulWidth;
+        hVfc->ulPrevWidth = pPicture->pVfcIn->ulWidth;
         hVfc->ulPrevHeight = ulDstVSize;
         hVfc->ePrevSrcOrientation  = pPicture->eOrigSrcOrientation;
         hVfc->ePrevDispOrientation = pPicture->eDispOrientation;
@@ -414,7 +414,7 @@ void BVDC_P_Vfc_SetInfo_isr
             pPicture->eOrigSrcOrientation : pPicture->eDispOrientation);
 
         BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_PIC_SIZE) =  (
-            BCHP_FIELD_DATA(VFC_0_PIC_SIZE, HSIZE, pPicture->pXsrcOut->ulWidth) |
+            BCHP_FIELD_DATA(VFC_0_PIC_SIZE, HSIZE, pPicture->pVfcIn->ulWidth) |
             BCHP_FIELD_DATA(VFC_0_PIC_SIZE, VSIZE, ulDstVSize));
 
         ulOutMuxCtrl = hWindow->hCompositor->bIs10BitCore ?

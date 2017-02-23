@@ -1,7 +1,7 @@
 ###############################################################################################
-#    (c)2014 Broadcom Corporation
+#    Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -39,3 +39,9 @@
 DRM_APPS = test_edrm
 
 DRM_APP_SRCS = test_edrm.c
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+DRM_APP_INCLUDES = $(URSR_TOP)/nexus/nxclient/include $(NXCLIENT_INCLUDES)
+DRM_APP_CFLAGS = $(NXCLIENT_CFLAGS)
+DRM_APP_LDFLAGS = $(NXCLIENT_LDFLAGS)
+endif

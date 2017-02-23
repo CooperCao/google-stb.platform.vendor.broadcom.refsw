@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,7 @@
 #include "nexus_platform.h"
 #include <stdio.h>
 
-#if NEXUS_HAS_AUDIO && (NEXUS_AUDIO_MODULE_FAMILY == NEXUS_AUDIO_MODULE_FAMILY_APE_RAAGA)
+#if NEXUS_HAS_AUDIO
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_stc_channel.h"
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
     NEXUS_VideoWindowHandle window;
     NEXUS_VideoDecoderHandle videoDecoder;
     NEXUS_VideoDecoderStartSettings videoProgram;
-    NEXUS_AudioDecoderHandle mainDecoder, secondaryDecoder;
+    NEXUS_AudioDecoderHandle mainDecoder = NULL, secondaryDecoder = NULL;
     NEXUS_AudioDecoderStartSettings mainProgram, secondaryProgram;
     NEXUS_AudioDecoderCodecSettings primaryCodecSettings;
     NEXUS_AudioDecoderOpenSettings audioOpenSettings;
@@ -160,6 +160,11 @@ int main(int argc, char **argv)
     NEXUS_HdmiOutputSettings hdmiSettings;
     hotplugCallbackParameters hotPlugCbParams;
 #endif
+    NEXUS_AudioCapabilities audioCapabilities;
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
+    NEXUS_AudioOutputHandle audioDummyHandle = NULL;
 
     /* Bring up all modules for a platform in a default configuration for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -356,6 +361,35 @@ int main(int argc, char **argv)
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
     NEXUS_Platform_GetConfiguration(&platformConfig);
+    NEXUS_GetAudioCapabilities(&audioCapabilities);
+
+    if (!audioCapabilities.dsp.mixer || audioCapabilities.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform (needs decoders and mixers)!\n");
+        return 0;
+    }
+
+    if (audioCapabilities.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (audioCapabilities.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    if (audioCapabilities.numOutputs.dummy > 0)
+    {
+        audioDummyHandle = NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioCapabilities.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     #if NEXUS_HAS_PLAYBACK
     if (fname != NULL)
@@ -389,12 +423,20 @@ int main(int argc, char **argv)
     printf("\tmultichannel format: %s\n", audioOpenSettings.multichannelFormat==NEXUS_AudioMultichannelFormat_e7_1?"7.1": "5.1");
     audioOpenSettings.type = NEXUS_AudioDecoderType_eDecode;
     mainDecoder = NEXUS_AudioDecoder_Open(0, &audioOpenSettings);
+    if (!mainDecoder)
+    {
+        printf("Unable to open Main Decoder!\n");
+        return 0;
+    }
     printf("-------------------------\n");
 
     /* Open audio descriptor decoder */
-    audioOpenSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
-    audioOpenSettings.type = NEXUS_AudioDecoderType_eAudioDescriptor;
-    secondaryDecoder = NEXUS_AudioDecoder_Open(1, &audioOpenSettings);
+    if ( audioCapabilities.numDecoders > 1 )
+    {
+        audioOpenSettings.multichannelFormat = NEXUS_AudioMultichannelFormat_e5_1;
+        audioOpenSettings.type = NEXUS_AudioDecoderType_eAudioDescriptor;
+        secondaryDecoder = NEXUS_AudioDecoder_Open(1, &audioOpenSettings);
+    }
 
     /* Open mixer to mix the description and primary audio */
     NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
@@ -435,29 +477,24 @@ int main(int argc, char **argv)
     {
         secondaryPid = 0;
         g_compressed = false;
-
-        #if NEXUS_NUM_AUDIO_DACS
-        if (enableDac)
+        if (audioDacHandle && enableDac)
         {
             printf("\tDAC Stereo PCM\n");
-            NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
+            NEXUS_AudioOutput_AddInput(audioDacHandle,
                                        NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eStereo));
         }
-        #endif
-        #if NEXUS_NUM_SPDIF_OUTPUTS
         /* Dolby AACHE codec does not support downmixing */
-        if (enableSpdif)
+        if (audioSpdifHandle && enableSpdif)
         {
             printf("\tSPDIF Stereo PCM\n");
-            NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+            NEXUS_AudioOutput_AddInput(audioSpdifHandle,
                                        NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eStereo));
         }
-        #endif
         #if NEXUS_NUM_HDMI_OUTPUTS
-        if (enableHdmi)
+        if (audioHdmiHandle && enableHdmi)
         {
             printf("\tHDMI %s PCM\n", (codec == NEXUS_AudioCodec_eAc3Plus && multich71) ? "7.1ch" : "5.1ch");
-            NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle,
                                        NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel));
         }
         #endif
@@ -475,10 +512,10 @@ int main(int argc, char **argv)
         NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
 
         #if NEXUS_NUM_HDMI_OUTPUTS
-        if (enableHdmi)
+        if (audioHdmiHandle && enableHdmi)
         {
             printf("\tHDMI %s PCM\n", (codec == NEXUS_AudioCodec_eAc3Plus && multich71) ? "7.1ch" : "5.1ch");
-            NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
+            NEXUS_AudioOutput_AddInput(audioHdmiHandle,
                                        NEXUS_AudioMixer_GetConnector(mixer));
         }
         #endif
@@ -486,87 +523,79 @@ int main(int argc, char **argv)
     else
     {
         /* Make our connections */
-        NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel));
-        if ( secondaryPid > 0 )
+        if (mixer)
         {
-            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
-        }
+            NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel));
 
-        /* Set the Mixer to use DSP mixing */
-        NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
-        mixerSettings.master = NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel);
-        NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
-
-        NEXUS_DolbyDigitalReencode_AddInput(ddre, NEXUS_AudioMixer_GetConnector(mixer));
-
-
-        printf("\nMS12 output connections:\n");
-        printf("-------------------------\n");
-        #if NEXUS_NUM_AUDIO_DACS
-        if (enableDac)
-        {
-            printf("\tDAC Stereo PCM\n");
-            NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
-        }
-        #else
-        if (0)
-        {
-        }
-        #endif
-        #if NEXUS_NUM_AUDIO_DUMMY_OUTPUTS
-        else
-        {
-            printf("\tDummy Stereo PCM\n");
-            NEXUS_AudioOutput_AddInput(NEXUS_AudioDummyOutput_GetConnector(platformConfig.outputs.audioDummy[0]),
-                                       NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
-        }
-        #endif
-
-        #if NEXUS_NUM_SPDIF_OUTPUTS
-        /* Dolby AACHE codec does not support downmixing */
-        if (enableSpdif)
-        {
-            if (g_compressed && spdifCompressed)
+            if ( secondaryPid > 0  && secondaryDecoder )
             {
-                printf("\tSPDIF Ac3 Compressed\n");
-                /* Send compressed AC3 data to SPDIF */
-                NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-                                           NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+                NEXUS_AudioMixer_AddInput(mixer, NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
             }
-            else
+
+            /* Set the Mixer to use DSP mixing */
+            NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
+            mixerSettings.master = NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel);
+            NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+
+            NEXUS_DolbyDigitalReencode_AddInput(ddre, NEXUS_AudioMixer_GetConnector(mixer));
+
+
+            printf("\nMS12 output connections:\n");
+            printf("-------------------------\n");
+            if (audioDacHandle && enableDac)
             {
-                printf("\tSPDIF Stereo PCM\n");
-                NEXUS_AudioOutput_AddInput(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
+                printf("\tDAC Stereo PCM\n");
+                NEXUS_AudioOutput_AddInput(audioDacHandle,
                                            NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
             }
+            else if (audioDummyHandle)
+            {
+                printf("\tDummy Stereo PCM\n");
+                NEXUS_AudioOutput_AddInput(audioDummyHandle,
+                                           NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+            }
+            /* Dolby AACHE codec does not support downmixing */
+            if (audioSpdifHandle && enableSpdif)
+            {
+                if (g_compressed && spdifCompressed)
+                {
+                    printf("\tSPDIF Ac3 Compressed\n");
+                    /* Send compressed AC3 data to SPDIF */
+                    NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+                }
+                else
+                {
+                    printf("\tSPDIF Stereo PCM\n");
+                    NEXUS_AudioOutput_AddInput(audioSpdifHandle,
+                                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eStereo));
+                }
+            }
+            #if NEXUS_NUM_HDMI_OUTPUTS
+            if (audioHdmiHandle && enableHdmi)
+            {
+                if (encodeCodec == NEXUS_AudioCodec_eAc3Plus && g_compressed)
+                {
+                    printf("\tHDMI DDP Compressed\n");
+                    NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed4x));
+                }
+                else if (encodeCodec == NEXUS_AudioCodec_eAc3 && g_compressed)
+                {
+                    printf("\tHDMI Ac3 Compressed\n");
+                    NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
+                }
+                else
+                {
+                    printf("\tHDMI %s PCM\n", (codec == NEXUS_AudioCodec_eAc3Plus && multich71) ? "7.1ch" : "5.1ch");
+                    NEXUS_AudioOutput_AddInput(audioHdmiHandle,
+                                               NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eMultichannel));
+                }
+            }
+            #endif
+            printf("-------------------------\n\n");
         }
-        #endif
-
-        #if NEXUS_NUM_HDMI_OUTPUTS
-        if (enableHdmi)
-        {
-            if (encodeCodec == NEXUS_AudioCodec_eAc3Plus && g_compressed)
-            {
-                printf("\tHDMI DDP Compressed\n");
-                NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                           NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed4x));
-            }
-            else if (encodeCodec == NEXUS_AudioCodec_eAc3 && g_compressed)
-            {
-                printf("\tHDMI Ac3 Compressed\n");
-                NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                           NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eCompressed));
-            }
-            else
-            {
-                printf("\tHDMI %s PCM\n", (codec == NEXUS_AudioCodec_eAc3Plus && multich71) ? "7.1ch" : "5.1ch");
-                NEXUS_AudioOutput_AddInput(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-                                           NEXUS_DolbyDigitalReencode_GetConnector(ddre, NEXUS_AudioConnectorType_eMultichannel));
-            }
-        }
-        #endif
-        printf("-------------------------\n\n");
     }
 
     /* Bring up video display and outputs */
@@ -751,6 +780,7 @@ int main(int argc, char **argv)
     }
     NEXUS_AudioDecoder_SetCodecSettings(mainDecoder, &primaryCodecSettings);
 
+
     /* Start Decoders */
     if (startDecoders)
     {
@@ -760,7 +790,7 @@ int main(int argc, char **argv)
         NEXUS_AudioDecoder_Start(mainDecoder, &mainProgram);
         started[0] = true;
 
-        if ( secondaryPidChannel )
+        if ( secondaryPidChannel && secondaryDecoder)
         {
             BDBG_WRN(("Starting Secondary"));
             NEXUS_AudioDecoder_Start(secondaryDecoder, &secondaryProgram);
@@ -834,7 +864,7 @@ int main(int argc, char **argv)
                     }
                 }
 
-                if ( decIdx == 1 )
+                if ( decIdx == 1 && secondaryDecoder )
                 {
                     input = NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel);
                 }
@@ -899,7 +929,7 @@ int main(int argc, char **argv)
 
                 if ( decIdx == 1 )
                 {
-                    if ( secondaryPidChannel )
+                    if ( secondaryPidChannel && secondaryDecoder )
                     {
                         if ( started[1] )
                         {
@@ -952,10 +982,11 @@ int main(int argc, char **argv)
 
     if (startDecoders)
     {
-        if ( secondaryPidChannel )
+        if ( secondaryPidChannel && secondaryDecoder)
         {
             NEXUS_AudioDecoder_Stop(secondaryDecoder);
         }
+
         NEXUS_AudioDecoder_Stop(mainDecoder);
 
         NEXUS_VideoDecoder_Stop(videoDecoder);
@@ -991,14 +1022,16 @@ int main(int argc, char **argv)
     }
 
     #if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]));
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioHdmiHandle);
+    }
     #endif
-    #if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]));
-    #endif
-    #if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_RemoveAllInputs(NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]));
-    #endif
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioSpdifHandle);
+    }
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_RemoveAllInputs(audioDacHandle);
+    }
     NEXUS_DolbyDigitalReencode_Close(ddre);
 
     NEXUS_AudioMixer_RemoveAllInputs(mixer);
@@ -1006,8 +1039,12 @@ int main(int argc, char **argv)
 
     NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(mainDecoder, NEXUS_AudioConnectorType_eMultichannel));
     NEXUS_AudioDecoder_Close(mainDecoder);
-    NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
-    NEXUS_AudioDecoder_Close(secondaryDecoder);
+
+    if (secondaryDecoder)
+    {
+        NEXUS_AudioInput_Shutdown(NEXUS_AudioDecoder_GetConnector(secondaryDecoder, NEXUS_AudioConnectorType_eMultichannel));
+        NEXUS_AudioDecoder_Close(secondaryDecoder);
+    }
     NEXUS_VideoWindow_Close(window);
     NEXUS_Display_Close(display);
     NEXUS_VideoDecoder_Close(videoDecoder);

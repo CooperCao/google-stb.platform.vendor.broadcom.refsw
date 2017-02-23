@@ -60,12 +60,12 @@ int BVC5_P_FenceCreateToSignalFromUser(BVC5_FenceArrayHandle hFenceArr, uint32_t
 void BVC5_P_FenceSignalFromUser(BVC5_FenceArrayHandle hFenceArr, int iFenceId);
 
 void BVC5_P_FenceAddCallback(BVC5_FenceArrayHandle hFenceArr, int iFenceId,
-   uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext,
-   void *pParam);
+   uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext,
+   uint64_t uiParam);
 
 bool BVC5_P_FenceRemoveCallback(BVC5_FenceArrayHandle hFenceArr, int iFenceId,
-   uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext,
-   void *pParam);
+   uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext,
+   uint64_t uiParam);
 
 
 /*****************************************************************************/
@@ -116,15 +116,15 @@ void BVC5_P_FenceSignalAndCleanup(BVC5_FenceArrayHandle hFenceArr, void *dataToS
  */
 int BVC5_P_FenceWaitAsync(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId,
    int iFenceId,
-   void (*pfnCallback)(void *, void *), void *pContext, void *pParam,
+   void (*pfnCallback)(void *, uint64_t), void *pContext, uint64_t uiParam,
    void **waitData
 );
 
 /* returns 1 if the fence we are waiting for has been signalled */
 int BVC5_P_FenceWaitAsyncIsSignaled(BVC5_FenceArrayHandle hFenceArr, void *waitData);
 void BVC5_P_FenceWaitAsyncCleanup(BVC5_FenceArrayHandle hFenceArr,
-   uint32_t uiClientId, void (*pfnCallback)(void *, void *), void *pContext,
-   void *pParam, void *waitData);
+   uint32_t uiClientId, void (*pfnCallback)(void *, uint64_t), void *pContext,
+   uint64_t uiParam, void *waitData);
 
 /* Remove all fences associated with a client */
 void BVC5_P_FenceClientDestroy(BVC5_FenceArrayHandle hFenceArr, uint32_t uiClientId);

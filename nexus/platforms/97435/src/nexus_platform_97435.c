@@ -70,11 +70,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     const NEXUS_PlatformMemory *pMemory = &g_platformMemory; /* g_platformMemory is completely initialized already */
     unsigned managed = NEXUS_MEMORY_TYPE_MANAGED;
     unsigned not_mapped = NEXUS_MEMORY_TYPE_NOT_MAPPED;
-#if defined(NEXUS_SAGE_SECURE_HEAP) || defined (NEXUS_VIDEO_SECURE_HEAP)
     bool secure_heap = (NEXUS_GetEnv("secure_heap")!=NULL);
-#else
-    bool secure_heap = false;
-#endif
     BSTD_UNUSED(boxMode);
 
 #if BMMA_USE_STUB
@@ -85,8 +81,14 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     /* nexus default heap, also used for SD2 FB */
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memcIndex = 0;
     /* if there is no bmem in lower 256MB, heap[0] must move to upper memory. we must also shrink NEXUS_MEMC0_GRAPHICS_HEAP */
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = pMemory->osRegion[0].base >= 512*1024*1024 ? 1 : 0;
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = -1;
+    if (pMemory->osRegion[0].base >= 512*1024*1024) {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 1;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 192 * 1024 * 1024;
+    }
+    else {
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].subIndex = 0;
+        pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = -1;
+    }
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].memoryType = NEXUS_MemoryType_eFull;
 
     if (g_num_xcodes > 1) {
@@ -97,7 +99,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         /* Offscreen gfx surfaces & Main FB. */
         pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memcIndex = 1;
         pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].subIndex = 0;
-        pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = (i<NEXUS_MAX_HEAPS && pMemory->osRegion[i].length > 512*1024*1024) ? 576*1024*1024 : -1; /* VC4 cannot cross 1GB physical address boundary */
+        pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = (i<NEXUS_MAX_HEAPS && pMemory->osRegion[i].length > 512*1024*1024) ? 555*1024*1024 : -1; /* VC4 cannot cross 1GB physical address boundary */
         pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
         /* BDBG_LOG(( BDBG_UINT64_FMT ", %d", BDBG_UINT64_FMT(pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].offset), pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size)); */
     }
@@ -188,11 +190,8 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     }
 
     if (secure_heap) {
-#ifdef NEXUS_VIDEO_SECURE_HEAP
-        /* video secure heap. */
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].subIndex = 1;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 126 * 1024 * 1024;
-#endif
     }
 }
 

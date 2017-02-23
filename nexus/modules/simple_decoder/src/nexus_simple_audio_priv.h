@@ -41,9 +41,10 @@
 #ifndef NEXUS_SIMPLE_AUDIO_PRIV_H__
 #define NEXUS_SIMPLE_AUDIO_PRIV_H__
 
+#if NEXUS_HAS_AUDIO
 #include "nexus_audio_decoder_primer.h"
-#if NEXUS_HAS_HDMI_INPUT
 #include "nexus_audio_input_capture.h"
+#include "nexus_audio_encoder.h"
 #endif
 
 #ifdef __cplusplus

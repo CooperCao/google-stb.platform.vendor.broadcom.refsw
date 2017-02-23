@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,6 +38,7 @@
 
 #include "kernel.h"
 #include "pgtable.h"
+#include "plat_config.h"
 #include "platform.h"
 #include "brcmstb.h"
 #include "libfdt.h"
@@ -59,8 +60,8 @@ enum {
 // Register group map
 struct RegGroupEntry {
     const char *compatible;
-    uint32_t addr;
-    uint32_t size;
+    uintptr_t addr;
+    uintptr_t size;
 };
 
 static struct RegGroupEntry regGroupMap[] = {
@@ -75,11 +76,11 @@ static struct RegGroupEntry regGroupMap[] = {
 
 // Register map
 struct RegEntry {
-    uint32_t group;
+    uintptr_t group;
 
     // Addr offset in byte
     // A negative offset indicates counting backward from end of group
-    int32_t offset;
+    intptr_t offset;
 };
 
 static struct RegEntry regMap[] {
@@ -115,9 +116,9 @@ static struct RegEntry regMap[] {
 };
 
 // system uart base
-static uint32_t sys_uart = 0;
+static uintptr_t sys_uart = 0;
 
-extern uint32_t uart_base;
+extern uintptr_t uart_base;
 
 // number of cpus
 uint32_t num_cpus = 0;
@@ -216,7 +217,7 @@ static void platform_init_uart(void *devTree)
         kernelHalt("Failed to parse reg property in serial node");
     }
 
-    uint32_t serialAddr = (uint32_t)((addrCells == 1) ?
+    uintptr_t serialAddr = (uint32_t)((addrCells == 1) ?
         parseInt(prop->data, addrBytes) :
         parseInt64(prop->data, addrBytes));
 
@@ -227,10 +228,12 @@ static void platform_init_uart(void *devTree)
     //  parseInt64((uint8_t *)prop->data + addrBytes, sizeBytes));
 
     // Map serial registers if necessary
-    uint8_t *uartStart = (uint8_t *)PAGE_START_4K(uart_base);
+    uint8_t *uartStart = (uint8_t *)PAGE_START_4K(serialAddr);
     uint8_t *uartEnd = uartStart + PAGE_SIZE_4K_BYTES - 1;
 
     uint8_t *serialStart = (uint8_t *)PAGE_START_4K(serialAddr);
+    // Add kernel page map offset
+    serialStart += ARCH_DEVICE_BASE;
     uint8_t *serialEnd = serialStart + PAGE_SIZE_4K_BYTES - 1;
 
     PageTable *kernelPageTable = PageTable::kernelPageTable();
@@ -238,7 +241,7 @@ static void platform_init_uart(void *devTree)
     if (serialStart != uartStart ||
         serialEnd != uartEnd) {
         kernelPageTable->mapPageRange(
-            serialStart, serialEnd, serialStart,
+            serialStart, serialEnd, uartStart,
             MAIR_DEVICE, MEMORY_ACCESS_RW_KERNEL, true, false);
     }
 
@@ -324,25 +327,29 @@ static void platform_init_regs(void *devTree)
             kernelHalt("Failed to parse reg property in syscon node");
         }
 
-        uint32_t regGroupAddr = (uint32_t)((addrCells == 1) ?
+        uintptr_t regGroupAddr = (uintptr_t)((addrCells == 1) ?
             parseInt(prop->data, addrBytes) :
             parseInt64(prop->data, addrBytes));
 
-        uint32_t regGroupSize = (uint32_t)((sizeCells == 1) ?
+        uintptr_t regGroupSize = (uint32_t)((sizeCells == 1) ?
             parseInt((uint8_t *)prop->data + addrBytes, sizeBytes) :
             parseInt64((uint8_t *)prop->data + addrBytes, sizeBytes));
 
         // Map register group
         uint8_t *regGroupStart = (uint8_t *)PAGE_START_4K(regGroupAddr);
-        uint8_t *regGroupEnd = (uint8_t *)(regGroupAddr + regGroupSize - 1);
+
+        // Setup as for kernel page map
+        uint8_t *kernRegGroupStart = regGroupStart + ARCH_DEVICE_BASE;
+        uint8_t *kernRegGroupEnd = (uint8_t *)(kernRegGroupStart + regGroupSize - 1);
 
         PageTable *kernelPageTable = PageTable::kernelPageTable();
 
         kernelPageTable->mapPageRange(
-            regGroupStart, regGroupEnd, regGroupStart,
+            kernRegGroupStart, kernRegGroupEnd, regGroupStart,
             MAIR_DEVICE, MEMORY_ACCESS_RW_KERNEL, true, false);
 
-        regGroupMap[regGroup].addr = regGroupAddr;
+        //regGroupMap[regGroup].addr = (uintptr_t) kernRegGroupStart;
+        regGroupMap[regGroup].addr = (uintptr_t) regGroupAddr + ARCH_DEVICE_BASE;
         regGroupMap[regGroup].size = regGroupSize;
     }
 }
@@ -417,7 +424,7 @@ bool Platform::hasUart(void)
  * STB specific functions
  */
 
-uint32_t stb_reg_addr(uint32_t reg) {
+uintptr_t stb_reg_addr(uintptr_t reg) {
     if (reg >= STB_REG_LAST)
         return 0;
 

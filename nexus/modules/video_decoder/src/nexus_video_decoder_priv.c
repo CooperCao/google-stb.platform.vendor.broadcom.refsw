@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -318,7 +318,7 @@ NEXUS_VideoDecoder_P_FlushFifoEmpty(NEXUS_VideoDecoderHandle videoDecoder)
 static void
 NEXUS_VideoDecoder_P_UpdateFifoEmpty_isr(NEXUS_VideoDecoderHandle videoDecoder)
 {
-    unsigned cdbValidPointer, cdbReadPointer;
+    uint64_t cdbValidPointer, cdbReadPointer;
 
     NEXUS_Rave_GetCdbPointers_isr(videoDecoder->rave, &cdbValidPointer, &cdbReadPointer);
 
@@ -640,7 +640,15 @@ NEXUS_VideoDecoder_P_FnrtChunkDone_isr(void *data, int unused, void *unused2)
     NEXUS_IsrCallback_Fire_isr(videoDecoder->fnrtChunkDoneCallback);
 }
 
-
+void
+NEXUS_VideoDecoder_P_EndOfGOP_isr(void *data, int unused, void *param)
+{
+    NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)data;
+    BSTD_UNUSED(unused);
+    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
+    videoDecoder->dqt.status = *(const BXVD_DQTStatus *)param;
+    videoDecoder->dqt.set = true;
+}
 
 void
 NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
@@ -799,7 +807,7 @@ NEXUS_VideoDecoder_P_FirstPtsPassed_isr(void *data, int unused, void *pts_info)
     NEXUS_IsrCallback_Fire_isr(videoDecoder->playback.firstPtsPassedCallback);
 }
 
-void NEXUS_VideoDecoder_P_3DTVTimeout(void* context)
+static void NEXUS_VideoDecoder_P_3DTVTimeout(void* context)
 {
     NEXUS_VideoDecoderHandle videoDecoder = (NEXUS_VideoDecoderHandle)context;
     NEXUS_VideoDecoderStatus status;
@@ -1192,20 +1200,16 @@ void NEXUS_VideoDecoder_GetHeap_priv_Common( NEXUS_VideoDecoderHandle videoDecod
     return;
 }
 
+#if NEXUS_HAS_SYNC_CHANNEL
 void NEXUS_VideoDecoder_GetSyncSettings_priv_Common(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoInputSyncSettings *pSyncSettings)
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
     NEXUS_ASSERT_MODULE();
-#if NEXUS_HAS_SYNC_CHANNEL
     *pSyncSettings = videoDecoder->sync.settings;
-#else
-    BKNI_Memset(pSyncSettings, 0, sizeof(*pSyncSettings));
-#endif
 }
 
 NEXUS_Error NEXUS_VideoDecoder_SetSyncSettings_priv_Avd(NEXUS_VideoDecoderHandle videoDecoder, const NEXUS_VideoInputSyncSettings *pSyncSettings)
 {
-#if NEXUS_HAS_SYNC_CHANNEL
     BERR_Code rc;
     unsigned delayCallbackThreshold;
     bool oldMuteStatus;
@@ -1266,25 +1270,16 @@ NEXUS_Error NEXUS_VideoDecoder_SetSyncSettings_priv_Avd(NEXUS_VideoDecoderHandle
 #endif
     }
 
-    return 0;
-#else
-    BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
-    BSTD_UNUSED(pSyncSettings);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
+    return NEXUS_SUCCESS;
 }
 
 NEXUS_Error NEXUS_VideoDecoder_GetSyncStatus_Common_isr(NEXUS_VideoDecoderHandle videoDecoder, NEXUS_VideoInputSyncStatus *pSyncStatus)
 {
     BDBG_OBJECT_ASSERT(videoDecoder, NEXUS_VideoDecoder);
-#if NEXUS_HAS_SYNC_CHANNEL
     *pSyncStatus = videoDecoder->sync.status;
     return 0;
-#else
-    BSTD_UNUSED(pSyncStatus);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-#endif
 }
+#endif /* NEXUS_HAS_SYNC_CHANNEL */
 
 NEXUS_Error NEXUS_VideoDecoder_P_SetPtsOffset(NEXUS_VideoDecoderHandle videoDecoder)
 {

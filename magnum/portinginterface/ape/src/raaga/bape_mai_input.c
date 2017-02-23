@@ -54,7 +54,6 @@ BDBG_OBJECT_ID(BAPE_MaiInput);
 
 #if BAPE_CHIP_MAX_MAI_INPUTS > 0
 
-
 #if BCHP_CHIP == 7425 || BCHP_CHIP == 7422 || BCHP_CHIP == 7435
 #define BAPE_MAI_INPUT_CAPTURE_ID(chPair) (5+(chPair))
 #elif BCHP_CHIP == 35230 || BCHP_CHIP == 35233 || BCHP_CHIP == 35125 || BCHP_CHIP == 35126
@@ -73,6 +72,13 @@ BDBG_OBJECT_ID(BAPE_MaiInput);
     #define BAPE_P_HDMI_RX_STATUS_REGNAME             AUD_FMM_IOP_IN_HDMI_0_STATUS
     #define BAPE_P_HDMI_RX_CONFIG_REGADDR        BCHP_AUD_FMM_IOP_IN_HDMI_0_CONFIG
     #define BAPE_P_HDMI_RX_CONFIG_REGNAME             AUD_FMM_IOP_IN_HDMI_0_CONFIG
+    #if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_0 || defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+    #if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+        #define BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) Mclk_gen##idx
+    #else
+        #define BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(idx) NCO_##idx
+    #endif
+    #endif
 #endif
 #if defined BAPE_CHIP_MAI_INPUT_TYPE_IS_LEGACY
     #define BAPE_P_HDMI_RX_MAI_FORMAT_REGADDR   BCHP_HDMI_RCVR_CTRL_MAI_FORMAT /* Use HDMI register */
@@ -577,39 +583,40 @@ static void BAPE_MaiInput_P_SetMclk_isr(BAPE_MaiInputHandle handle, BAPE_MclkSou
         }
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0
+
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen0 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_0
     case BAPE_MclkSource_eNco0:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen0);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(0));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen1 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_1
     case BAPE_MclkSource_eNco1:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen1);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(1));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen2 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_2
     case BAPE_MclkSource_eNco2:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen2);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(2));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen3 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_3
     case BAPE_MclkSource_eNco3:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen3);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(3));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen4 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_4
     case BAPE_MclkSource_eNco4:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen4);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(4));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen5 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_5
     case BAPE_MclkSource_eNco5:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen6);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(5));
         break;
 #endif
-#ifdef BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6
+#if defined BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_Mclk_gen6 || BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0_PLLCLKSEL_NCO_6
     case BAPE_MclkSource_eNco6:
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, Mclk_gen6);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0, PLLCLKSEL, BAPE_MAIIN_MCLKCFG_NCO_CONSTRUCT_PARAM(6));
         break;
 #endif
     default:

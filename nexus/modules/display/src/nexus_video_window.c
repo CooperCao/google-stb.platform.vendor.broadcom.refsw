@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -136,14 +136,20 @@ static BERR_Code NEXUS_VideoWindow_P_RecreateWindow(NEXUS_VideoWindowHandle wind
     return 0;
 }
 
-#define IS_DIGITAL_SOURCE(input) ((input) && (input)->type == NEXUS_VideoInputType_eDecoder)
+static bool nexus_p_synclock_capable(NEXUS_VideoInput input)
+{
+    NEXUS_VideoInput_P_Link *link;
+    if (!input) return false;
+    link = input->destination;
+    return input->type == NEXUS_VideoInputType_eDecoder && link && !link->mtg;
+}
 
 static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
 {
     unsigned j;
     bool foundSyncLockedWindow = false;
 
-    if (!window->status.isSyncLocked && IS_DIGITAL_SOURCE(window->input))
+    if (!window->status.isSyncLocked && nexus_p_synclock_capable(window->input))
     {
         /* if there's another digital window on this display, destroy & recreate it. then this window will become sync-locked. */
         /* if there's another digital window for this source on another display, destroy & recreate it. then this window will become sync-locked. */
@@ -159,7 +165,7 @@ static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
 
                 /* if the other window shares the same source or
                 another digital source on the same display, then it contends for sync lock. */
-                if (w->input == window->input || (d == window->display && IS_DIGITAL_SOURCE(w->input)))
+                if (w->input == window->input || (d == window->display && nexus_p_synclock_capable(w->input)))
                 {
                     foundSyncLockedWindow = true;
                     break;
@@ -190,8 +196,7 @@ static void NEXUS_VideoWindow_P_DestroyForSyncLock(NEXUS_VideoWindowHandle windo
         window->status.isSyncLocked ||
         window->display->index != 0) return;
 
-    if (!IS_DIGITAL_SOURCE(input)) {
-        BDBG_ERR(("preferSyncLock only applies to digital sources"));
+    if (!nexus_p_synclock_capable(input)) {
         return;
     }
 
@@ -743,7 +748,7 @@ static void NEXUS_VideoWindow_P_Callback_isr(void *data, int iParm2, void * pvVd
     {
         if (window->status.isSyncLocked != pCbData->bSyncLock)
         {
-            BDBG_MSG(("Predictive sync lock status does not match actual status"));
+            BDBG_WRN(("Predictive sync lock status mismatch: %u.%u = %u", window->display->index, window->index, pCbData->bSyncLock));
             window->status.isSyncLocked = pCbData->bSyncLock;
         }
         window->syncStatus.syncLocked = pCbData->bSyncLock;
@@ -859,9 +864,12 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
      */
     if (cfg->heap && cfg->heap != pVideo->heap) {
         window->vdcHeap = windowCfg.hHeap = NEXUS_Display_P_CreateHeap(cfg->heap);
+        window->vdcDeinterlacerHeap = window->vdcHeap;
     }
     else
     {
+        unsigned deinterlacerHeapIndex;
+
         if (link->secureVideo) {
             windowHeapIndex = pVideo->moduleSettings.secure.videoWindowHeapIndex[window->display->index][window->index];
         }
@@ -883,9 +891,7 @@ NEXUS_VideoWindow_P_CreateVdcWindow(NEXUS_VideoWindowHandle window, const NEXUS_
         {
            window->vdcHeap= windowCfg.hHeap = NEXUS_Display_P_CreateHeap(g_pCoreHandles->heap[windowHeapIndex].nexus);
         }
-    }
-    {
-        unsigned deinterlacerHeapIndex;
+
         if (link->secureVideo) {
             deinterlacerHeapIndex = pVideo->moduleSettings.secure.deinterlacerHeapIndex[window->display->index][window->index];
         }
@@ -995,7 +1001,6 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
 
     window->phaseDelay = -1;
     window->syncStatus.delayValid = false;
-    window->status.isSyncLocked = false;
 
     /* may need to throw SetMasterFrameRate to other window */
     (void)NEXUS_VideoWindow_P_ConfigMasterFrameRate(window, &window->display->cfg, &window->cfg);
@@ -1004,13 +1009,44 @@ NEXUS_VideoWindow_P_DestroyVdcWindow(NEXUS_VideoWindowHandle window)
     rc = BVDC_ApplyChanges(pVideo->vdc);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); }
 
+    if (window->status.isSyncLocked) {
+        unsigned i;
+        window->status.isSyncLocked = false;
+        /* attempt to throw isSyncLocked = true to another window on this display */
+        for (i=0;i<NEXUS_NUM_VIDEO_WINDOWS;i++) {
+            NEXUS_VideoWindowHandle w = &window->display->windows[i];
+            if (w != window && w->open && nexus_p_synclock_capable(w->input)) {
+                w->status.isSyncLocked = true;
+                BDBG_WRN(("throw synclock to window %d.%d", w->display->index, w->index));
+                break;
+            }
+        }
+        /* attempt to throw isSyncLocked = true to window for same input on another display */
+        if (i == NEXUS_NUM_VIDEO_WINDOWS) {
+            for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
+                NEXUS_VideoWindowHandle w;
+                if (!pVideo->displays[i] || i == window->display->index) continue;
+                /* assume window has same index on both displays */
+                w = &pVideo->displays[i]->windows[window->index];
+                if (w->open && w->input == window->input) {
+                    w->status.isSyncLocked = true;
+                    /* this is normal on shutdown, so don't print WRN */
+                    BDBG_MSG(("throw synclock to window %d.%d", w->display->index, w->index));
+                    break;
+                }
+            }
+        }
+    }
+
+    if (window->vdcDeinterlacerHeap) {
+        if (window->vdcDeinterlacerHeap != window->vdcHeap) {
+            NEXUS_Display_P_DestroyHeap(window->vdcDeinterlacerHeap);
+        }
+        window->vdcDeinterlacerHeap = NULL;
+    }
     if (window->vdcHeap) {
         NEXUS_Display_P_DestroyHeap(window->vdcHeap);
         window->vdcHeap = NULL;
-    }
-    if (window->vdcDeinterlacerHeap) {
-        NEXUS_Display_P_DestroyHeap(window->vdcDeinterlacerHeap);
-        window->vdcDeinterlacerHeap = NULL;
     }
 
 #if NEXUS_HAS_SAGE

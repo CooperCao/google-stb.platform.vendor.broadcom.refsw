@@ -303,7 +303,6 @@ const NEXUS_VideoDecoder_P_Interface NEXUS_VideoDecoder_P_Interface_Zsp = {
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_CreateStripedSurface_Zsp),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_DestroyStripedSurface_Zsp),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_CreateStripedMosaicSurfaces_Zsp),
-    NOT_SUPPORTED(NEXUS_VideoDecoder_P_DestroyStripedMosaicSurfaces_Zsp),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_GetMostRecentPts_Zsp),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_OpenPrimer_Zsp),
     NOT_SUPPORTED(NEXUS_VideoDecoder_P_ClosePrimer_Zsp),

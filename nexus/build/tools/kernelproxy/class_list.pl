@@ -90,7 +90,7 @@ my $classes = bapi_classes::get_classes $funcs, $destructors;
 
 # create class_list.inc
 open(OUTFILE, ">$class_file") or die "Unable to open output file $class_file";
-for (@$classes) {
+for (sort {$a->{CLASS_TYPE} cmp $b->{CLASS_TYPE}} @$classes) {
     my $class = $_;
     #print "class $class->{CLASS_TYPE}\n";
     print OUTFILE "$class->{CLASS_TYPE}\n";

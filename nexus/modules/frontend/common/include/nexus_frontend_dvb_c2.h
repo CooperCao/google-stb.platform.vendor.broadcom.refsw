@@ -411,7 +411,7 @@ typedef struct NEXUS_FrontendDvbc2StatusReady
 /***************************************************************************
 Summary:
 ****************************************************************************/
-typedef struct NEXUS_FrontendDvbc2Status
+typedef struct NEXUS_FrontendDvbc2Status /* attr{local=true} */
 {
     NEXUS_FrontendDvbc2StatusType type;
 
@@ -445,10 +445,59 @@ NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncStatusReady(
 /*******************************************************************************
 Summary: Get the dvbc2 asynchronous status.
 ********************************************************************************/
-NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncStatus(
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncStatus( /* attr{local=true} */
+     NEXUS_FrontendHandle handle,
+     NEXUS_FrontendDvbc2StatusType type,
+     NEXUS_FrontendDvbc2Status *pStatus   /* [out] */
+     );
+
+/*******************************************************************************
+Summary: Get the dvbc2 asynchronous FEC statistics.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncFecStatistics(
     NEXUS_FrontendHandle handle,
     NEXUS_FrontendDvbc2StatusType type,
-    NEXUS_FrontendDvbc2Status *pStatus   /* [out] */
+    NEXUS_FrontendDvbc2FecStatistics *pStatistics
+    );
+
+/*******************************************************************************
+Summary: Get the dvbc2 asynchronous L1 Part2 asynchronous status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1Part2Status(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1Part2Status *pStatus
+    );
+
+/*******************************************************************************
+Summary: Get the dvbc2 asynchronous L1 Dslice asynchronous status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1DsliceStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1DsliceStatus   *pStatus
+    );
+
+/*******************************************************************************
+Summary: Get the dvbc2 asynchronous L1 Notch asynchronous status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1NotchStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1NotchStatus  *pStatus
+    );
+
+/*******************************************************************************
+Summary: Get the dvbc2 asynchronous L1 Plp asynchronous status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncL1PlpStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2L1PlpStatus  *pStatus
+    );
+
+/*******************************************************************************
+Summary: Get the dvbc2 asynchronousbasic asynchronous status.
+********************************************************************************/
+NEXUS_Error NEXUS_Frontend_GetDvbc2AsyncBasicStatus(
+    NEXUS_FrontendHandle handle,
+    NEXUS_FrontendDvbc2BasicStatus *pStatus
     );
 
 #ifdef __cplusplus

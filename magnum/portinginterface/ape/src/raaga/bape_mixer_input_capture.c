@@ -51,6 +51,7 @@ BDBG_MODULE(bape_mixer_input_capture);
  
 BDBG_OBJECT_ID(BAPE_MixerInputCapture);
 
+#if BAPE_CHIP_MAX_DSP_MIXERS
 void BAPE_MixerInputCapture_GetDefaultCreateSettings(
     BAPE_MixerInputCaptureCreateSettings *pSettings  /* [out] */
     )
@@ -65,7 +66,6 @@ void BAPE_MixerInputCapture_GetDefaultCreateSettings(
     pSettings->maxChannels = dspSettings.maxChannels;
     pSettings->channelBufferSize = dspSettings.channelBufferSize;
     pSettings->hHeap = dspSettings.hHeap;
-
 }
 
 
@@ -148,8 +148,9 @@ BERR_Code BAPE_MixerInputCapture_GetBuffer(
 
 	for(i=0;i<BDSP_AF_P_MAX_CHANNELS;i++)
 	{
-		pBuffers->buffers[i].pBuffer = dspBufferDescriptor.buffers[i].pBuffer;
-		pBuffers->buffers[i].pWrapBuffer = dspBufferDescriptor.buffers[i].pWrapBuffer;
+		pBuffers->buffers[i].block = dspBufferDescriptor.buffers[i].buffer.hBlock;
+        pBuffers->buffers[i].pBuffer = dspBufferDescriptor.buffers[i].buffer.pAddr;
+		pBuffers->buffers[i].pWrapBuffer = dspBufferDescriptor.buffers[i].wrapBuffer.pAddr;
 	}
  	pBuffers->bufferSize	= dspBufferDescriptor.bufferSize;
  	pBuffers->interleaved	= dspBufferDescriptor.interleaved;
@@ -207,4 +208,70 @@ BERR_Code BAPE_MixerInputCapture_SetInterruptHandlers(
     BKNI_LeaveCriticalSection();
     return BERR_SUCCESS;
 }
-#endif
+#else /* #if BAPE_CHIP_MAX_DSP_MIXERS */
+void BAPE_MixerInputCapture_GetDefaultCreateSettings(
+    BAPE_MixerInputCaptureCreateSettings *pSettings  /* [out] */
+    )
+{
+	BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_MixerInputCapture_Create(
+    BAPE_Handle hApe,
+    const BAPE_MixerInputCaptureCreateSettings *pSettings,
+    BAPE_MixerInputCaptureHandle *pMixerInputCaptureHandle   /* [out] */
+    )
+{
+	BSTD_UNUSED(hApe);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pMixerInputCaptureHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_MixerInputCapture_Destroy(
+    BAPE_MixerInputCaptureHandle hMixerInputCapture
+    )
+{
+	BSTD_UNUSED(hMixerInputCapture);
+}
+
+BERR_Code BAPE_MixerInputCapture_GetBuffer(
+    BAPE_MixerInputCaptureHandle hMixerInputCapture,
+    BAPE_BufferDescriptor *pBuffers /* [out] */
+    )
+{
+	BSTD_UNUSED(hMixerInputCapture);
+    BSTD_UNUSED(pBuffers);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_MixerInputCapture_ConsumeData(
+    BAPE_MixerInputCaptureHandle hMixerInputCapture,
+    unsigned numBytes                   /* Number of bytes read from each buffer */
+    )
+{
+	BSTD_UNUSED(hMixerInputCapture);
+    BSTD_UNUSED(numBytes);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_MixerInputCapture_GetInterruptHandlers(
+    BAPE_MixerInputCaptureHandle hOutputCapture,
+    BAPE_MixerInputCaptureInterruptHandlers *pInterrupts    /* [out] */
+    )
+{
+    BSTD_UNUSED(hOutputCapture);
+    BSTD_UNUSED(pInterrupts);;
+}
+
+BERR_Code BAPE_MixerInputCapture_SetInterruptHandlers(
+    BAPE_MixerInputCaptureHandle hOutputCapture,
+    const BAPE_MixerInputCaptureInterruptHandlers *pInterrupts
+    )
+{
+    BSTD_UNUSED(hOutputCapture);
+    BSTD_UNUSED(pInterrupts);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif /* #if BAPE_CHIP_MAX_DSP_MIXERS */
+#endif /* #if !B_REFSW_MINIMAL */

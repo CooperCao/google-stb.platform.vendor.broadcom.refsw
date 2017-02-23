@@ -52,7 +52,7 @@ typedef struct BAPE_OutputCapture
 {
     BDBG_OBJECT(BAPE_OutputCapture)
     BAPE_Handle deviceHandle;
-    BMEM_Heap_Handle hHeap;
+    BMMA_Heap_Handle hHeap;
     unsigned bufferSize;
     BAPE_OutputCaptureSettings settings;
     BAPE_OutputCaptureInterruptHandlers interrupts;
@@ -60,8 +60,9 @@ typedef struct BAPE_OutputCapture
     BAPE_OutputPortObject outputPort;
     unsigned sampleRate;
     unsigned numBuffers;
+    BMMA_Block_Handle bufferBlock[BAPE_Channel_eMax];
     void *pBuffers[BAPE_Channel_eMax];
-    uint32_t bufferOffset[BAPE_Channel_eMax];
+    BMMA_DeviceOffset bufferOffset[BAPE_Channel_eMax];
     BAPE_DfifoGroupHandle dfifoGroup;
     BAPE_LoopbackGroupHandle loopbackGroup;
 #if BAPE_CHIP_MAX_FS > 0
@@ -102,6 +103,25 @@ void BAPE_OutputCapture_GetDefaultOpenSettings(
     pSettings->alignment = 8;
 }
 
+void BAPE_OutputCapture_P_FreeBuffer(BAPE_OutputCaptureHandle handle, unsigned idx)
+{
+    if ( handle->bufferBlock[idx] )
+    {
+        if ( handle->pBuffers[idx] )
+        {
+            BMMA_Unlock(handle->bufferBlock[idx], handle->pBuffers[idx]);
+            handle->pBuffers[idx] = NULL;
+        }
+        if ( handle->bufferOffset[idx] )
+        {
+            BMMA_UnlockOffset(handle->bufferBlock[idx], handle->bufferOffset[idx]);
+            handle->bufferOffset[idx] = 0;
+        }
+        BMMA_Free(handle->bufferBlock[idx]);
+        handle->bufferBlock[idx] = NULL;
+    }
+}
+
 BERR_Code BAPE_OutputCapture_Open(
     BAPE_Handle deviceHandle,
     unsigned index,
@@ -112,7 +132,6 @@ BERR_Code BAPE_OutputCapture_Open(
     BERR_Code errCode;
     BAPE_OutputCaptureHandle handle;
     BAPE_OutputCaptureOpenSettings defaultSettings;
-    void *pMem, *pCachedMem;
     unsigned bufferSize=0, watermark=0;
     unsigned maxChannelPairs, numBuffers=1;
     unsigned i;
@@ -232,27 +251,31 @@ BERR_Code BAPE_OutputCapture_Open(
     for ( i = 0; i < numBuffers; i++ )
     {
         /* Allocate buffer */
-        handle->pBuffers[i] = pMem = BMEM_Heap_AllocAligned(handle->hHeap, bufferSize, alignment, 0);
-        if ( NULL == pMem )
+        handle->bufferBlock[i] = BMMA_Alloc(handle->hHeap, bufferSize, alignment, NULL);
+        if ( NULL == handle->bufferBlock[i] )
         {
             errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             goto err_buffer;
         }
-    
-        errCode = BMEM_Heap_ConvertAddressToOffset(handle->hHeap, pMem, &handle->bufferOffset[i]);
-        if ( errCode )
+
+        handle->pBuffers[i] = BMMA_Lock(handle->bufferBlock[i]);
+        if ( NULL == handle->pBuffers[i] )
         {
-            errCode = BERR_TRACE(errCode);
-            goto err_offset;
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            BAPE_OutputCapture_P_FreeBuffer(handle, i);
+            goto err_buffer;
         }
     
-        errCode = BMEM_Heap_ConvertAddressToCached(handle->hHeap, pMem, &pCachedMem);
-        if ( BERR_SUCCESS == errCode )
+        handle->bufferOffset[i] = BMMA_LockOffset(handle->bufferBlock[i]);
+        if ( 0 == handle->bufferOffset[i] )
         {
-            /* Flush once at open to make sure the buffer has been invalidated from the cache. */
-            BMEM_Heap_FlushCache(handle->hHeap, pCachedMem, bufferSize);
+            errCode = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
+            BAPE_OutputCapture_P_FreeBuffer(handle, i);
+            goto err_buffer;
         }
-        /* Not fatal if it fails, assume no cache support */
+
+        /* Flush once at open to make sure the buffer has been invalidated from the cache. */
+        BMMA_FlushCache(handle->bufferBlock[i], handle->pBuffers[i], bufferSize);
     }
 
     handle->deviceHandle->outputCaptures[index] = handle;
@@ -260,13 +283,12 @@ BERR_Code BAPE_OutputCapture_Open(
     *pHandle = handle;
     return BERR_SUCCESS;
 
-err_offset:
 err_buffer:
     for ( i = 0; i < BAPE_Channel_eMax; i++ )
     {
         if ( handle->pBuffers[i] )
         {
-            BMEM_Heap_Free(handle->hHeap, handle->pBuffers[i]);
+            BAPE_OutputCapture_P_FreeBuffer(handle, i);
         }
     }
     BDBG_OBJECT_DESTROY(handle, BAPE_OutputCapture);
@@ -288,7 +310,7 @@ void BAPE_OutputCapture_Close(
     {
         if ( handle->pBuffers[i] )
         {
-            BMEM_Heap_Free(handle->hHeap, handle->pBuffers[i]);
+            BAPE_OutputCapture_P_FreeBuffer(handle, i);
         }
     }
     handle->deviceHandle->outputCaptures[handle->index] = NULL;
@@ -532,6 +554,8 @@ static BERR_Code BAPE_OutputCapture_P_Enable(BAPE_OutputPort output)
     for ( i = 0; i < numBuffersRequired; i++ )
     {
         unsigned dfifoBufIndex = i*step;
+        dfifoSettings.bufferInfo[dfifoBufIndex].block = handle->bufferBlock[i];
+        dfifoSettings.bufferInfo[dfifoBufIndex].pBuffer = handle->pBuffers[i];
         dfifoSettings.bufferInfo[dfifoBufIndex].base = handle->bufferOffset[i];
         dfifoSettings.bufferInfo[dfifoBufIndex].length = handle->bufferSize;
         dfifoSettings.bufferInfo[dfifoBufIndex].watermark = handle->settings.watermark;

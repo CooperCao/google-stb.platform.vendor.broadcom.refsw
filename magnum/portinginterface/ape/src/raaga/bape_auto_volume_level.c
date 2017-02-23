@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -43,12 +43,15 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_auto_volume_level);
 
 BDBG_OBJECT_ID(BAPE_AutoVolumeLevel);
 
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_AutoVolumeLevel
 {
     BDBG_OBJECT(BAPE_AutoVolumeLevel)
@@ -326,7 +329,7 @@ BERR_Code BAPE_AutoVolumeLevel_GetStatus(
     }
 
     pStatus->numChannels = dspStatus.ui32NumChannels;
-    for ( i = 0; i < 6; i++ )
+    for ( i = 0; i < BDSP_MAX_AVL_CHANNLES; i++ )
     {
         pStatus->peakLevel[i] = dspStatus.i32PeakPowerinDB[i];
         pStatus->rmsLevel[i] = dspStatus.i32RMSPowerinDB[i];
@@ -413,3 +416,107 @@ static void BAPE_AutoVolumeLevel_P_RemoveInputCallback(struct BAPE_PathNode *pNo
 {
     (void)BAPE_AutoVolumeLevel_RemoveInput(pNode->pHandle, pConnector);
 }
+
+#else
+typedef struct BAPE_AutoVolumeLevel
+{
+    BDBG_OBJECT(BAPE_AutoVolumeLevel)
+} BAPE_AutoVolumeLevel;
+
+
+void BAPE_AutoVolumeLevel_GetDefaultSettings(
+    BAPE_AutoVolumeLevelSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_AutoVolumeLevel_Create(
+                               BAPE_Handle deviceHandle,
+                               const BAPE_AutoVolumeLevelSettings *pSettings,
+                               BAPE_AutoVolumeLevelHandle *pHandle
+                               )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_AutoVolumeLevel_Destroy(
+    BAPE_AutoVolumeLevelHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_AutoVolumeLevel_GetSettings(
+    BAPE_AutoVolumeLevelHandle handle,
+    BAPE_AutoVolumeLevelSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_AutoVolumeLevel_SetSettings(
+    BAPE_AutoVolumeLevelHandle handle,
+    const BAPE_AutoVolumeLevelSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+void BAPE_AutoVolumeLevel_GetConnector(
+    BAPE_AutoVolumeLevelHandle handle,
+    BAPE_Connector *pConnector
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+}
+
+
+BERR_Code BAPE_AutoVolumeLevel_AddInput(
+    BAPE_AutoVolumeLevelHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_AutoVolumeLevel_RemoveInput(
+    BAPE_AutoVolumeLevelHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+
+BERR_Code BAPE_AutoVolumeLevel_RemoveAllInputs(
+    BAPE_AutoVolumeLevelHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_AutoVolumeLevel_GetStatus(
+    BAPE_AutoVolumeLevelHandle handle,
+    BAPE_AutoVolumeLevelStatus *pStatus    /* [out] Status */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pStatus);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

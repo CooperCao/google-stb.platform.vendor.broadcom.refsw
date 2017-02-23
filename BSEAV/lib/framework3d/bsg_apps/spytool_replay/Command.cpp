@@ -1233,6 +1233,7 @@ SPECIAL(eglCreateImageKHR)
    switch (target)
    {
    case EGL_GL_TEXTURE_2D_KHR:
+   case EGL_GL_TEXTURE_3D_KHR:
    case EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_X_KHR:
    case EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X_KHR:
    case EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Y_KHR:
@@ -1816,7 +1817,6 @@ SPECIAL(glUnmapBufferOES)
    {
       // GLint offset = GetI32(GLint, 2); unused
       GLint len = GetI32(GLint, 3);
-      GLvoid     *ptr;
       GetArray(4, array[0]);
 
       glBufferData(target, len, array[0], GL_DYNAMIC_DRAW);

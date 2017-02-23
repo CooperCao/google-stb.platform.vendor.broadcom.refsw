@@ -48,21 +48,12 @@
 # This will be the default rule unless the app overrode it.
 
 nexus_install: nexus_all ${NEXUS_BIN_DIR}/exists $(EXTRA_INSTALL)
-	@echo [Install... libraries]
+	@echo [Install... nexus to $(realpath ${NEXUS_BIN_DIR})]
 ifdef NEXUS_SHARED_LIB
 	@$(CP) $(NEXUS_SHARED_LIB) ${NEXUS_BIN_DIR}
 endif
 ifdef NEXUS_STATIC_LIB
 	@$(CP) $(NEXUS_STATIC_LIB) ${NEXUS_BIN_DIR}
-endif
-ifdef MAGNUM_LIB
-	@$(CP) $(MAGNUM_LIB) ${NEXUS_BIN_DIR}
-endif
-ifneq ($(NEXUS_MODE),proxy)
-	@$(CP) $(NEXUS_TOP)/build/nexus ${NEXUS_BIN_DIR}
-	@$(CP) $(NEXUS_TOP)/build/nexus.client ${NEXUS_BIN_DIR}
-	@$(CP) $(NEXUS_TOP)/build/nxclient.sh ${NEXUS_BIN_DIR}
-	@chmod +x ${NEXUS_BIN_DIR}/nexus ${NEXUS_BIN_DIR}/nexus.client ${NEXUS_BIN_DIR}/nxclient.sh
 endif
 
 nexus_all: ${EXTRA_ALL} $(NEXUS_STATIC_LIB) $(NEXUS_SHARED_LIB) $(MAGNUM_LIB)
@@ -102,9 +93,9 @@ endif
 
 ifeq ($(BPROFILE_SUPPORT),y)
 # Don't use -Wl,-x linker options that causes exclusion of private (e.g. static functions) symbols from the symbol table
-NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_EXTRALIBS} ${NEXUS_OBJECTS} $(MAGNUM_PRECOMPILED_OBJECTS) ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
+NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_EXTRALIBS} ${NEXUS_OBJECTS} ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
 else
-NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} $(MAGNUM_PRECOMPILED_OBJECTS) ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
+NEXUS_BUILD_SO := ${Q_}cd $(NEXUS_OBJ_DIR);$(CC) ${LDFLAGS} -shared  -Wl,-x -Wl,-soname,libnexus${NEXUS_LIB_SUFFIX}.so $(NEXUS_EXTRA_LDFLAGS) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS})) $(MAGNUM_SOFLAGS_BEGIN) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${MAGNUM_LINK_OBJ})) $(MAGNUM_SOFLAGS_END)
 endif
 
 ${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${MAGNUM_OBJECTS}) ${NEXUS_OBJECTS} ${NEXUS_EXTRALIBS} ${MAGNUM_STATIC_LIBS}
@@ -127,19 +118,19 @@ ${NEXUS_SYMBOLS_OBJ} : ${NEXUS_SYMBOLS_SRC} $(filter-out ${NEXUS_SYMBOLS_OBJ},${
 
 ifdef MAGNUM_LIB
 # Rule for magnum library
-$(MAGNUM_LIB): $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS)
+$(MAGNUM_LIB): $(MAGNUM_OBJECTS)
 	@echo "[Archive... $(notdir $@)]"
 	$(Q_)cd $(NEXUS_OBJ_DIR);$(AR) rcs $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%,%,$(abspath $^))
 endif
 
 ifdef NEXUS_STATIC_LIB
 # Rule for nexus static library
-$(NEXUS_STATIC_LIB): $(NEXUS_OBJECTS) $(MAGNUM_LINK_OBJ) $(MAGNUM_PRECOMPILED_OBJECTS) ${MAGNUM_STATIC_LIBS}
+$(NEXUS_STATIC_LIB): $(NEXUS_OBJECTS) $(MAGNUM_LINK_OBJ) ${MAGNUM_STATIC_LIBS}
 	@echo "[Archive... $(notdir $@)]"
 ifdef MAGNUM_LIB
-	$(Q_)(printf "CREATE $@\n"; for lib in ${MAGNUM_STATIC_LIBS} ; do printf "ADDLIB $$lib\n" ; done; printf "ADDLIB $(MAGNUM_LIB)\n" ; printf "ADDMOD $(NEXUS_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS)\nSAVE\nEND\n") | ${AR} -M
+	$(Q_)(printf "CREATE $@\n"; for lib in ${MAGNUM_STATIC_LIBS} ; do printf "ADDLIB $$lib\n" ; done; printf "ADDLIB $(MAGNUM_LIB)\n" ; printf "ADDMOD $(NEXUS_OBJECTS)\nSAVE\nEND\n") | ${AR} -M
 else
-	$(Q_)(printf "CREATE $@\n"; for lib in ${MAGNUM_STATIC_LIBS} ; do printf "ADDLIB $$lib\n" ; done; printf "ADDMOD $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS) $(MAGNUM_PRECOMPILED_OBJECTS)\nSAVE\nEND\n") | ${AR} -M
+	$(Q_)(printf "CREATE $@\n"; for lib in ${MAGNUM_STATIC_LIBS} ; do printf "ADDLIB $$lib\n" ; done; printf "ADDMOD $(NEXUS_OBJECTS) $(MAGNUM_OBJECTS)\nSAVE\nEND\n") | ${AR} -M
 endif
 endif
 
@@ -150,12 +141,13 @@ NEXUS_EXTRALIBS += $(B_REFSW_ANDROID_LIB)/libc.so $(B_REFSW_ANDROID_LIB)/libm.so
 endif
 
 ifdef NEXUS_SHARED_LIB
-$(NEXUS_SHARED_LIB): $(NEXUS_OBJECTS) $(MAGNUM_LINK_OBJ) $(MAGNUM_PRECOMPILED_OBJECTS) $(NEXUS_EXTRALIBS) ${MAGNUM_STATIC_LIBS}
+$(NEXUS_SHARED_LIB): $(NEXUS_OBJECTS) $(MAGNUM_LINK_OBJ) $(NEXUS_EXTRALIBS) ${MAGNUM_STATIC_LIBS}
 	@echo "[Link...... $(notdir $@)]"
 	${NEXUS_BUILD_SO} -o $(abspath $@) $(NEXUS_LDFLAGS)
 ifdef B_REFSW_STATIC_ANALYZER
 	@echo "[Analyze... $(notdir $@)]"
-	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} ${CC} $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
+	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} binary ${CC} $(abspath $@) $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
+	${Q_}cd $(NEXUS_OBJ_DIR); ${B_REFSW_STATIC_ANALYZER} whole $(abspath $@).whole $(patsubst $(abspath $(NEXUS_OBJ_DIR))/%, %, $(abspath ${NEXUS_OBJECTS} ${MAGNUM_OBJECTS} ${NEXUS_EXTRALIBS}))
 endif
 endif
 
@@ -169,9 +161,6 @@ ifdef NEXUS_SHARED_LIB
 endif
 ifdef NEXUS_STATIC_LIB
 	-$(Q_)$(RM) ${NEXUS_BIN_DIR}/$(notdir ${NEXUS_STATIC_LIB})
-endif
-ifdef MAGNUM_LIB
-	-${Q_}${RM} ${NEXUS_BIN_DIR}/$(notdir ${MAGNUM_LIB})
 endif
 
 # Include dependencies

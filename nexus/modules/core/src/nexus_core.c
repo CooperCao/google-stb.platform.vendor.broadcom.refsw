@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -17,8 +17,8 @@
  * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
  * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
  * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
  * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
@@ -26,7 +26,7 @@
  * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -243,7 +243,9 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     BTMR_DefaultSettings tmr_settings;
     unsigned i;
     NEXUS_ModuleSettings moduleSettings;
+#if !BMEM_DEPRECATED
     BMEM_Settings mem_module_settings;
+#endif
     BMMA_PoolAllocator_CreateSettings poolSettings;
 #if !BMMA_USE_STUB
     BMMA_CreateSettings mmaSettings;
@@ -253,6 +255,8 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     /* verify API macros aren't below nexus_platform_features.h. NEXUS_NUM_MEMC is no longer used inside nexus. */
     BDBG_CASSERT(NEXUS_MAX_MEMC >= NEXUS_NUM_MEMC);
 #endif
+
+    BDBG_CASSERT(NEXUS_AudioCodec_eMax==NEXUS_MAX_AUDIOCODECS);
 
     if (!pSettings) {
         BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -339,6 +343,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     BCHP_PWR_InitAllHwResources(g_NexusCore.publicHandles.chp);
 #endif
 
+#if !BMEM_DEPRECATED
     rc = BMEM_GetDefaultSettings(&mem_module_settings);
     if (rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(rc);
@@ -351,6 +356,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
         rc = BERR_TRACE(rc);
         goto err_mem;
     }
+#endif /* !BMEM_DEPRECATED */
 #if !BMMA_USE_STUB
     BMMA_GetDefaultCreateSettings(&mmaSettings);
     mmaSettings.flush_cache = NEXUS_FlushCache;
@@ -364,7 +370,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
         if (pSettings->heapRegion[i].length == 0) {
             continue;
         }
-        if (!NEXUS_Heap_Create_priv(i, &pSettings->heapRegion[i])) {
+        if (!NEXUS_Heap_Create_priv(i, g_NexusCore.publicHandles.reg, &pSettings->heapRegion[i])) {
             rc = BERR_TRACE(BERR_UNKNOWN);
             goto err_heap;
         }
@@ -465,7 +471,11 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
         }
     }
     else {
+        BDBG_WRN(("************************************************"));
+        BDBG_WRN(("************************************************"));
         BDBG_WRN(("custom_arc=y tells Nexus to leave ARC's alone so they can be manually programmed. A reboot is required to disable them."));
+        BDBG_WRN(("************************************************"));
+        BDBG_WRN(("************************************************"));
         BMRC_PrintBlockingArcs(g_NexusCore.publicHandles.reg);
     }
 
@@ -557,8 +567,10 @@ err_heap:
     BMMA_Destroy(g_NexusCore.publicHandles.mma);
 err_mma:
 #endif
+#if !BMEM_DEPRECATED
     BMEM_Close(g_NexusCore.publicHandles.mem);
 err_mem:
+#endif
 err_mem_cfg:
     BCHP_Close(g_NexusCore.publicHandles.chp);
 err_boxloadrts:
@@ -573,6 +585,7 @@ err_heap_handle_pool:
 err_module:
 err_params:
     return NULL;
+    goto err_mem_cfg; /* never reaches, silences warning about unused label */
 }
 
 void
@@ -607,6 +620,9 @@ NEXUS_CoreModule_Uninit(void)
         if (g_NexusCore.publicHandles.memc[i].mrc) {
             BMRC_Close(g_NexusCore.publicHandles.memc[i].mrc);
         }
+        if (g_NexusCore.publicHandles.memc[i].dtu) {
+            BDTU_Destroy(g_NexusCore.publicHandles.memc[i].dtu);
+        }
         if(g_NexusCore.publicHandles.heap[i].nexus) {
             NEXUS_Heap_Destroy_priv(g_NexusCore.publicHandles.heap[i].nexus);
         }
@@ -621,7 +637,9 @@ NEXUS_CoreModule_Uninit(void)
 #if !BMMA_USE_STUB
     BMMA_Destroy(g_NexusCore.publicHandles.mma);
 #endif
+#if !BMEM_DEPRECATED
     BMEM_Close(g_NexusCore.publicHandles.mem);
+#endif
     BCHP_Close(g_NexusCore.publicHandles.chp);
     g_NexusCore.publicHandles.reg = NULL; /* reg handle is passed in */
     g_pCoreHandles = NULL;
@@ -746,6 +764,7 @@ static bool NEXUS_Core_P_AddressInRegion(NEXUS_Core_MemoryRegion *pRegion, void 
     return false;
 }
 
+#if !BMEM_DEPRECATED
 BMEM_Heap_Handle NEXUS_Core_P_AddressToHeap(void *pAddress, void **ppUncachedAddress)
 {
     int i;
@@ -759,6 +778,7 @@ BMEM_Heap_Handle NEXUS_Core_P_AddressToHeap(void *pAddress, void **ppUncachedAdd
     }
     return NULL;
 }
+#endif
 
 #include "nexus_security_types.h"
 #include "priv/nexus_core_security.h"

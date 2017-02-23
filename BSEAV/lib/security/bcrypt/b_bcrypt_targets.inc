@@ -45,7 +45,7 @@ endif
 
 .PHONY: b_bcrypt_target_dummy b_bcrypt_target_build b_bcrypt_target_clean
 
-include $(NEXUS_TOP)/../BSEAV/lib/openssl/b_openssl_targets.inc
+include $(NEXUS_TOP)/../BSEAV/opensource/openssl/b_openssl_targets.inc
 B_BCRYPT_OTHER_BUILDS += b_openssl_target_build
 B_BCRYPT_OTHER_CLEANS += b_openssl_target_clean
 B_BCRYPT_OTHER_CLEAN_ALL += b_openssl_target_clean_all

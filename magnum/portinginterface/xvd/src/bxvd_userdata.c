@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,7 +129,7 @@ BERR_Code BXVD_P_Userdata_QueueDestroy(QUEUE_MGR *queue, BXVD_Userdata_Settings 
 }
 
 void *BXVD_P_ConvertUDOff2Addr_isr(BXVD_Userdata_Handle hUserData,
-                                       unsigned long fwUserDataAddr)
+                                   BXVD_P_PHY_ADDR fwUserDataAddr)
 {
    return (void*)BXVD_P_OFFSET_TO_VA(hUserData->hXvdCh, fwUserDataAddr);
 }
@@ -284,6 +284,8 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
    void *userDataPtr;
    UD_HDR *pHdrInfo = (UD_HDR *)NULL;
 
+   BXVD_P_PHY_ADDR p_UserDataTemp;
+
    BDBG_ENTER(BXVD_P_Userdata_EnqueueDataPointer_isr);
 
    /* Initialize global error to success */
@@ -334,7 +336,14 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
     * Get the protocol type and user data pointer from DM and convert it to
     * a virtual address before enqueueing.
     */
-   userDataPtr = BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData, p_UserData);
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+   p_UserDataTemp = p_UserData + hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
+#else
+   p_UserDataTemp = p_UserData;
+#endif
+
+   userDataPtr = BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData, p_UserDataTemp);
+
    if (userDataPtr == NULL)
       return BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
 
@@ -347,7 +356,10 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
    {
       /* Extract the header information */
       pHdrInfo = (UD_HDR *)userDataPtr;
-      BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, userDataPtr, ((sizeof(UD_HDR)+((pHdrInfo->size+3))) & ~3));
+
+      BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, userDataPtr, sizeof(UD_HDR));
+
+      BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, (uint8_t *)userDataPtr + sizeof(UD_HDR), pHdrInfo->size);
 
       /*
        * Enqueue the data. The uiDecodePictureId member was added for transcode
@@ -364,17 +376,24 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
                                            hXvdCh->pUserData->sUserdataSettings);
       if (rc != BERR_SUCCESS)
       {
-     BXVD_DBG_ERR(hXvdCh, ("Could not enqueue user data packet"));
-     hXvdCh->pUserData->errForwardError = rc;
-     goto doCallback;
-     /*return rc;*/
+         BXVD_DBG_ERR(hXvdCh, ("Could not enqueue user data packet"));
+         hXvdCh->pUserData->errForwardError = rc;
+         goto doCallback;
+         /*return rc;*/
       }
 
       /* Get the next user data packet, if any */
       if (pHdrInfo->next)
       {
-        userDataPtr = BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData, (unsigned long)pHdrInfo->next);
-        if (userDataPtr == NULL)
+
+#if BXVD_P_CORE_40BIT_ADDRESSABLE
+         p_UserDataTemp = pHdrInfo->next + hXvdCh->stDecodeFWBaseAddrs.FWContextBase;
+#else
+         p_UserDataTemp = pHdrInfo->next;
+#endif
+
+         userDataPtr = BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData, p_UserDataTemp);
+         if (userDataPtr == NULL)
             return BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
       }
 

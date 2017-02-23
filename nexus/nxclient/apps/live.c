@@ -110,13 +110,20 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     print_list_option("channelChange",g_channelChangeMode);
     printf(
     "  -video PID               override PSI scan. use 0 for no video. default video_type is MPEG.\n"
-    "  -video_type CODEC        override PSI scan.\n"
-    "  -audio PID               override PSI scan. use 0 for no audio. default audio_type is AC3.\n"
-    "  -audio_type CODEC        override PSI scan.\n"
     );
-    print_list_option("format",g_videoFormatStrs);
-    print_list_option("ar",g_contentModeStrs);
-    print_list_option("sync",g_syncModeStrs);
+    print_list_option(
+    "  -video_type              override PSI scan",g_videoCodecStrs);
+    printf(
+    "  -audio PID               override PSI scan. use 0 for no audio. default audio_type is AC3.\n"
+    );
+    print_list_option(
+    "  -audio_type              override PSI scan",g_audioCodecStrs);
+    print_list_option(
+    "  -format                  max source video format",g_videoFormatStrs);
+    print_list_option(
+    "  -ar                      source aspect ratio",g_contentModeStrs);
+    print_list_option(
+    "  -sync                    sync_channel mode",g_syncModeStrs);
 }
 
 struct channel_map {
@@ -914,6 +921,7 @@ int main(int argc, const char **argv)
                 BDBG_ASSERT(!rc);
 
                 if (timeout && b_get_time() - starttime >= timeout*1000) {
+                    client_state.done = true;
                     break;
                 }
             }

@@ -236,6 +236,18 @@ Type that could represent any NEXUS object
 ****************************************************************************/
 typedef void *NEXUS_AnyObject;
 
+/***************************************************************************
+Summary:
+Type that could represent address in the application address space
+****************************************************************************/
+typedef void *NEXUS_P_MemoryUserAddr;
+
+/***************************************************************************
+Summary:
+Unique ID assigned to nexus object
+****************************************************************************/
+typedef unsigned NEXUS_BaseObjectId;
+
 #ifdef __cplusplus
 }
 #endif

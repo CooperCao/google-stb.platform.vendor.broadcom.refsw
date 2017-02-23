@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -41,7 +41,7 @@
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
 
-#include "nexus_platform_generic_features_priv.h"
+#include "bstd.h"
 
 #if defined NEXUS_PLATFORM_7218TC2RSFF
 
@@ -71,18 +71,8 @@
 #define NEXUS_NUM_VIDEO_DECODERS 1
 
 /* TBD: Audio Features */
-#define NEXUS_NUM_AUDIO_DECODERS 3
-#define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_MIXERS 8
-
-#define NEXUS_NUM_I2S_INPUTS 0
-#define NEXUS_NUM_I2S_OUTPUTS 1
-#define NEXUS_NUM_AUDIO_PLAYBACKS 3
-#ifdef NEXUS_NUM_AUDIO_CRCS
-#undef NEXUS_NUM_AUDIO_CRCS
 #define NEXUS_NUM_AUDIO_CRCS 0
-#endif
+
 
 /* Display Features */
 #define NEXUS_NUM_656_OUTPUTS 0
@@ -126,5 +116,7 @@ upon the chip usage. See below */
 
 /* eneble AVS */
 #define NEXUS_AVS_MONITOR 1
+
+#include "nexus_platform_generic_features_priv.h"
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

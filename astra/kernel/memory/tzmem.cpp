@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,11 +56,11 @@ int TzMem::allocPageMap[TzMem::TZ_MAX_NUM_PAGES];
 int TzMem::freePageMap[TzMem::TZ_MAX_NUM_PAGES];
 TzMem::RangeFrame TzMem::rangeFrames[TzMem::TZ_MAX_NUM_RANGES];
 int TzMem::numRanges;
-spinlock_t TzMem::lock;
+SpinLock TzMem::lock;
 
 void TzMem::init(void *devTree) {
 
-    spinlock_init("TzMem.lock", &lock);
+    spinLockInit(&lock);
 
     numRanges = 0;
 
@@ -138,11 +138,6 @@ void TzMem::init(void *devTree) {
                (unsigned int)rangeStart, (unsigned int)rangeSize);
 
         addRange(rangeStart, rangeSize);
-    }
-
-    for (int i = freePagesEnd; i < TZ_MAX_NUM_PAGES; i++) {
-        allocPageMap[i] = PAGE_NOT_ALLOCATED;
-        freePageMap[i] = PAGE_NOT_FREE;
     }
 
     printf("TzMem init done\n");
@@ -377,7 +372,7 @@ void TzMem::freeContiguousPages(PhysAddr firstPage, int numPages) {
     }
 }
 
-#ifdef MEMORY_DEBUG
+#if MEMORY_DEBUG
 void TzMem::dumpRangeFrames() {
 
     printf("\n");

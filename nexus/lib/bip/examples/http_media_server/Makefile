@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2003-2015 Broadcom Corporation
+#  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 ############################################################
 # BIP examples
@@ -55,6 +47,8 @@ ifdef B_REFSW_REAL_NEXUS_TOP
 endif
 NEXUS_TOP ?= $(subst /${B_THIS_DIR},,$(CURDIR))/nexus
 
+ifeq ($(DTCP_IP_SAGE_SUPPORT),y)
+endif
 BIP_SERVER_APP := true
 BIP_CLIENT_APP := true
 
@@ -64,5 +58,7 @@ THEAPPS += http_sat_streamer
 THEAPPS += http_simple_streamer
 THEAPPS += http_recpump_streamer
 THEAPPS += http_ip_input_streamer
+ifeq ($(DTCP_IP_SAGE_SUPPORT),y)
+endif
 
 include ${NEXUS_TOP}/lib/bip/examples/Makefile.inc

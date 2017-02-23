@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,7 @@
 /* Nexus example app: single live a/v decode from an input band, routed to hdmi output */
 
 #include "nexus_platform.h"
-#if NEXUS_NUM_HDMI_OUTPUTS
+#if NEXUS_NUM_HDMI_OUTPUTS && NEXUS_HAS_AUDIO
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_video_decoder.h"
@@ -609,6 +609,15 @@ int main(int argc, char **argv)
         /* END of ARRAY */
         { 0, 0, "" }
     };
+
+#if 1
+    printf("********************************************************************************************\n");
+    printf("* This example app should no longer be used. It will be deprecated in the next URSR release\n");
+    printf("* Please use hdmi_output_hdcp.c app instead. \n");
+    printf("* Use runtime option '-compliance' when running HDCP compliance test\n");
+    printf("********************************************************************************************\n");
+    return 0;
+#endif
 
     int curarg = 1;
     while (curarg < argc) {

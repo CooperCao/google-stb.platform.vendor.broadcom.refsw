@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_FILE_CHUNK_H__
 #define NEXUS_FILE_CHUNK_H__
@@ -61,6 +51,9 @@ Settings for NEXUS_ChunkedFilePlay_OpenFile
 **/
 typedef struct NEXUS_ChunkedFilePlayOpenSettings {
     off_t chunkSize; /* Size per chunk of file */
+    char chunkTemplate[128]; /* Template for the individual chunk file names. Must contain %s %u where %s is the dataFileName and
+                                the %u is the chunk number. For example, "%s/chunk_%u.mpg" or "videos/%s_%u.mpg */
+    unsigned firstChunkNumber; /* If using NEXUS_ChunkedFifoRecordExport, first chunk may not be zero. */
 } NEXUS_ChunkedFilePlayOpenSettings;
 
 /*
@@ -76,15 +69,13 @@ Summary:
 Specialized function to play back files recorded with NEXUS_ChunkedFileRecord_OpenFile
 
 Description:
-NEXUS_ChunkedFilePlay_OpenFile opens a file for playback.  It assumes that the file is split
-into a series of chunks (of chunkSize), and they are contained in a directory
-dataFileDirectoryName.
+NEXUS_ChunkedFilePlay_OpenFile opens a chunked file for playback.
 
 When working with chunked record and play, the specified chunkSize should match for both
 operations.
 **/
 NEXUS_FilePlayHandle NEXUS_ChunkedFilePlay_Open(
-    const char *dataFileDirectoryName,
+    const char *dataFileName,
     const char *indexFileName,
     const NEXUS_ChunkedFilePlayOpenSettings *pSettings
     );
@@ -95,6 +86,7 @@ Settings for NEXUS_ChunkedFileRecord_OpenFile
 **/
 typedef struct NEXUS_ChunkedFileRecordOpenSettings {
     off_t chunkSize; /* Size per chunk of file */
+    char chunkTemplate[128]; /* Template for the individual chunk file names. See NEXUS_ChunkedFilePlayOpenSettings for requirements. */
 } NEXUS_ChunkedFileRecordOpenSettings;
 
 /*

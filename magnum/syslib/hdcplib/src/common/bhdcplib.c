@@ -225,8 +225,8 @@ static BERR_Code BHDCPlib_P_CheckRepeaterReady(BHDCPlib_Handle hHDCPlib)
 		goto done;
 
 	}
-	BDBG_WRN(("Wait for KSV FIFO Ready; timeout in %d ms", (5000+
-				hHDCPlib->stHdcpConfiguration.msWaitForKsvFifoMargin - msElapsedTime)));
+	BDBG_LOG(("Wait for KSV FIFO Ready; timeout in %d ms", (5000 +
+		hHDCPlib->stHdcpConfiguration.msWaitForKsvFifoMargin - msElapsedTime)));
 	hHDCPlib->uiKsvFifoReadyCount++;
 
 	/* Update HDCP Authentication state */
@@ -750,6 +750,9 @@ void BHDCPlib_ProcessEvent(BHDCPlib_Handle hHDCPlib, BHDCPlib_Event *stHdmiEvent
                 BDBG_ERR(("Error disabling HDCP 2.x authentication"));
                 BERR_TRACE(rc);
             }
+
+            /* clear the stored ReceiverId List */
+            BKNI_Memset(&hHDCPlib->stReceiverIdListData,0, sizeof(BHDCPlib_ReceiverIdListData));
 #else
             BDBG_ERR(("HDCP 2.x is not supported, invalid mode of operation"));
             BERR_TRACE(BERR_NOT_SUPPORTED);

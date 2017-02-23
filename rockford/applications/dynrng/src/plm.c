@@ -67,6 +67,12 @@ void plm_p_apply(PlmHandle plm)
     pwl_curve_print(plm->curve);
 #endif
     pwl_set_curve_hw(plm->curve, plm->index, plm->rect);
+
+    if (!plm->nl2l) return;
+    if (plm->currentSwitcher==plm->hlg2hdrSwitcher)
+    {
+        nl2l_update(plm->nl2l, file_switcher_get_position(plm->currentSwitcher));
+    }
 }
 
 void plm_p_apply_current(PlmHandle plm)
@@ -110,19 +116,21 @@ void plm_p_compute_switcher(PlmHandle plm, PlatformDynamicRange input, PlatformD
         switch (input)
         {
             case PlatformDynamicRange_eHdr10:
-            case PlatformDynamicRange_eHlg:
                 plm->currentSwitcher = plm->hdr2sdrSwitcher;
                 break;
             default:
                 break;
         }
     }
-    else if (output == PlatformDynamicRange_eHdr10 || output == PlatformDynamicRange_eHlg)
+    else if (output == PlatformDynamicRange_eHdr10)
     {
         switch (input)
         {
             case PlatformDynamicRange_eSdr:
                 plm->currentSwitcher = plm->sdr2hdrSwitcher;
+                break;
+            case PlatformDynamicRange_eHlg:
+                plm->currentSwitcher = plm->hlg2hdrSwitcher;
                 break;
             default:
                 break;
@@ -134,6 +142,8 @@ PlmHandle plm_create(
     const char * name,
     const char * sdr2hdrRoot,
     const char * hdr2sdrRoot,
+    const char * hlg2hdrRoot,
+    PlatformHandle platform,
     unsigned index,
     unsigned rect,
     PwlPointMutator set_point,
@@ -141,6 +151,7 @@ PlmHandle plm_create(
     bool demo)
 {
     PlmHandle plm;
+    static const char nl2lSubdir[] = "/nl2l";
 
     plm = malloc(sizeof(*plm));
     assert(plm);
@@ -152,6 +163,8 @@ PlmHandle plm_create(
     plm->index = index;
     plm->rect = rect;
     plm->currentSwitcher = NULL;
+    char * nl2lRoot = NULL;
+
     if (sdr2hdrRoot)
     {
         plm->sdr2hdrSwitcher = file_switcher_create(name, sdr2hdrRoot, NULL, true);
@@ -162,9 +175,20 @@ PlmHandle plm_create(
         plm->hdr2sdrSwitcher = file_switcher_create(name, hdr2sdrRoot, NULL, true);
         assert(plm->hdr2sdrSwitcher);
     }
+    if (hlg2hdrRoot)
+    {
+        plm->hlg2hdrSwitcher = file_switcher_create(name, hlg2hdrRoot, NULL, true);
+        assert(plm->hlg2hdrSwitcher);
+        nl2lRoot = malloc(strlen(hlg2hdrRoot) + strlen(nl2lSubdir) + 1);
+        assert(nl2lRoot);
+        sprintf(nl2lRoot, "%s%s", hlg2hdrRoot, nl2lSubdir);
+        plm->nl2l = nl2l_create(platform, "NL2L", nl2lRoot);
+        if (nl2lRoot) free(nl2lRoot);
+    }
     plm->curve = pwl_create_curve(name, PWL_POINTS, set_point, get_point);
     assert(plm->curve);
     plm->demo = demo;
+
     return plm;
 }
 
@@ -174,6 +198,7 @@ void plm_destroy(PlmHandle plm)
     pwl_destroy_curve(plm->curve);
     file_switcher_destroy(plm->hdr2sdrSwitcher);
     file_switcher_destroy(plm->sdr2hdrSwitcher);
+    file_switcher_destroy(plm->hlg2hdrSwitcher);
     if (plm->name) free(plm->name);
     free(plm);
 }
@@ -218,6 +243,11 @@ void plm_set(PlmHandle plm, int plmSetting)
 {
     assert(plm);
     plm->plmSetting = plmSetting;
+    if (plmSetting == -1)
+    {
+        plm->currentSwitcher = NULL;
+        return;
+    }
     if (!plm->currentSwitcher) { printf("%s switcher not ready; storing setting (%d) for later application\n", plm->name, plmSetting); return; }
     if (file_switcher_get_position(plm->currentSwitcher) == plmSetting) return;
     file_switcher_set_position(plm->currentSwitcher, plmSetting);

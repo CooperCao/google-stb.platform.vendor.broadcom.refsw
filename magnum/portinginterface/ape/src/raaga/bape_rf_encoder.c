@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,53 +9,49 @@
 *  Software, and Broadcom expressly reserves all rights in and to the Software and all
 *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
 *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
+*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
 *  Except as expressly set forth in the Authorized License,
-*   
+*
 *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+*
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+*
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
 *
 * API Description:
 *   API name: RfEncoder
 *    Specific APIs related to RF Audio Encoding
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_rf_encoder);
 
 BDBG_OBJECT_ID(BAPE_RfEncoder);
+
+#if BAPE_CHIP_HAS_POST_PROCESSING
 typedef struct BAPE_RfEncoder
 {
     BDBG_OBJECT(BAPE_RfEncoder)
@@ -621,10 +617,14 @@ static BERR_Code BAPE_RfEncoder_P_ConfigPathToOutput(
             unsigned bufferId = 2*i;
             BAPE_BufferNode *pBuffer = pSource->pBuffers[i];
             BDBG_ASSERT(NULL != pBuffer);
+            sfifoSettings.bufferInfo[bufferId].block = pBuffer->block;
+            sfifoSettings.bufferInfo[bufferId].pBuffer = pBuffer->pMemory;
             sfifoSettings.bufferInfo[bufferId].base = pBuffer->offset;
             sfifoSettings.bufferInfo[bufferId].length = pBuffer->bufferSize;
             sfifoSettings.bufferInfo[bufferId].wrpoint = pBuffer->offset+pBuffer->bufferSize-1;
             bufferId++;
+            sfifoSettings.bufferInfo[bufferId].block = NULL;
+            sfifoSettings.bufferInfo[bufferId].pBuffer = NULL;
             sfifoSettings.bufferInfo[bufferId].base = 0;
             sfifoSettings.bufferInfo[bufferId].length = 0;
             sfifoSettings.bufferInfo[bufferId].wrpoint = 0;
@@ -639,3 +639,162 @@ static BERR_Code BAPE_RfEncoder_P_ConfigPathToOutput(
 
     return BERR_SUCCESS;
 }
+#else
+typedef struct BAPE_RfEncoder
+{
+    BDBG_OBJECT(BAPE_RfEncoder)
+} BAPE_RfEncoder;
+
+/***************************************************************************
+Summary:
+    Get default settings for an Audio Encoder stage
+***************************************************************************/
+void BAPE_RfEncoder_GetDefaultSettings(
+    BAPE_RfEncoderSettings *pSettings   /* [out] default settings */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+/***************************************************************************
+Summary:
+    Open an Audio Encoder stage
+***************************************************************************/
+BERR_Code BAPE_RfEncoder_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_RfEncoderSettings *pSettings,
+    BAPE_RfEncoderHandle *pHandle             /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/***************************************************************************
+Summary:
+    Close an RF Audio Encoder stage
+
+Description:
+    Input to the stage must be removed prior to closing.
+***************************************************************************/
+void BAPE_RfEncoder_Destroy(
+    BAPE_RfEncoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+
+/***************************************************************************
+Summary:
+    Get Settings for an Audio Encoder stage
+***************************************************************************/
+void BAPE_RfEncoder_GetSettings(
+    BAPE_RfEncoderHandle handle,
+    BAPE_RfEncoderSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+
+/***************************************************************************
+Summary:
+    Set Settings for an Audio Encoder stage
+***************************************************************************/
+BERR_Code BAPE_RfEncoder_SetSettings(
+    BAPE_RfEncoderHandle handle,
+    const BAPE_RfEncoderSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/***************************************************************************
+Summary:
+    Get Encoding-Specific Settings for an Audio Encoder stage
+***************************************************************************/
+void BAPE_RfEncoder_GetEncodingSettings(
+    BAPE_RfEncoderHandle handle,
+    BAPE_RfAudioEncoding encoding,               /* The encoding for which you are retrieving settings. */
+    BAPE_RfEncoderEncodingSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(encoding);
+    BSTD_UNUSED(pSettings);
+}
+
+/***************************************************************************
+Summary:
+    Set Encoding-Specific Settings for an Audio Encoder stage
+***************************************************************************/
+BERR_Code BAPE_RfEncoder_SetEncodingSettings(
+    BAPE_RfEncoderHandle handle,
+    const BAPE_RfEncoderEncodingSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/***************************************************************************
+Summary:
+    Get the audio connector for an Audio Encoder stage
+***************************************************************************/
+void BAPE_RfEncoder_GetConnector(
+    BAPE_RfEncoderHandle handle,
+    BAPE_Connector *pConnector   /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+
+}
+
+/***************************************************************************
+Summary:
+Add an input to this processing stage
+***************************************************************************/
+BERR_Code BAPE_RfEncoder_AddInput(
+    BAPE_RfEncoderHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/***************************************************************************
+Summary:
+Remove an input from this processing stage
+***************************************************************************/
+BERR_Code BAPE_RfEncoder_RemoveInput(
+    BAPE_RfEncoderHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+/***************************************************************************
+Summary:
+Remove all inputs from this processing stage
+***************************************************************************/
+BERR_Code BAPE_RfEncoder_RemoveAllInputs(
+    BAPE_RfEncoderHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

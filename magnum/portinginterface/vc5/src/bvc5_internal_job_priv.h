@@ -45,6 +45,9 @@
 
 struct BVC5_P_JobDependentFence;
 
+#define BVC5_P_BIN_JOB_COMPLETED   ((uint64_t)0)
+#define BVC5_P_BIN_JOB_FINALIZED (~((uint64_t)0))
+
 typedef struct BVC5_P_JobDependentFence
 {
    struct BVC5_P_JobDependentFence *psNext;        /* Next pointer for psOnCompleted/FinalizedFenceList in job */
@@ -62,8 +65,8 @@ typedef struct BVC5_P_InternalJob
    BVC5_JobBase            *pBase;                    /* The original job data                        */
    uint64_t                 uiJobId;
    uint32_t                 uiClientId;
+   uint32_t                 uiNeedsCacheFlush;        /* One bit per core */
    bool                     bAbandon;
-   bool                     bFlushedV3D;
 
    /* These deps must be satisfied for a job to run */
    BVC5_SchedDependencies   sRunDep_NotCompleted;     /* Completion dependencies not yet done         */
@@ -120,6 +123,12 @@ BVC5_P_InternalJob *BVC5_P_JobCreateNull(
    BVC5_Handle              hVC5,
    uint32_t                 uiClientId,
    const BVC5_JobNull      *psJob
+);
+
+BVC5_P_InternalJob *BVC5_P_JobCreateBarrier(
+   BVC5_Handle              hVC5,
+   uint32_t                 uiClientId,
+   const BVC5_JobBarrier   *psJob
 );
 
 BVC5_P_InternalJob *BVC5_P_JobCreateBin(

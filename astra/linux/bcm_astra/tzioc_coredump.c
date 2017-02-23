@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -67,9 +67,9 @@ int _tzioc_peer_coredump(
 	strncpy(pCmd->name, pPeerName, UAPPD_NAME_LEN_MAX);
 	pCmd->paddr  = ulPaddr;
 	pCmd->bytes  = ulBytes;
-	pCmd->cookie = (uint32_t)pClient;
+	pCmd->cookie = (uintptr_t)pClient;
 
-	LOGI("Sending Coredump Message pAddr=0x%x size=0x%x",pCmd->paddr,pCmd->bytes);
+	LOGI("Sending Coredump Message pAddr=0x%zx size=0x%x", (size_t)pCmd->paddr, pCmd->bytes);
 	err = _tzioc_msg_send(
 		pClient,
 		pHdr, (uint8_t *)pCmd);
@@ -79,6 +79,6 @@ int _tzioc_peer_coredump(
 	}
 
 	/* immediately switch to TZOS */
-	_tzioc_call_smc(0x7);
+	_tzioc_call_smc(0x83000007);
 	return 0;
 }

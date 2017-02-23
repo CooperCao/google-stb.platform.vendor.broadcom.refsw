@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ******************************************************************************/
 
@@ -103,6 +95,9 @@ int main(int argc, char **argv)
     NEXUS_HdmiOutputStatus hdmiStatus;
     NEXUS_Error rc;
 #endif
+    NEXUS_AudioOutputHandle audioDacHandle = NULL;
+    NEXUS_AudioOutputHandle audioSpdifHandle = NULL;
+    NEXUS_AudioOutputHandle audioHdmiHandle = NULL;
     const char *fname = "/mnt/streams/streamer/bugs_toys2_jurassic_q64_cd.mpg";
     unsigned transportType = 2; /* TS */
     unsigned videoCodec = 2; /* MPEG2 */
@@ -165,11 +160,34 @@ int main(int argc, char **argv)
 
     NEXUS_GetAudioCapabilities(&caps);
 
+    if (caps.numDecoders == 0)
+    {
+        printf("This application is not supported on this platform (requires decoder).\n");
+        return 0;
+    }
+
     if (openSettings.dspIndex >= caps.numDsps)
     {
         printf("Invalid DSP index(%d).  Board only supports %d.  Defaulting to 0.\n", openSettings.dspIndex, caps.numDsps);
         openSettings.dspIndex = 0;
     }
+
+    if (caps.numOutputs.dac > 0)
+    {
+        audioDacHandle = NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]);
+    }
+
+    if (caps.numOutputs.spdif > 0)
+    {
+        audioSpdifHandle = NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]);
+    }
+
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (caps.numOutputs.hdmi > 0)
+    {
+        audioHdmiHandle = NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]);
+    }
+    #endif
 
     pcmDecoder = NEXUS_AudioDecoder_Open(0, &openSettings);
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
@@ -183,7 +201,7 @@ int main(int argc, char **argv)
     playback = NEXUS_Playback_Create();
     assert(playback);
 
-	file = NEXUS_FilePlay_OpenPosix(fname, NULL);
+    file = NEXUS_FilePlay_OpenPosix(fname, NULL);
     if (!file) {
         fprintf(stderr, "can't open file:%s\n", fname);
         return -1;
@@ -225,23 +243,23 @@ int main(int argc, char **argv)
     audioProgram.pidChannel = audioPidChannel;
     audioProgram.stcChannel = stcChannel;
 
-#if NEXUS_NUM_AUDIO_DACS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_AudioDac_GetConnector(platformConfig.outputs.audioDacs[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-
-#if NEXUS_NUM_SPDIF_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_SpdifOutput_GetConnector(platformConfig.outputs.spdif[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
-
-#if NEXUS_NUM_HDMI_OUTPUTS
-    NEXUS_AudioOutput_AddInput(
-        NEXUS_HdmiOutput_GetAudioConnector(platformConfig.outputs.hdmi[0]),
-        NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
-#endif
+    if (audioDacHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioDacHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    if (audioSpdifHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioSpdifHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #if NEXUS_NUM_HDMI_OUTPUTS
+    if (audioHdmiHandle) {
+        NEXUS_AudioOutput_AddInput(
+            audioHdmiHandle,
+            NEXUS_AudioDecoder_GetConnector(pcmDecoder, NEXUS_AudioDecoderConnectorType_eStereo));
+    }
+    #endif
 
     /* Bring up display and outputs */
 #if NEXUS_NUM_COMPONENT_OUTPUTS
@@ -258,7 +276,7 @@ int main(int argc, char **argv)
         if ( !hdmiStatus.videoFormatSupported[displaySettings.format] ) {
             displaySettings.format = hdmiStatus.preferredVideoFormat;
             NEXUS_Display_SetSettings(display, &displaySettings);
-		}
+        }
     }
 #endif
 
@@ -271,7 +289,7 @@ int main(int argc, char **argv)
     displaySettings.format = hdmiStatus.preferredVideoFormat;
     NEXUS_Display_SetSettings(display, &displaySettings);
 
-	/* Start playback */
+    /* Start playback */
     NEXUS_Playback_Start(playback, file, NULL);
 
     printf("Press ENTER to stop decode\n");

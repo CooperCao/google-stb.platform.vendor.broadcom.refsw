@@ -57,7 +57,12 @@ BDBG_OBJECT_ID(BVDC_BFH);
 #define BVDC_P_BUFHEAP_SPLIT_RATIO_FACTOR        (100)
 #define BVDC_P_BUFHEAP_SPLIT_RATIO_THRESHOLD     (75)
 
+#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
+/* TODO: Turn it back on temporarily */
+#define BVDC_P_HEAP_FULL_SPLIT             (1)
+#else
 #define BVDC_P_HEAP_FULL_SPLIT             (0)
+#endif
 #define BVDC_MAX_BUFFERHEAP_NODES          (200)
 
 /***************************************************************************
@@ -678,6 +683,11 @@ static BERR_Code BVDC_P_BufferHeap_BuildPrimaryNodeList
         ulBlockOffset += ulBufSize;
     }
 
+    if(ulPrimaryBufCnt && !pHeapInfo->hBufferHeap->ullMosaicDrainOffset)
+    {
+        pHeapInfo->hBufferHeap->ullMosaicDrainOffset = ullDeviceOffset;
+    }
+
     return err;
 }
 
@@ -688,9 +698,11 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
     ( BMMA_Heap_Handle             hMemory,
       BVDC_P_BufferHeap_Info      *pHeapInfo )
 {
+#if (!BVDC_P_HEAP_FULL_SPLIT)
     bool                    bLimitSplt = false;
     uint32_t                aulNumNodesSplit[BVDC_P_BufferHeapId_eCount];
     uint32_t                aulMaxParentNodes2Split[BVDC_P_BufferHeapId_eCount];
+#endif
     uint32_t                i, j;
     uint32_t                ulBufSize, ulBlockOffset;
     BMMA_DeviceOffset       ullDeviceOffset;
@@ -816,8 +828,19 @@ static BERR_Code BVDC_P_BufferHeap_CreateHeapInfo
     }
     else
     {
+        uint32_t   ulExtraBufSize4MosaicDrain = 0;
+
+        if(!pHeapInfo->hBufferHeap->ullMosaicDrainOffset)
+        {
+            /* 2 pixels wide, in case 10-bit 4:2:2 capture rounding,
+               16 bytes aligned for capture engine. */
+            ulExtraBufSize4MosaicDrain = 2;
+        }
+
         /* Allocate MMA block from heap. */
-        pHeapInfo->hMmaBlock = BMMA_Alloc(hMemory, ulBufSize * ulPrimaryBufCnt, 1<<BVDC_P_HEAP_MEMORY_ALIGNMENT, NULL);
+        pHeapInfo->hMmaBlock = BMMA_Alloc(hMemory,
+            ulBufSize * ulPrimaryBufCnt + ulExtraBufSize4MosaicDrain,
+            1<<BVDC_P_HEAP_MEMORY_ALIGNMENT, NULL);
         if( !pHeapInfo->hMmaBlock && (0 != ulPrimaryBufCnt) )
         {
             BDBG_ERR(("Not enough device memory[%d]!", ulBufSize * ulPrimaryBufCnt));
@@ -825,6 +848,7 @@ static BERR_Code BVDC_P_BufferHeap_CreateHeapInfo
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
     }
+
     /* (2) Create buffer heap node list */
     ulTotalBufCnt = ulPrimaryBufCnt;
     if(pHeapInfo->pParentHeapInfo)
@@ -1469,20 +1493,6 @@ BERR_Code BVDC_P_BufferHeap_Create
     BVDC_P_BufferHeap_GetHeapOrder(&pBufferHeap->stSettings,
         &pBufferHeap->stHeapSizeInfo, pBufferHeap);
 
-    pBufferHeap->hMosaicDrainBlock = BMMA_Alloc(pBufferHeap->hMem,
-                16, /* 2 pixels wide, in case 10-bit 4:2:2 capture rounding; */
-                16,  /* 16 bytes aligned for capture engine */
-                NULL);
-
-    if(!pBufferHeap->hMosaicDrainBlock)
-    {
-        BDBG_ERR(("Not enough device memory"));
-        BDBG_ASSERT(0);
-        return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
-    }
-
-    pBufferHeap->ullMosaicDrainOffset = BMMA_LockOffset(pBufferHeap->hMosaicDrainBlock);
-
     for( i = 0; i < BVDC_P_BufferHeapId_eCount; i++ )
     {
         /* (2) Create heap info */
@@ -1524,13 +1534,6 @@ BERR_Code BVDC_P_BufferHeap_Destroy
 
     BDBG_ENTER(BVDC_P_BufferHeap_Destroy);
     BDBG_OBJECT_ASSERT(hBufferHeap, BVDC_BFH);
-
-    if(hBufferHeap->hMosaicDrainBlock)
-    {
-        /* free drain buffer */
-        BMMA_UnlockOffset(hBufferHeap->hMosaicDrainBlock, hBufferHeap->ullMosaicDrainOffset);
-        BMMA_Free(hBufferHeap->hMosaicDrainBlock);
-    }
 
     for( i = 0; i < BVDC_P_BufferHeapId_eCount; i++ )
     {

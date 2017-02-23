@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,6 +52,12 @@
 #include "tsb.h"
 #include "dvrmgr.h"
 #endif
+#ifdef CPUTEST_SUPPORT
+#include "cputest.h"
+#endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+#include "wifi.h"
+#endif
 
 #include "widget_edit.h"
 #include "widget_check_button.h"
@@ -95,6 +101,12 @@ CScreenMain::CScreenMain(
     _rectChText(0, 0, 0, 0),
     _rectChType(0, 0, 0, 0),
     _Buffers(NULL),
+#ifdef CPUTEST_SUPPORT
+    _CpuTest(NULL),
+    _CpuTestLabel(NULL),
+    _CpuTestPopup(NULL),
+    _pCpuTest(NULL),
+#endif /* ifdef CPUTEST_SUPPORT */
     _Back(NULL),
     _pDecodeMenu(NULL),
     _pDisplayMenu(NULL),
@@ -115,6 +127,9 @@ CScreenMain::CScreenMain(
     _timerVolume(pWidgetEngine, this, 1000),
     _timerChannel(pWidgetEngine, this, 3000),
     _timerBuffersUpdate(pWidgetEngine, this, 333),
+#ifdef CPUTEST_SUPPORT
+    _timerCpuTest(pWidgetEngine, this, 1000),
+#endif
     _channelsFound(0),
     _MsgBox(NULL),
     _pPowerMenu(NULL),
@@ -155,6 +170,7 @@ eRet CScreenMain::initialize(CModel * pModel)
     uint32_t    graphicsWidth  = 0;
     uint32_t    graphicsHeight = 0;
     uint32_t    transparency   = 0xCC000000;
+    uint32_t    menuHeight     = 0;
 
 #if NEXUS_HAS_FRONTEND
     bool tuner = false;
@@ -422,7 +438,11 @@ eRet CScreenMain::initialize(CModel * pModel)
     _pLabelVolume->show(false);
 
     /* main menu */
-    _pMainMenu = new CWidgetMenu("CScreenMain::_pMainMenu", getEngine(), this, MRect(50, 50, 175, 151), font14, font12);
+    menuHeight = 151;
+#ifdef CPUTEST_SUPPORT
+    menuHeight += 20;
+#endif
+    _pMainMenu = new CWidgetMenu("CScreenMain::_pMainMenu", getEngine(), this, MRect(50, 50, 185, menuHeight), font14, font12);
     CHECK_PTR_ERROR_GOTO("unable to allocate menu widget", _pMainMenu, ret, eRet_OutOfMemory, error);
     _pMainMenu->setMenuTitle("Atlas", NULL);
     _pMainMenu->showSubTitle(false);
@@ -508,13 +528,28 @@ eRet CScreenMain::initialize(CModel * pModel)
 
 #endif /* NEXUS_HAS_FRONTEND */
 
-#if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT)
+#ifdef WPA_SUPPLICANT_SUPPORT
         _Network = new CWidgetButton("CScreenMain::_Network", getEngine(), this, MRect(0, 0, 0, 22), font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Network, ret, eRet_OutOfMemory, error);
-#ifndef HIDE_NETAPP_WIFI_MENU
         _Network->setText("Network...", bwidget_justify_horiz_left);
+        {
+            CWifi * pWifi = _pModel->getWifi();
+
+            if ((NULL != pWifi) && (true == pWifi->getStartState()))
+            {
+                _pMainMenu->addButton(_Network, "Network");
+            }
+
+        }
+#elif defined (NETAPP_SUPPORT)
+        _Network = new CWidgetButton("CScreenMain::_Network", getEngine(), this, MRect(0, 0, 0, 22), font12);
+        CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Network, ret, eRet_OutOfMemory, error);
+        _Network->setText("Network...", bwidget_justify_horiz_left);
+#ifndef HIDE_NETAPP_WIFI_MENU
         _pMainMenu->addButton(_Network, "Network");
 #endif
+#endif
+
 #ifdef NETAPP_SUPPORT
         _Bluetooth = new CWidgetButton("CScreenMain::_Bluetooth", getEngine(), this, MRect(0, 0, 0, 22), font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Bluetooth, ret, eRet_OutOfMemory, error);
@@ -523,7 +558,6 @@ eRet CScreenMain::initialize(CModel * pModel)
         _pMainMenu->addButton(_Bluetooth, "Bluetooth");
 #endif
 #endif /* ifdef NETAPP_SUPPORT */
-#endif /* if defined (WPA_SUPPLICANT_SUPPORT) || defined (NETAPP_SUPPORT) */
 
 #ifdef MPOD_SUPPORT
         _CableCard = new CWidgetButton("CScreenMain::_CableCard", getEngine(), this, MRect(0, 0, 0, 22), font12);
@@ -532,6 +566,37 @@ eRet CScreenMain::initialize(CModel * pModel)
         _pMainMenu->addButton(_CableCard, "CableCard");
 #endif /* ifdef MPOD_SUPPORT */
 
+#ifdef CPUTEST_SUPPORT
+        /* cputest dropdown */
+        {
+            CWidgetCheckButton * pButton = NULL;
+            MRect                rectPopup;
+
+            ret = _pMainMenu->addLabelPopupButton(this, "CpuTest", &_CpuTest, &_CpuTestLabel, &_CpuTestPopup, font12, 60);
+            CHECK_ERROR_GOTO("unable to allocate label popup list button", ret, error);
+            _CpuTest->setFocusable(false);
+            _CpuTestLabel->setText("CPU Test", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
+            _CpuTestPopup->setText("", bwidget_justify_horiz_right, bwidget_justify_vert_middle);
+            rectPopup = _CpuTestPopup->getGeometry();
+            /* add buttons for cpu test */
+            pButton = _CpuTestPopup->addButton("OFF", rectPopup.width(), rectPopup.height());
+            CHECK_PTR_ERROR_GOTO("unable to add cpu test button to popup list", pButton, ret, eRet_OutOfMemory, error);
+            pButton->setValue(0);
+            for (int i = 1; i <= 9; i++)
+            {
+                pButton = _CpuTestPopup->addButton(MString(i), rectPopup.width(), rectPopup.height());
+                CHECK_PTR_ERROR_GOTO("unable to add cpu test button to popup list", pButton, ret, eRet_OutOfMemory, error);
+                pButton->setValue(10 * i); /* 0 - 100 */
+            }
+            pButton = _CpuTestPopup->addButton("MAX", rectPopup.width(), rectPopup.height());
+            CHECK_PTR_ERROR_GOTO("unable to add cpu test button to popup list", pButton, ret, eRet_OutOfMemory, error);
+            pButton->setValue(100);
+
+            _CpuTestPopup->select("OFF");
+        }
+#endif /* ifdef CPUTEST_SUPPORT */
+
+        /* buffers/tsm */
         _Buffers = new CWidgetCheckButton("CScreenMain::_Buffers", getEngine(), this, MRect(0, 0, 0, 22), font12);
         CHECK_PTR_ERROR_GOTO("unable to allocate button widget", _Buffers, ret, eRet_OutOfMemory, error);
         _Buffers->setText("Buffers / TSM", bwidget_justify_horiz_left);
@@ -680,7 +745,7 @@ eRet CScreenMain::initialize(CModel * pModel)
 
     {
         _pRecordMenu = new CPanelRecord(getWidgetEngine(), this, this, MRect(0, 0, 10, 10), font14);
-        CHECK_PTR_ERROR_GOTO("unable to initialize Power menu", _pRecordMenu, ret, eRet_OutOfMemory, error);
+        CHECK_PTR_ERROR_GOTO("unable to initialize Record panel", _pRecordMenu, ret, eRet_OutOfMemory, error);
         _pRecordMenu->initialize(pModel, _pConfig);
         _pRecordMenu->show(false);
         _panelList.add(_pRecordMenu);
@@ -699,6 +764,9 @@ void CScreenMain::uninitialize()
     _timerVolume.stop();
     _timerChannel.stop();
     _timerBuffersUpdate.stop();
+#ifdef CPUTEST_SUPPORT
+    _timerCpuTest.stop();
+#endif
     _timerMsgBox.stop();
     _indicatorList.clear();
 
@@ -729,6 +797,11 @@ void CScreenMain::uninitialize()
     DEL(_pDisplayMenu);
     DEL(_pDecodeMenu);
     DEL(_Back);
+#ifdef CPUTEST_SUPPORT
+    DEL(_CpuTest);
+    DEL(_CpuTestLabel);
+    DEL(_CpuTestPopup);
+#endif
     DEL(_Buffers);
 #if NEXUS_HAS_FRONTEND
     DEL(_Tuner);
@@ -911,6 +984,36 @@ void CScreenMain::processNotification(CNotification & notification)
     }
     break;
 
+#ifdef CPUTEST_SUPPORT
+    case eNotify_CpuTestStarted:
+    {
+        _pCpuTest = (CCpuTest *)notification.getData();
+        BDBG_ASSERT(NULL != _pCpuTest);
+
+        _CpuTestPopup->select(_pCpuTest->getLevel());
+        updateCpuTestUtilization();
+
+        _timerCpuTest.start();
+    }
+    break;
+
+    case eNotify_CpuTestStopped:
+    {
+        int nLevel = 0;
+
+        if (NULL != _pCpuTest)
+        {
+            _timerCpuTest.stop();
+            _CpuTestPopup->setValue(_pCpuTest->getLevel());
+            _pCpuTest = NULL;
+        }
+
+        _CpuTestPopup->select(nLevel);
+        updateCpuTestUtilization();
+    }
+    break;
+#endif /* ifdef CPUTEST_SUPPORT */
+
     case eNotify_Timeout:
     {
         CTimer * pTimer = (CTimer *)notification.getData();
@@ -997,6 +1100,14 @@ void CScreenMain::processNotification(CNotification & notification)
 #endif
         }
         else
+#ifdef CPUTEST_SUPPORT
+        if (&_timerCpuTest == pTimer)
+        {
+            updateCpuTestUtilization();
+            _timerCpuTest.start();
+        }
+        else
+#endif /* ifdef CPUTEST_SUPPORT */
         if (&_timerMsgBox == pTimer)
         {
             _MsgBox->cancelModal("Cancel");
@@ -2089,6 +2200,17 @@ void CScreenMain::onClick(bwidget_t widget)
         _pBuffersMenu->show(_Buffers->isChecked());
     }
     else
+#ifdef CPUTEST_SUPPORT
+    if (0 <= _CpuTestPopup->getItemListIndex(pWidget->getWidget()))
+    {
+        CWidgetCheckButton * pButton = (CWidgetCheckButton *)pWidget;
+        int cpuTestValue             = (int)pButton->getValue();
+
+        BDBG_WRN(("selected cpu test level:%s", pButton->getText().s()));
+        notifyObservers(eNotify_SetCpuTestLevel, &cpuTestValue);
+    }
+    else
+#endif /* ifdef CPUTEST_SUPPORT */
     if (_Back == pWidget)
     {
         show(false);
@@ -2248,3 +2370,25 @@ void CScreenMain::showMenu(CWidgetMenu * pMenu)
         pMenu->show(true);
     }
 } /* showMenu */
+
+#ifdef CPUTEST_SUPPORT
+void CScreenMain::updateCpuTestUtilization()
+{
+    if (NULL == _pCpuTest)
+    {
+        /* remove cpu utilization from menu item label */
+        _CpuTestLabel->setText("CPU Test", bwidget_justify_horiz_left, bwidget_justify_vert_middle);
+    }
+    else
+    {
+        double dCpuUtil = _pCpuTest->getCpuUtilization();
+        char strCpuUtil[8];
+
+        /* add cpu utilization to the menu item label */
+        memset(strCpuUtil, 0, sizeof(strCpuUtil));
+        snprintf(strCpuUtil, sizeof(strCpuUtil), "%3.lf%%", dCpuUtil);
+        _CpuTestLabel->setText(MString("CPU Test:") + strCpuUtil, bwidget_justify_horiz_left, bwidget_justify_vert_middle);
+    }
+} /* updateCpuTestUtilization */
+
+#endif /* ifdef CPUTEST_SUPPORT */

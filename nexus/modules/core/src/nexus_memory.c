@@ -1,49 +1,45 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "nexus_core_module.h"
 #include "nexus_base.h"
 #include "nexus_types.h"
 #include "nexus_memory.h"
 #include "priv/nexus_core.h"
-#include "bmem_debug.h"
 #include "b_objdb.h"
 #include "priv/nexus_base_platform.h"
 #include "bmma_range.h"
@@ -56,7 +52,9 @@ BDBG_FILE_MODULE(nexus_core);
 struct NEXUS_Heap {
     NEXUS_OBJECT(NEXUS_Heap);
     unsigned index;
+#if !BMEM_DEPRECATED
     BMEM_Heap_Handle memHeap;
+#endif
     BMMA_Heap_Handle mmaHeap;
     NEXUS_Core_MemoryRegion settings;
     NEXUS_DisplayHeapSettings displayHeapSettings;
@@ -170,23 +168,20 @@ static void NEXUS_CoreModule_P_Unmap(void *context, void *state, void *ptr, size
     return;
 }
 
-static void NEXUS_CoreModule_P_TraceAlloc(void *context, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
+static void NEXUS_CoreModule_P_TraceAlloc(NEXUS_HeapHandle heap, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
 {
-    NEXUS_HeapHandle heap = context;
     int memc;
-
     memc = heap->settings.memcIndex;
     if(g_NexusCore.publicHandles.memc[memc].mrc) {
         g_NexusCore.publicHandles.memc[memc].mem_monitor.alloc(g_NexusCore.publicHandles.memc[memc].mem_monitor.cnxt, base, size, fname, line);
     }
+
     return;
 }
 
-static void NEXUS_CoreModule_P_TraceFree(void *context, BMMA_DeviceOffset base, size_t size)
+static void NEXUS_CoreModule_P_TraceFree(NEXUS_HeapHandle heap, BMMA_DeviceOffset base, size_t size)
 {
-    NEXUS_HeapHandle heap = context;
     int memc;
-
     if((heap->settings.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED)!=NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED &&
        (heap->settings.memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) == NEXUS_MEMORY_TYPE_DRIVER_CACHED
        ) {
@@ -200,6 +195,101 @@ static void NEXUS_CoreModule_P_TraceFree(void *context, BMMA_DeviceOffset base, 
     if(g_NexusCore.publicHandles.memc[memc].mrc) {
         g_NexusCore.publicHandles.memc[memc].mem_monitor.free(g_NexusCore.publicHandles.memc[memc].mem_monitor.cnxt, base);
     }
+
+    return;
+}
+
+#define _2MB (2*1024*1024)
+static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset base, size_t size);
+
+static BERR_Code nexus_memory_p_dtu_alloc(NEXUS_HeapHandle heap, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
+{
+    unsigned i;
+    BERR_Code rc;
+    BDBG_WRN(("dtu_alloc BA " BDBG_UINT64_FMT ", size %u MB from %s:%u", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024), fname, line));
+    if (base & (_2MB-1)) {
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+    for (i=0;i<size;i+=_2MB) {
+        BMMA_DeviceOffset deviceAddr;
+        deviceAddr = g_NexusCore.cfg.cma.alloc(heap->settings.memcIndex, _2MB, _2MB);
+        if (!deviceAddr) {
+            rc = BERR_TRACE(NEXUS_OUT_OF_DEVICE_MEMORY);
+            goto error;
+        }
+        rc = BDTU_Remap(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, deviceAddr, deviceAddr, base + i);
+        if (rc) {
+            BERR_TRACE(rc);
+            g_NexusCore.cfg.cma.free(heap->settings.memcIndex, deviceAddr, _2MB);
+            goto error;
+        }
+    }
+    return BERR_SUCCESS;
+error:
+    nexus_memory_p_dtu_free(heap, base, i);
+    return rc;
+}
+
+static void nexus_memory_p_dtu_free(NEXUS_HeapHandle heap, BMMA_DeviceOffset base, size_t size)
+{
+    unsigned i;
+    if (base & (_2MB-1)) {
+        BERR_TRACE(BERR_INVALID_PARAMETER);
+        return;
+    }
+    BDBG_WRN(("dtu_free BA " BDBG_UINT64_FMT ", size %u MB", BDBG_UINT64_ARG(base), (unsigned)(size/1024/1024)));
+    for (i=0;i<size;i+=_2MB) {
+        uint64_t deviceAddr;
+        BERR_Code rc;
+        rc = BDTU_ReadDeviceAddress(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, base + i, &deviceAddr);
+        if (rc) {
+            BERR_TRACE(rc);
+            continue;
+        }
+        /* map back to identity */
+        rc = BDTU_Remap(g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, deviceAddr, base + i, deviceAddr);
+        if (rc) {
+            BERR_TRACE(rc); /* can't return to linux if we can't remap */
+        }
+        else {
+            g_NexusCore.cfg.cma.free(heap->settings.memcIndex, deviceAddr, _2MB);
+        }
+    }
+}
+
+static BERR_Code NEXUS_CoreModule_P_MemoryAlloc(void *context, BMMA_DeviceOffset base, size_t size, const char *fname, unsigned line)
+{
+    NEXUS_HeapHandle heap = context;
+
+    if (heap->settings.heapType & NEXUS_HEAP_TYPE_DTU) {
+        BERR_Code rc = nexus_memory_p_dtu_alloc(heap, base, size, fname, line);
+        if (rc) return BERR_TRACE(rc);
+    }
+
+    NEXUS_CoreModule_P_TraceAlloc(heap, base, size, fname, line);
+
+    return BERR_SUCCESS;
+}
+
+static void NEXUS_CoreModule_P_MemoryFree(void *context, BMMA_DeviceOffset base, size_t size)
+{
+    NEXUS_HeapHandle heap = context;
+
+    if((heap->settings.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED)!=NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED &&
+       (heap->settings.memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED) == NEXUS_MEMORY_TYPE_DRIVER_CACHED
+       ) {
+        void *ptr = NEXUS_OffsetToCachedAddr(base);
+        if(ptr) {
+            NEXUS_FlushCache(ptr, size);
+        }
+    }
+
+    NEXUS_CoreModule_P_TraceFree(heap, base, size);
+
+    if (heap->settings.heapType & NEXUS_HEAP_TYPE_DTU) {
+        nexus_memory_p_dtu_free(heap, base, size);
+    }
+
     return;
 }
 #endif /* BMMA_USE_STUB */
@@ -210,7 +300,7 @@ static bool nexus_p_custom_arc(void)
     return NEXUS_GetEnv("custom_arc") != NULL;
 }
 
-NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_MemoryRegion *pSettings )
+NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, BREG_Handle reg, const NEXUS_Core_MemoryRegion *pSettings )
 {
     NEXUS_HeapHandle heap = NULL;
     BERR_Code rc;
@@ -218,13 +308,17 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_Memory
     BMEM_Heap_Settings mem_heap_settings;
 #else
     BMMA_Heap_CreateSettings heapSettings;
+#if !BMEM_DEPRECATED
     BMMA_Bmem_Settings bmemSettings;
 #endif
+#endif /* BMMA_USE_STUB */
 
     BDBG_MSG(("NEXUS_Heap_Create %u: MEMC%u, offset " BDBG_UINT64_FMT ", length %d, addr %p, cached %p",
         index, pSettings->memcIndex, BDBG_UINT64_ARG(pSettings->offset), (unsigned)pSettings->length, pSettings->pvAddr, pSettings->pvAddrCached));
 
+#if !BMEM_DEPRECATED
     g_NexusCore.publicHandles.heap[index].mem = NULL;
+#endif
     g_NexusCore.publicHandles.heap[index].mma = NULL;
     g_NexusCore.publicHandles.heap[index].nexus = NULL;
 
@@ -271,7 +365,7 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_Memory
     }
 
     if( (pSettings->memoryType & (NEXUS_MEMORY_TYPE_NOT_MAPPED | NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED)) == 0) {
-        rc = NEXUS_P_AddMap(pSettings->offset, pSettings->pvAddrCached, pSettings->pvAddr, pSettings->length);
+        rc = NEXUS_P_AddMap(pSettings->offset, pSettings->pvAddrCached, pSettings->cachedMapType, pSettings->pvAddr, pSettings->uncachedMapType, pSettings->length);
         if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto error;}
     }
 
@@ -324,8 +418,21 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_Memory
     heapSettings.out_of_memory = NEXUS_Heap_P_OutOfMemory;
     heapSettings.mmap = NEXUS_CoreModule_P_Mmap;
     heapSettings.unmap = NEXUS_CoreModule_P_Unmap;
-    heapSettings.alloc = NEXUS_CoreModule_P_TraceAlloc;
-    heapSettings.free = NEXUS_CoreModule_P_TraceFree;
+    heapSettings.alloc = NEXUS_CoreModule_P_MemoryAlloc;
+    heapSettings.free = NEXUS_CoreModule_P_MemoryFree;
+    if (heap->settings.heapType & NEXUS_HEAP_TYPE_DTU) {
+        if (!g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu) {
+            BDTU_CreateSettings createSettings;
+            BDTU_GetDefaultCreateSettings(&createSettings);
+            createSettings.reg = reg;
+            createSettings.memcIndex = heap->settings.memcIndex;
+            createSettings.physAddrBase = g_NexusCore.publicHandles.memoryLayout.memc[heap->settings.memcIndex].region[0].addr;
+            rc = BDTU_Create(&g_NexusCore.publicHandles.memc[heap->settings.memcIndex].dtu, &createSettings);
+            if (rc!=BERR_SUCCESS) { rc=BERR_TRACE(rc); goto error; }
+        }
+
+        heapSettings.minAlignment = 2*1024*1024;
+    }
     heapSettings.mmapStateSize = sizeof(struct NEXUS_MemoryMapNode);
     heapSettings.flags.silent = (pSettings->memoryType & NEXUS_MEMORY_TYPE_DYNAMIC)==NEXUS_MEMORY_TYPE_DYNAMIC;
 
@@ -335,6 +442,7 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_Memory
     rc = BMMA_Heap_Create(&heap->mmaHeap, g_NexusCore.publicHandles.mma, &heapSettings);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
 
+#if !BMEM_DEPRECATED
     BMMA_Bmem_GetDefaultSettings(&bmemSettings);
     bmemSettings.length = pSettings->length;
     bmemSettings.flush_cache = NEXUS_FlushCache;
@@ -351,9 +459,12 @@ NEXUS_HeapHandle NEXUS_Heap_Create_priv( unsigned index, const NEXUS_Core_Memory
     }
     rc = BMMA_Bmem_Attach(heap->mmaHeap, g_NexusCore.publicHandles.mem, &heap->memHeap, &bmemSettings);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto error; }
+#endif /* BMEM_DEPRECATED */
 #endif /* BMMA_USE_STUB */
 
+#if !BMEM_DEPRECATED
     g_NexusCore.publicHandles.heap[index].mem = heap->memHeap;
+#endif
     g_NexusCore.publicHandles.heap[index].mma = heap->mmaHeap;
 
 skip_bmem:
@@ -391,12 +502,16 @@ static void NEXUS_Heap_P_Finalizer( NEXUS_HeapHandle heap )
     }
 #else
     if(heap->mmaHeap) {
+#if !BMEM_DEPRECATED
         BMMA_Bmem_Detach(heap->memHeap);
+#endif
         BMMA_Heap_Destroy(heap->mmaHeap);
     }
 #endif
     g_NexusCore.publicHandles.heap[heap->index].nexus = NULL;
+#if !BMEM_DEPRECATED
     g_NexusCore.publicHandles.heap[heap->index].mem = NULL;
+#endif
     g_NexusCore.publicHandles.heap[heap->index].mma = NULL;
     NEXUS_OBJECT_DESTROY(NEXUS_Heap, heap);
     BKNI_Free(heap);
@@ -581,11 +696,19 @@ NEXUS_Error NEXUS_Memory_P_ConvertAlignment(unsigned alignment, unsigned *pAlign
     return 0;
 }
 
+#if !BMEM_DEPRECATED
 BMEM_Heap_Handle NEXUS_Heap_GetMemHandle( NEXUS_HeapHandle heap  )
 {
     BDBG_OBJECT_ASSERT(heap, NEXUS_Heap);
     return heap->memHeap;
 }
+#else
+void *NEXUS_Heap_GetMemHandle(NEXUS_HeapHandle heap)
+{
+    BDBG_OBJECT_ASSERT(heap, NEXUS_Heap);
+    return NULL;
+}
+#endif
 
 BMMA_Heap_Handle NEXUS_Heap_GetMmaHandle( NEXUS_HeapHandle heap  )
 {
@@ -1117,7 +1240,7 @@ static NEXUS_Error NEXUS_MemoryBlock_P_Lock(NEXUS_MemoryBlockHandle block, void 
     BERR_Code rc = NEXUS_MemoryBlock_LockOffset(block, &addr);
     if (rc) {rc = BERR_TRACE(rc); goto err_lockoffset;}
     if ((block->heap->settings.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
-        ptr = NEXUS_Platform_P_MapMemory(addr, block->size, NEXUS_MemoryMapType_eCached);
+        ptr = NEXUS_Platform_P_MapMemory(addr, block->size, NEXUS_AddrType_eCached);
         if (!ptr) {rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); goto err_map;}
     }
     else {
@@ -1135,7 +1258,7 @@ err_lockoffset:
 static void NEXUS_MemoryBlock_P_Unlock(NEXUS_MemoryBlockHandle block, void *ptr)
 {
     if ((block->heap->settings.memoryType & NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) == NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED) {
-        NEXUS_Platform_P_UnmapMemory(ptr, block->size, NEXUS_MemoryMapType_eCached);
+        NEXUS_Platform_P_UnmapMemory(ptr, block->size, NEXUS_AddrType_eCached);
     }
     NEXUS_MemoryBlock_UnlockOffset(block);
     return;
@@ -1279,6 +1402,19 @@ NEXUS_HeapHandle NEXUS_Heap_Lookup(NEXUS_HeapLookupType lookupType)
     }
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         if (g_pCoreHandles->heap[i].nexus && g_pCoreHandles->heap[i].nexus->settings.heapType == heapType) {
+            return g_pCoreHandles->heap[i].nexus;
+        }
+    }
+    return NULL;
+}
+
+NEXUS_HeapHandle NEXUS_Heap_LookupForOffset_isrsafe(NEXUS_Addr offset)
+{
+    unsigned i;
+    for (i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if (g_pCoreHandles->heap[i].nexus &&
+            g_pCoreHandles->heap[i].nexus->settings.offset <= offset &&
+            g_pCoreHandles->heap[i].nexus->settings.offset + g_pCoreHandles->heap[i].nexus->settings.length > offset) {
             return g_pCoreHandles->heap[i].nexus;
         }
     }

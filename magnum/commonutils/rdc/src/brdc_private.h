@@ -53,19 +53,13 @@ extern "C" {
 /***************************************************************************
  * Defines
  ***************************************************************************/
-#if defined(BCHP_HIF_MSAT_REG_START) /* MSAT is hw atomizer for 64-bit register access from 32-bit host */
-#define BRDC_P_64BIT_SUPPORT                    1
-#else
-#define BRDC_P_64BIT_SUPPORT                    0
-#endif
-
 #define BRDC_P_Read32(hRdc, reg)                BREG_Read32(hRdc->hReg, reg)
 #define BRDC_P_Write32(hRdc, reg, data)         BREG_Write32(hRdc->hReg, reg, data)
 
 #define BRDC_Slot_P_Read32(hSlot, reg)          BRDC_P_Read32(hSlot->hRdc, reg)
 #define BRDC_Slot_P_Write32(hSlot, reg, data)   BRDC_P_Write32(hSlot->hRdc, reg, data)
 
-#if BRDC_P_64BIT_SUPPORT /* 64-bit support */
+#if BRDC_64BIT_SUPPORT /* 64-bit support */
 #define BRDC_P_ADDR_PTR(ptr)                    (uint64_t*)(ptr)
 #define BRDC_P_ADDR_OFFSET(offset)              ((uint64_t)(offset))
 
@@ -141,7 +135,7 @@ Description:
 
     /* the first 32 scratch registers are reserved for RDC slot execution tracking */
     #define BRDC_P_SCRATCH_REG_START   (0)
-    #if BRDC_P_64BIT_SUPPORT /* 64-bit RDC has separate 64-bit scratch registers */
+    #if BRDC_64BIT_SUPPORT /* 64-bit RDC has separate 64-bit scratch registers */
     #define BRDC_P_SCRATCH_REG_END     (BCHP_RDC_scratch64_i_ARRAY_END - BRDC_P_NUM_OF_SCRATCH_FOR_VBI)
 
     #define BRDC_P_SCRATCH_REG_ADDR(varx) \

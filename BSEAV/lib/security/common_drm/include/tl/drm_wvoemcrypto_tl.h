@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -63,7 +63,7 @@ static const size_t WVCDM_MAC_KEY_SIZE = 32;
 #define SHA256_DIGEST_SIZE         (32)
 #define DRM_WVOEMCRYPTO_SHA256_DIGEST_LENGTH    32
 
-#define DRM_WVOEMCRYPTO_NUM_KEY_SLOT 2
+#define DRM_WVOEMCRYPTO_NUM_KEY_SLOT 3
 
 typedef struct Drm_WVOemCryptoParamSettings_t
 {

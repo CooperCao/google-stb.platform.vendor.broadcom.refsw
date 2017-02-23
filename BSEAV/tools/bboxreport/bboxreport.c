@@ -1,43 +1,41 @@
 /******************************************************************************
-* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-*
-* This program is the proprietary software of Broadcom and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_core_utils.h"
 #include "nexus_surface.h"
@@ -810,6 +808,7 @@ int main(
     }
 
     printf( "Content-type: text/html\n\n" );
+    BDBG_LOG(( "%s:%u CGI BEGINNING ================================================", argv[0], __LINE__ ));
     fflush( stdout ); fflush( stderr );
     /*printf( "argc %d; NEXUS_PLATFORM %u; NEXUS_MAX_MEMC %d; NEXUS_NUM_MEMC %d \n", argc, NEXUS_PLATFORM, NEXUS_MAX_MEMC, NEXUS_NUM_MEMC );*/
 
@@ -895,8 +894,11 @@ int main(
         #endif
         BKNI_Memset( strTemp, 0, sizeof( strTemp ));
         NEXUS_Platform_GetReleaseVersion( strTemp, sizeof( strTemp )); /* returns platform, chip_ver, and ursr version */
-        sprintf( boxmodeTableHtml, "<h2>BoxMode Summary for %s (Variant %s)</h2><h3 id=SUPPORTED_CODECS >Supported Codecs: </h3><table style=\"border-collapse:collapse;\" >"
-                                   "<tr bgcolor=\"lightgray\" ><th class=border >BOX MODE</th><th class=border width=50 >PIP</th>", strTemp, getProductIdStr() );
+        sprintf( boxmodeTableHtml, "<table border=0 style=\"border-collapse:collapse;\" ><tr>"
+                 "<td><span style=\"font-size:24pt;font-weight:bold;\" >BoxMode Summary for %s (Variant %s)</span></td>"
+                 "<td><span id=COMPLETION_PCT style=\"color:red;font-size:16pt;font-weight:bold;\" ></span></td></tr></table>"
+                 "<span id=SUPPORTED_CODECS style=\"font-size:16pt;font-weight:bold;\" ></span><br>&nbsp;<table style=\"border-collapse:collapse;\" >"
+                 "<tr bgcolor=\"lightgray\" ><th class=border >BOX MODE</th><th class=border width=50 >PIP</th>", strTemp, getProductIdStr() );
         for (i = 0; i<NEXUS_MAX_VIDEO_DECODERS; i++)
         {
             sprintf( strTemp, "<th class=border width=100 >DECODE %u</th>", i );

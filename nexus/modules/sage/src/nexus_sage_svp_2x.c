@@ -450,6 +450,7 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
     NEXUS_Error rc = NEXUS_SUCCESS;
 
     NEXUS_LockModule();
+    uint32_t coreListSize=sizeof(*pCoreList);
 
 #ifdef NEXUS_SAGE_SVP_TEST
     NEXUS_Sage_P_SecureCores_test(pCoreList, true);
@@ -484,9 +485,10 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
         goto EXIT;
     }
 
+    coreListSize-=(2*sizeof(__typeof__(pCoreList->aeCores[0])));
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     BKNI_Memcpy(lHandle->pCoreList, pCoreList, sizeof(*pCoreList));
-    lHandle->sageContainer->blocks[0].len = sizeof(*pCoreList);
+    lHandle->sageContainer->blocks[0].len = coreListSize;
     lHandle->sageContainer->basicIn[0]=SECURE_VIDEO_VER_ID;
     lHandle->sageContainer->basicIn[1]=true;
     lHandle->sageContainer->blocks[0].data.ptr = lHandle->pCoreList;
@@ -512,6 +514,7 @@ EXIT:
 void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
+    uint32_t coreListSize=sizeof(*pCoreList);
 
     NEXUS_LockModule();
 
@@ -548,9 +551,10 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
         goto EXIT;
     }
 
+    coreListSize-=(2*sizeof(__typeof__(pCoreList->aeCores[0])));
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     BKNI_Memcpy(lHandle->pCoreList, pCoreList, sizeof(*pCoreList));
-    lHandle->sageContainer->blocks[0].len = sizeof(*pCoreList);
+    lHandle->sageContainer->blocks[0].len = coreListSize;
     lHandle->sageContainer->basicIn[0]=SECURE_VIDEO_VER_ID;
     lHandle->sageContainer->basicIn[1]=false;
     lHandle->sageContainer->blocks[0].data.ptr = lHandle->pCoreList;

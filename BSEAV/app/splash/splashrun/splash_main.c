@@ -48,6 +48,7 @@
 #include "bint.h"
 
 #include "nexus_platform.h"
+#include "nexus_base_mmap.h"
 #ifndef debug_only
 #include "priv/nexus_core.h"
 #endif

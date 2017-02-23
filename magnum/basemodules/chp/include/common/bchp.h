@@ -368,9 +368,9 @@ See Also:
  *  BCHP_FIELD_CONST_ENUM
  *
  */
-#if ((BCHP_DEBUG_OVERFLOW < 0) || (BCHP_DEBUG_OVERFLOW > 2))
+#if defined(BCHP_DEBUG_OVERFLOW) && ((BCHP_DEBUG_OVERFLOW < 0) || (BCHP_DEBUG_OVERFLOW > 2))
     #error "BCHP_DEBUG_OVERFLOW must be 0, 1, 2, or <undefined>"
-#elif (BCHP_DEBUG_OVERFLOW == 2)
+#elif defined(BCHP_DEBUG_OVERFLOW) && (BCHP_DEBUG_OVERFLOW == 2)
 #define BCHP_FIELD_CONST_DATA(Register,Field,Data)                             \
     1 /                                                                        \
         ((uint64_t)(Data) <=                                                   \
@@ -378,7 +378,7 @@ See Also:
                 BCHP_SHIFT(Register,Field)))
 #define BCHP_FIELD_DATA(Register,Field,Data)                                   \
     (((uint64_t)(Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
-#elif (BCHP_DEBUG_OVERFLOW == 1)
+#elif defined(BCHP_DEBUG_OVERFLOW) && (BCHP_DEBUG_OVERFLOW == 1)
 #define BCHP_FIELD_DATA(Register,Field,Data)                                   \
     (                                                                          \
         (BDBG_ASSERT (                                                         \
@@ -1083,6 +1083,19 @@ bool BCHP_OffsetOnMemc(
     BSTD_DeviceOffset offset,
     unsigned memcIndex
     );
+
+typedef struct BCHP_MemClientConfig
+{
+   bool roundRobinEn;
+   unsigned blockout;
+}BCHP_MemClientConfig;
+
+BERR_Code BCHP_GetMemcClientConfig(
+   BCHP_Handle hChp,
+   unsigned memcIndex,
+   unsigned clientIndex,
+   BCHP_MemClientConfig *cfg
+   );
 
 #endif /* ! __ASSEMBLY__ */
 

@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -114,37 +114,33 @@ BERR_Code BDSP_Arm_P_GetMsg(
     );
 
 BERR_Code BDSP_Arm_P_GetAlgorithmSettings(
-    BMEM_Handle             hHeap,
     BDSP_Algorithm          eAlgorithm,
-    void                   *pConfigBufAddr,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory        *pMemory,
     uint32_t                ui32ConfigBufSize,    /* [in] Config Buf Size */
     void                   *pSettingsBuffer,
     size_t                  settingsBufferSize
     );
 
 BERR_Code BDSP_Arm_P_SetAlgorithmSettings(
-    BMEM_Handle             hHeap,
     BDSP_Algorithm          eAlgorithm,
-    void                   *pConfigBufAddr,    /* [in] Config Buf Address */
+    BDSP_MMA_Memory        *pMemory,
     uint32_t                ui32ConfigBufSize,    /* [in] Config Buf Size */
     const void             *pSettingsBuffer,
     size_t                  settingsBufferSize
     );
 
 BERR_Code BDSP_Arm_P_GetFrameSyncTsmStageConfigParams_isr(
-    BMEM_Handle     hHeap,
-    BDSP_Algorithm eAlgorithm,
-    void           *pConfigBufAddr,    /* [in] Config Buf Address */
-    uint32_t        ui32ConfigBufSize,     /* [in] Config Buf Size */
+	BDSP_Algorithm eAlgorithm,
+	BDSP_MMA_Memory *pConfigBuf,
+	uint32_t        ui32ConfigBufSize,     /* [in] Config Buf Size */
     void           *pSettingsBuffer,
     size_t          settingsBufferSize
     );
 
 BERR_Code BDSP_Arm_P_SetFrameSyncTsmStageConfigParams_isr(
-    BMEM_Handle         hHeap,
-    BDSP_Algorithm      eAlgorithm,
-    void               *pConfigBufAddr,    /* [in] Config Buf Address */
-    uint32_t            uiConfigBufSize,     /* [in] Config Buf Size */
+	BDSP_Algorithm		eAlgorithm,
+	BDSP_MMA_Memory *pConfigBuf,
+	uint32_t            uiConfigBufSize,     /* [in] Config Buf Size */
     const void         *pSettingsBuffer,
     size_t              settingsBufferSize
     );

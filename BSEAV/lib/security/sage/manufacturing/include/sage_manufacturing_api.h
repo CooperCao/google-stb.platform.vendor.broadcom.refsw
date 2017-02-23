@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,9 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
+ *
  ******************************************************************************/
+
 #ifndef SAGE_MANUFACTURING_API_H___
 #define SAGE_MANUFACTURING_API_H___
 
@@ -49,6 +50,7 @@
 #define EDRM_MASK       (0x02)
 #define ECC_MASK        (0x04)
 #define DTCP_IP_MASK    (0x08)
+#define MEDIAROOM_MASK  (0x10)
 
 /*define value used to indicated type of DRM bin file used in tool*/
 #define DRM_BIN_FILE_TYPE_3 (3)

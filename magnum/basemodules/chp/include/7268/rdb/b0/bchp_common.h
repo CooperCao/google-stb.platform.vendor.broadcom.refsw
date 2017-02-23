@@ -47,7 +47,7 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Tue Dec  6 16:16:16 2016
+ * Date:           Generated on               Tue Dec 13 10:38:07 2016
  *                 Full Compile MD5 Checksum  19d947b9ca8075283158749828f3af9b
  *                     (minus title and desc)
  *                 MD5 Checksum               e73b28b118a55eb7f41ab706fca72cfd
@@ -56,10 +56,10 @@
  * Compiled with:  RDB Utility                combo_header.pl
  *                 RDB.pm                     1139
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -74,6 +74,7 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2120c000 /* V3D_QPUDBG_0 is last */
 #define BCHP_REGISTER_SIZE                                 0x00483000 /* Number of registers */
+#define BCHP_REGISTER_HAS_READONLY                                  1 /* Has RO register list */
 #define BCHP_REGISTER_HAS_16_BIT                                    0 /* Has 16-bit wide register */
 #define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
 #define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */

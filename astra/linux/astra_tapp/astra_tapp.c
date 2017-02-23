@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -229,8 +229,8 @@ static int astra_tapp_info(void)
     /* get astra config */
     astra_config_get(&config);
 
-    LOGI("Astra shared  mem size: 0x%x", config.smemSize);
-    LOGI("Astra private mem size: 0x%x", config.pmemSize);
+    LOGI("Astra shared  mem size: 0x%zx", (size_t)config.smemSize);
+    LOGI("Astra private mem size: 0x%zx", (size_t)config.pmemSize);
 
     /* get astra status */
     astra_status_get(&status);
@@ -565,7 +565,7 @@ static int astra_tapp_msg_hello(void)
     }
 
     /* switch to TZOS */
-    astra_call_smc(ptapp->hClient, 0x7);
+    astra_call_smc(ptapp->hClient, 0x83000007);
 
     /* wait for rpy or timeout */
     timeout = 10;
@@ -663,7 +663,7 @@ static int astra_tapp_mem_alloc(void)
             pthread_mutex_unlock(&ptapp->msgLock);
 
             /* switch to TZOS */
-            astra_call_smc(ptapp->hClient, 0x7);
+            astra_call_smc(ptapp->hClient, 0x83000007);
 
             /* wait for rpy or timeout */
             timeout = 10;

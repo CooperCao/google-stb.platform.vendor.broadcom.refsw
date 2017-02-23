@@ -57,9 +57,9 @@ typedef struct BVC5_P_Fence
    struct Callback
    {
       uint32_t         uiClientId;                    /* owner of the callback         */
-      void           (*pfnCallback)(void *, void *);  /* pfnCallback(pContext, pParam) */
+      void           (*pfnCallback)(void *, uint64_t);/* pfnCallback(pContext, uiParam)*/
       void            *pContext;                      /* hVC5 or Nexus module handle   */
-      void            *pParam;                        /* Auxiliiary data e.g. hEvent   */
+      uint64_t         uiParam;                       /* Auxiliiary data e.g. hEvent   */
    } sCallback[MAX_FENCE_CALLBACKS];
 
    uint32_t            uiClientId;                     /* owner of the fence */
@@ -351,15 +351,15 @@ static struct Callback *BVC5_P_FenceCbEnd(BVC5_P_Fence *pFence)
 static struct Callback  *BVC5_P_FenceCbInit(
    struct Callback        *pCallback,
    uint32_t                uiClientId,
-   void                  (*pfnCallback)(void *, void *),
+   void                  (*pfnCallback)(void *, uint64_t),
    void                   *pContext,
-   void                   *pParam
+   uint64_t                uiParam
 )
 {
    pCallback->uiClientId = uiClientId;
    pCallback->pfnCallback = pfnCallback;
    pCallback->pContext = pContext;
-   pCallback->pParam = pParam;
+   pCallback->uiParam = uiParam;
    return pCallback;
 }
 
@@ -372,7 +372,7 @@ static bool BVC5_P_FenceCbMatch(
       (pLeft->uiClientId  == pRight->uiClientId) &&
       (pLeft->pfnCallback == pRight->pfnCallback) &&
       (pLeft->pContext    == pRight->pContext) &&
-      (pLeft->pParam      == pRight->pParam);
+      (pLeft->uiParam     == pRight->uiParam);
 }
 
 static struct Callback *BVC5_P_FenceFindCbMatch(
@@ -395,7 +395,7 @@ static struct Callback *BVC5_P_FenceFindCbMatch(
    return found;
 }
 
-static const struct Callback empty_cb = { 0, NULL, NULL, NULL };
+static const struct Callback empty_cb = { 0, NULL, NULL, 0 };
 
 static bool BVC5_P_FenceReplaceCb(
    BVC5_P_Fence           *pFence,
@@ -451,7 +451,7 @@ static void BVC5_P_FenceCallback(
    {
       if (cb->pfnCallback)
       {
-         cb->pfnCallback(cb->pContext, cb->pParam);
+         cb->pfnCallback(cb->pContext, cb->uiParam);
 
          /* don't call more than once */
          *cb = empty_cb;
@@ -495,9 +495,9 @@ int BVC5_P_FenceWaitAsync(
    BVC5_FenceArrayHandle   hFenceArr,
    uint32_t                uiClientId,
    int                     iFenceId,
-   void                  (*pfnCallback)(void *, void *),
+   void                  (*pfnCallback)(void *, uint64_t),
    void                   *pContext,
-   void                   *pParam,
+   uint64_t                uiParam,
    void                  **waitData
 )
 {
@@ -523,7 +523,7 @@ int BVC5_P_FenceWaitAsync(
       goto end;
    }
 
-   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, uiParam);
    if (!BVC5_P_FenceAddCb(pFence, &cb))
    {
       res = -1;
@@ -567,9 +567,9 @@ end:
 void BVC5_P_FenceWaitAsyncCleanup(
    BVC5_FenceArrayHandle  hFenceArr,
    uint32_t               uiClientId,
-   void                 (*pfnCallback)(void *, void *),
+   void                 (*pfnCallback)(void *, uint64_t),
    void                  *pContext,
-   void                  *pParam,
+   uint64_t               uiParam,
    void                  *waitData
 )
 {
@@ -589,7 +589,7 @@ void BVC5_P_FenceWaitAsyncCleanup(
       goto end;
    }
 
-   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, uiParam);
    BVC5_P_FenceDelCb(pFence, &cb);
 
    BVC5_P_FenceRefCountDec(pFence, hFenceArr);
@@ -603,9 +603,9 @@ void BVC5_P_FenceAddCallback(
    BVC5_FenceArrayHandle  hFenceArr,
    int                    iFenceId,
    uint32_t               uiClientId,
-   void                 (*pfnCallback)(void *, void *),
+   void                 (*pfnCallback)(void *, uint64_t),
    void                  *pContext,
-   void                  *pParam
+   uint64_t               uiParam
 )
 {
    BVC5_P_Fence   *pFence = NULL;
@@ -621,10 +621,10 @@ void BVC5_P_FenceAddCallback(
       goto end;
 
    if (pFence->bSignaled)
-      pfnCallback(pContext, pParam);
+      pfnCallback(pContext, uiParam);
    else
    {
-      BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+      BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, uiParam);
       BVC5_P_FenceAddCb(pFence, &cb);
    }
 
@@ -636,9 +636,9 @@ bool BVC5_P_FenceRemoveCallback(
    BVC5_FenceArrayHandle hFenceArr,
    int                   iFenceId,
    uint32_t              uiClientId,
-   void                (*pfnCallback)(void *, void *),
+   void                (*pfnCallback)(void *, uint64_t),
    void                 *pContext,
-   void                 *pParam
+   uint64_t              uiParam
 )
 {
    BVC5_P_Fence   *pFence = NULL;
@@ -651,7 +651,7 @@ bool BVC5_P_FenceRemoveCallback(
       goto end;
 
    signalled = pFence->bSignaled;
-   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, pParam);
+   BVC5_P_FenceCbInit(&cb, uiClientId, pfnCallback, pContext, uiParam);
    BVC5_P_FenceDelCb(pFence, &cb);
 
 end:

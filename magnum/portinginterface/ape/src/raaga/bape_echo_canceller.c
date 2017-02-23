@@ -41,11 +41,14 @@
 
 #include "bape.h"
 #include "bape_priv.h"
+#if BAPE_CHIP_HAS_POST_PROCESSING
 #include "bdsp_raaga.h"
+#endif
 
 BDBG_MODULE(bape_echo_canceller);
 BDBG_OBJECT_ID(BAPE_EchoCanceller);
 
+#if BAPE_CHIP_HAS_POST_PROCESSING
 /* static BDSP_Algorithm BAPE_EchoCanceller_P_GetType(BAPE_EchoCancellerAlgorithm algorithm); */
 static BERR_Code BAPE_EchoCanceller_P_ApplyDspSettings(BAPE_EchoCancellerHandle handle);
 static void BAPE_EchoCanceller_P_GetDefaultAlgorithmSettings(BAPE_EchoCancellerHandle handle);
@@ -704,3 +707,127 @@ static void BAPE_EchoCanceller_P_InitInterTaskDescriptors(BAPE_EchoCancellerHand
     BDBG_MSG(("%s: handle %p", __FUNCTION__, (void *)handle));
     BDSP_InterTaskBuffer_Flush(handle->hInterTaskBuffer);
 }
+#else
+void BAPE_EchoCanceller_GetDefaultSettings(
+    BAPE_EchoCancellerSettings *pSettings   /* [out] */
+    )
+{
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_EchoCanceller_Create(
+    BAPE_Handle deviceHandle,
+    const BAPE_EchoCancellerSettings *pSettings,
+    BAPE_EchoCancellerHandle *pHandle               /* [out] */
+    )
+{
+    BSTD_UNUSED(deviceHandle);
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pHandle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_EchoCanceller_Destroy(
+    BAPE_EchoCancellerHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+}
+
+void BAPE_EchoCanceller_GetSettings(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_EchoCancellerSettings *pSettings    /* [out] Settings */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_EchoCanceller_SetSettings(
+    BAPE_EchoCancellerHandle handle,
+    const BAPE_EchoCancellerSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_EchoCanceller_GetAlgorithmSettings(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_EchoCancellerAlgorithm algorithm,
+    BAPE_EchoCancellerAlgorithmSettings *pSettings  /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(algorithm);
+    BSTD_UNUSED(pSettings);
+}
+
+BERR_Code BAPE_EchoCanceller_SetAlgorithmSettings(
+    BAPE_EchoCancellerHandle handle,
+    const BAPE_EchoCancellerAlgorithmSettings *pSettings
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pSettings);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+void BAPE_EchoCanceller_GetConnector(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_Connector *pConnector   /* [out] */
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pConnector);
+}
+
+BERR_Code BAPE_EchoCanceller_AddLocalInput(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_EchoCanceller_RemoveLocalInput(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_Connector input
+    )
+{
+        BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_EchoCanceller_AddRemoteInput(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_EchoCanceller_RemoveRemoteInput(
+    BAPE_EchoCancellerHandle handle,
+    BAPE_Connector input
+    )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(input);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+
+BERR_Code BAPE_EchoCanceller_RemoveAllInputs(
+    BAPE_EchoCancellerHandle handle
+    )
+{
+    BSTD_UNUSED(handle);
+    return BERR_TRACE(BERR_NOT_SUPPORTED);
+}
+#endif

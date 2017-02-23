@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -260,12 +260,14 @@ BERR_Code BXPT_PCR_Open(
     BREG_Write32( hRegister, BCHP_XPT_DPCR0_CTRL + handle->RegOffset, Reg);
 
     /* This reg is shared by all DPCR instances, so init only on the first open. */
+#ifdef BXPT_P_JITTER_CORRECTION_FIX
     if( !hXpt->DpcrRefCount++ )
     {
         Reg = 0;
         Reg |=  BCHP_FIELD_DATA( XPT_DPCR_PP_PP_CTRL, PP_PLAYBACK_PCR_JITTER_DIS, 1 );
         BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_CTRL, Reg );
     }
+#endif
 
 #if BXPT_HAS_DPCR_INTEGRATOR_WORKAROUND
     handle->FiltB = RESET_FILTB;
@@ -306,10 +308,12 @@ BERR_Code BXPT_PCR_Close(
 
     lhXpt->PcrHandles[ hPcr->ChannelNo ] = ( void * ) NULL;
 
+#ifdef BXPT_P_JITTER_CORRECTION_FIX
     if( ! --lhXpt->DpcrRefCount )
     {
         BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_CTRL, 0 );
     }
+#endif
 
     /* set pid_valid_bit to 0 in case it is still active*/
     Reg = BREG_Read32(hRegister, BCHP_XPT_DPCR0_PID_CH  + hPcr->RegOffset);
@@ -379,6 +383,27 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
 
     BSTD_UNUSED( tempStreamSelect );
 
+    /* SWSTB-1525: Bug in the jitter correction hw. Recommended solution is to force a fixed offset of 0
+     * This overrided the jitter disable bits
+     * */
+#ifndef BXPT_P_JITTER_CORRECTION_FIX
+    BSTD_UNUSED(hXpt);
+    BSTD_UNUSED(JitterTimestamp);
+    BSTD_UNUSED(PbJitterDisable);
+    BSTD_UNUSED(LiveJitterDisable);
+    Reg = BREG_Read32(hRegister, BCHP_XPT_DPCR_PP_PP_CTRL );
+    Reg &= ~(
+        BCHP_MASK( XPT_DPCR_PP_PP_CTRL, PP_FIXED_OFFSET_EN )
+        );
+    Reg |= (
+        BCHP_FIELD_DATA( XPT_DPCR_PP_PP_CTRL, PP_FIXED_OFFSET_EN, 1 )
+        );
+    BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_CTRL, Reg );
+
+    BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_FIXED_OFFSET, 0 );
+#endif
+
+#ifdef BXPT_P_JITTER_CORRECTION_FIX
     if( PcrCfg->JitterTimestamp >= BXPT_PCR_JitterTimestampMode_eMax )
     {
         BDBG_ERR(( "Invalid jitter timestamp mode %u", PcrCfg->JitterTimestamp ));
@@ -421,6 +446,7 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
         BCHP_FIELD_DATA( XPT_DPCR_PP_PP_CTRL, PP_LIVE_PCR_JITTER_DIS, LiveJitterDisable )
         );
     BREG_Write32( hRegister, BCHP_XPT_DPCR_PP_PP_CTRL, Reg );
+#endif
 
     Reg = BREG_Read32(hRegister, BCHP_XPT_DPCR0_PID_CH  + hPcr->RegOffset);
     Reg &= ~(
@@ -459,7 +485,10 @@ BERR_Code   BXPT_PCR_SetStreamPcrConfig_isr(
     Reg |= BCHP_FIELD_DATA( XPT_DPCR0_PID_CH, PCR_PID_CH_VALID, 1 );
     BREG_Write32( hRegister, BCHP_XPT_DPCR0_PID_CH + hPcr->RegOffset, Reg);
 
+#ifdef BXPT_P_JITTER_CORRECTION_FIX
     Done:
+#endif
+
     hPcr->pidChnlConfigured = true;
     BDBG_LEAVE(BXPT_PCR_SetStreamPcrConfig_isr);
 

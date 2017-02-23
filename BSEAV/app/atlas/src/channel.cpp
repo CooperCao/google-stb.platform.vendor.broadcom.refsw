@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -404,21 +404,22 @@ eRet CChannel::getChannelInfo(
 {
     BERR_Code     err            = BERR_SUCCESS;
     CParserBand * pBand          = getParserBand();
-    int           patTimeout     = 50; /* in tsPsi_setTimeout2() this is 500msecs */
+    int           patTimeout     = 50; /* in tsPsi_setTimeout() this is 500msecs */
     int           patTimeoutOrig = 0;
-    int           pmtTimeout     = 50; /* in tsPsi_setTimeout2() this is 500msecs */
+    int           pmtTimeout     = 50; /* in tsPsi_setTimeout() this is 500msecs */
     int           pmtTimeoutOrig = 0;
 
     if (NULL == pBand)
     {
         return(eRet_NotAvailable);
     }
-#ifdef MPOD_SUPPORT
 
     if (true == bScanning)
     {
+#ifdef MPOD_SUPPORT
         patTimeout = 800;
         pmtTimeout = 800;
+#endif
         /* adjust pat/pmt timeouts for faster scanning */
         tsPsi_getTimeout(&patTimeoutOrig, &pmtTimeoutOrig);
         tsPsi_setTimeout(patTimeout, pmtTimeout);
@@ -430,22 +431,6 @@ eRet CChannel::getChannelInfo(
         /* restore default pat/pmt timeouts */
         tsPsi_setTimeout(patTimeoutOrig, pmtTimeoutOrig);
     }
-#else /* ifdef MPOD_SUPPORT */
-    if (true == bScanning)
-    {
-        /* adjust pat/pmt timeouts for faster scanning */
-        tsPsi_getTimeout2(&patTimeoutOrig, &pmtTimeoutOrig);
-        tsPsi_setTimeout2(patTimeout, pmtTimeout);
-    }
-
-    err = tsPsi_getChannelInfo2(pChanInfo, pBand->getBand());
-
-    if (true == bScanning)
-    {
-        /* restore default pat/pmt timeouts */
-        tsPsi_setTimeout2(patTimeoutOrig, pmtTimeoutOrig);
-    }
-#endif /* ifdef MPOD_SUPPORT */
     return((BERR_SUCCESS == err) ? eRet_Ok : eRet_ExternalError);
 } /* getChannelInfo */
 

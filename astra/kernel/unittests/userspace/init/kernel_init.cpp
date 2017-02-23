@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,6 +52,8 @@
 
 #include "system.h"
 
+extern "C" void tzKernelSecondary();
+
 #define assert(cond) if (!(cond)) { err_msg("%s:%d - Assertion failed", __PRETTY_FUNCTION__, __LINE__); while (true) {} }
 
 static WaitQueue wq;
@@ -74,8 +76,8 @@ int idleTask(void *task, void *ctx) {
     UNUSED(ctx);
 
     printf("starting idler\n");
-    asm volatile("cpsie aif":::);
-
+    ARCH_SPECIFIC_ENABLE_INTERRUPTS;
+    ARCH_SPECIFIC_MEMORY_BARRIER;
     while (true) {
         asm volatile("wfi": : :);
     }
@@ -84,9 +86,10 @@ int idleTask(void *task, void *ctx) {
 }
 
 int testTask(void *task, void *ctx) {
+    UNUSED(ctx);
 
     printf("starting test task\n");
-    UNUSED(ctx);
+
 
     wq.init();
 
@@ -96,7 +99,7 @@ int testTask(void *task, void *ctx) {
         unsigned long freq = TzHwCounter::frequency();
         TzTimers::create(now+freq, timerFired, nullptr);
 
-        printf("await: task %p\n", task);
+        printf("wait for task %p to awake\n", task);
         wq.wait((TzTask *)task);
         printf("woken up\n");
 
@@ -115,6 +118,11 @@ void tzKernelInit(const void *devTree) {
 
     printf("%s: User space tests\n", __FUNCTION__);
 
+    if (arm::smpCpuNum() != 0) {
+        tzKernelSecondary();
+        return;
+    }
+
     System::init(devTree);
 
     IDirectory *root = System::root();
@@ -125,10 +133,11 @@ void tzKernelInit(const void *devTree) {
     assert(rc == 0);
     assert(dir == nullptr);
     printf("%s: resolved user.elf\n", __FUNCTION__);
+    char *argv[2] = {(char *)"user.elf", (char *)NULL};
 
     idler = new TzTask(idleTask, nullptr, 10, "idler");
     testT = new TzTask(testTask, nullptr, 50, "testT");
-    userT = new TzTask(userFile, 50, dir, "userT");
+    userT = new TzTask(userFile, 50, dir, "userT", NULL, argv, argv);
 
     assert(idler);
     assert(testT);
@@ -139,7 +148,16 @@ void tzKernelInit(const void *devTree) {
     Scheduler::addTask(testT);
     Scheduler::addTask(userT);
 
-    asm volatile("cpsid if":::);
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
+
+    schedule();
+}
+
+void tzKernelSecondary() {
+
+    System::initSecondaryCpu();
+
+    ARCH_SPECIFIC_DISABLE_INTERRUPTS;
 
     schedule();
 }

@@ -48,8 +48,22 @@ extern "C" {
 
 #include "bmrc.h"
 #include "bint.h"
-#include "bmem.h"
 #include "bmma_types.h"
+
+/***************************************************************************
+Description:
+This structure is used to describe interface used to monitor memory  allocations and deallocations in a heap. This interface provides
+alloc and free hooks which will be called after when block is allocated or freed from the heap.
+Single interface could be used to monitor several heaps.
+
+****************************************************************************/
+typedef struct BMRC_MonitorInterface
+{
+	void *cnxt; /*  User specified context */
+	void (*alloc)(void *cnxt, BSTD_DeviceOffset addr, size_t size, const char *fname, int line); /* callback function called when new block was allocated */
+	void (*free)(void *cnxt, BSTD_DeviceOffset addr); /* callback function called when block was deallocated */
+} BMRC_MonitorInterface;
+
 
 /*=Module Overview: ********************************************************
 BMRC_Monitor provides a way to monitor which hardware clients access certain blocks of memory.
@@ -252,7 +266,7 @@ Returns:
 BERR_Code
 BMRC_Monitor_GetMemoryInterface(
 		BMRC_Monitor_Handle hMonitor, /* Instance of the memory monitor */
-		BMEM_MonitorInterface *pInterface /* [out] memory interface */
+		BMRC_MonitorInterface *pInterface /* [out] memory interface */
 		);
 
 /***************************************************************************

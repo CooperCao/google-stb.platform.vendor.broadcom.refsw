@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -3062,6 +3062,62 @@ BXDM_PictureProvider_GetDebugFifo(
    }
 
    return BERR_TRACE( rc );
+}
+
+/*
+ * SWSTB-3450: support for passing start parameters directly to BXDM_PictureProvider_Start_isr
+ */
+BERR_Code
+BXDM_PictureProvider_GetDefaultStartSettings_isrsafe(
+   BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_StartSettings * pstStartSettings
+)
+{
+   BSTD_UNUSED(hXdmPP);
+   BDBG_ASSERT(pstStartSettings);
+
+   BKNI_Memset( pstStartSettings , 0, sizeof( BXDM_PictureProvider_StartSettings ));
+
+   /* Disabled by the default. */
+   pstStartSettings->stColorOverride.eOverrideMode = BXDM_PictureProvider_ColorOverrideMode_eNone;
+
+   /* initialize the color override SDR parameters. */
+   pstStartSettings->stColorOverride.stSDR.eTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+
+   /* initialize the color override HDR parameters. */
+   pstStartSettings->stColorOverride.stHDR.eTransferCharacteristics = BAVC_TransferCharacteristics_eUnknown;
+   pstStartSettings->stColorOverride.stHDR.ulAvgContentLight    = 0;
+   pstStartSettings->stColorOverride.stHDR.ulMaxContentLight    = 0;
+   pstStartSettings->stColorOverride.stHDR.stDisplayPrimaries[0].ulX    = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stDisplayPrimaries[0].ulY    = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stDisplayPrimaries[1].ulX    = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stDisplayPrimaries[1].ulY    = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stDisplayPrimaries[2].ulX    = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stDisplayPrimaries[2].ulY    = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stWhitePoint.ulX             = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.stWhitePoint.ulY             = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.ulMaxDispMasteringLuma       = 0xFFFFFFFF;
+   pstStartSettings->stColorOverride.stHDR.ulMinDispMasteringLuma       = 0xFFFFFFFF;
+
+   return BERR_SUCCESS;
+
+}
+
+/*
+ * SWSTB-3450: support for passing stop parameters directly to BXDM_PictureProvider_Stop_isr
+ */
+BERR_Code
+BXDM_PictureProvider_GetDefaultStopSettings_isrsafe(
+   BXDM_PictureProvider_Handle hXdmPP,
+   BXDM_PictureProvider_StopSettings * pstStopSettings
+)
+{
+   BSTD_UNUSED(hXdmPP);
+   BDBG_ASSERT(pstStopSettings);
+
+   BKNI_Memset( pstStopSettings , 0, sizeof( BXDM_PictureProvider_StopSettings ));
+
+   return BERR_SUCCESS;
 }
 
 /*

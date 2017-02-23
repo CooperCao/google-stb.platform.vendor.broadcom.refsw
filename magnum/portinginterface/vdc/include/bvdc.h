@@ -2012,6 +2012,279 @@ typedef struct
 
 }BVDC_Heap_Settings;
 
+
+/***************************************************************************
+Summary:
+    This structure describes memory configuration settings for VIP.
+
+Description:
+    max w/h/interlaced affects memory allocation size.
+See Also:
+    BVDC_DispMemConfigSettings
+***************************************************************************/
+typedef struct BVDC_VipMemConfigSettings
+{
+    unsigned               ulMemcId;
+    uint32_t               ulMaxWidth;
+    uint32_t               ulMaxHeight;
+    bool                   bSupportInterlaced;
+} BVDC_VipMemConfigSettings;
+
+/***************************************************************************
+Summary:
+    This structure describes memory configuration settings for VDC window.
+
+Description:
+    bUsed - Indicate if this window is used or not
+    memcIndex - Defines MEMC index
+    eMaxSourceFormat - Defines maximum source format
+    ePixelFormat - Defines pixel format: 8-bit 422 or 10-bit 422
+
+    Enable any one of the following flags will increase capture buffer
+    count to 2:
+    bMosaicMode - Defines mosaic mode, can be enabled by calling
+        BVDC_Window_SetMosaicConfiguration
+    b3DMode - Defines 3D mode, can be enabled by calling
+        BVDC_Display_SetOrientation or BVDC_Source_SetOrientation
+    bPsfMode - Defines Psf mode, can be enabled by calling
+        BVDC_Source_SetPsfMode. Enable Psf mode will also enable frame
+        capture
+    bSideBySide - Defines side by side, can be enabled by calling
+        BVDC_Window_SetDstRect
+    bPip - Defines picture in graphics or picture in picture, can be
+        enabled by calling BVDC_Window_SetDstRect. Enable this flag
+        will make buffer size 1/4 of full size.
+    bSmoothScaling - Defines smooth scaling, can be enabled by calling
+        BVDC_Window_SetBandwidthEquationParams
+    bBoxDetect - Defines Letter box detection, can be enabled by calling
+        BVDC_Window_EnableBoxDetect
+    bArbitraryCropping - Defines arbitrary cropping mode, can be enabled
+        by calling BVDC_Window_SetPanScanType, BVDC_Window_SetAspectRatioMode,
+        BVDC_Window_SetSrcClip
+    bIndependentCropping - Defines independent cropping on HD/SD mode,
+        can be enabled by BVDC_Window_SetSrcClip.
+
+    Enable any one of the following flags will increase capture buffer
+    count to 4:
+
+    bNonMfdSource - Defines non-mfd/vfd source, can be enabled by selecting
+        HD_DVI, 656, or mfd/vfd (with MTG enabled,
+        BVDC_Source_Settings.eMtgMode) source.
+
+    bSyncSlip - Defines sync slip mode, can be enabled by selecting non
+        MFD/VFD source or slaved window for MFD/VFD source
+
+    bLipsync - Defines lip sync, can be enabled by calling
+        BVDC_Window_SetDelayOffset. Enable this flag will increase
+        capture buffer count by 1
+
+    b5060Convert - Defines 50 <-> 60 conversion, can be enabled by
+        selecting different frame rate for source and display. Enable
+        this flag will increase capture buffer count by 1
+
+    bSlave_24_25_30_Display - Defines special frame capture on SD display,
+        can be enabled by slave to 24/25/30 HD display.  Enable this
+        flag or bPsfMode will enable frame capture
+
+    eDeinterlacerMode - Defines deinterlacer, can be enabled by calling
+        BVDC_Window_SetDeinterlaceConfiguration. Set this value will
+        add deinterlacer buffer counts to final buffer counts
+
+    ulAdditionalBufCnt - Defines additional capture buffer count, can be used
+        for delay offset or transcoding buffers
+
+***************************************************************************/
+typedef struct
+{
+    bool                   bUsed;
+
+    /* MEMC settings for capture */
+    uint32_t               ulMemcIndex;
+    /* MEMC settings for deinterlacer */
+    uint32_t               ulMadMemcIndex;
+
+    /* Source settings */
+    BFMT_VideoFmt          eMaxSourceFormat;
+    bool                   bNonMfdSource;
+
+    /* Window settings */
+    bool                   bMosaicMode;
+    bool                   b3DMode;
+    bool                   bPsfMode;
+    bool                   bSideBySide;
+    bool                   bPip;
+    /* DME: not needed. if stWindow[1] is used, we have PIP. or is this more like "max size"?
+    same with bSideBySide. */
+    bool                   bSmoothScaling;
+    bool                   bBoxDetect;
+    /* TODO: bool          bMfdTriggering  */
+    bool                   bArbitraryCropping;
+    bool                   bIndependentCropping;
+
+    bool                   bSyncSlip;
+
+    bool                   bLipsync;
+    bool                   b5060Convert;
+    bool                   bSlave_24_25_30_Display;
+
+    BVDC_DeinterlacerMode  eDeinterlacerMode;
+
+    uint32_t               ulAdditionalBufCnt;
+
+} BVDC_WinMemConfigSettings;
+
+/***************************************************************************
+Summary:
+    This structure describes memory configuration settings for VDC display.
+
+Description:
+    bUsed - Indicate if this display is used or not
+    eMaxDisplayFormat - Maximum display format
+    vip - Defines VIP memory configuration settings
+    stWindow - Defines memory configuration settings per video
+        window. Default setting: MFD/VFD source, sync locked full screen only,
+        no deinterlacer: 0 capture buffers, 0 deinterlacer buffers
+    cfc - Defines CMP & GFD CFC (Color Format Converter) memory configuration
+        settings
+
+See Also:
+    BVDC_Heap_Settings
+    BVDC_WinMemConfigSettings
+    BVDC_GetDefaultMemConfigSettings
+    BVDC_GetMemoryConfiguration
+***************************************************************************/
+typedef struct
+{
+    /* Display settings */
+    bool                       bUsed;
+    BFMT_VideoFmt              eMaxDisplayFormat;
+
+    /* Memory config settings for new soft transcoder VIP heap */
+    struct {
+        bool                      bUsed;
+        BCHP_MemoryInfo          *pstMemoryInfo; /* memory stripe parameters dependent */
+        BVDC_VipMemConfigSettings stCfgSettings;
+    } vip;
+
+    /* Memory config settings for all windows on the display */
+    BVDC_WinMemConfigSettings  stWindow[BVDC_MAX_VIDEO_WINDOWS];
+
+    /* MEMC settings for CMP & GFD CFC */
+    struct {
+        bool                      bUsed;
+        uint32_t                  ulCmpMemcIndex;
+        uint32_t                  ulGfdMemcIndex;
+    } cfc;
+
+} BVDC_DispMemConfigSettings;
+
+/***************************************************************************
+Summary:
+    This structure describes memory configuration settings for RDC.
+
+Description:
+    memcIndex - Defines MEMC index
+
+See Also:
+    BVDC_Heap_Settings
+    BVDC_WinMemConfigSettings
+    BVDC_DispMemConfigSettings
+    BVDC_GetDefaultMemConfigSettings
+    BVDC_GetMemoryConfiguration
+***************************************************************************/
+typedef struct
+{
+    /* MEMC settings */
+    uint32_t            ulMemcIndex;
+
+} BVDC_RdcMemConfigSettings;
+
+
+/***************************************************************************
+Summary:
+    This structure describes VDC memory configuration settings.
+
+Description:
+    stHeapSettings - Defines size of VDC buffers in each category. Only need
+        to set pixel format and buffer format: ePixelFormat_4HD, eBufferFormat_4HD,
+        ePixelFormat_2HD, eBufferFormat_2HD, ePixelFormat_HD, eBufferFormat_HD,
+        ePixelFormat_SD and eBufferFormat_SD
+
+    stDisplay - Defines memory configuration settings per display
+    stRdc - Defines memory configuration settings for RDC
+    hdmiDisplayCfc - Defines HDMI display CFC(Color Format Converter)
+        memory configuration settings
+
+See Also:
+    BVDC_Heap_Settings
+    BVDC_DispMemConfigSettings
+    BVDC_GetDefaultMemConfigSettings
+    BVDC_GetMemoryConfiguration
+***************************************************************************/
+typedef struct
+{
+    BVDC_Heap_Settings          stHeapSettings;
+
+    /* Memory config settings for all displays */
+    BVDC_DispMemConfigSettings  stDisplay[BVDC_MAX_DISPLAYS];
+
+    /* Memory config settings for RDC */
+    BVDC_RdcMemConfigSettings   stRdc;
+
+    /* Memc Index for hdmi display CFC */
+    struct {
+        bool                    bUsed;
+        uint32_t                aulMemcIndex;
+    } hdmiDisplayCfc[BBOX_VDC_HDMI_DISPLAY_COUNT];
+
+} BVDC_MemConfigSettings;
+
+/***************************************************************************
+Summary:
+    This structure describes VDC memory configuration.
+
+Description:
+    stMemc - Defines VDC memory configuration per memc.
+
+        ulSize - Defines total size (byte) of VDC buffers on specific memc.
+        stHeapSettings - Defines size and count of VDC buffers in each category
+            on specific memc
+        ulRulSize - Combined RDC (Regisger DMA Controller) RUL (Regisgter Update List)
+            memory and CFC (Color Format Converter) command list driver heap size.
+        ulVipSize - VIP (Video Input Processor) picture memory size for new soft transcoder.
+
+    stDisplay - Defines VDC memory configuration per display.
+        stWindow - Defines VDC memory configuration per window.
+            ulCapSize - Defines total size (byte) of VDC capture buffers for
+                specific window.
+            ulMadSize - Defines total size (byte) of VDC deinterlacer buffers
+                for specific window.
+            stCapHeapSettings - Defines size and count of VDC capture buffers
+                in each category for specific window
+            stMadHeapSettings - Defines size and count of VDC deinterlacer
+                buffers in each category for specific window
+
+***************************************************************************/
+typedef struct BVDC_MemConfig
+{
+    struct {
+        uint32_t           ulSize;
+        uint32_t           ulRulSize;
+        uint32_t           ulVipSize; /* for VIP heap allocation */
+        BVDC_Heap_Settings stHeapSettings;
+    } stMemc[BVDC_MAX_MEMC];
+
+    struct {
+        struct {
+            uint32_t             ulCapSize;
+            uint32_t             ulMadSize;
+            BVDC_Heap_Settings   stCapHeapSettings;
+            BVDC_Heap_Settings   stMadHeapSettings;
+        } stWindow[BVDC_MAX_VIDEO_WINDOWS];
+    } stDisplay[BVDC_MAX_DISPLAYS];
+
+} BVDC_MemConfig;
+
 /***************************************************************************
 Summary:
     This structure describes the settings for the video display control.
@@ -2073,6 +2346,10 @@ Description:
     eDacDetection - Option to turn on/off DAC auto detection logic.
         This feature will not work if buffer chip is present on the board.
 
+    pMemConfigSettings - Pointer to BVDC_MemConfigSettings that application
+        used with for memory allocation. VDC uses this information for error
+        checking. Can be NULL if no error checking is needed.
+
 See Also:
     BVDC_GetDefaultSettings, BAVC_MatrixCoefficients, BFMT_VideoInfo,
     BVDC_Heap_Settings, BVDC_Mode
@@ -2102,6 +2379,8 @@ typedef struct
     /* box modes */
     BBOX_Handle                        hBox;
 
+    /* MemConfig settings */
+    BVDC_MemConfigSettings            *pMemConfigSettings;
 } BVDC_Settings;
 
 /***************************************************************************
@@ -2819,23 +3098,6 @@ typedef struct
     /* TODO: add other controls, like speed, aligned phase, etc... */
 
 } BVDC_Display_AlignmentSettings;
-
-/***************************************************************************
-Summary:
-    This structure describes memory configuration settings for VIP.
-
-Description:
-    max w/h/interlaced affects memory allocation size.
-See Also:
-    BVDC_DispMemConfigSettings
-***************************************************************************/
-typedef struct BVDC_VipMemConfigSettings
-{
-    unsigned               ulMemcId;
-    uint32_t               ulMaxWidth;
-    uint32_t               ulMaxHeight;
-    bool                   bSupportInterlaced;
-} BVDC_VipMemConfigSettings;
 
 /***************************************************************************
 Summary:
@@ -4801,245 +5063,6 @@ typedef struct BVDC_StandbySettings
     void                              *pvStub; /* Stub holder */
 
 } BVDC_StandbySettings;
-
-
-/***************************************************************************
-Summary:
-    This structure describes memory configuration settings for VDC window.
-
-Description:
-    bUsed - Indicate if this window is used or not
-    memcIndex - Defines MEMC index
-    eMaxSourceFormat - Defines maximum source format
-    ePixelFormat - Defines pixel format: 8-bit 422 or 10-bit 422
-
-    Enable any one of the following flags will increase capture buffer
-    count to 2:
-    bMosaicMode - Defines mosaic mode, can be enabled by calling
-        BVDC_Window_SetMosaicConfiguration
-    b3DMode - Defines 3D mode, can be enabled by calling
-        BVDC_Display_SetOrientation or BVDC_Source_SetOrientation
-    bPsfMode - Defines Psf mode, can be enabled by calling
-        BVDC_Source_SetPsfMode. Enable Psf mode will also enable frame
-        capture
-    bSideBySide - Defines side by side, can be enabled by calling
-        BVDC_Window_SetDstRect
-    bPip - Defines picture in graphics or picture in picture, can be
-        enabled by calling BVDC_Window_SetDstRect. Enable this flag
-        will make buffer size 1/4 of full size.
-    bSmoothScaling - Defines smooth scaling, can be enabled by calling
-        BVDC_Window_SetBandwidthEquationParams
-    bBoxDetect - Defines Letter box detection, can be enabled by calling
-        BVDC_Window_EnableBoxDetect
-    bArbitraryCropping - Defines arbitrary cropping mode, can be enabled
-        by calling BVDC_Window_SetPanScanType, BVDC_Window_SetAspectRatioMode,
-        BVDC_Window_SetSrcClip
-    bIndependentCropping - Defines independent cropping on HD/SD mode,
-        can be enabled by BVDC_Window_SetSrcClip.
-
-    Enable any one of the following flags will increase capture buffer
-    count to 4:
-
-    bNonMfdSource - Defines non-mfd/vfd source, can be enabled by selecting
-        HD_DVI, 656, or mfd/vfd (with MTG enabled,
-        BVDC_Source_Settings.eMtgMode) source.
-
-    bSyncSlip - Defines sync slip mode, can be enabled by selecting non
-        MFD/VFD source or slaved window for MFD/VFD source
-
-    bLipsync - Defines lip sync, can be enabled by calling
-        BVDC_Window_SetDelayOffset. Enable this flag will increase
-        capture buffer count by 1
-
-    b5060Convert - Defines 50 <-> 60 conversion, can be enabled by
-        selecting different frame rate for source and display. Enable
-        this flag will increase capture buffer count by 1
-
-    bSlave_24_25_30_Display - Defines special frame capture on SD display,
-        can be enabled by slave to 24/25/30 HD display.  Enable this
-        flag or bPsfMode will enable frame capture
-
-    eDeinterlacerMode - Defines deinterlacer, can be enabled by calling
-        BVDC_Window_SetDeinterlaceConfiguration. Set this value will
-        add deinterlacer buffer counts to final buffer counts
-
-    ulAdditionalBufCnt - Defines additional capture buffer count, can be used
-        for delay offset or transcoding buffers
-
-***************************************************************************/
-typedef struct
-{
-    bool                   bUsed;
-
-    /* MEMC settings for capture */
-    uint32_t               ulMemcIndex;
-    /* MEMC settings for deinterlacer */
-    uint32_t               ulMadMemcIndex;
-
-    /* Source settings */
-    BFMT_VideoFmt          eMaxSourceFormat;
-    bool                   bNonMfdSource;
-
-    /* Window settings */
-    bool                   bMosaicMode;
-    bool                   b3DMode;
-    bool                   bPsfMode;
-    bool                   bSideBySide;
-    bool                   bPip;
-    /* DME: not needed. if stWindow[1] is used, we have PIP. or is this more like "max size"?
-    same with bSideBySide. */
-    bool                   bSmoothScaling;
-    bool                   bBoxDetect;
-    /* TODO: bool          bMfdTriggering  */
-    bool                   bArbitraryCropping;
-    bool                   bIndependentCropping;
-
-    bool                   bSyncSlip;
-
-    bool                   bLipsync;
-    bool                   b5060Convert;
-    bool                   bSlave_24_25_30_Display;
-
-    BVDC_DeinterlacerMode  eDeinterlacerMode;
-
-    uint32_t               ulAdditionalBufCnt;
-
-} BVDC_WinMemConfigSettings;
-
-/***************************************************************************
-Summary:
-    This structure describes memory configuration settings for VDC display.
-
-Description:
-    bUsed - Indicate if this display is used or not
-    eMaxDisplayFormat - Maximum display format
-    vip - Defines VIP memory configuration settings
-    stWindow - Defines memory configuration settings per video
-        window. Default setting: MFD/VFD source, sync locked full screen only,
-        no deinterlacer: 0 capture buffers, 0 deinterlacer buffers
-    cfc - Defines CMP & GFD CFC (Color Format Converter) memory configuration
-        settings
-
-See Also:
-    BVDC_Heap_Settings
-    BVDC_WinMemConfigSettings
-    BVDC_GetDefaultMemConfigSettings
-    BVDC_GetMemoryConfiguration
-***************************************************************************/
-typedef struct
-{
-    /* Display settings */
-    bool                       bUsed;
-    BFMT_VideoFmt              eMaxDisplayFormat;
-
-    /* Memory config settings for new soft transcoder VIP heap */
-    struct {
-        bool                      bUsed;
-        BCHP_MemoryInfo          *pstMemoryInfo; /* memory stripe parameters dependent */
-        BVDC_VipMemConfigSettings stCfgSettings;
-    } vip;
-
-    /* Memory config settings for all windows on the display */
-    BVDC_WinMemConfigSettings  stWindow[BVDC_MAX_VIDEO_WINDOWS];
-
-    /* MEMC settings for CMP & GFD CFC */
-    struct {
-        bool                      bUsed;
-        uint32_t                  ulCmpMemcIndex;
-        uint32_t                  ulGfdMemcIndex;
-    } cfc;
-
-} BVDC_DispMemConfigSettings;
-
-/***************************************************************************
-Summary:
-    This structure describes memory configuration settings for RDC.
-
-Description:
-    memcIndex - Defines MEMC index
-
-See Also:
-    BVDC_Heap_Settings
-    BVDC_WinMemConfigSettings
-    BVDC_DispMemConfigSettings
-    BVDC_GetDefaultMemConfigSettings
-    BVDC_GetMemoryConfiguration
-***************************************************************************/
-typedef struct
-{
-    /* MEMC settings */
-    uint32_t            ulMemcIndex;
-
-} BVDC_RdcMemConfigSettings;
-
-
-/***************************************************************************
-Summary:
-    This structure describes VDC memory configuration settings.
-
-Description:
-    stHeapSettings - Defines size of VDC buffers in each category. Only need
-        to set pixel format and buffer format: ePixelFormat_4HD, eBufferFormat_4HD,
-        ePixelFormat_2HD, eBufferFormat_2HD, ePixelFormat_HD, eBufferFormat_HD,
-        ePixelFormat_SD and eBufferFormat_SD
-
-    stDisplay - Defines memory configuration settings per display
-    stRdc - Defines memory configuration settings for RDC
-    hdmiDisplayCfc - Defines HDMI display CFC(Color Format Converter)
-        memory configuration settings
-
-See Also:
-    BVDC_Heap_Settings
-    BVDC_DispMemConfigSettings
-    BVDC_GetDefaultMemConfigSettings
-    BVDC_GetMemoryConfiguration
-***************************************************************************/
-typedef struct
-{
-    BVDC_Heap_Settings          stHeapSettings;
-
-    /* Memory config settings for all displays */
-    BVDC_DispMemConfigSettings  stDisplay[BVDC_MAX_DISPLAYS];
-
-    /* Memory config settings for RDC */
-    BVDC_RdcMemConfigSettings   stRdc;
-
-    /* Memc Index for hdmi display CFC */
-    struct {
-        bool                    bUsed;
-        uint32_t                aulMemcIndex;
-    } hdmiDisplayCfc[BBOX_VDC_HDMI_DISPLAY_COUNT];
-
-} BVDC_MemConfigSettings;
-
-
-/***************************************************************************
-Summary:
-    This structure describes VDC memory configuration.
-
-Description:
-    stMemc - Defines VDC memory configuration per memc.
-
-        ulSize - Defines total size (byte) of VDC buffers on specific memc.
-        stHeapSettings - Defines size and count of VDC buffers in each category
-            on specific memc
-        ulRulSize - Combined RDC (Regisger DMA Controller) RUL (Regisgter Update List)
-            memory and CFC (Color Format Converter) command list driver heap size.
-        ulVipSize - VIP (Video Input Processor) picture memory size for new soft transcoder.
-
-***************************************************************************/
-typedef struct BVDC_MemConfig
-{
-    struct {
-        uint32_t           ulSize;
-        uint32_t           ulRulSize;
-        uint32_t           ulVipSize; /* for VIP heap allocation */
-        BVDC_Heap_Settings stHeapSettings;
-
-    } stMemc[BVDC_MAX_MEMC];
-
-} BVDC_MemConfig;
-
 
 /***************************************************************************
 Summary:

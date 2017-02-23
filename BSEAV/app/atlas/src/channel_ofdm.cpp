@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -227,23 +227,23 @@ eRet CChannelOfdm::getChannelInfo(
     BSTD_UNUSED(pChanInfo);      /* to avoid compile warnings */
     BSTD_UNUSED(bScanning);      /* to avoid compile warnings */
     pBand      = getParserBand();
-    patTimeout = GET_INT(_pCfg, TUNE_OFDM_PAT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
-    pmtTimeout = GET_INT(_pCfg, TUNE_OFDM_PMT_TIMEOUT)/10; /* in tsPsi_setTimeout2() this is 500msecs */
+    patTimeout = GET_INT(_pCfg, TUNE_OFDM_PAT_TIMEOUT)/10; /* in tsPsi_setTimeout() this is 500msecs */
+    pmtTimeout = GET_INT(_pCfg, TUNE_OFDM_PMT_TIMEOUT)/10; /* in tsPsi_setTimeout() this is 500msecs */
 
 #ifndef MPOD_SUPPORT
     if (true == bScanning)
     {
         /* adjust pat/pmt timeouts for faster scanning */
-        tsPsi_getTimeout2(&patTimeoutOrig, &pmtTimeoutOrig);
-        tsPsi_setTimeout2(patTimeout, pmtTimeout);
+        tsPsi_getTimeout(&patTimeoutOrig, &pmtTimeoutOrig);
+        tsPsi_setTimeout(patTimeout, pmtTimeout);
     }
 
-    err = tsPsi_getChannelInfo2(pChanInfo, pBand->getBand());
+    err = tsPsi_getChannelInfo(pChanInfo, pBand->getBand());
 
     if (true == bScanning)
     {
         /* restore default pat/pmt timeouts */
-        tsPsi_setTimeout2(patTimeoutOrig, pmtTimeoutOrig);
+        tsPsi_setTimeout(patTimeoutOrig, pmtTimeoutOrig);
     }
 #endif /* ifndef MPOD_SUPPORT */
     return((BERR_SUCCESS == err) ? eRet_Ok : eRet_ExternalError);

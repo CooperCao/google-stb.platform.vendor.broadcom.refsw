@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,7 @@
 
 #include "nexus_platform.h"
 #include <stdio.h>
-#if NEXUS_HAS_VIDEO_DECODER
+#if NEXUS_HAS_VIDEO_DECODER && NEXUS_HAS_AUDIO
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
 #include "nexus_video_decoder.h"

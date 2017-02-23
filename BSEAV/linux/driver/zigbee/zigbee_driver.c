@@ -17,7 +17,6 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 //#define DEBUG
-#define COMPILE_TIME
 
 /* This version demonstrates how to create a kernel module WITH a /proc interface */
 #include <linux/init.h>
@@ -63,6 +62,15 @@ struct zigbee_priv_data {
     unsigned int wake_timeout;
     struct notifier_block reboot_notifier;
     const struct zigbee_regs *regs;
+
+    unsigned int hw_rev;
+
+    unsigned int rf4ce_cpu_host_stb_l2_cpu_mask_clear0_mbox_sem_intr_mask;
+    unsigned int rf4ce_cpu_host_stb_l2_cpu_status0_mbox_sem_intr_mask;
+    unsigned int rf4ce_cpu_host_stb_l2_cpu_clear0_mbox_sem_intr_mask;
+    unsigned int rf4ce_cpu_host_stb_l2_cpu_mask_set0_mbox_sem_intr_mask;
+    unsigned int rf4ce_cpu_host_stb_l2_cpu_status0_sw_intr_mask;
+    unsigned int rf4ce_cpu_data_mem_reg_end;
 };
 
 struct zigbee_priv {
@@ -178,14 +186,11 @@ static int open_device(struct inode *inode, struct file *file)
 {
     /*int minor = MINOR(inode->i_rdev);*/ /* do I need this for anything??? */
 
+    struct zigbee_priv_data *priv;
     file->private_data = minor_tbl[0];
+    priv = file->private_data;
     open_count++;
-
-#ifdef COMPILE_TIME
-    BDEV_WR(BCHP_RF4CE_CPU_DATA_MEM_REG_END, 0);
-#else
-    BDEV_WR(base_addr + 0x47ffc, 0);
-#endif
+    rf4ce_controller_writel(0, priv->rf4ce_cpu_data_mem_reg_end);
     return 0;
 }
 
@@ -245,16 +250,16 @@ static signed int my_ioctl(struct inode *inode, struct file *filp, unsigned int 
                 printk(KERN_ALERT "UART set up for ZigBee core.");
 #endif
 
-                BDEV_SET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) | BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
 
                 pr_notice("Delay after setting CPU_RST bit...\n");  /* TBD - need some delay here */
 
-                BDEV_UNSET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_START_ARC_MASK);
-                BDEV_UNSET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) & ~BCHP_RF4CE_CPU_CTRL_CTRL_START_ARC_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) & ~BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
 
                 i=0;
                 while ((i<(256*1024)) && (i<f.size_in_bytes)) {
-                    BDEV_WR(BCHP_RF4CE_CPU_PROG0_MEM_WORDi_ARRAY_BASE+i, *((unsigned int *)(f.pImage+i)));
+                    rf4ce_controller_writel(*((unsigned int *)(f.pImage+i)), BCHP_RF4CE_CPU_PROG0_MEM_WORDi_ARRAY_BASE+i);
                     i+=4;
                 }
 
@@ -263,7 +268,7 @@ static signed int my_ioctl(struct inode *inode, struct file *filp, unsigned int 
                 printk(KERN_ALERT "Starting verify...\n");
                 while ((i<(256*1024)) && (i<f.size_in_bytes)) {
                     unsigned int data;
-                    data = BDEV_RD(BCHP_RF4CE_CPU_PROG0_MEM_WORDi_ARRAY_BASE+i);
+                    data = rf4ce_controller_readl(BCHP_RF4CE_CPU_PROG0_MEM_WORDi_ARRAY_BASE+i);
                     if (data != *((unsigned int *)(f.pImage+i))) {
                         printk(KERN_ALERT "miscompare at address=0x%08x:  expected=0x%08x, received=0x%08x\n", i, *((unsigned int *)(f.pImage+i)), data);
                     }
@@ -272,18 +277,18 @@ static signed int my_ioctl(struct inode *inode, struct file *filp, unsigned int 
                 printk(KERN_ALERT "Verify complete...\n");
 #endif
 
-                BDEV_SET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_HOSTIF_SEL_MASK);
-                BDEV_SET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_START_ARC_MASK);
-                BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK);
-                BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) | BCHP_RF4CE_CPU_CTRL_CTRL_HOSTIF_SEL_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) | BCHP_RF4CE_CPU_CTRL_CTRL_START_ARC_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
+                rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
             }
             break;
 
         case ZIGBEE_IOCTL_STOP:
-            BDEV_UNSET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_START_ARC_MASK);
-            BDEV_SET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK);
+            rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) & ~BCHP_RF4CE_CPU_CTRL_CTRL_START_ARC_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
+            rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) | BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
             pr_notice("Delay after setting CPU_RST bit...\n");  /* TBD - need some delay here */
-            BDEV_UNSET(BCHP_RF4CE_CPU_CTRL_CTRL, BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK);
+            rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_CTRL) & ~BCHP_RF4CE_CPU_CTRL_CTRL_CPU_RST_MASK, BCHP_RF4CE_CPU_CTRL_CTRL);
             break;
 
         /*
@@ -324,7 +329,7 @@ static signed int my_ioctl(struct inode *inode, struct file *filp, unsigned int 
             mbox_fifo_tx.depth++;
 
             /* enable interrupt for the mailbox semaphore */
-            BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_SEM_INTR_MASK);
+            rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | priv->rf4ce_cpu_host_stb_l2_cpu_mask_clear0_mbox_sem_intr_mask, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
             pr_debug("clear MBOX_SEM_INTR mask, depth=%d\n", mbox_fifo_tx.depth);
 
             break;
@@ -431,18 +436,20 @@ static struct file_operations module_ops = {
 
 irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
 {
-    int status = BDEV_RD(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0) & ~BDEV_RD(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_STATUS0);
+    struct zigbee_priv_data *priv = minor_tbl[0];
 
-    if (status & BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_MBOX_SEM_INTR_MASK) { /* MBOX_SEM_INTR asserted */
+    int status = rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0) & ~rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_STATUS0);
+
+    if (status & priv->rf4ce_cpu_host_stb_l2_cpu_status0_mbox_sem_intr_mask) { /* MBOX_SEM_INTR asserted */
 
         /* No need to clear the interrupt, as that will be handled
             automatically by the hw as a result of reading from
             BCHP_RF4CE_CPU_CTRL_MBOX_SEM */
 
         /* On second thought, this is not true.  We need to clear the interrupt ourselves */
-        BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_SEM_INTR_MASK);
+        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0) | priv->rf4ce_cpu_host_stb_l2_cpu_clear0_mbox_sem_intr_mask, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0);
 
-        if ((BDEV_RD(BCHP_RF4CE_CPU_CTRL_MBOX_SEM) & BCHP_RF4CE_CPU_CTRL_MBOX_SEM_MBOX_SEM_MASK) >> BCHP_RF4CE_CPU_CTRL_MBOX_SEM_MBOX_SEM_SHIFT) { /* we have the mailbox */
+        if ((rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_MBOX_SEM) & BCHP_RF4CE_CPU_CTRL_MBOX_SEM_MBOX_SEM_MASK) >> BCHP_RF4CE_CPU_CTRL_MBOX_SEM_MBOX_SEM_SHIFT) { /* we have the mailbox */
             pr_debug("MBOX_SEM_INTR asserted and we have the mailbox\n");
 
             /*
@@ -467,7 +474,7 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
             */
 
             /* sanity check */
-            if ((BDEV_RD(BCHP_RF4CE_CPU_L2_CPU_STATUS) & BCHP_RF4CE_CPU_L2_CPU_STATUS_MBOX_H2Z_FULL_INTR_MASK) >> BCHP_RF4CE_CPU_L2_CPU_STATUS_MBOX_H2Z_FULL_INTR_SHIFT) /*   READL(BCHP_RF4CE_CPU_L2_CPU_STATUS) & BCHP_RF4CE_CPU_L2_UB_CPU_STATUS_MBOX_H2Z_FULL_INTR_MASK) */{
+            if ((rf4ce_controller_readl(BCHP_RF4CE_CPU_L2_CPU_STATUS) & BCHP_RF4CE_CPU_L2_CPU_STATUS_MBOX_H2Z_FULL_INTR_MASK) >> BCHP_RF4CE_CPU_L2_CPU_STATUS_MBOX_H2Z_FULL_INTR_SHIFT) /*   READL(BCHP_RF4CE_CPU_L2_CPU_STATUS) & BCHP_RF4CE_CPU_L2_UB_CPU_STATUS_MBOX_H2Z_FULL_INTR_MASK) */{
                 printk(KERN_ALERT "DRIVER:  ERROR:  MBOX_H2Z_FULL set when MBOX_SEM_INTR asserted\n"); while (1);
             } else {
                 /* sanity check */
@@ -481,12 +488,12 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
                     unsigned int header;
                     unsigned int size_in_words;
 
-                    if (BDEV_RD(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_DEPTH) != 0) {
+                    if (rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_DEPTH) != 0) {
                         printk(KERN_ALERT "DRIVER:  ERROR:  H2Z_MBOX_FIFO_DEPTH not zero when we begin\n");
 
                         /* Let's reset the fifo ptrs */
-                        BDEV_SET(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS, BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS_RST_PTR_MASK);
-                        BDEV_UNSET(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS, BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS_RST_PTR_MASK);
+                        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS) | BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS_RST_PTR_MASK, BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS);
+                        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS) & ~BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS_RST_PTR_MASK, BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_RST_PTRS);
                     }
 
                     /* copy the data from the fifo */
@@ -498,19 +505,19 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
                     if (debug) printk(KERN_ALERT "DRIVER:  size_in_words=%d\n", size_in_words);
 
                     for (i=0; i<size_in_words; i++) {
-                        BDEV_WR(BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_DATA, mbox_fifo_tx.fifo[mbox_fifo_tx.rptr].data[i]);
+                        rf4ce_controller_writel(mbox_fifo_tx.fifo[mbox_fifo_tx.rptr].data[i], BCHP_RF4CE_CPU_CTRL_H2Z_MBOX_FIFO_DATA);
                     }
                     mbox_fifo_tx.rptr++;
                     if (mbox_fifo_tx.rptr == FIFO_SIZE) mbox_fifo_tx.rptr=0;
                     mbox_fifo_tx.depth--;
 
                     /* enable the H2Z Full bit */
-                    BDEV_SET(BCHP_RF4CE_CPU_L2_CPU_SET, BCHP_RF4CE_CPU_L2_CPU_SET_MBOX_H2Z_FULL_INTR_MASK);
+                    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_L2_CPU_SET) | BCHP_RF4CE_CPU_L2_CPU_SET_MBOX_H2Z_FULL_INTR_MASK, BCHP_RF4CE_CPU_L2_CPU_SET);
                     pr_debug("set MBOX_H2Z_FULL_INTR, depth=%d\n", mbox_fifo_tx.depth);
 
                     /* If the mbox_tx fifo is empty, mask the interrupt */
                     if (mbox_fifo_tx.depth == 0) {
-                        BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_MBOX_SEM_INTR_MASK);
+                        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0) | priv->rf4ce_cpu_host_stb_l2_cpu_mask_set0_mbox_sem_intr_mask, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0);
                         pr_debug("set setting MBOX_SEM_INTR mask\n");
                     }
 
@@ -529,9 +536,9 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
         pr_debug("MBOX_Z2H_FULL_INTR asserted\n");
 
         /* clear the interrupt */
-        BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_Z2H_FULL_INTR_MASK);
+        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_Z2H_FULL_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0);
 
-        z2h_mbox_fifo_depth = BDEV_RD(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH);
+        z2h_mbox_fifo_depth = rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH);
 
         if (debug) printk(KERN_ALERT "DRIVER:  z2h_mbox_fifo_depth=%d\n", z2h_mbox_fifo_depth);
 
@@ -539,7 +546,7 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
             is always free, otherwise, we would not have enabled the receive
             interrupt. */
         for (i=0; i<z2h_mbox_fifo_depth; i++) {
-            mbox_fifo_rx.fifo[mbox_fifo_rx.wptr].data[i] = BDEV_RD(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DATA);
+            mbox_fifo_rx.fifo[mbox_fifo_rx.wptr].data[i] = rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DATA);
         }
 
         /* sanity check */
@@ -551,7 +558,7 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
         }
 
         /* another sanity check */
-        if (BDEV_RD(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH) != 0) {
+        if (rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH) != 0) {
             printk(KERN_ALERT "DRIVER:  fifo depth not zero after reading\n");
         }
 
@@ -560,7 +567,7 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
         if (mbox_fifo_rx.wptr == FIFO_SIZE) mbox_fifo_rx.wptr=0;
         mbox_fifo_rx.depth++;
 
-        BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_Z2H_FULL_INTR_MASK);
+        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_MBOX_Z2H_FULL_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0);
 
         /* Wake up the potentially sleeping task */
         complete(&completeRx);
@@ -570,13 +577,13 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
         printk(KERN_ALERT "DRIVER:  WDOG_INTR asserted\n");
 
         /* Clear interrupt */
-        BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_WDOG_INTR_MASK);
+        rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0_WDOG_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_CLEAR0);
 
         /* Wake up the potentially sleeping task */
         complete(&completeWDT);
     }
 
-    if (status & BCHP_RF4CE_CPU_HOST_STB_L2_CPU_STATUS0_SW_INTR_MASK) { /* SW interrupt */
+    if (status & priv->rf4ce_cpu_host_stb_l2_cpu_status0_sw_intr_mask) { /* SW interrupt */
         printk(KERN_ALERT "DRIVER:  SW_INTR asserted\n");
     }
 
@@ -585,14 +592,14 @@ irqreturn_t brcmstb_rf4ce_cpu_host_stb_l2_irq(int irq, void *dev_id)
 
 static void brcmstb_zigbee_interrupts_init(struct zigbee_priv_data *priv)
 {
-    BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK);
-    BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK);
+    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
+    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
 }
 
 static void brcmstb_zigbee_interrupts_uninit(struct zigbee_priv_data *priv)
 {
-    BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_WDOG_INTR_MASK);
-    BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_MBOX_Z2H_FULL_INTR_MASK);
+    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_WDOG_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0);
+    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0_MBOX_Z2H_FULL_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_SET0);
 }
 
 static irqreturn_t brcmstb_zigbee_wakeup_irq(int irq, void *data)
@@ -706,11 +713,8 @@ static int brcmstb_zigbee_parse_dt_node(struct zigbee_priv_data *priv)
     if (of_property_read_u32(of_node, "chip-id", &pd.chip_id)) {
         int val;
         printk(KERN_INFO "unable to obtain chip_id from device tree\n");
-#ifdef COMPILE_TIME
         val = sun_top_ctrl_readl(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
-#else
-        val = BDEV_RD(0x00404000);
-#endif
+        printk(KERN_INFO "val=0x%08x\n", val);
 
         if (val >> 28)
             /* 4-digit chip ID */
@@ -719,6 +723,28 @@ static int brcmstb_zigbee_parse_dt_node(struct zigbee_priv_data *priv)
             /* 5-digit chip ID */
             pd.chip_id = (val >> 8) << 8;
         //pd.chip_id |= (BRCM_CHIP_REV() + 0xa0);
+
+        switch (val) {
+        case 0x33900010:
+        case 0x73640020:
+            priv->hw_rev = 4;
+            priv->rf4ce_cpu_host_stb_l2_cpu_mask_clear0_mbox_sem_intr_mask = 0x00000008;
+            priv->rf4ce_cpu_host_stb_l2_cpu_status0_mbox_sem_intr_mask     = 0x00000008;
+            priv->rf4ce_cpu_host_stb_l2_cpu_clear0_mbox_sem_intr_mask      = 0x00000008;
+            priv->rf4ce_cpu_host_stb_l2_cpu_mask_set0_mbox_sem_intr_mask   = 0x00000008;
+            priv->rf4ce_cpu_host_stb_l2_cpu_status0_sw_intr_mask           = 0xfffffff0;
+            priv->rf4ce_cpu_data_mem_reg_end                               = 0x67ffc;
+            break;
+        default:
+            priv->hw_rev = 3;
+            priv->rf4ce_cpu_host_stb_l2_cpu_mask_clear0_mbox_sem_intr_mask = 0x00000004;
+            priv->rf4ce_cpu_host_stb_l2_cpu_status0_mbox_sem_intr_mask     = 0x00000004;
+            priv->rf4ce_cpu_host_stb_l2_cpu_clear0_mbox_sem_intr_mask      = 0x00000004;
+            priv->rf4ce_cpu_host_stb_l2_cpu_mask_set0_mbox_sem_intr_mask   = 0x00000004;
+            priv->rf4ce_cpu_host_stb_l2_cpu_status0_sw_intr_mask           = 0xfffffff8;
+            priv->rf4ce_cpu_data_mem_reg_end                               = 0x47ffc;
+            break;
+        }
     }
     printk(KERN_INFO "chip_id=0x%08x\n", pd.chip_id);
 
@@ -800,7 +826,7 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     brcmstb_zigbee_parse_dt_node(priv);
     pd = pdev->dev.platform_data;
 
-#ifndef COMPILE_TIME
+#if 0 //ndef COMPILE_TIME
     if ((pd->chip_id & 0xffff0000) == 0x33900000) {
         printk(KERN_INFO "using 3390 registers\n");
         base_addr = 0x20e00000;
@@ -810,11 +836,11 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     }
 #endif
 
-    printk(KERN_INFO "BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH=%d\n", (unsigned int)BDEV_RD(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH));
+    printk(KERN_INFO "BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH=%d\n", (unsigned int)rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH));
 
-    while (BDEV_RD(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH)) {
+    while (rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DEPTH)) {
         printk(KERN_INFO "Emptying out MBOX fifo...\n");
-        BDEV_RD(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DATA);
+        rf4ce_controller_readl(BCHP_RF4CE_CPU_CTRL_Z2H_MBOX_FIFO_DATA);
     }
 
     res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -849,11 +875,7 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
 
     //printk(KERN_INFO "base_addr=%p\n", base_addr);
 
-#ifdef COMPILE_TIME
     printk(KERN_INFO "DRIVER:  BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID=0x%08x\n", sun_top_ctrl_readl(BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID));
-#else
-    printk(KERN_INFO "DRIVER:  BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID=0x%08lx\n", BDEV_RD(0x00404000));
-#endif
 
     /* Make sure to init this first, as we may get an interrupt as soon as we request it */
     init_completion(&completeWDT);
@@ -866,17 +888,6 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     debug = 0;
 
     /* For S3 */
-
-#if 0 //def COMPILE_TIME
-#if BCHP_CHIP==7364
-    BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cml_in_s3, 0x4); /* Set bit 14 */
-    BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cmos_in_s3, 0x10); /* Set bit 20 */
-#elif BCHP_CHIP==7366
-    BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cml_in_s3, 0x2); /* Set bit 13 */
-    BDEV_WR_F(AON_CTRL_ANA_XTAL_CONTROL, en_osc_cmos_in_s3, 0x10); /* Set bit 20 */
-#endif
-#else
-
     if ((pd->chip_id & 0xffff0000) == 0x33900000) {
         printk(KERN_INFO "S3 support to be determined\n");
     } else if ((pd->chip_id & 0xffff0000) == 0x73640000) {
@@ -911,8 +922,6 @@ int brcmstb_zigbee_probe(struct platform_device *pdev)
     } else {
         printk(KERN_INFO "unknown chip_id for S3\n");
     }
-
-#endif
 
     brcmstb_zigbee_interrupts_init(priv);
 
@@ -967,8 +976,8 @@ static int brcmstb_zigbee_resume(struct device *dev)
 
     ret = disable_irq_wake(priv->wakeup_irq);
 
-    BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK);
-    BDEV_SET(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK);
+    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_MBOX_Z2H_FULL_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
+    rf4ce_controller_writel(rf4ce_controller_readl(BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0) | BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0_WDOG_INTR_MASK, BCHP_RF4CE_CPU_HOST_STB_L2_CPU_MASK_CLEAR0);
 
     enable_irq(priv->mbox_irq);
 

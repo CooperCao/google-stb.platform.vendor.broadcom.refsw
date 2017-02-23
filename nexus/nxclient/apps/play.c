@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -11,20 +11,20 @@
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
  * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
@@ -95,26 +95,36 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     "  -startPaused\n"
     "  -dqtFrameReverse #       number of pictures per GOP for DQT frame reverse\n"
     );
-    print_list_option("format",g_videoFormatStrs);
-    print_list_option("ar",g_contentModeStrs);
-    print_list_option("sync",g_syncModeStrs);
-    print_list_option("crypto",g_securityAlgoStrs);
+    print_list_option(
+    "  -format                  max source format", g_videoFormatStrs);
+    print_list_option(
+    "  -ar                      aspect ratio of source", g_contentModeStrs);
+    print_list_option(
+    "  -sync                    sync_channel mode", g_syncModeStrs);
+    print_list_option(
+    "  -crypto                  decrypt stream", g_securityAlgoStrs);
     print_list_option("dolby_drc_mode",g_dolbyDrcModeStrs);
     nxapps_cmdline_print_usage(cmdline);
     printf(
     "  -scrtext SCRIPT          run --help-script to learn script commands\n"
     "  -script SCRIPTFILE       run --help-script to learn script commands\n"
     "  -video PID               override media probe. use 0 for no video.\n"
-    "  -video_type CODEC        override media probe.\n"
+    );
+    print_list_option(
+    "  -video_type              override media probe", g_videoCodecStrs);
+    printf(
     "  -video_cdb MBytes        size of compressed video buffer, in MBytes, decimal allowed\n"
     "  -audio PID               override media probe. use 0 for no audio.\n"
-    "  -audio_type CODEC        override media probe.\n"
     );
-    print_list_option("mpeg_type",g_transportTypeStrs);
+    print_list_option(
+    "  -audio_type              override media probe", g_audioCodecStrs);
+    print_list_option(
+    "  -mpeg_type               override media probe", g_transportTypeStrs);
     printf(
     "  -secure                  use SVP secure picture buffers\n"
     "  -astm\n"
     "  -scan 1080p\n"
+    "  -chunk                   chunked playback, size and first chunk is autodetected\n"
     );
 }
 
@@ -153,6 +163,7 @@ static void complete2(void *context, int param)
 static int gui_init(struct client_state *client, bool gui);
 static int gui_set_pos(struct client_state *client, unsigned position, unsigned first, unsigned last);
 static void gui_uninit(struct client_state *client);
+static void gui_draw_bar(struct client_state *client);
 
 #include <sys/time.h>
 static unsigned b_get_time(void)
@@ -164,11 +175,13 @@ static unsigned b_get_time(void)
 
 static void process_input(struct client_state *client, b_remote_key key, bool repeat)
 {
+    int rate = client->rate;
+    int rc = 0;
     /* only allow repeats for frame advance/reverse */
     switch (key) {
     case b_remote_key_rewind:
     case b_remote_key_fast_forward:
-        if (client->rate == 0) {
+        if (rate == 0) {
             break;
         }
         /* fall through */
@@ -178,66 +191,66 @@ static void process_input(struct client_state *client, b_remote_key key, bool re
 
     switch (key) {
     case b_remote_key_play:
-        client->rate = NEXUS_NORMAL_DECODE_RATE;
+        rate = NEXUS_NORMAL_DECODE_RATE;
         BDBG_WRN(("play"));
-        media_player_trick(client->player, client->rate);
+        rc = media_player_trick(client->player, rate);
         break;
     case b_remote_key_pause:
-        if (client->rate) {
-            client->rate = 0;
+        if (rate) {
+            rate = 0;
             BDBG_WRN(("pause"));
         }
         else {
-            client->rate = NEXUS_NORMAL_DECODE_RATE;
+            rate = NEXUS_NORMAL_DECODE_RATE;
             BDBG_WRN(("play"));
         }
-        media_player_trick(client->player, client->rate);
+        rc = media_player_trick(client->player, rate);
         break;
     case b_remote_key_fast_forward:
-        if (client->rate == 0) {
+        if (rate == 0) {
             media_player_frame_advance(client->player, true);
         }
         else {
-            client->rate += NEXUS_NORMAL_DECODE_RATE;
-            if (client->rate == 0) {
-                client->rate = NEXUS_NORMAL_DECODE_RATE;
+            rate += NEXUS_NORMAL_DECODE_RATE;
+            if (rate == 0) {
+                rate = NEXUS_NORMAL_DECODE_RATE;
             }
-            if (client->rate == NEXUS_NORMAL_DECODE_RATE) {
+            if (rate == NEXUS_NORMAL_DECODE_RATE) {
                 BDBG_WRN(("play"));
             }
             else {
-                BDBG_WRN(("%dx trick", client->rate/NEXUS_NORMAL_DECODE_RATE));
+                BDBG_WRN(("%dx trick", rate/NEXUS_NORMAL_DECODE_RATE));
             }
-            media_player_trick(client->player, client->rate);
+            rc = media_player_trick(client->player, rate);
         }
         break;
     case b_remote_key_rewind:
-        if (client->rate == 0) {
+        if (rate == 0) {
             media_player_frame_advance(client->player, false);
         }
         else {
-            client->rate -= NEXUS_NORMAL_DECODE_RATE;
-            if (client->rate == 0) {
-                client->rate = -1*NEXUS_NORMAL_DECODE_RATE;
+            rate -= NEXUS_NORMAL_DECODE_RATE;
+            if (rate == 0) {
+                rate = -1*NEXUS_NORMAL_DECODE_RATE;
             }
-            if (client->rate == NEXUS_NORMAL_DECODE_RATE) {
+            if (rate == NEXUS_NORMAL_DECODE_RATE) {
                 BDBG_WRN(("play"));
             }
             else {
-                BDBG_WRN(("%dx trick", client->rate/NEXUS_NORMAL_DECODE_RATE));
+                BDBG_WRN(("%dx trick", rate/NEXUS_NORMAL_DECODE_RATE));
             }
-            media_player_trick(client->player, client->rate);
+            rc = media_player_trick(client->player, rate);
         }
         break;
     case b_remote_key_right:
         media_player_seek(client->player, 30 * 1000, SEEK_CUR);
-        if (client->rate == 0) {
+        if (rate == 0) {
             media_player_frame_advance(client->player, true);
         }
         break;
     case b_remote_key_left:
         media_player_seek(client->player, -30 * 1000, SEEK_CUR);
-        if (client->rate == 0) {
+        if (rate == 0) {
             media_player_frame_advance(client->player, true);
         }
         break;
@@ -262,6 +275,9 @@ static void process_input(struct client_state *client, b_remote_key key, bool re
     default:
         BDBG_MSG(("unknown key %#x", key));
         break;
+    }
+    if (!rc) {
+        client->rate = rate;
     }
 }
 
@@ -524,6 +540,9 @@ int main(int argc, const char **argv)  {
         else if (!strcmp(argv[curarg], "-scan") && argc>curarg+1) {
             start_settings.video.scanMode = !strcmp(argv[++curarg], "1080p") ? NEXUS_VideoDecoderScanMode_e1080p : NEXUS_VideoDecoderScanMode_eAuto;
         }
+        else if (!strcmp(argv[curarg], "-chunk")) {
+            start_settings.chunked = true;
+        }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
                 print_usage(&cmdline);
@@ -688,6 +707,7 @@ int main(int argc, const char **argv)  {
             bool repeat;
             if (!binput_read(client->input, &key, &repeat)) {
                 process_input(client, key, repeat);
+                gui_draw_bar(client);
             }
             else {
                 binput_wait(client->input, 100);
@@ -720,17 +740,18 @@ int main(int argc, const char **argv)  {
     }
     pthread_join(standby_thread_id, NULL);
 
+    media_player_stop(client->player);
+err_start:
 #if B_REFSW_TR69C_SUPPORT
     b_tr69c_uninit(tr69c);
 #endif
-
-    media_player_stop(client->player);
-err_start:
+    media_player_destroy(client->player);
+    NEXUS_SurfaceClient_Release(client->surfaceClient);
     binput_close(client->input);
+    NxClient_Free(&allocResults);
     BKNI_DestroyEvent(client->endOfStreamEvent);
     BKNI_DestroyEvent(client->displayedEvent);
     BKNI_DestroyEvent(client->windowMovedEvent);
-    media_player_destroy(client->player);
     NxClient_Uninit();
     return rc;
 }
@@ -743,8 +764,6 @@ err_start:
 #define CURSOR_COLOR 0xFFBBBBBB
 #define CURSOR_WIDTH 4
 #define CURSOR_HEIGHT 20
-
-static void gui_draw_bar(struct client_state *client);
 
 static void checkpoint(struct client_state *client)
 {
@@ -817,6 +836,25 @@ static int gui_init(struct client_state *client, bool gui)
     return 0;
 }
 
+static void b_print_trickmode(char *buf, unsigned bufsize, const NEXUS_PlaybackTrickModeSettings *trickMode)
+{
+    if (trickMode->mode == NEXUS_PlaybackHostTrickMode_ePlayBrcm) {
+        snprintf(buf, bufsize, "BRCM -1x");
+    }
+    else if (trickMode->mode == NEXUS_PlaybackHostTrickMode_ePlayMultiPassDqtIP) {
+        snprintf(buf, bufsize, "Multipass DQT");
+    }
+    else if (trickMode->rate == NEXUS_NORMAL_PLAY_SPEED) {
+        snprintf(buf, bufsize, "Play");
+    }
+    else if (trickMode->rate == 0) {
+        snprintf(buf, bufsize, "Pause");
+    }
+    else {
+        snprintf(buf, bufsize, "%dx", trickMode->rate/NEXUS_NORMAL_PLAY_SPEED);
+    }
+}
+
 static void gui_draw_bar(struct client_state *client)
 {
     NEXUS_Graphics2DFillSettings fillSettings;
@@ -847,18 +885,30 @@ static void gui_draw_bar(struct client_state *client)
         char duration[32];
         NEXUS_PlaybackStatus status;
         int text_limit_width = (textrect.width * 80)/100;
+        const char *text;
+        char trickmode_text[64];
+
+        if (client->rate == NEXUS_NORMAL_DECODE_RATE) {
+            text = client->start_settings.stream_url;
+        }
+        else {
+            NEXUS_PlaybackTrickModeSettings trickMode;
+            media_player_get_trick_mode(client->player, &trickMode);
+            b_print_trickmode(trickmode_text, sizeof(trickmode_text), &trickMode);
+            text = trickmode_text;
+        }
 
         textrect.y = textrect.y + client->timeline_rect.height - client->font_height;
         textrect.height = client->font_height;
-        bfont_measure_text(client->font, client->start_settings.stream_url, -1, &width, &height, &base);
+        bfont_measure_text(client->font, text, -1, &width, &height, &base);
         if(width && width < text_limit_width) {
-            bfont_draw_aligned_text(&client->desc, client->font, &textrect, client->start_settings.stream_url, -1, 0xFFCCCCCC, bfont_valign_center, bfont_halign_left);
+            bfont_draw_aligned_text(&client->desc, client->font, &textrect, text, -1, 0xFFCCCCCC, bfont_valign_center, bfont_halign_left);
         } else {
             char truncated[128];
-            size_t len = strlen(client->start_settings.stream_url);
+            size_t len = strlen(text);
             size_t limit = (text_limit_width*len)/width;
 
-            BKNI_Snprintf(truncated, sizeof(truncated), "... %s", client->start_settings.stream_url + (len - limit));
+            BKNI_Snprintf(truncated, sizeof(truncated), "... %s", text + (len - limit));
             bfont_draw_aligned_text(&client->desc, client->font, &textrect, truncated, -1, 0xFFCCCCCC, bfont_valign_center, bfont_halign_left);
         }
 

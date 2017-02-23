@@ -73,6 +73,7 @@ typedef struct
     uint32_t                     ulNumMadUsed;
     uint32_t                     ulNumMadrUsed;
 
+    bool                         b4kSupported;
     bool                         bEnableShare4Lipsync;
     BVDC_P_BufferHeap_SizeInfo   stHeapSizeInfo;
 

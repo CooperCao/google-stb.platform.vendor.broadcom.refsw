@@ -134,7 +134,7 @@ ${BINDIR}/%.o : %.c ${BINDIR_EXISTS}
 
 ${BINDIR}/allocator : ${OBJS}
 	@echo [Link... $(notdir $@)]
-	@${CC} -lpthread -lrt ${EXTRA_CFLAGS} ${OBJS} -o $@
+	@${CC} ${EXTRA_CFLAGS} ${OBJS} -lpthread -lrt -o $@
 
 allocator: ${BINDIR}/allocator
 

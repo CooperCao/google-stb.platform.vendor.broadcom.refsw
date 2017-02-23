@@ -260,7 +260,7 @@ BERR_Code BXVD_P_SendDecoderCommand(
       if (((pCmd->cmd) | BXVD_CMD_RESPONSE) != (pRsp->cmd))
       {
          BDBG_LEAVE(BXVD_P_SendDecoderCommand);
-/*         return BERR_TRACE(BERR_INVALID_PARAMETER); */
+         return BERR_TRACE(BERR_INVALID_PARAMETER);
       }
 
       pGenericRsp = (BXVD_P_RspGeneric *)(pRsp);
@@ -270,7 +270,7 @@ BERR_Code BXVD_P_SendDecoderCommand(
       {
          BDBG_ERR(("AVD firmware command: %08x error return %d", pCmd->cmd, pGenericRsp->ulStatus ));
          BDBG_LEAVE(BXVD_P_SendDecoderCommand);
-/*          return BERR_TRACE(BERR_INVALID_PARAMETER); */
+         return BERR_TRACE(BERR_INVALID_PARAMETER);
       }
 
    }
@@ -370,7 +370,6 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_DBG_MSG(hXvd, (" status: %#x", pInitRsp->status));
    BXVD_DBG_MSG(hXvd, (" sw_version: %#x", pInitRsp->sw_version));
 
-
    BXVD_P_DBG_MSG_DISP_INFO_OFFSET(hXvd, pInitRsp);
 
    if( eStatus != BERR_SUCCESS )
@@ -381,7 +380,7 @@ BERR_Code BXVD_P_HostCmdSendInit
    {
       BXVD_DBG_WRN(hXvd, ("Incompatible FW version"));
 
-      /*  eStatus = BERR_INVALID_PARAMETER; */
+      eStatus = BERR_INVALID_PARAMETER;
    }
 
    /*
@@ -506,32 +505,47 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
       pChOpen->max_resolution_enum = uiMaxResolution;
    }
 
-   pChOpen->context_memory_base = pstDecodeFWBaseAddrs->uiFWContextBase;
+   pChOpen->context_memory_base = (uint32_t)(pstDecodeFWBaseAddrs->FWContextBase);
    pChOpen->context_memory_size = pstDecodeFWMemSize->uiFWContextSize;
 
-   pChOpen->video_memory_base = pstDecodeFWBaseAddrs->uiFWPicBase + hXvdCh->uiFWPicOffset;
+   pChOpen->video_memory_base = (uint32_t)(pstDecodeFWBaseAddrs->FWPicBase + hXvdCh->uiFWPicOffset);
    pChOpen->video_block_size = pstDecodeFWMemSize->uiFWPicLumaBlockSize;
 
-   if (pstDecodeFWBaseAddrs->uiFWPicBase1  != (unsigned long)NULL)
+   if (pstDecodeFWBaseAddrs->FWPicBase1  != (BXVD_P_PHY_ADDR) 0)
    {
-      pChOpen->chroma_memory_base = pstDecodeFWBaseAddrs->uiFWPicBase1 + hXvdCh->uiFWPicOffset1;
+      pChOpen->chroma_memory_base = (uint32_t)(pstDecodeFWBaseAddrs->FWPicBase1 + hXvdCh->uiFWPicOffset1);
       pChOpen->chroma_block_size = pstDecodeFWMemSize->uiFWPicChromaBlockSize;
    }
 
+
    pChOpen->video_block_count = pstDecodeFWMemSize->uiFWPicBlockCount;
 
-   pChOpen->cabac_memory_base = pstDecodeFWBaseAddrs->uiFWCabacBase;
+   pChOpen->cabac_memory_base = (uint32_t)(pstDecodeFWBaseAddrs->FWCabacBase);
    pChOpen->cabac_memory_size = pstDecodeFWMemSize->uiFWCabacSize;
 
-   pChOpen->cabac_wl_base = pstDecodeFWBaseAddrs->uiFWCabacWorklistBase;
+   pChOpen->cabac_wl_base = (uint32_t)(pstDecodeFWBaseAddrs->FWCabacWorklistBase);
    pChOpen->cabac_wl_size = pstDecodeFWMemSize->uiFWCabacWorklistSize;
 
-   pChOpen->direct_mode_storage_base = pstDecodeFWBaseAddrs->uiFWDirectModeBase;
+   pChOpen->direct_mode_storage_base = (uint32_t)(pstDecodeFWBaseAddrs->FWDirectModeBase);
    pChOpen->direct_mode_storage_size = pstDecodeFWMemSize->uiFWDirectModeSize;
-   pChOpen->il_wl_base = pstDecodeFWBaseAddrs->uiFWInnerLoopWorklistBase;
+   pChOpen->il_wl_base = (uint32_t)(pstDecodeFWBaseAddrs->FWInnerLoopWorklistBase);
    pChOpen->il_wl_size = pstDecodeFWMemSize->uiFWInnerLoopWorklistSize;
 
-#if !BXVD_P_FW_40BIT_API
+#if BXVD_P_FW_40BIT_API
+   pChOpen->context_memory_base_hi = (uint32_t)(pstDecodeFWBaseAddrs->FWContextBase >> 32);
+   pChOpen->video_memory_base_hi = (uint32_t)((pstDecodeFWBaseAddrs->FWPicBase + hXvdCh->uiFWPicOffset) >> 32);
+
+   if (pstDecodeFWBaseAddrs->FWPicBase1  != (BXVD_P_PHY_ADDR) 0)
+   {
+      pChOpen->chroma_memory_base_hi = (uint32_t)((pstDecodeFWBaseAddrs->FWPicBase1 + hXvdCh->uiFWPicOffset1) >> 32);
+   }
+
+   pChOpen->cabac_memory_base_hi = (uint32_t)(pstDecodeFWBaseAddrs->FWCabacBase >> 32);
+   pChOpen->cabac_wl_base_hi = (uint32_t)(pstDecodeFWBaseAddrs->FWCabacWorklistBase >> 32);
+   pChOpen->direct_mode_storage_base_hi = (uint32_t)(pstDecodeFWBaseAddrs->FWDirectModeBase >> 32);
+   pChOpen->il_wl_base_hi = (uint32_t)(pstDecodeFWBaseAddrs->FWInnerLoopWorklistBase >> 32);
+
+#elif (!BXVD_P_FW_40BIT_API)
    pChOpen->bl_mv_store_base = pstDecodeFWBaseAddrs->uiFWInterLayerMVBase;
    pChOpen->bl_mv_store_size = pstDecodeFWMemSize->uiFWInterLayerMVSize;
 
@@ -545,13 +559,26 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
    BXVD_DBG_MSG(hXvd, (" channel_number: %d", pChOpen->channel_number));
    BXVD_DBG_MSG(hXvd, (" max_resolution_enum: %d", pChOpen->max_resolution_enum));
    BXVD_DBG_MSG(hXvd, (" still_picture_mode: %d", pChOpen->still_picture_mode));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" context_memory_base_hi: %#x", pChOpen->context_memory_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" context_memory_base: %#x", pChOpen->context_memory_base));
    BXVD_DBG_MSG(hXvd, (" context_memory_size: %#x", pChOpen->context_memory_size));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" video_memory_base_hi: %#x", pChOpen->video_memory_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" video_memory_base: %#x", pChOpen->video_memory_base));
    BXVD_DBG_MSG(hXvd, (" video_block_size: %#x", pChOpen->video_block_size));
+
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" chroma_memory_base_hi: %#x", pChOpen->chroma_memory_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" chroma_memory_base: %#x", pChOpen->chroma_memory_base));
    BXVD_DBG_MSG(hXvd, (" chroma_block_size: %#x", pChOpen->chroma_block_size));
    BXVD_DBG_MSG(hXvd, (" video_block_count: %d", pChOpen->video_block_count));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" cabac_memory_base_hi: %#x", pChOpen->cabac_memory_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" cabac_memory_base: %#x", pChOpen->cabac_memory_base));
    BXVD_DBG_MSG(hXvd, (" cabac_memory_size: %#x", pChOpen->cabac_memory_size));
 #if !BXVD_P_FW_40BIT_API
@@ -560,10 +587,19 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
    BXVD_DBG_MSG(hXvd, (" bl_video_store_base: %#x", pChOpen->bl_video_store_base));
    BXVD_DBG_MSG(hXvd, (" bl_video_store_size: %#x", pChOpen->bl_video_store_size));
 #endif
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" cabac_worklist_base_hi: %#x", pChOpen->cabac_wl_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" cabac_worklist_base: %#x", pChOpen->cabac_wl_base));
    BXVD_DBG_MSG(hXvd, (" cabac_worklist_size: %#x", pChOpen->cabac_wl_size));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" direct_mode_storage_base_hi: %#x", pChOpen->direct_mode_storage_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" direct_mode_storage_base: %#x", pChOpen->direct_mode_storage_base));
    BXVD_DBG_MSG(hXvd, (" direct_mode_storage_size: %#x", pChOpen->direct_mode_storage_size));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" il_wl_base_hi: %#x", pChOpen->il_wl_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" il_wl_base: %#x", pChOpen->il_wl_base));
    BXVD_DBG_MSG(hXvd, (" il_wl_size: %#x", pChOpen->il_wl_size));
 
@@ -946,17 +982,23 @@ BERR_Code BXVD_P_HostCmdDbgLogControl
 
    pDbgLog = &hXvd->FWCmd.dbgLogControl;
 
-
    pDbgLog->command = BXVD_CMD_DBGLOGCONTROL;
    pDbgLog->logStart = (uint32_t) logStart;
 
-   pDbgLog->dbglog_memory_base = hXvd->uiDecoderDbgBufPhyAddr;
-   pDbgLog->dbglog_memory_size = hXvd->stSettings.uiDecoderDebugLogBufferSize;
+   pDbgLog->dbglog_memory_base = (uint32_t) hXvd->DecoderDbgBufPhyAddr;
 
+#if BXVD_P_FW_40BIT_API
+   pDbgLog->dbglog_memory_base_hi = (uint32_t) (hXvd->DecoderDbgBufPhyAddr >> 32);
+#endif
+
+   pDbgLog->dbglog_memory_size = hXvd->stSettings.uiDecoderDebugLogBufferSize;
 
    BXVD_DBG_MSG(hXvd, ("BXVD_CMD_DBGLogControl:"));
    BXVD_DBG_MSG(hXvd, (" command: %#x", pDbgLog->command));
    BXVD_DBG_MSG(hXvd, (" logStart: %d", pDbgLog->logStart));
+#if BXVD_P_FW_40BIT_API
+   BXVD_DBG_MSG(hXvd, (" dbglog_mem_base_hi: %08x", pDbgLog->dbglog_memory_base_hi));
+#endif
    BXVD_DBG_MSG(hXvd, (" dbglog_mem_base: %08x", pDbgLog->dbglog_memory_base));
    BXVD_DBG_MSG(hXvd, (" dbglog_mem_size: %08x", pDbgLog->dbglog_memory_size));
 

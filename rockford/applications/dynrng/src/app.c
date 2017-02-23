@@ -68,25 +68,23 @@ PlatformDynamicRange app_p_compute_output_dynamic_range(AppHandle app, PlatformD
     PlatformDynamicRange output = PlatformDynamicRange_eSdr;
 
     assert(app);
-    if (!app->forceSdr)
+
+    if (app->forcedOutputEotf == PlatformDynamicRange_eAuto)
     {
-        if (input == PlatformDynamicRange_eSdr)
+        if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eHdr10) == PlatformCapability_eSupported)
         {
-            if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eHdr10) == PlatformCapability_eSupported)
-            {
-                output = PlatformDynamicRange_eHdr10;
-            }
-            else if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eHlg) == PlatformCapability_eSupported)
-            {
-                output = PlatformDynamicRange_eHlg;
-            }
+            output = PlatformDynamicRange_eHdr10;
         }
-        else
+        else if (platform_receiver_supports_dynamic_range(app->rx, PlatformDynamicRange_eHlg) == PlatformCapability_eSupported)
         {
-            if (platform_receiver_supports_dynamic_range(app->rx, input) == PlatformCapability_eSupported)
-            {
-                output = input;
-            }
+            output = PlatformDynamicRange_eHlg;
+        }
+    }
+    else
+    {
+        if (app->forcedOutputEotf < PlatformDynamicRange_eInvalid)
+        {
+            output = app->forcedOutputEotf;
         }
     }
 
@@ -115,7 +113,7 @@ void app_p_update_sel_model(AppHandle app)
     assert(app);
     pModel = &app->model.sel;
     pModel->format = true; /* TODO */
-    pModel->dynrng = app->forceSdr;
+    pModel->dynrng = app->forcedOutputEotf != PlatformDynamicRange_eAuto;
     pModel->gamut = app->model.out.info.gamut != PlatformColorimetry_eAuto;
     pModel->space = app->model.out.info.space != PlatformColorSpace_eAuto;
     pModel->depth = app->model.out.info.depth != 0;
@@ -270,7 +268,10 @@ void app_p_next_stream(void * context, int param)
     stream_player_next(app->streamPlayer);
     if (app->args->demo)
     {
-        app->forceSdr = false;
+        if (!app->outputEotfSticky)
+        {
+            app->forcedOutputEotf = PlatformDynamicRange_eAuto;
+        }
         app->model.out.info.gamut = PlatformColorimetry_eAuto;
     }
 }
@@ -283,7 +284,10 @@ void app_p_prev_stream(void * context, int param)
     stream_player_prev(app->streamPlayer);
     if (app->args->demo)
     {
-        app->forceSdr = false;
+        if (!app->outputEotfSticky)
+        {
+            app->forcedOutputEotf = PlatformDynamicRange_eAuto;
+        }
         app->model.out.info.gamut  = PlatformColorimetry_eAuto;
     }
 }
@@ -349,8 +353,28 @@ void app_p_toggle_forced_sdr(void * context, int param)
 {
     AppHandle app = context;
     assert(app);
-    scenario_player_play_scenario(app->scenarioPlayer, -1);
     app->forceSdr = !app->forceSdr;
+    app_p_update_sel_model(app);
+    app_p_update_out_model(app);
+    app_p_reapply_plm(app);
+}
+
+void app_p_toggle_output_eotf_stickiness(void * context, int param)
+{
+    AppHandle app = context;
+    assert(app);
+    app->outputEotfSticky = !app->outputEotfSticky;
+    /* TODO: show some text on OSD? */
+}
+
+void app_p_cycle_output_eotf(void * context, int param)
+{
+    AppHandle app = context;
+    assert(app);
+    if (++app->forcedOutputEotf >= PlatformDynamicRange_eInvalid)
+    {
+        app->forcedOutputEotf = PlatformDynamicRange_eSdr; /* skip eAuto */
+    }
     app_p_update_sel_model(app);
     app_p_update_out_model(app);
     app_p_reapply_plm(app);
@@ -411,9 +435,12 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
 {
     AppHandle app = context;
     assert(app);
-    app->forceSdr = pScenario->forceSdr;
     stream_player_play_stream(app->streamPlayer, pScenario->streamIndex);
     app->model.out.info.gamut = pScenario->gamut;
+    if (!app->outputEotfSticky)
+    {
+        app->forcedOutputEotf = pScenario->eotf;
+    }
     osd_set_visibility(app->osd, pScenario->osd);
     osd_set_guide_visibility(app->osd, pScenario->guide);
     osd_set_details_mode(app->osd, pScenario->details);
@@ -421,9 +448,14 @@ void app_p_scenario_changed(void * context, const Scenario * pScenario)
     image_viewer_view_image(app->background, pScenario->bgIndex);
     app->pig = pScenario->pig;
     osd_set_pig_mode(app->osd, app->pig);
+    if (pScenario->streamIndex != app->prevStreamIndex)
+    {
+        plm_set(app->plm.vid, -1); /* clear the currentSwitcher */
+    }
     plm_set(app->plm.vid, pScenario->plm.vidIndex);
     plm_set(app->plm.gfx, pScenario->plm.gfxIndex);
     app_p_update_model(app);
+    app->prevStreamIndex = pScenario->streamIndex;
 }
 
 void app_p_thumbnail_changed(void * context, PlatformPictureHandle pic)
@@ -498,9 +530,9 @@ AppHandle app_create(ArgsHandle args)
     assert(app->streamPlayer);
     app->scenarioPlayer = scenario_player_create(app->args->scenarioPath, &app_p_scenario_changed, app);
     assert(app->scenarioPlayer);
-    app->plm.vid = plm_create("VID", args->vidSdr2HdrPath, args->vidHdr2SdrPath, 0, 0, &platform_plm_set_vid_point, &platform_plm_get_vid_point, app->args->demo);
+    app->plm.vid = plm_create("VID", args->vidSdr2HdrPath, args->vidHdr2SdrPath, args->vidHlg2HdrPath, app->platform, 0, 0, &platform_plm_set_vid_point, &platform_plm_get_vid_point, app->args->demo);
     assert(app->plm.vid);
-    app->plm.gfx = plm_create("GFX", args->gfxSdr2HdrPath, NULL, 0, 0, &platform_plm_set_gfx_point, &platform_plm_get_gfx_point, app->args->demo);
+    app->plm.gfx = plm_create("GFX", args->gfxSdr2HdrPath, NULL, NULL, NULL, 0, 0, &platform_plm_set_gfx_point, &platform_plm_get_gfx_point, app->args->demo);
     assert(app->plm.gfx);
     image_viewer_get_default_create_settings(&viewerCreateSettings);
     viewerCreateSettings.platform = app->platform;
@@ -529,9 +561,10 @@ AppHandle app_create(ArgsHandle args)
 #if DYNRNG_QUIT_SUPPORT
     platform_input_set_event_handler(app->input, PlatformInputEvent_eQuit, &app_p_quit, app, 0);
 #endif
+    platform_input_set_event_handler(app->input, PlatformInputEvent_eQuit, &app_p_toggle_output_eotf_stickiness, app, 0);
     platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleOsd, &app_p_toggle_osd, app, 0);
     platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleGuide, &app_p_toggle_guide, app, 0);
-    platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleForcedSdr, &app_p_toggle_forced_sdr, app, 0);
+    platform_input_set_event_handler(app->input, PlatformInputEvent_eCycleOutputEotf, &app_p_cycle_output_eotf, app, 0);
     platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePause, &app_p_toggle_pause, app, 0);
     platform_input_set_event_handler(app->input, PlatformInputEvent_eToggleDetails, &app_p_toggle_details, app, 0);
     platform_input_set_event_handler(app->input, PlatformInputEvent_eTogglePig, &app_p_toggle_pig, app, 0);

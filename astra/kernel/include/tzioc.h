@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -74,36 +74,36 @@ public:
 
     static void cleanupTask(TzTask *pTask);
 
-    static int ioctl(uint32_t fd, uint32_t cmd, uint32_t arg);
+	static int ioctl(uint32_t fd, unsigned long cmd, uintptr_t arg);
 
-    inline static uint32_t offset2addr(uint32_t offset) {
-        if (offset < smemSize)
-            return offset + (uint32_t)psmem;
-        else
-            return (uint32_t)-1;
-    }
+	inline static uintptr_t offset2addr(uintptr_t offset) {
+		if (offset < smemSize)
+			return offset + (uintptr_t)psmem;
+		else
+			return (uintptr_t)-1;
+	}
 
-    inline static uint32_t addr2offset(uint32_t addr) {
-        if (addr >= (uint32_t)psmem &&
-            addr <  (uint32_t)psmem + smemSize)
-            return addr - (uint32_t)psmem;
+	inline static uintptr_t addr2offset(uintptr_t addr) {
+		if (addr >= (uintptr_t)psmem &&
+			addr <  (uintptr_t)psmem + smemSize)
+			return addr - (uintptr_t)psmem;
         else
-            return (uint32_t)-1;
+            return (uintptr_t)-1;
     }
 
     /* in case physical address, not offset, is used */
-    inline static uint32_t vaddr2paddr(uint32_t vaddr) {
-        uint32_t offset = addr2offset(vaddr);
+    inline static uintptr_t vaddr2paddr(uintptr_t vaddr) {
+        uintptr_t offset = addr2offset(vaddr);
         if (offset != -1)
             return smemStart + offset;
-        else
-            return (uint32_t)-1;
-    }
+		else
+			return (uintptr_t)-1;
+	}
 
-    inline static uint32_t paddr2vaddr(uint32_t paddr) {
-        uint32_t offset = paddr - smemStart;
-        return offset2addr(offset);
-    }
+	inline static uintptr_t paddr2vaddr(uintptr_t paddr) {
+		uintptr_t offset = paddr - smemStart;
+		return offset2addr(offset);
+	}
 
 private:
     /* private methods */
@@ -121,10 +121,10 @@ public:
 private:
     /* private data */
 
-    /* parameters from device tree */
-    static uint32_t smemStart;
-    static uint32_t smemSize;
-    static uint32_t sysIrq;
+	/* parameters from device tree */
+	static uintptr_t smemStart;
+	static uintptr_t smemSize;
+	static uint32_t sysIrq;
 
     /* shared memory */
     static struct tzioc_shared_mem *psmem;
@@ -133,7 +133,7 @@ private:
     static struct tzioc_client *psysClient;
 
     /* spinlock for data access */
-    static spinlock_t lock;
+	static SpinLock lock;
 
     /* peer state */
     static bool peerUp;

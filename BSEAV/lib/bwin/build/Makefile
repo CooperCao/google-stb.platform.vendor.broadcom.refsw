@@ -90,7 +90,7 @@ SRCS = \
 	bwin_image_bmp.c
 
 ifeq ($(PNG_SUPPORT),y)
-CFLAGS += -DPNG_SUPPORT -I$(LIBPNG_DIR) -I$(ZLIB_DIR)/include
+CFLAGS += -DPNG_SUPPORT -I$(LIBPNG_ODIR) -I$(ZLIB_ODIR)/include
 
 SRCS += \
 	bwin_image_png.c \
@@ -99,7 +99,7 @@ SRCS += \
 B_EXTRA_BUILDS += libpng
 B_EXTRA_CLEANS += clean-libpng
 
-include $(BSEAV)/lib/libpng/b_libpng_targets.inc
+include $(BSEAV)/opensource/libpng/b_libpng_targets.inc
 libpng: b_libpng_target_build
 clean-libpng: b_libpng_target_clean_all
 endif
@@ -138,19 +138,19 @@ endif
 else
 
 # Linux
-include $(BSEAV)/lib/jpeg-6b/b_libjpeg_targets.inc
+include $(BSEAV)/opensource/jpeg/b_libjpeg_targets.inc
 libjpeg: b_libjpeg_target_build
 clean-libjpeg: b_libjpeg_target_clean_all
 endif
 endif
 
 ifeq ($(FREETYPE_SUPPORT),y)
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_DIR)/include
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_ODIR)/include
 # We've checked in preconfigured source which uses our standard tools.mak
 # for cross compiling. configure isn't going to work on DOS for vxworks.
 B_EXTRA_BUILDS += freetype
 B_EXTRA_CLEANS += clean-freetype
-include $(FREETYPE_DIR)/b_freetype_targets.inc
+include $(FREETYPE_DIR)/$(FREETYPE_NAME)/b_freetype_targets.inc
 freetype: b_freetype_target_build
 clean-freetype: b_freetype_target_clean_all
 endif

@@ -119,7 +119,7 @@ Summary:
     Symbol BRDC_64BIT_SUPPORT indicates whether or not 64-bit addressing in
     RULs is supported.
 ****************************************************************************/
-#ifdef BCHP_RDC_RUL_opcode_B64_REG_WRITE_IMM
+#ifdef BCHP_HIF_MSAT_REG_START
     #define BRDC_64BIT_SUPPORT 1
 #else
     #define BRDC_64BIT_SUPPORT 0
@@ -1763,6 +1763,11 @@ Returns:
 See Also:
     BRDC_FreeScratchReg.
 ****************************************************************************/
+#define BRDC_ReadScratch_isrsafe  BREG_ReadAddr_isrsafe
+#define BRDC_WriteScratch_isrsafe BREG_WriteAddr_isrsafe
+#define BRDC_ReadScratch          BREG_ReadAddr
+#define BRDC_WriteScratch         BREG_WriteAddr
+
 #define BRDC_AllocScratchReg(hRdc) \
     BRDC_P_AllocScratchReg(hRdc, __FILE__, __LINE__);
 
