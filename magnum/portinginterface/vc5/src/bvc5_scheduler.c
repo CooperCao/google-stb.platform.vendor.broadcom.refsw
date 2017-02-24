@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,6 @@
  *  ANY LIMITED REMEDY.
  *
  **************************************************************************/
-
 #include "bstd.h"
 #include "bvc5.h"
 #include "bvc5_priv.h"
@@ -192,8 +191,10 @@ static void BVC5_P_ProcessInterrupt(
       pJob = pState->psJob;
       if (pJob != NULL)
       {
+#if !V3D_VER_AT_LEAST(3,3,0,0)
          BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventEnd, pJob,
                                BVC5_P_GetEventTimestamp(hVC5, uiCoreIndex));
+#endif
 
          BVC5_P_SchedPerfCounterAdd_isr(hVC5, BVC5_P_PERF_TFU_JOBS_COMPLETED, 1);
 

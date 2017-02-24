@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,7 +36,6 @@
  *  ANY LIMITED REMEDY.
  *
  **************************************************************************/
-
 #if defined(BVC5_HARDWARE_SIMPENROSE)
 
 #include "bstd.h"

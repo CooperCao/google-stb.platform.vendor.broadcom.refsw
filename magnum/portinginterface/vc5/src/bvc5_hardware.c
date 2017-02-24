@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1596,9 +1596,9 @@ static void BVC5_P_IssueTFUJob(
 #if V3D_VER_AT_LEAST(3,3,0,0)
    if (hVC5->sEventMonitor.bActive)
       BVC5_P_PushJobFifo(&hVC5->sEventMonitor.sFifoTFU, psJob);
-#endif
-
+#else
    BVC5_P_AddTFUJobEvent(hVC5, BVC5_EventBegin, psJob, BVC5_P_GetEventTimestamp(hVC5, 0));
+#endif
 
    BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_TFU_TFUICFG, uiVal);
 
@@ -2552,8 +2552,8 @@ void BVC5_P_HardwareReadEventFifos(
          if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, CBEND_NE, 1))
          {
             pJob = BVC5_P_PopJobFifo(&hVC5->sEventMonitor.sBinJobFifoCLE);
-            LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING, BVC5_EventEnd,     CCBE, pJob);
             LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING, BVC5_EventBegin,   CCBS, pJob);
+            LogData(BVC5_P_EVENT_MONITOR_CORE_CLE_BIN_TRACK, BVC5_P_EVENT_MONITOR_BINNING, BVC5_EventEnd,     CCBE, pJob);
          }
          if (status & BCHP_FIELD_DATA(V3D_CLE_CCNTCS, PBEND_NE, 1))
          {
