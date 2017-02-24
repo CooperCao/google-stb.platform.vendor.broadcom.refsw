@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_UNIQUE_INDEX_QUEUE_H_INCLUDED
-#define GLSL_UNIQUE_INDEX_QUEUE_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdbool.h>
 
@@ -20,5 +12,3 @@ void                       glsl_unique_index_queue_add   (GLSL_UNIQUE_INDEX_QUEU
 int                        glsl_unique_index_queue_remove(GLSL_UNIQUE_INDEX_QUEUE_T *uiq);
 void                       glsl_unique_index_queue_reset (GLSL_UNIQUE_INDEX_QUEUE_T *uiq);
 bool                       glsl_unique_index_queue_empty (GLSL_UNIQUE_INDEX_QUEUE_T *uiq);
-
-#endif

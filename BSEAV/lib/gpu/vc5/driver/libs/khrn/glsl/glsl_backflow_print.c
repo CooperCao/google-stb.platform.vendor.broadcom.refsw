@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 
 #include "glsl_backflow.h"
@@ -80,20 +73,20 @@ static void print_node(FILE *f, Backflow *backflow)
    switch (backflow->type) {
       case SIG:
          switch (backflow->u.sigbits) {
-            case SIGBIT_LDUNIF: fprintf(f, "uniform"); break;
-            case SIGBIT_LDTMU:  fprintf(f, "tmu");     break;
-            case SIGBIT_LDTLB:  fprintf(f, "ldtlb");   break;
-            case SIGBIT_LDTLBU: fprintf(f, "ldtlbu");  break;
+            case V3D_QPU_SIG_LDUNIF: fprintf(f, "uniform"); break;
+            case V3D_QPU_SIG_LDTMU:  fprintf(f, "tmu");     break;
+            case V3D_QPU_SIG_LDTLB:  fprintf(f, "ldtlb");   break;
+            case V3D_QPU_SIG_LDTLBU: fprintf(f, "ldtlbu");  break;
 
-            case SIGBIT_IMMED:      /* These are either not generated at all or */
-            case SIGBIT_LDVARY:     /* will use a different node type (not SIG) */
-            case SIGBIT_THRSW:
-            case SIGBIT_UCB:
-            case SIGBIT_ROTATE:  assert(0);  break;
+            case V3D_QPU_SIG_SMALL_IMM:  /* These are either not generated at all or */
+            case V3D_QPU_SIG_LDVARY:     /* will use a different node type (not SIG) */
+            case V3D_QPU_SIG_THRSW:
+            case V3D_QPU_SIG_UCB:
+            case V3D_QPU_SIG_ROTATE:  assert(0);  break;
 #if V3D_VER_AT_LEAST(4,0,2,0)
-            case SIGBIT_WRTMUC: fprintf(f, "wrtmuc");  break;
+            case V3D_QPU_SIG_WRTMUC: fprintf(f, "wrtmuc");  break;
 #else
-            case SIGBIT_LDVPM:  fprintf(f, "vpm");     break;
+            case V3D_QPU_SIG_LDVPM:  fprintf(f, "vpm");     break;
 #endif
          }
          break;
@@ -324,7 +317,7 @@ void glsl_print_backflow_from_roots(FILE *f, Backflow **roots, int num_roots, co
 /* keep Metaware happy by providing an exported symbol */
 void glsl_print_backflow_from_roots(FILE *f, BackflowChain *roots)
 {
-   vcos_unused(f);
-   vcos_unused(roots);
+   (void)(f);
+   (void)(roots);
 }
 #endif // _DEBUG

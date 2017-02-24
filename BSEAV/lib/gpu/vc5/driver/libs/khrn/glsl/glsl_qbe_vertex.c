@@ -1,26 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Translate a Dataflow graph to Backflow. This involves inserting hw-specific
-constructs as well as the parts of the shader that depend on things other than
-shader source.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_backflow.h"
 #include "glsl_backflow_visitor.h"
 #include "glsl_backend.h"
 
 #include "glsl_sched_node_helpers.h"
 #include "glsl_qbe_vertex.h"
-
-#include "../glxx/glxx_shader_cache.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
 

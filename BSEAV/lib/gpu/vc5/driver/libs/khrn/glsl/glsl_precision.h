@@ -1,16 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-All rights reserved.
-
-Project  :  glsl shader compiler
-Module   :  Header file
-
-FILE DESCRIPTION
-Precision tracking and checking
-=============================================================================*/
-
-#ifndef GLSL_PRECISION_H
-#define GLSL_PRECISION_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_compiler.h"
 #include "glsl_errors.h"
@@ -36,5 +27,3 @@ extern void glsl_prec_modify_prec(PrecisionTable *, const SymbolType *, Precisio
 
 /** Query a precision table for a given type **/
 extern PrecisionQualifier glsl_prec_get_prec(const PrecisionTable *, const SymbolType *);
-
-#endif

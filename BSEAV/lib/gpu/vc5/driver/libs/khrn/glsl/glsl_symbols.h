@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_SYMBOLS_H
-#define GLSL_SYMBOLS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdlib.h>
 #include <string.h>
@@ -22,7 +14,7 @@ FILE DESCRIPTION
 #include "glsl_precision.h"
 #include "glsl_nast.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 // Defines the representation of symbols.
 // Symbols bind names to either _types_ or _instances_.
@@ -347,6 +339,4 @@ void glsl_symbol_list_append(SymbolList *list, Symbol *s);
 void glsl_symbol_list_pop(SymbolList *list);
 bool glsl_symbol_list_contains(const SymbolList *list, Symbol *value);
 
-VCOS_EXTERN_C_END
-
-#endif // SYMBOLS_H
+EXTERN_C_END

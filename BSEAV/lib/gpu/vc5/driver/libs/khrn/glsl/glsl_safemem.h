@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_SAFEMEM_H_INCLUDED
-#define GLSL_SAFEMEM_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 /* This a basic memory manager for the GLSL compiler. It provides lightweight wrappers
    over the standard library functions, which have the following two properties:
@@ -18,9 +10,9 @@ FILE DESCRIPTION
 */
 
 #include <stddef.h>
-#include "vcos.h"
+#include "libs/util/common.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 #ifndef GLSL_MEMORY_DEBUG
 
@@ -45,6 +37,4 @@ void  glsl_safemem_cleanup();
 void  glsl_safemem_verify ();
 void  glsl_safemem_dump   ();
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

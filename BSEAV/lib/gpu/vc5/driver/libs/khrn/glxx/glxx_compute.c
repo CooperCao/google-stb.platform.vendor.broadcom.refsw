@@ -1,8 +1,6 @@
-/*=============================================================================
- * Broadcom Proprietary and Confidential. (c)2015 Broadcom.
- * All rights reserved.
- * =============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glxx_compute.h"
 #include "gl_public_api.h"
 #include "glxx_int_config.h"
@@ -664,7 +662,12 @@ static unsigned build_shader_record(
    shader_record.num_varys = gfx_umax(shader_record.num_varys, 1); // workaround GFXH-1276
 # endif
 #endif
+#if V3D_HAS_RELAXED_THRSW
+   shader_record.fs.four_thread = link_data->fs.four_thread;
+   shader_record.fs.single_seg  = link_data->fs.single_seg;
+#else
    shader_record.fs.threading = link_data->fs.threading;
+#endif
    shader_record.fs.propagate_nans = true;
    shader_record.fs.addr = code_addr + link_data->fs.code_offset;
    shader_record.fs.unifs_addr = unifs_addr;
@@ -963,9 +966,9 @@ static bool begin_dispatch(GLXX_LINK_RESULT_DATA_T** link_data, GLXX_SERVER_STAT
 
    state->shaderkey_common.backend = 0
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-      | GLXX_PRIM_LINE
+      | GLSL_PRIM_LINE
 #endif
-      | (GLXX_FB_I32 | (V3D_VER_AT_LEAST(4,0,2,0) ? 0 : GLXX_FB_ALPHA_16_WORKAROUND)) << GLXX_FB_GADGET_S;
+      | (GLSL_FB_I32 | (V3D_VER_AT_LEAST(4,0,2,0) ? 0 : GLSL_FB_ALPHA_16_WORKAROUND)) << GLSL_FB_GADGET_S;
 
    if (!glxx_compute_image_like_uniforms(state, &rs->base))
       goto end;
@@ -996,7 +999,12 @@ static bool dispatch_compute_recursive(
    // Compute config should remain valid even if we rebuild the link data
    compute_dispatch_config cfg = { 0, }; // Pointless initialisation to keep gcc happy.
    GLSL_PROGRAM_T* program = gl20_program_common_get(state)->linked_glsl_program;
-   if (!init_dispatch_config(&cfg, link_data->fs.threading, program->wg_size, program->shared_block_size, vol->size))
+#if V3D_HAS_RELAXED_THRSW
+   v3d_threading_t threading = link_data->fs.four_thread ? 4 : 2;
+#else
+   v3d_threading_t threading = link_data->fs.threading;
+#endif
+   if (!init_dispatch_config(&cfg, threading, program->wg_size, program->shared_block_size, vol->size))
       return false;
 
    // Compute number of groups we can do with this config.

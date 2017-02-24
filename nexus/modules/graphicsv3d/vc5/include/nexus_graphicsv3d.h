@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -714,7 +714,8 @@ void NEXUS_Graphicsv3d_GetPerfCounterDesc(
 void NEXUS_Graphicsv3d_GetPerfCounterGroupInfo(
    NEXUS_Graphicsv3dHandle             hGfx,                   /* [in]  */
    uint32_t                            uiGroup,                /* [in]  */
-   char                                *chGrpName,             /* [out] */
+   uint32_t                            uiGrpNameSize,          /* [in]  */
+   char                                *chGrpName,             /* [out] attr{nelem=uiGrpNameSize}*/
    uint32_t                            *uiMaxActiveCounter,    /* [out] */
    uint32_t                            *uiTotalCounter         /* [out] */
    );

@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2014 Broadcom.  All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -749,6 +749,7 @@ void BVC5_GetPerfCounterDesc(
 void BVC5_GetPerfCounterGroupInfo(
    BVC5_Handle             hVC5,
    uint32_t                uiGroup,
+   uint32_t                uiGrpNameSize,
    char                    *chGrpName,
    uint32_t                *uiMaxActiveCounter,
    uint32_t                *uiTotalCounter

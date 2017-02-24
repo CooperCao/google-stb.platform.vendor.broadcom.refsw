@@ -121,6 +121,7 @@ COMMON_SRC_FILES := \
 	libs/khrn/glsl/glsl_alloc_tracker.c \
 	libs/khrn/glsl/glsl_basic_block.c \
 	libs/khrn/glsl/glsl_basic_block_builder.c \
+	libs/khrn/glsl/glsl_basic_block_elim_dead.c \
 	libs/khrn/glsl/glsl_basic_block_flatten.c \
 	libs/khrn/glsl/glsl_basic_block_print.c \
 	libs/khrn/glsl/glsl_nast.c \
@@ -212,6 +213,7 @@ COMMON_SRC_FILES := \
 	libs/core/v3d/v3d_shadrec.c \
 	libs/core/v3d/v3d_cl.c \
 	libs/core/v3d/v3d_cl_compr.c \
+	libs/core/v3d/v3d_clear_shader.c \
 	libs/core/v3d/v3d_gen.c \
 	libs/core/v3d/v3d_gmp.c \
 	libs/core/v3d/v3d_ident.c \

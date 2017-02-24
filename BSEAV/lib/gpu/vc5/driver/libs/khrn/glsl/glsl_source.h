@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_SOURCE_H_INCLUDED
-#define GLSL_SOURCE_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 typedef struct {
    /* Inputs to compile */
@@ -34,5 +26,3 @@ typedef struct {
 
 void glsl_shader_source_dump(const GLSL_SHADER_SOURCE_T *src);
 void glsl_program_source_dump(const GLSL_PROGRAM_SOURCE_T *p, unsigned vertex_name, unsigned fragmnt_name);
-
-#endif

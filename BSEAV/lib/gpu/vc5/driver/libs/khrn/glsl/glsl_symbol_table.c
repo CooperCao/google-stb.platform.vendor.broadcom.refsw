@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_symbol_table.h"
 
@@ -29,10 +22,15 @@ FILE DESCRIPTION
 #include "glsl_extensions.h"
 
 SymbolTable *glsl_symbol_table_new(void) {
-   SymbolTable *table = malloc_fast(sizeof(SymbolTable));
+   SymbolTable *table = glsl_safemem_malloc(sizeof(SymbolTable));
    table->map = glsl_scoped_map_new();
    glsl_symbol_table_enter_scope(table);
    return table;
+}
+
+void glsl_symbol_table_delete(SymbolTable *t) {
+   glsl_scoped_map_delete(t->map);
+   glsl_safemem_free(t);
 }
 
 SymbolTable *glsl_symbol_table_populate(SymbolTable *table, ShaderFlavour flavour, int version)
@@ -95,11 +93,11 @@ void glsl_symbol_table_print(SymbolTable *table)
 {
    int indent = 0;
    for (ScopeList *scope = table->map->scopes; scope; scope = scope->next, indent++) {
-      for (MapNode *n = scope->map->head; n; n = n->next) {
+      GLSL_MAP_FOREACH(e, scope->map) {
          int i;
          for (i=0; i<indent; i++)
             printf("   ");
-         glsl_symbol_print(n->v);
+         glsl_symbol_print(e->v);
       }
    }
 }

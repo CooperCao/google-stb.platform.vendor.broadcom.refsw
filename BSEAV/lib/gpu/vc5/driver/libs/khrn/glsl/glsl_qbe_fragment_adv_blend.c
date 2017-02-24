@@ -1,17 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Translate a Dataflow graph to Backflow. This involves inserting hw-specific
-constructs as well as the parts of the shader that depend on things other than
-shader source.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_backend_uniforms.h"
 #include "glsl_backflow.h"
@@ -23,9 +12,7 @@ shader source.
 
 #include "glsl_qbe_fragment.h"
 #include "glsl_sched_node_helpers.h"
-
-#include "../glxx/glxx_int_config.h"
-#include "../glxx/glxx_shader_cache.h"
+#include "glsl_backend_cfg.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
 
@@ -322,40 +309,40 @@ static void adv_blend_hsl_luminosity(Backflow *res[3], Backflow *cs[3], Backflow
 
 typedef Backflow *(*ADV_BLEND_FN)(Backflow *cs, Backflow *cd, Backflow *as, Backflow *ad, Backflow *asad);
 
-ADV_BLEND_FN adv_blend_fn(GLenum mode)
+ADV_BLEND_FN adv_blend_fn(uint32_t mode)
 {
    switch (mode)
    {
-   case GLXX_ADV_BLEND_MULTIPLY:   return adv_blend_multiply;
-   case GLXX_ADV_BLEND_SCREEN:     return adv_blend_screen;
-   case GLXX_ADV_BLEND_OVERLAY:    return adv_blend_overlay;
-   case GLXX_ADV_BLEND_DARKEN:     return adv_blend_darken;
-   case GLXX_ADV_BLEND_LIGHTEN:    return adv_blend_lighten;
-   case GLXX_ADV_BLEND_COLORDODGE: return adv_blend_colordodge;
-   case GLXX_ADV_BLEND_COLORBURN:  return adv_blend_colorburn;
-   case GLXX_ADV_BLEND_HARDLIGHT:  return adv_blend_hardlight;
-   case GLXX_ADV_BLEND_SOFTLIGHT:  return adv_blend_softlight;
-   case GLXX_ADV_BLEND_DIFFERENCE: return adv_blend_difference;
-   case GLXX_ADV_BLEND_EXCLUSION:  return adv_blend_exclusion;
+   case GLSL_ADV_BLEND_MULTIPLY:   return adv_blend_multiply;
+   case GLSL_ADV_BLEND_SCREEN:     return adv_blend_screen;
+   case GLSL_ADV_BLEND_OVERLAY:    return adv_blend_overlay;
+   case GLSL_ADV_BLEND_DARKEN:     return adv_blend_darken;
+   case GLSL_ADV_BLEND_LIGHTEN:    return adv_blend_lighten;
+   case GLSL_ADV_BLEND_COLORDODGE: return adv_blend_colordodge;
+   case GLSL_ADV_BLEND_COLORBURN:  return adv_blend_colorburn;
+   case GLSL_ADV_BLEND_HARDLIGHT:  return adv_blend_hardlight;
+   case GLSL_ADV_BLEND_SOFTLIGHT:  return adv_blend_softlight;
+   case GLSL_ADV_BLEND_DIFFERENCE: return adv_blend_difference;
+   case GLSL_ADV_BLEND_EXCLUSION:  return adv_blend_exclusion;
    default: unreachable();
    }
 }
 
 typedef void (*ADV_BLEND_HSL_FN)(Backflow *res[3], Backflow *cs[3], Backflow *cd[3], Backflow *as, Backflow *ad);
 
-ADV_BLEND_HSL_FN adv_blend_hsl_fn(GLenum mode)
+ADV_BLEND_HSL_FN adv_blend_hsl_fn(uint32_t mode)
 {
    switch (mode)
    {
-   case GLXX_ADV_BLEND_HSL_HUE:        return adv_blend_hsl_hue;
-   case GLXX_ADV_BLEND_HSL_SATURATION: return adv_blend_hsl_saturation;
-   case GLXX_ADV_BLEND_HSL_COLOR:      return adv_blend_hsl_color;
-   case GLXX_ADV_BLEND_HSL_LUMINOSITY: return adv_blend_hsl_luminosity;
+   case GLSL_ADV_BLEND_HSL_HUE:        return adv_blend_hsl_hue;
+   case GLSL_ADV_BLEND_HSL_SATURATION: return adv_blend_hsl_saturation;
+   case GLSL_ADV_BLEND_HSL_COLOR:      return adv_blend_hsl_color;
+   case GLSL_ADV_BLEND_HSL_LUMINOSITY: return adv_blend_hsl_luminosity;
    default: unreachable();
    }
 }
 
-void adv_blend(Backflow *res[3], GLenum mode, Backflow *cs[3], Backflow *cd[3], Backflow *as, Backflow *ad, Backflow *asad)
+void adv_blend(Backflow *res[3], uint32_t mode, Backflow *cs[3], Backflow *cd[3], Backflow *as, Backflow *ad, Backflow *asad)
 {
    ADV_BLEND_FN  blend_fn = adv_blend_fn(mode);
 
@@ -363,7 +350,7 @@ void adv_blend(Backflow *res[3], GLenum mode, Backflow *cs[3], Backflow *cd[3], 
       res[i] = blend_fn(cs[i], cd[i], as, ad, asad);
 }
 
-void adv_blend_hsl(Backflow *res[3], GLenum mode, Backflow *cs[3], Backflow *cd[3], Backflow *as, Backflow *ad, Backflow *asad)
+void adv_blend_hsl(Backflow *res[3], uint32_t mode, Backflow *cs[3], Backflow *cd[3], Backflow *as, Backflow *ad, Backflow *asad)
 {
    Backflow *bcs[3];
    Backflow *bcd[3];
@@ -387,10 +374,10 @@ static bool is_hsl(uint32_t mode)
 {
    switch (mode)
    {
-   case GLXX_ADV_BLEND_HSL_HUE        :
-   case GLXX_ADV_BLEND_HSL_SATURATION :
-   case GLXX_ADV_BLEND_HSL_COLOR      :
-   case GLXX_ADV_BLEND_HSL_LUMINOSITY : return true;
+   case GLSL_ADV_BLEND_HSL_HUE        :
+   case GLSL_ADV_BLEND_HSL_SATURATION :
+   case GLSL_ADV_BLEND_HSL_COLOR      :
+   case GLSL_ADV_BLEND_HSL_LUMINOSITY : return true;
    default                            : return false;
    }
 }
@@ -438,7 +425,7 @@ void adv_blend_blend(Backflow *res[4], Backflow *src[4], Backflow *dst[4], uint3
 void adv_blend_read_tlb(Backflow *res[4][4], const FragmentBackendState *s, SchedBlock *block, int rt)
 {
    int type = s->rt[rt].type;
-   assert(type == GLXX_FB_F16 || type == GLXX_FB_F32);
+   assert(type == GLSL_FB_F16 || type == GLSL_FB_F32);
 
    Backflow *node[16];
    Backflow *first, *last;

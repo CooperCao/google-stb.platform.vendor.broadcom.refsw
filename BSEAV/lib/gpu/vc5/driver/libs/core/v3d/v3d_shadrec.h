@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef V3D_SHADREC_H
 #define V3D_SHADREC_H
 
@@ -77,6 +70,7 @@ static inline v3d_threading_t v3d_translate_threading(uint32_t threadability)
    }
 }
 
+#if !V3D_HAS_RELAXED_THRSW
 static inline uint32_t v3d_get_threadability(v3d_threading_t threading)
 {
    switch (threading) {
@@ -86,6 +80,7 @@ static inline uint32_t v3d_get_threadability(v3d_threading_t threading)
    default: unreachable(); return 0;
    }
 }
+#endif
 
 static inline const char *v3d_maybe_desc_shader_type_br(bool render, v3d_shader_type_t shader_type)
 {

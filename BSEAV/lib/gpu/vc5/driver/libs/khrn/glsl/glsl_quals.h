@@ -1,10 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-=============================================================================*/
-
-#ifndef _GLSL_QUALS_H
-#define _GLSL_QUALS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_common.h"
 #include "glsl_symbol_table.h"
@@ -25,5 +22,3 @@ Qualifier *new_qual_precise(void);
 void qualifiers_from_list(Qualifiers *q, QualList *l);
 void param_quals_from_list(Qualifiers *q, ParamQualifier *param_qual, QualList *l);
 void qualifiers_process_default(QualList *q_in, SymbolTable *s, DeclDefaultState *dflt);
-
-#endif

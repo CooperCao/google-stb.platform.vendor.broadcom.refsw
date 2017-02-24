@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_DATAFLOW_VISITOR_H
-#define GLSL_DATAFLOW_VISITOR_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_dataflow.h"
 
@@ -41,5 +33,3 @@ void glsl_dataflow_reloc_post_visitor(DataflowRelocVisitor *visitor, int id, voi
 void glsl_dataflow_reloc_visitor_end(DataflowRelocVisitor *visitor);
 
 void glsl_dataflow_reloc_visit_array(Dataflow* dataflow, int dataflow_count, int *ids, int start, int end, void* data, DataflowPostVisitor dpostv, bool *temp);
-
-#endif // DATAFLOW_VISITOR_H

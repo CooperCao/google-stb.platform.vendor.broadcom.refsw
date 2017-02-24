@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_LAYOUT_H
-#define GLSL_LAYOUT_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdint.h>
 #include "glsl_common.h"      /* LayoutQualifier definition */
@@ -106,5 +98,3 @@ struct layout_data {
 
 const struct layout_data *glsl_layout_lookup(const char *name, unsigned int len);
 AdvancedBlendQualifier    glsl_lq_to_abq(LQ lq);
-
-#endif // LAYOUT_H

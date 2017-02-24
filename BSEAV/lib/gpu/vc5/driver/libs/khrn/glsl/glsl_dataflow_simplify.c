@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_const_operators.h"
 #include "glsl_dataflow_simplify.h"
 
@@ -599,6 +592,14 @@ static Dataflow *simplify_commutative_binop(DataflowFlavour flavour, Dataflow *n
       }
    }
    if (non_c->type == DF_BOOL) {
+      if (flavour == DATAFLOW_EQUAL) {
+         if (c->u.constant.value) return non_c;
+         else                     return glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, non_c);
+      }
+      if (flavour == DATAFLOW_NOT_EQUAL || flavour == DATAFLOW_LOGICAL_XOR) {
+         if (c->u.constant.value) return glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, non_c);
+         else                     return non_c;
+      }
       if (flavour == DATAFLOW_LOGICAL_AND) {
          if (c->u.constant.value) return non_c;
          else                     return c;
@@ -1029,7 +1030,7 @@ static Dataflow *simplify_addr_load(Dataflow *dataflow) {
    if (l->d.unary_op.operand->flavour != DATAFLOW_ADDRESS) return NULL;
 
    Dataflow *addr = l->d.unary_op.operand->d.unary_op.operand;
-   if (addr->flavour == DATAFLOW_UNIFORM) {
+   if (addr->flavour == DATAFLOW_UNIFORM || addr->flavour == DATAFLOW_UNIFORM_BUFFER) {
       Dataflow *ret = glsl_dataflow_construct_buffer(addr->flavour, dataflow->type, addr->u.buffer.index,
                                                      addr->u.buffer.offset + 4 * dataflow->u.get_vec4_component.component_index);
       return ret;

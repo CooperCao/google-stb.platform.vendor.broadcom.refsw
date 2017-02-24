@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BACKEND_H
-#define GLSL_BACKEND_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "libs/core/v3d/v3d_limits.h"
 #include "libs/util/gfx_util/gfx_util.h"
@@ -18,13 +10,13 @@ FILE DESCRIPTION
 #include "glsl_backend_reg.h"
 
 #define MAX_INSTRUCTIONS 20000
-#define MAX_UNIFORMS 10000
-#define MAX_VARYINGS 128
-#define MAX_STACK 1024
+#define MAX_UNIFORMS     10000
+#define MAX_VARYINGS     128
+#define MAX_STACK        4096
 
 /* Legacy magic uniform encodings */
 #define UNIF_PAIR(a,b) ((uint64_t)(a) | (uint64_t)(b) << (uint64_t)32)
-#define UNIF_NONE ((uint64_t)0)
+#define UNIF_NONE      ((uint64_t)0)
 
 #define VARYING_ID_HW_0 (V3D_MAX_VARYING_COMPONENTS)
 #define VARYING_ID_HW_1 (V3D_MAX_VARYING_COMPONENTS + 1)
@@ -102,9 +94,9 @@ typedef struct {
    bool used;
    BackflowFlavour op;
    SchedNodeUnpack unpack[2];
-   uint32_t output;
-   uint32_t input_a;
-   uint32_t input_b;
+   backend_reg output;
+   backend_reg input_a;
+   backend_reg input_b;
    uint32_t cond_setf;
    MOV_EXCUSE mov_excuse; /* For debugging optimisations - if there's a mov here then why? */
 } GLSL_OP_T;
@@ -155,7 +147,9 @@ typedef struct
 
    uint64_t register_blackout;
 
-   uint32_t threadability;       /* 4, 2 or 1. Restricts the regfile sizes */
+   uint32_t regfile_max;            /* Determined by threadability. */
+   uint32_t regfile_usable;         /* regfile_max minus number of registers in blackout. */
+   uint32_t threadability;          /* 4, 2 or 1. Restricts the regfile sizes */
    uint32_t thrsw_remaining;
    bool     lthrsw;
 
@@ -189,5 +183,3 @@ extern GENERATED_SHADER_T *glsl_backend(BackflowChain *iodeps,
                                         int blackout,
                                         bool last,
                                         bool lthrsw);
-
-#endif

@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_nast.h"
 #include "glsl_ast.h"
 #include "glsl_ast_print.h"
@@ -191,8 +184,15 @@ static Expr *eval_expr(NStmtList *nstmts, Expr *expr, bool make_lvalue)
          break;
 
       case EXPR_SUBSCRIPT:
-         nexpr->u.subscript.aggregate = eval_expr(nstmts, expr->u.subscript.aggregate, make_lvalue);
-         nexpr->u.subscript.subscript = eval_expr(nstmts, expr->u.subscript.subscript, false);
+         /* If the array is unsized then we can't just evaluate it all. Fortunately we
+          * know that the expression has no side effects, so just take it as is */
+         if (nexpr->u.subscript.aggregate->type->scalar_count == 0) {
+            nexpr->u.subscript.subscript = eval_expr(nstmts, expr->u.subscript.subscript, false);
+            nexpr->u.subscript.aggregate = expr->u.subscript.aggregate;
+         } else {
+            nexpr->u.subscript.aggregate = eval_expr(nstmts, expr->u.subscript.aggregate, make_lvalue);
+            nexpr->u.subscript.subscript = eval_expr(nstmts, expr->u.subscript.subscript, false);
+         }
          break;
 
       case EXPR_FIELD_SELECTOR:

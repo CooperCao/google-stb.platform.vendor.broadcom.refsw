@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_GLOBALS_H
-#define GLSL_GLOBALS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdbool.h>
 #include "glsl_ir_program.h"
@@ -26,5 +18,3 @@ extern int g_FileNumber;
 
 // Whether the parser is currently in global scope.
 extern bool g_InGlobalScope;
-
-#endif // GLOBALS_H

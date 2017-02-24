@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_LIST_H
-#define GLSL_LIST_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #define DECLARE_LIST(type) \
 \
@@ -90,5 +82,3 @@ static inline bool glsl_node_list_##type##_contains(type ## Chain *chain, type *
 }
 
 #define NODE_LIST_FOR_EACH(node, list_ptr) LIST_FOR_EACH(node, list_ptr, l)
-
-#endif // GLSL_LIST_H

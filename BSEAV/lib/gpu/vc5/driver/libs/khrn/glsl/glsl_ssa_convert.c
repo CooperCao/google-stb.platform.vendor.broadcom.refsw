@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2016 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_map.h"
 #include "glsl_basic_block.h"
 #include "glsl_ir_shader.h"
@@ -48,11 +41,12 @@ static void prune_fake_writes(BasicBlock **blocks, int n_blocks) {
     * symbols that are only read from the map by replacing it                 */
    for (int i=0; i<n_blocks; i++) {
       Map *new_scv = glsl_map_new();
-      for (MapNode *mn = blocks[i]->scalar_values->head; mn != NULL; mn = mn->next) {
-         if (symbol_really_written(blocks[i], mn->k)) {
-            glsl_map_put(new_scv, mn->k, mn->v);
+      GLSL_MAP_FOREACH(e, blocks[i]->scalar_values) {
+         if (symbol_really_written(blocks[i], e->k)) {
+            glsl_map_put(new_scv, e->k, e->v);
          }
       }
+      glsl_map_delete(blocks[i]->scalar_values);
       blocks[i]->scalar_values = new_scv;
    }
 }
@@ -85,20 +79,20 @@ static void get_block_info_outputs(BasicBlock **blocks, int n_blocks, Map *block
       Map *output_map = output_maps[b_out->id];
 
       int count = 0;
-      for(MapNode *out_node = b->scalar_values->head; out_node != NULL; out_node = out_node->next) {
-         const Symbol *s = out_node->k;
+      GLSL_MAP_FOREACH(out, b->scalar_values) {
+         const Symbol *s = out->k;
          count += s->type->scalar_count;
       }
       if (b->memory_head != NULL) count++;
       if (b->branch_cond != NULL) count++;
 
       b_out->n_outputs = count;
-      b_out->outputs = malloc_fast(count * sizeof(Dataflow *));
+      b_out->outputs = glsl_safemem_malloc(count * sizeof(Dataflow *));
 
       int output_idx = 0;
-      for (MapNode *out_node = b->scalar_values->head; out_node != NULL; out_node = out_node->next) {
-         const Symbol *s = out_node->k;
-         Dataflow **df = out_node->v;
+      GLSL_MAP_FOREACH(out, b->scalar_values) {
+         const Symbol *s = out->k;
+         Dataflow **df = out->v;
 
          IROutput *o = malloc_fast(sizeof(IROutput) * s->type->scalar_count);
          for (unsigned i=0; i<s->type->scalar_count; i++) {
@@ -146,9 +140,9 @@ static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_id
       Map *load_map = glsl_map_new();
 
       /* Create phis and external symbols for the loads */
-      for (MapNode *load_node = b->loads->head; load_node; load_node = load_node->next) {
-         const Symbol *s = load_node->k;
-         Dataflow   **df = load_node->v;
+      GLSL_MAP_FOREACH(load, b->loads) {
+         const Symbol *s = load->k;
+         Dataflow   **df = load->v;
 
          int *ids = glsl_map_get(symbol_ids, s);
          if (ids != NULL && (s->flavour == SYMBOL_INTERFACE_BLOCK || (s->flavour == SYMBOL_VAR_INSTANCE && s->u.var_instance.storage_qual == STORAGE_UNIFORM)))
@@ -189,15 +183,10 @@ static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_id
                   incoming_id = incoming_block_id;
                } else {
                   assert(ext_res->flavour == DATAFLOW_EXTERNAL || ext_res->flavour == DATAFLOW_PHI);
-                  if (ext_res->flavour == DATAFLOW_EXTERNAL) {
-                     /* TODO: We screwed up the creation of the phi_args so that every symbol that is ever
-                      * read where there are multiple entry paths gets a phi, just sometimes with all the same value.
-                      * This is obviously appaling. Just don't create a phi to work around the issue. */
-                     if (o[i].block != ext_res->u.external.block || o[i].output != ext_res->u.external.output)
-                        ext_res = glsl_dataflow_construct_phi(ext_res, incoming_id, external, incoming_block_id);
-                  } else {
+                  if (ext_res->flavour == DATAFLOW_EXTERNAL)
+                     ext_res = glsl_dataflow_construct_phi(ext_res, incoming_id, external, incoming_block_id);
+                  else
                      ext_res = glsl_dataflow_construct_phi(external, incoming_block_id, ext_res, -1);
-                  }
                }
             }
             /* TODO: This is not the right way to solve this problem. We spuriously create
@@ -216,6 +205,8 @@ static void normalise_ir_format(BasicBlock **blocks, int n_blocks, Map *block_id
          if (bbc->outputs[i]->flavour == DATAFLOW_LOAD)
             bbc->outputs[i] = glsl_map_get(load_map, bbc->outputs[i]);
       }
+
+      glsl_map_delete(load_map);
    }
 }
 
@@ -261,7 +252,9 @@ static void fill_ir_outputs(const SymbolList *outs, Map *symbol_final_values, Ma
 /* Place phis in the program according to the dominance frontiers.          *
  * This uses the algorithm from figure 11 of Cytron et al, "Efficiently     *
  * computing static single assignment form and the control dependence graph */
-static void place_phis(BasicBlock **blocks, int n_blocks, const Map *symbols, bool **df)
+/* The phis map for a block contains an entry for a symbol if that symbol has *
+ * a phi in that block. We use the map directly instead of storing 'already'  */
+static void place_phis(Map **phis, BasicBlock **blocks, int n_blocks, const Map *symbols, bool **df)
 {
    int *work_list = glsl_safemem_malloc(n_blocks * sizeof(int));
    int work_depth = 0;
@@ -269,14 +262,13 @@ static void place_phis(BasicBlock **blocks, int n_blocks, const Map *symbols, bo
    bool *has_already = glsl_safemem_malloc(n_blocks * sizeof(bool));
 
    /* For each variable V assigned in the program: */
-   for (MapNode *n = symbols->head; n != NULL; n=n->next) {
-      memset(has_already, 0, n_blocks * sizeof(bool));
-      memset(work,        0, n_blocks * sizeof(bool));
+   GLSL_MAP_FOREACH(e, symbols) {
+      memset(work, 0, n_blocks * sizeof(bool));
 
       /* Add all blocks that assign to V to the worklist */
       for (int i=0; i<n_blocks; i++) {
          const BasicBlock *b = blocks[i];
-         if (glsl_map_get(b->scalar_values, n->k) != NULL) {
+         if (glsl_map_get(b->scalar_values, e->k) != NULL) {
             /* This block assigns to this variable. Add to the work list */
             work_list[work_depth++] = i;
          }
@@ -288,11 +280,10 @@ static void place_phis(BasicBlock **blocks, int n_blocks, const Map *symbols, bo
          work_depth--;
 
          for (int j=0; j<n_blocks; j++) {
-            if (df[work_item][j] && !has_already[j]) {
-               /* Create LOADs here so that the phi will be created properly */
-               glsl_basic_block_get_scalar_values(blocks[j], n->k);
+            if (df[work_item][j] && !glsl_map_get(phis[j], e->k)) {
+               /* Add a phi for this symbol in block j */
+               glsl_map_put(phis[j], e->k, phis[j]);
 
-               has_already[j] = true;
                if (!work[j]) {
                   work[j] = true;
                   work_list[work_depth++] = j;
@@ -307,41 +298,42 @@ static void place_phis(BasicBlock **blocks, int n_blocks, const Map *symbols, bo
    glsl_safemem_free(has_already);
 }
 
-static void update_phi_args(Map *phi_args, BasicBlock *from, const Map *symbol_stacks) {
-   for (MapNode *n = phi_args->head; n != NULL; n=n->next) {
-      BasicBlockList **stack = glsl_map_get(symbol_stacks, n->k);
-      BasicBlockList **args = n->v;
-      glsl_basic_block_list_add(&args[0], stack[0]->v);
-      glsl_basic_block_list_add(&args[1], from);
+static void update_phi_args(Map *phi_args, Map *phis, BasicBlock *from, const Map *symbol_stacks) {
+   GLSL_MAP_FOREACH(e, phi_args) {
+      BasicBlockList **stack = glsl_map_get(symbol_stacks, e->k);
+      BasicBlockList **args = e->v;
+      if (glsl_map_get(phis, e->k) || !args[0]) {
+         glsl_basic_block_list_add(&args[0], stack[0]->v);
+         glsl_basic_block_list_add(&args[1], from);
+      }
    }
 }
 
-static int hacky_get_block_id(BasicBlock **blocks, BasicBlock *b) {
-   for (int i=0; ; i++) {
-      if (blocks[i] == b) return i;
-   }
-   unreachable();
-}
-
-void setup_phi_args(int block, BasicBlock **blocks, int n_blocks, Map *symbol_stacks, const int *idom, Map *final_values, Map **phi_args)
+void setup_phi_args(int block, BasicBlock **blocks, int n_blocks, Map *block_ids, Map *symbol_stacks, const int *idom, Map *final_values, Map **phis, Map **phi_args)
 {
    BasicBlock *b = blocks[block];
    /* For each symbol written in this block add the definition to the stack */
-   for (MapNode *n = b->scalar_values->head; n != NULL; n=n->next) {
-      BasicBlockList **stack = glsl_map_get(symbol_stacks, n->k);
+   GLSL_MAP_FOREACH(e, b->scalar_values) {
+      BasicBlockList **stack = glsl_map_get(symbol_stacks, e->k);
       glsl_basic_block_list_add(stack, b);
    }
 
    /* In all successors, update the phi nodes with the definitions in the stacks */
-   if (b->branch_target != NULL)      update_phi_args(phi_args[hacky_get_block_id(blocks, b->branch_target)],      b, symbol_stacks);
-   if (b->fallthrough_target != NULL) update_phi_args(phi_args[hacky_get_block_id(blocks, b->fallthrough_target)], b, symbol_stacks);
+   if (b->branch_target != NULL) {
+      int i = get_block_id(block_ids, b->branch_target);
+      update_phi_args(phi_args[i], phis[i], b, symbol_stacks);
+   }
+   if (b->fallthrough_target != NULL) {
+      int i = get_block_id(block_ids, b->fallthrough_target);
+      update_phi_args(phi_args[i], phis[i], b, symbol_stacks);
+   }
 
    /* As a special addition, if this is the exit block, record the final definitions of symbols */
    /* TODO: Is this needed or could it be worked out simply afterwards? */
    if (b->branch_target == NULL && b->fallthrough_target == NULL) {
-      for (MapNode *n = symbol_stacks->head; n != NULL; n=n->next) {
-         BasicBlockList **stack = n->v;
-         glsl_map_put(final_values, n->k, stack[0]->v);
+      GLSL_MAP_FOREACH(e, symbol_stacks) {
+         BasicBlockList **stack = e->v;
+         glsl_map_put(final_values, e->k, stack[0]->v);
       }
    }
 
@@ -349,42 +341,54 @@ void setup_phi_args(int block, BasicBlock **blocks, int n_blocks, Map *symbol_st
    /* (Start at 1 because we know 0 is the root) */
    for (int i=1; i<n_blocks; i++) {
       if (idom[i] == block)
-         setup_phi_args(i, blocks, n_blocks, symbol_stacks, idom, final_values, phi_args);
+         setup_phi_args(i, blocks, n_blocks, block_ids, symbol_stacks, idom, final_values, phis, phi_args);
    }
 
    /* Pop all this block's definitions off the stacks */
-   for (MapNode *n = b->scalar_values->head; n != NULL; n=n->next) {
-      BasicBlockList **stack = glsl_map_get(symbol_stacks, n->k);
+   GLSL_MAP_FOREACH(e, b->scalar_values) {
+      BasicBlockList **stack = glsl_map_get(symbol_stacks, e->k);
       glsl_basic_block_list_pop(stack);
    }
 }
 
-static Map *setup_ssa_information(BasicBlockList *l, BasicBlock **blocks, int n_blocks, Map **phi_args)
+static Map *setup_ssa_information(BasicBlockList *l, BasicBlock **blocks, int n_blocks, Map *block_ids, Map **phi_args)
 {
+   /* Gather the complete set of variables written by the program */
+   /* TODO: Use of glsl_map here is unnecessary (we really want a set) */
+   Map *symbols = glsl_map_new();
+   for (int i=0; i<n_blocks; i++) {
+      GLSL_MAP_FOREACH(e, blocks[i]->scalar_values) {
+         const Dataflow **scv = glsl_map_get(symbols, e->k);
+         if (scv == NULL) glsl_map_put(symbols, e->k, e->v);
+      }
+   }
+
+   Map **phis = glsl_safemem_malloc(n_blocks * sizeof(Map *));
+   for (int i=0; i<n_blocks; i++) phis[i] = glsl_map_new();
+
    struct abstract_cfg *cfg = glsl_alloc_abstract_cfg(l);
 
    int *doms = glsl_alloc_idoms(cfg);
    bool **df = glsl_dom_frontiers_alloc(cfg, doms);
 
-   /* Gather the complete set of variables written by the program */
-   /* TODO: Use of glsl_map here is unnecessary (we really want a set) */
-   Map *symbols = glsl_map_new();
+   place_phis(phis, blocks, n_blocks, symbols, df);
+
+   glsl_dom_frontiers_free(df, n_blocks);
+
+   /* Just bung a load in each block for now, so that we can set it up later */
    for (int i=0; i<n_blocks; i++) {
-      for (MapNode *mn = blocks[i]->scalar_values->head; mn != NULL; mn = mn->next) {
-         const Dataflow **scv = glsl_map_get(symbols, mn->k);
-         if (scv == NULL) glsl_map_put(symbols, mn->k, mn->v);
+      GLSL_MAP_FOREACH(e, phis[i]) {
+         glsl_basic_block_get_scalar_values(blocks[i], e->k);
       }
    }
 
-   place_phis(blocks, n_blocks, symbols, df);
-
    for (int i=0; i<n_blocks; i++) {
       phi_args[i] = glsl_map_new();
-      for (MapNode *n = blocks[i]->loads->head; n != NULL; n=n->next) {
+      GLSL_MAP_FOREACH(e, blocks[i]->loads) {
          BasicBlockList **args = malloc_fast(2*sizeof(BasicBlockList *));
          args[0] = NULL;
          args[1] = NULL;
-         glsl_map_put(phi_args[i], n->k, args);
+         glsl_map_put(phi_args[i], e->k, args);
       }
    }
 
@@ -392,19 +396,27 @@ static Map *setup_ssa_information(BasicBlockList *l, BasicBlock **blocks, int n_
    Map *symbol_stacks = glsl_map_new();
    BasicBlockList **stack = glsl_safemem_malloc(symbols->count * sizeof(BasicBlockList *));
    int s_id = 0;
-   for (MapNode *n = symbols->head; n != NULL; n=n->next) {
+   GLSL_MAP_FOREACH(e, symbols) {
       stack[s_id] = NULL;
-      glsl_map_put(symbol_stacks, n->k, &stack[s_id]);
+      glsl_map_put(symbol_stacks, e->k, &stack[s_id]);
       s_id++;
    }
 
+   glsl_map_delete(symbols);
+
    Map *final_values = glsl_map_new();
 
-   setup_phi_args(0, blocks, n_blocks, symbol_stacks, doms, final_values, phi_args);
+   setup_phi_args(0, blocks, n_blocks, block_ids, symbol_stacks, doms, final_values, phis, phi_args);
+
+   for (int i=0; i<n_blocks; i++) {
+      glsl_map_delete(phis[i]);
+   }
+   glsl_safemem_free(phis);
+
+   glsl_map_delete(symbol_stacks);
 
    glsl_safemem_free(stack);
 
-   glsl_dom_frontiers_free(df, n_blocks);
    glsl_safemem_free(doms);
    glsl_free_abstract_cfg(cfg);
 
@@ -431,15 +443,21 @@ void glsl_ssa_convert(SSAShader *sh, BasicBlock *entry_block, const SymbolList *
 
    prune_fake_writes(blocks, sh->n_blocks);
 
-   /* TODO: Passing the list in here as well is really a bit odd */
-   Map *symbol_final_values = setup_ssa_information(bl, blocks, sh->n_blocks, phi_args);
-
    Map *block_ids = map_block_ids(bl);
+   /* TODO: Passing the list in here as well is really a bit odd */
+   Map *symbol_final_values = setup_ssa_information(bl, blocks, sh->n_blocks, block_ids, phi_args);
+
    get_block_info_outputs(blocks, sh->n_blocks, block_ids, sh->blocks, output_maps);
    normalise_ir_format(blocks, sh->n_blocks, block_ids, sh->blocks, output_maps, symbol_ids, phi_args);
 
    fill_ir_outputs(outs, symbol_final_values, block_ids, output_maps, symbol_ids, &sh->outputs, &sh->n_outputs);
 
+   glsl_map_delete(block_ids);
+   glsl_map_delete(symbol_final_values);
+   for (int i=0; i<sh->n_blocks; i++) {
+      glsl_map_delete(output_maps[i]);
+      glsl_map_delete(phi_args[i]);
+   }
    glsl_safemem_free(blocks);
    glsl_safemem_free(phi_args);
    glsl_safemem_free(output_maps);

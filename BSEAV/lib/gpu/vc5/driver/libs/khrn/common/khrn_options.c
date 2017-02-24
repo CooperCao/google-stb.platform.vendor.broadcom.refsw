@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2011 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  External interface
-
-FILE DESCRIPTION
-Environment configurable, one-shot options.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "khrn_options.h"
 #include "libs/util/gfx_options/gfx_options.h"
 #include "libs/core/v3d/v3d_limits.h"
@@ -96,6 +88,9 @@ void khrn_init_options(void)
    khrn_options.force_dither_off             = gfx_options_bool(  "V3D_FORCE_DITHER_OFF",          false);
    khrn_options.early_z                      = gfx_options_bool(  "GL_EARLY_Z",                    true);
    khrn_options.max_worker_threads           = gfx_options_uint32( "KHRN_MAX_WORKER_THREADS",      3);
+
+   khrn_options.force_ustream_jobs = gfx_options_bool("GL_FORCE_USTREAM_JOBS", false);
+   khrn_options.no_ustream_jobs = gfx_options_bool("GL_NO_USTREAM_JOBS", false);
 
    if (khrn_options.random_centroid)
       gfx_rand_init(&random_centroid_state, khrn_options.random_centroid_seed);

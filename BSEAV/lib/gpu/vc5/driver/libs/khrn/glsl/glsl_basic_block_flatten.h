@@ -1,19 +1,11 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BASICBLOCK_FLATTEN_H_INCLUDED
-#define GLSL_BASICBLOCK_FLATTEN_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_basic_block.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 bool glsl_basic_block_flatten_a_bit(BasicBlock *entry, Map *block_age_offsets);
 
@@ -21,6 +13,4 @@ bool glsl_basic_block_flatten_a_bit(BasicBlock *entry, Map *block_age_offsets);
 // using loop unrolling and conditional execution (i.e. guards).
 BasicBlock *glsl_basic_block_flatten(BasicBlock *entry, Map *block_age_offsets);
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

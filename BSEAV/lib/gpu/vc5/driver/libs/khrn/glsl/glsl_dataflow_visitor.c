@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdlib.h>
 #include <string.h>
 
@@ -92,7 +85,7 @@ void glsl_dataflow_reloc_visitor_begin(DataflowRelocVisitor *visitor,
 }
 
 void glsl_dataflow_reloc_visitor_end(DataflowRelocVisitor *visitor) {
-   vcos_unused(visitor);
+   (void)(visitor);
 }
 
 void glsl_dataflow_reloc_post_visitor(DataflowRelocVisitor *visitor, int id, void *data, DataflowPostVisitor dpostv)

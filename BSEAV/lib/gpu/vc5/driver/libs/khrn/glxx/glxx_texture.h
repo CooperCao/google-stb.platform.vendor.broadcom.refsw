@@ -1,32 +1,25 @@
-/*=============================================================================
-  Broadcom Proprietary and Confidential. (c)2013 Broadcom.
-  All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-OpenGL ES texture structure declaration.
-=============================================================================*/
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #ifndef GLXX_TEXTURE_H
 #define GLXX_TEXTURE_H
 
 #include "libs/core/lfmt/lfmt.h"
 
-#include "../common/khrn_int_util.h"
 #include "gl_public_api.h"
 
 #include "../egl/egl_types.h"
+#include "../common/khrn_int_util.h"
 #include "../common/khrn_image.h"
 #include "../common/khrn_fmem.h"
+#include "../common/khrn_image.h"
+#include "../glsl/glsl_backend_cfg.h"
+#include "../glsl/glsl_imageunit_swizzling.h"
+
 #include "glxx_pixel_store.h"
 #include "glxx_buffer.h"
 #include "glxx_texture_defines.h"
 #include "glxx_texture_utils.h"
-#include "../common/khrn_image.h"
-
-#include "../glsl/glsl_gadgettype.h"
-#include "../glsl/glsl_imageunit_swizzling.h"
 #include "glxx_utils.h"
 #include "glxx_render_state.h"
 
@@ -232,36 +225,34 @@ glxx_texture_ensure_contiguous_blob_if_complete(GLXX_TEXTURE_T *texture, const
 typedef struct
 {
    uint32_t hw_param[2];
-#if !V3D_VER_AT_LEAST(4,0,2,0)
-   uint32_t hw_param1_gather[4];
-   uint32_t hw_param1_fetch;
-#endif
+
    /* For textureSize: */
    uint32_t width;
    uint32_t height;
    uint32_t depth;
 
+   /* valid only for TEXTURE_BUFFER */
+   uint32_t texbuffer_log2_arr_elem_w; /* log2 (array element's width in texels) */
+   uint32_t texbuffer_arr_elem_w_minus_1; /* array element's width in texels - 1*/
+
 #if !V3D_VER_AT_LEAST(4,0,2,0)
+   uint32_t hw_param1_gather[4];
+   uint32_t hw_param1_fetch;
+
    /* For working around GFXH-1363 */
    uint32_t base_level;
-#endif
 
 #if !V3D_VER_AT_LEAST(3,3,1,0)
    /* To workaround GFXH-1371 */
    bool force_no_pixmask;
 #endif
 
-#if !V3D_VER_AT_LEAST(4,0,2,0)
    /* for imageStore */
    uint32_t arr_stride; /* array_stride */
    glsl_imgunit_swizzling lx_swizzling;
    uint32_t lx_addr; /* address for bound level */
    uint32_t lx_pitch, lx_slice_pitch;
 #endif
-
-   /* valid only for TEXTURE_BUFFER */
-   uint32_t texbuffer_log2_arr_elem_w; /* log2 (array element's width in texels) */
-   uint32_t texbuffer_arr_elem_w_minus_1; /* array element's width in texels - 1*/
 } GLXX_TEXTURE_UNIF_T;
 
 struct glxx_calc_image_unit;

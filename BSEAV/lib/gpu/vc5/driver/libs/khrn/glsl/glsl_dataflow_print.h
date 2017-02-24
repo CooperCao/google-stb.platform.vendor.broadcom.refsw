@@ -1,20 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_DATAFLOW_PRINT_H
-#define GLSL_DATAFLOW_PRINT_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdio.h>
 #include "glsl_dataflow.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 void glsl_print_dataflow(FILE* f, Dataflow* dataflow);
 
@@ -22,6 +14,4 @@ void glsl_print_dataflow(FILE* f, Dataflow* dataflow);
 void glsl_print_dataflow_from_root(FILE* f, Dataflow* root);
 void glsl_print_dataflow_from_roots(FILE* f, DataflowChain* roots, DataflowChain *order);
 
-VCOS_EXTERN_C_END
-
-#endif // DATAFLOW_PRINT_H
+EXTERN_C_END

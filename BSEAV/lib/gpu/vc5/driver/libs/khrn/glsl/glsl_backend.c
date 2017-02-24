@@ -1,19 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-Responsible for fitting nodes into the ADD and MUL units and allocating registers
-for their destinations.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdlib.h>
 #include <setjmp.h>
+#include <limits.h>
 
 #include "glsl_backend.h"
 #include "glsl_backend_uniforms.h"
@@ -21,14 +11,7 @@ for their destinations.
 #include "glsl_binary_shader.h"
 
 #include "libs/util/gfx_util/gfx_util.h"
-
 #include "libs/core/v3d/v3d_qpu_instr.h"
-
-#ifdef KHRN_SHADER_STATS
-#include <stdio.h>
-#endif
-
-#include <limits.h>
 
 const char *mov_excuse_strings[] = {
    "",
@@ -250,10 +233,11 @@ static void gen_op(struct v3d_qpu_op *out, const GLSL_OP_T *op_struct, const bac
    }
 }
 
-static void gen_sig(struct v3d_qpu_sig *sig, uint32_t sigbits, backend_reg sig_waddr) {
+static void gen_sig(struct v3d_qpu_sig *sig, v3d_qpu_sigbits_t sigbits, backend_reg sig_waddr) {
    sig->sigbits = sigbits;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
+   assert(sig_waddr == REG_UNDECIDED || IS_RF(sig_waddr));
    sig->sig_reg = (sig_waddr != REG_UNDECIDED);
    sig->waddr   = sig_waddr - REG_RF0;
 #endif
@@ -316,7 +300,7 @@ void generate_all_instructions(const INSTR_T *instructions,
       }
 
       /* varying */
-      if (ci->sigbits & SIGBIT_LDVARY && ci->varying < VARYING_ID_HW_0) {
+      if (ci->sigbits & V3D_QPU_SIG_LDVARY && ci->varying < VARYING_ID_HW_0) {
          assert(varying_count < MAX_VARYINGS);
          gen->varyings[varying_count] = ci->varying;
          varying_count++;
@@ -364,16 +348,16 @@ static bool can_add_sigbits(uint32_t a, uint32_t b) {
 static uint32_t sig_conflicts(uint32_t sigbits) {
    switch (sigbits)
    {
-   case SIGBIT_LDUNIF: return CONFLICT_UNIF;
-   case SIGBIT_LDTLBU: return CONFLICT_TLB_R | CONFLICT_UNIF;
-   case SIGBIT_LDTLB:  return CONFLICT_TLB_R;
 #if V3D_VER_AT_LEAST(4,0,2,0)
-   case SIGBIT_WRTMUC: return CONFLICT_TMU_C | CONFLICT_UNIF;
+   case V3D_QPU_SIG_WRTMUC: return CONFLICT_TMU_C | CONFLICT_UNIF;
 #else
-   case SIGBIT_LDVPM:  return CONFLICT_VPM;
+   case V3D_QPU_SIG_LDVPM:  return CONFLICT_VPM;
 #endif
-   case SIGBIT_LDTMU:  return CONFLICT_TMU_R;
-   case SIGBIT_LDVARY: return CONFLICT_VARY;
+   case V3D_QPU_SIG_LDUNIF: return CONFLICT_UNIF;
+   case V3D_QPU_SIG_LDTLBU: return CONFLICT_TLB_R | CONFLICT_UNIF;
+   case V3D_QPU_SIG_LDTLB:  return CONFLICT_TLB_R;
+   case V3D_QPU_SIG_LDTMU:  return CONFLICT_TMU_R;
+   case V3D_QPU_SIG_LDVARY: return CONFLICT_VARY;
    default: return 0;
    }
 }
@@ -381,9 +365,9 @@ static uint32_t sig_conflicts(uint32_t sigbits) {
 static bool sig_uses_waddr(uint32_t sigbit) {
    switch (sigbit) {
 #if V3D_VER_AT_LEAST(4,0,2,0)
-      case SIGBIT_LDTMU:
-      case SIGBIT_LDTLB:
-      case SIGBIT_LDTLBU: return true;
+      case V3D_QPU_SIG_LDTMU:
+      case V3D_QPU_SIG_LDTLB:
+      case V3D_QPU_SIG_LDTLBU: return true;
 #endif
       default: return false;
    }
@@ -591,7 +575,7 @@ static inline bool can_place_alu(const INSTR_T *ci, SchedNodeType alu_type, uint
    return can_place;
 }
 
-static inline void set_alu(GLSL_OP_T *alu, BackflowFlavour op, SchedNodeUnpack ul, SchedNodeUnpack ur, uint32_t output, uint32_t input_a, uint32_t input_b, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+static inline void set_alu(GLSL_OP_T *alu, BackflowFlavour op, SchedNodeUnpack ul, SchedNodeUnpack ur, backend_reg output, backend_reg input_a, backend_reg input_b, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
    assert(!alu->used);
 
@@ -623,8 +607,8 @@ uint32_t get_conflicts(uint32_t output, uint32_t cond_setf, SchedNodeType alu_ty
 }
 
 static uint32_t fit_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, SchedNodeType alu_type,
-                        BackflowFlavour op, SchedNodeUnpack ul, SchedNodeUnpack ur, uint32_t output,
-                        uint32_t input_a, uint32_t input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+                        BackflowFlavour op, SchedNodeUnpack ul, SchedNodeUnpack ur, backend_reg output,
+                        backend_reg input_a, backend_reg input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
    bool mul = (alu_type == ALU_M);
    bool add = !mul;
@@ -693,7 +677,7 @@ static uint32_t fit_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, SchedNodeT
 static uint32_t fit_multi(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
                           BackflowFlavour op_a, BackflowFlavour op_m,
                           SchedNodeUnpack ul, SchedNodeUnpack ur,
-                          uint32_t output, uint32_t input_a, uint32_t input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+                          backend_reg output, backend_reg input_a, backend_reg input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
    bool add = false, mul = false;
    bool add_rep = (op_m == BACKFLOW_MOV || op_m == BACKFLOW_FMOV);
@@ -756,7 +740,7 @@ static uint32_t fit_multi(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
    return time;
 }
 
-static uint32_t fit_mov(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32_t output, uint32_t input, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+static uint32_t fit_mov(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output, backend_reg input, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
    if (IS_FLAG(input))
       return fit_alu(sched, time, ALU_A, BACKFLOW_FLN, UNPACK_NONE, UNPACK_NONE, output, input, REG_UNDECIDED, unif, cond_setf, mov_excuse);
@@ -779,7 +763,7 @@ static bool op_valid_for_thrend(const GLSL_OP_T *op) {
 static bool instr_valid_for_thrend(const INSTR_T *i) {
    uint32_t conflicts = V3D_VER_AT_LEAST(4,0,2,0) ? 0 : (CONFLICT_MSF | CONFLICT_VPM);
    return op_valid_for_thrend(&i->a)  && op_valid_for_thrend(&i->m)    &&
-          !(i->conflicts & conflicts) && !(i->sigbits & SIGBIT_LDVARY) &&
+          !(i->conflicts & conflicts) && !(i->sigbits & V3D_QPU_SIG_LDVARY) &&
           i->sig_waddr == REG_UNDECIDED;
 }
 
@@ -790,13 +774,13 @@ static bool can_add_thrsw(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bo
    /* Check that this is not the delay slot of another thrsw */
    for (unsigned i=5; i>3; i--) {
       int instr = time > i ? time - i : 0;
-      if (sched->instructions[instr].sigbits & SIGBIT_THRSW) return false;
+      if (sched->instructions[instr].sigbits & V3D_QPU_SIG_THRSW) return false;
    }
 
    const INSTR_T *i = &sched->instructions[time-3];
 
-   if (!can_add_sigbits(i[0].sigbits, SIGBIT_THRSW)) return false;
-   if (lthrsw && !can_add_sigbits(i[1].sigbits, SIGBIT_THRSW)) return false;
+   if (!can_add_sigbits(i[0].sigbits, V3D_QPU_SIG_THRSW)) return false;
+   if (lthrsw && !can_add_sigbits(i[1].sigbits, V3D_QPU_SIG_THRSW)) return false;
 
    if (!conflicts_ok(i[3].conflicts, CONFLICT_POST_THRSW)) return false;
 
@@ -846,9 +830,9 @@ static uint32_t fit_thrsw(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bool thr
       time++;
    }
 
-   sched->instructions[time-3].sigbits |= SIGBIT_THRSW;
+   sched->instructions[time-3].sigbits |= V3D_QPU_SIG_THRSW;
    if (lthrsw)
-      sched->instructions[time-2].sigbits |= SIGBIT_THRSW;
+      sched->instructions[time-2].sigbits |= V3D_QPU_SIG_THRSW;
 
    uint32_t new_thread_start = time--;
 
@@ -866,7 +850,7 @@ static uint32_t fit_thrsw(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bool thr
  * The dependencies determine where the "ldvary" may be placed. The return value
  * is the first instruction that can read from the fadd result.  */
 static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32_t output,
-                            uint32_t temp_reg, uint32_t w_reg, uint32_t varying_id, VaryingType varying_type)
+                            backend_reg temp_reg, backend_reg w_reg, uint32_t varying_id, VaryingType varying_type)
 {
    assert((varying_type == VARYING_FLAT                                ) ||
           (varying_type == VARYING_LINE_COORD && w_reg == REG_UNDECIDED) ||
@@ -884,7 +868,7 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32
         { true,  BACKFLOW_OR, { UNPACK_NONE, UNPACK_NONE }, output, REG_R5_, REG_R5_, SETF_NONE} } };
    GLSL_OP_T *v = v_ops[varying_type-1];
 
-   uint32_t sig_conflict = sig_conflicts(SIGBIT_LDVARY);
+   uint32_t sig_conflict = sig_conflicts(V3D_QPU_SIG_LDVARY);
    uint32_t conflicts[2] = { 0, 0 };
    backend_reg read[2][2] = { { REG_UNDECIDED, REG_UNDECIDED }, { REG_UNDECIDED, REG_UNDECIDED} };
    for (int i=0; i<2; i++) {
@@ -901,7 +885,7 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32
 
       ci = &sched->instructions[time];
 
-      bool suitable = can_add_sigbits(ci[0].sigbits, SIGBIT_LDVARY) &&
+      bool suitable = can_add_sigbits(ci[0].sigbits, V3D_QPU_SIG_LDVARY) &&
                       conflicts_ok(ci[0].conflicts, sig_conflict);
       if (v[0].used) suitable &= can_place_alu(&ci[1], ALU_M, conflicts[0], read[0]);
       if (v[1].used) suitable &= can_place_alu(&ci[2], ALU_A, conflicts[1], read[1]);
@@ -910,7 +894,7 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32
       time++;
    }
 
-   ci[0].sigbits |= SIGBIT_LDVARY;
+   ci[0].sigbits |= V3D_QPU_SIG_LDVARY;
    ci[0].varying = varying_id;
    ci[0].conflicts |= sig_conflict;
 
@@ -938,7 +922,7 @@ static uint32_t fit_varying(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32
    return time + 1;
 }
 
-static uint32_t fit_imul32(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32_t output, uint32_t left, uint32_t right)
+static uint32_t fit_imul32(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, backend_reg output, backend_reg left, backend_reg right)
 {
 
    GLSL_OP_T v[2] = {
@@ -1017,13 +1001,12 @@ static backend_reg choose_acc(const GLSL_SCHEDULER_STATE_T *sched, bool insist, 
 
 static backend_reg choose_regfile(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time)
 {
-   uint32_t regfile_max = get_max_regfile(sched->threadability);
    uint32_t best_time = ~0u;
    backend_reg best = REG_UNDECIDED;
-   for (unsigned j = 0; j != regfile_max; ++j)
+   for (unsigned j = 0; j != sched->regfile_max; ++j)
    {
       // permute priority of regfile to avoid likelyhood of rf0-2 near thrend
-      unsigned i = (j + 3) % regfile_max;
+      unsigned i = (j + 3) % sched->regfile_max;
 
       if (sched->register_blackout & (1ull << i)) continue;
 
@@ -1096,16 +1079,16 @@ static uint32_t find_output_reg(const Backflow *node) {
    if (node->type == SIG) {
       assert(node->magic_write == REG_UNDECIDED);
       switch (node->u.sigbits) {
-      case SIGBIT_LDUNIF: return REG_R5_;
+      case V3D_QPU_SIG_LDUNIF: return REG_R5_;
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-      case SIGBIT_LDTMU:  return REG_R4_;
-      case SIGBIT_LDTLB:  return REG_R3_;
-      case SIGBIT_LDTLBU: return REG_R3_;
-      case SIGBIT_LDVPM:  return REG_R3_;
+      case V3D_QPU_SIG_LDTMU:  return REG_R4_;
+      case V3D_QPU_SIG_LDTLB:  return REG_R3_;
+      case V3D_QPU_SIG_LDTLBU: return REG_R3_;
+      case V3D_QPU_SIG_LDVPM:  return REG_R3_;
 #else
-      case SIGBIT_LDTMU:  return REG_UNDECIDED;
-      case SIGBIT_LDTLB:  return REG_UNDECIDED;
-      case SIGBIT_LDTLBU: return REG_UNDECIDED;
+      case V3D_QPU_SIG_LDTMU:  return REG_UNDECIDED;
+      case V3D_QPU_SIG_LDTLB:  return REG_UNDECIDED;
+      case V3D_QPU_SIG_LDTLBU: return REG_UNDECIDED;
 #endif
       default:            return REG_MAGIC_NOP; /* Other SIGS have no output */
       }
@@ -1146,6 +1129,8 @@ static uint32_t find_output_reg(const Backflow *node) {
       case REG_MAGIC_TLBU:
       case REG_MAGIC_TLB:
          return REG_MAGIC_NOP;
+      default:
+         break;
    }
 
    return REG_UNDECIDED;
@@ -1226,13 +1211,13 @@ static const BackflowFlavour *multi_get_ops(SchedNodeType t, BackflowFlavour op)
 
 static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, Backflow *node)
 {
-   uint32_t temp_reg = REG_UNDECIDED;
-   uint32_t input_a  = REG_UNDECIDED;
-   uint32_t input_b  = REG_UNDECIDED;
-   uint32_t flag_reg = REG_UNDECIDED;
+   backend_reg temp_reg = REG_UNDECIDED;
+   backend_reg input_a  = REG_UNDECIDED;
+   backend_reg input_b  = REG_UNDECIDED;
+   backend_reg flag_reg = REG_UNDECIDED;
 
    /* Store copies of things. Some so we can modify, others just for kicks */
-   uint32_t waddr = node->magic_write;
+   backend_reg waddr = node->magic_write;
    uint32_t cond_setf = node->cond_setf;
 
    uint64_t unif = node_get_unif(node);
@@ -1460,6 +1445,8 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, Backflow *node)
 }
 
 #ifdef KHRN_SHADER_STATS
+#include <stdio.h>
+
 static void print_shader_stats(const GLSL_SCHEDULER_STATE_T *sched, int n_instrs) {
    int a_valid = 0, a_nop = 0, a_mov = 0, m_valid = 0, m_nop = 0, m_mov = 0;
    int unifs = 0;
@@ -1482,16 +1469,19 @@ static void print_shader_stats(const GLSL_SCHEDULER_STATE_T *sched, int n_instrs
       }
 
       if (sched->instructions[i].unif != UNIF_NONE) unifs++;
-      if (sched->instructions[i].sigbits & SIGBIT_LDTMU) tmu = true;
+      if (sched->instructions[i].sigbits & V3D_QPU_SIG_LDTMU) tmu = true;
    }
    a_valid -= a_mov;
    m_valid -= m_mov;
-   int reg_used = get_max_regfile(sched->threadability);
-   for (int i=get_max_regfile(sched->threadability)-1; i>=0; i--) {
+   int reg_used = sched->regfile_max;
+   for (int i=sched->regfile_max-1; i>=0; i--) {
       if (sched->reg[REG_RF(i)].available != 0) break;
       reg_used = i;
    }
 
+#if V3D_HAS_RELAXED_THRSW
+   tmu = true;
+#endif
    printf("Shader stats:\n");
    printf("   Shader Type: %s%s, N threads: %d/%d\n",
           glsl_shader_flavour_name(sched->shader_flavour), sched->bin_mode ? " (bin)": "",
@@ -1581,17 +1571,17 @@ static void visit_recursive(SchedStack *stack, GLSL_SCHEDULER_STATE_T *sched, Ba
       stack->depth--;
 
       /* Determine how many regfile locations are in use */
-      int max_reg   = get_max_regfile(sched->threadability);
-      int threshold = max_reg - 14 / sched->threadability;
+      int threshold = sched->regfile_usable - ((sched->regfile_max * 14) / 64);
 
       int p = 0;
-      for (int i=0; i<max_reg; i++) {
+      for (unsigned i=0; i<sched->regfile_max; i++) {
          if (sched->reg[REG_RF(i)].user != NULL) p++;
       }
+
       /* If this exceeds a threshold (arbitrarily set) then search for
        * nodes that free up locations and schedule them next.           */
       if (p > threshold) {
-         for (int i=0; i<max_reg; i++) {
+         for (unsigned i=0; i<sched->regfile_max; i++) {
             if (sched->reg[REG_RF(i)].user) {
                Backflow *node = sched->reg[REG_RF(i)].user;
                /* Having only 1 dependent means that scheduling it will free the register */
@@ -1601,7 +1591,7 @@ static void visit_recursive(SchedStack *stack, GLSL_SCHEDULER_STATE_T *sched, Ba
                BackflowChainNode *n;
                for (n = node->data_dependents.head; n; n=n->l.next) {
                   /* n->ptr may not be needed for the shader, so check if anything will use it */
-                  if (n->ptr->phase != PHASE_COMPLETE && n->ptr->remaining_dependents > 0) break;
+                  if (n->ptr->phase != PHASE_COMPLETE) break;
                }
                /* If the 1 remaining_dependent is a block output then there may be no node */
                if (n == NULL) continue;
@@ -1631,7 +1621,6 @@ static void break_alias(GLSL_SCHEDULER_STATE_T *sched) {
    {
       uint32_t time = fit_mov(sched, 0, REG_RF0, REG_RF0, UNIF_NONE,
                               SETF_NONE, MOV_EXCUSE_OUT_OF_THE_WAY);
-      vcos_unused_in_release(time);
       assert(time == 0);
    }
 }
@@ -1669,6 +1658,9 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain          *iodeps,
    sched->shader_flavour = flavour;
    sched->bin_mode       = bin_mode;
    sched->register_blackout = gfx_mask64(blackout);
+   sched->regfile_max = get_max_regfile(threadability);
+   sched->regfile_usable = sched->regfile_max - blackout;
+
    /* If data starts in the regfile record that now */
    for ( ; presched; presched = presched->next)
       prescheduled(sched, presched->node, presched->reg);
@@ -1677,6 +1669,7 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain          *iodeps,
    for (RegList *l = outputs; l!=NULL; l=l->next) {
       uint64_t reg_bit = (1ull << (l->reg - REG_RF0));
       sched->register_blackout &= ~reg_bit;
+      sched->regfile_usable += 1;
    }
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
@@ -1741,7 +1734,7 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain          *iodeps,
       instr_count = fit_thrsw(sched, instr_count, true) + 1;
 
    /* ldvary has delayed effects that could affect the next block, so wait */
-   if (instr_count > 0 && sched->instructions[instr_count-1].sigbits & SIGBIT_LDVARY) instr_count++;
+   if (instr_count > 0 && sched->instructions[instr_count-1].sigbits & V3D_QPU_SIG_LDVARY) instr_count++;
 
    assert(!last || !outputs);
    assert(instr_count <= MAX_INSTRUCTIONS);

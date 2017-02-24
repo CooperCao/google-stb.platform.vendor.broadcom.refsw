@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_dataflow.h"
 #include "glsl_basic_block.h"
 #include "glsl_dataflow_simplify.h"
@@ -38,7 +31,7 @@ typedef struct {
 static bool copy_basic_blocks(flatten_context_t *ctx, bool is_loop_head, BasicBlock *end);
 
 // find loops in reverse-postorder list of basic blocks
-static const Map *find_loops(const BasicBlockList *basic_blocks)
+static Map *find_loops(const BasicBlockList *basic_blocks)
 {
    Map *loops = glsl_map_new(); // BasicBlock *loop_head -> BasicBlock *loop_end_block
    Map *seen = glsl_map_new();
@@ -51,12 +44,13 @@ static const Map *find_loops(const BasicBlockList *basic_blocks)
       if (basic_block->branch_target && glsl_map_get(seen, basic_block->branch_target))
          glsl_map_put(loops, basic_block->branch_target, basic_blocks->next->v);
    }
+   glsl_map_delete(seen);
    return loops;
 }
 
 // create guard symbols for predicated basic blocks. Blocks with no guard
 // symbols are unconditional. They always execute when encountered.
-static const Map *create_guards(const BasicBlockList *basic_blocks)
+static Map *create_guards(const BasicBlockList *basic_blocks)
 {
    Map *guard_symbols = glsl_map_new();
    bool *uncond = glsl_safemem_malloc(glsl_basic_block_list_count(basic_blocks) * sizeof(bool));
@@ -108,9 +102,12 @@ static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset,
    return n;
 }
 
-static bool guard_is_always_true(Dataflow *guard_value) {
-   return guard_value == NULL ||
-          (guard_value->flavour == DATAFLOW_CONST && guard_value->u.constant.value == 1);
+static bool guard_is_always_true(Dataflow *guard) {
+   return guard == NULL || (guard->flavour == DATAFLOW_CONST && guard->u.constant.value == 1);
+}
+
+static bool guard_is_always_false(Dataflow *guard) {
+   return guard != NULL && guard->flavour == DATAFLOW_CONST && guard->u.constant.value == 0;
 }
 
 // set scalar values in the dst_basic_block
@@ -151,7 +148,7 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
 
    Map *dataflow_copy = glsl_map_new(); // Dataflow* -> Dataflow*
    // Prepare constant folding - bind dataflow inputs to actual values
-   for (MapNode *load = src_block->loads->head; load; load = load->next) {
+   GLSL_MAP_FOREACH(load, src_block->loads) {
       const Symbol *symbol = load->k;
       Dataflow **load_scalar_values = load->v;
       Dataflow **actual_scalar_values = glsl_basic_block_get_scalar_values(dst_block, symbol);
@@ -165,9 +162,9 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
    /* Place guard dataflow at the end of the blocks age range */
    glsl_dataflow_set_age(age_offset + *src_last_age);
 
-   for (MapNode *node = src_block->scalar_values->head; node; node = node->next) {
-      const Symbol *symbol = node->k;
-      Dataflow **scalar_values = node->v;
+   GLSL_MAP_FOREACH(e, src_block->scalar_values) {
+      const Symbol *symbol = e->k;
+      Dataflow **scalar_values = e->v;
       Dataflow **simplified_values = glsl_safemem_malloc(sizeof(Dataflow*) * symbol->type->scalar_count);
 
       for (unsigned i = 0; i < symbol->type->scalar_count; i++)
@@ -199,6 +196,8 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
       *branch_cond = NULL;
       *not_branch_cond = glsl_dataflow_construct_const_value(DF_BOOL, true);
    }
+
+   glsl_map_delete(dataflow_copy);
 }
 
 // copy dataflow from src_basic_block to dst_basic_block
@@ -211,7 +210,7 @@ static void copy_basic_block(BasicBlock *dst_block, const BasicBlock *src_block,
    if (guard_symbol != NULL) {
       guard_value = glsl_basic_block_get_scalar_values(dst_block, guard_symbol)[0];
       /* Early out if this block isn't executing at all */
-      if (guard_value->flavour == DATAFLOW_CONST && guard_value->u.constant.value == 0) return;
+      if (guard_is_always_false(guard_value)) return;
    }
 
    Dataflow *branch_cond, *not_branch_cond;
@@ -249,7 +248,7 @@ static bool copy_static_loop(flatten_context_t *ctx, BasicBlock *src_loop_end_bl
          return false;
 
       guard_value = glsl_basic_block_get_scalar_value(ctx->dst_block, loop_head_guard, 0);
-      if (guard_value->flavour == DATAFLOW_CONST && guard_value->u.constant.value == 0)
+      if (guard_is_always_false(guard_value))
          return true; // unroll succeeded
 
       ctx->src_basic_block = src_loop_head;
@@ -327,26 +326,27 @@ static bool copy_basic_blocks(flatten_context_t *ctx, bool is_loop_head, BasicBl
 
 BasicBlock *glsl_basic_block_flatten(BasicBlock *entry, Map *block_age_offsets)
 {
-   flatten_context_t ctx;
-   const BasicBlockList *basic_blocks = glsl_basic_block_get_reverse_postorder_list(entry);
-   BasicBlock *copy;
+   BasicBlockList *basic_blocks = glsl_basic_block_get_reverse_postorder_list(entry);
+   Map *guard_symbols = create_guards(basic_blocks);
+   Map *loops         = find_loops(basic_blocks);
 
-   ctx.guard_symbols = create_guards(basic_blocks);
-   ctx.loops = find_loops(basic_blocks);
-   ctx.failed_loop_unrolls = NULL;
-   ctx.block_age_offsets = block_age_offsets;
-   ctx.generate_new_ids = true;
-
+   flatten_context_t ctx = { .guard_symbols       = guard_symbols,
+                             .loops               = loops,
+                             .failed_loop_unrolls = NULL,
+                             .block_age_offsets   = block_age_offsets,
+                             .generate_new_ids    = true };
+   BasicBlock *copy = NULL;
    do {
       ctx.src_basic_block = basic_blocks;
+      glsl_basic_block_delete_reachable(copy);
       copy = glsl_basic_block_construct();
       ctx.dst_block = copy;
       int *dst_age = malloc_fast(sizeof(int));
       *dst_age = 0;
       glsl_map_put(block_age_offsets, ctx.dst_block, dst_age);
 
-      for (MapNode *map_node = ctx.guard_symbols->head; map_node; map_node = map_node->next) {
-         const Symbol *symbol = map_node->v;
+      GLSL_MAP_FOREACH(e, ctx.guard_symbols) {
+         const Symbol *symbol = e->v;
          Dataflow *f = glsl_dataflow_construct_const_bool(false);
          glsl_basic_block_set_scalar_values(ctx.dst_block, symbol, &f);
       }
@@ -354,6 +354,11 @@ BasicBlock *glsl_basic_block_flatten(BasicBlock *entry, Map *block_age_offsets)
       /* We know the entry block is unconditional, so has no guard */
       assert(glsl_map_get(ctx.guard_symbols, entry) == NULL);
    } while (!copy_basic_blocks(&ctx, false, NULL));
+
+   for (BasicBlockList *n = basic_blocks; n; n=n->next) glsl_basic_block_delete(n->v);
+
+   glsl_map_delete(loops);
+   glsl_map_delete(guard_symbols);
 
    return copy;
 }
@@ -387,9 +392,10 @@ static void copy_basic_block_simple(BasicBlock *dst_block, const BasicBlock *src
    // Load our guard
    Dataflow **guard = glsl_map_get(guards, src_block);
    Dataflow *guard_value = NULL;
-   if (guard != NULL)
+   if (guard != NULL) {
       guard_value = guard[0];
-   if (guard_value && guard_value->flavour == DATAFLOW_CONST && guard_value->u.constant.value == 0) return;
+      if (guard_is_always_false(guard_value)) return;
+   }
 
    Dataflow *branch_cond, *not_branch_cond;
    copy_block_dataflow(dst_block, src_block, guard_value, age_offsets, false, &branch_cond, &not_branch_cond);
@@ -432,8 +438,8 @@ void flatten_into(BasicBlock *entry, Map *block_age_offsets) {
    /* We know the entry block is unconditional, so has no guard */
    assert(glsl_map_get(guards, entry) == NULL);
 
-   for (MapNode *map_node = guards->head; map_node; map_node = map_node->next) {
-      Dataflow **gv = map_node->v;
+   GLSL_MAP_FOREACH(e, guards) {
+      Dataflow **gv = e->v;
       gv[0] = glsl_dataflow_construct_const_bool(false);
    }
 
@@ -442,10 +448,12 @@ void flatten_into(BasicBlock *entry, Map *block_age_offsets) {
 
    while (basic_blocks) {
       copy_basic_block_simple(entry, basic_blocks->v, block_age_offsets, guards, (basic_blocks->next == NULL));
+      glsl_basic_block_delete(basic_blocks->v);
       basic_blocks = basic_blocks->next;
    }
 
-   for (MapNode *n = guards->head; n; n=n->next) glsl_safemem_free(n->v);
+   GLSL_MAP_FOREACH(e, guards) glsl_safemem_free(e->v);
+   glsl_map_delete(guards);
 }
 
 bool glsl_basic_block_flatten_a_bit(BasicBlock *entry, Map *block_age_offsets) {

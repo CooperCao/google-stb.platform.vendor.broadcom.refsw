@@ -1,21 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_FASTMEM_H
-#define GLSL_FASTMEM_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_arenamem.h"
+#include "libs/util/common.h"
 
-#include "vcos.h"
-
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 extern ArenaAlloc *fastmem_arena;
 
@@ -28,6 +19,4 @@ extern ArenaAlloc *fastmem_arena;
 void glsl_fastmem_init();
 void glsl_fastmem_term();
 
-VCOS_EXTERN_C_END
-
-#endif // fastmem_H
+EXTERN_C_END

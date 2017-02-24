@@ -1,22 +1,14 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_DATAFLOW_H
-#define GLSL_DATAFLOW_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_const_types.h"
 #include "glsl_fastmem.h"
 #include "glsl_list.h"
 #include "glsl_common.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct _Dataflow Dataflow;
 
@@ -444,6 +436,4 @@ static inline bool glsl_dataflow_is_integral_type(const Dataflow *df) {
 bool glsl_dataflow_affects_memory(DataflowFlavour f);
 bool glsl_dataflow_tex_cfg_implies_bslod(uint32_t tex_cfg_bits);
 
-VCOS_EXTERN_C_END
-
-#endif // DATAFLOW_H
+EXTERN_C_END

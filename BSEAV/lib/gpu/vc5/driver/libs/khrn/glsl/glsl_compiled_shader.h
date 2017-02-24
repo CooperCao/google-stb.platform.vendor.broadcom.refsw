@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_COMPILED_SHADER_H_INCLUDED
-#define GLSL_COMPILED_SHADER_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 typedef struct {
    const Symbol *symbol;
@@ -66,5 +58,3 @@ struct CompiledShader_s {
 
 InterfaceVar *interface_var_find(ShaderInterface *i, const char *name);
 int interface_max_id(const ShaderInterface *i);
-
-#endif

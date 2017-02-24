@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_AST_PRINT_H
-#define GLSL_AST_PRINT_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdio.h>
 #include "glsl_ast.h"
@@ -36,6 +28,3 @@ void glsl_print_expr(FILE *f, Expr *expr, bool fully_evaluated);
 // Newlines may be added in the string but it will not start or end with a newline.
 // If fully_evaluated is set, will replace expressions by their values.
 void glsl_print_statement(FILE *f, Statement *statement, bool fully_evaluated, unsigned int indent_depth, bool suppress_semicolon);
-
-
-#endif // AST_PRINT_H

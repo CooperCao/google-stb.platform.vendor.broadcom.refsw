@@ -1,28 +1,54 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_basic_block.h"
 #include "glsl_symbols.h"
 #include "glsl_primitive_types.auto.h"
 
 BasicBlock *glsl_basic_block_construct()
 {
-   BasicBlock *basic_block = malloc_fast(sizeof(BasicBlock));
-   basic_block->loads = glsl_map_new();
-   basic_block->scalar_values = glsl_map_new();
-   basic_block->branch_cond = NULL;
-   basic_block->branch_target = NULL;
+   BasicBlock *basic_block = glsl_safemem_malloc(sizeof(BasicBlock));
+   basic_block->loads              = glsl_map_new();
+   basic_block->scalar_values      = glsl_map_new();
+   basic_block->branch_cond        = NULL;
+   basic_block->branch_target      = NULL;
    basic_block->fallthrough_target = NULL;
-   basic_block->memory_head = NULL;
-   basic_block->barrier = false;
+   basic_block->memory_head        = NULL;
+   basic_block->barrier            = false;
    return basic_block;
+}
+
+void glsl_basic_block_delete(BasicBlock *b) {
+   glsl_map_delete(b->loads);
+   glsl_map_delete(b->scalar_values);
+   glsl_safemem_free(b);
+}
+
+static void add_all_reachable(Map *reachable, BasicBlock *b)
+{
+   if (b && !glsl_map_get(reachable, b))
+   {
+      glsl_map_put(reachable, b, b);
+      add_all_reachable(reachable, b->fallthrough_target);
+      add_all_reachable(reachable, b->branch_target);
+   }
+}
+
+Map *glsl_basic_block_all_reachable(BasicBlock *entry)
+{
+   Map *reachable = glsl_map_new();
+   add_all_reachable(reachable, entry);
+   return reachable;
+}
+
+void glsl_basic_block_delete_reachable(BasicBlock *entry)
+{
+   if (!entry)
+      return;
+   Map *all = glsl_basic_block_all_reachable(entry);
+   GLSL_MAP_FOREACH(e, all)
+      glsl_basic_block_delete(e->v);
+   glsl_map_delete(all);
 }
 
 void glsl_basic_block_list_add(BasicBlockList **list, BasicBlock *value)
@@ -68,7 +94,9 @@ static void get_reverse_postorder_list(BasicBlockList **list, Map *seen, BasicBl
 BasicBlockList *glsl_basic_block_get_reverse_postorder_list(BasicBlock *entry)
 {
    BasicBlockList *list = NULL;
-   get_reverse_postorder_list(&list, glsl_map_new(), entry);
+   Map *seen = glsl_map_new();
+   get_reverse_postorder_list(&list, seen, entry);
+   glsl_map_delete(seen);
    return list;
 }
 

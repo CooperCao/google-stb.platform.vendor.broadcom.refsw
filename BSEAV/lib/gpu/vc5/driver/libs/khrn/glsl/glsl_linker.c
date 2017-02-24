@@ -1183,6 +1183,16 @@ static void copy_in(pack_varying_t *context, const InterfaceVar *f_in)
    }
 }
 
+static void validate_arrayness(ShaderInterface *iface) {
+   for (int i=0; i<iface->n_vars; i++) {
+      const Symbol *s = iface->var[i].symbol;
+      bool patch = (s->flavour == SYMBOL_VAR_INSTANCE    && s->u.var_instance.type_qual == TYPE_QUAL_PATCH) ||
+                   (s->flavour == SYMBOL_INTERFACE_BLOCK && s->u.interface_block.tq     == TYPE_QUAL_PATCH);
+      if (s->type->flavour != SYMBOL_ARRAY_TYPE && !patch && !is_builtin(s))
+         glsl_compile_error(ERROR_LINKER, 1, -1, "arrayed interface requires array type for %s", s->name);
+   }
+}
+
 /* Outputs must have matching smooth/flat, but need not have matching centroid */
 static bool type_quals_compatible(TypeQualifier a, TypeQualifier b) {
    if ( (a == TYPE_QUAL_FLAT)  != (b == TYPE_QUAL_FLAT)  ) return false;
@@ -1229,10 +1239,8 @@ static void validate_outs_ins_match(ShaderInterface *outs, ShaderInterface *ins,
 
       SymbolType *input_type = in->symbol->type;
       if (arrayed_input) {
-         if (input_type->flavour != SYMBOL_ARRAY_TYPE) {
-            glsl_compile_error(ERROR_LINKER, 1, -1, "arrayed interface requires array type for %s", in->symbol->name);
-            return;
-         }
+         /* Don't have to check for patch here because TCS->TES doesn't change arrayness */
+         assert(input_type->flavour == SYMBOL_ARRAY_TYPE);
          input_type = input_type->u.array_type.member_type;
       }
 
@@ -1679,12 +1687,15 @@ GLSL_PROGRAM_T *glsl_link_compute_program(CompiledShader *csh) {
 
 static bool inputs_arrayed(ShaderFlavour in) {
    switch (in) {
-      case SHADER_TESS_CONTROL:     return true;
-      case SHADER_TESS_EVALUATION:  return false;
-      case SHADER_GEOMETRY:         return true;
-      case SHADER_FRAGMENT:         return false;
-      default: unreachable();       return false;
+      case SHADER_TESS_CONTROL:    return true;
+      case SHADER_TESS_EVALUATION: return true;
+      case SHADER_GEOMETRY:        return true;
+      default:                     return false;
    }
+}
+
+static bool outputs_arrayed(ShaderFlavour out) {
+   return out == SHADER_TESS_CONTROL;
 }
 
 static bool stages_valid(CompiledShader **sh, bool separable) {
@@ -1737,6 +1748,13 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    }
 
    for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
+      if (sh[i] == NULL) continue;
+
+      if (inputs_arrayed(i))  validate_arrayness(&sh[i]->in);
+      if (outputs_arrayed(i)) validate_arrayness(&sh[i]->out);
+   }
+
+   for (int i=0; i<SHADER_FLAVOUR_COUNT; i++) {
       int next = -1;
       if (sh[i] == NULL) continue;
       for (int j=i+1; j<SHADER_FLAVOUR_COUNT; j++) {
@@ -1745,8 +1763,9 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
             break;
          }
       }
+
       if (next != -1) {
-         bool arrayed = inputs_arrayed(next);
+         bool arrayed = inputs_arrayed(next) && !outputs_arrayed(i);
          validate_outs_ins_match(&sh[i]->out, &sh[next]->in, arrayed);
       }
    }
@@ -1779,6 +1798,11 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
    for (int i=0; i<SHADER_FRAGMENT; i++) {
       if (sh[i] && sh[i]->buffer.n_vars > 0)
          glsl_compile_error(ERROR_LINKER, 5, -1, "Buffer variables are not allowed in the vertex pipeline");
+   }
+
+   if (sh[SHADER_TESS_EVALUATION]) {
+      if (sh[SHADER_TESS_EVALUATION]->tess_mode == TESS_INVALID)
+         glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation evaluation shader must specify a valid mode");
    }
 
    if (sh[SHADER_TESS_EVALUATION] && sh[SHADER_GEOMETRY]) {

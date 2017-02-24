@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_CONST_TYPES_H
-#define GLSL_CONST_TYPES_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdint.h>
 
@@ -67,4 +59,3 @@ static inline const_value const_value_from_signed(const_signed i)
 {
    return (const_value)i;
 }
-#endif // CONST_TYPES_H

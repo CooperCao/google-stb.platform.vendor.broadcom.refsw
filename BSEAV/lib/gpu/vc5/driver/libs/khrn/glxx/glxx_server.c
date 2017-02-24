@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "../common/khrn_int_util.h"
@@ -255,7 +247,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->stencil_op.back.zfail = GL_KEEP;
    state->stencil_op.back.zpass = GL_KEEP;
 
-   state->statebits.backend = GLXX_SAMPLE_MS;
+   state->statebits.backend = GLSL_SAMPLE_MS;
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
    state->blend.rt_enables = 0;
@@ -1283,7 +1275,7 @@ static void set_enabled(GLenum cap, bool enabled)
       state->caps.multisample = enabled;
       break;
    case GL_SAMPLE_ALPHA_TO_COVERAGE:
-      SET_INDIVIDUAL(state->statebits.backend, GLXX_SAMPLE_ALPHA, enabled);
+      SET_INDIVIDUAL(state->statebits.backend, GLSL_SAMPLE_ALPHA, enabled);
       break;
    case GL_SAMPLE_ALPHA_TO_ONE:
       SET_INDIVIDUAL(state->gl11.statebits.fragment, GL11_SAMPLE_ONE, enabled);

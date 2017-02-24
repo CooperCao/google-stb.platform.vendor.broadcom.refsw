@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -28,6 +21,7 @@ FILE DESCRIPTION
 #include "glsl_shader_interfaces.h"
 #include "glsl_source.h"
 #include "glsl_basic_block_builder.h"
+#include "glsl_basic_block_elim_dead.h"
 #include "glsl_basic_block_flatten.h"
 #include "glsl_basic_block_print.h"
 #include "glsl_dominators.h"
@@ -326,6 +320,14 @@ static void shader_maps_init(struct shader_maps *maps) {
    maps->struct_members = glsl_map_new();
 }
 
+static void shader_maps_term(struct shader_maps *maps) {
+   glsl_map_delete(maps->string);
+   glsl_map_delete(maps->type);
+   glsl_map_delete(maps->symbol);
+   glsl_map_delete(maps->lq);
+   glsl_map_delete(maps->struct_members);
+}
+
 static void record_type(struct shader_maps *m, SymbolType *t);
 
 static void record_string(struct shader_maps *m, const char *s) {
@@ -404,40 +406,42 @@ bool glsl_copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, Map
    shader_maps_init(&output);
 
    uintptr_t string_idx = 1;
-   for (MapNode *n = maps.string->head; n != NULL; n=n->next) {
-      const char *str = n->k;
+   GLSL_MAP_FOREACH(e, maps.string) {
+      const char *str = e->k;
       glsl_map_put(output.string, str, (void *)string_idx);
       string_idx += strlen(str) + 1;
    }
 
    uintptr_t type_idx = 1;
-   for (MapNode *n = maps.type->head; n != NULL; n = n->next) {
-      glsl_map_put(output.type, n->k, (void *)type_idx);
+   GLSL_MAP_FOREACH(e, maps.type) {
+      glsl_map_put(output.type, e->k, (void *)type_idx);
       type_idx++;
    }
 
    uintptr_t lq_idx = 1;
-   for (MapNode *n = maps.lq->head; n != NULL; n = n->next) {
-      glsl_map_put(output.lq, n->k, (void *)lq_idx);
+   GLSL_MAP_FOREACH(e, maps.lq) {
+      glsl_map_put(output.lq, e->k, (void *)lq_idx);
       lq_idx++;
    }
 
    uintptr_t symbol_idx = 1;
-   for (MapNode *n = maps.symbol->head; n != NULL; n = n->next) {
-      glsl_map_put(output.symbol, n->k, (void *)symbol_idx);
+   GLSL_MAP_FOREACH(e, maps.symbol) {
+      glsl_map_put(output.symbol, e->k, (void *)symbol_idx);
       symbol_idx++;
    }
 
    /* XXX This one can start from 0 because we're using map properly */
    int struct_member_idx = 0;
-   for (MapNode *n = maps.struct_members->head; n != NULL; n = n->next) {
-      uintptr_t arr_len = (uintptr_t)n->v;
+   GLSL_MAP_FOREACH(e, maps.struct_members) {
+      uintptr_t arr_len = (uintptr_t)e->v;
       int *val = malloc_fast(2*sizeof(int));
       val[0] = arr_len;
       val[1] = struct_member_idx;
-      glsl_map_put(output.struct_members, n->k, val);
+      glsl_map_put(output.struct_members, e->k, val);
       struct_member_idx += arr_len;
    }
+
+   shader_maps_term(&maps);
 
    /* We're ready to start copying now. Allocate memory blocks */
    sh->str_block  = malloc(string_idx * sizeof(char));
@@ -451,24 +455,25 @@ bool glsl_copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, Map
       free(sh->lq_block);
       free(sh->symbol_block);
       free(sh->struct_member_block);
+      shader_maps_term(&output);
       return false;
    }
 
-   for (MapNode *n = output.string->head; n != NULL; n = n->next) {
-      const char *str = n->k;
-      int idx = (uintptr_t)n->v;
+   GLSL_MAP_FOREACH(e, output.string) {
+      const char *str = e->k;
+      int idx = (uintptr_t)e->v;
       strcpy(&sh->str_block[idx], str);
    }
 
-   for (MapNode *n = output.lq->head; n != NULL; n = n->next) {
-      const LayoutQualifier *lq = n->k;
-      int idx = (uintptr_t)n->v;
+   GLSL_MAP_FOREACH(e, output.lq) {
+      const LayoutQualifier *lq = e->k;
+      int idx = (uintptr_t)e->v;
       sh->lq_block[idx] = *lq;
    }
 
-   for (MapNode *n = output.type->head; n != NULL; n = n->next) {
-      const SymbolType *t = n->k;
-      int idx = (uintptr_t)n->v;
+   GLSL_MAP_FOREACH(e, output.type) {
+      const SymbolType *t = e->k;
+      int idx = (uintptr_t)e->v;
       SymbolType *dest = & sh->type_block[idx];
       *dest = *t;
       dest->name = &sh->str_block[(uintptr_t)glsl_map_get(output.string, t->name)];
@@ -492,9 +497,9 @@ bool glsl_copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, Map
       }
    }
 
-   for (MapNode *n = output.symbol->head; n != NULL; n = n->next) {
-      const Symbol *s = n->k;
-      int idx = (uintptr_t)n->v;
+   GLSL_MAP_FOREACH(e, output.symbol) {
+      const Symbol *s = e->k;
+      int idx = (uintptr_t)e->v;
       Symbol *dest = &sh->symbol_block[idx];
       *dest = *s;
       dest->name = &sh->str_block[(uintptr_t)glsl_map_get(output.string, s->name)];
@@ -510,9 +515,9 @@ bool glsl_copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, Map
       glsl_map_put(symbol_map, s, dest);
    }
 
-   for (MapNode *n = output.struct_members->head; n != NULL; n = n->next) {
-      const StructMember *sm = n->k;
-      int *v = n->v;
+   GLSL_MAP_FOREACH(e, output.struct_members) {
+      const StructMember *sm = e->k;
+      int *v = e->v;
       for (int i=0; i<v[0]; i++) {
          int idx = v[1] + i;
          sh->struct_member_block[idx] = sm[i];
@@ -522,6 +527,9 @@ bool glsl_copy_compiled_shader(CompiledShader *sh, ShaderInterfaces *ifaces, Map
          sh->struct_member_block[idx].type = &sh->type_block[(uintptr_t)glsl_map_get(output.type, sm[i].type)];
       }
    }
+
+   shader_maps_term(&output);
+
    return true;
 }
 
@@ -537,6 +545,192 @@ static Dataflow *dprev_apply_opt_map(Dataflow *d, void *data) {
    }
 
    return d;
+}
+
+struct replace_info {
+   Map *replace_map;
+
+   int *output_offset;
+   Dataflow **new_outputs;
+
+   const SSABlock *blocks;
+
+   int id;
+   Dataflow **guards_mem;
+   Dataflow **guards_true;
+   Dataflow **guards_false;
+};
+
+static void replace_externals(Dataflow *d, void *data) {
+   struct replace_info *info = data;
+
+   d->age += info->id * 1000;
+
+   if (glsl_dataflow_affects_memory(d->flavour)) {
+      if (d->d.addr_store.cond == NULL) d->d.addr_store.cond = info->guards_mem[info->id];
+      else d->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, d->d.addr_store.cond, info->guards_mem[info->id]);
+   }
+
+   if (d->flavour != DATAFLOW_EXTERNAL) return;
+
+   glsl_map_put(info->replace_map, d, info->new_outputs[info->output_offset[d->u.external.block] + d->u.external.output]);
+}
+
+static bool is_opable_type(DataflowType t) {
+   return t == DF_FLOAT || t == DF_INT || t == DF_UINT || t == DF_BOOL;
+}
+
+static Dataflow *condition_phi(Dataflow *phi, struct replace_info *info) {
+   Dataflow **guards = info->blocks[phi->u.phi.in_a].next_true == info->id ? info->guards_true : info->guards_false;
+   if (phi->u.phi.in_b != -1)
+      return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, guards[phi->u.phi.in_a], phi->d.binary_op.left,
+                                                                                               phi->d.binary_op.right);
+   else
+      return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, guards[phi->u.phi.in_a], phi->d.binary_op.left,
+                                                                                               condition_phi(phi->d.binary_op.right, info));
+}
+
+static Dataflow *replace_phis(Dataflow *d, void *data) {
+   if (d->flavour != DATAFLOW_PHI) return d;
+
+   struct replace_info *info = data;
+   /* TODO: This is a hack. The dodgy way this gets set up means we have
+    * impossible phi nodes. Ignore them here */
+   if (!is_opable_type(d->type))
+      glsl_map_put(info->replace_map, d, d->d.binary_op.left);
+   else
+      glsl_map_put(info->replace_map, d, condition_phi(d, info));
+
+   return NULL;
+}
+
+void get_reverse_postordering(SSABlock *blocks, int n_blocks, int i, int *ordering, int *order_pos, bool *seen) {
+   if (seen[i]) return;
+   seen[i] = true;
+
+   if (blocks[i].next_true  != -1) get_reverse_postordering(blocks, n_blocks, blocks[i].next_true,  ordering, order_pos, seen);
+   if (blocks[i].next_false != -1) get_reverse_postordering(blocks, n_blocks, blocks[i].next_false, ordering, order_pos, seen);
+   ordering[(*order_pos)--] = i;
+}
+
+static Dataflow *block_pred_from_cd(const struct cd_set *cds, const SSABlock *blocks, int id, int dom,
+                                    const int *output_offset, Dataflow **outputs)
+{
+   const struct cd_set *cd = &cds[id];
+
+   if (cd->n == 0 || id == dom) return glsl_dataflow_construct_const_bool(true);
+   else {
+      Dataflow *cond = glsl_dataflow_construct_const_bool(false);
+      for (int i=0; i<cd->n; i++) {
+         int pred_node = cd->dep[i].node;
+         Dataflow *c = outputs[output_offset[pred_node] + blocks[pred_node].successor_condition];
+         if (!cd->dep[i].cond) c = glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, c);
+         c = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, c, block_pred_from_cd(cds, blocks, pred_node, dom, output_offset, outputs));
+         cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_OR, cond, c);
+      }
+      return cond;
+   }
+}
+
+void flatten_and_predicate(SSAShader *sh) {
+   SSABlock *blocks = sh->blocks;
+   int n_blocks = sh->n_blocks;
+
+   int *output_offset = glsl_safemem_malloc(n_blocks * sizeof(int));
+
+   int *reverse_postordering = glsl_safemem_malloc(n_blocks * sizeof(int));
+   bool *seen = glsl_safemem_malloc(n_blocks * sizeof(bool));
+   for (int i=0; i<n_blocks; i++) seen[i] = false;
+   int order_pos = n_blocks - 1;
+   get_reverse_postordering(blocks, n_blocks, 0, reverse_postordering, &order_pos, seen);
+   assert(order_pos == -1);
+   glsl_safemem_free(seen);
+
+   output_offset[0] = 0;
+   for (int i=1; i<n_blocks; i++) output_offset[i] = output_offset[i-1] + blocks[i-1].n_outputs;
+
+   SSABlock *new_block = glsl_safemem_malloc(sizeof(SSABlock));
+   new_block->id = 0;
+   new_block->n_outputs = 0;
+   for (int i=0; i<n_blocks; i++) new_block->n_outputs += blocks[i].n_outputs;
+   new_block->outputs = glsl_safemem_malloc(new_block->n_outputs * sizeof(Dataflow *));
+   new_block->successor_condition = -1;
+   new_block->next_true = -1;
+   new_block->next_false = -1;
+   new_block->barrier = false;
+
+   for (int i=0; i<n_blocks; i++) {
+      for (int j=0; j<blocks[i].n_outputs; j++) {
+         new_block->outputs[ output_offset[i] + j ] = blocks[i].outputs[j];
+      }
+   }
+
+   for (int i=0; i<sh->n_outputs; i++) {
+      if (sh->outputs[i].block != -1) {
+         sh->outputs[i].output += output_offset[sh->outputs[i].block];
+         sh->outputs[i].block = 0;
+      }
+   }
+
+   struct abstract_cfg *cfg = glsl_alloc_abstract_cfg_ssa(blocks, n_blocks);
+   int *idom = glsl_alloc_idoms(cfg);
+   struct cd_set *cd = glsl_cd_sets_alloc(cfg, blocks);
+   glsl_free_abstract_cfg(cfg);
+
+   Dataflow **guards_mem   = glsl_safemem_malloc(n_blocks * sizeof(Dataflow *));
+   Dataflow **guards_true  = glsl_safemem_malloc(n_blocks * sizeof(Dataflow *));
+   Dataflow **guards_false = glsl_safemem_malloc(n_blocks * sizeof(Dataflow *));
+
+   for (int i=0; i<n_blocks; i++) {
+      int id = reverse_postordering[i];
+
+      glsl_dataflow_set_age(id * 1000);
+
+      guards_mem[id]   = block_pred_from_cd(cd, blocks, id, 0,                           output_offset, new_block->outputs);
+      guards_false[id] = block_pred_from_cd(cd, blocks, id, idom[blocks[id].next_false], output_offset, new_block->outputs);
+      if (blocks[id].successor_condition != -1)
+         guards_true[id] = block_pred_from_cd(cd, blocks, id, idom[blocks[id].next_true], output_offset, new_block->outputs);
+
+      struct replace_info info = { .replace_map = glsl_map_new(), .output_offset = output_offset, .new_outputs = new_block->outputs, .blocks = blocks,
+                                   .id = id, .guards_mem = guards_mem, .guards_true = guards_true, .guards_false = guards_false };
+      glsl_dataflow_visit_array(new_block->outputs, output_offset[id], output_offset[id] + blocks[id].n_outputs, &info, NULL, replace_externals);
+      glsl_dataflow_visit_array(new_block->outputs, output_offset[id], output_offset[id] + blocks[id].n_outputs, info.replace_map, dprev_apply_opt_map, NULL);
+      for (int i=output_offset[id]; i<output_offset[id] + blocks[id].n_outputs; i++) {
+         Dataflow *new = glsl_map_get(info.replace_map, new_block->outputs[i]);
+         if (new != NULL)
+            new_block->outputs[i] = new;
+      }
+      glsl_map_delete(info.replace_map);
+      info.replace_map = glsl_map_new();
+      glsl_dataflow_visit_array(new_block->outputs, output_offset[id], output_offset[id] + blocks[id].n_outputs, &info, replace_phis, NULL);
+      glsl_dataflow_visit_array(new_block->outputs, output_offset[id], output_offset[id] + blocks[id].n_outputs, info.replace_map, dprev_apply_opt_map, NULL);
+      for (int i=output_offset[id]; i<output_offset[id] + blocks[id].n_outputs; i++) {
+         Dataflow *new = glsl_map_get(info.replace_map, new_block->outputs[i]);
+         if (new != NULL)
+            new_block->outputs[i] = new;
+      }
+      glsl_map_delete(info.replace_map);
+
+      if (blocks[id].successor_condition != -1) {
+         guards_true[id] = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, guards_true[id], new_block->outputs[output_offset[id]+blocks[id].successor_condition]);
+         guards_false[id] = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, guards_false[id], glsl_dataflow_construct_unary_op(DATAFLOW_LOGICAL_NOT, new_block->outputs[output_offset[id]+blocks[id].successor_condition]));
+      }
+   }
+
+   glsl_cd_sets_free(cd, n_blocks);
+   glsl_safemem_free(idom);
+
+   glsl_safemem_free(reverse_postordering);
+   glsl_safemem_free(output_offset);
+   glsl_safemem_free(guards_mem);
+   glsl_safemem_free(guards_true);
+   glsl_safemem_free(guards_false);
+
+   for(int i=0; i<n_blocks; i++) glsl_safemem_free(blocks[i].outputs);
+   glsl_safemem_free(blocks);
+
+   sh->n_blocks = 1;
+   sh->blocks = new_block;
 }
 
 struct unphi_data {
@@ -595,6 +789,8 @@ void unphi_constants(SSABlock *blocks, int n_blocks) {
          if (new != NULL)
             b->outputs[i] = new;
       }
+
+      glsl_map_delete(data.unphi);
    }
 }
 
@@ -645,6 +841,8 @@ void promote_constants(SSABlock *blocks, int n_blocks) {
          if (new != NULL)
             b->outputs[i] = new;
       }
+
+      glsl_map_delete(data.map);
    }
 }
 
@@ -676,6 +874,8 @@ void simplify_dataflow(SSABlock *blocks, int n_blocks) {
          if (new != NULL)
             b->outputs[i] = new;
       }
+
+      glsl_map_delete(opt_map);
    }
 }
 
@@ -785,7 +985,7 @@ static void eliminate_dead_code(SSAShader *sh)
          if (is_output[i][j]) output_mapping[i][j] = out_count++;
          else output_mapping[i][j] = -1;
       }
-      Dataflow **new_outputs = malloc_fast(out_count * sizeof(Dataflow *));
+      Dataflow **new_outputs = glsl_safemem_malloc(out_count * sizeof(Dataflow *));
       for (int j=0; j<b->n_outputs; j++) {
          if (is_output[i][j]) new_outputs[output_mapping[i][j]] = b->outputs[j];
       }
@@ -793,6 +993,7 @@ static void eliminate_dead_code(SSAShader *sh)
       if (b->successor_condition != -1)
         b->successor_condition = output_mapping[i][b->successor_condition];
 
+      glsl_safemem_free(b->outputs);
       b->n_outputs = out_count;
       b->outputs = new_outputs;
    }
@@ -844,14 +1045,14 @@ static void initialise_interface_symbols(BasicBlock *entry_block, Map *initial_v
     * are initialised. Come up with something better */
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(entry_block);
    for (BasicBlockList *b = l; b != NULL; b = b->next) {
-      for (MapNode *n = b->v->scalar_values->head; n != NULL; n=n->next) {
-         Dataflow **scalar_values = glsl_symbol_get_default_scalar_values(n->k);
-         glsl_basic_block_set_scalar_values(entry_block, n->k, scalar_values);
+      GLSL_MAP_FOREACH(e, b->v->scalar_values) {
+         Dataflow **scalar_values = glsl_symbol_get_default_scalar_values(e->k);
+         glsl_basic_block_set_scalar_values(entry_block, e->k, scalar_values);
       }
    }
 
-   for (MapNode *n = initial_values->head; n != NULL; n=n->next) {
-      glsl_basic_block_set_scalar_values(entry_block, n->k, n->v);
+   GLSL_MAP_FOREACH(e, initial_values) {
+      glsl_basic_block_set_scalar_values(entry_block, e->k, e->v);
    }
 }
 
@@ -1028,6 +1229,7 @@ static void iface_data_fill_default(IFaceData *data, ShaderFlavour flavour) {
          for (int i=0; i<3; i++) data->compute.wg_size[i] = 1;
          break;
       case SHADER_TESS_EVALUATION:
+         data->tess_eval.mode    = TESS_INVALID;
          data->tess_eval.spacing = TESS_SPACING_EQUAL;
          break;
       case SHADER_GEOMETRY:
@@ -1065,7 +1267,6 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
    iface_data_fill_default(data, flavour);
 
    bool size_declared             = false;
-   bool tess_mode_declared        = false;
    bool tess_vertices_declared    = false;
    bool gs_n_invocations_declared = false;
    bool gs_in_type_declared       = false;
@@ -1114,8 +1315,6 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
                   default: /* Do nothing */ break;
                }
 
-               if (idn->l->id == LQ_ISOLINES || idn->l->id == LQ_TRIANGLES || idn->l->id == LQ_QUADS)
-                  tess_mode_declared = true;
                if (idn->l->id == LQ_SIZE_X || idn->l->id == LQ_SIZE_Y || idn->l->id == LQ_SIZE_Z)
                   size_declared = true;
             } else if (sq == STORAGE_OUT) {
@@ -1153,8 +1352,6 @@ static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour
    }
    if (flavour == SHADER_TESS_CONTROL && !tess_vertices_declared)
       glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
-   if (flavour == SHADER_TESS_EVALUATION && !tess_mode_declared)
-      glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation evaluation shader requires mode declaration");
    if (flavour == SHADER_GEOMETRY) {
       if (!gs_in_type_declared)
          glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires input type declaration");
@@ -1201,6 +1398,24 @@ static bool version_valid_for_flavour(ShaderFlavour flavour, int version) {
          return version >= GLSL_SHADER_VERSION(3, 20, 1) || glsl_ext_status(GLSL_EXT_TESSELLATION) != GLSL_DISABLED;
       default: unreachable(); return false;
    }
+}
+
+static bool loop_or_barrier(BasicBlockList *l, Map *seen) {
+   for ( ; l ; l=l->next) {
+      glsl_map_put(seen, l->v, l->v);
+      if (l->v->branch_target      && glsl_map_get(seen, l->v->branch_target))      return true;
+      if (l->v->fallthrough_target && glsl_map_get(seen, l->v->fallthrough_target)) return true;
+
+      if (l->v->barrier) return true;
+   }
+   return false;
+}
+
+static bool list_contains_loops_or_barriers(BasicBlockList *l) {
+   Map *seen = glsl_map_new();
+   bool ret = loop_or_barrier(l, seen);
+   glsl_map_delete(seen);
+   return ret;
 }
 
 #ifdef ANDROID
@@ -1281,6 +1496,8 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    /* Build basic block graph */
    BasicBlock *shader_start_block = glsl_basic_block_build(nast);
 
+   glsl_basic_block_elim_dead(shader_start_block);
+
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(shader_start_block);
 
    if (flavour == SHADER_COMPUTE) {
@@ -1291,36 +1508,47 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       }
    }
 
-   Map *offsets = glsl_map_new();
-   int c = glsl_basic_block_list_count(l);
-   for ( ; l != NULL; l=l->next) {
-      int *offset = malloc_fast(sizeof(int));
-      *offset = 1000;
-      glsl_map_put(offsets, l->v, offset);
-   }
-
-   /* XXX We skip this code flattening for massive numbers of blocks because it is slow */
-   if (c < 1000)
-      while (glsl_basic_block_flatten_a_bit(shader_start_block, offsets)) /* Do nothing */;
-
    /* Add interface definitions to a basic block prior to the shader */
    BasicBlock *entry_block = glsl_basic_block_construct();
-   int *entry_age_offset = malloc_fast(sizeof(int));
-   *entry_age_offset = 0;
-   glsl_map_put(offsets, entry_block, entry_age_offset);
    entry_block->fallthrough_target = shader_start_block;
-   Map *initial_values = glsl_shader_interfaces_create_dataflow(interfaces, symbol_ids);
 
+   Map *initial_values = glsl_shader_interfaces_create_dataflow(interfaces, symbol_ids);
    initialise_interface_symbols(entry_block, initial_values);
+   glsl_map_delete(initial_values);
    if (flavour == SHADER_COMPUTE)
       generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block);
 
-   entry_block = glsl_basic_block_flatten(entry_block, offsets);
+   Map *offsets = glsl_map_new();
+   for (BasicBlockList *n = l ; n != NULL; n=n->next) {
+      int *offset = malloc_fast(sizeof(int));
+      *offset = 1000;
+      glsl_map_put(offsets, n->v, offset);
+   }
+   int *start_offset = malloc_fast(sizeof(int));
+   *start_offset = 0;
+   glsl_map_put(offsets, entry_block, start_offset);
+
+   bool new_flattening = !list_contains_loops_or_barriers(l);
+
+   if (!new_flattening) {
+      /* XXX We skip this code flattening for massive numbers of blocks because it is slow */
+      int c = glsl_basic_block_list_count(l);
+      if (c < 1000)
+         while (glsl_basic_block_flatten_a_bit(entry_block, offsets)) /* Do nothing */;
+
+      entry_block = glsl_basic_block_flatten(entry_block, offsets);
+   }
+
+   glsl_map_delete(offsets);
 
    /* Do the conversion to SSA form */
    SSAShader ir_sh;
 
    glsl_ssa_convert(&ir_sh, entry_block, interfaces->outs, symbol_ids);
+   glsl_basic_block_delete_reachable(entry_block);
+
+   if (new_flattening)
+      flatten_and_predicate(&ir_sh);
 
    glsl_ssa_shader_optimise(&ir_sh);
 
@@ -1341,6 +1569,9 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       glsl_compiled_shader_free(ret);
       return NULL;
    }
+
+   glsl_map_delete(symbol_map);
+   glsl_map_delete(symbol_ids);
 
    glsl_mark_interface_actives(&ret->in, &ret->uniform, &ret->buffer, ir_sh.blocks, ir_sh.n_blocks);
 
@@ -1395,8 +1626,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
       ret->shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
    }
 
-   glsl_safemem_free(ir_sh.blocks);
-   glsl_safemem_free(ir_sh.outputs);
+   glsl_ssa_shader_term(&ir_sh);
 
    glsl_dataflow_end_construction();
    glsl_fastmem_term();

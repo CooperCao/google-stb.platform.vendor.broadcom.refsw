@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_AST_VISITOR_H
-#define GLSL_AST_VISITOR_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_ast.h"
 
@@ -42,5 +34,3 @@ void glsl_statement_accept_postfix(Statement* statement, void* data, StatementPo
 // As per the above.
 void glsl_expr_accept(Expr* expr, void* data, ExprPreVisitor eprev, ExprPostVisitor epostv);
 void glsl_statement_accept(Statement* statement, void* data, StatementPreVisitor sprev, ExprPreVisitor eprev, StatementPostVisitor spostv, ExprPostVisitor epostv);
-
-#endif // AST_VISITOR_H

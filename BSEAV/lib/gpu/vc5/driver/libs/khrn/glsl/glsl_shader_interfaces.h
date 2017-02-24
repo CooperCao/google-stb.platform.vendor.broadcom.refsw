@@ -1,20 +1,12 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_SHADER_INTERFACE_H
-#define GLSL_SHADER_INTERFACE_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_symbols.h"
 #include "glsl_map.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct _ShaderInterfaces {
    SymbolList *uniforms;
@@ -34,6 +26,4 @@ Map *glsl_shader_interfaces_id_map(const ShaderInterfaces *interfaces);
 Map *glsl_shader_interfaces_create_dataflow(const ShaderInterfaces *interfaces,
                                             Map *symbol_ids);
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

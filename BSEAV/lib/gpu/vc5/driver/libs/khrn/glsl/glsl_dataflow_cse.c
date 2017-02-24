@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <string.h>
 
 #include "glsl_globals.h"
@@ -48,7 +41,7 @@ static bool dataflow_equals(const Dataflow *df0, const Dataflow *df1)
       Dataflow *dep0 = df0->d.dependencies[i];
       Dataflow *dep1 = df1->d.dependencies[i];
       if (dep0 && dep1 && dep0->flavour == DATAFLOW_CONST && dep1->flavour == DATAFLOW_CONST &&
-          dep0->type == dep1->type && dep0->u.constant.value == dep1->u.constant.value)
+          dep0->type == dep1->type && dep0->u.constant.value == dep1->u.constant.value && df0->flavour != DATAFLOW_VEC4)
          continue; // consider equal if dep0 and dep1 are the same constant
       if (dep0 && dep1 && dep0->flavour == DATAFLOW_UNIFORM && dep1->flavour == DATAFLOW_UNIFORM &&
           dep0->u.buffer.index  == dep1->u.buffer.index &&
@@ -94,6 +87,8 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
       case DATAFLOW_CONST:
       case DATAFLOW_CONST_SAMPLER:
       case DATAFLOW_UNIFORM:
+      case DATAFLOW_STORAGE_BUFFER:
+      case DATAFLOW_BUF_SIZE:
          return df;
       default:
          break;
@@ -140,6 +135,7 @@ static void block_cse(Dataflow **outputs, int n_outputs)
    Map *ctx = glsl_map_new();
    for (int i=0; i<n_outputs; i++)
       outputs[i] = dataflow_cse_accept(ctx, outputs[i]);
+   glsl_map_delete(ctx);
 }
 
 void glsl_dataflow_cse(SSABlock *block, int n_blocks) {

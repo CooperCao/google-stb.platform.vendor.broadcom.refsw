@@ -1,23 +1,15 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_BINARY_SHADER_H_INCLUDED
-#define GLSL_BINARY_SHADER_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_common.h"
 #include "glsl_ir_program.h"
 #include "libs/core/v3d/v3d_limits.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
-typedef struct glxx_link_result_key GLXX_LINK_RESULT_KEY_T;
+struct glsl_backend_cfg;
 
 typedef struct {
    unsigned scalars_used[V3D_MAX_ATTR_ARRAYS]; /* how many scalars are read for each attrib */
@@ -33,7 +25,12 @@ typedef struct {
    size_t    code_size;
    uint32_t *unif;
    size_t    unif_count;
+#if V3D_HAS_RELAXED_THRSW
+   bool four_thread;
+   bool single_seg;
+#else
    unsigned  n_threads;
+#endif
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    bool      uses_control_flow;
 #endif
@@ -74,14 +71,12 @@ typedef struct {
 BINARY_SHADER_T *glsl_binary_shader_create(ShaderFlavour    flavour);
 void             glsl_binary_shader_free  (BINARY_SHADER_T *binary);
 
-BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                 flavour,
-                                                  bool                          bin_mode,
-                                                  GLSL_VARY_MAP_T              *vary_map,
-                                                  IR_PROGRAM_T                 *ir,
-                                                  const GLXX_LINK_RESULT_KEY_T *key);
+BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour                  flavour,
+                                                  bool                           bin_mode,
+                                                  GLSL_VARY_MAP_T               *vary_map,
+                                                  IR_PROGRAM_T                  *ir,
+                                                  const struct glsl_backend_cfg *key);
 
 const char *glsl_shader_flavour_name(ShaderFlavour f);
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

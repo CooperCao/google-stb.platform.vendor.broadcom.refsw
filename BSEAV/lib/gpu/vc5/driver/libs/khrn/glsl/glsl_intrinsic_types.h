@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_INTRINSIC_TYPES_H_INCLUDED
-#define GLSL_INTRINSIC_TYPES_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 typedef enum glsl_intrinsic_index_e {
    INTRINSIC_TEXTURE,
@@ -65,5 +57,3 @@ typedef struct glsl_intrinsic_data_s {
    const char *name;
    glsl_intrinsic_index_t index;
 } glsl_intrinsic_data_t;
-
-#endif

@@ -1,16 +1,10 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2015 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "glsl_common.h"
 #include "glsl_basic_block.h"
 #include "glsl_basic_block_builder.h"
+#include "glsl_basic_block_elim_dead.h"
 #include "glsl_dataflow_builder.h"
 #include "glsl_nast.h"
 #include "glsl_symbols.h"
@@ -201,7 +195,7 @@ static void build_selection_statement(builder_context_t *ctx, const NStmt *stmt)
 {
    bool has_false = (stmt->u.selection.if_false && stmt->u.selection.if_false->head);
    BasicBlock *true_block = glsl_basic_block_construct();
-   BasicBlock *false_block = glsl_basic_block_construct();
+   BasicBlock *false_block = has_false ? glsl_basic_block_construct() : NULL;
    BasicBlock *end_block = glsl_basic_block_construct();
 
    Dataflow *cond;
@@ -226,8 +220,6 @@ static void build_switch_statement(builder_context_t *ctx, const NStmt *stmt)
    Symbol *switch_value_symbol = glsl_symbol_construct_temporary(stmt->u.switch_stmt.cond->type);
    BasicBlock *default_block = NULL;
    BasicBlock *end_block = glsl_basic_block_construct();
-   Map *case_to_basic_block = glsl_map_new();
-   NStmtListNode *node;
 
    {
       Dataflow *switch_value;
@@ -240,9 +232,11 @@ static void build_switch_statement(builder_context_t *ctx, const NStmt *stmt)
 
    glsl_basic_block_list_add(&ctx->break_targets, end_block);
 
+   Map *case_to_basic_block = glsl_map_new();
+
    // Create list of conditions which find the right case to branch to
    // The basic blocks for the cases are created here, but they are not populated yet
-   for (node = stmt->u.switch_stmt.statements->head; node; node = node->next) {
+   for (NStmtListNode *node = stmt->u.switch_stmt.statements->head; node; node = node->next) {
       if(node->v->flavour == NSTMT_CASE) {
          Dataflow *switch_value = glsl_basic_block_get_scalar_value(ctx->current_basic_block, switch_value_symbol, 0);
          Dataflow *scalar_value;
@@ -261,15 +255,18 @@ static void build_switch_statement(builder_context_t *ctx, const NStmt *stmt)
    // If none of the cases was taken, branch to the default case (if we have one)
    basic_block_end(ctx, NULL, NULL, default_block ? default_block : end_block);
 
-   // Fill the basic blocks for cases.
-   // Note: code before the first label will be generated but will be unreachable
-   basic_block_start(ctx, glsl_basic_block_construct());
-   for (node = stmt->u.switch_stmt.statements->head; node; node = node->next) {
+   /* Fill the basic blocks for cases. */
+   /* It is not valid to have code before the first case statement */
+   NStmtListNode *node = stmt->u.switch_stmt.statements->head;
+   assert(node->v->flavour == NSTMT_CASE || node->v->flavour == NSTMT_DEFAULT);
+   BasicBlock *case_block = glsl_map_get(case_to_basic_block, node);
+   basic_block_start(ctx, case_block);
+
+   for (node = node->next; node; node = node->next) {
       if(node->v->flavour == NSTMT_CASE || node->v->flavour == NSTMT_DEFAULT) {
          BasicBlock *case_block = glsl_map_get(case_to_basic_block, node);
-         // Terminate the previous case (fallthrough is allowed)
+         /* Terminate the previous case with a fallthrough and start the new one */
          basic_block_end(ctx, NULL, NULL, case_block);
-         // Start the basic bloc for this case
          basic_block_start(ctx, case_block);
       } else {
          build_statement(ctx, node->v);
@@ -277,6 +274,8 @@ static void build_switch_statement(builder_context_t *ctx, const NStmt *stmt)
    }
    // The last case falls through to the end
    basic_block_end(ctx, NULL, NULL, end_block);
+
+   glsl_map_delete(case_to_basic_block);
 
    glsl_basic_block_list_pop(&ctx->break_targets);
    basic_block_start(ctx, end_block);
@@ -367,7 +366,15 @@ static void build_function_call_statement(builder_context_t *ctx, const NStmt *s
       basic_block_start(ctx, end_block);
 
       // do not create extra basic block if we do not have to
-      if (start_block->fallthrough_target == end_block && start_block->branch_target == NULL) {
+      // Note this is required for some usage of intrinsics in the standard
+      // library to work!
+      if (start_block->fallthrough_target == end_block && (!start_block->branch_cond ||
+         (start_block->branch_cond->flavour == DATAFLOW_CONST && start_block->branch_cond->u.constant.value == 0)))
+      {
+         glsl_basic_block_elim_dead(start_block);
+         assert(!start_block->branch_cond && !start_block->branch_target);
+         assert(start_block->fallthrough_target == end_block);
+         glsl_basic_block_delete(end_block);
          start_block->fallthrough_target = NULL;
          ctx->current_basic_block = start_block;
       }
@@ -403,8 +410,9 @@ static void build_return_expr_statement(builder_context_t *ctx, const NStmt *stm
    glsl_basic_block_set_scalar_values(ctx->current_basic_block, ctx->return_symbols->tail->s, scalar_values);
    free_dataflow(scalar_values);
 
-   basic_block_end(ctx, NULL, NULL, ctx->return_targets->v);
-   basic_block_start(ctx, glsl_basic_block_construct());
+   BasicBlock *dead = glsl_basic_block_construct();
+   basic_block_end(ctx, glsl_dataflow_construct_const_bool(false), dead, ctx->return_targets->v);
+   basic_block_start(ctx, dead);
 }
 
 static void build_statement(builder_context_t *ctx, const NStmt *stmt)
@@ -444,20 +452,26 @@ static void build_statement(builder_context_t *ctx, const NStmt *stmt)
       build_iterator_statement(ctx, stmt);
       break;
 
-   case NSTMT_CONTINUE:
-      basic_block_end(ctx, NULL, NULL, ctx->continue_targets->v);
-      basic_block_start(ctx, glsl_basic_block_construct());
+   case NSTMT_CONTINUE: {
+      BasicBlock *dead = glsl_basic_block_construct();
+      basic_block_end(ctx, glsl_dataflow_construct_const_bool(false), dead, ctx->continue_targets->v);
+      basic_block_start(ctx, dead);
       break;
+   }
 
-   case NSTMT_RETURN:
-      basic_block_end(ctx, NULL, NULL, ctx->return_targets->v);
-      basic_block_start(ctx, glsl_basic_block_construct());
+   case NSTMT_RETURN: {
+      BasicBlock *dead = glsl_basic_block_construct();
+      basic_block_end(ctx, glsl_dataflow_construct_const_bool(false), dead, ctx->return_targets->v);
+      basic_block_start(ctx, dead);
       break;
+   }
 
-   case NSTMT_BREAK:
-      basic_block_end(ctx, NULL, NULL, ctx->break_targets->v);
-      basic_block_start(ctx, glsl_basic_block_construct());
+   case NSTMT_BREAK: {
+      BasicBlock *dead = glsl_basic_block_construct();
+      basic_block_end(ctx, glsl_dataflow_construct_const_bool(false), dead, ctx->break_targets->v);
+      basic_block_start(ctx, dead);
       break;
+   }
 
    case NSTMT_DISCARD: {
       Symbol *discard = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__OUT__BOOL____DISCARD);

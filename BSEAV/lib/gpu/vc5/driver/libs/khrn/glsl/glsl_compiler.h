@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_COMPILER_H
-#define GLSL_COMPILER_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,7 +18,7 @@ typedef struct _SSAShader         SSAShader;
 
 #include "glsl_common.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *source);
 
@@ -47,6 +39,4 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **stages, const GLSL_PROGRAM_SO
 // since Window's windef.h pollutes the namespace with typedefs like BOOL, FLOAT, ...
 extern Statement *glsl_parse_ast(ShaderFlavour flavour, int version, int sourcec, const char * const *sourcev);
 
-VCOS_EXTERN_C_END
-
-#endif // COMPILER_H
+EXTERN_C_END

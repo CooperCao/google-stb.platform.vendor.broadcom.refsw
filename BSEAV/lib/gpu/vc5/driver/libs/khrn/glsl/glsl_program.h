@@ -1,21 +1,13 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_PROGRAM_H_INCLUDED
-#define GLSL_PROGRAM_H_INCLUDED
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "GLES3/gl32.h"
 
 #include "glsl_ir_program.h"
 
-VCOS_EXTERN_C_BEGIN
+EXTERN_C_BEGIN
 
 typedef struct {
    int    location;
@@ -162,6 +154,4 @@ static inline bool glsl_program_has_stage(GLSL_PROGRAM_T const* program, ShaderF
       return program->ir->stage[flavour].ir != NULL;
 }
 
-VCOS_EXTERN_C_END
-
-#endif
+EXTERN_C_END

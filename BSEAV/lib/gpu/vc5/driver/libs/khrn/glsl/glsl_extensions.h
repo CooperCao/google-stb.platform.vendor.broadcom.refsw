@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_EXTENSIONS_H
-#define GLSL_EXTENSIONS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include <stdbool.h>
 
@@ -76,5 +68,3 @@ const char *glsl_ext_get_identifier(unsigned ext, unsigned id);
 
 /* Return the stdlib mask needed for all enabled extensions */
 extern int glsl_ext_get_symbol_mask(void);
-
-#endif  /* GLSL_EXTENSIONS_H */

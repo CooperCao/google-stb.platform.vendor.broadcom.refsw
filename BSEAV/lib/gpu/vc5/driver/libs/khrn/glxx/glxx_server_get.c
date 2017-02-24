@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2010 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "gl_public_api.h"
 #include "../common/khrn_int_common.h"
 #include "glxx_shared.h"
@@ -136,7 +128,7 @@ static glxx_get_type_count glxx_get_params_and_type_common(
       booleans[0] = state->caps.polygon_offset_fill;
       return glxx_get_bool_1;
    case GL_SAMPLE_ALPHA_TO_COVERAGE:
-      booleans[0] = !!(state->statebits.backend & GLXX_SAMPLE_ALPHA);
+      booleans[0] = !!(state->statebits.backend & GLSL_SAMPLE_ALPHA);
       return glxx_get_bool_1;
    case GL_SAMPLE_COVERAGE:
       booleans[0] = state->sample_coverage.enable;

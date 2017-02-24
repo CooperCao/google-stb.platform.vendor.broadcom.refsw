@@ -1,18 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2009 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-File     :  $RCSfile: $
-Revision :  $Revision: $
-
-FILE DESCRIPTION
-
-Generic texture parameter getting/setting for the compiler
-=============================================================================*/
-#ifndef GLSL_TEX_PARAMS_H
-#define GLSL_TEX_PARAMS_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #if V3D_VER_AT_LEAST(4,0,2,0)
 
@@ -30,15 +19,22 @@ static inline uint32_t backend_uniform_get_extra(uint32_t u) {
 
 /* When requesting TMU parameters the compiler provides a sampler index and
  * 'extra' bits that need to be included in the parameters.
+ * Both parameters include the image and sampler indices.
  *
  * TMU config 0 is not supported */
 
-/* Sampler Index [10:14] */
-#define SAMPLER_SHIFT   10
-#define SAMPLER_MASK    (0x1F << SAMPLER_SHIFT)
+/* Image Index   [ 9:13] */
+/* Sampler Index [14:18] */
+#define IMAGE_SHIFT   9
+#define IMAGE_MASK    (0x1F << IMAGE_SHIFT)
 
+#define SAMPLER_SHIFT 14
+#define SAMPLER_MASK  (0x1F << SAMPLER_SHIFT)
+
+#define PACK_IMAGE(i)   ( ( (i) << IMAGE_SHIFT   ) & IMAGE_MASK   )
 #define PACK_SAMPLER(s) ( ( (s) << SAMPLER_SHIFT ) & SAMPLER_MASK )
-#define BACKEND_UNIFORM_MAKE_PARAM(s, e) ( (e) | PACK_SAMPLER(s) )
+
+#define BACKEND_UNIFORM_MAKE_PARAM(i, s, e) ( (e) | PACK_IMAGE(i) | PACK_SAMPLER(s) )
 
 
 /* PARAM 0 */
@@ -63,19 +59,23 @@ static inline uint32_t backend_uniform_get_extra(uint32_t u) {
 
 /* PARAM 1 */
 
-#define GLSL_TEXPARAM1_GATHER_COMP_SHIFT 8
+#define GLSL_TEXPARAM1_GATHER_COMP_SHIFT 6
 #define GLSL_TEXPARAM1_GATHER_COMP_MASK  (0x3 << GLSL_TEXPARAM1_GATHER_COMP_SHIFT)
 #define GLSL_TEXPARAM1_FETCH            (1<<5)
 #define GLSL_TEXPARAM1_GATHER           (1<<4)
 #define GLSL_TEXPARAM1_WORD_READ_MASK    0xF
 
 
+static inline uint32_t backend_uniform_get_image(uint32_t u) {
+   return (u & IMAGE_MASK) >> IMAGE_SHIFT;
+}
+
 static inline uint32_t backend_uniform_get_sampler(uint32_t u) {
    return (u & SAMPLER_MASK) >> SAMPLER_SHIFT;
 }
 
 static inline uint32_t backend_uniform_get_extra(uint32_t u) {
-   return u & ~SAMPLER_MASK;
+   return u & ~(SAMPLER_MASK | IMAGE_MASK);
 }
 
 static inline uint32_t backend_uniform_get_extra_param0(uint32_t u) {
@@ -88,5 +88,3 @@ static inline uint32_t backend_uniform_get_extra_param1(uint32_t u) {
 }
 
 #endif // V3D_VER_AT_LEAST(4,0,2,0)
-
-#endif //GLSL_TEX_PARAMS_H

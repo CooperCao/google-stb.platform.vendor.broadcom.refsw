@@ -1,49 +1,41 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
-Project  :  glsl
-Module   :
+#include <assert.h>
+#include "libs/util/common.h"
 
-FILE DESCRIPTION
-=============================================================================*/
+EXTERN_C_BEGIN
 
-#ifndef GLSL_MAP_H
-#define GLSL_MAP_H
-
-#include "vcos.h"
-
-VCOS_EXTERN_C_BEGIN
-
-typedef struct _MapNode
+typedef struct _MapEntry
 {
-   const void* k;
-   void* v;
-   struct _MapNode* next;
-   struct _MapNode* prev;
-   struct _MapNode* hashmap_next; // colliding nodes in hashmap
-} MapNode;
+   const void *k;
+   void *v;
+} MapEntry;
 
 typedef struct _Map
 {
-   MapNode* head;
-   MapNode* tail;
-   int count;
-   MapNode** hashmap;
+   int count; // Number of entries in the map
    int num_bits;
+   MapEntry  *entries; // Pointer to an array of size GLSL_MAP_MAX_ENTRIES(num_bits)
+   MapEntry **buckets; // Pointer to an array of size (1 << num_bits)
 } Map;
 
-// Creates new map.
-Map* glsl_map_new(void);
+// Create/delete maps.
+Map *glsl_map_new(void);
+void glsl_map_delete(Map *map);
 
 // Puts (k,v) into the map.  NULL keys are not allowed.
 // Duplicates are allowed and can be accessed by iterating over all members.
-void glsl_map_put(Map* map, const void* k, void* v);
+void glsl_map_put(Map *map, const void *k, void *v);
 
 // Finds k in the map, and then gets the v associated with it.
 // If there are duplicates, the most recent value is returend.
-void* glsl_map_get(const Map* map, const void* k);
+void *glsl_map_get(const Map *map, const void *k);
 
-VCOS_EXTERN_C_END
+// Iteration order matches insertion order
+#define GLSL_MAP_FOREACH(ENTRY, MAP) \
+   for (MapEntry *ENTRY = (MAP)->entries, *end_ = ENTRY + (MAP)->count; ENTRY != end_; ++ENTRY)
 
-#endif // MAP_H
+EXTERN_C_END

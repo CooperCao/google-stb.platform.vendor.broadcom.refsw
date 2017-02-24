@@ -154,6 +154,8 @@
       // TODO: Remove the whole thing.
       g_LineNumber = LINE_NUMBER_UNDEFINED;
 
+      glsl_symbol_table_delete(state.symbol_table);
+
       return ast;
    }
 

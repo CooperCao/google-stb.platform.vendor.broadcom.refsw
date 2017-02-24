@@ -1,13 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -165,6 +158,7 @@ void glsl_safemem_verify()
       fprintf(stderr,
               "glsl_safemem_verify: Not all safemem allocated blocks have been freed\n");
       glsl_safemem_dump();
+      glsl_safemem_cleanup();
    }
 }
 

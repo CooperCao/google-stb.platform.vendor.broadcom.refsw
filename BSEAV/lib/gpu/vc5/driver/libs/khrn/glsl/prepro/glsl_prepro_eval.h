@@ -1,19 +1,9 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
-All rights reserved.
-
-Project  :  prepro
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_PREPRO_EVAL_H
-#define GLSL_PREPRO_EVAL_H
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "prepro/glsl_prepro_token.h"
 
 /* Evaluate sequence s and return the value. If any tokens remain, rem points to them */
 extern int glsl_eval_evaluate(TokenSeq *s, TokenSeq **rem);
-
-#endif

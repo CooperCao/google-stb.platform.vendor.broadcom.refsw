@@ -1,15 +1,7 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2012 Broadcom.
-All rights reserved.
-
-Project  :  glsl
-Module   :
-
-FILE DESCRIPTION
-=============================================================================*/
-
-#ifndef GLSL_SCHEDNODE_HELPERS_H__
-#define GLSL_SCHEDNODE_HELPERS_H__
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
+#pragma once
 
 #include "glsl_backflow.h"
 #include "glsl_backend_uniforms.h"
@@ -70,7 +62,7 @@ static inline Backflow *tr_mov_to_reg_io(uint32_t reg, Backflow *param, Backflow
 }
 
 static inline Backflow *tr_typed_uniform(BackendUniformFlavour flavour, uint32_t value) {
-   Backflow *result  = create_sig(SIGBIT_LDUNIF);
+   Backflow *result  = create_sig(V3D_QPU_SIG_LDUNIF);
    assert(flavour >= 0 && flavour <= BACKEND_UNIFORM_LAST_ELEMENT);
    result->unif_type = flavour;
    result->unif      = value;
@@ -127,12 +119,10 @@ static inline Backflow *glsl_backflow_dummy(void) { return tr_nullary(BACKFLOW_D
 
 
 static inline bool is_const(const Backflow *b) {
-   return (b->type == SIG && b->u.sigbits == SIGBIT_LDUNIF &&
+   return (b->type == SIG && b->u.sigbits == V3D_QPU_SIG_LDUNIF &&
            b->unif_type == BACKEND_UNIFORM_LITERAL         );
 }
 
 static inline bool is_const_zero(const Backflow *b) {
    return (is_const(b) && b->unif == 0);
 }
-
-#endif
