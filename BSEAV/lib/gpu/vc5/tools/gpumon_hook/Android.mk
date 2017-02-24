@@ -13,8 +13,9 @@
 # limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
-V3D_DRIVER_TOP := $(BSEAV_TOP)/lib/gpu/vc5
 include $(CLEAR_VARS)
+V3D_DRIVER_TOP := $(BSEAV_TOP)/lib/gpu/vc5
+LOCAL_PATH := $(subst ${ANDROID}/,,$(LOCAL_PATH))
 
 LOCAL_C_INCLUDES := \
         $(V3D_DRIVER_TOP)/driver/ \
@@ -101,5 +102,6 @@ LOCAL_MODULE := libgpumon_hook
 
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
 
 include $(BUILD_SHARED_LIBRARY)

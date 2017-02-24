@@ -16,6 +16,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 V3D_DRIVER_TOP := $(BSEAV_TOP)/lib/gpu/vc5
 LOCAL_PATH := $(V3D_DRIVER_TOP)
+LOCAL_PATH := $(subst ${ANDROID}/,,$(LOCAL_PATH))
 
 LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/driver/ \
@@ -33,7 +34,7 @@ LOCAL_C_INCLUDES := \
 	$(V3D_DRIVER_TOP)/platform/android/ \
 	$(V3D_DRIVER_TOP)/platform/common/ \
 	$(ANDROID_TOP)/system/core/libsync/include/ \
-   $(ANDROID_TOP)/frameworks/native/libs/arect/include \
+	$(ANDROID_TOP)/frameworks/native/libs/arect/include \
 	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include/ \
 	$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
 	$(BSEAV_TOP)/linux/driver/brcmv3d/include/uapi/drm/
@@ -334,5 +335,6 @@ LOCAL_SHARED_LIBRARIES += libsync
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE_RELATIVE_PATH := egl
+LOCAL_C_INCLUDES := $(subst ${ANDROID}/,,$(LOCAL_C_INCLUDES))
 
 include $(BUILD_SHARED_LIBRARY)
