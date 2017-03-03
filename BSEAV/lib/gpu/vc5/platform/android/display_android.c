@@ -156,12 +156,12 @@ static BEGL_Error DispSurfaceGetInfo(void *context, void *nativeSurface, BEGL_Su
 {
    ANativeWindowBuffer_t *buffer = (ANativeWindowBuffer_t*)nativeSurface;
    bool                  ok       = false;
-   struct private_handle_t const* hnd;
+   private_handle_t const* hnd;
 
    if (!isAndroidNativeBuffer(buffer) || info == NULL)
       return BEGL_Fail;
 
-   hnd = (struct private_handle_t const*)buffer->handle;
+   hnd = (private_handle_t const*)buffer->handle;
 
    info->physicalOffset = hnd->nxSurfacePhysicalAddress;
    info->cachedAddr     = (void*)(intptr_t)hnd->nxSurfaceAddress;
