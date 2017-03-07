@@ -346,7 +346,9 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
         switch (pEntry->colorSpace)
         {
         case NEXUS_ColorSpace_eYCbCr422:
-            supported = rXCapabilities->hdmiVsdb.deepColor30bit ;
+            /* Per HDMI spec, Colorspace YCbCr 4:2:2 is always 12 bit */
+            /* colordepth setting of 10 is ignored */
+            supported = true ;
             break ;
 
         case NEXUS_ColorSpace_eYCbCr420:
@@ -374,7 +376,8 @@ static bool NEXUS_HdmiOutput_IsValid4KVideoSettings_priv(
         switch (pEntry->colorSpace)
         {
         case NEXUS_ColorSpace_eYCbCr422:
-            supported = rXCapabilities->hdmiVsdb.deepColor36bit ;
+            /* HDMI Colorspace YCbCr 4:2:2 is always 12 bit */
+            supported = true ;
             break ;
 
         case NEXUS_ColorSpace_eYCbCr420:
