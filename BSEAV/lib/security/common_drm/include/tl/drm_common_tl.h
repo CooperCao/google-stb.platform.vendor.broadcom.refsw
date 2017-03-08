@@ -197,7 +197,6 @@ DrmRC DRM_Common_TL_M2mOperation(DrmCommonOperationStruct_t *pDrmCommonOpStruct,
     bool bSkipCacheFlush,
     bool bExternalIV );
 
-DrmRC DRM_Common_TL_URR_Toggle(void);
 
 #ifdef __cplusplus
 }

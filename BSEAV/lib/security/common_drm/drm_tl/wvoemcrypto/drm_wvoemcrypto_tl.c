@@ -644,14 +644,6 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
         gWvDmaBlockInfoList[session] = NULL;
     }
 
-    /* Attempt to toggle URR to unsecure buffer if a decryption occurred in session */
-    if (gHostSessionCtx[session].decrypt_called)
-    {
-        DRM_Common_TL_URR_Toggle();
-        /* Reset flag as session is to be closed */
-        gHostSessionCtx[session].decrypt_called = false;
-    }
-
 ErrorExit:
     if(container != NULL)
     {
@@ -2233,8 +2225,6 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
     BDBG_ENTER(drm_WVOemCrypto_DecryptCTR);
     BDBG_MSG(("%s:input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
                 __FUNCTION__, data_length,is_encrypted,subsample_flags, isSecureDecrypt));
-
-    gHostSessionCtx[session].decrypt_called = true;
 
     if(data_addr == NULL)
     {

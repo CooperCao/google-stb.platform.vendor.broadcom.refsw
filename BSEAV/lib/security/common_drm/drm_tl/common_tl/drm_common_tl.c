@@ -85,6 +85,7 @@ static SRAI_PlatformHandle platformHandle = NULL;
 static BSAGElib_State platform_status;
 
 static uint32_t DRM_Common_P_CheckDrmBinFileSize(void);
+static DrmRC DRM_Common_TL_URR_Toggle(void);
 
 BDBG_MODULE(drm_common_tl);
 
@@ -419,7 +420,7 @@ DRM_Common_P_CheckDrmBinFileSize(void)
     return tmp_file_size;
 }
 
-DrmRC DRM_Common_TL_URR_Toggle(void)
+static DrmRC DRM_Common_TL_URR_Toggle(void)
 {
     DrmRC drmRc = Drm_Success;
     DrmPlaybackHandle_t playbackHandle = NULL;
@@ -468,12 +469,12 @@ DrmRC DRM_Common_TL_Finalize(void)
         * release the mutex.  The counter will increment again preventing an infinite loop. */
         BKNI_ReleaseMutex(drmCommonTLMutex);
 
-        BDBG_MSG(("%s - Start URR toggle", __FUNCTION__));
+    BDBG_MSG(("%s - Start URR toggle", __FUNCTION__));
         rc = DRM_Common_TL_URR_Toggle();
         if (rc != Drm_Success) {
             BDBG_ERR(("%s - Error performing URR toggle", __FUNCTION__));
         }
-        BDBG_MSG(("%s - URR toggle completed", __FUNCTION__));
+    BDBG_MSG(("%s - URR toggle completed", __FUNCTION__));
 
         BKNI_AcquireMutex(drmCommonTLMutex);
         BDBG_MSG(("%s - Cleaning up Common DRM TL only parameters ***************************", __FUNCTION__));
