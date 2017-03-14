@@ -17,25 +17,27 @@ include $(CLEAR_VARS)
 V3D_DRIVER_TOP := $(BSEAV_TOP)/lib/gpu/vc5
 LOCAL_PATH := $(V3D_DRIVER_TOP)
 
+include $(V3D_DRIVER_TOP)/driver/common.mk
+
 LOCAL_C_INCLUDES := \
-	$(V3D_DRIVER_TOP)/driver/ \
-	$(V3D_DRIVER_TOP)/driver/interface/khronos/include/ \
-	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/posix/ \
-	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/generic/ \
-	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/include/ \
-	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/ \
-	$(V3D_DRIVER_TOP)/driver/libs/khrn/egl/platform/bcg_abstract/ \
-	$(V3D_DRIVER_TOP)/driver/libs/platform/ \
-	$(V3D_DRIVER_TOP)/driver/libs/platform/bcg_abstract/ \
-	$(V3D_DRIVER_TOP)/driver/libs/khrn/egl/bcg_abstract/egl/ \
-	$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/ \
-	$(V3D_DRIVER_TOP)/driver/libs/khrn/include/ \
-	$(V3D_DRIVER_TOP)/platform/android/ \
-	$(V3D_DRIVER_TOP)/platform/common/ \
-	$(ANDROID_TOP)/system/core/libsync/include/ \
-	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include/ \
+	$(V3D_DRIVER_TOP)/driver \
+	$(V3D_DRIVER_TOP)/driver/interface/khronos/include \
+	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/posix \
+	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/generic \
+	$(V3D_DRIVER_TOP)/driver/libs/core/vcos/include \
+	$(V3D_DRIVER_TOP)/driver/libs/core/vcos \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/egl/platform/bcg_abstract \
+	$(V3D_DRIVER_TOP)/driver/libs/platform \
+	$(V3D_DRIVER_TOP)/driver/libs/platform/bcg_abstract \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/egl/bcg_abstract/egl \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/glsl \
+	$(V3D_DRIVER_TOP)/driver/libs/khrn/include \
+	$(V3D_DRIVER_TOP)/platform/android \
+	$(V3D_DRIVER_TOP)/platform/common \
+	$(ANDROID_TOP)/system/core/libsync/include \
+	$(BSEAV_TOP)/../magnum/portinginterface/vc5/include \
 	$(BSEAV_TOP)/../magnum/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER) \
-	$(BSEAV_TOP)/linux/driver/brcmv3d/include/uapi/drm/
+	$(BSEAV_TOP)/linux/driver/brcmv3d/include/uapi/drm
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
@@ -51,7 +53,7 @@ LOCAL_CFLAGS := \
 	-DEGL_SERVER_SMALLINT \
 	-DEMBEDDED_SETTOP_BOX=1 \
 	-DKHRN_LIBRARY_INIT \
-	-DKHRN_GLES31_DRIVER=1 \
+	-DKHRN_GLES31_DRIVER=$(V3D_VER_AT_LEAST_3_3_0) \
 	-DKHRN_GLES32_DRIVER=0 \
 	-DGLSL_310_SUPPORT=1 \
 	-DV3D_PLATFORM_SIM=0 \
@@ -136,8 +138,6 @@ LOCAL_CFLAGS += \
 	-Wno-override-init \
 	-Wno-sign-compare \
 	-Wno-clobbered
-
-include $(V3D_DRIVER_TOP)/driver/common.mk
 
 LOCAL_SRC_FILES := \
 	$(addprefix driver/, $(COMMON_SRC_FILES)) \

@@ -6,6 +6,8 @@ NEXUS_TOP ?= $(shell cd ../../../../../nexus; pwd)
 MAGNUM_TOP ?= $(shell cd $(NEXUS_TOP)/../magnum; pwd)
 include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
+include common.mk
+
 # default build mode - release
 
 PROFILING?=0
@@ -142,8 +144,6 @@ endif
 OBJDIR ?= obj_$(NEXUS_PLATFORM)_release
 LIBDIR ?= lib_$(NEXUS_PLATFORM)_release
 endif
-
-include common.mk
 
 ifeq ($(BUILD_DYNAMIC),1)
 all: $(LIBDIR)/libv3ddriver.so
