@@ -6,10 +6,10 @@
 #include "glsl_primitive_types.auto.h"
 #include "glsl_tex_params.h"
 #include "glsl_imageunit_swizzling.h"
-#include  "libs/core/gfx_buffer/gfx_buffer_uif_config.h"
-#include  "libs/core/lfmt/lfmt.h"
-#include  "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
-#include  "libs/khrn/glxx/glxx_int_config.h"
+#include "libs/core/gfx_buffer/gfx_buffer_uif_config.h"
+#include "libs/core/lfmt/lfmt.h"
+#include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
+#include "libs/khrn/glxx/glxx_int_config.h"
 
 static GFX_LFMT_T fmt_qualifier_to_fmt(FormatQualifier fmt)
 {
@@ -60,46 +60,37 @@ GLenum glsl_fmt_qualifier_to_gl_enum(FormatQualifier fmt_qual)
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
 
-typedef struct
-{
+typedef struct {
    Dataflow *lx_swizzling;
-   Dataflow *lx_addr;
+   Dataflow *lx_xor_addr;
    Dataflow *lx_pitch;
    Dataflow *lx_slice_pitch;
-}df_img_info;
+} df_img_info;
 
-typedef struct
-{
+typedef struct {
    Dataflow *bytes_per_texel;
    Dataflow *ut_w;
    Dataflow *ut_h;
-}df_base_detail;
+} df_base_detail;
 
-typedef struct
-{
+typedef struct {
    Dataflow *uif_col_w_in_ub;
    Dataflow *uif_ub_size;
    Dataflow *utile_size;
-}df_ub_const;
+} df_ub_const;
 
-static Dataflow* get_y_or_xor_y_in_ub(Dataflow *x_in_uif_col, Dataflow *img_swizzling,
+static Dataflow *get_y_or_xor_y_in_ub(Dataflow *x_in_uif_col, Dataflow *xor_addr,
       Dataflow *y_in_ub)
 {
    //odd_col = (x_in_uif_col) % 2;
-   Dataflow *odd_col = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, x_in_uif_col ,
+   Dataflow *odd_col = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, x_in_uif_col,
          glsl_dataflow_construct_const_uint(1));
    odd_col = glsl_dataflow_convert_type(odd_col, DF_BOOL);
 
-   Dataflow *xor_mode = glsl_dataflow_construct_binary_op(DATAFLOW_EQUAL, img_swizzling,
-                           glsl_dataflow_construct_const_uint(GLSL_IMGUNIT_SWIZZLING_UIF_XOR));
+   Dataflow *y_xor_in_ub = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_XOR, y_in_ub, xor_addr);
 
-   //y_xor_in_ub = y_in_ub ^ GFX_UIF_XOR_ADDR
-   Dataflow *y_xor_in_ub = glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_XOR, y_in_ub,
-         glsl_dataflow_construct_const_uint(GFX_UIF_XOR_ADDR));
-
-   // (xor_mode && odd_col) ? y_xor_in_ub : y_in_ub
-   Dataflow *cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, odd_col, xor_mode);
-   return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond, y_xor_in_ub, y_in_ub);
+   // (odd_col) ? y_xor_in_ub : y_in_ub
+   return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, odd_col, y_xor_in_ub, y_in_ub);
 }
 
 static Dataflow *get_ublinear_ub_offset(const df_base_detail *df_bd,
@@ -135,7 +126,7 @@ static Dataflow *get_uif_ub_offset(const df_base_detail *df_bd,
    //      (y_or_xor_y_in_ub * UIF_COL_W_IN_UB + rem_x_in_ub)  * UIF_UB_SIZE
    Dataflow *d1 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, x_in_uif_col, offset_adj_uif_cols);
    Dataflow *d2 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL,
-                     get_y_or_xor_y_in_ub(x_in_uif_col, img->lx_swizzling, y_in_ub),
+                     get_y_or_xor_y_in_ub(x_in_uif_col, img->lx_xor_addr, y_in_ub),
                      ub_const->uif_col_w_in_ub);
    d2 = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, d2, rem_x_in_ub);
    d2 = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, d2, ub_const->uif_ub_size);
@@ -216,7 +207,7 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
 {
    df_img_info img;
    img.lx_swizzling = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_SWIZZLING);
-   img.lx_addr = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_ADDR);
+   img.lx_xor_addr = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_XOR_ADDR);
    img.lx_pitch = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_PITCH);
    if (z != NULL)
       img.lx_slice_pitch = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_SLICE_PITCH);
@@ -237,15 +228,10 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
    Dataflow *x_in_utiles = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, x, df_bd.ut_w);
    Dataflow *y_in_utiles = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, y, df_bd.ut_h);
 
-   Dataflow *c_uif_ubl =
-      glsl_dataflow_construct_const_uint(GLSL_IMGUNIT_SWIZZLING_UIF | GLSL_IMGUNIT_SWIZZLING_UIF_XOR | GLSL_IMGUNIT_SWIZZLING_UBLINEAR);
-
-   // if (uif | uif_xor | ubl) uif_ubl_offset else lt_ut_offset
-   Dataflow *cond = glsl_dataflow_convert_type(
-         glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, img.lx_swizzling, c_uif_ubl),
-         DF_BOOL);
+   // if (uif || uif_xor || ubl) uif_ubl_offset else lt_ut_offset
    Dataflow *uif_ubl_offset = get_uif_ubl_offset(&df_bd, &img, &ub_const, x, y, z, x_in_utiles, y_in_utiles);
    Dataflow *lt_ut_offset = get_lt_ut_offset(&df_bd, &img, &ub_const, x_in_utiles, y_in_utiles);
+   Dataflow *cond = glsl_dataflow_construct_binary_op(DATAFLOW_LESS_THAN, img.lx_swizzling, glsl_dataflow_construct_const_uint(GLSL_IMGUNIT_SWIZZLING_LT));
    Dataflow *offset = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond, uif_ubl_offset, lt_ut_offset);
 
    //offset += offset_inside_utile
@@ -263,7 +249,9 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
       offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset,
             glsl_dataflow_construct_binary_op(DATAFLOW_MUL, elem_no, arr_stride));
    }
-   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, img.lx_addr, offset);
+
+   Dataflow *addr = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_ADDR);
+   return glsl_dataflow_construct_binary_op(DATAFLOW_ADD, addr, offset);
 }
 #endif
 
@@ -596,13 +584,10 @@ void glsl_calculate_dataflow_image_size(BasicBlock *ctx, Dataflow **scalar_value
    Dataflow *sampler;
    glsl_expr_calculate_dataflow(ctx, &sampler, expr_sampler);
 
+   const static ImageInfoParam p[] = { IMAGE_INFO_LX_WIDTH, IMAGE_INFO_LX_HEIGHT, IMAGE_INFO_LX_DEPTH };
    assert(expr->type->scalar_count >= 1);
-   scalar_values[0] = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_WIDTH);
-   if (expr->type->scalar_count > 1)
-      scalar_values[1] = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_HEIGHT);
-   if (expr->type->scalar_count > 2)
-      scalar_values[2] = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_DEPTH);
-   // uint -> int
-   for (unsigned i = 0; i < expr->type->scalar_count; ++i)
+   for (unsigned i=0; i<expr->type->scalar_count; i++) {
+      scalar_values[i] = glsl_dataflow_construct_image_info_param(sampler, p[i]);
       scalar_values[i] = glsl_dataflow_construct_reinterp(scalar_values[i], DF_INT);
+   }
 }

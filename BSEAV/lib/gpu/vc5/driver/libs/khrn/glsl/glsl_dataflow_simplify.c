@@ -3,6 +3,7 @@
  ******************************************************************************/
 #include "glsl_const_operators.h"
 #include "glsl_dataflow_simplify.h"
+#include "libs/util/gfx_util/gfx_util.h"
 
 //#define NAN_CORRECT_OPTIMISATION
 //#define DISABLE_CONSTANT_FOLDING
@@ -1018,6 +1019,30 @@ static Dataflow *simplify_ternary_op (DataflowFlavour flavour, Dataflow *cond, D
                                                                                    false_value->d.cond_op.cond,
                                                                                    add_val,
                                                                                    false_value->d.cond_op.false_value));
+   }
+
+   if (false_value->flavour == DATAFLOW_CONDITIONAL) {
+      Dataflow *false_cond = false_value->d.cond_op.cond;
+      if (cond->flavour == DATAFLOW_EQUAL && false_cond->flavour == DATAFLOW_EQUAL) {
+         Dataflow *cond_left = cond->d.binary_op.left;
+         Dataflow *false_cond_left = false_cond->d.binary_op.left;
+         if (cond_left->flavour == DATAFLOW_UNIFORM && false_cond_left->flavour == DATAFLOW_UNIFORM && !memcmp(&cond_left->u.buffer, &false_cond_left->u.buffer, sizeof(cond_left->u.buffer)))
+         {
+            if (cond->d.binary_op.right->flavour == DATAFLOW_CONST && false_cond->d.binary_op.right->flavour == DATAFLOW_CONST &&
+                cond->d.binary_op.right->u.constant.value != false_cond->d.binary_op.right->u.constant.value)
+            {
+               Dataflow *false_false = false_value->d.cond_op.false_value;
+               Dataflow *false_true  = false_value->d.cond_op.true_value;
+               if (true_value->age < false_false->age && true_value->age < false_true->age) {
+                  Dataflow *inner = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond, true_value, false_false);
+                  inner->age = gfx_umax3(cond->age, true_value->age, false_true->age);
+                  Dataflow *ret = glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, false_cond, false_true, inner);
+                  ret->age = gfx_umax3(false_cond->age, inner->age, false_false->age);
+                  return ret;
+               }
+            }
+         }
+      }
    }
 
    return NULL;

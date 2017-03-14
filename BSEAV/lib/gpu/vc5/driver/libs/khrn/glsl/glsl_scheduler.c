@@ -8,6 +8,7 @@
 #include "glsl_backflow_visitor.h"
 #include "glsl_backend.h"
 #include "glsl_backend_uniforms.h"
+#include "glsl_map.h"
 
 #include "glsl_sched_node_helpers.h"
 
@@ -149,6 +150,14 @@ void order_texture_lookups(SchedBlock *block) {
 
    if (block->tmu_lookups == NULL) return;
 
+   Map *addr_nodes = glsl_map_new();
+   for (struct tmu_lookup_s *n = block->tmu_lookups; n; n=n->next) {
+      if (n->last_write->magic_write == REG_MAGIC_TMUA || n->last_write->magic_write == REG_MAGIC_TMUAU) {
+         Backflow *addr_node = find_addr_node(n->last_write);
+         if (addr_node) glsl_map_put(addr_nodes, n->last_write, addr_node);
+      }
+   }
+
    while (block->tmu_lookups != NULL) {
       struct tmu_lookup_s *prev = NULL;
 
@@ -158,10 +167,7 @@ void order_texture_lookups(SchedBlock *block) {
       for (struct tmu_lookup_s *cur = block->tmu_lookups; cur; prev=cur, cur=cur->next) {
          assert(!cur->done);   /* Done ones are no longer in the list */
 
-         const Backflow *addr_node = NULL;
-         if (cur->last_write->magic_write == REG_MAGIC_TMUA ||
-             cur->last_write->magic_write == REG_MAGIC_TMUAU  )
-            addr_node = find_addr_node(cur->last_write);
+         const Backflow *addr_node = glsl_map_get(addr_nodes, cur->last_write);
 
          /* Take this lookup next if it is ready to be scheduled, and if we don't
           * have any earlier lookup yet. If it's a write then try to move it earlier */
@@ -191,6 +197,8 @@ void order_texture_lookups(SchedBlock *block) {
       last_sorted = last_sorted->next;
    }
    block->tmu_lookups = head.next;
+
+   glsl_map_delete(addr_nodes);
 }
 
 static void start_new_section(struct thread_section *sec, Backflow *pre_write, Backflow *pre_read) {

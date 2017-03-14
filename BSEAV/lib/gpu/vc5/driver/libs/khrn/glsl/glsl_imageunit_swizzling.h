@@ -4,11 +4,17 @@
 #pragma once
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
-typedef uint32_t glsl_imgunit_swizzling;
-#define GLSL_IMGUNIT_SWIZZLING_NONE 0
-#define GLSL_IMGUNIT_SWIZZLING_LT        1 << 0
-#define GLSL_IMGUNIT_SWIZZLING_UBLINEAR  1 << 1
-#define GLSL_IMGUNIT_SWIZZLING_UIF       1 << 2
-#define GLSL_IMGUNIT_SWIZZLING_UIF_XOR   1 << 3
-#define GLSL_IMGUNIT_SWIZZLING_RSO       1 << 4
+
+/* The ordering in this enum is important to the compiler code. It is assumed
+ * that UIF || UBLinear is equivalent to < LT. Keeping ublinear == 0 also allows
+ * slightly better QPU code generation */
+
+typedef enum {
+   GLSL_IMGUNIT_SWIZZLING_UBLINEAR  = 0,
+   GLSL_IMGUNIT_SWIZZLING_UIF       = 1,
+   GLSL_IMGUNIT_SWIZZLING_UIF_XOR   = 2,
+   GLSL_IMGUNIT_SWIZZLING_LT        = 3,
+   GLSL_IMGUNIT_SWIZZLING_RSO       = 4
+} glsl_imgunit_swizzling;
+
 #endif

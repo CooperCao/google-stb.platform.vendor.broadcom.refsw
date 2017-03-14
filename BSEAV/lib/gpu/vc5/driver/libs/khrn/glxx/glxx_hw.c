@@ -31,6 +31,7 @@
 #include "libs/core/v3d/v3d_vpm.h"
 #include "libs/core/v3d/v3d_clear_shader.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/core/gfx_buffer/gfx_buffer_uif_config.h"
 #include "libs/util/gfx_util/gfx_util_conv.h"
 
 LOG_DEFAULT_CAT("glxx_hw")
@@ -2115,6 +2116,9 @@ v3d_addr_t glxx_hw_install_uniforms(
 #if !V3D_VER_AT_LEAST(4,0,2,0)
       case BACKEND_UNIFORM_IMAGE_SWIZZLING:
          *ptr = (uint32_t)state->image_unif[u_value].lx_swizzling;
+         break;
+      case BACKEND_UNIFORM_IMAGE_XOR_ADDR:
+         *ptr = state->image_unif[u_value].lx_swizzling == GLSL_IMGUNIT_SWIZZLING_UIF_XOR ? GFX_UIF_XOR_ADDR : 0;
          break;
       case BACKEND_UNIFORM_IMAGE_LX_ADDR:
          *ptr = state->image_unif[u_value].lx_addr;
