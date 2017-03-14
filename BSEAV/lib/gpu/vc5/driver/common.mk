@@ -1,3 +1,9 @@
+BCHP_V3D_HUB_CTL_H = $(MAGNUM_TOP)/basemodules/chp/include/$(BCHP_CHIP)/rdb/$(BCHP_VER_LOWER)/bchp_v3d_hub_ctl.h
+V3D_TECH_VERSION = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT1_TVER_DEFAULT | awk '{printf "%d", strtonum($$3)}')
+V3D_REVISION = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT1_REV_DEFAULT | awk '{printf "%d", strtonum($$3)}')
+V3D_SUB_REV = $(shell cat $(BCHP_V3D_HUB_CTL_H) | grep BCHP_V3D_HUB_CTL_IDENT3_IPREV_DEFAULT | awk '{printf "%d", strtonum($$3)}')
+V3D_VER_AT_LEAST_3_3_0 := $(shell expr `printf "%d%2.2d%2.2d\n" $(V3D_TECH_VERSION) $(V3D_REVISION) $(V3D_SUB_REV)` \>= 30300)
+
 COMMON_SRC_FILES := \
 	libs/khrn/common/khrn_int_hash.c \
 	libs/khrn/common/khrn_options.c \
