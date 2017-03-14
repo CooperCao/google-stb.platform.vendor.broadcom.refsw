@@ -1,14 +1,6 @@
-/*=============================================================================
-Broadcom Proprietary and Confidential. (c)2008 Broadcom.
-All rights reserved.
-
-Project  :  khronos
-Module   :  Header file
-
-FILE DESCRIPTION
-Implementation of OpenGL ES 2.0 shader structure.
-=============================================================================*/
-
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ ******************************************************************************/
 #include "../common/khrn_int_common.h"
 
 #include "gl20_shader.h"
@@ -139,7 +131,7 @@ void gl20_shader_compile(GL20_SHADER_T *shader)
    source.sourcev = (const char *const*)shader->source;
    source.name = shader->name;
 
-   shader->binary = glsl_compile_shader(get_shader_flavour(shader->type), &source);
+   shader->binary = glsl_compile_shader(get_shader_flavour(shader->type), &source, (khrn_get_num_cores() > 1));
 
    free(shader->info_log);
    if (shader->binary != NULL)

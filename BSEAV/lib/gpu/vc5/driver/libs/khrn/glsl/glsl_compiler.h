@@ -20,7 +20,7 @@ typedef struct _SSAShader         SSAShader;
 
 EXTERN_C_BEGIN
 
-CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *source);
+CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *source, bool multicore);
 
 CompiledShader *glsl_compiled_shader_create(ShaderFlavour f, int version);
 void glsl_compiled_shader_free(CompiledShader *sh);

@@ -1056,7 +1056,7 @@ static void initialise_interface_symbols(BasicBlock *entry_block, Map *initial_v
    }
 }
 
-static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size[3], Symbol *shared_block)
+static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size[3], Symbol *shared_block, bool multicore)
 {
    Symbol *s_l_idx = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UINT__GL_LOCALINVOCATIONINDEX);
    Symbol *s_l_id = glsl_stdlib_get_variable(GLSL_STDLIB_VAR__IN__UVEC3__GL_LOCALINVOCATIONID);
@@ -1106,19 +1106,20 @@ static void generate_compute_variables(BasicBlock *entry_block, unsigned wg_size
       uint32_t max_groups_per_row = (V3D_MAX_TLB_WIDTH_PX * 2u) / wg_num_items_p2;
       max_groups_per_row = gfx_umin(max_groups_per_row, max_concurrent_groups / 2u);
 
-      // timh-todo: don't do this for single core!
-      Dataflow *core_offset = glsl_dataflow_construct_nullary_op(DATAFLOW_GET_THREAD_INDEX);
-      core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, core_offset, glsl_dataflow_construct_const_uint(6));
-      core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, core_offset, glsl_dataflow_construct_const_uint(l2_size/2));
-
       // shared_block_start = (ycd/2 * max_groups_per_row + sg_idx) * shared_block_size
       Dataflow *ycd = glsl_dataflow_construct_nullary_op(DATAFLOW_FRAG_GET_Y_UINT);
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_DIV, ycd, glsl_dataflow_construct_const_uint(2u));
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, shared_block_start, glsl_dataflow_construct_const_uint(max_groups_per_row));
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, sg_idx);
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, shared_block_start, glsl_dataflow_construct_const_uint(shared_block_size));
-      shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, core_offset);
       shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, glsl_dataflow_construct_nullary_op(DATAFLOW_SHARED_PTR));
+
+      if (multicore) {
+         Dataflow *core_offset = glsl_dataflow_construct_nullary_op(DATAFLOW_GET_THREAD_INDEX);
+         core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, core_offset, glsl_dataflow_construct_const_uint(6));
+         core_offset = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, core_offset, glsl_dataflow_construct_const_uint(l2_size/2));
+         shared_block_start = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, shared_block_start, core_offset);
+      }
    }
    glsl_basic_block_set_scalar_values(entry_block, shared_block, &shared_block_start);
 }
@@ -1421,7 +1422,7 @@ static bool list_contains_loops_or_barriers(BasicBlockList *l) {
 #ifdef ANDROID
 __attribute__((optimize("-O0")))
 #endif
-CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *src)
+CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOURCE_T *src, bool multicore)
 {
    CompiledShader *ret = NULL;
 
@@ -1516,7 +1517,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
    initialise_interface_symbols(entry_block, initial_values);
    glsl_map_delete(initial_values);
    if (flavour == SHADER_COMPUTE)
-      generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block);
+      generate_compute_variables(entry_block, iface_data.compute.wg_size, shared_block, multicore);
 
    Map *offsets = glsl_map_new();
    for (BasicBlockList *n = l ; n != NULL; n=n->next) {

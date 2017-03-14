@@ -262,11 +262,39 @@ static void print_node(FILE *f, Backflow *backflow)
 
    switch (backflow->unif_type) {
       case BACKEND_UNIFORM_UNASSIGNED: break;
-      case BACKEND_UNIFORM_PLAIN:      fprintf(f, "\\nu%d", backflow->unif);   break;
-      case BACKEND_UNIFORM_LITERAL:    fprintf(f, "\\n0x%x", backflow->unif);  break;
-      case BACKEND_UNIFORM_ADDRESS:    fprintf(f, "\\na[%d]", backflow->unif); break;
-      case BACKEND_UNIFORM_SPECIAL:    fprintf(f, "\\ns %d", backflow->unif);  break;
-      default: fprintf(f, "\\nu???");
+      case BACKEND_UNIFORM_PLAIN:          fprintf(f, "\\nu%d", backflow->unif);   break;
+      case BACKEND_UNIFORM_LITERAL:        fprintf(f, "\\n0x%x", backflow->unif);  break;
+      case BACKEND_UNIFORM_ADDRESS:        fprintf(f, "\\na[%d]", 4*(backflow->unif & 0xffff) + (backflow->unif >> 16));      break;
+      case BACKEND_UNIFORM_UBO_ADDRESS:    fprintf(f, "\\nubo: %d, o: %d", backflow->unif & 0x1f, backflow->unif >> 5);       break;
+      case BACKEND_UNIFORM_SSBO_ADDRESS:   fprintf(f, "\\nssbo: %d, o: %d", backflow->unif & 0x1f, backflow->unif >> 5);      break;
+      case BACKEND_UNIFORM_ATOMIC_ADDRESS: fprintf(f, "\\natomic: %d, o: %d", backflow->unif >> 16, backflow->unif & 0xffff); break;
+      case BACKEND_UNIFORM_SSBO_SIZE:      fprintf(f, "\\nssbo size: %d",  backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_PARAM0:     fprintf(f, "\\ntex_parm 0: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_PARAM1:     fprintf(f, "\\ntex_parm 1: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_SIZE_X:     fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_SIZE_Y:     fprintf(f, "\\ntex_size y: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_TEX_SIZE_Z:     fprintf(f, "\\ntex_size z: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_IMAGE_PARAM0:   fprintf(f, "\\nimg_parm 0: %d", backflow->unif); break;
+      case BACKEND_UNIFORM_IMAGE_PARAM1:   fprintf(f, "\\nimg_parm 1: %d", backflow->unif); break;
+#if !V3D_VER_AT_LEAST(4,0,2,0)
+      case BACKEND_UNIFORM_TEX_BASE_LEVEL:
+      case BACKEND_UNIFORM_TEX_BASE_LEVEL_FLOAT:
+      case BACKEND_UNIFORM_IMAGE_ARR_STRIDE:
+      case BACKEND_UNIFORM_IMAGE_SWIZZLING:
+      case BACKEND_UNIFORM_IMAGE_XOR_ADDR:
+      case BACKEND_UNIFORM_IMAGE_LX_ADDR:
+      case BACKEND_UNIFORM_IMAGE_LX_PITCH:
+      case BACKEND_UNIFORM_IMAGE_LX_SLICE_PITCH:
+#endif
+      case BACKEND_UNIFORM_TEXBUFFER_LOG2_ARR_ELEM_W:
+      case BACKEND_UNIFORM_TEXBUFFER_ARR_ELEM_W_MINUS_1:
+
+      case BACKEND_UNIFORM_IMAGE_LX_WIDTH:
+      case BACKEND_UNIFORM_IMAGE_LX_HEIGHT:
+      case BACKEND_UNIFORM_IMAGE_LX_DEPTH:   fprintf(f, "\\nu??? %d", backflow->unif_type); break;
+      case BACKEND_UNIFORM_SPECIAL:          fprintf(f, "\\ns %d", backflow->unif);  break;
+
+      default: unreachable();
    }
 
    // Close label string.

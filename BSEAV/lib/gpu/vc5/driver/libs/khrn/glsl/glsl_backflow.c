@@ -1920,6 +1920,9 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             case IMAGE_INFO_SWIZZLING:
                r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_SWIZZLING, sampler_index);
                break;
+            case IMAGE_INFO_XOR_ADDR:
+               r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_XOR_ADDR, sampler_index);
+               break;
             case IMAGE_INFO_LX_ADDR:
                r->node[0] = tr_typed_uniform(BACKEND_UNIFORM_IMAGE_LX_ADDR, sampler_index);
                break;

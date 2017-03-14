@@ -89,6 +89,7 @@ static Dataflow *dataflow_cse_accept(Map *ctx, Dataflow *df)
       case DATAFLOW_UNIFORM:
       case DATAFLOW_STORAGE_BUFFER:
       case DATAFLOW_BUF_SIZE:
+      case DATAFLOW_IMAGE_INFO_PARAM:
          return df;
       default:
          break;

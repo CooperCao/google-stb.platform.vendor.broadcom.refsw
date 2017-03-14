@@ -187,7 +187,8 @@ static RegList *reg_list_prepend(RegList *p, Backflow *node, uint32_t reg) {
 }
 
 struct active_finding {
-   bool **output_active;
+   bool **output_translate;
+   bool **output_reg;
    bool *next_blocks;
 };
 
@@ -195,33 +196,36 @@ static void dfpv_outputs_active(Dataflow *d, void *data) {
    if (d->flavour != DATAFLOW_EXTERNAL) return;
 
    struct active_finding *c = data;
-   if (!c->output_active[d->u.external.block][d->u.external.output]) {
-      c->output_active[d->u.external.block][d->u.external.output] = true;
+   if (!c->output_translate[d->u.external.block][d->u.external.output]) {
+      c->output_translate[d->u.external.block][d->u.external.output] = true;
+      c->output_reg[d->u.external.block][d->u.external.output] = true;
       c->next_blocks[d->u.external.block] = true;
    }
 }
 
-static void block_transfer_output_active(CFGBlock *b, bool **output_active, const IRShader *sh) {
+static void block_transfer_output_active(CFGBlock *b, bool **output_translate, bool **output_reg, const IRShader *sh) {
    bool *next_blocks = glsl_safemem_calloc(sh->num_cfg_blocks, sizeof(bool));
 
    int block_id = b - sh->blocks;
-   if (b->successor_condition != -1) output_active[block_id][b->successor_condition] = true;
+   if (b->successor_condition != -1) {
+      output_translate[block_id][b->successor_condition] = true;
+      output_reg[block_id][b->successor_condition] = true;
+   }
 
    bool *temp = glsl_safemem_malloc(b->num_dataflow * sizeof(bool));
    DataflowRelocVisitor dfv;
    glsl_dataflow_reloc_visitor_begin(&dfv, b->dataflow, b->num_dataflow, temp);
-   struct active_finding data;
-   data.output_active = output_active;
-   data.next_blocks = next_blocks;
+   struct active_finding data = { .output_translate = output_translate, .output_reg = output_reg, .next_blocks = next_blocks };
+
    for (int i=0; i<b->num_outputs; i++) {
-      if (output_active[block_id][i])
+      if (output_translate[block_id][i])
          glsl_dataflow_reloc_post_visitor(&dfv, b->outputs[i], &data, dfpv_outputs_active);
    }
    glsl_dataflow_reloc_visitor_end(&dfv);
 
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       if (next_blocks[i])
-         block_transfer_output_active(&sh->blocks[i], output_active, sh);
+         block_transfer_output_active(&sh->blocks[i], output_translate, output_reg, sh);
    }
 
    glsl_safemem_free(temp);
@@ -229,17 +233,19 @@ static void block_transfer_output_active(CFGBlock *b, bool **output_active, cons
    glsl_safemem_free(next_blocks);
 }
 
-static void get_outputs_active(const IRShader *sh, bool **output_active, bool *shader_outputs_used) {
+static void get_outputs_active(const IRShader *sh, bool **output_translate, bool **output_reg, bool *shader_outputs_used) {
    for (int i=0; i<sh->num_outputs; i++) {
-      if (sh->outputs[i].block != -1 && shader_outputs_used[i])
-         output_active[sh->outputs[i].block][sh->outputs[i].output] = true;
+      if (sh->outputs[i].block != -1 && shader_outputs_used[i]) {
+         output_translate[sh->outputs[i].block][sh->outputs[i].output] = true;
+         output_reg[sh->outputs[i].block][sh->outputs[i].output] = true;
+      }
    }
    for (int i=0; i<sh->num_cfg_blocks; i++) {
       for (int j=0; j<sh->blocks[i].num_outputs; j++) {
          int out_idx = sh->blocks[i].outputs[j];
-         if (glsl_dataflow_affects_memory(sh->blocks[i].dataflow[out_idx].flavour)) output_active[i][j] = true;
+         if (glsl_dataflow_affects_memory(sh->blocks[i].dataflow[out_idx].flavour)) output_translate[i][j] = true;
       }
-      block_transfer_output_active(&sh->blocks[i], output_active, sh);
+      block_transfer_output_active(&sh->blocks[i], output_translate, output_reg, sh);
    }
 }
 
@@ -448,12 +454,14 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
       default: unreachable();
    }
 
-   bool **output_active = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
+   bool **output_translate = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
+   bool **output_reg       = glsl_safemem_malloc(sh->num_cfg_blocks * sizeof(bool *));
    for (int i=0; i<sh->num_cfg_blocks; i++) {
-      output_active[i] = glsl_safemem_calloc(sh->blocks[i].num_outputs, sizeof(bool));
+      output_translate[i] = glsl_safemem_calloc(sh->blocks[i].num_outputs, sizeof(bool));
+      output_reg[i]       = glsl_safemem_calloc(sh->blocks[i].num_outputs, sizeof(bool));
    }
 
-   get_outputs_active(sh, output_active, shader_outputs_used);
+   get_outputs_active(sh, output_translate, output_reg, shader_outputs_used);
 
    SchedShaderInputs ins;
    switch (flavour) {
@@ -465,7 +473,7 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
          /* TODO: We assume that all attributes are loaded in the first block.
           * This should be true, for now. */
          ATTRIBS_USED_T *attr = &binary->u.vertex.attribs;
-         if (!get_attrib_info(&sh->blocks[0], attr, l, output_active[0]))
+         if (!get_attrib_info(&sh->blocks[0], attr, l, output_translate[0]))
             goto failed;
 
          binary->u.vertex.input_words = vertex_shader_inputs(&ins, attr);
@@ -495,12 +503,19 @@ BINARY_SHADER_T *glsl_binary_shader_from_dataflow(ShaderFlavour            flavo
 
    SchedBlock **tblocks = malloc_fast(sh->num_cfg_blocks * sizeof(SchedBlock *));
    for (int i=0; i<sh->num_cfg_blocks; i++) {
-      tblocks[i] = translate_block(&sh->blocks[i], l, output_active[i], (i==0) ? &ins : NULL, key);
+      tblocks[i] = translate_block(&sh->blocks[i], l, output_translate[i], (i==0) ? &ins : NULL, key);
+
+      for (int j=0; j<sh->blocks[i].num_outputs; j++)
+         if (!output_reg[i][j]) tblocks[i]->outputs[j] = NULL;
    }
 
    glsl_safemem_free(shader_outputs_used);
-   for (int i=0; i<sh->num_cfg_blocks; i++) glsl_safemem_free(output_active[i]);
-   glsl_safemem_free(output_active);
+   for (int i=0; i<sh->num_cfg_blocks; i++) {
+      glsl_safemem_free(output_translate[i]);
+      glsl_safemem_free(output_reg[i]);
+   }
+   glsl_safemem_free(output_translate);
+   glsl_safemem_free(output_reg);
 
 #if !V3D_VER_AT_LEAST(4,0,2,0)
    if (flavour == SHADER_VERTEX) tblocks[0]->last_vpm_read = ins.read_dep;
