@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -261,6 +261,13 @@ typedef struct BVDC_P_GfxFeederContext
 
     /* current matrix to convert SDR gfx to HDR in pre-7271 chips */
     BVDC_P_Csc3x4                    stCscSdr2Hdr;
+
+    /* color space conversion */
+#if BVDC_P_CMP_CFC_VER >= 3
+    /* CFC LUT heap */
+    BMMA_Heap_Handle                 hCfcHeap; /* must be cpu accessible for LUT fill */
+    BVDC_P_CfcLutLoadListInfo        stCfcLutList; /* for CFC ram table loading */
+#endif
     BVDC_P_CfcContext                stCfc;
 
     bool                             bSupportVertScl;
@@ -317,7 +324,8 @@ BERR_Code BVDC_P_GfxFeeder_Destroy
  * until the GFD is really going to be used.
  */
 void BVDC_P_GfxFeeder_Init(
-    BVDC_P_GfxFeeder_Handle          hGfxFeeder );
+    BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+    const BVDC_Source_Settings      *pSettings );
 
 /*************************************************************************
  * {private}

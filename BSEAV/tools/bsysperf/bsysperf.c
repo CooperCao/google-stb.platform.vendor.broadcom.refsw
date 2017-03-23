@@ -70,6 +70,7 @@
 #define MAXHOSTNAME       80
 #define CONTENT_TYPE_HTML "Content-type: text/html\n\n"
 #define MYUUID_LEN 16
+#define RECORD_BUTTON_HEIGHT 10
 
 char         *g_client_name[BMEMPERF_MAX_NUM_CLIENT];
 int           g_MegaBytes           = 0;                   /* set to 1 when user wants data displayed in megabytes instead of megabits (default) */
@@ -182,7 +183,7 @@ static int scan_for_tag(
  *            we use the 'ethtool' utility to get statistics for the "asp" interface.
  **/
 static int get_ethtool_data(
-    unsigned int netStatsIdx;
+    int netStatsIdx
     )
 {
     char *rc  = NULL;
@@ -191,6 +192,8 @@ static int get_ethtool_data(
     char  line[MAX_LINE_LENGTH];
     unsigned int line_count = 0;
     unsigned long long llu_bytes = 0;
+
+    if ( netStatsIdx < 0 || netStatsIdx > NET_STATS_MAX ) return 0;
 
 /* These counters are from the embedded network switch's perspective and thus are reversed.
  * In other words, when ASP is streaming out, you will see the Rx Count on ASP device go up
@@ -206,7 +209,7 @@ static int get_ethtool_data(
      *      RxOctets: 14259285
      *      RxOctets: 432809372
      */
-    sprintf( line, "%s -S %s | grep -E \"%s|%s\"", ETHTOOL_UTILITY, g_netStats[g_netStatsIdx].name, ASP_RX_SEARCH_TAG, ASP_TX_SEARCH_TAG );
+    sprintf( line, "%s -S %s | grep -E \"%s|%s\"", ETHTOOL_UTILITY, g_netStats[netStatsIdx].name, ASP_RX_SEARCH_TAG, ASP_TX_SEARCH_TAG );
     cmd = popen( line, "r" );
 
     /* we are only expecting to read 2 lines ... one for RX and one for TX */
@@ -244,8 +247,8 @@ static int get_ethtool_data(
                 llu_bytes *= 8; /* convert from octets to bytes */
 #endif
 
-                g_netStats[g_netStatsIdx].txBytes = llu_bytes;
-                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_TX_SEARCH_TAG, g_netStats[g_netStatsIdx].name, llu_bytes );
+                g_netStats[netStatsIdx].txBytes = llu_bytes;
+                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_TX_SEARCH_TAG, g_netStats[netStatsIdx].name, llu_bytes );
             }
 
             sprintf( search_string, "%s: ", ASP_RX_SEARCH_TAG );
@@ -261,8 +264,8 @@ static int get_ethtool_data(
                 llu_bytes *= 8; /* convert from octets to bytes */
 #endif
 
-                g_netStats[g_netStatsIdx].rxBytes = llu_bytes;
-                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_RX_SEARCH_TAG, g_netStats[g_netStatsIdx].name, llu_bytes );
+                g_netStats[netStatsIdx].rxBytes = llu_bytes;
+                PRINTF( "~%s: for (%s): %s now set to (%llu)~", __FUNCTION__, ASP_RX_SEARCH_TAG, g_netStats[netStatsIdx].name, llu_bytes );
             }
         }
         else
@@ -582,14 +585,24 @@ static int get_netstat_data(
     char *pos = NULL;
     FILE *cmd = NULL;
     char  line[MAX_LINE_LENGTH];
+#if DEBUG_WLANZERO
+    struct timeval tv;
+    bool   bFoundWlan0 = false;
+#endif /* DEBUG_WLANZERO */
 
     if (pNetStats == NULL)
     {
         return( -1 );
     }
 
+#if DEBUG_WLANZERO
+    gettimeofday( &tv, NULL );
+    printflog( "time now ... %d.%06d =====================\n", tv.tv_sec, tv.tv_usec );
+#endif /* DEBUG_WLANZERO */
+
     /* clear out the array */
     memset( pNetStats, 0, sizeof( *pNetStats ));
+    g_netStatsIdx = -1;
 
     sprintf( line, "%s", IFCONFIG_UTILITY );
     cmd = popen( line, "r" );
@@ -597,14 +610,16 @@ static int get_netstat_data(
     do {
         memset( line, 0, sizeof( line ));
         fgets( line, MAX_LINE_LENGTH, cmd );
-        PRINTF( "%s: got len %u: line (%s)<br>\n", __FUNCTION__, strlen( line ), line );
         if (strlen( line ))
         {
+#if DEBUG_WLANZERO
+            if ( bFoundWlan0 ) printflog( "%s", line );
+#endif /* DEBUG_WLANZERO */
             /* if something is in column 1, it must be a name of another interface */
             if (( 'a' <= line[0] ) && ( line[0] <= 'z' ))
             {
                 /* if there is room for another interface */
-                if (g_netStatsIdx < NET_STATS_MAX)
+                if (g_netStatsIdx < (NET_STATS_MAX-1) )
                 {
                     g_netStatsIdx++;
 
@@ -614,7 +629,14 @@ static int get_netstat_data(
                     {
                         *pos = '\0';                       /* null-terminate the i/f name */
                         strncpy( pNetStats[g_netStatsIdx].name, line, sizeof( pNetStats[g_netStatsIdx].name ) - 1 );
-                        PRINTF( "g_netStats[%u].name is (%s)<br>\n", g_netStatsIdx, pNetStats[g_netStatsIdx].name );
+#if DEBUG_WLANZERO
+                        if ( strcmp( pNetStats[g_netStatsIdx].name, "wlan0") == 0 ) {
+                            *pos = ' ';
+                            printflog( "%s", line );
+                            *pos = '\0';
+                            bFoundWlan0 = true;
+                        }
+#endif /* DEBUG_WLANZERO */
                     }
                 }
                 else
@@ -624,7 +646,7 @@ static int get_netstat_data(
             }
 
             /* if we are working on an interface that was successfully saved in the global structure (i.e. we haven't run out of space) */
-            if (g_netStatsIdx >= 0)
+            if ( (g_netStatsIdx >= 0) && (g_netStatsIdx < NET_STATS_MAX) )
             {
                 int rc = 0;
 
@@ -849,7 +871,7 @@ static int Bsysperf_ReadIperfClientRate( const char *myUuid )
     fd = open( filename, O_RDONLY );
     if ( fd <= 0 )
     {
-        printf("~DEBUG~%s: could not open file (%s) ~", __FUNCTION__, filename );
+        /*printf("~DEBUG~%s: could not open file (%s) ~", __FUNCTION__, filename );*/
         return ( -1 );
     }
 
@@ -965,6 +987,7 @@ int main(
     int   iperfRunningClient= 0;
     int   iperfRunningServer= 0;
     int   wifiInit         = 0; /* set to true when checkbox is checked; get versions and ids that do not change */
+    int   wlanZero         = 0;
     int   wifiStats        = 0;
     int   wifiScanStart    = 0;
     int   wifiAmpduStart   = 0;
@@ -1029,6 +1052,7 @@ int main(
         scanForInt( queryString, "iperfRunningServer=", &iperfRunningServer);
         scanForStr( queryString, "iperfCmdLine=", sizeof( iperfCmdLine ), iperfCmdLine );
         scanForInt( queryString, "wifiinit=", &wifiInit);
+        scanForInt( queryString, "wlanZero=", &wlanZero );
         scanForInt( queryString, "wifiStats=", &wifiStats );
         scanForInt( queryString, "wifiscanstart=", &wifiScanStart );
         scanForInt( queryString, "wifiscanresults=", &wifiScanResults );
@@ -1064,6 +1088,11 @@ int main(
 
     printf( CONTENT_TYPE_HTML );
 
+#if DEBUG_WLANZERO
+    if ( wlanZero ) {
+        printflog( "==================== previous wlanZero ====================\n" );
+    }
+#endif /* DEBUG_WLANZERO */
     /*printf( "~DEBUG~QUERY_STRING len %u; (%s)~", (unsigned int) strlen( queryString ), queryString );*/
 
     /* if the checkbox for Memory is checked, determine if kernel has been compiled with perf tools */
@@ -1130,10 +1159,10 @@ int main(
             for (leftright = 0; leftright < leftrightmax; leftright++) {
                 printf( "    <th id=%scol%02ua  align=center valign=bottom >\n", ( leftright == 0 ) ? "left" : "right", cpupair + 1 );
                 printf( "      <table cols=3 border=0 style=\"border-collapse:collapse;\" ><tr>\n" );
-                printf( "          <th id=cpuoverall align=left  width=230 style=\"color:red;\" >&nbsp;</th>\n" );
-                printf( "          <th align=center width=208 ><span id=cputitle%02u >CPU %u</span></th>",
+                printf( "          <th id=cpuoverall align=left  width=220 style=\"color:red;\" >&nbsp;</th>\n" );
+                printf( "          <th align=center width=228 ><span id=cputitle%02u >CPU %u</span></th>",
                     cpupair + leftright, cpupair + leftright );
-                printf( "          <th width=50 align=center id=ChangeCpuTag%u title=\"Click to disable/enable CPU %u\" >",
+                printf( "          <th width=40 align=center id=ChangeCpuTag%u title=\"Click to disable/enable CPU %u\" >",
                     cpupair + leftright, cpupair + leftright );
                 printf( "&nbsp;" );
                 /*
@@ -1460,7 +1489,7 @@ int main(
             /* if the cpu is not inactive */
             if (response.response.cpuIrqData.cpuData.idlePercentage[cpu] != 255)
             {
-                printf( "<td width=130 >CPU %u (delta)</td>", cpu );
+                printf( "<td id=irqs_cpu%u width=130 >CPU %u (delta)</td>", cpu, cpu );
             }
         }
         printf( "<td>IRQ Description</td></tr>\n" );
@@ -1481,7 +1510,7 @@ int main(
                     for (cpu = 0; cpu < response.response.cpuIrqData.cpuData.numActiveCpus; cpu++) {
                         valueStr[0] = 0;
                         convert_to_string_with_commas( response.response.cpuIrqData.irqData.irqDetails[irq].irqCount[cpu], valueStr, sizeof( valueStr ));
-                        printf( "<td>%s", formatul( response.response.cpuIrqData.irqData.irqDetails[irq].irqCount[cpu] ));
+                        printf( "<td id=irq%u_cpu%u >%s", irq, cpu, formatul( response.response.cpuIrqData.irqData.irqDetails[irq].irqCount[cpu] ));
                         /* if there is a non-zero delta from the previous pass, display the delta in parens; otherwise no need to display a zero in parens */
                         if (( response.response.cpuIrqData.irqData.irqDetails[irq].irqCount[cpu] - response.response.cpuIrqData.irqData.irqDetails[irq].irqCountPrev[cpu] ) > 0)
                         {
@@ -1493,7 +1522,8 @@ int main(
                         }
                         printf( "</td>" );
                     }
-                    printf( "<td>%s</td></tr>", response.response.cpuIrqData.irqData.irqDetails[irq].irqName );
+                    printf( "<td><img src=bsysperf_record1.png height=%u id=record_irq%d onclick=\"MyClick(event);\" >&nbsp;", RECORD_BUTTON_HEIGHT, irq );
+                    printf( "<span id=name_irq%d> %s</span></td></tr>", irq, response.response.cpuIrqData.irqData.irqDetails[irq].irqName );
                 }
                 else
                 {
@@ -1529,8 +1559,10 @@ int main(
         printf( "<tr bgcolor=lightgray ><th>Name</th><th>IP Addr</th><th>Rx Bytes</th><th>Tx Bytes</th><th>Rx Errors</th><th>Tx Errors</th>"
                 "<th>Rx Mbps (Avg)</th><th>Tx Mbps (Avg)</th><th>Graph</th></tr>\n" );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
-            printf( "<tr><td id=ethname%d>%s</td> <td align=center >%s</td> <td align=center id=netif_rxBytes_%d >%s</td>",
-                    idx, g_netStats[idx].name, g_netStats[idx].ipAddress, idx, formatul( g_netStats[idx].rxBytes ));
+            printf( "<tr><td><img src=bsysperf_record1.png height=%u id=record_net%d onclick=\"MyClick(event);\" >&nbsp;", RECORD_BUTTON_HEIGHT, idx );
+            printf( "<span id=netname%d>%s</span></td>", idx, g_netStats[idx].name );
+            printf( "<td id=netipAddress%d align=center >%s</td> <td align=center id=netif_rxBytes_%d >%s</td>",
+                    idx, g_netStats[idx].ipAddress, idx, formatul( g_netStats[idx].rxBytes ));
             printf( "<td id=netif_txBytes_%d align=center >%s</td>", idx, formatul( g_netStats[idx].txBytes ));
             printf( "<td id=netif_rxError_%d align=center >%s</td>", idx, formatul( g_netStats[idx].rxErrors ));
             printf( "<td id=netif_txError_%d align=center >%s</td>", idx, formatul( g_netStats[idx].txErrors ));
@@ -1572,22 +1604,19 @@ int main(
 
         printf( "~netStatsUpdate~%d~", g_netStatsIdx + 1 );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
-            #if 1
             printf( "%s|", formatul( g_netStats[idx].rxBytes ));
             printf( "%s|", formatul( g_netStats[idx].txBytes ));
             printf( "%s|", formatul( g_netStats[idx].rxErrors ));
-            printf( "%s~", formatul( g_netStats[idx].txErrors ));
-            #else
-            printf( "%llu %llu %llu %llu~", g_netStats[idx].rxBytes , g_netStats[idx].txBytes , g_netStats[idx].rxErrors , g_netStats[idx].txErrors );
-            #endif
+            printf( "%s|", formatul( g_netStats[idx].txErrors ));
+            printf( "%s~", g_netStats[idx].name );
         }
         /* end netStatsUpdate */
 
         /* output some of the above information again in an unformatted way to make it easier to compute bits per second */
         printf( "~NETBYTES~" );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
-            printf( "%llu ", g_netStats[idx].rxBytes );
-            printf( "%llu,", g_netStats[idx].txBytes );
+            if ( idx ) printf( "," );
+            printf( "%llu %llu %s", g_netStats[idx].rxBytes, g_netStats[idx].txBytes, g_netStats[idx].name );
         }
         printf( "~" );
 
@@ -1917,9 +1946,9 @@ int main(
 
         printf( "~WIFISTATS~" );
         printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 ><tr>" );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-left: solid thin black;\" >"
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-left: solid thin black;width:200px;\" >"
                 "SSID:<span class=bluetext>%s</span></td> ", tScanInfo.tCredentials.acSSID );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >Driver Version:<span class=bluetext>%s </span></td> ",
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;width:300px;\" >Driver Version:<span class=bluetext>%s </span></td> ",
                 wifiDriverVersion );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;\" >MAC Addr:<span class=bluetext>%s</span></td> ", mac_addr );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-top: solid thin black;border-right: solid thin black;\" >Device id of chip:<span class=bluetext>0x%x </span></td> ",
@@ -1947,12 +1976,15 @@ int main(
 
         printf( "<tr>");
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >RSSI:<span class=bluetext>%d (%s)</span></td> ", tScanInfo.lRSSI, Bsysperf_WifiDbStrength ( tScanInfo.lRSSI ) );
-        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >PHY_RSSI_ANT:<span class=bluetext nowrap >" );
+        printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >" );
+        printf( "<table cols=4 style=\"border-collapse:collapse;\" ><tr><td>PHY_RSSI_ANT&nbsp;</td>" );
+        printf( "<td><img src=bsysperf_record1.png height=%u id=record_PHY_RSSI_ANT onclick=\"MyClick(event);\" ></td><td>:</td><td>", RECORD_BUTTON_HEIGHT );
+        printf( "<span class=bluetext id=PHY_RSSI_ANT nowrap >" );
         for (idx=0; idx<BSYSPERF_RSSI_ANT_MAX; idx++)
         {
             printf( "&nbsp;&nbsp;%d", tRssiAnt.rssi_ant[idx] );
         }
-        printf(" </span></td>" );
+        printf(" </span></td><tr></table></td>" );
         printf( "<td align=left colspan=2 class=silver_allborders >PHY Noise:<span class=bluetext>%d (%s)</span></td> ", tScanInfo.lPhyNoise, Bsysperf_WifiDbStrength ( tScanInfo.lPhyNoise )  );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >802.11 Modes:<span class=bluetext>%d </span></td> ", tScanInfo.ul802_11Modes );
         printf( "</tr>");
@@ -1973,7 +2005,10 @@ int main(
             memset(rate_buf, 0, sizeof(rate_buf) );
             wl_rate_print(rate_buf, nrate );
             replace_space_with_nbsp(rate_buf, sizeof(rate_buf) );
-            printf( "<td align=left colspan=2 style=\"width:310px;border-right: solid thin black;\" >NRate:<span class=bluetext nowrap >%s</span></td> ", rate_buf );
+            printf( "<td align=left colspan=2 style=\"width:310px;border-right: solid thin black;\" >" );
+            printf( "<table cols=4 style=\"border-collapse:collapse;\" ><tr><td>NRate&nbsp;</td>" );
+            printf( "<td><img src=bsysperf_record1.png height=%u id=record_NRate onclick=\"MyClick(event);\" ></td><td>:</td><td>", RECORD_BUTTON_HEIGHT );
+            printf( "<span class=bluetext nowrap id=NRate >%s</span></td></tr></table></td>", rate_buf );
 
         }
         printf( "</tr>");
@@ -1988,7 +2023,10 @@ int main(
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
         printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Chip Number:<span class=bluetext>%d (0x%x)</span></td> ", tRevInfo.ulChipNum, tRevInfo.ulChipNum );
         printf( "<td align=left colspan=2 class=silver_allborders >PCI vendor id:<span class=bluetext>0x%x </span></td> ", tRevInfo.ulVendorId );
-        printf( "<td align=left colspan=2 class=silver_allborders ><table style=\"border-collapse:collapse;\" ><tr><td>Rate (Mbps):</td><td><span class=bluetext><div id=WIFIRATE ></div></span></td></tr></table></td> " );
+        printf( "<td align=left colspan=2 class=silver_allborders >" );
+        printf( "<table cols=4 style=\"border-collapse:collapse;\" ><tr><td>Rate (Mbps)&nbsp;</td>" );
+        printf( "<td><img src=bsysperf_record1.png height=%u id=record_WIFIRATE onclick=\"MyClick(event);\" ></td><td>:</td><td>", RECORD_BUTTON_HEIGHT );
+        printf( "<span class=bluetext><div id=WIFIRATE ></div></span></td></tr></table></td> " );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >AuthType:<span class=bluetext>%d</span></td>", tScanInfo.ulAuthType );
         printf( "</tr>");
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */

@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -290,7 +290,8 @@ typedef struct NEXUS_DolbyDigitalReencodeSettings
                                                                for testing and/or certification purposes. */
     NEXUS_AudioMultichannelFormat           multichannelFormat; /* Specify the maximum multichannel output format desired.
                                                                    Valid settings are 5.1 or 7.1.
-                                                                   7.1ch output is only supported for MS12 Config A supported products */
+                                                                   7.1ch output is only supported for MS12 Config A supported products.
+                                                                   Only applied at open time. */
     bool                                    fixedEncoderFormat; /* When true, content will be upmixed or downmixed to the
                                                                         multichannelFormat specified. This control only applies when MS12 is enabled. */
 

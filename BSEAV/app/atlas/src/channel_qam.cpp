@@ -525,4 +525,5 @@ void CChannelQam::dump(bool bForce)
         BDBG_SetModuleLevel("atlas_channel_qam", level);
     }
 } /* dump */
+
 #endif /* NEXUS_HAS_FRONTEND */

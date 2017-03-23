@@ -1,39 +1,39 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  ******************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
@@ -258,6 +258,10 @@ BERR_Code BVDC_P_Compositor_Create
     pCompositor->bAlign12Bit = BVDC_P_GET_FIELD(
         ulHwCfg, CMP_0_HW_CONFIGURATION, CMP_OUT_BPC);
 #endif
+#ifdef BCHP_CMP_0_HW_CONFIGURATION_HDR_Present_SHIFT
+    pCompositor->bHdr = BVDC_P_GET_FIELD(
+        ulHwCfg, CMP_0_HW_CONFIGURATION, HDR_Present);
+#endif
 
 /* 7271 b0 and newer uses BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG
  * 7271 a0 uses BCHP_CMP_0_HW_CONFIGURATION as above */
@@ -285,7 +289,7 @@ BERR_Code BVDC_P_Compositor_Create
                 ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_LRNG_ADJ_PRESENT);
 #endif
 #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_HLG_GAMMA_PRESENT_SHIFT
-            pCompositor->stCfcCapability[i].stBits.bHlgOotfAdj = BVDC_P_GET_FIELD(
+            pCompositor->stCfcCapability[i].stBits.bLMR = BVDC_P_GET_FIELD(
                 ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CFC_HLG_GAMMA_PRESENT);
 #endif
 #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_CFC_TP_PRESENT_SHIFT
@@ -312,6 +316,12 @@ BERR_Code BVDC_P_Compositor_Create
             pCompositor->stCfcCapability[i].stBits.bCscBlendOut = BVDC_P_GET_FIELD(
                 ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, CSC_BLD_OUT_PRESENT);
 #endif
+#ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG_LUT_SCB_PRESENT_SHIFT
+            pCompositor->stCfcCapability[i].stBits.bRamLutScb = BVDC_P_GET_FIELD(
+                ulHwCfg, HDR_CMP_0_HDR_V0_HW_CONFIG, LUT_SCB_PRESENT);
+#endif
+            pCompositor->stCfcCapability[i].stBits.bRamNL2L = pCompositor->stCfcCapability[i].stBits.bNL2L;
+            pCompositor->stCfcCapability[i].stBits.bRamL2NL = pCompositor->stCfcCapability[i].stBits.bL2NL;
         }
     }
 #endif /* #ifdef BCHP_HDR_CMP_0_HDR_V0_HW_CONFIG */
@@ -323,8 +333,11 @@ BERR_Code BVDC_P_Compositor_Create
     {
         pCompositor->stCfcCapability[0].stBits.bMb = 1;
         pCompositor->stCfcCapability[0].stBits.bLRngAdj = 1;
+        pCompositor->stCfcCapability[0].stBits.bNL2L = pCompositor->stCfcCapability[0].stBits.bL2NL = 1;
+        pCompositor->stCfcCapability[0].stBits.bRamNL2L = pCompositor->stCfcCapability[0].stBits.bRamL2NL = 1;
         pCompositor->stCfcCapability[1].stBits.bMb = 1;
         pCompositor->stCfcCapability[1].stBits.bLRngAdj = 1;
+        pCompositor->stCfcCapability[1].stBits.bNL2L = pCompositor->stCfcCapability[1].stBits.bL2NL = 1;
     }
 #endif /* #if (BVDC_P_CMP_CFC_VER == BVDC_P_CFC_VER_2) */
 
@@ -467,6 +480,15 @@ void BVDC_P_Compositor_Destroy
 
     /* At this point application should have disable all the
      * callbacks &slots */
+#if BVDC_P_CMP_CFC_VER >= 3
+    if(hCompositor->stCfcLutList.hMmaBlock) {
+        BMMA_Unlock(hCompositor->stCfcLutList.hMmaBlock, hCompositor->stCfcLutList.pulStart);
+        BMMA_UnlockOffset(hCompositor->stCfcLutList.hMmaBlock, hCompositor->stCfcLutList.ullStartDeviceAddr);
+        BMMA_Free(hCompositor->stCfcLutList.hMmaBlock);
+        hCompositor->stCfcLutList.hMmaBlock = NULL;
+        hCompositor->hCfcHeap  = NULL;
+    }
+#endif
 
     /* [5] Removed this compositor from hVdc */
     hCompositor->hVdc->ahCompositor[hCompositor->eId] = NULL;
@@ -537,7 +559,6 @@ void BVDC_P_Compositor_Destroy
     BDBG_LEAVE(BVDC_P_Compositor_Destroy);
     return;
 }
-
 
 /***************************************************************************
  * {private}
@@ -1828,6 +1849,14 @@ bool BVDC_P_Compositor_BuildSyncSlipRul_isr
     /* HDR blend out matrix */
     BVDC_P_Compositor_BuildBlendOutMatrixRul_isr(hCompositor, pList);
 
+    /* build rdc rul to load ram luts */
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+    if (BVDC_CompositorId_eCompositor0 == hCompositor->eId)
+    {
+        BVDC_P_Cfc_BuildRulForLutLoading_isr(&hCompositor->stCfcLutList, BCHP_HDR_CMP_0_LUT_DESC_ADDR, pList);
+    }
+#endif
+
     /* clean bOutColorSpace dirty bit after both V0, V1 and Gfd rul are built */
     hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace = BVDC_P_CLEAN;
 
@@ -1988,25 +2017,10 @@ void BVDC_P_Compositor_WindowsReader_isr
     if(bBgCsc)
     {
         uint32_t ulBgColorYCrCb;
-        unsigned int uiARGB = BPXL_MAKE_PIXEL(BPXL_eA8_R8_G8_B8, 0x00,
+        ulBgColorYCrCb = BVDC_P_Compositor_Update_Canvas_Background_isrsafe(hCompositor,
             hCompositor->stCurInfo.ucRed,
             hCompositor->stCurInfo.ucGreen,
             hCompositor->stCurInfo.ucBlue);
-
-        /* TODO: get real convertion for 2020 */
-        if((BAVC_P_Colorimetry_eBt2020 != eOutColorimetry) &&
-           (BAVC_P_Colorimetry_eBt709 != eOutColorimetry) &&
-           (BAVC_P_Colorimetry_eSmpte240M != eOutColorimetry))
-        {
-            BPXL_ConvertPixel_RGBtoYCbCr(BPXL_eA8_Y8_Cb8_Cr8, BPXL_eA8_R8_G8_B8,
-                uiARGB, (unsigned int*)&ulBgColorYCrCb);
-        }
-        else
-        {
-            BPXL_ConvertPixel_RGBtoHdYCbCr_isr(
-                BPXL_eA8_Y8_Cb8_Cr8, BPXL_eA8_R8_G8_B8,
-                uiARGB, (unsigned int*)&ulBgColorYCrCb);
-        }
 
         hCompositor->stNewInfo.ulBgColorYCrCb = ulBgColorYCrCb;
         hCompositor->stCurInfo.ulBgColorYCrCb = ulBgColorYCrCb;

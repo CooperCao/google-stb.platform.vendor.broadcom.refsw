@@ -2660,19 +2660,35 @@ static const uint32_t BVCE_P_PI2FW_FrameRateLUT[BAVC_FrameRateCode_eMax] =
    ENCODING_FRAME_RATE_CODE_5994, /* BAVC_FrameRateCode_e59_94 */
    ENCODING_FRAME_RATE_CODE_6000, /* BAVC_FrameRateCode_e60 */
    ENCODING_FRAME_RATE_CODE_1498, /* BAVC_FrameRateCode_e14_985 */
+#if ( BVCE_P_CORE_MAJOR < 3 )
    ENCODING_FRAME_RATE_CODE_0749, /* BAVC_FrameRateCode_e7_493 */
    ENCODING_FRAME_RATE_CODE_1000, /* BAVC_FrameRateCode_e10 */
+#else
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e7_493 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e10 */
+#endif
    ENCODING_FRAME_RATE_CODE_1500, /* BAVC_FrameRateCode_e15 */
    ENCODING_FRAME_RATE_CODE_2000, /* BAVC_FrameRateCode_e20 */
+#if ( BVCE_P_CORE_MAJOR < 3 )
    ENCODING_FRAME_RATE_CODE_1250, /* BAVC_FrameRateCode_e12_5 */
+#else
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e12_5 */
+#endif
    ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e100 */
    ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e119_88 */
    ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e120 */
    ENCODING_FRAME_RATE_CODE_1998, /* BAVC_FrameRateCode_e19_98 */
+#if ( BVCE_P_CORE_MAJOR < 3 )
    ENCODING_FRAME_RATE_CODE_0750, /* BAVC_FrameRateCode_e7_5 */
    ENCODING_FRAME_RATE_CODE_1200, /* BAVC_FrameRateCode_e12 */
    ENCODING_FRAME_RATE_CODE_1198, /* BAVC_FrameRateCode_e11_988 */
    ENCODING_FRAME_RATE_CODE_0999 /* BAVC_FrameRateCode_e9_99 */
+#else
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e7_5 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e12 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN, /* BAVC_FrameRateCode_e11_988 */
+   ENCODING_FRAME_RATE_CODE_UNKNOWN /* BAVC_FrameRateCode_e9_99 */
+#endif
 };
 
 BERR_Code
@@ -5414,7 +5430,11 @@ static const BVCE_Channel_StartEncodeSettings s_stDefaultStartEncodeSettings =
  1, /* Encoder defaults to STC[1].  Decoder typically uses STC[0]. */
  {
     {
+#if ( BVCE_P_CORE_MAJOR < 3 )
        BAVC_FrameRateCode_e7_493,
+#else
+       BAVC_FrameRateCode_e14_985,
+#endif
        BAVC_FrameRateCode_e60,
     },
     {
@@ -7185,7 +7205,7 @@ BVCE_GetA2PDelayInfo(
                BVCE_P_EncodeModeLUT( pstChStartEncodeSettings ),
                pstChStartEncodeSettings->uiRateBufferDelay,
                BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stFrameRate.eMin],
-               pstChStartEncodeSettings->stBounds.stInputFrameRate.eMin,
+               BVCE_P_PI2FW_FrameRateLUT[pstChStartEncodeSettings->stBounds.stInputFrameRate.eMin],
                0,
                pstChEncodeSettings->bITFPEnable,
                BVCE_P_InputTypeLUT[pstChStartEncodeSettings->eInputType],

@@ -69,7 +69,7 @@ typedef enum eWifiMode
     eWifiMode_AC,
     eWifiMode_Max
 } eWifiMode;
-#endif
+#endif /* ifdef NETAPP_SUPPORT */
 
 /* CPanelNetworkWifiProp is the tag/value button used to display each network wifi property
  * in the list widget. */
@@ -96,13 +96,13 @@ public:
     void            setChannel(const char * pText);
     int             getChannel(void) { return(MString(_pChannel->getText()).toInt()); }
 #ifdef NETAPP_SUPPORT
-    void            setMode(eWifiMode mode);
-    eWifiMode       getMode(void) { return(_mode); }
+    void      setMode(eWifiMode mode);
+    eWifiMode getMode(void) { return(_mode); }
 #endif
-    void            setSignalLevel(uint8_t percent);
-    void            setSecurity(bool bSecurity);
-    bool            isSecure(void) { return(_pSecurity->isVisible()); }
-    void            dump(bool bForce = false);
+    void setSignalLevel(uint8_t percent);
+    void setSecurity(bool bSecurity);
+    bool isSecure(void) { return(_pSecurity->isVisible()); }
+    void dump(bool bForce = false);
 #ifdef WPA_SUPPLICANT_SUPPORT
     void update(CNetworkWifi * pInfo);
 
@@ -124,17 +124,17 @@ protected:
     CWidgetButton *            _pSsid;
     CWidgetLabel *             _pChannel;
 #ifdef NETAPP_SUPPORT
-    CWidgetLabel *             _pModeA;
-    CWidgetLabel *             _pModeB;
-    CWidgetLabel *             _pModeG;
-    CWidgetLabel *             _pModeN;
-    CWidgetLabel *             _pModeAC;
-#endif
-    CWidgetProgress *          _pSignalLevel;
-    CWidgetLabel *             _pSecurity;
+    CWidgetLabel * _pModeA;
+    CWidgetLabel * _pModeB;
+    CWidgetLabel * _pModeG;
+    CWidgetLabel * _pModeN;
+    CWidgetLabel * _pModeAC;
+#endif /* ifdef NETAPP_SUPPORT */
+    CWidgetProgress * _pSignalLevel;
+    CWidgetLabel *    _pSecurity;
 #ifdef NETAPP_SUPPORT
-    CWidgetLabel *             _pModeToLabel[eWifiMode_Max + 1];
-    eWifiMode                  _mode;
+    CWidgetLabel * _pModeToLabel[eWifiMode_Max + 1];
+    eWifiMode      _mode;
 #endif
     bool _bConnected;
 };
@@ -171,7 +171,6 @@ public:
         _pTag->setBackgroundColor(colorBackground);
         _pValue->setBackgroundColor(colorBackground);
         _pContainer->setBackgroundColor(colorBackground);
-
 
 error:
         return;
@@ -265,20 +264,20 @@ public:
     void dump(bool bForce = false);
 
 protected:
-    CWidgetMenu *        _pNetworkWifiMenu;
-    CWidgetMenu *        _pPropertiesMenu;
+    CWidgetMenu * _pNetworkWifiMenu;
+    CWidgetMenu * _pPropertiesMenu;
 #ifdef WPA_SUPPLICANT_SUPPORT
-    CWidgetButton *      _pWpsButton;
-    CWidgetLabel *       _pWpsLabel;
+    CWidgetButton * _pWpsButton;
+    CWidgetLabel *  _pWpsLabel;
 #endif
-    CWidgetMenu *        _pStatusMenu;
-    bool                 _bExpandPanel;
-    CWidgetButton *      _pExpand;
+    CWidgetMenu *   _pStatusMenu;
+    bool            _bExpandPanel;
+    CWidgetButton * _pExpand;
 #ifdef NETAPP_SUPPORT
-    CWidgetLabel *       _pHeadingProperties;
+    CWidgetLabel * _pHeadingProperties;
 #endif
 #ifdef WPA_SUPPLICANT_SUPPORT
-    CPanelWps *          _pPanelWps;
+    CPanelWps * _pPanelWps;
 #endif
     CTimer               _timerCloseMsgBox;
     CTimer               _timerUpdate;

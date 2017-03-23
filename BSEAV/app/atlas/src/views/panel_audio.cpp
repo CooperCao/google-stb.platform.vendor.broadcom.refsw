@@ -802,7 +802,8 @@ void CPanelAudio::processNotification(CNotification & notification)
         CSimpleAudioDecode *     pAudioDecode = _pModel->getSimpleAudioDecode();
         NEXUS_AudioDecoderStatus status;
 
-        if (pAudioDecode) {
+        if (pAudioDecode)
+        {
             ret = pAudioDecode->getStatus(&status);
         }
         CHECK_ERROR_GOTO("unable to get Audio decoder status", ret, error);

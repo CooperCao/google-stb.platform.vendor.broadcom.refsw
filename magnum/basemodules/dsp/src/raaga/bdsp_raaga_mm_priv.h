@@ -361,7 +361,7 @@ BERR_Code BDSP_Raaga_P_FreeStageMemory(
     void *pStageHandle
     );
 
-BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(
+BERR_Code BDSP_Raaga_P_CalcandAllocScratchISbufferReq(
     void *pDeviceHandle
     );
 #if (BCHP_CHIP == 7278)
@@ -417,7 +417,7 @@ BERR_Code BDSP_Raaga_P_ResetAtuEntries(
 
 #endif /* (BCHP_CHIP == 7278) */
 
-BERR_Code BDSP_MM_P_GetFwMemRequired(
+BERR_Code BDSP_Raaga_P_GetFwMemRequired(
     const BDSP_RaagaSettings  *pSettings,
     BDSP_Raaga_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
     void                      *pImgCache,
@@ -430,7 +430,7 @@ BERR_Code BDSP_Raaga_P_CalculateInitMemory (
     unsigned NumDsp
 );
 
-BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(
+BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI(
         uint32_t *pui32ScratchMem,
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
@@ -439,7 +439,7 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(
         const BDSP_RaagaUsageOptions *pUsage
 );
 
-BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq(
+BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq(
         uint32_t *pui32ScratchMem,
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
@@ -447,7 +447,7 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq(
         BDSP_AF_P_eSchedulingGroup eSchedulingGroup
     );
 
-BERR_Code BDSP_MM_P_CalcStageMemPoolReq(
+BERR_Code BDSP_Raaga_P_CalcStageMemPoolReq(
     void *pStageHandle
     );
 

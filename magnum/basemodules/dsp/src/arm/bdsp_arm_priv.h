@@ -480,17 +480,15 @@ void BDSP_Arm_P_RemoveOutput(
 void BDSP_Arm_P_RemoveAllOutputs(
     void *pStageHandle);
 
-BERR_Code BDSP_ARM_P_SendUnMapCommand(
+BERR_Code BDSP_Arm_P_SendUnMapCommand(
     void *pDeviceHandle,
     BDSP_MAP_Table_Entry *pMapTableEntries,
-    uint32_t ui32NumEntries
-    );
+    uint32_t ui32NumEntries);
 
-BERR_Code BDSP_ARM_P_SendMapCommand(
+BERR_Code BDSP_Arm_P_SendMapCommand(
     void *pDeviceHandle,
     BDSP_MAP_Table_Entry *pMapTableEntries,
-    uint32_t ui32NumEntries
-    );
+    uint32_t ui32NumEntries);
 
 /* Macro for traversing through the stages in a task */
 #define BDSP_ARM_STAGE_TRAVERSE_LOOP_V1_BEGIN(A, B, C, D)                           \

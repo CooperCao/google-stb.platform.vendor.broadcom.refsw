@@ -143,7 +143,11 @@ endif
 ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
 
 ifeq ($(BCHP_CHIP),7278)
-BDSP_UDC_SUPPORT = y
+BDSP_UDC_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c
+ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
+BDSP_UDC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
 BDSP_AC4_SUPPORT = n
 BDSP_DPCMR_SUPPORT = n
 BDSP_DDPENC_SUPPORT = n
@@ -151,7 +155,13 @@ BDSP_MIXERDAPV2_SUPPORT = n
 BDSP_DOLBY_AACHE_SUPPORT = n
 else
 BDSP_UDC_SUPPORT = y
-BDSP_AC4_SUPPORT = y
+# Check for AC4 sources and decide whether AC4 can be enabled.
+# User can still explicitly disable the AC4 support.
+BDSP_AC4_SOURCES := \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_ac4.c
+ifneq ($(wildcard $(BDSP_AC4_SOURCES)),)
+BDSP_AC4_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+endif
 BDSP_DPCMR_SUPPORT = y
 BDSP_DDPENC_SUPPORT = y
 BDSP_MIXERDAPV2_SUPPORT = y

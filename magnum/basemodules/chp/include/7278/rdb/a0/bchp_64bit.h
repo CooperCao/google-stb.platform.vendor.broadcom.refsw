@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep  1 14:32:42 2016
- *                 Full Compile MD5 Checksum  6fb3c439bf5a497d10d0a09493b41526
+ * Date:           Generated on               Tue Jan 17 10:08:36 2017
+ *                 Full Compile MD5 Checksum  2edd384c1405a388347db27089ee12b7
  *                     (minus title and desc)
- *                 MD5 Checksum               c7e6f0a8e19df692ab31ede29db92393
+ *                 MD5 Checksum               6e5ced4da0f0f15efb4ae46ce86e004a
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1105
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -606,12 +606,20 @@ BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE   ,0x00c00040) /* [RW
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_0_SDRAM_ADDR0      ,0x00c00110) /* [RW][64] SDRAM address register 0 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_0_SDRAM_ADDR1      ,0x00c00120) /* [RW][64] SDRAM address register 1 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_0_SDRAM_WINDOW     ,0x00c00130) /* [RW][64] SDRAM window register */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_0_CH0_SD_ADDR       ,0x00c00400) /* [RW][64] DMA 0 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_0_CH1_SD_ADDR       ,0x00c00410) /* [RW][64] DMA 1 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_0_CH2_SD_ADDR       ,0x00c00420) /* [RW][64] DMA 2 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_0_CH3_SD_ADDR       ,0x00c00430) /* [RW][64] DMA 3 SDRAM address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_SINT_0_DMA_ADDR             ,0x00c01000) /* [RW][64] DMA Address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_SINT_0_DMA_BASE             ,0x00c01010) /* [RW][64] DMA Base Address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_SINT_0_DMA_END              ,0x00c01018) /* [RW][64] DMA End Address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_CABAC_0_PICTURE_COMMAND_ADDR   ,0x00c13000) /* [RW][64] Cabac Picture Command Address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CTL_0_HVD_REG_BASE          ,0x00c14060) /* [RO][64] Global I/O Base for HVD registers */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CTL_0_MSAT_BASE             ,0x00c14068) /* [RO][64] Global I/O Base for MSAT registers */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CTL_0_PMU_BASE              ,0x00c14070) /* [RO][64] Global I/O Base for PMU registers */
+BCHP_REGISTER_64BIT(BCHP_HEVD_STRM_IN_0_ADDRESS              ,0x00c25100) /* [RW][64] Stream DMA Source Address in bytes */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_0_TRMV_OUTPUT_PTR       ,0x00c25410) /* [RW][64] Temporal Reference Vector Output Pointer */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_0_TRMV_INPUT_PTR        ,0x00c25418) /* [RW][64] Temporal Reference Vector Input Pointer */
 BCHP_REGISTER_64BIT(BCHP_RVC_0_PUT                           ,0x00c26d08) /* [RO][64] Put pointer */
 BCHP_REGISTER_64BIT(BCHP_RVC_0_GET                           ,0x00c26d10) /* [CFG][64] Get pointer */
 BCHP_REGISTER_64BIT(BCHP_RVC_0_BASE                          ,0x00c26d18) /* [RW][64] Circular buffer base address */
@@ -621,22 +629,45 @@ BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_0_GLOBAL_IO_BASE   ,0x00c30040) /* [RW
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_0_SDRAM_ADDR0      ,0x00c30110) /* [RW][64] SDRAM address register 0 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_0_SDRAM_ADDR1      ,0x00c30120) /* [RW][64] SDRAM address register 1 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_0_SDRAM_WINDOW     ,0x00c30130) /* [RW][64] SDRAM window register */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_0_CH0_SD_ADDR       ,0x00c30400) /* [RW][64] DMA 0 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_0_CH1_SD_ADDR       ,0x00c30410) /* [RW][64] DMA 1 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_0_CH2_SD_ADDR       ,0x00c30420) /* [RW][64] DMA 2 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_0_CH3_SD_ADDR       ,0x00c30430) /* [RW][64] DMA 3 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_STRM_IN_2_0_ADDRESS            ,0x00c45100) /* [RW][64] Stream DMA Source Address in bytes */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_2_0_TRMV_OUTPUT_PTR     ,0x00c45410) /* [RW][64] Temporal Reference Vector Output Pointer */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_2_0_TRMV_INPUT_PTR      ,0x00c45418) /* [RW][64] Temporal Reference Vector Input Pointer */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_0_PUT                         ,0x00c46d08) /* [RO][64] Put pointer */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_0_GET                         ,0x00c46d10) /* [CFG][64] Get pointer */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_0_BASE                        ,0x00c46d18) /* [RW][64] Circular buffer base address */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_0_END                         ,0x00c46d20) /* [RW][64] Circular buffer end address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_0_INST_BASE      ,0x00c50010) /* [RW][64] Instruction base address register */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_0_GLOBAL_IO_BASE ,0x00c50040) /* [RW][64] Global IO base register */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_0_SDRAM_ADDR0    ,0x00c50110) /* [RW][64] SDRAM address register 0 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_0_SDRAM_ADDR1    ,0x00c50120) /* [RW][64] SDRAM address register 1 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_0_SDRAM_WINDOW   ,0x00c50130) /* [RW][64] SDRAM window register */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_0_CH0_SD_ADDR     ,0x00c50400) /* [RW][64] DMA 0 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_0_CH1_SD_ADDR     ,0x00c50410) /* [RW][64] DMA 1 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_0_CH2_SD_ADDR     ,0x00c50420) /* [RW][64] DMA 2 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_0_CH3_SD_ADDR     ,0x00c50430) /* [RW][64] DMA 3 SDRAM address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_1_INST_BASE        ,0x00d00010) /* [RW][64] Instruction base address register */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_1_GLOBAL_IO_BASE   ,0x00d00040) /* [RW][64] Global IO base register */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_1_SDRAM_ADDR0      ,0x00d00110) /* [RW][64] SDRAM address register 0 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_1_SDRAM_ADDR1      ,0x00d00120) /* [RW][64] SDRAM address register 1 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_REGS_1_SDRAM_WINDOW     ,0x00d00130) /* [RW][64] SDRAM window register */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_1_CH0_SD_ADDR       ,0x00d00400) /* [RW][64] DMA 0 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_1_CH1_SD_ADDR       ,0x00d00410) /* [RW][64] DMA 1 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_1_CH2_SD_ADDR       ,0x00d00420) /* [RW][64] DMA 2 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CPU_DMA_1_CH3_SD_ADDR       ,0x00d00430) /* [RW][64] DMA 3 SDRAM address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_SINT_1_DMA_ADDR             ,0x00d01000) /* [RW][64] DMA Address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_SINT_1_DMA_BASE             ,0x00d01010) /* [RW][64] DMA Base Address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_SINT_1_DMA_END              ,0x00d01018) /* [RW][64] DMA End Address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_CABAC_1_PICTURE_COMMAND_ADDR   ,0x00d13000) /* [RW][64] Cabac Picture Command Address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CTL_1_HVD_REG_BASE          ,0x00d14060) /* [RO][64] Global I/O Base for HVD registers */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CTL_1_MSAT_BASE             ,0x00d14068) /* [RO][64] Global I/O Base for MSAT registers */
 BCHP_REGISTER_64BIT(BCHP_HEVD_OL_CTL_1_PMU_BASE              ,0x00d14070) /* [RO][64] Global I/O Base for PMU registers */
+BCHP_REGISTER_64BIT(BCHP_HEVD_STRM_IN_1_ADDRESS              ,0x00d25100) /* [RW][64] Stream DMA Source Address in bytes */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_1_TRMV_OUTPUT_PTR       ,0x00d25410) /* [RW][64] Temporal Reference Vector Output Pointer */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_1_TRMV_INPUT_PTR        ,0x00d25418) /* [RW][64] Temporal Reference Vector Input Pointer */
 BCHP_REGISTER_64BIT(BCHP_RVC_1_PUT                           ,0x00d26d08) /* [RO][64] Put pointer */
 BCHP_REGISTER_64BIT(BCHP_RVC_1_GET                           ,0x00d26d10) /* [CFG][64] Get pointer */
 BCHP_REGISTER_64BIT(BCHP_RVC_1_BASE                          ,0x00d26d18) /* [RW][64] Circular buffer base address */
@@ -646,11 +677,26 @@ BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_1_GLOBAL_IO_BASE   ,0x00d30040) /* [RW
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_1_SDRAM_ADDR0      ,0x00d30110) /* [RW][64] SDRAM address register 0 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_1_SDRAM_ADDR1      ,0x00d30120) /* [RW][64] SDRAM address register 1 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_1_SDRAM_WINDOW     ,0x00d30130) /* [RW][64] SDRAM window register */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_1_CH0_SD_ADDR       ,0x00d30400) /* [RW][64] DMA 0 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_1_CH1_SD_ADDR       ,0x00d30410) /* [RW][64] DMA 1 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_1_CH2_SD_ADDR       ,0x00d30420) /* [RW][64] DMA 2 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_1_CH3_SD_ADDR       ,0x00d30430) /* [RW][64] DMA 3 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_STRM_IN_2_1_ADDRESS            ,0x00d45100) /* [RW][64] Stream DMA Source Address in bytes */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_2_1_TRMV_OUTPUT_PTR     ,0x00d45410) /* [RW][64] Temporal Reference Vector Output Pointer */
+BCHP_REGISTER_64BIT(BCHP_HEVD_VECGEN_2_1_TRMV_INPUT_PTR      ,0x00d45418) /* [RW][64] Temporal Reference Vector Input Pointer */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_1_PUT                         ,0x00d46d08) /* [RO][64] Put pointer */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_1_GET                         ,0x00d46d10) /* [CFG][64] Get pointer */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_1_BASE                        ,0x00d46d18) /* [RW][64] Circular buffer base address */
+BCHP_REGISTER_64BIT(BCHP_RVC_2_1_END                         ,0x00d46d20) /* [RW][64] Circular buffer end address */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_1_INST_BASE      ,0x00d50010) /* [RW][64] Instruction base address register */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_1_GLOBAL_IO_BASE ,0x00d50040) /* [RW][64] Global IO base register */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_1_SDRAM_ADDR0    ,0x00d50110) /* [RW][64] SDRAM address register 0 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_1_SDRAM_ADDR1    ,0x00d50120) /* [RW][64] SDRAM address register 1 */
 BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_REGS_2_1_SDRAM_WINDOW   ,0x00d50130) /* [RW][64] SDRAM window register */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_1_CH0_SD_ADDR     ,0x00d50400) /* [RW][64] DMA 0 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_1_CH1_SD_ADDR     ,0x00d50410) /* [RW][64] DMA 1 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_1_CH2_SD_ADDR     ,0x00d50420) /* [RW][64] DMA 2 SDRAM address */
+BCHP_REGISTER_64BIT(BCHP_HEVD_IL_CPU_DMA_2_1_CH3_SD_ADDR     ,0x00d50430) /* [RW][64] DMA 3 SDRAM address */
 BCHP_REGISTER_64BIT(BCHP_SWITCH_CORE_MULTIPORT_ADDR0         ,0x00f02080) /* [RW][64] Multiport Address 0 Register (Default for TS) */
 BCHP_REGISTER_64BIT(BCHP_SWITCH_CORE_MULTIPORT_ADDR1         ,0x00f02100) /* [RW][64] Multiport Address 1 Register */
 BCHP_REGISTER_64BIT(BCHP_SWITCH_CORE_MULTIPORT_ADDR2         ,0x00f02180) /* [RW][64] Multiport Address 2 Register */

@@ -40,7 +40,7 @@
 
 static void dump_hex(const char* name, const char* data, size_t length, bool force=false)
 {
-    if (getenv("DUMP_HEX") == NULL) return;
+    if (!force && (getenv("DUMP_HEX") == NULL)) return;
     size_t i;
     size_t buf_len = length * 2 + length / 32 + 1;
     char *buf, *ptr;

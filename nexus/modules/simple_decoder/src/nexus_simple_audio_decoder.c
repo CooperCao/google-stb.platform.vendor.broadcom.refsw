@@ -1230,17 +1230,31 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_mixer(NEXUS_SimpleAudioDecod
             return BERR_TRACE(rc);
         }
 
-        if ( selector == NEXUS_SimpleAudioDecoderSelector_ePrimary ) {
-            NEXUS_AudioMixerSettings mixerSettings;
-            NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
-            if ( mixerSettings.mixUsingDsp && (handle->startSettings.master || mixerSettings.master == NULL) )
-            {
+        if (handle->serverSettings.type != NEXUS_SimpleAudioDecoderType_ePersistent) {
+            if ( selector == NEXUS_SimpleAudioDecoderSelector_ePrimary ) {
+                NEXUS_AudioMixerSettings mixerSettings;
+                NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
                 BDBG_MSG(("     setting mixer (%s) %p master to tail %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)mixer, (void*)tail));
                 mixerSettings.master = tail;
+                rc = NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+                if ( rc != NEXUS_SUCCESS ) {
+                    return BERR_TRACE(rc);
+                }
             }
-            rc = NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
-            if ( rc != NEXUS_SUCCESS ) {
-                return BERR_TRACE(rc);
+        }
+        else {
+            if (selector == NEXUS_SimpleAudioDecoderSelector_ePrimary) {
+                NEXUS_AudioMixerSettings mixerSettings;
+                NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
+                if ( mixerSettings.mixUsingDsp && handle->startSettings.master )
+                {
+                    BDBG_MSG(("     setting mixer (%s) %p master to tail %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)mixer, (void*)tail));
+                    mixerSettings.master = tail;
+                }
+                rc = NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+                if ( rc != NEXUS_SUCCESS ) {
+                    return BERR_TRACE(rc);
+                }
             }
         }
 

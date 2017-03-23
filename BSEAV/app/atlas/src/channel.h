@@ -116,6 +116,7 @@ public:
 
     virtual CChannel *      createCopy(CChannel * pChannel)           = 0;
     virtual eRet            initialize(PROGRAM_INFO_T * pProgramInfo) = 0;
+    virtual bool            verify(PROGRAM_INFO_T * pProgramInfo);
     virtual eRet            tune(void * id, CConfig * pResourceLibrary, bool bWaitForLock, uint16_t index = ANY_INDEX) = 0;
     virtual eRet            unTune(CConfig * pResourceLibrary, bool bFullUnTune = false, bool bCheckInTuner = true)    = 0;
     virtual eRet            readXML(MXmlElement * xmlElemChannel);
@@ -153,6 +154,7 @@ public:
     virtual uint16_t getHeight(void)            { return(_height); }
     virtual void     setHeight(uint16_t height) { _height = height; }
     virtual void     gotoBackGroundRecord(void) { return; }
+    virtual void     getStats(void);
     virtual void     dump(bool bForce = false);
 
     virtual bool operator ==(CChannel &other);

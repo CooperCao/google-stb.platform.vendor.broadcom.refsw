@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
+
 
 #include <stdio.h>
 #include "bchp_m2mc.h"
@@ -532,7 +533,12 @@ static char *s_SRC_CM_REG[] =
 
 static char *s_SRC_CLUT[] =
 {
+#if BGRC_P_64BITS_ADDR
+	"SRC_CLUT starting addr MSB",
+	"SRC_CLUT starting addr LSB",
+#else
 	"SRC_CLUT starting addr"
+#endif
 };
 
 static char **s_BGRC_PACKET_P_GRP_REGS_NAME[] =
@@ -557,7 +563,11 @@ static char **s_BGRC_PACKET_P_GRP_REGS_NAME[] =
 static uint32_t s_BGRC_PACKET_P_DeviceGroupSizes[] =
 {
 	0,
+#if BGRC_P_64BITS_ADDR
+	sizeof (unsigned long long),
+#else
 	sizeof (uint32_t),
+#endif
 	0,
 	0,
 	BGRC_M2MC(SRC_CM_C34) - BGRC_M2MC(SRC_CM_C00_C01) + sizeof (uint32_t),

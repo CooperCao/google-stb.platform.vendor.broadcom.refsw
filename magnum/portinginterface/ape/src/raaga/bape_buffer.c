@@ -171,7 +171,7 @@ void BAPE_Buffer_Close(
     BDBG_MSG(("%s - ", __FUNCTION__));
     if ( !handle->userAllocatedBuffer )
     {
-        BDBG_ERR(("%s - calling BMMA_Free", __FUNCTION__));
+        BDBG_MSG(("%s - calling BMMA_Free", __FUNCTION__));
         BMMA_Unlock(handle->block, handle->buffer);
         handle->buffer = NULL;
         BMMA_Free(handle->block);
@@ -183,7 +183,7 @@ void BAPE_Buffer_Close(
     BDBG_OBJECT_DESTROY(handle, BAPE_Buffer);
     BKNI_Free(handle);
     handle = NULL;
-    BDBG_ERR(("%s - SUCCESS, returning", __FUNCTION__));
+    BDBG_MSG(("%s - SUCCESS, returning", __FUNCTION__));
 }
 
 /***************************************************************************

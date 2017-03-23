@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -47,7 +47,7 @@ BDBG_MODULE(BMTH_FIX_MATRIX);
 #define BMTH_P_FIX_MATRIX_MAX_BITS (31)
 
 #define BMTH_P_FIX_MATRIX_CONVERT(x, infract, outfract) \
-	(BMTH_FIX_SIGNED_CONVERT(x, (BMTH_P_FIX_MATRIX_MAX_BITS - infract), infract, (BMTH_P_FIX_MATRIX_MAX_BITS - outfract), outfract))
+	(BMTH_FIX_SIGNED_CONVERT_isrsafe(x, (BMTH_P_FIX_MATRIX_MAX_BITS - infract), infract, (BMTH_P_FIX_MATRIX_MAX_BITS - outfract), outfract))
 
 /* fixed to integer */
 #define BMTH_P_FIX_MATRIX_FIXTOI(x, infract) \
@@ -59,7 +59,7 @@ BDBG_MODULE(BMTH_FIX_MATRIX);
 
 /* fixed point operation multiply */
 #define BMTH_P_FIX_MATRIX_MUL(x, y, fract) \
-	(BMTH_FIX_SIGNED_MUL(x, y, (BMTH_P_FIX_MATRIX_MAX_BITS - fract), fract, \
+	(BMTH_FIX_SIGNED_MUL_isrsafe(x, y, (BMTH_P_FIX_MATRIX_MAX_BITS - fract), fract, \
                                (BMTH_P_FIX_MATRIX_MAX_BITS - fract), fract, \
                                (BMTH_P_FIX_MATRIX_MAX_BITS - fract), fract))
 
@@ -159,7 +159,7 @@ void BMTH_FIX_Matrix_MultVector_64(BMTH_FIX_Matrix_64 *pMatrix, BMTH_FIX_Vector_
 		stTempVector.data[i] = 0;
 		for (k = 0; k < ulSize; k++)
 		{
-			stTempVector.data[i] += BMTH_FIX_SIGNED_MUL_64(pMatrix->data[i][k],  pVector->data[k], ulFractBits, pVector->ulFractBits, ulFractBits);
+			stTempVector.data[i] += BMTH_FIX_SIGNED_MUL_64_isrsafe(pMatrix->data[i][k],  pVector->data[k], ulFractBits, pVector->ulFractBits, ulFractBits);
 		}
 	}
 

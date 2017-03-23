@@ -107,7 +107,7 @@ BDBG_MODULE(BVDC_DISP);
 BDBG_FILE_MODULE(BVDC_DISP_CSC);
 BDBG_FILE_MODULE(BVDC_CMP_SIZE);
 BDBG_FILE_MODULE(BVDC_CFC_2);
-BDBG_FILE_MODULE(BVDC_CFC_3);
+BDBG_FILE_MODULE(BVDC_CFC_4);
 
 /* A forward definition for convenience */
 static void BVDC_P_Display_Copy_Acp_isr(
@@ -3449,7 +3449,7 @@ static void BVDC_P_ProgramDviChan_isr
     BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, pstChan, pList, true);
     BVDC_P_Vec_Build_DVI_DTG_isr(hDisplay, pstChan, bReloadMicrocode, pList);
     BVDC_P_Vec_Build_DVI_DVF_isr(hDisplay, pstChan, pList);
-    BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+    BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
     BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, pstChan, pList);
     BVDC_P_Vec_Build_DVI_FC_isr(hDisplay, pstChan, pList);
     BVDC_P_Display_SetupDviTG_isr(hDisplay, pList);
@@ -3484,7 +3484,7 @@ static void BVDC_P_SetupDviChan_isr
 #endif
 
     /* force to rebuild RUL for CFC */
-    BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d reset DVI_CSC", hDisplay->eId));
+    BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d reset DVI_CSC", hDisplay->eId));
     hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc = BVDC_P_DIRTY;
 
     return;
@@ -5763,7 +5763,7 @@ static void BVDC_P_Display_Apply_InputColorSpace_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 
@@ -6446,7 +6446,7 @@ static void BVDC_P_Display_Apply_HdmiCsc_Setting_isr
 
     if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList);
     }
 
@@ -7524,7 +7524,7 @@ static void BVDC_P_Display_Apply_OutputMute_Setting_isr
 
     if(hDisplay->stCurInfo.bEnableHdmi)
     {
-        BDBG_MODULE_MSG(BVDC_CFC_3, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
+        BDBG_MODULE_MSG(BVDC_CFC_4, ("Display%d build DVI_CFC by %s", hDisplay->eId, __FUNCTION__));
         BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList );
     }
 

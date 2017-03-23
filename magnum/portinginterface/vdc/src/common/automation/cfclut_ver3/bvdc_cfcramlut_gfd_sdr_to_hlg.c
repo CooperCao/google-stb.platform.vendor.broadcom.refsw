@@ -1,0 +1,142 @@
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+ ******************************************************************************/
+
+/* GFD0 1886_to_hlg */
+
+/* sel_nl2l = BT1886, it is in ROM */
+
+static const uint32_t s_aulRamLut_GFD_L2NL_Hlg_g12[] =
+{
+    0x00000000, /*    0:     0.000000000000000000000000000 */
+    0x00000117, /*    1:     0.017028808593750000000000000 */
+    0x00000175, /*    2:     0.022766113281250000000000000 */
+    0x000001b9, /*    3:     0.026916503906250000000000000 */
+    0x000001f2, /*    4:     0.030395507812500000000000000 */
+    0x00000222, /*    5:     0.033325195312500000000000000 */
+    0x0000024d, /*    6:     0.035949707031250000000000000 */
+    0x00000274, /*    7:     0.038330078125000000000000000 */
+    0x00000298, /*    8:     0.040527343750000000000000000 */
+    0x000002ba, /*    9:     0.042602539062500000000000000 */
+    0x000002d9, /*   10:     0.044494628906250000000000000 */
+    0x000002f7, /*   11:     0.046325683593750000000000000 */
+    0x00000313, /*   12:     0.048034667968750000000000000 */
+    0x0000032d, /*   13:     0.049621582031250000000000000 */
+    0x00000347, /*   14:     0.051208496093750000000000000 */
+    0x0000035f, /*   15:     0.052673339843750000000000000 */
+    0x00000377, /*   16:     0.054138183593750000000000000 */
+    0x000004a0, /*   17:     0.072265625000000000000000000 */
+    0x0000057a, /*   18:     0.085571289062500000000000000 */
+    0x0000062c, /*   19:     0.096435546875000000000000000 */
+    0x000006c6, /*   20:     0.105834960937500000000000000 */
+    0x0000074f, /*   21:     0.114196777343750000000000000 */
+    0x000007cb, /*   22:     0.121765136718750000000000000 */
+    0x0000083d, /*   23:     0.128723144531250000000000000 */
+    0x00000aff, /*   24:     0.171813964843750000000000000 */
+    0x00000d06, /*   25:     0.203491210937500000000000000 */
+    0x00000eae, /*   26:     0.229370117187500000000000000 */
+    0x0000101c, /*   27:     0.251708984375000000000000000 */
+    0x00001162, /*   28:     0.271606445312500000000000000 */
+    0x00001289, /*   29:     0.289611816406250000000000000 */
+    0x00001399, /*   30:     0.306213378906250000000000000 */
+    0x00001495, /*   31:     0.321594238281250000000000000 */
+    0x00001581, /*   32:     0.335998535156250000000000000 */
+    0x00001660, /*   33:     0.349609375000000000000000000 */
+    0x00001734, /*   34:     0.362548828125000000000000000 */
+    0x000017fd, /*   35:     0.374816894531250000000000000 */
+    0x000018be, /*   36:     0.386596679687500000000000000 */
+    0x00001977, /*   37:     0.397888183593750000000000000 */
+    0x00001a28, /*   38:     0.408691406250000000000000000 */
+    0x00001ef9, /*   39:     0.483947753906250000000000000 */
+    0x000022b4, /*   40:     0.542236328125000000000000000 */
+    0x0000256d, /*   41:     0.584777832031250000000000000 */
+    0x0000278f, /*   42:     0.618103027343750000000000000 */
+    0x0000294f, /*   43:     0.645446777343750000000000000 */
+    0x00002acb, /*   44:     0.668640136718750000000000000 */
+    0x00002c15, /*   45:     0.688781738281250000000000000 */
+    0x00002d38, /*   46:     0.706542968750000000000000000 */
+    0x00002e3c, /*   47:     0.722412109375000000000000000 */
+    0x00002f28, /*   48:     0.736816406250000000000000000 */
+    0x00003000, /*   49:     0.750000000000000000000000000 */
+    0x000030c6, /*   50:     0.762084960937500000000000000 */
+    0x0000317d, /*   51:     0.773254394531250000000000000 */
+    0x00003228, /*   52:     0.783691406250000000000000000 */
+    0x000032c8, /*   53:     0.793457031250000000000000000 */
+    0x0000335e, /*   54:     0.802612304687500000000000000 */
+    0x000033eb, /*   55:     0.811218261718750000000000000 */
+    0x00003471, /*   56:     0.819396972656250000000000000 */
+    0x000034f0, /*   57:     0.827148437500000000000000000 */
+    0x00003569, /*   58:     0.834533691406250000000000000 */
+    0x000035dc, /*   59:     0.841552734375000000000000000 */
+    0x0000364a, /*   60:     0.848266601562500000000000000 */
+    0x0000392b, /*   61:     0.893249511718750000000000000 */
+    0x00003b62, /*   62:     0.927856445312500000000000000 */
+    0x00003d2e, /*   63:     0.955932617187500000000000000 */
+    0x00003eb2, /*   64:     0.979614257812500000000000000 */
+    0x00003fff, /*   65:     0.999938964843750000000000000 */
+    0x00003fff  /*   66:     0.999938964843750000000000000 */
+};
+
+static const BVDC_P_RamLut s_RamLutCtrl_GFD_L2NL_Hlg_g12 =
+{
+    5, 		/* numSeg */
+    0x4, 	/* U1.2 xscl = 1.00000 */
+    0, 		/* outIntBits */
+    14, 		/* outFracBits */
+    {     16,    23,    38,    60,    66,     0,     0,     0}, /* segEnd */
+    {      0,     1,     1,     2,     3,     0,     0,     0}, /* segOffset */
+    {     16,    12,     9,     6,     3,     0,     0,     0}, /* segIntBits */
+    &s_aulRamLut_GFD_L2NL_Hlg_g12[0]
+};
+
+/* LMR is bypassed */
+
+static const BVDC_P_LRangeAdjTable s_LRangeAdj_GFD_1886_to_hlg = BVDC_P_MAKE_LR_ADJ
+(   8, /* number of PWL points */
+    /*     x         y         m     e              (U0.15)x,   (U0.15)y,   (S0.15)m,   (S4)e   */
+    0.000000, 0.000000, 0.812012,   -2,   /* PWL 0, 0x00000000, 0x00000000, 0x000067f0, 0xfffffffe */
+    1.000000, 0.203003, 0.000000,    0,   /* PWL 1, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+    1.000000, 0.203003, 0.000000,    0,   /* PWL 2, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+    1.000000, 0.203003, 0.000000,    0,   /* PWL 3, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+    1.000000, 0.203003, 0.000000,    0,   /* PWL 4, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+    1.000000, 0.203003, 0.000000,    0,   /* PWL 5, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+    1.000000, 0.203003, 0.000000,    0,   /* PWL 6, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+    1.000000, 0.203003, 0.000000,    0    /* PWL 7, 0x00008000, 0x000019fc, 0x00000000, 0x00000000 */
+);
+
+
+/* end of file */

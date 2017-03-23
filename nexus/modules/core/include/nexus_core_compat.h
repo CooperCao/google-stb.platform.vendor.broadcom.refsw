@@ -144,8 +144,21 @@ typedef void *NEXUS_SpiHandle;
 #endif
 
 #ifndef NEXUS_HAS_I2C
+typedef unsigned NEXUS_I2cModuleSettings;
 typedef void *NEXUS_I2cHandle;
 #endif
+
+#ifndef NEXUS_HAS_GPIO
+typedef void *NEXUS_GpioHandle;
+typedef unsigned NEXUS_GpioType;
+
+#define NEXUS_GpioType_eStandard 0
+#define NEXUS_GpioType_eSpecial 0
+#define NEXUS_GpioType_eTvMicro 0;
+#define NEXUS_GpioType_eAonStandard 0
+#define NEXUS_GpioType_eAonSpecial 0
+#endif
+
 
 #ifdef __cplusplus
 } /* extern "C" */

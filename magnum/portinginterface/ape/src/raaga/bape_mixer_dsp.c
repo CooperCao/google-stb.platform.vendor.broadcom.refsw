@@ -80,8 +80,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
 static void BAPE_DspMixer_P_EncoderOverflow_isr(void *pParam1, int param2);
 static void BAPE_DspMixer_P_Destroy(BAPE_MixerHandle handle);
 static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_MixerHandle handle);
-static BAPE_DolbyMSVersion BAPE_DspMixer_P_GetDolbyUsageVersion(BAPE_MixerHandle handle);
-static bool BAPE_DspMixer_P_DdrePresentDownstream(BAPE_MixerHandle handle);
+static bool BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(BAPE_MixerHandle handle);
 
 static const int32_t unityLoopbackCoefficients[BAPE_Channel_eMax][BAPE_Channel_eMax] =
 {
@@ -774,20 +773,18 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     if ( BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->pathNode.connectors[0].format) )
     {
         /* IF DDRE is present downstream, output samplerate must be fixed to 48000 */
-        if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) )
+        if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) )
         {
             BAPE_FMT_Descriptor format;
             /* DDRE cases do not require an SRC stage, so just set the samplerate and go */
             sampleRate = BAPE_DSPMIXER_DDRE_INPUT_SR;
 
             BAPE_Connector_P_GetFormat(&handle->pathNode.connectors[0], &format);
-            if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) )
+
+            format.type = BAPE_DataType_ePcm5_1;
+            if ( BAPE_DspMixer_P_GetDdreMultichannelFormat(handle) == BAPE_MultichannelFormat_e7_1 )
             {
-                format.type = BAPE_DataType_ePcm5_1;
-                if ( BAPE_DspMixer_P_GetDdreMultichannelFormat(handle) == BAPE_MultichannelFormat_e7_1 )
-                {
-                    format.type = BAPE_DataType_ePcm7_1;
-                }
+                format.type = BAPE_DataType_ePcm7_1;
             }
             errCode = BAPE_Connector_P_SetFormat(&handle->pathNode.connectors[0], &format);
             if ( errCode )
@@ -916,7 +913,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         BAPE_Mixer_P_PrintDownstreamNodes(&handle->pathNode);
     #endif
 
-    if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) )
+    if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) )
     {
         BAPE_PathNode *pNode;
         unsigned numFound;
@@ -1027,7 +1024,7 @@ err_create_loopback_mixer:
     return errCode;
 }
 
-bool BAPE_DspMixer_P_DdrePresentDownstream(BAPE_MixerHandle handle)
+bool BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(BAPE_MixerHandle handle)
 {
     bool foundDdre = false;
     BAPE_PathNode *pNode;
@@ -1080,13 +1077,13 @@ static BAPE_MultichannelFormat BAPE_DspMixer_P_GetDdreMultichannelFormat(BAPE_Mi
     return BAPE_MultichannelFormat_e5_1;
 }
 
-static BAPE_DolbyMSVersion BAPE_DspMixer_P_GetDolbyUsageVersion(BAPE_MixerHandle handle)
+BAPE_DolbyMSVersion BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(BAPE_MixerHandle handle)
 {
     if ( BAPE_P_GetDolbyMSVersion() == BAPE_DolbyMSVersion_eMS12 )
     {
         /* IF we find a DDRE downstream, use MS12 mixer,
            else use legacy mixer (transcode, etc) */
-        if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) )
+        if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) )
         {
             return BAPE_DolbyMSVersion_eMS12;
         }
@@ -1510,7 +1507,7 @@ static void BAPE_DspMixer_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNod
         /* Set mixer sample rate. */
         BAPE_DspMixer_P_SetSampleRate_isr(handle, handle->settings.mixerSampleRate);
     }
-    else if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) && BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->pathNode.connectors[0].format) )
+    else if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) && BAPE_FMT_P_IsLinearPcm_isrsafe(&handle->pathNode.connectors[0].format) )
     {
         /* Set mixer sample rate. */
         BAPE_DspMixer_P_SetSampleRate_isr(handle, BAPE_DSPMIXER_DDRE_INPUT_SR);
@@ -1582,7 +1579,7 @@ static BERR_Code BAPE_DspMixer_P_InputFormatChange(struct BAPE_PathNode *pNode, 
         return BERR_TRACE(errCode);
     }
 
-    if ( BAPE_DspMixer_P_DdrePresentDownstream(handle) )
+    if ( BAPE_DspMixer_P_DdrePresentDownstream_isrsafe(handle) )
     {
         outputDataType = BAPE_DataType_ePcm5_1;
         if ( BAPE_DspMixer_P_GetDdreMultichannelFormat(handle) == BAPE_MultichannelFormat_e7_1 )
@@ -2101,7 +2098,7 @@ static BERR_Code BAPE_DspMixer_P_ApplyInputVolume(BAPE_MixerHandle handle, unsig
     }
 
     /* Apply settings to FW Mixer */
-    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_AudioTaskDatasyncSettings datasyncSettings;
         BAPE_DecoderMixingMode mixingMode = BAPE_DecoderMixingMode_eMax;
@@ -2316,7 +2313,7 @@ static BERR_Code BAPE_DspMixer_P_SetSettings(
     }
 
     /* Apply settings to FW Mixer */
-    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         unsigned i;
         if (!handle->taskStarted)
@@ -2500,7 +2497,7 @@ static BERR_Code BAPE_DspMixer_P_GetInputStatus(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
         BAPE_PathConnection * pConnection;
@@ -2564,7 +2561,7 @@ static BERR_Code BAPE_DspMixer_P_GetStatus(
 
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
 
-    if ( BAPE_DspMixer_P_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
+    if ( BAPE_P_FwMixer_GetDolbyUsageVersion(handle) == BAPE_DolbyMSVersion_eMS12 )
     {
         BDSP_Raaga_MixerDapv2PPStatus dspStatus;
         if (!handle->taskStarted)

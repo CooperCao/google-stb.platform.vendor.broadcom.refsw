@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 16:49:50 2016
- *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
+ * Date:           Generated on               Thu Feb  9 16:01:54 2017
+ *                 Full Compile MD5 Checksum  cee6108c58e448484410942883550e81
  *                     (minus title and desc)
- *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
+ *                 MD5 Checksum               d54bdb7bde6cfa02bdbc5a0140215813
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -192,9 +192,9 @@
 #define BCHP_GFD_0_CSC_R0_MC_COEFF_C24           0x20641350 /* [CFG][32] Color Space Conversion Mc Matrix Coefficients C24 */
 #define BCHP_GFD_0_NL2L_LUT_CTRL                 0x20641354 /* [CFG][32] NL2L LUT Control */
 #define BCHP_GFD_0_L2NL_LUT_CTRL                 0x20641374 /* [CFG][32] L2NL LUT Control */
-#define BCHP_GFD_0_GAMMA_LUT_CTRL                0x20641394 /* [CFG][32] Gamma LUT Control */
-#define BCHP_GFD_0_HLG_MULT_COEFF                0x206413b4 /* [CFG][32] HLG OOTF adjustment multiplicative coefficients */
-#define BCHP_GFD_0_HLG_ADD_COEFF                 0x206413b8 /* [CFG][32] HLG OOTF adjustment additive coefficients */
+#define BCHP_GFD_0_LMR_LUT_CTRL                  0x20641394 /* [CFG][32] LMR LUT Control */
+#define BCHP_GFD_0_LMR_MULT_COEFF                0x206413b4 /* [CFG][32] LMR adjustment multiplicative coefficients */
+#define BCHP_GFD_0_LMR_ADD_COEFF                 0x206413b8 /* [CFG][32] LMR adjustment additive coefficients */
 #define BCHP_GFD_0_HDR_SCB_RUL_STATUS            0x206413bc /* [RO][32] SCB RUL status information */
 
 /***************************************************************************
@@ -1686,12 +1686,12 @@
 #define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LRNG_ADJ_PRESENT_MODULE_NOT_PRESENT 0
 #define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LRNG_ADJ_PRESENT_MODULE_PRESENT 1
 
-/* GFD_0 :: HDR_HW_CONFIGURATION :: CFC_HLG_GAMMA_PRESENT [15:15] */
-#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_HLG_GAMMA_PRESENT_MASK 0x00008000
-#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_HLG_GAMMA_PRESENT_SHIFT 15
-#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_HLG_GAMMA_PRESENT_DEFAULT 0x00000001
-#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_HLG_GAMMA_PRESENT_MODULE_NOT_PRESENT 0
-#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_HLG_GAMMA_PRESENT_MODULE_PRESENT 1
+/* GFD_0 :: HDR_HW_CONFIGURATION :: CFC_LMR_PRESENT [15:15] */
+#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LMR_PRESENT_MASK       0x00008000
+#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LMR_PRESENT_SHIFT      15
+#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LMR_PRESENT_DEFAULT    0x00000001
+#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LMR_PRESENT_MODULE_NOT_PRESENT 0
+#define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_LMR_PRESENT_MODULE_PRESENT 1
 
 /* GFD_0 :: HDR_HW_CONFIGURATION :: CFC_TP_PRESENT [14:14] */
 #define BCHP_GFD_0_HDR_HW_CONFIGURATION_CFC_TP_PRESENT_MASK        0x00004000
@@ -1795,12 +1795,12 @@
 #define BCHP_GFD_0_NL_CSC_CTRL_DLBV_CVM_EN_DISABLE                 0
 #define BCHP_GFD_0_NL_CSC_CTRL_DLBV_CVM_EN_ENABLE                  1
 
-/* GFD_0 :: NL_CSC_CTRL :: HLG_ADJ_EN [13:13] */
-#define BCHP_GFD_0_NL_CSC_CTRL_HLG_ADJ_EN_MASK                     0x00002000
-#define BCHP_GFD_0_NL_CSC_CTRL_HLG_ADJ_EN_SHIFT                    13
-#define BCHP_GFD_0_NL_CSC_CTRL_HLG_ADJ_EN_DEFAULT                  0x00000000
-#define BCHP_GFD_0_NL_CSC_CTRL_HLG_ADJ_EN_DISABLE                  0
-#define BCHP_GFD_0_NL_CSC_CTRL_HLG_ADJ_EN_ENABLE                   1
+/* GFD_0 :: NL_CSC_CTRL :: LMR_ADJ_EN [13:13] */
+#define BCHP_GFD_0_NL_CSC_CTRL_LMR_ADJ_EN_MASK                     0x00002000
+#define BCHP_GFD_0_NL_CSC_CTRL_LMR_ADJ_EN_SHIFT                    13
+#define BCHP_GFD_0_NL_CSC_CTRL_LMR_ADJ_EN_DEFAULT                  0x00000000
+#define BCHP_GFD_0_NL_CSC_CTRL_LMR_ADJ_EN_DISABLE                  0
+#define BCHP_GFD_0_NL_CSC_CTRL_LMR_ADJ_EN_ENABLE                   1
 
 /* GFD_0 :: NL_CSC_CTRL :: LRANGE_ADJ_EN [12:12] */
 #define BCHP_GFD_0_NL_CSC_CTRL_LRANGE_ADJ_EN_MASK                  0x00001000
@@ -2713,90 +2713,90 @@
 
 
 /***************************************************************************
- *GAMMA_LUT_CTRL - Gamma LUT Control
+ *LMR_LUT_CTRL - LMR LUT Control
  ***************************************************************************/
-/* GFD_0 :: GAMMA_LUT_CTRL :: reserved0 [31:12] */
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_reserved0_MASK                   0xfffff000
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_reserved0_SHIFT                  12
+/* GFD_0 :: LMR_LUT_CTRL :: reserved0 [31:12] */
+#define BCHP_GFD_0_LMR_LUT_CTRL_reserved0_MASK                     0xfffff000
+#define BCHP_GFD_0_LMR_LUT_CTRL_reserved0_SHIFT                    12
 
-/* GFD_0 :: GAMMA_LUT_CTRL :: LUT_NUM_SEG [11:08] */
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_NUM_SEG_MASK                 0x00000f00
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_NUM_SEG_SHIFT                8
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_NUM_SEG_DEFAULT              0x00000001
+/* GFD_0 :: LMR_LUT_CTRL :: LUT_NUM_SEG [11:08] */
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_NUM_SEG_MASK                   0x00000f00
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_NUM_SEG_SHIFT                  8
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_NUM_SEG_DEFAULT                0x00000001
 
-/* GFD_0 :: GAMMA_LUT_CTRL :: reserved1 [07:05] */
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_reserved1_MASK                   0x000000e0
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_reserved1_SHIFT                  5
+/* GFD_0 :: LMR_LUT_CTRL :: reserved1 [07:05] */
+#define BCHP_GFD_0_LMR_LUT_CTRL_reserved1_MASK                     0x000000e0
+#define BCHP_GFD_0_LMR_LUT_CTRL_reserved1_SHIFT                    5
 
-/* GFD_0 :: GAMMA_LUT_CTRL :: LUT_OINT_BITS [04:03] */
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_OINT_BITS_MASK               0x00000018
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_OINT_BITS_SHIFT              3
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_OINT_BITS_DEFAULT            0x00000000
+/* GFD_0 :: LMR_LUT_CTRL :: LUT_OINT_BITS [04:03] */
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_OINT_BITS_MASK                 0x00000018
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_OINT_BITS_SHIFT                3
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_OINT_BITS_DEFAULT              0x00000000
 
-/* GFD_0 :: GAMMA_LUT_CTRL :: LUT_XSCL [02:00] */
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_XSCL_MASK                    0x00000007
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_XSCL_SHIFT                   0
-#define BCHP_GFD_0_GAMMA_LUT_CTRL_LUT_XSCL_DEFAULT                 0x00000000
+/* GFD_0 :: LMR_LUT_CTRL :: LUT_XSCL [02:00] */
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_XSCL_MASK                      0x00000007
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_XSCL_SHIFT                     0
+#define BCHP_GFD_0_LMR_LUT_CTRL_LUT_XSCL_DEFAULT                   0x00000000
 
 /***************************************************************************
- *GAMMA_LUT_SEG_CTRL%i - Gamma LUT Segment control
+ *LMR_LUT_SEG_CTRL%i - LMR LUT Segment control
  ***************************************************************************/
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_ARRAY_BASE                  0x20641398
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_ARRAY_START                 0
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_ARRAY_END                   6
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_ARRAY_ELEMENT_SIZE          32
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_ARRAY_BASE                    0x20641398
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_ARRAY_START                   0
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_ARRAY_END                     6
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_ARRAY_ELEMENT_SIZE            32
 
 /***************************************************************************
- *GAMMA_LUT_SEG_CTRL%i - Gamma LUT Segment control
+ *LMR_LUT_SEG_CTRL%i - LMR LUT Segment control
  ***************************************************************************/
-/* GFD_0 :: GAMMA_LUT_SEG_CTRLi :: reserved0 [31:29] */
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_reserved0_MASK              0xe0000000
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_reserved0_SHIFT             29
+/* GFD_0 :: LMR_LUT_SEG_CTRLi :: reserved0 [31:29] */
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_reserved0_MASK                0xe0000000
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_reserved0_SHIFT               29
 
-/* GFD_0 :: GAMMA_LUT_SEG_CTRLi :: LUT_SEG_INT_BITS [28:24] */
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_MASK       0x1f000000
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_SHIFT      24
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_DEFAULT    0x00000000
+/* GFD_0 :: LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_BITS [28:24] */
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_MASK         0x1f000000
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_SHIFT        24
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_BITS_DEFAULT      0x00000000
 
-/* GFD_0 :: GAMMA_LUT_SEG_CTRLi :: reserved1 [23:22] */
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_reserved1_MASK              0x00c00000
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_reserved1_SHIFT             22
+/* GFD_0 :: LMR_LUT_SEG_CTRLi :: reserved1 [23:22] */
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_reserved1_MASK                0x00c00000
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_reserved1_SHIFT               22
 
-/* GFD_0 :: GAMMA_LUT_SEG_CTRLi :: LUT_SEG_INT_OFFSET [21:11] */
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_MASK     0x003ff800
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_SHIFT    11
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_DEFAULT  0x00000000
+/* GFD_0 :: LMR_LUT_SEG_CTRLi :: LUT_SEG_INT_OFFSET [21:11] */
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_MASK       0x003ff800
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_SHIFT      11
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_INT_OFFSET_DEFAULT    0x00000000
 
-/* GFD_0 :: GAMMA_LUT_SEG_CTRLi :: LUT_SEG_END [10:00] */
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_END_MASK            0x000007ff
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_END_SHIFT           0
-#define BCHP_GFD_0_GAMMA_LUT_SEG_CTRLi_LUT_SEG_END_DEFAULT         0x00000000
+/* GFD_0 :: LMR_LUT_SEG_CTRLi :: LUT_SEG_END [10:00] */
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_MASK              0x000007ff
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_SHIFT             0
+#define BCHP_GFD_0_LMR_LUT_SEG_CTRLi_LUT_SEG_END_DEFAULT           0x00000000
 
 
 /***************************************************************************
- *HLG_MULT_COEFF - HLG OOTF adjustment multiplicative coefficients
+ *LMR_MULT_COEFF - LMR adjustment multiplicative coefficients
  ***************************************************************************/
-/* GFD_0 :: HLG_MULT_COEFF :: HLG_B [31:16] */
-#define BCHP_GFD_0_HLG_MULT_COEFF_HLG_B_MASK                       0xffff0000
-#define BCHP_GFD_0_HLG_MULT_COEFF_HLG_B_SHIFT                      16
-#define BCHP_GFD_0_HLG_MULT_COEFF_HLG_B_DEFAULT                    0x00000000
+/* GFD_0 :: LMR_MULT_COEFF :: LMR_B [31:16] */
+#define BCHP_GFD_0_LMR_MULT_COEFF_LMR_B_MASK                       0xffff0000
+#define BCHP_GFD_0_LMR_MULT_COEFF_LMR_B_SHIFT                      16
+#define BCHP_GFD_0_LMR_MULT_COEFF_LMR_B_DEFAULT                    0x00000000
 
-/* GFD_0 :: HLG_MULT_COEFF :: HLG_A [15:00] */
-#define BCHP_GFD_0_HLG_MULT_COEFF_HLG_A_MASK                       0x0000ffff
-#define BCHP_GFD_0_HLG_MULT_COEFF_HLG_A_SHIFT                      0
-#define BCHP_GFD_0_HLG_MULT_COEFF_HLG_A_DEFAULT                    0x00000000
+/* GFD_0 :: LMR_MULT_COEFF :: LMR_A [15:00] */
+#define BCHP_GFD_0_LMR_MULT_COEFF_LMR_A_MASK                       0x0000ffff
+#define BCHP_GFD_0_LMR_MULT_COEFF_LMR_A_SHIFT                      0
+#define BCHP_GFD_0_LMR_MULT_COEFF_LMR_A_DEFAULT                    0x00000000
 
 /***************************************************************************
- *HLG_ADD_COEFF - HLG OOTF adjustment additive coefficients
+ *LMR_ADD_COEFF - LMR adjustment additive coefficients
  ***************************************************************************/
-/* GFD_0 :: HLG_ADD_COEFF :: reserved0 [31:25] */
-#define BCHP_GFD_0_HLG_ADD_COEFF_reserved0_MASK                    0xfe000000
-#define BCHP_GFD_0_HLG_ADD_COEFF_reserved0_SHIFT                   25
+/* GFD_0 :: LMR_ADD_COEFF :: reserved0 [31:25] */
+#define BCHP_GFD_0_LMR_ADD_COEFF_reserved0_MASK                    0xfe000000
+#define BCHP_GFD_0_LMR_ADD_COEFF_reserved0_SHIFT                   25
 
-/* GFD_0 :: HLG_ADD_COEFF :: HLG_C [24:00] */
-#define BCHP_GFD_0_HLG_ADD_COEFF_HLG_C_MASK                        0x01ffffff
-#define BCHP_GFD_0_HLG_ADD_COEFF_HLG_C_SHIFT                       0
-#define BCHP_GFD_0_HLG_ADD_COEFF_HLG_C_DEFAULT                     0x00000000
+/* GFD_0 :: LMR_ADD_COEFF :: LMR_C [24:00] */
+#define BCHP_GFD_0_LMR_ADD_COEFF_LMR_C_MASK                        0x01ffffff
+#define BCHP_GFD_0_LMR_ADD_COEFF_LMR_C_SHIFT                       0
+#define BCHP_GFD_0_LMR_ADD_COEFF_LMR_C_DEFAULT                     0x00000000
 
 /***************************************************************************
  *HDR_SCB_RUL_STATUS - SCB RUL status information
@@ -2862,23 +2862,23 @@
 
 
 /***************************************************************************
- *GAMMA_LUT%i - HLG OOTF Gamma LUT
+ *LMR_LUT%i - LMR LUT
  ***************************************************************************/
-#define BCHP_GFD_0_GAMMA_LUTi_ARRAY_BASE                           0x20641ce4
-#define BCHP_GFD_0_GAMMA_LUTi_ARRAY_START                          0
-#define BCHP_GFD_0_GAMMA_LUTi_ARRAY_END                            255
-#define BCHP_GFD_0_GAMMA_LUTi_ARRAY_ELEMENT_SIZE                   32
+#define BCHP_GFD_0_LMR_LUTi_ARRAY_BASE                             0x20641ce4
+#define BCHP_GFD_0_LMR_LUTi_ARRAY_START                            0
+#define BCHP_GFD_0_LMR_LUTi_ARRAY_END                              255
+#define BCHP_GFD_0_LMR_LUTi_ARRAY_ELEMENT_SIZE                     32
 
 /***************************************************************************
- *GAMMA_LUT%i - HLG OOTF Gamma LUT
+ *LMR_LUT%i - LMR LUT
  ***************************************************************************/
-/* GFD_0 :: GAMMA_LUTi :: reserved0 [31:20] */
-#define BCHP_GFD_0_GAMMA_LUTi_reserved0_MASK                       0xfff00000
-#define BCHP_GFD_0_GAMMA_LUTi_reserved0_SHIFT                      20
+/* GFD_0 :: LMR_LUTi :: reserved0 [31:20] */
+#define BCHP_GFD_0_LMR_LUTi_reserved0_MASK                         0xfff00000
+#define BCHP_GFD_0_LMR_LUTi_reserved0_SHIFT                        20
 
-/* GFD_0 :: GAMMA_LUTi :: GAMMA_LUT_VAL [19:00] */
-#define BCHP_GFD_0_GAMMA_LUTi_GAMMA_LUT_VAL_MASK                   0x000fffff
-#define BCHP_GFD_0_GAMMA_LUTi_GAMMA_LUT_VAL_SHIFT                  0
+/* GFD_0 :: LMR_LUTi :: LMR_LUT_VAL [19:00] */
+#define BCHP_GFD_0_LMR_LUTi_LMR_LUT_VAL_MASK                       0x000fffff
+#define BCHP_GFD_0_LMR_LUTi_LMR_LUT_VAL_SHIFT                      0
 
 
 /***************************************************************************

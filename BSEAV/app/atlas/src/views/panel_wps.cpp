@@ -48,7 +48,7 @@ static int msg_box_bwidget_key_down(
         )
 {
     eRet            ret = eRet_NotAvailable; /* assume key is not consumed */
-    CPanelWps *  pPopup;
+    CPanelWps *     pPopup;
     blabel_settings labelSettings;
 
     blabel_get(widget, &labelSettings);
@@ -345,7 +345,7 @@ void CPanelWps::processNotification(CNotification & notification)
 {
     BSTD_UNUSED(notification);
 
-    switch(notification.getId())
+    switch (notification.getId())
     {
     case eNotify_Timeout:
     {
@@ -353,7 +353,7 @@ void CPanelWps::processNotification(CNotification & notification)
         if (&_timerProgress == pTimer)
         {
             uint16_t nOneSecond = 65535 / _maxSeconds;
-            uint16_t nLevel = _pProgress->getLevel() + nOneSecond;
+            uint16_t nLevel     = _pProgress->getLevel() + nOneSecond;
 
             _pProgress->setLevel(nLevel);
             if (nLevel > (65535 - (nOneSecond / 2)))
@@ -389,7 +389,7 @@ void CPanelWps::processNotification(CNotification & notification)
     case eNotify_NetworkWifiConnected:
         _pTextLabel2->setText("Connected!");
         _timerClose.start();
-    break;
+        break;
 
     case eNotify_NetworkWifiConnectFailure:
     case eNotify_NetworkWifiConnectFailureAssocReject:
@@ -412,5 +412,5 @@ void CPanelWps::processNotification(CNotification & notification)
         }
     }
     break;
-    }
-}
+    } /* switch */
+} /* processNotification */

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -281,8 +281,8 @@ b_rtp_reorder_pkt(brtp_t rtp, brtp_packet_t rtp_pkt)
     unsigned sequence;
     brtp_packet_t prev,p;
 
-        rtp->stats.packetsOutOfSequence++;
     sequence = B_RTP_PKT_SEQUENCE(rtp_pkt);
+    rtp->stats.packetsOutOfSequence++;
     diff = b_rtp_uint16_diff(sequence,rtp->state.next_sequence);
     if (diff<0) { /* old packet ingore it */
         if (rtp->state.old_cnt<100) {
@@ -291,6 +291,14 @@ b_rtp_reorder_pkt(brtp_t rtp, brtp_packet_t rtp_pkt)
             goto discard;
         } else { /* don't discard more than 100 packets in the row */
             BDBG_MSG(("b_rtp_reorder_pkt: %#lx resyncing sequence packet %u:%u %d",(unsigned long)rtp, sequence, rtp->state.next_sequence, diff));
+            {
+                uint16_t packetsLost;
+                packetsLost = B_RTP_PKT_SEQUENCE(rtp_pkt) - rtp->state.next_sequence;
+                rtp->stats.packetsLost += packetsLost;
+                rtp->stats.packetsLostBeforeErrorCorrection = rtp->stats.packetsLost;
+                rtp->stats.lossEvents += 1;
+                rtp->stats.lossEventsBeforeErrorCorrection = rtp->stats.lossEvents;
+            }
             b_rtp_process_pkt(rtp, rtp_pkt);
             rtp->state.old_cnt = 0; /* reset old_cnt */
             goto done;
@@ -326,13 +334,20 @@ b_rtp_reorder_pkt(brtp_t rtp, brtp_packet_t rtp_pkt)
         p = BLST_SQ_FIRST(&rtp->reordering);
         BDBG_ASSERT(p);
         BDBG_MSG(("b_rtp_reorder_pkt: %#lx applying pkt %u->%u (%d,%d)", (unsigned long)rtp, rtp->state.next_sequence, B_RTP_PKT_SEQUENCE(p), b_rtp_uint16_diff(B_RTP_PKT_SEQUENCE(p), rtp->state.next_sequence), diff));
+        {
+            rtp->stats.packetsLost += b_rtp_uint16_diff(B_RTP_PKT_SEQUENCE(p), rtp->state.next_sequence);
+            rtp->stats.packetsLostBeforeErrorCorrection = rtp->stats.packetsLost;
+            rtp->stats.lossEvents += 1;
+            rtp->stats.lossEventsBeforeErrorCorrection = rtp->stats.lossEvents;
+        }
         BLST_SQ_REMOVE_HEAD(&rtp->reordering, queue);
         b_rtp_process_pkt(rtp, p);
+
     }
 done:
     return;
 discard:
-        rtp->stats.packetsDiscarded++;
+    rtp->stats.packetsDiscarded++;
     BDBG_MSG(("b_rtp_reorder_pkt: %#lx discarding pkt", (unsigned long)rtp_pkt));
     batom_release(rtp_pkt->cookie);
     BLST_SQ_INSERT_HEAD(&rtp->free, rtp_pkt, queue);

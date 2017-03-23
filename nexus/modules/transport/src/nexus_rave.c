@@ -454,6 +454,8 @@ static void NEXUS_Rave_P_Finalizer(NEXUS_RaveHandle rave)
     NEXUS_OBJECT_ASSERT(NEXUS_Rave, rave);
     NEXUS_ASSERT_MODULE();
 
+    NEXUS_RaveErrorCounter_Uninit_priv(&rave->raveErrors);
+
     if (rave->raveHandle) {
         NEXUS_Rave_Disable_priv(rave);
         NEXUS_Rave_RemovePidChannel_priv(rave);
@@ -505,8 +507,6 @@ static void NEXUS_Rave_P_Finalizer(NEXUS_RaveHandle rave)
         rave->avsReference.itb_ptr = NULL;
     }
 #endif
-
-    NEXUS_RaveErrorCounter_Uninit_priv(&rave->raveErrors);
 
 #if NEXUS_RAVE_OUTPUT_CAPTURE_ENABLED
     if (rave->cap)

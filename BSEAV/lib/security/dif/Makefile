@@ -162,6 +162,8 @@ prep_security: prep_nexus
 	$(Q_)install -c -m 0755 $(COMMON_DRM_BIN_DEPS_LIST) $(NEXUS_BIN_DIR)
 	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/common_drm/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT),y)
+	$(Q_)echo [DIF..... building prdyhttp];
+	$(Q_)$(MAKE) -C $(BSEAV_TOP)/lib/playready/http install > $(LOG_REDIRECT_FILE)
 	$(Q_)echo [DIF..... copying playreadypk 2.5 and 3.0 lib...];
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk$(PREBLT_LIB_SUFFIX)_host.so $(NEXUS_BIN_DIR)
 	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(PRDY30_LIBDIR)/libplayready30pk.so $(NEXUS_BIN_DIR)

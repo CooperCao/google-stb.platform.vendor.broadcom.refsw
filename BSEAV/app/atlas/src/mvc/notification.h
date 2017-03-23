@@ -75,6 +75,7 @@ typedef enum eNotification
     eNotify_ChannelListLoad,     /* command  - load channel list */
     eNotify_ChannelListSave,     /* command  - save channel list */
     eNotify_ChannelListDump,     /* command  - dump channel list */
+    eNotify_GetChannelStats,     /* command  - get Channel Stats */
     eNotify_SetAudioProgram,     /* command  - change current audio pid */
     eNotify_SetAudioProcessing,  /* command  - change audio processing type */
 #ifdef CPUTEST_SUPPORT
@@ -111,6 +112,7 @@ typedef enum eNotification
     eNotify_NetworkWifiScanResultRetrieve,     /* command  - retrieve results of wifi network scan */
     eNotify_NetworkWifiConnectedNetworkStatus, /* command  - retrieve status of the currently connected network */
     eNotify_NetworkWifiConnect,                /* command  - connect to given wifi network */
+    eNotify_NetworkWifiGetConnectState,        /* command  - get connection state of current wifi network */
     eNotify_NetworkWifiDisconnect,             /* command  - disconnect from current wifi network */
 #ifdef NETAPP_SUPPORT
     eNotify_BluetoothDiscoveryStart,   /* command  - start bluetooth discovery */
@@ -196,6 +198,7 @@ typedef enum eNotification
     eNotify_NetworkWifiScanFailure,                   /* status   - wifi network scan failed */
     eNotify_NetworkWifiScanResult,                    /* status   - results of wifi network scan are available */
     eNotify_NetworkWifiConnectionStatus,              /* status   - wifi network connection status is available */
+    eNotify_NetworkWifiConnectState,                  /* status   - wifi network connection state */
     eNotify_NetworkWifiConnected,                     /* status   - wifi network has been connected */
     eNotify_NetworkWifiConnectAssocStart,             /* status   - wifi network connection association with AP started */
     eNotify_NetworkWifiConnectFailure,                /* status   - wifi network connection attempt failture */
@@ -221,6 +224,7 @@ typedef enum eNotification
     eNotify_DecodeStopped,            /* status   - a video or audio decode has stopped */
     eNotify_DiscoveredPlaylistsShown, /* status   - a discovered playlist has been displayed on console */
     eNotify_PlaylistShown,            /* status   - a playlist contents has been displayed on console */
+    eNotify_ChannelStatsShown,       /* status   - channel stats has been displayed on console */
 #if RF4CE_SUPPORT
     eNotify_AddRf4ceRemote,
     eNotify_DisplayRf4ceRemotes,

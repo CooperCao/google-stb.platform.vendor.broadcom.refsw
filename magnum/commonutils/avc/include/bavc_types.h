@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1023,6 +1023,43 @@ typedef struct BAVC_PTSInfo
     uint32_t uiDroppedFrameCount;
 
 } BAVC_PTSInfo;
+
+/***************************************************************************
+Summary:
+    Enum for specifying the HDR metadata type.
+
+Description:
+    This can be used by the VDC to decide how to program HDR hw based on the stream
+    HDR metadata.
+
+See Also:
+    BAVC_HdrMetadata
+****************************************************************************/
+typedef enum BAVC_HdrMetadataType
+{
+    BAVC_HdrMetadataType_eUnknown=0,
+    BAVC_HdrMetadataType_eDrpu,
+    BAVC_HdrMetadataType_eMax
+
+} BAVC_HdrMetadataType;
+
+/***************************************************************************
+Summary:
+    This data structure is passed with the mpeg data ready callback.
+
+Description:
+    This structure consists of the HDR metadata type, size and pointer.
+
+See Also:
+    BAVC_MFD_Picture
+****************************************************************************/
+typedef struct BAVC_HdrMetadata
+{
+    BAVC_HdrMetadataType    eType;
+    uint32_t                ulSize;
+    void                   *pData; /* should be NULL if eType is eUnknown */
+
+} BAVC_HdrMetadata;
 
 /***************************************************************************
 Summary:

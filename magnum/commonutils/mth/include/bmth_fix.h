@@ -49,13 +49,18 @@ extern "C" {
 Summary:
 	convert one fixed point value to another
 ***************************************************************************/
-uint32_t BMTH_FIX_SIGNED_CONVERT(uint32_t x, uint32_t inint, uint32_t infract, uint32_t outint, uint32_t outfract);
+uint32_t BMTH_FIX_SIGNED_CONVERT_isrsafe(uint32_t x, uint32_t inint, uint32_t infract, uint32_t outint, uint32_t outfract);
 
+#define BMTH_FIX_SIGNED_CONVERT(x, inint, infract, outint, outfract)  \
+	BMTH_FIX_SIGNED_CONVERT_isrsafe(x, inint, infract, outint, outfract)
 /***************************************************************************
 Summary:
 	convert one fixed point value to another
 ***************************************************************************/
-int64_t BMTH_FIX_SIGNED_CONVERT_64(int64_t x, uint32_t infract, uint32_t outfract);
+int64_t BMTH_FIX_SIGNED_CONVERT_64_isrsafe(int64_t x, uint32_t infract, uint32_t outfract);
+
+#define BMTH_FIX_SIGNED_CONVERT_64(x, infract, outfract)  \
+	BMTH_FIX_SIGNED_CONVERT_64_isrsafe(x, infract, outfract)
 
 /***************************************************************************
 Summary:
@@ -92,13 +97,17 @@ Summary:
 Summary:
 	fixed point operation multiply
 ***************************************************************************/
-uint32_t BMTH_FIX_SIGNED_MUL(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract);
+uint32_t BMTH_FIX_SIGNED_MUL_isrsafe(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract);
 
+#define BMTH_FIX_SIGNED_MUL(x, y, xint, xfract, yint, yfract, outint, outfract)   \
+	BMTH_FIX_SIGNED_MUL_isrsafe(x, y, xint, xfract, yint, yfract, outint, outfract)
 /***************************************************************************
 Summary:
 	fixed point operation multiply
 ***************************************************************************/
-int64_t BMTH_FIX_SIGNED_MUL_64(int64_t x, int64_t y, uint32_t xfract, uint32_t yfract, uint32_t outfract);
+int64_t BMTH_FIX_SIGNED_MUL_64_isrsafe(int64_t x, int64_t y, uint32_t xfract, uint32_t yfract, uint32_t outfract);
+#define BMTH_FIX_SIGNED_MUL_64(x, y, xint, xfract, yfract, outfract)   \
+	BMTH_FIX_SIGNED_MUL_64_isrsafe(x, y, xint, xfract, yfract, outfract)
 
 /***************************************************************************
 Summary:
@@ -107,9 +116,9 @@ Summary:
 #define BMTH_FIX_SIGNED_DIV(x, y, xint, xfract, yint, yfract, outint, outfract) \
 ( \
 	(uint32_t)(((outfract > ((xfract) - (yfract))) ? \
-					((int32_t)BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) << (outfract - (xfract - yfract))) : \
-					((int32_t)BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) >> ((xfract - yfract) - outfract))) / \
-			   (int32_t)BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract)) \
+					((int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) << (outfract - (xfract - yfract))) : \
+					((int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) >> ((xfract - yfract) - outfract))) / \
+			   (int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract)) \
 )
 
 
@@ -159,14 +168,18 @@ Summary:
 Summary:
 	sin, with linear interpolation
 ****************************************************************************/
-uint32_t BMTH_FIX_SIGNED_SIN(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract);
+uint32_t BMTH_FIX_SIGNED_SIN_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract);
+#define BMTH_FIX_SIGNED_SIN(x, xint, xfract, sinint, sinfract)   \
+	BMTH_FIX_SIGNED_SIN_isrsafe(x, xint, xfract, sinint, sinfract)
 
 
 /***************************************************************************
 Summary:
 	cos, with linear interpolation
 ****************************************************************************/
-uint32_t BMTH_FIX_SIGNED_COS(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract);
+uint32_t BMTH_FIX_SIGNED_COS_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract);
+#define BMTH_FIX_SIGNED_COS(x, xint, xfract, sinint, sinfract)   \
+	BMTH_FIX_SIGNED_COS_isrsafe(x, xint, xfract, sinint, sinfract)
 
 
 /***************************************************************************

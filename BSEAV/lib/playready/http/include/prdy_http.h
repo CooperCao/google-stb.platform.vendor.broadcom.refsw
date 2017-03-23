@@ -257,6 +257,14 @@ int32_t PRDY_HTTP_Client_Post (
     char *url                           /* [in] url to post to */
     );
 
+/* 'http 1.1 post' wrapper function
+*/
+int32_t PRDY_HTTP_Client_PostV1_1(
+    PRDY_HTTP_Engine* http,             /* [in] http engine instance */
+    char *url,                          /* [in] url to post to */
+    char *host_url                      /* [in] url to secure time server */
+    );
+
 /* handling function for the headers coming inbound from the server
 */
 int32_t PRDY_HTTP_Client_ReadResponseHdr (

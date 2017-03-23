@@ -3645,7 +3645,7 @@ static BERR_Code BDSP_Raaga_P_InitInterframeBuffer(void *pStageHandle)
 	return rc;
 }
 
-static BERR_Code BDSP_DSPCHN_P_SendVOMChangeCommand(
+static BERR_Code BDSP_Raaga_P_SendVOMChangeCommand(
 	void *pTaskHandle
 	)
 {
@@ -3658,14 +3658,14 @@ static BERR_Code BDSP_DSPCHN_P_SendVOMChangeCommand(
 	BDSP_Raaga  *pDevice= pRaagaTask->pContext->pDevice;
 
 
-	BDBG_ENTER (BDSP_DSPCHN_P_SendVOMChangeCommand);
+	BDBG_ENTER (BDSP_Raaga_P_SendVOMChangeCommand);
 	BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
 	pVOMTableInDRAM = (BDSP_VOM_Table *)pRaagaTask->pContext->contextMemInfo.sVomTableInfo.Buffer.pAddr;
 
 	if (NULL == pVOMTableInDRAM)
 	{
-		BDBG_ERR (("BDSP_DSPCHN_P_SendVOMChangeCommand :: The allocated address"
+		BDBG_ERR (("BDSP_Raaga_P_SendVOMChangeCommand :: The allocated address"
 			" for VOM table is not proper. Please check the allocation"
 			" in BDSP_MM_RequestMemoryAllocation"));
 
@@ -3817,7 +3817,7 @@ static BERR_Code BDSP_DSPCHN_P_SendVOMChangeCommand(
 		return BERR_TRACE(err);
 	}
 
-	BDBG_LEAVE (BDSP_DSPCHN_P_SendVOMChangeCommand);
+	BDBG_LEAVE (BDSP_Raaga_P_SendVOMChangeCommand);
 	return BERR_SUCCESS;
 }
 
@@ -4998,7 +4998,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 		}
 		BDBG_ASSERT(NULL != ((BDSP_RaagaTask *)pTaskHandle)->startSettings.primaryStage);
 
-		err = BDSP_P_GenNewCit(pTaskHandle);
+		err = BDSP_Raaga_P_GenCit(pTaskHandle);
 
 		if (BERR_SUCCESS != err)
 		{
@@ -5121,7 +5121,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 		}
 		BDBG_ASSERT(NULL != ((BDSP_RaagaTask *)pTaskHandle)->startSettings.primaryStage);
 
-		err =BDSP_P_GenNewVideoCit(pTaskHandle, BDSP_AlgorithmType_eVideoDecode);
+		err = BDSP_Raaga_P_GenVideoCit(pTaskHandle, BDSP_AlgorithmType_eVideoDecode);
 
 		if (BERR_SUCCESS != err)
 		{
@@ -5214,7 +5214,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 	pRaagaTask->eSchedulingGroup = BDSP_AF_P_eSchedulingGroup_IntrModeAxVidEncode;
 #endif
 
-		err =BDSP_P_GenNewVideoCit(pTaskHandle, BDSP_AlgorithmType_eVideoEncode);
+		err = BDSP_Raaga_P_GenVideoCit(pTaskHandle, BDSP_AlgorithmType_eVideoEncode);
 
 		if (BERR_SUCCESS != err)
 		{
@@ -5261,7 +5261,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 	{
 		BDBG_ASSERT(NULL != ((BDSP_RaagaTask *)pTaskHandle)->startSettings.primaryStage);
 
-		err = BDSP_P_GenNewScmCit(pTaskHandle);
+		err = BDSP_Raaga_P_GenScmCit(pTaskHandle);
 
 		if (BERR_SUCCESS != err)
 		{
@@ -5299,7 +5299,7 @@ BERR_Code BDSP_Raaga_P_StartTask(
 
 /*the above stuff came from create task to start task*/
 	/* Send VOM change Command */
-	BDSP_DSPCHN_P_SendVOMChangeCommand (pRaagaTask);
+	BDSP_Raaga_P_SendVOMChangeCommand (pRaagaTask);
 
 	BDBG_MSG(("Context Type = %d",pRaagaContext->settings.contextType));
 	BDBG_MSG(("Task Id = %d",pRaagaTask->taskId));
@@ -7729,7 +7729,7 @@ BERR_Code BDSP_Raaga_P_Open(
                 goto err_allocate_FWSharedMem;
             }
 
-            ret = BDSP_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
+            ret = BDSP_Raaga_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
             if (ret != BERR_SUCCESS)
             {
                 ret = BERR_TRACE(ret);
@@ -7744,7 +7744,7 @@ BERR_Code BDSP_Raaga_P_Open(
             }
         }
 #else
-        ret = BDSP_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
+        ret = BDSP_Raaga_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
 		if (ret != BERR_SUCCESS)
 		{
 			ret = BERR_TRACE(ret);
@@ -8172,7 +8172,7 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	/*Calculate the maximum Scratch, Interstage and Interstage Generic buffer*/
 	for(i32SchedulingGroupIndex=0; i32SchedulingGroupIndex<(int32_t)BDSP_AF_P_eSchedulingGroup_Max; i32SchedulingGroupIndex++)
 	{
-	    ret = BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(&ui32Scratch[i32SchedulingGroupIndex], &ui32InterStageIO[i32SchedulingGroupIndex], &ui32InterStageIOGen[i32SchedulingGroupIndex], &ui32NumCh[i32SchedulingGroupIndex], i32SchedulingGroupIndex, pUsage);
+	    ret = BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI(&ui32Scratch[i32SchedulingGroupIndex], &ui32InterStageIO[i32SchedulingGroupIndex], &ui32InterStageIOGen[i32SchedulingGroupIndex], &ui32NumCh[i32SchedulingGroupIndex], i32SchedulingGroupIndex, pUsage);
 	}
 	/* Allocation is done per DSP basis
 		Scratch buffer - 1
@@ -8193,7 +8193,7 @@ BERR_Code BDSP_Raaga_P_GetMemoryEstimate(
 	}
 
 	/*Calculate the FIRMWARE heap memory required by the system */
-	ret = BDSP_MM_P_GetFwMemRequired(pSettings, psDwnldMemInfo,(void *) pImgCache, false, pUsage);
+	ret = BDSP_Raaga_P_GetFwMemRequired(pSettings, psDwnldMemInfo,(void *) pImgCache, false, pUsage);
 	pEstimate->FirmwareMemory = psDwnldMemInfo->ui32AllocwithGuardBand;
 
 	/* Memory Allocated for Context - VOM table */

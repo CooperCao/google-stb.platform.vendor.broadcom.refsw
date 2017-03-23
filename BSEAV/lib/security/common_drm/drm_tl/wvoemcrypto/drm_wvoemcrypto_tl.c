@@ -128,6 +128,8 @@ static NEXUS_DmaJobHandle gWVClrJob;
 static BKNI_MutexHandle gWVClrMutex;
 static bool gWVClrQueued;
 
+static uint8_t *gWVUsageTable;
+
 #define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 #define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
 #define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
@@ -307,6 +309,12 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
         gWVClrMutex = NULL;
     }
 
+    if(gWVUsageTable != NULL)
+    {
+        SRAI_Memory_Free(gWVUsageTable);
+        gWVUsageTable = NULL;
+    }
+
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
     return Drm_Success;
 }
@@ -340,6 +348,7 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
     if(rc != Drm_Success)
     {
         BDBG_ERR(("%s - Error initializing module, Error :%d", __FUNCTION__,rc));
+        rc = Drm_Err;
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
     }
@@ -353,16 +362,19 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         goto ErrorExit;
     }
 
-    current_time = time(NULL);
-    container->basicIn[0] = current_time;
-    BDBG_MSG(("%s - current EPOCH time ld = '%ld' ", __FUNCTION__, current_time));
     /*
      * For the Usage Table, either we're going to read it from the rootfs
      * OR expect it to be created on the SAGE side and returned.
      * Therefore either way, allocate the max size
      * */
     /* shared block [0] is for the DRM bin file so use [1] */
-    container->blocks[1].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[1].data.ptr = gWVUsageTable;
     if(container->blocks[1].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error in allocating memory for encrypted Usage Table (on return)", __FUNCTION__));
@@ -391,6 +403,10 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
         goto ErrorExit;
     }
+
+    current_time = time(NULL);
+    container->basicIn[0] = current_time;
+    BDBG_MSG(("%s - current EPOCH time ld = '%ld' ", __FUNCTION__, current_time));
 
 #if DEBUG
     DRM_MSG_PRINT_BUF("Host side UT header (after reading or creating)", container->blocks[1].data.ptr, 144);
@@ -421,6 +437,7 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         if (gPadding == NULL)
         {
             BDBG_ERR(("%s - couldn't allocate memory for padding", __FUNCTION__));
+            rc = Drm_Err;
             goto ErrorExit;
         }
         BKNI_Memset(gPadding, 0x0,PADDING_SZ_16_BYTE);
@@ -457,6 +474,7 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         if(BKNI_CreateMutex(&gWVClrMutex) != BERR_SUCCESS)
         {
             BDBG_ERR(("%s - Error calling creating mutex", __FUNCTION__));
+            rc = Drm_Err;
             goto ErrorExit;
         }
     }
@@ -465,18 +483,41 @@ ErrorExit:
 
     if(container != NULL)
     {
-        /* if Usage Table existed, clean it's shared memory pointer */
-        if(container->blocks[1].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[1].data.ptr);
-            container->blocks[1].data.ptr = NULL;
-        }
         SRAI_Container_Free(container);
         container = NULL;
     }
 
-    if (*wvRc!= SAGE_OEMCrypto_SUCCESS)
+    if(*wvRc!= SAGE_OEMCrypto_SUCCESS)
     {
         rc =  Drm_Err;
+    }
+
+    if(rc != Drm_Success)
+    {
+        /* Cleanup if we are in an error condition */
+        if(gWVClrMutex != NULL)
+        {
+            BKNI_DestroyMutex(gWVClrMutex);
+            gWVClrMutex = NULL;
+        }
+
+        if (gWvClrDmaJobBlockSettingsList != NULL)
+        {
+            BKNI_Free(gWvClrDmaJobBlockSettingsList);
+            gWvClrDmaJobBlockSettingsList = NULL;
+        }
+
+        if (gPadding != NULL)
+        {
+            NEXUS_Memory_Free(gPadding);
+            gPadding = NULL;
+        }
+
+        if(gWVUsageTable != NULL)
+        {
+            SRAI_Memory_Free(gWVUsageTable);
+            gWVUsageTable = NULL;
+        }
     }
 
     BDBG_LEAVE(DRM_WVOemCrypto_Initialize);
@@ -2220,7 +2261,8 @@ DrmRC drm_WVOemCrypto_SelectKey(const uint32_t session,
 
     if (container->basicOut[0] != BERR_SUCCESS)
     {
-        BDBG_ERR(("%s - Command was sent succuessfully to loadkey but actual operation failed (0x%08x)", __FUNCTION__, container->basicOut[0]));
+        BDBG_ERR(("%s - Command was sent succuessfully to loadkey but actual operation failed (0x%08x, 0x%08x)", __FUNCTION__, container->basicOut[0],
+            container->basicOut[2]));
         rc = Drm_Err;
         goto ErrorExit;
     }
@@ -3015,18 +3057,6 @@ static DrmRC drm_WVOemCrypto_P_DecryptPatternBlock(uint32_t session,
     }
 
 ErrorExit:
-    /* Free the BTP buffer if a DMA job was executed */
-    if (gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
-    {
-        /* M2m Dma transfer happens at the last subsample */
-        if (gHostSessionCtx[session].btp_info.btp_sage_buffer)
-        {
-            BDBG_MSG(("%s  Freeing btp buffer 0x%08x", __FUNCTION__, gHostSessionCtx[session].btp_info.btp_sage_buffer ));
-            SRAI_Memory_Free( gHostSessionCtx[session].btp_info.btp_sage_buffer );
-            gHostSessionCtx[session].btp_info.btp_sage_buffer = NULL;
-        }
-    }
-
     BDBG_MSG(("%s: Free the container",__FUNCTION__));
 
     if(container != NULL)
@@ -3120,7 +3150,7 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
     *wvRc = SAGE_OEMCrypto_SUCCESS;
     bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
 
-    BDBG_ENTER(drm_WVOemCrypto_P_DecryptPatternBlock);
+    BDBG_ENTER(drm_WVOemCrypto_DecryptCTR_V10);
     BDBG_MSG(("%s: Input data len=%d,is_encrypted=%d, sf:%d, secure:%d",
                 __FUNCTION__, data_length,is_encrypted,subsample_flags, isSecureDecrypt));
 
@@ -3319,18 +3349,6 @@ DrmRC drm_WVOemCrypto_DecryptCTR_V10(uint32_t session,
     }
 
 ErrorExit:
-    /* Free the BTP buffer if a DMA job was executed */
-    if (gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
-    {
-        /* M2m Dma transfer happens at the last subsample */
-        if (gHostSessionCtx[session].btp_info.btp_sage_buffer)
-        {
-            BDBG_MSG(("%s  Freeing btp buffer 0x%08x", __FUNCTION__, gHostSessionCtx[session].btp_info.btp_sage_buffer ));
-            SRAI_Memory_Free( gHostSessionCtx[session].btp_info.btp_sage_buffer );
-            gHostSessionCtx[session].btp_info.btp_sage_buffer = NULL;
-        }
-    }
-
     BDBG_MSG(("%s: Free the container",__FUNCTION__));
 
     if(container != NULL)
@@ -3349,7 +3367,7 @@ ErrorExit:
         rc = Drm_Err;
     }
 
-    BDBG_LEAVE(drm_WVOemCrypto_P_DecryptPatternBlock);
+    BDBG_LEAVE(drm_WVOemCrypto_DecryptCTR_V10);
 
     return rc;
 }
@@ -5721,7 +5739,12 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
         goto ErrorExit;
     }
 
-    container->blocks[0].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[0].data.ptr = gWVUsageTable;
     if(container->blocks[0].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error in allocating memory for encrypted Usage Table (%u bytes on return)", __FUNCTION__, MAX_USAGE_TABLE_SIZE));
@@ -5731,24 +5754,6 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
     }
     container->blocks[0].len = MAX_USAGE_TABLE_SIZE;
     BDBG_MSG(("%s -  %p -> length = '%u'", __FUNCTION__, container->blocks[0].data.ptr, container->blocks[0].len));
-
-    rc = DRM_WvOemCrypto_P_ReadUsageTable(container->blocks[0].data.ptr, &container->blocks[0].len);
-    if(rc == Drm_Success)
-    {
-        BDBG_MSG(("%s - Usage Table detected on rootfs and read into shared memory", __FUNCTION__));
-    }
-    else if(rc == Drm_FileErr)
-    {
-        BDBG_WRN(("%s - Usage Table not detected on rootfs, assuming initial creation...", __FUNCTION__));
-        container->basicIn[2] = OVERWRITE_USAGE_TABLE_ON_ROOTFS;
-        BKNI_Memset(container->blocks[1].data.ptr, 0x00, container->blocks[1].len);
-    }
-    else
-    {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
-        *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
-        goto ErrorExit;
-    }
 
     current_epoch_time = time(NULL);
     container->basicIn[0] = current_epoch_time;
@@ -5788,11 +5793,6 @@ DrmRC DRM_WVOemCrypto_UpdateUsageTable(int *wvRc)
 ErrorExit:
     if(container != NULL)
     {
-        if(container->blocks[0].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[0].data.ptr);
-            container->blocks[0].data.ptr = NULL;
-        }
-
         SRAI_Container_Free(container);
         container = NULL;
     }
@@ -5851,11 +5851,6 @@ DrmRC DRM_WVOemCrypto_DeactivateUsageEntry(uint8_t *pst,
         goto ErrorExit;
     }
 
-    /* fetch current epoch time */
-    current_epoch_time = time(NULL);
-    container->basicIn[0] = current_epoch_time;
-    BDBG_MSG(("%s - current EPOCH time ld = '%ld'", __FUNCTION__, current_epoch_time));
-
     /* Allocate memory for PST */
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(pst_length, SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
@@ -5869,9 +5864,14 @@ DrmRC DRM_WVOemCrypto_DeactivateUsageEntry(uint8_t *pst,
     BKNI_Memcpy(container->blocks[0].data.ptr, pst, pst_length);
 
     /*
-     * Allocate memory for a read Usage Table
+     * Assign memory for a read Usage Table
      * */
-    container->blocks[1].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[1].data.ptr = gWVUsageTable;
     if(container->blocks[1].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error in allocating memory for encrypted Usage Table (%u bytes on return)", __FUNCTION__, MAX_USAGE_TABLE_SIZE));
@@ -5881,24 +5881,10 @@ DrmRC DRM_WVOemCrypto_DeactivateUsageEntry(uint8_t *pst,
     }
     container->blocks[1].len = MAX_USAGE_TABLE_SIZE;
 
-    rc = DRM_WvOemCrypto_P_ReadUsageTable(container->blocks[1].data.ptr, &container->blocks[1].len);
-    if(rc == Drm_Success)
-    {
-        BDBG_MSG(("%s - Usage Table detected on rootfs and read into shared memory", __FUNCTION__));
-    }
-    else if(rc == Drm_FileErr)
-    {
-        BDBG_WRN(("%s - Usage Table not detected on rootfs, assuming initial creation...", __FUNCTION__));
-        container->basicIn[2] = OVERWRITE_USAGE_TABLE_ON_ROOTFS;
-        BKNI_Memset(container->blocks[1].data.ptr, 0x00, container->blocks[1].len);
-    }
-    else
-    {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
-        *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
-        goto ErrorExit;
-    }
-
+    /* fetch current epoch time */
+    current_epoch_time = time(NULL);
+    container->basicIn[0] = current_epoch_time;
+    BDBG_MSG(("%s - current EPOCH time ld = '%ld'", __FUNCTION__, current_epoch_time));
 
     /* send command to SAGE */
     sage_rc = SRAI_Module_ProcessCommand(gmoduleHandle, DrmWVOEMCrypto_CommandId_eDeactivateUsageEntry, container);
@@ -5942,12 +5928,6 @@ ErrorExit:
             SRAI_Memory_Free(container->blocks[0].data.ptr);
             container->blocks[0].data.ptr = NULL;
         }
-
-        if(container->blocks[1].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[1].data.ptr);
-            container->blocks[1].data.ptr = NULL;
-        }
-
         SRAI_Container_Free(container);
         container = NULL;
     }
@@ -6029,11 +6009,6 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
 
     container->basicIn[0] = sessionContext;
 
-    /* fetch current epoch time */
-    current_epoch_time = time(NULL);
-    container->basicIn[1] = current_epoch_time;
-    BDBG_MSG(("%s - current EPOCH time ld = '%ld'", __FUNCTION__, current_epoch_time));
-
     /* allocate memory for PST */
     container->blocks[0].data.ptr = SRAI_Memory_Allocate(pst_length, SRAI_MemoryType_Shared);
     if(container->blocks[0].data.ptr == NULL)
@@ -6061,9 +6036,14 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
     BKNI_Memset(container->blocks[1].data.ptr, 0x00, (*buffer_length));
 
     /*
-     * allocate memory to return UsageTable
+     * assign memory to return UsageTable
      * */
-    container->blocks[2].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[2].data.ptr = gWVUsageTable;
     if(container->blocks[2].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error allocating memory for returned Usage Table", __FUNCTION__));
@@ -6072,7 +6052,11 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
         goto ErrorExit;
     }
     container->blocks[2].len = MAX_USAGE_TABLE_SIZE;
-    BKNI_Memset(container->blocks[2].data.ptr, 0x00, MAX_USAGE_TABLE_SIZE);
+
+    /* fetch current epoch time */
+    current_epoch_time = time(NULL);
+    container->basicIn[1] = current_epoch_time;
+    BDBG_MSG(("%s - current EPOCH time ld = '%ld'", __FUNCTION__, current_epoch_time));
 
     /*
      * send command to SAGE
@@ -6123,12 +6107,6 @@ ErrorExit:
             SRAI_Memory_Free(container->blocks[1].data.ptr);
             container->blocks[1].data.ptr = NULL;
         }
-
-        if(container->blocks[2].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[2].data.ptr);
-            container->blocks[2].data.ptr = NULL;
-        }
-
         SRAI_Container_Free(container);
         container = NULL;
     }
@@ -6220,11 +6198,6 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
 
     container->basicIn[0] = sessionContext;
 
-    /* fetch current epoch time */
-    current_epoch_time = time(NULL);
-    BDBG_MSG(("%s - current Epoch time = '%u' <<<<<<", __FUNCTION__, (unsigned)current_epoch_time));
-    container->basicIn[1] = current_epoch_time;
-
     /*
      * allocate memory for pst and copy to container
      * */
@@ -6268,9 +6241,14 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
     BKNI_Memcpy(container->blocks[2].data.ptr, signature, signature_length);
 
     /*
-     * allocate memory to return UsageTable
+     * assign memory to return UsageTable
      * */
-    container->blocks[3].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[3].data.ptr = gWVUsageTable;
     if(container->blocks[3].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error allocating memory for Signature", __FUNCTION__));
@@ -6279,38 +6257,11 @@ DrmRC DRM_WVOemCrypto_DeleteUsageEntry(uint32_t sessionContext,
         goto ErrorExit;
     }
     container->blocks[3].len = MAX_USAGE_TABLE_SIZE;
-    BKNI_Memset(container->blocks[3].data.ptr, 0x00, MAX_USAGE_TABLE_SIZE);
 
-    /*
-     * Allocate memory for usage table
-     * */
-    container->blocks[4].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
-    if(container->blocks[4].data.ptr == NULL)
-    {
-        BDBG_ERR(("%s - Error in allocating memory for encrypted Usage Table (%u bytes on return)", __FUNCTION__, MAX_USAGE_TABLE_SIZE));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
-        goto ErrorExit;
-    }
-    container->blocks[4].len = MAX_USAGE_TABLE_SIZE;
-
-    rc = DRM_WvOemCrypto_P_ReadUsageTable(container->blocks[4].data.ptr, &container->blocks[4].len);
-    if(rc == Drm_Success)
-    {
-        BDBG_MSG(("%s - Usage Table detected on rootfs and read into shared memory", __FUNCTION__));
-    }
-    else if(rc == Drm_FileErr)
-    {
-        BDBG_WRN(("%s - Usage Table not detected on rootfs, assuming initial creation...", __FUNCTION__));
-        container->basicIn[2] = OVERWRITE_USAGE_TABLE_ON_ROOTFS;
-        BKNI_Memset(container->blocks[1].data.ptr, 0x00, container->blocks[1].len);
-    }
-    else
-    {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
-        *wvRc = SAGE_OEMCrypto_ERROR_INIT_FAILED ;
-        goto ErrorExit;
-    }
+    /* fetch current epoch time */
+    current_epoch_time = time(NULL);
+    BDBG_MSG(("%s - current Epoch time = '%u' <<<<<<", __FUNCTION__, (unsigned)current_epoch_time));
+    container->basicIn[1] = current_epoch_time;
 
     /*
      * send command to SAGE
@@ -6362,17 +6313,6 @@ ErrorExit:
             SRAI_Memory_Free(container->blocks[2].data.ptr);
             container->blocks[2].data.ptr = NULL;
         }
-
-        if(container->blocks[3].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[3].data.ptr);
-            container->blocks[3].data.ptr = NULL;
-        }
-
-        if(container->blocks[4].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[4].data.ptr);
-            container->blocks[4].data.ptr = NULL;
-        }
-
         SRAI_Container_Free(container);
         container = NULL;
     }
@@ -6428,14 +6368,15 @@ DrmRC DRM_WVOemCrypto_DeleteUsageTable(int *wvRc)
         goto ErrorExit;
     }
 
-    current_epoch_time = time(NULL);
-    container->basicIn[0] = current_epoch_time;
-    BDBG_MSG(("%s - current EPOCH time ld = '%ld'", __FUNCTION__, current_epoch_time));
-
     /*
-     * Allocate memory for NEW usage table
+     * Assign memory for NEW usage table
      * */
-    container->blocks[0].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[0].data.ptr = gWVUsageTable;
     if(container->blocks[0].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error in allocating memory for encrypted Usage Table (%u bytes on return)", __FUNCTION__, MAX_USAGE_TABLE_SIZE));
@@ -6445,6 +6386,9 @@ DrmRC DRM_WVOemCrypto_DeleteUsageTable(int *wvRc)
     }
     container->blocks[0].len = MAX_USAGE_TABLE_SIZE;
 
+    current_epoch_time = time(NULL);
+    container->basicIn[0] = current_epoch_time;
+    BDBG_MSG(("%s - current EPOCH time ld = '%ld'", __FUNCTION__, current_epoch_time));
 
     /*
      * send command to SAGE to wipe Usage Table memory
@@ -6481,11 +6425,6 @@ ErrorExit:
 
     if(container != NULL)
     {
-        if(container->blocks[0].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[0].data.ptr);
-            container->blocks[0].data.ptr = NULL;
-        }
-
         SRAI_Container_Free(container);
         container = NULL;
     }
@@ -7091,12 +7030,6 @@ DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
         goto ErrorExit;
     }
 
-
-    /* fetch current epoch time */
-    current_epoch_time = time(NULL);
-    BDBG_MSG(("%s - current Epoch time = '%lu' <<<<<<", __FUNCTION__, current_epoch_time));
-    container->basicIn[0] = current_epoch_time;
-
     /*
      * allocate memory for pst and copy to container
      * */
@@ -7112,9 +7045,14 @@ DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
     BKNI_Memcpy(container->blocks[0].data.ptr, pst, pst_length);
 
     /*
-     * allocate memory to return UsageTable
+     * assign memory to return UsageTable
      * */
-    container->blocks[1].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    if(gWVUsageTable == NULL)
+    {
+        gWVUsageTable = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
+    }
+
+    container->blocks[1].data.ptr = gWVUsageTable;
     if(container->blocks[1].data.ptr == NULL)
     {
         BDBG_ERR(("%s - Error allocating memory for Signature", __FUNCTION__));
@@ -7123,38 +7061,11 @@ DrmRC DRM_WVOemCrypto_ForceDeleteUsageEntry( const uint8_t* pst,
         goto ErrorExit;
     }
     container->blocks[1].len = MAX_USAGE_TABLE_SIZE;
-    BKNI_Memset(container->blocks[1].data.ptr, 0x00, MAX_USAGE_TABLE_SIZE);
 
-    /*
-     * Allocate memory for usage table
-     * */
-    container->blocks[2].data.ptr = SRAI_Memory_Allocate(MAX_USAGE_TABLE_SIZE, SRAI_MemoryType_Shared);
-    if(container->blocks[2].data.ptr == NULL)
-    {
-        BDBG_ERR(("%s - Error in allocating memory for encrypted Usage Table (%u bytes on return)", __FUNCTION__, MAX_USAGE_TABLE_SIZE));
-        rc = Drm_Err;
-        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
-        goto ErrorExit;
-    }
-    container->blocks[2].len = MAX_USAGE_TABLE_SIZE;
-
-    rc = DRM_WvOemCrypto_P_ReadUsageTable(container->blocks[2].data.ptr, &container->blocks[2].len);
-    if(rc == Drm_Success)
-    {
-        BDBG_MSG(("%s - Usage Table detected on rootfs and read into shared memory", __FUNCTION__));
-    }
-    else if(rc == Drm_FileErr)
-    {
-        BDBG_WRN(("%s - Usage Table not detected on rootfs, nothing to delete...", __FUNCTION__));
-        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
-        goto ErrorExit;
-    }
-    else
-    {
-        BDBG_ERR(("%s - Usage Table detected on rootfs but error occurred reading it.", __FUNCTION__));
-        *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE ;
-        goto ErrorExit;
-    }
+    /* fetch current epoch time */
+    current_epoch_time = time(NULL);
+    BDBG_MSG(("%s - current Epoch time = '%lu' <<<<<<", __FUNCTION__, current_epoch_time));
+    container->basicIn[0] = current_epoch_time;
 
     /*
      * send command to SAGE
@@ -7202,17 +7113,6 @@ ErrorExit:
             SRAI_Memory_Free(container->blocks[0].data.ptr);
             container->blocks[0].data.ptr = NULL;
         }
-
-        if(container->blocks[1].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[1].data.ptr);
-            container->blocks[1].data.ptr = NULL;
-        }
-
-        if(container->blocks[2].data.ptr != NULL){
-            SRAI_Memory_Free(container->blocks[2].data.ptr);
-            container->blocks[2].data.ptr = NULL;
-        }
-
        SRAI_Container_Free(container);
         container = NULL;
     }

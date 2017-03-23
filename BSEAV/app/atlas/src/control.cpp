@@ -688,6 +688,13 @@ void CControl::onIdle()
                 pChannel = pChannelLast;
             }
             tuneChannel(pChannel, eWindowType_Main);
+
+            /* restore last tuned channel - last channel gets overwritten
+               when untuning prior to powering off (s1/s2/s3).  we save
+               the current last channel first so we can restor it here.
+               using the "last" channel remote button will then work the
+               same both before power off and after power on */
+            _pModel->restoreLastTunedChannelPowerSave();
         }
     }
     else
@@ -863,6 +870,10 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_ChUp:
         channelUp();
+        break;
+
+    case eNotify_GetChannelStats:
+        getChannelStats();
         break;
 
     case eNotify_ChDown:
@@ -1650,6 +1661,7 @@ void CControl::processNotification(CNotification & notification)
     case eNotify_NetworkWifiConnect:
     case eNotify_NetworkWifiDisconnect:
     case eNotify_NetworkWifiConnectionStatus:
+    case eNotify_NetworkWifiGetConnectState:
     {
         CBoardResources * pBoardResources = _pConfig->getBoardResources();
 #ifdef NETAPP_SUPPORT
@@ -1687,7 +1699,7 @@ void CControl::processNotification(CNotification & notification)
                 CHECK_ERROR_GOTO("unable to connect to wifi wps", ret, errorWifi);
             }
             else
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
             {
                 ret = pNetwork->connectWifi(pConnectData->_strSsid, pConnectData->_strPassword);
                 CHECK_ERROR_GOTO("unable to connect to wifi", ret, errorWifi);
@@ -1700,13 +1712,13 @@ void CControl::processNotification(CNotification & notification)
             CNetworkWifiConnectData * pConnectData = (CNetworkWifiConnectData *)notification.getData();
 
 #ifdef WPA_SUPPLICANT_SUPPORT
-            if (true == pConnectData->isWps())
+            if ((NULL != pConnectData) && (true == pConnectData->isWps()))
             {
                 ret = pNetwork->disconnectWps();
                 CHECK_ERROR_GOTO("unable to disconnect to wifi wps", ret, errorWifi);
             }
             else
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
             {
                 pNetwork->stopScanWifi();
                 ret = pNetwork->disconnectWifi();
@@ -1734,6 +1746,19 @@ void CControl::processNotification(CNotification & notification)
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
         }
         break;
+
+        case eNotify_NetworkWifiGetConnectState:
+        {
+#ifdef WPA_SUPPLICANT_SUPPORT
+            CWifi * pWifi = (CWifi *)pBoardResources->checkoutResource(_id, eBoardResource_wifi);
+
+            if (NULL != pWifi)
+            {
+                pWifi->notifyConnectedState();
+                pBoardResources->checkinResource(pWifi);
+            }
+#endif
+        }
         default:
             break;
         }   /* switch */
@@ -2030,7 +2055,7 @@ eRet CControl::unTuneChannel(
     if (false == pChannel->isTuned())
     {
         /* We should return OK because Channels may fail to tune and may untune themselves. Specially Channels
-           that are use ASYNC calls. */
+         * that are use ASYNC calls. */
         BDBG_WRN((" Already untuned channel"));
         ret = eRet_Ok;
         goto error;
@@ -2213,6 +2238,7 @@ eRet CControl::decodeChannel(
     CCablecard * pCablecard = NULL;
 #endif
 
+    BDBG_MSG(("entering CControl::decodeChannel()"));
     if (0 < GET_INT(_pCfg, MAXDATARATE_PARSERBAND))
     {
         if (NULL != pChannel->getParserBand())
@@ -2223,12 +2249,21 @@ eRet CControl::decodeChannel(
         }
     }
 
+    /* verify cached pids or psi scan if pids are missing */
     {
+        CPidMgr * pPidMgr = pChannel->getPidMgr();
+
         pChannel->setStc(pStc);
         pVideoPid = pChannel->getPid(0, ePidType_Video);
         pAudioPid = pChannel->getPid(0, ePidType_Audio);
 
-        if ((NULL == pVideoPid) && (NULL == pAudioPid))
+        if ((NULL == pVideoPid) && (NULL == pAudioPid) && (true == pPidMgr->isImmutable()))
+        {
+            BDBG_ERR(("channel has NO pids and is marked immutable - this should not occur.  channels marked immutable must have pids specified in the channels.xml file."));
+            BDBG_ASSERT(false);
+        }
+
+        if (false == pPidMgr->isImmutable())
         {
             /*
              * coverity[stack_use_local_overflow]
@@ -2237,45 +2272,76 @@ eRet CControl::decodeChannel(
             CHANNEL_INFO_T chanInfo;
             int            minor = 1;
 
+            memset(&chanInfo, 0, sizeof(chanInfo));
+
             /* no pids - let's look for some */
 
             /* get PSI channel info for current tuned channel */
             ret = pChannel->getChannelInfo(&chanInfo, true);
-            CHECK_WARN_GOTO("PSI channel info retrieval failed", ret, error);
+            CHECK_WARN("PSI channel info retrieval failed", ret);
 
             /*pChannel->unTune(_pConfig);*/
 
+            BDBG_WRN(("getChannelInfo() found %d programs", chanInfo.num_programs));
             if (0 < chanInfo.num_programs)
             {
                 CChannel * pChNew = NULL;
-                pChNew = pChannel->createCopy(pChannel);
-                CHECK_PTR_ERROR_GOTO("error copying channel object", pChNew, ret, eRet_OutOfMemory, error);
+                int        i      = 0;
 
-                /* update missing pid info in current channel */
-                pChannel->initialize(&chanInfo.program_info[0]);
-                pChannel->setMinor(minor);
-                minor++;
+                BDBG_MSG(("verify cached pids..."));
 
-                /* try to add additional found programs if valid */
-                for (int i = 1; i < chanInfo.num_programs; i++)
+                /* verify current channel pids exist in chanInfo */
+                for (i = 0; i < chanInfo.num_programs; i++)
                 {
-                    /* since all these channels share a common frequency, we'll assign minor
-                     * channel numbers here (minor numbers start at 1) */
-                    pChNew->initialize(&chanInfo.program_info[i]);
-                    pChNew->setMinor(minor);
-
-                    /* try adding channel to channel list */
-                    if (eRet_Ok == addChannelToChList(pChNew))
+                    if (true == pChannel->verify(&chanInfo.program_info[i]))
                     {
-                        minor++;
+                        BDBG_MSG(("verified cached pid matches stream!"));
+                        break;
                     }
                 }
 
-                /* newly added channels are probably out of order with respect to the
-                 * other existing channels, so we'll sort */
-                _pChannelMgr->sortChannelList();
+                if (chanInfo.num_programs == i)
+                {
+                    /* channel pids do not match PSI channel info */
 
-                delete pChNew;
+                    /* remove channels with same major channel number from channel manager.
+                       we will then add channels based on the new channel info. */
+                    BDBG_MSG(("remove extra major channels (major:%d)", pChannel->getMajor()));
+                    _pChannelMgr->removeOtherMajorChannels(pChannel);
+
+                    /* update missing pid info in current channel */
+                    pChannel->initialize(&chanInfo.program_info[0]);
+                    pChannel->setMinor(minor);
+                    minor++;
+
+                    /* we have rescanned psi data and possibly changed the minor channel number
+                       so set the current channel again */
+                    _pModel->setCurrentChannel(pChannel, windowType);
+
+                    pChNew = pChannel->createCopy(pChannel);
+                    CHECK_PTR_ERROR_GOTO("error copying channel object", pChNew, ret, eRet_OutOfMemory, error);
+
+                    /* try to add additional found programs if valid */
+                    for (int i = 1; i < chanInfo.num_programs; i++)
+                    {
+                        /* since all these channels share a common frequency, we'll assign minor
+                         * channel numbers here (minor numbers start at 1) */
+                        pChNew->initialize(&chanInfo.program_info[i]);
+                        pChNew->setMinor(minor);
+
+                        /* try adding channel to channel list */
+                        if (eRet_Ok == addChannelToChList(pChNew))
+                        {
+                            minor++;
+                        }
+                    }
+
+                    /* newly added channels are probably out of order with respect to the
+                     * other existing channels, so we'll sort */
+                    _pChannelMgr->sortChannelList();
+
+                    delete pChNew;
+                }
             }
 
             /* Get Pids again */
@@ -2286,6 +2352,7 @@ eRet CControl::decodeChannel(
         ret = pChannel->openPids(pAudioDecode, pVideoDecode);
         CHECK_ERROR_GOTO("Issue Opening Pids for this Channel", ret, error);
     }
+
 #if DVR_LIB_SUPPORT
     if (getDvrMgr())
     {
@@ -2639,7 +2706,6 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     CRecord *            pRecord         = NULL;
     eWindowType          windowType      = eWindowType_Main;
     MString              indexName;
-    MString              strPath;
 
 #if NEXUS_HAS_SECURITY
     NEXUS_SecurityAlgorithm algo = NEXUS_SecurityAlgorithm_eMax;
@@ -2717,19 +2783,17 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     /* Check Path */
     if ((pRecordData != NULL) && ((false == pRecordData->_strPath.isEmpty())))
     {
-        strPath = pRecordData->_strPath;
-        video->setVideosPath(strPath);
+        video->setVideosPath(pRecordData->_strPath);
     }
     BDBG_MSG(("Video Path = %s", video->getVideosPath().s()));
 
-    /* Check Video Name */
+    /* Check to see if this is a Lua command or just default */
     if ((pRecordData == NULL) || ((NULL == pRecordData->_strFileName) || pRecordData->_strFileName.isEmpty()))
     {
         video->setVideoName(pPlaybackList->getNextAtlasName());
     }
     else
     {
-        BDBG_MSG(("Setting Record File Name to %s", pRecordData->_strFileName.s()));
         video->setVideoName(pRecordData->_strFileName);
     }
 
@@ -2748,16 +2812,41 @@ eRet CControl::recordStart(CRecordData * pRecordData)
             pVideoPid->encrypt(algo, NULL, true);
         }
 #endif /* if NEXUS_HAS_SECURITY */
-        /* indexName is the same as fileName */
-        indexName = video->getVideoName();
-        indexName.truncate(video->getVideoName().find(".", 0, false));
-        indexName = indexName+".nav";
-        video->setIndexName(indexName);
+        /* check for Index Name and Index Path from LUA ()*/
+        if((pRecordData == NULL) || (NULL == pRecordData->_strIndexName) || pRecordData->_strIndexName.isEmpty())
+        {
+            indexName = video->getVideoName();
+            indexName.truncate(video->getVideoName().find(".", 0, false));
+            indexName = indexName+".nav";
+            video->setIndexName(indexName);
+            video->setIndexRequired(true);
+        }
+        else
+        {
+            video->setIndexName(pRecordData->_strIndexName);
+            video->setIndexRequired(true);
+        }
+
+        if((pRecordData == NULL) || (NULL == pRecordData->_strIndexPath) || pRecordData->_strIndexPath.isEmpty())
+        {
+            video->setIndexPath(video->getVideosPath());
+        } else
+        {
+            video->setIndexPath(pRecordData->_strIndexPath);
+        }
     }
     else
     {
+        /*Audio Stream */
         video->setIndexName(video->getVideoName());
+        video->setIndexRequired(false);
     }
+
+    BDBG_MSG(("Setting Record File Name to %s", video->getVideoName().s()));
+    BDBG_MSG(("Setting Record Index File Name to %s", video->getIndexName().s()));
+    BDBG_MSG(("Setting Record Videos Path to %s", video->getVideosPath().s()));
+    BDBG_MSG(("Setting Record Index Path to %s", video->getIndexPath().s()));
+    BDBG_MSG(("Setting Record to Encrypt: %s", video->isEncrypted()?"yes":"no"));
 
     pAudioPid = pRecord->getPid(0, ePidType_Audio);
     if (pAudioPid)
@@ -3411,6 +3500,37 @@ eRet CControl::displayRf4ceRemotes()
 }
 
 #endif /* if RF4CE_SUPPORT */
+
+eRet CControl::getChannelStats()
+{
+    eRet       ret          = eRet_Ok;
+    CChannel * pChannel     = NULL;
+    MString    strChNum;
+
+    /* attempt to find deferred channel number if it exists */
+    strChNum = _pModel->getDeferredChannelNum();
+    if (false == strChNum.isEmpty())
+    {
+        pChannel = _pChannelMgr->findChannel(strChNum.s());
+    }
+
+    if (NULL == pChannel)
+    {
+        /* no deferred channel so use current channel */
+        pChannel = _pModel->getCurrentChannel();
+        if (NULL == pChannel)
+        {
+            /* no current channel so use last tuned channel */
+            pChannel = _pModel->getLastTunedChannel();
+        }
+    }
+
+    CHECK_PTR_ERROR_GOTO("Unable to get Channel for Channel Stats", pChannel, ret, eRet_NotAvailable, error);
+    pChannel->getStats();
+
+error:
+    return(ret);
+} /* getChannelStats */
 
 eRet CControl::channelUp()
 {
@@ -4729,6 +4849,8 @@ ePowerMode CControl::getPowerMode()
     return(mode);
 }
 
+/* used by setPowerMode() - we leave auto discovery alone since it does not touch
+   hard drive */
 eRet CControl::ipServerStart()
 {
     eRet                   ret                  = eRet_Ok;
@@ -4740,27 +4862,38 @@ eRet CControl::ipServerStart()
     /* start atlas server manager */
     if (NULL != pServerMgr)
     {
-        ret = pServerMgr->startHttpServer();
-        CHECK_ERROR_GOTO("unable to start ip http server", ret, error);
-        ret = pServerMgr->startPlaylistServer();
-        CHECK_ERROR_GOTO("unable to start ip playlist server", ret, error);
+        if (false == pServerMgr->isHttpServerStarted())
+        {
+            ret = pServerMgr->startHttpServer();
+            CHECK_ERROR_GOTO("unable to start ip http server", ret, error);
 
-        /* Start UDP Streamer, optional */
-        pServerMgr->startUdpServer();
+            ret = pServerMgr->startPlaylistServer();
+            CHECK_ERROR_GOTO("unable to start ip playlist server", ret, error);
+        }
+
+        if (false == pServerMgr->isUdpServerStarted())
+        {
+            /* Start UDP Streamer, optional */
+            pServerMgr->startUdpServer();
+        }
     }
 
+#if 0
     /* start auto discovery client */
     if (NULL != pAutoDiscoveryClient)
     {
         ret = pAutoDiscoveryClient->start();
         CHECK_ERROR_GOTO("unable to start auto discovery client object", ret, error);
     }
+#endif
 
 error:
     ATLAS_MEMLEAK_TRACE("END");
     return(ret);
 } /* ipServerStart */
 
+/* used by setPowerMode() - we leave auto discovery alone since it does not touch
+   hard drive */
 eRet CControl::ipServerStop()
 {
     eRet                   ret                  = eRet_Ok;
@@ -4770,21 +4903,30 @@ eRet CControl::ipServerStop()
     /* stop atlas server manager */
     if (NULL != pServerMgr)
     {
-        ret = pServerMgr->stopHttpServer();
-        CHECK_ERROR("unable to stop ip http server", ret);
-        ret = pServerMgr->stopPlaylistServer();
-        CHECK_ERROR("unable to stop ip playlist server", ret);
+        if (true == pServerMgr->isHttpServerStarted())
+        {
+            ret = pServerMgr->stopHttpServer();
+            CHECK_ERROR("unable to stop ip http server", ret);
 
-        /* optional */
-        pServerMgr->stopUdpServer();
+            ret = pServerMgr->stopPlaylistServer();
+            CHECK_ERROR("unable to stop ip playlist server", ret);
+        }
+
+        if (true == pServerMgr->isUdpServerStarted())
+        {
+            /* optional */
+            pServerMgr->stopUdpServer();
+        }
     }
 
+#if 0
     /* stop auto discovery client */
     if (NULL != pAutoDiscoveryClient)
     {
         ret = pAutoDiscoveryClient->stop();
         CHECK_ERROR_GOTO("unable to stop auto discovery client object", ret, error);
     }
+#endif
 
 error:
     return(ret);
@@ -4872,6 +5014,12 @@ eRet CControl::setPowerMode(ePowerMode mode)
 
             if ((NULL != pChannel) && (true == pChannel->isTuned()))
             {
+                /* before we untune, we will save the current "last" channel because
+                   the untune command will overwrite this with the current channel.
+                   we will then restore this saved last channel after transitioning
+                   to S0 mode.  see FIRST_TUNE */
+                _pModel->saveLastTunedChannelPowerSave();
+
                 ret = unTuneChannel(pChannel, true);
                 CHECK_ERROR_GOTO("unable to untune channel", ret, error);
             }

@@ -660,3 +660,47 @@ eRet CChannel::start(
 
     return(eRet_Ok);
 }
+
+/* Every Channel Needs to implement Channel Stats Function in order to expose certain Stats to Users*/
+void CChannel::getStats(void)
+{
+    BDBG_WRN(("This channel does not support Channel Stats Currently"));
+    notifyObservers(eNotify_ChannelStatsShown, NULL);
+}
+
+/* verify that channel audio/video pids match pids in given program info.
+   absence of cchannel pids or program info pids will always return false. */
+bool CChannel::verify(PROGRAM_INFO_T * pProgramInfo)
+{
+    bool bValidVideo = false;
+    bool bValidAudio = false;
+    CPid * pVideoPid = getPid(0, ePidType_Video);
+    CPid * pAudioPid = getPid(0, ePidType_Audio);
+    int i = 0;
+
+    if (NULL != pVideoPid)
+    {
+        for (i = 0; pProgramInfo->num_video_pids > i; i++)
+        {
+            if (pVideoPid->getPid() == pProgramInfo->video_pids[i].pid)
+            {
+                break;
+            }
+        }
+        bValidVideo = (pProgramInfo->num_video_pids == i) ? false : true;
+    }
+
+    if (NULL != pAudioPid)
+    {
+        for (i = 0; pProgramInfo->num_audio_pids > i; i++)
+        {
+            if (pAudioPid->getPid() == pProgramInfo->audio_pids[i].pid)
+            {
+                break;
+            }
+        }
+        bValidAudio = (pProgramInfo->num_audio_pids == i) ? false : true;
+    }
+
+    return(bValidVideo && bValidAudio);
+}

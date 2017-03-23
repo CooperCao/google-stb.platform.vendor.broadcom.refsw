@@ -730,13 +730,14 @@ BERR_Code BXPT_Rave_OpenChannel(
 #endif
 
     BXPT_Rave_P_EnableInterrupts( hXpt );
-    BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eRave);
 
 #ifdef BCHP_XPT_RAVE_PUSH_TIMER_EN_CX_0_31
     BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_EN_CX_0_31, 0xFFFFFFFF );
     BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_EN_CX_32_47, 0xFFFF );
     BREG_Write32( lhRave->hReg, BCHP_XPT_RAVE_PUSH_TIMER_LOAD, 0xD304 );
 #endif
+
+    BXPT_P_ReleaseSubmodule(hXpt, BXPT_P_Submodule_eRave);
 
     return ExitCode;
 
@@ -835,30 +836,32 @@ BERR_Code BXPT_Rave_AllocCx(
     )
 {
     unsigned Index;
-
+    BERR_Code rc;
     BXPT_RaveCx_Handle ThisCtx = NULL;
 
     BDBG_ASSERT( hRave );
     BDBG_ASSERT( Context );
+    BXPT_P_AcquireSubmodule(hRave->lvXpt, BXPT_P_Submodule_eRave);
 
     if( pSettings->SoftRaveSrcCx )
     {
         if( GetNextSoftRaveContext( hRave, &Index ) != BERR_SUCCESS )
         {
             BDBG_ERR(( "No free soft contexts!" ));
-            return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            rc = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            goto error;
         }
 
         if( !(ThisCtx = allocContextHandle(hRave, Index)) )
         {
             BDBG_ERR(( "Can't allocate a soft context handle!" ));
-            return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            rc = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            goto error;
         }
         ThisCtx->externalItbAlloc = pSettings->ItbBlock!=NULL;
         ThisCtx->mma.itbBlock = pSettings->ItbBlock;
         ThisCtx->mma.itbBlockOffset = pSettings->ItbBlock ? pSettings->ItbBlockOffset : 0;
 
-        BXPT_P_AcquireSubmodule(hRave->lvXpt, BXPT_P_Submodule_eRave);
         return AllocSoftContext_Priv( pSettings->SoftRaveSrcCx, pSettings->SoftRaveMode, Index, Context );
     }
     else
@@ -866,13 +869,15 @@ BERR_Code BXPT_Rave_AllocCx(
         if( GetNextRaveContext( hRave, pSettings->RequestedType, &Index ) != BERR_SUCCESS )
         {
             BDBG_ERR(( "No free contexts!" ));
-            return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            rc = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            goto error;
         }
 
         if( !(ThisCtx = allocContextHandle(hRave, Index)) )
         {
             BDBG_ERR(( "Can't allocate a context handle!" ));
-            return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            rc = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+            goto error;
         }
         ThisCtx->externalCdbAlloc = pSettings->CdbBlock!=NULL;
         ThisCtx->externalItbAlloc = pSettings->ItbBlock!=NULL;
@@ -888,9 +893,12 @@ BERR_Code BXPT_Rave_AllocCx(
         ThisCtx->mma.cdbBlockOffset = pSettings->CdbBlock ? pSettings->CdbBlockOffset : 0;
         ThisCtx->mma.itbBlockOffset = pSettings->ItbBlock ? pSettings->ItbBlockOffset : 0;
 
-        BXPT_P_AcquireSubmodule(hRave->lvXpt, BXPT_P_Submodule_eRave);
         return AllocContext_Priv( hRave, pSettings->RequestedType, &(pSettings->BufferCfg), Index, Context );
     }
+
+error:
+    BXPT_P_ReleaseSubmodule(hRave->lvXpt, BXPT_P_Submodule_eRave);
+    return rc;
 }
 
 #if (!B_REFSW_MINIMAL)
@@ -1395,10 +1403,11 @@ BERR_Code BXPT_Rave_FreeContext(
 
         FreePicCounter( Context );
     }
-    BXPT_P_ReleaseSubmodule(((BXPT_Rave_Handle)(Context->vhRave))->lvXpt, BXPT_P_Submodule_eRave);
 
     /* Zero out the registers */
     InitContext( Context, NULL );
+    BXPT_P_ReleaseSubmodule(((BXPT_Rave_Handle)(Context->vhRave))->lvXpt, BXPT_P_Submodule_eRave);
+
     BKNI_Free((void *) Context);
     hRave->ContextTbl[Index] = NULL;
     return( ExitCode );

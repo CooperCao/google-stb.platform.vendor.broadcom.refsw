@@ -157,6 +157,7 @@ void NEXUS_HdmiOutput_SetNotifyAudioEvent_priv(
     /* called before Display NEXUS_VideoFormat change */
 NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(
     NEXUS_HdmiOutputHandle hdmiOutput,
+    BFMT_VideoFmt format,
     bool aspectRatioChangeOnly
     );
 

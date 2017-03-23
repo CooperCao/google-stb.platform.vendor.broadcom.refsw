@@ -707,7 +707,9 @@ NEXUS_Error NEXUS_StillDecoder_P_GetStripedSurface_Avd( NEXUS_StillDecoderHandle
                 return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
             }
             stillDecoder->lumaBlock = createSettings.lumaBuffer;
+            NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, stillDecoder->lumaBlock, Acquire);
             stillDecoder->chromaBlock = createSettings.chromaBuffer;
+            NEXUS_OBJECT_REGISTER(NEXUS_MemoryBlock, stillDecoder->chromaBlock, Acquire);
         }
 
         *pStripedSurface = stillDecoder->stripedSurface.handle;
@@ -730,10 +732,12 @@ static void NEXUS_StillDecoder_P_ReleaseStripedSurface( NEXUS_HwStillDecoderHand
         }
     }
     if (stillDecoder->lumaBlock) {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlock, stillDecoder->lumaBlock, Release);
         nexus_still_decoder_p_free_block(stillDecoder, stillDecoder->lumaBlock);
         stillDecoder->lumaBlock = NULL;
     }
     if (stillDecoder->chromaBlock) {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_MemoryBlock, stillDecoder->chromaBlock, Release);
         nexus_still_decoder_p_free_block(stillDecoder, stillDecoder->chromaBlock);
         stillDecoder->chromaBlock = NULL;
     }

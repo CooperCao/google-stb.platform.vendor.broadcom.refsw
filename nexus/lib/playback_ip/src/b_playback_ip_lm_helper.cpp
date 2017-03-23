@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,6 +40,8 @@
 #include "b_playback_ip_lm_helper.h"
 #include "blive_ext.h"
 #include "b_playback_ip_lm_rtp_src.h"
+#include <sys/ioctl.h>
+#include <net/if.h>
 
 BDBG_MODULE(b_playback_ip_lm_helper);
 
@@ -174,6 +176,28 @@ B_PlaybackIp_liveMediaSessionOpen(
     lmContext->session->playback_ip = playback_ip;
     lmContext->session->openSettings = *openSettings;
     BDBG_MSG(("%s: created Live Media wrapper session ctx: lmContext %p", __FUNCTION__, (void *)lmContext));
+
+    if (openSettings->socketOpenSettings.interfaceName) {
+        int fd;
+        struct ifreq ifr;
+        struct sockaddr_in *ifaddr;
+        if ( (fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            BDBG_ERR(("%s: ERROR: Failed to create socket, errno %d\n", __FUNCTION__, errno));
+            perror("socket");
+            errorCode = B_ERROR_SOCKET_ERROR;
+            goto error;
+        }
+        strncpy(ifr.ifr_name, openSettings->socketOpenSettings.interfaceName, sizeof(ifr.ifr_name)-1);
+        if (ioctl(fd, SIOCGIFADDR, &ifr) != 0) {
+            BDBG_ERR(("ERROR: Failed to get IP Address Information for Interface %s, errno %d", openSettings->socketOpenSettings.interfaceName, errno));
+            errorCode = B_ERROR_SOCKET_ERROR;
+            goto error;
+        }
+        /* This is a LiveMedia global variable that should be set to the local i/f address. */
+        ReceivingInterfaceAddr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
+        BDBG_MSG(("%s: IP Address Information for Interface %s is %s", __FUNCTION__, openSettings->socketOpenSettings.interfaceName, inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr) ));
+        close(fd);
+    }
 
     // schedule initialization of session: create Groupsock for RTP, object for RTSP Client
     lmContext->params = NULL;

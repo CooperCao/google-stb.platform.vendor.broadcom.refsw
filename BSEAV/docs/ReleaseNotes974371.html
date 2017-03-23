@@ -1,0 +1,1039 @@
+<html>
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=us-ascii">
+<meta name=Generator content="Microsoft Word 14 (filtered)">
+<title>Broadcom 97439 Phase 17.1 Set-Top Unified Reference Software Release
+2017/03/22 Release Notes</title>
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;}
+@font-face
+	{font-family:Wingdings;
+	panose-1:5 0 0 0 0 0 0 0 0 0;}
+@font-face
+	{font-family:Cambria;
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+h1
+	{mso-style-link:"Heading 1 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:24.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+h2
+	{mso-style-link:"Heading 2 Char";
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:0in;
+	margin-bottom:.0001pt;
+	page-break-after:avoid;
+	font-size:13.0pt;
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;}
+h4
+	{mso-style-link:"Heading 4 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:purple;
+	text-decoration:underline;}
+p
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+pre
+	{mso-style-link:"HTML Preformatted Char";
+	margin:0in;
+	margin-bottom:.0001pt;
+	font-size:10.0pt;
+	font-family:"Courier New";}
+span.Heading1Char
+	{mso-style-name:"Heading 1 Char";
+	mso-style-link:"Heading 1";
+	font-family:"Cambria","serif";
+	color:#365F91;
+	font-weight:bold;}
+span.Heading2Char
+	{mso-style-name:"Heading 2 Char";
+	mso-style-link:"Heading 2";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;}
+span.Heading4Char
+	{mso-style-name:"Heading 4 Char";
+	mso-style-link:"Heading 4";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;
+	font-style:italic;}
+span.HTMLPreformattedChar
+	{mso-style-name:"HTML Preformatted Char";
+	mso-style-link:"HTML Preformatted";
+	font-family:"Courier New";}
+p.msochpdefault, li.msochpdefault, div.msochpdefault
+	{mso-style-name:msochpdefault;
+	margin-right:0in;
+	margin-left:0in;
+	font-size:10.0pt;
+	font-family:"Times New Roman","serif";}
+.MsoChpDefault
+	{font-size:10.0pt;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;}
+div.WordSection1
+	{page:WordSection1;}
+ /* List Definitions */
+ ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+
+</head>
+
+<body lang=EN-US link=blue vlink=purple>
+
+<div class=WordSection1>
+
+<h1 style='margin-left:15.0pt'>Index</h1>
+
+<p style='margin-left:15.0pt'><a href="#software_deliverables">Software
+Deliverables</a></p>
+
+<p style='margin-left:15.0pt'><a href="#documentation">Documentation</a></p>
+
+<p style='margin-left:15.0pt'><a href="#features">Features</a></p>
+
+<p style='margin-left:15.0pt'><a href="#features_future">Features in Next
+Release</a></p>
+
+<p style='margin-left:15.0pt'><a href="#where_to_start">Where to Start</a></p>
+
+<p style='margin-left:15.0pt'><a href="#known_bugs">Known Bugs</a></> </p>
+
+<p style='margin-left:15.0pt'><a href="#bugs_fixed">Bugs Resolved</a></p>
+
+<div>
+
+<p><a name=top><strong><span style='font-size:18.0pt'>Broadcom 74371/7437 A0
+Phase 17.1 Release </span></strong></a></p>
+
+<p><strong>Release Date: </strong></p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;March 22, 2017</p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Phase
+17.1</p>
+
+<p><strong>Platforms Supported: </strong></p>
+
+<blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
+
+<p>74371/7437 A0</p>
+
+</blockquote>
+
+<p class=MsoNormal><a name="software_deliverables"><strong>Software
+Deliverables:</strong></a><br>
+<a href="#top">(Top)</a> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="75%"
+ style='width:75.0%;left:11px;top:206px'>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Description</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Filename</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Licensing</strong></p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem images</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>jffs2-128k-arm.img&nbsp; jffs2-64k-arm.img&nbsp;
+  ubifs-128k-1-arm.img &nbsp;ubifs-64k-1-arm.img</p>
+  <p class=MsoNormal>jffs2-256k-arm.img&nbsp;
+  squashfs-arm.img&nbsp;&nbsp; ubifs-256k-1-arm.img</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem source</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem binaries</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nfsroot-arm.tar.bz2</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>toolchain binary (source available upon request)</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>stbgcc-4.8-1.5.tar.bz2 (use with Linux 3.14)</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BOLT bootloader binary v1.26</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>bolt-v1.26-74371a0-ba-bfw-1.0.0.bin</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BOLT Source v1.26</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>bolt/v1.26/</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Kernel Source</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>stblinux-4.1-1.8.tar.bz2 </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Kernel Binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>linux/vmlinuz-arm</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Initrd Kernel Binary </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>linux/vmlinuz-initrd-arm</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software source</p>
+  </td>
+  <td width="58%" style='width:58.54%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>refsw_release_974371_20170322.src.tgz</p>
+  </td>
+  <td width="15%" style='width:15.62%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes boa</p>
+  </td>
+  <td width="58%" style='width:58.54%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/boa</p>
+  </td>
+  <td width="15%" style='width:15.62%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes FreeType</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/freetype-2.1.5</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes FreeType</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/framework3d/freetype-2.3.12</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes glob</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/glob</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libpng</p>
+  </td>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/libpng</p>
+  </td>
+  <td valign=top style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libjpeg</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/jpeg-6b</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libexif</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/libexif-0.6.12</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes liveMedia</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/livemedia</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes Lua</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/lua</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>MIT</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- uses openssl (downloaded from Internet)</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- build system found at BSEAV/lib/openssl</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>OpenSSL License and<br>
+  SSLeay License</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes truetype TeenBold font</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/app/brutus/build/fonts/teenbold</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Freeware/BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes truetype MSWebFonts</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/app/brutus/build/fonts/mswebfonts</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Microsoft EULA</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes ARC ELF relocation</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at
+  magnum/portinginterface/xvd/src/bxvd_relf.h</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ARC International license for Broadcom customers</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes zlib</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/zlib</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libc/quad</p>
+  </td>
+  <td width="57%" style='width:57.86%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at nexus/platforms/common/src/support/libgcc</p>
+  </td>
+  <td width="16%" style='width:17.1%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software binary for 974371 XID binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>refsw-20141219.974371a0-XID-linux-atlas.bin.tgz
+  (Atlas/Brutus2 application binary)</p>
+  <p class=MsoNormal>See Release HTML for additional binaries</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Wake-up driver shim for Nexus</p>
+  </td>
+  <td width="43%" style='width:43.36%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>- found at BSEAV/linux/driver/wakeup</p>
+  </td>
+  <td width="15%" style='width:15.86%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><b><span style='color:red'>*Please refer to source files
+included in the release bundle for <u>the specific</u> licensing terms and
+notices.</span></b> </p>
+
+<p><a name=documentation><strong>Documentation Deliverables:</strong></a><br>
+<a href="#top">(Top)</a></p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="75%"
+ style='width:75.0%;left:11px;top:206px'>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><a name="where_to_start"><strong>Description</strong></a></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Filename</strong></p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Release Notes</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ReleaseNotes.html </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software auto-generated documentation</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>doxygen_magnum_20170322.tgz<br>
+  doxygen_nexus_20170322.tgz</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>How to Setup the Build Environment, prepare the reference
+  board </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BroadcomReferencePlatformSetup.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software Debug Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BrutusDebuggingGuide.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Brutus Installation Guide </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BrutusInstallationGuide.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Brutus Usage Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BrutusUsageGuide.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Architecture Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ReasonsForNexus.ppt</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Usage Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus_Usage_Guide.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Overview Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus_Overview.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Development Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus_Development.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus MultiProcess Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus_MultiProcess.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SettopAPI over Nexus Overview</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SettopAPI_Nexus_Transition.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Magnum API Docs</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>doxygen_magnum_20170322.tgz</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus API Docs</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>doxygen_nexus_20170322.tgz</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>PlayReady 2.5 User Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/lib/playready/2.5/doc/PlayReady_25_User_Guide.pdf<br>
+  in refsw_release_unified_20170322-prd_bin.tgz to licensed recipients only</p>
+  </td>
+ </tr>
+</table>
+
+<p><strong>Where To Start</strong><br>
+<a href="#top">(Top)</a></p>
+
+<p class=MsoNormal>Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
+ReadBrutusInstallationGuide.doc for information on configuring the Linux
+environment on your Build Server and Set-Top, and information on building and
+installing Brutus as part of the Reference Software. </p>
+
+<p><strong>Special Notes</strong> </p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>This is a preliminary Engineering release with no formal
+     SQA performed. As a result, there may be instabilities. </li>
+ <li class=MsoNormal>Encoder features are limited to I frame only on 74371A0
+     slicon. </li>
+ <li class=MsoNormal><span style='color:black'>Since URSR 14.1, the default
+     remote for Atlas has changed from the big &#17;OneForAll&#18; remote, to
+     the smaller &#17;Broadcom&#18; remote. To continue using the
+     &#17;OneForAll&#18; remote, please uncomment the REMOTE_TYPE_PRIMARY entry
+     in atlas.cfg, and set it appropriately.</span> </li>
+ <li class=MsoNormal><span style='color:black'>This release incorporates a new
+     mechanism in the build system to download Open Source Software from the
+     Internet during the build process, rather than using a copy distributed in
+     the Reference Software source tarball. In this release, it is used for
+     OpenSSL. In coming releases, it may be extended to other OSS packages. In
+     order to share downloads among local developers, and to prevent excessive
+     downloads, downloaded items are cached in a directory named by the build
+     system variable B_REFSW_CACHE_DIR. The default for that directory is set
+     to /projects/stbdev/open-source. To share downloads, either create that
+     directory, or set B_REFSW_CACHE_DIR to another path accessible to all.</span>
+     </li>
+</ul>
+
+<p><strong>Linux Note</strong></p>
+
+<p><strong><span style='font-weight:normal'>HDD partition information given by
+&quot;fdisk -l&quot; may be inaccurate. &quot;gdisk -l&quot; will provide
+accurate information.</span></strong></p>
+
+<p>Atlas (Brutus2)</p>
+
+<ul type=disc>
+ <li class=MsoNormal>Freq and Modulation in Channel Banner</li>
+ <li class=MsoNormal>Frontend Status page with SNR</li>
+ <li class=MsoNormal>IP Channel refactor</li>
+ <li class=MsoNormal>Multiple Remotes Support (same as Brutus)</li>
+ <li class=MsoNormal>Refactored Tuner status screen showing frontend statistics
+     and optional constellation</li>
+ <li class=MsoNormal>Trinity Cable Card support for OOB &amp; DSG</li>
+ <li class=MsoNormal>Trinity Closed Captioning</li>
+ <li class=MsoNormal>NxClient Multiprocess Support</li>
+ <li class=MsoNormal>Trinity DVR library</li>
+ <li class=MsoNormal>Trinity TR69/TR135</li>
+ <li class=MsoNormal>Video/Audio Transcode</li>
+ <li class=MsoNormal>PCM playback</li>
+ <li class=MsoNormal>PVR encryption</li>
+ <li class=MsoNormal>RFM output</li>
+ <li class=MsoNormal>4kx2k graphics</li>
+ <li class=MsoNormal>Display - Atlas - (HD/SD content mode, Non-linear and zoom
+     modes, PAN/SCAN Box, PIP, PQ settings, RFM output)</li>
+ <li class=MsoNormal>PoTrinity DVR Library for TSB</li>
+ <li class=MsoNormal>PVR - Atlas - (advanced trick mode, DiVx trick mode, GUI
+     to select encryption type (3DES, AES, CPS/CPD/M2M), WMV trick mode)</li>
+ <li class=MsoNormal>VBI - Atlas - (CGMS-A copy protection, Closed Captioning
+     Pass-through, DCS copy protection, Macrovision copy protection, MPAA, UI
+     caption rendering)</li>
+ <li class=MsoNormal>Audio - Atlas - (All Brutus options, Audio encode, Post
+     processing)</li>
+ <li class=MsoNormal style='color:green'>Power management (S1/S2/S3)</li>
+</ul>
+
+<p><strong>Quick Build Instructions to create your own Linux Images</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-[1.7|1.8].tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.8.tar.bz2 </li>
+ <li class=MsoNormal># cd rootfs </li>
+ <li class=MsoNormal># make vmlinuz-initrd-arm </li>
+ <li class=MsoNormal># cd ../linux </li>
+ <li class=MsoNormal>export LINUX=`pwd` </li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-4.8-1.5.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-4.8-1.5/bin:$PATH </li>
+ <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><strong>Quick Build Instruction</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar -xvjf stblinux-3.14-20141220.tar.bz2 </li>
+ <li class=MsoNormal># cd stblinux-3.14-20141220</li>
+ <li class=MsoNormal># export LINUX=`pwd`</li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-4.8-1.5.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/stbgcc-4.8-1.5/bin:$PATH </li>
+ <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
+</ul>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p><b>&nbsp;MTSIF Cable Daughter Card Instructions</b></p>
+
+<p class=MsoNormal style='margin-left:.5in'>To build for the 3128 MTSIF
+daughter card there are modification the SV board that are needed. SPI is used
+to communicate to the card.</p>
+
+<p class=MsoNormal>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Card Supported : <span style='color:#1F497D'>. BCM3128M4PNL_V00 </span></p>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p class=MsoNormal style='margin-left:.5in'>Hardware Changes.</p>
+
+<p class=MsoNormal style='margin-top:7.5pt;line-height:16.65pt;background:#F0F0F0'><span
+style='font-size:11.0pt;font-family:"Arial","sans-serif";color:#333333'>On the
+daughter card, below the 3128 heat sink, RB641 and RB642 need to be changed
+from 4.7K ohm to zero ohm resistors.</span></p>
+
+<p class=MsoNormal style='margin-top:7.5pt;line-height:16.65pt;background:#F0F0F0'><span
+style='font-size:11.0pt;font-family:"Arial","sans-serif";color:#333333'>On the
+74371 SV board, do the following (for using SPI mode):</span></p>
+
+<p class=MsoNormal style='margin-top:7.5pt;line-height:16.65pt;background:#F0F0F0'><span
+style='font-size:11.0pt;font-family:"Arial","sans-serif";color:#333333'>Remove
+R2336, R2335, RN3017.<br>
+Install R2327, R2328, R2329 and R2330.</span></p>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p class=MsoNormal style='margin-left:.5in'>To build the Software with the
+support enable compile flag before compiling nexus Software Stack.</p>
+
+<p class=MsoNormal style='margin-left:.5in'>#export MTSIF_CABLE_CARD=y</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><br>
+This release supports various boards with different form factors. Following is
+the list of boards that are supported and the otions required to build the
+software. </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="100%"
+ style='width:100.0%;left:11px;top:206px'>
+ <tr style='height:39.95pt'>
+  <td width="8%" style='width:8.92%;padding:.75pt .75pt .75pt .75pt;height:
+  39.95pt'>
+  <p class=MsoNormal><strong>Board</strong></p>
+  </td>
+  <td width="18%" style='width:18.82%;padding:.75pt .75pt .75pt .75pt;
+  height:39.95pt'>
+  <p class=MsoNormal><strong>export NEXUS_PLATFORM</strong></p>
+  </td>
+  <td width="19%" valign=top style='width:19.92%;padding:0in 0in 0in 0in;
+  height:39.95pt'>
+  <p class=MsoNormal><strong>Additional Exports</strong></p>
+  </td>
+  <td width="10%" style='width:10.0%;padding:.75pt .75pt .75pt .75pt;
+  height:39.95pt'>
+  <p class=MsoNormal><strong>export BCHP_VER</strong></p>
+  </td>
+  <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
+  height:39.95pt'>
+  <p class=MsoNormal><strong>Additional build option,BOLT,Kernel information</strong></p>
+  </td>
+  <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
+  height:39.95pt'>
+  <p class=MsoNormal><strong>Notes</strong></p>
+  </td>
+ </tr>
+ <tr style='height:44.95pt'>
+  <td width="8%" style='width:8.92%;padding:.75pt .75pt .75pt .75pt;height:
+  44.95pt'>
+  <p class=MsoNormal>974371SV</p>
+  </td>
+  <td width="18%" style='width:18.82%;padding:.75pt .75pt .75pt .75pt;
+  height:44.95pt'>
+  <p class=MsoNormal>974371</p>
+  </td>
+  <td width="19%" valign=top style='width:19.92%;padding:0in 0in 0in 0in;
+  height:44.95pt'>
+  <p class=MsoNormal>NEXUS_USE_74371_SV=y</p>
+  <p class=MsoNormal>Optional:</p>
+  <p class=MsoNormal>MTSIF 3128 Daughter card support enable</p>
+  <p class=MsoNormal>MTSIF_CABLE_DCARD=y</p>
+  </td>
+  <td width="10%" style='width:10.0%;padding:.75pt .75pt .75pt .75pt;
+  height:44.95pt'>
+  <p class=MsoNormal>A0</p>
+  </td>
+  <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
+  height:44.95pt'>
+  <p class=MsoNormal><span style='font-size:10.0pt'>Bolt v1.26</span></p>
+  </td>
+  <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
+  height:44.95pt'>
+  <p class=MsoNormal>74371 Silicon verification Board,</p>
+  </td>
+ </tr>
+ <tr style='height:32.8pt'>
+  <td width="8%" style='width:8.92%;padding:.75pt .75pt .75pt .75pt;height:
+  32.8pt'>
+  <p class=MsoNormal>974371 XID</p>
+  </td>
+  <td width="18%" style='width:18.82%;padding:.75pt .75pt .75pt .75pt;
+  height:32.8pt'>
+  <p class=MsoNormal>974371</p>
+  </td>
+  <td width="19%" valign=top style='width:19.92%;padding:0in 0in 0in 0in;
+  height:32.8pt'>
+  <p class=MsoNormal>NEXUS_USE_74371_XID=y</p>
+  <p class=MsoNormal>Optional:</p>
+  <p class=MsoNormal>Enable HDMI INPUT Support</p>
+  <p class=MsoNormal>NEXUS_HDMI_INPUT_SUPPORT=y</p>
+  </td>
+  <td width="10%" style='width:10.0%;padding:.75pt .75pt .75pt .75pt;
+  height:32.8pt'>
+  <p class=MsoNormal>A0</p>
+  </td>
+  <td width="17%" style='width:17.7%;padding:.75pt .75pt .75pt .75pt;
+  height:32.8pt'>
+  <p class=MsoNormal><span style='font-size:10.0pt'>&nbsp;Bolt v1.26</span></p>
+  </td>
+  <td width="23%" style='width:23.98%;padding:.75pt .75pt .75pt .75pt;
+  height:32.8pt'>
+  <p class=MsoNormal>74371 XID board with Cable Frontend</p>
+  </td>
+ </tr>
+</table>
+
+<p>This release contains support for HEVC 1080p30/60 decode and display. This
+feature can be exercised using nexus playback or atlas application. </p>
+
+<p class=MsoNormal><strong>Instructions to build atlas and use it </strong></p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar xvfz refsw_release_974371_20170322.src.tgz</li>
+ <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
+ <li class=MsoNormal>#make install </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>Connect&nbsp; TV to HDMI </li>
+ <li class=MsoNormal>Mount the USB/SATA containing the Movie streams as
+     /data/videos </li>
+ <li class=MsoNormal>Run the following commands to run atlas </li>
+ <li class=MsoNormal>#start install </li>
+ <li class=MsoNormal>#start atlas </li>
+</ul>
+
+<p><strong>Boot instructions</strong> </p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; boot &nbsp;<tftp-server-ipaddress>server:4.1-1.8/vmlinuz-initrd-arm:
+     </li>
+</ul>
+
+<p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; flash -noheader <tftp-server-ipaddress>:4.1-1.8/vmlinuz-initrd-arm
+     flash1.rootfs0</li>
+ <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot flash1.rootfs0&quot;
+     </li>
+</ul>
+
+<p><a name=features></a><a name="known_bugs"></a>&nbsp;<b>BOLT </b></p>
+
+<p class=MsoNormal><strong>&nbsp;</strong></p>
+
+<pre style='background:#F0F0F0'>&nbsp;</pre><pre style='background:#F0F0F0'><span
+style='color:black'>&nbsp;</span></pre><pre style='background:#F0F0F0'><span
+style='color:black'>&nbsp;&nbsp;&nbsp; BCM74390000</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>PRID07437100</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>v1.26</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>RR:00000200</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BFW</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>seclib-1.3</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BBL v1.0.0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AVS init...</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>spare0/rmon_hz=017a7273</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>spare1/rmon_vt=017a7274</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AVS init OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>select_image: addr_offset: 00020000 part_offset: 00000000 bootStatus: 1b05050b</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BSECK BFW load mode OTP = 0x0000000f</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BFW key3 OK, BFW load OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BFW v1.0.0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AVS load:select_image: addr_offset: 00051000 part_offset: 00000000 bootStatus: 2a050b05</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AVS load_code offset =00051000</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>LOADED</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>I2C @ f0406300.</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BID: 00000030</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>using board #c</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>MEMSYS-STD</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>SHMOO 01000006 BLD:8384M HW:hpe1_b1p2 V:1.0.0.6</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>MCB: FLEX</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AVS start:status=000000ff</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>STB: Current voltage=000003ad(941)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'> temperature=0000f6f2(63218)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'> PV=0000037c(892)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'> MV=000003a7(935)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AVS FW rev=30323378 [0.2.3.x]</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>DDR0: !@ ffe0d800 &lt;= ffe0b870 MEMSYS-0 @ f0900000 OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>Sdram Scramble OTP = 0x00000001</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>Sdram Scramble OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>COPY CODE... DONE</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>MICH: disable success</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>SSBL</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>PINMUX</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CACHE FLUSH OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>MMU ON</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CACHE FLUSH OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>_fbss&nbsp; 070409a8</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>_ebss&nbsp; 070420c0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>_end&nbsp;&nbsp; 070420e0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>HEAP @ 07042400</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>STACK @ 09052400</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>ARCH: CONFIG OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CLR BSS 070409a8 to 070420c0 OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CLR SRAM&nbsp; OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CACHE FLUSH OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CPU CLKSET OK</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>GO!</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp;&nbsp; ,/</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp; ,'/___, BOLT v1.26v1.26RELEASE</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>.'__&nbsp; ,'&nbsp; (2015-02-12 11:24:12 garpowel@localhost.localdomain)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp; /,'&nbsp;&nbsp;&nbsp; Copyright (C) 2015 Broadcom Corporation</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp; /'</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>Board: BCM974371XID</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>SYS_CTRL: product=74371, family=7439a0, strap=000000ce,</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>otp @ 0xf0404030 = 0x846004e0: en_cr(0x00000060) en_testport(0x00000080) hdmi_rx_disable(0x00400000) pcie0_disable(0x80000000) rv9_disable(0x00200000) sata_disable(0x04000000) vice2_0_disable(0x00000400)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>otp @ 0xf0404034 = 0x00000059: hdmi_tx1_disable(0x00000001) usb1_disable(0x00000040) usb2_disable(0x00000010) usb3_disable(0x00000008)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CPU: 1x A15, 1503 MHz</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>RESET CAUSE: 0x000200 software_master (1 of 21 possible causes)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CS0: CFI SPI, 16MB, 64kB blocks, 256B pages</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>CS1: ONFI NAND, 4096MB, 2048kB blocks, 8192B page, 46B OOB, BCH-40 (1KB sector)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>USB: usb@f0490200 removed</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>USB @ 0xf0480200: IPP is active low, IOC is negative polarity</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>RTS0: 0x901004, 256 clients, ok</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>rts 01 [20150115191145_74371_1stb_box1]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *default</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>AUTOBOOT [waitusb -t=0 -d='USB Disk' &amp;&amp; batch usbdisk0:sysinit.txt]</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>usb: resetting device on bus 0 hub 1 port 1</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>USB: New high speed device connected to bus 0 hub 1 port 1</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>usb: found Ethernet Device 0b95:7720</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>usb: identified ASIX-Based USB-Ethernet Adapter (00:14:d1:da:52:0e)</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>usb: device 'eth2' is now available</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>USB device matching <USB Disk>&nbsp;not found!</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BOLT&gt; boards</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>a)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AVS&nbsp;&nbsp; BCM974371SV</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>b)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AVS&nbsp;&nbsp; BCM97437SV</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>c)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AVS&nbsp;&nbsp; BCM974371XID *S</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'> AVS is using board defaults, load/run status: 1</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>*** command status = 0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp;&nbsp; CPU 01</span></pre><pre
+style='background:#F0F0F0'>&nbsp;</pre><pre style='background:#F0F0F0'><span
+style='color:black'>To change boards types Please use the command setboard. Example below will set board b for BCM97437SV</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BOLT&gt;setboard b</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>*** command status = 0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>There is only one boxmode #1 for 74371/7437</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>BOLT&gt; rts</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>rts 01 [20150115191145_74371_1stb_box1]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; *default</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>*** command status = 0</span></pre><pre
+style='background:#F0F0F0'><span style='color:black'>&nbsp;&nbsp;&nbsp; CPU 01</span></pre>
+
+<h2 style='margin-top:22.5pt;background:white'>&nbsp;<span style='font-size:
+15.0pt;font-family:"Arial","sans-serif";color:black;font-weight:normal'>74371
+Production Box Modes</span></h2>
+
+<h4 style='margin-top:15.0pt;margin-right:0in;margin-bottom:0in;margin-left:
+0in;margin-bottom:.0001pt;line-height:15.0pt;background:white;orphans: auto;
+text-align:start;widows: auto;-webkit-text-stroke-width: 0px;word-spacing:0px'
+id="BoxModes-74371-74371_1stb_box1:"><span style='font-size:10.5pt;font-family:
+"Arial","sans-serif";color:black'>74371_1stb_box1:</span></h4>
+
+<ul style='margin-top:0in;orphans: auto;text-align:start;widows: auto;
+ -webkit-text-stroke-width: 0px;word-spacing:0px' type=disc>
+ <li class=MsoNormal style='color:#333333;line-height:15.0pt;background:white'><span
+     style='font-size:10.5pt;font-family:"Arial","sans-serif"'>Requires 1x
+     32-bit DDR3-1600</span></li>
+ <li class=MsoNormal style='color:#333333;line-height:15.0pt;background:white'><span
+     style='font-size:10.5pt;font-family:"Arial","sans-serif"'>Single 1080p60
+     decode or dual 1080p30/60i decode</span></li>
+ <li class=MsoNormal style='color:#333333;line-height:15.0pt;background:white'><span
+     style='font-size:10.5pt;font-family:"Arial","sans-serif"'>MAIN + PIP</span></li>
+ <li class=MsoNormal style='color:#333333;line-height:15.0pt;background:white'><span
+     style='font-size:10.5pt;font-family:"Arial","sans-serif"'>HD (upscaled to
+     UHD) and SD outputs</span></li>
+ <li class=MsoNormal style='color:#333333;line-height:15.0pt;background:white'><span
+     style='font-size:10.5pt;font-family:"Arial","sans-serif"'>HDMI input (up
+     to 1080p60)</span></li>
+</ul>
+
+<p>&nbsp;BOXMODE documentation is located in the source tree</p>
+
+<p>Nexus/platforms/974371/docs</p>
+
+<p><strong>Known Issues</strong><br>
+<a href="#top">(Top)</a> </p>
+
+<p><a name="fixed_bugs"><strong>Bugs Fixed</strong></a><br>
+<a href="#top">(Top)</a> </p>
+
+<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.  (However, this table is not yet current, will be updated by final release.)</p><p>Platforms Supported</p><ul><li>Board Support: SV, XID SFF</li><li>Chip Rev Support: Bx, C0</li><li>Kernel Version: 3.14-1.4</li><li>Toolchain: stbgcc-4.8-1.0</li></ul><h4></h4><p>Video Decoder</p><ul><li>AVS1-P2</li><li>DivX - (DivX HD 3.11, 4.11, 5.x, 6.x, DivX SD 3.11, 4.11, 5.x, 6.x)</li><li>Dual HD</li><li>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP, HP} @L4.2, MVC {MP, HP}@L4.1, SVC {MP, HP, Constrained SHP} @L4.2)</li><li>HD + SD</li><li>HEVC</li><li>HEVC Main Still Picture</li><li>HW Still Image Decode - (GIF, JPEG, MJPEG, PNG, RLE)</li><li>Media File Format Support - (3GP, ASF, AVI, DiVX, DVD vob, Flash Video, MKV, MP4, OGG (Vorbis audio only), RealMedia (rm/rmvb/ra/rv), WebM (VP8 video and Vorbis audio))</li><li>Mosaic</li><li>MPEG-1</li><li>MPEG-2 - (MP@{LL, ML, HL})</li><li>Real Video - (RV10, RV9)</li><li>Single MPEG2 I-frame Decode</li><li>Sorenson Spark</li><li>Still Picture decoding (Live HD video, MPEG2 and AVC, with SD still)</li><li>SW Still image decode (BMP, TIFF, JPEG)</li><li>VC-1 - (AP @ L3, MP, SP)</li><li>VP6 - (1080p30 10Mbps, 720p60 10Mbps)</li><li>VP8</li></ul><p>Audio Decoder</p><ul><li>AAC - (HE 5.1, HE Stereo, LC 5.1, LC Stereo, V1, V2)</li><li>AC3 - (5.1, Stereo)</li><li>Dolby - (DD, DDP to DD convert, DDPlus 5.1, DDPlus 7.1, DDPlus stereo)</li><li>Dolby MS10</li><li>Dolby MS11</li><li>Dolby MS11 + 2nd Audio Decode Mixing - (Vorbis Audio)</li><li>DRA</li><li>DTS-HD</li><li>DTS-MA - (Passthrough)</li><li>DVD-LPCM</li><li>FLAC</li><li>Monkey's Audio</li><li>MP3 - (Stereo)</li><li>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)</li><li>MPEG Audio Descriptor</li><li>MPEG Multi Channel</li><li>MS11 + PCM Mixing</li><li>Ogg Vorbis</li><li>Real Audio - (10, 9)</li><li>SRS - (TruVolume)</li><li>Windows Media - (WMA (w/LSF, QSF), WMA Pro)</li><li>Dolby MS12 - (Config C (except DAP support), Expanded DAPv2 Volume Limiter Controls)</li></ul><p>Security</p><ul><li>BSECK support</li><li>Common DRM Framework</li></ul><p>Audio Post Process</p><ul><li>ATSC A/85 volume leveling</li><li>Dolby - (DDRE, DV-258)</li><li>Independent SPDIF delay</li><li>Audio Decoder Fade effect</li><li>Karaoke support - (Karaoke Decode processing, Karaoke Vocal processing)</li><li>Broadcom - (3D surround, AVL)</li><li>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic filtering, Sub woofer channel extraction, Tone Balancing)</li><li>PCM Mixing</li><li>Ramping Mute</li><li>SRC</li><li>SRS - (SRS-HD4, SRS-TruVolume)</li></ul><p>Audio Encoder</p><ul><li>AC3 - (5.1)</li><li>BTSC</li><li>WMA</li></ul><p>System</p><ul><li>Graphics - (2D GFX, 3D GFX (openGL, OpenVG))</li><li>LE</li><li>Nexus Multi Process Support</li></ul><p>A/V Display</p><ul><li>Audio  - HDMI output - (Compressed on HDMI, PCM on HDMI)</li><li>Audio - DAC output</li><li>Audio Output - (I2S (Stereo PCM))</li><li>HDCP support - (HDMI TX)</li><li>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)</li><li>Video - Component output</li><li>Video - CVBS and S Video Output</li><li>Video - HDMI output</li></ul><p>PVR</p><ul><li>PVR encryption - (3DES, AES, DES)</li><li>Record - (AVC, MPEG2, MPEG4, MVC, SVC)</li><li>STC rate based trickmode</li><li>Timeshift - (AVC, MPEG2, MPEG4, MVC, SVC)</li><li>Trick mode - (AVC, Decoder trickmode, DSOLA with audio, Host trickmode, MPEG2, MPEG4, MVC, playback, Slow motion, SVC)</li></ul><p>IPTV</p><ul><li>BIP API - (Dynamic clock recovery reconfiguration)</li></ul><p>Miscellaneous</p><ul><li>Common Download via TR69</li><li>NxClient Multiprocess library - (Callback for display changes, MS12)</li><li>RCU - (IR)</li><li>Video image input interface</li><li>Virtual L2 interrupt</li></ul><p>Transport</p><ul><li>Message Filtering</li><li>MTSIF</li><li>PID Filtering</li></ul><p>Picture Quality</p><ul><li>CAB (Color
+Alteration Block)</li><li>DNR (Digital Noise Reduction in 65nm) - (BNR (Block Noise Reduction), DCR (Digital Countour Reduction), MNR (Mosquito Noise Reduction))</li><li>GNR (Gaussian Noise Reduction) - (AND (Analog Noise Detection), MCTF (Motion-Compensated Temporal Filter))</li><li>LAB &amp; HIST (Luma Alteration Block &amp; Luma Histogram)</li><li>MAD-R (Motion Adaptive Deinterlacer Re-architected)</li><li>TN2T-H (Sharpening)</li></ul><p>Linux</p><ul><li>CMA</li><li>Ethernet link and Ethernet GPhy</li><li>File system - (UBIFS)</li><li>Flash - (NAND, NOR, SPI)</li><li>MoCA - (V2.0)</li><li>PCIe</li><li>SATA - (Sata2)</li><li>UART port</li><li>USB</li></ul><p>Cable FE</p><ul><li>BCM3128 tuner support - (Full band capture with TR69/135)</li><li>CableCARD stack - (Basic, Basic+DSG, Basic+DSG+OOB)</li><li>DOCSIS Frontend</li><li>DSG Client Controller, DSG Clients</li><li>Parallel boot over PCIe</li><li>QAM Tuning</li><li>Remote boot support</li><li>Rmagnum support over PCIe</li></ul><p>Transcode - Video</p><ul><li>Codecs - (VP8)</li><li>Memory Bandwidth Reduction Modes</li><li>Segment Mode RC</li></ul><p>Transcode - System</p><ul><li>TS Stream Mux - Features - (Single MCPB Channel Mode)</li></ul><p>VBI</p><ul><li>Copy Protection - (CGMS-A, DCS)</li><li>Data Re-encoding and Rendering - (AMOL I/II, ANSI/SCTE 20/21, CEA-608 (Analog Closed Captioning for RF, composite, S-video and 480i component signals), CEA-708 (Digital Closed Captioning), CEA-805 (for 480p, 720p and 1080i component signals), ETSI EN 300 743, Gemstar, NABTS (Teletext), Nielsen, TVGuide, WSS/VPS (ETS 300 294))</li></ul><br><h4><p><strong><a name="features_future">Features Planned for the Next Release</a></strong><br/><a href="#top">(Top)</a></p></h4>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

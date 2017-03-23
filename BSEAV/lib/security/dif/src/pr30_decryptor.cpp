@@ -47,9 +47,12 @@
 #include <string.h>
 #include <sstream>
 #include <byteswap.h>
-
+#include <time.h>
+#include <sys/time.h>
+#include "prdy_http.h"
 #include "pr30_decryptor.h"
 
+#include "drmsecuretimeconstants.h"
 BDBG_MODULE(pr30_decryptor);
 #include "dump_hex.h"
 
@@ -62,6 +65,138 @@ DRM_DWORD Playready30Decryptor::s_cbOpaqueBuffer = 0;
 DRM_BYTE* Playready30Decryptor::s_pbRevocationBuffer = NULL;
 uint32_t Playready30Decryptor::s_nextSessionId = 1;
 uint8_t Playready30Decryptor::s_sessionNum = 0;
+
+#define MAX_TIME_CHALLENGE_RESPONSE_LENGTH (1024*64)
+#define MAX_URL_LENGTH (512)
+
+static int initSecureClock( DRM_APP_CONTEXT *pDrmAppCtx)
+{
+    int                   rc = 0;
+    DRM_DWORD             cbChallenge     = 0;
+    DRM_BYTE             *pbChallenge     = NULL;
+    DRM_BYTE             *pbResponse      = NULL;
+    char                 *pTimeChallengeURL = NULL;
+    char                  secureTimeUrlStr[MAX_URL_LENGTH];
+    bool                  redirect = true;
+    int32_t               petRC=0;
+    uint32_t              petRespCode = 0;
+    uint32_t              startOffset;
+    uint32_t              length;
+    uint32_t              post_ret;
+    NEXUS_MemoryAllocationSettings allocSettings;
+    DRM_RESULT            drResponse = DRM_SUCCESS;
+    DRM_RESULT            dr = DRM_SUCCESS;
+
+    dr = Drm_SecureTime_GenerateChallenge( pDrmAppCtx,
+                                           &cbChallenge,
+                                           &pbChallenge );
+    ChkDR(dr);
+
+    NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+    rc = NEXUS_Memory_Allocate(MAX_URL_LENGTH, &allocSettings, (void **)(&pTimeChallengeURL ));
+    if(rc != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("%s - %d NEXUS_Memory_Allocate failed for time challenge response buffer, rc = %d\n",__FUNCTION__, __LINE__, rc));
+        goto ErrorExit;
+    }
+
+    /* send the petition request to Microsoft with HTTP GET */
+    petRC = PRDY_HTTP_Client_GetForwardLinkUrl((char *)g_dstrHttpSecureTimeServerUrl.pszString,
+                                               &petRespCode,
+                                               (char**)&pTimeChallengeURL);
+
+    if( petRC != 0)
+    {
+       BDBG_ERR(("%d Secure Time forward link petition request failed, rc = %d\n",__LINE__, petRC));
+       rc = petRC;
+       goto ErrorExit;
+    }
+
+    do
+    {
+        redirect = false;
+
+        /* we need to check if the Pettion responded with redirection */
+        if( petRespCode == 200)
+        {
+            redirect = false;
+        }
+        else if( petRespCode == 302 || petRespCode == 301)
+        {
+            redirect = true;
+            memset(secureTimeUrlStr, 0, MAX_URL_LENGTH);
+            strcpy(secureTimeUrlStr, pTimeChallengeURL);
+            memset(pTimeChallengeURL, 0, MAX_URL_LENGTH);
+
+            petRC = PRDY_HTTP_Client_GetSecureTimeUrl(secureTimeUrlStr,
+                                                      &petRespCode,
+                                                      (char**)&pTimeChallengeURL);
+
+            if( petRC != 0)
+            {
+               BDBG_ERR(("%d Secure Time URL petition request failed, rc = %d\n",__LINE__, petRC));
+               rc = petRC;
+               goto ErrorExit;
+            }
+        }
+        else
+        {
+           BDBG_ERR(("%d Secure Clock Petition responded with unsupported result, rc = %d, can't get the time challenge URL\n",__LINE__, petRespCode));
+           rc = -1;
+           goto ErrorExit;
+        }
+    } while (redirect);
+
+    NEXUS_Memory_GetDefaultAllocationSettings(&allocSettings);
+    rc = NEXUS_Memory_Allocate(MAX_TIME_CHALLENGE_RESPONSE_LENGTH, &allocSettings, (void **)(&pbResponse ));
+    if(rc != NEXUS_SUCCESS)
+    {
+        BDBG_ERR(("%d NEXUS_Memory_Allocate failed for time challenge response buffer, rc = %d\n",__LINE__, rc));
+        goto ErrorExit;
+    }
+
+    BKNI_Memset(pbResponse, 0, MAX_TIME_CHALLENGE_RESPONSE_LENGTH);
+    post_ret = PRDY_HTTP_Client_SecureTimeChallengePost(pTimeChallengeURL,
+                                                 (char *)pbChallenge,
+                                                 1,
+                                                 150,
+                                                 (unsigned char**)&(pbResponse),
+                                                 &startOffset,
+                                                 &length);
+    if( post_ret != 0)
+    {
+        BDBG_ERR(("%d Secure Time Challenge request failed, rc = %d\n",__LINE__, post_ret));
+        rc = post_ret;
+        goto ErrorExit;
+    }
+
+    drResponse = Drm_SecureTime_ProcessResponse(
+                                    pDrmAppCtx,
+                                    length,
+                                    (uint8_t *) pbResponse);
+    if ( drResponse != DRM_SUCCESS )
+    {
+       BDBG_ERR(("%s - %d Drm_SecureTime_ProcessResponse failed, drResponse = %x\n",__FUNCTION__, __LINE__, (unsigned)drResponse));
+       dr = drResponse;
+       ChkDR( drResponse);
+
+    }
+    BDBG_LOG(("%d Initialized Playready Secure Clock success.",__LINE__));
+
+    /* NOW testing the system time */
+
+ErrorExit:
+
+    ChkVOID( SAFE_OEM_FREE( pbChallenge ) );
+
+    if( pTimeChallengeURL    != NULL)
+        NEXUS_Memory_Free(pTimeChallengeURL  );
+
+    if( pbResponse != NULL )
+        NEXUS_Memory_Free(pbResponse);
+
+    return rc;
+}
 
 DRM_API DRM_RESULT DRM_CALL DRMTOOLS_PrintOPLOutputIDs( __in const DRM_OPL_OUTPUT_IDS *f_pOPLs )
 {
@@ -486,6 +621,51 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
     DRM_CHAR *pszCustomDataUsed = NULL;
     DRM_DWORD cchCustomDataUsed = 0;
     const DRM_CONST_STRING *rgstrRights[ 1 ] = { &g_dstrWMDRM_RIGHT_PLAYBACK };
+    DRMFILETIME               ftSystemTime; /* Initialized by Drm_SecureTime_GetValue */
+    DRM_SECURETIME_CLOCK_TYPE eClockType;   /* Initialized by Drm_SecureTime_GetValue */
+
+
+    dr = Drm_SecureTime_GetValue( s_pDrmAppCtx, &ftSystemTime, &eClockType  );
+    if( (dr == DRM_E_SECURETIME_CLOCK_NOT_SET) || (dr == DRM_E_TEE_PROVISIONING_REQUIRED) )
+    {
+       /* setup the Playready secure clock */
+       if(initSecureClock(s_pDrmAppCtx) != 0)
+       {
+           BDBG_ERR(("%d Failed to initiize Secure Clock, quitting....\n",__LINE__));
+           return false;
+       }
+    }
+    else if (dr == DRM_E_CLK_NOT_SUPPORTED)  /* Secure Clock not supported, try the Anti-Rollback Clock */
+    {
+        DRMSYSTEMTIME   systemTime;
+       struct timeval  tv;
+       struct tm      *tm;
+
+       BDBG_LOG(("%d Secure Clock not supported, trying the Anti-Rollback Clock...\n",__LINE__));
+
+       gettimeofday(&tv, NULL);
+       tm = gmtime(&tv.tv_sec);
+
+       systemTime.wYear         = tm->tm_year+1900;
+       systemTime.wMonth        = tm->tm_mon+1;
+       systemTime.wDayOfWeek    = tm->tm_wday;
+       systemTime.wDay          = tm->tm_mday;
+       systemTime.wHour         = tm->tm_hour;
+       systemTime.wMinute       = tm->tm_min;
+       systemTime.wSecond       = tm->tm_sec;
+       systemTime.wMilliseconds = tv.tv_usec/1000;
+
+       if(Drm_AntiRollBackClock_Init(s_pDrmAppCtx, &systemTime) != 0)
+       {
+           printf(" Failed to initiize Anti-Rollback Clock, quitting....\n");
+           return false;
+       }
+    }
+    else
+    {
+        BDBG_ERR(("%d Expect platform to support Secure Clock or Anti-Rollback Clock.  Possible certificate error.\n",__LINE__));
+        return false;
+    }
 
     dr = Drm_LicenseAcq_GenerateChallenge(
         s_pDrmAppCtx,
@@ -629,7 +809,7 @@ std::string Playready30Decryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
     res = curl_easy_perform(curl);
-    LOGD(("s_pr30Buffer: %s, res: %d", s_pr30Buffer.c_str(), res));
+    LOGW(("%s: s_pr30Buffer(%d): %s, res: %d", __FUNCTION__, s_pr30Buffer.size(), s_pr30Buffer.c_str(), res));
 
     if (res != 0) {
         LOGE(("%s: curl error %d", __FUNCTION__, res));
@@ -649,15 +829,8 @@ std::string Playready30Decryptor::GetKeyRequestResponse(std::string url)
         drm_head += 4;
         drm_msg = s_pr30Buffer.substr(drm_head);
     } else {
-        drm_head = s_pr30Buffer.find("\r\n", body_head);
-        if (drm_head != std::string::npos) {
-            LOGD(("%s: old style DRM message found", __FUNCTION__));
-            drm_head += 2;
-            drm_msg = s_pr30Buffer.substr(drm_head);
-        } else {
-            LOGD(("%s: return body anyway", __FUNCTION__));
-            drm_msg = s_pr30Buffer.substr(body_head);
-        }
+        LOGW(("%s: return body anyway", __FUNCTION__));
+        drm_msg = s_pr30Buffer.substr(body_head);
     }
 
     LOGD(("HTTP response body: (%u bytes): %s", drm_msg.size(), drm_msg.c_str()));

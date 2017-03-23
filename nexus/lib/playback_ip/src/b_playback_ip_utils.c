@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2499,6 +2499,18 @@ B_PlaybackIp_UtilsRtpUdpStreamingCtxOpen(B_PlaybackIpSecurityOpenSettings *secur
         goto error;
     }
     BDBG_MSG(("%s: Bind %d socket to i/f %s successful", __FUNCTION__, data->fd, data->interfaceName));
+
+    /* Set the DSCP Value for the all streamed out UDP/RTP packets. */
+    {
+#define DSCP_CLASS_SELECTOR_VIDEO 0xa0
+        int dscpTcValue = DSCP_CLASS_SELECTOR_VIDEO;
+
+        if (setsockopt(data->fd, IPPROTO_IP, IP_TOS, &dscpTcValue, sizeof(dscpTcValue)) < 0) {
+            BDBG_WRN(("%s: setsockopt() error, errno %d", __FUNCTION__, errno));
+            perror("setsockopt:");
+            /* Note: we ignore the warning & continue w/ the socket setup. */
+        }
+    }
 
 #if 0
     /* I dont think we need to tune the network buffers for outgoing sessions */

@@ -1074,7 +1074,7 @@ void BHDM_P_PowerOffPhy (const BHDM_Handle hHDMI)
 void BHDM_P_PowerOnPhy (const BHDM_Handle hHDMI)
 {
     BREG_Handle hRegister = hHDMI->hRegister ;
-    uint32_t Register, ulOffset ;
+    uint32_t Register, ulOffset, HpdDelay ;
     bool masterMode;
 
     hRegister = hHDMI->hRegister ;
@@ -1145,6 +1145,19 @@ void BHDM_P_PowerOnPhy (const BHDM_Handle hHDMI)
         BDBG_WRN((" 7250DGL Board,  BCHP_HDMI_TX_PHY_CHANNEL_SWAP = 0x3012  !!!")) ;
         BREG_Write32(hRegister, BCHP_HDMI_TX_PHY_CHANNEL_SWAP + ulOffset, 0x3012) ;
 #endif
+
+	/*
+	set the minimum time HPD signal must be constant before HP interrupt is fired
+	this applies to 28nm only
+	Do not set the delay above 75ms as correct missed interrupts can occur.
+	if the attached device does not pulse the HPD signal correctly for 100ms
+	*/
+
+	Register = BREG_Read32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG) ;
+		Register &= ~ BCHP_MASK(AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, MAX_THRESHOLD) ;
+		HpdDelay = 50 * 27027 ; /* 1 unit * 27027 = 1 ms */
+		Register |= BCHP_FIELD_DATA(AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, MAX_THRESHOLD, HpdDelay) ;
+	BREG_Write32(hRegister, BCHP_AON_HDMI_TX_HDMI_HOTPLUG_CONFIG, Register) ;
 
     hHDMI->phyPowered = true ;
     return ;

@@ -55,7 +55,7 @@ BDBG_FILE_MODULE(capbuf);
 /***************************************************************************
  *
  */
-BERR_Code  BVDC_Test_P_Buffer_ExtractBuffer_isr
+static BERR_Code  BVDC_Test_P_Buffer_ExtractBuffer_isr
     ( BVDC_P_Buffer_Handle            hBuffer,
       BVDC_P_PictureNode            **ppPicture )
 {
@@ -117,7 +117,7 @@ BERR_Code  BVDC_Test_P_Buffer_ExtractBuffer_isr
  * {private}
  *
  */
-BERR_Code BVDC_Test_P_Window_CapturePicture_isr
+static BERR_Code BVDC_Test_P_Window_CapturePicture_isr
     ( BVDC_Window_Handle               hWindow,
       BVDC_P_Window_CapturedPicture   *pCapturedPic )
 {
@@ -245,7 +245,7 @@ BERR_Code BVDC_Test_P_Window_CapturePicture_isr
  * {private}
  *
  */
-BERR_Code BVDC_Test_P_Window_ReleasePicture_isr
+static BERR_Code BVDC_Test_P_Window_ReleasePicture_isr
     ( BVDC_Window_Handle               hWindow,
       BMMA_Block_Handle                hPicBlock,
       uint32_t                         ulPicBlockOffset )

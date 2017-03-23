@@ -2860,7 +2860,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetAVMute(NEXUS_HdmiOutputHandle hdmiOutput, bool m
     return NEXUS_SUCCESS;
 }
 
-NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput, bool aspectRatioChangeOnly)
+NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiOutput, BFMT_VideoFmt format, bool aspectRatioChangeOnly)
 {
     NEXUS_Error rc;
     NEXUS_HdmiOutputState state;
@@ -2868,6 +2868,11 @@ NEXUS_Error NEXUS_HdmiOutput_P_PreFormatChange_priv(NEXUS_HdmiOutputHandle hdmiO
 
     NEXUS_ASSERT_MODULE();
     BDBG_OBJECT_ASSERT(hdmiOutput, NEXUS_HdmiOutput);
+
+    BHDM_GetHdmiSettings(hdmiOutput->hdmHandle, &hdmiOutput->hdmSettings);
+    hdmiOutput->hdmSettings.eInputVideoFmt = format;
+    rc = BHDM_SetHdmiSettings(hdmiOutput->hdmHandle, &hdmiOutput->hdmSettings);
+    if (rc) return BERR_TRACE(rc);
 
     hdmiOutput->aspectRatioChangeOnly = aspectRatioChangeOnly;
     if (aspectRatioChangeOnly)

@@ -69,6 +69,7 @@ CModel::CModel(const char * strName) :
     _ipTranscodeProfile(0),
     _bPipSwapped(false),
     _bScanSaveOffer(false),
+    _lastChannelPowerSave(NULL),
     _pPower(NULL),
 #ifdef DCC_SUPPORT
     _pClosedCaption(NULL),

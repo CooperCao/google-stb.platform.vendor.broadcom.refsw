@@ -106,7 +106,7 @@ static std::string GetCertRequestResponse(
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
         curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
         res = curl_easy_perform(curl);
-        LOGD(("s_wvBuffer(%d): %s, res: %d", s_wvBuffer.size(), s_wvBuffer.c_str(), res));
+        LOGW(("%s: s_wvBuffer(%d): %s, res: %d", __FUNCTION__, s_wvBuffer.size(), s_wvBuffer.c_str(), res));
         message = s_wvBuffer;
 
         curl_easy_cleanup(curl);
@@ -317,7 +317,7 @@ std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Widevine CDM v1.0");
     res = curl_easy_perform(curl);
-    LOGD(("s_wvBuffer: %s, res: %d", s_wvBuffer.c_str(), res));
+    LOGW(("%s: s_wvBuffer(%d): %s, res: %d", __FUNCTION__, s_wvBuffer.size(), s_wvBuffer.c_str(), res));
 
     if (res != 0) {
         LOGE(("%s: curl error %d", __FUNCTION__, res));
@@ -357,15 +357,8 @@ std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
         drm_head += 4;
         drm_msg = s_wvBuffer.substr(drm_head);
     } else {
-        drm_head = s_wvBuffer.find("\r\n", body_head);
-        if (drm_head != std::string::npos) {
-            LOGD(("%s: old style DRM message found", __FUNCTION__));
-            drm_head += 2;
-            drm_msg = s_wvBuffer.substr(drm_head);
-        } else {
-            LOGD(("%s: return body anyway", __FUNCTION__));
-            drm_msg = s_wvBuffer.substr(body_head);
-        }
+        LOGW(("%s: return body anyway", __FUNCTION__));
+        drm_msg = s_wvBuffer.substr(body_head);
     }
 
     LOGD(("HTTP response body: (%u bytes): %s", drm_msg.size(), b2a_hex(drm_msg).c_str()));
@@ -378,9 +371,13 @@ std::string WidevineDecryptor::GetKeyRequestResponse(std::string url)
 
 bool WidevineDecryptor::AddKey(std::string key)
 {
-    m_cdm->AddKey(m_sessionId.data(), m_sessionId.length(),
+    cdm::Status status = m_cdm->AddKey(m_sessionId.data(), m_sessionId.length(),
         (const uint8_t*)key.data(), key.length(),
         (const uint8_t*)m_initData.data(), m_initData.length());
+    if (cdm::kSuccess != status) {
+        LOGE(("AddKey Error: %d", status));
+        return false;
+    }
     m_valid = true;
     return true;
 }

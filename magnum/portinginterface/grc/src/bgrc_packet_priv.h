@@ -123,6 +123,12 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #define BGRC_PACKET_P_DEBUG_WATCHDOG     1
 #define BGRC_PACKET_P_WORK_AROUND_DCEG_HW_ISSUE   1
 
+/*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
+#if ((BCHP_M2MC_REVISION_MAJOR_DEFAULT==2)&&(BCHP_M2MC_REVISION_MINOR_DEFAULT == 1))
+#define BGRC_PACKET_P_BLIT_WORKAROUND             1
+#else
+#define BGRC_PACKET_P_BLIT_WORKAROUND             0
+#endif
 /***************************************************************************/
 /* checkpoint_stress shows 7563, ca
    che_flush_stress shows 7445 need CHECK_SYNC_BLIT_PXL.
@@ -152,8 +158,25 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #endif
 
 /***************************************************************************/
+#if (!defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB) && ((BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0 - BCHP_M2MC_OUTPUT_SURFACE_ADDR_0) == 0x8))
+#define BGRC_P_64BITS_ADDR    1
+#else
+#define BGRC_P_64BITS_ADDR    0
+#endif
+
+#if BGRC_P_64BITS_ADDR
+typedef enum
+{
+    BGRC_P_AddrType_eReg32,
+    BGRC_P_AddrType_eAddr,
+    BGRC_P_AddrType_eGap
+} BGRC_P_AddrType;
+#endif
+
+#define BGRC_P_GET_UINT64_HIGH(x)   ((uint32_t)((x)>>32))
+#define BGRC_P_GET_UINT64_LOW(x)    ((uint32_t)((x) & 0xFFFFFFFF))
 #define BGRC_PACKET_P_REGISTER_COUNT \
-    ((BGRC_M2MC(SRC_CLUT_ENTRY_i_ARRAY_BASE) - BGRC_M2MC(SRC_FEEDER_ENABLE)) / 4 + 1)
+    ((BGRC_M2MC(SRC_CLUT_ENTRY_i_ARRAY_BASE) - BGRC_M2MC(SRC_FEEDER_ENABLE)) / 4 + 1 + BGRC_P_64BITS_ADDR)
 #define BGRC_PACKET_P_GET_STORED_REG_INDEX( reg ) \
     ((BGRC_M2MC(reg) - BGRC_M2MC(SRC_FEEDER_ENABLE)) / sizeof (uint32_t))
 
@@ -195,8 +218,10 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 
 #ifdef BGRC_PACKET_P_DEBUG_SW_PKT__
 #define BGRC_PACKET_P_STORE_REG( reg, value ) { BKNI_Printf("%08x ", (value)); hContext->stored_registers[BGRC_PACKET_P_GET_STORED_REG_INDEX(reg)] = (value); }
+#define BGRC_PACKET_P_STORE_REG_OFFSET( reg, value, offset ) { BKNI_Printf("%08x ", (value)); hContext->stored_registers[BGRC_PACKET_P_GET_STORED_REG_INDEX(reg)+offset] = (value); }
 #else
 #define BGRC_PACKET_P_STORE_REG( reg, value ) hContext->stored_registers[BGRC_PACKET_P_GET_STORED_REG_INDEX(reg)] = (value)
+#define BGRC_PACKET_P_STORE_REG_OFFSET( reg, value, offset ) { hContext->stored_registers[BGRC_PACKET_P_GET_STORED_REG_INDEX(reg)+offset] = (value); }
 #endif
 
 #define BGRC_PACKET_P_STORE_REG_MASK( reg, value, mask ) BGRC_PACKET_P_STORE_REG( reg, (BGRC_PACKET_P_GET_REG(reg) & (mask)) | (value) )
@@ -296,24 +321,7 @@ BDBG_OBJECT_ID_DECLARE(BGRC_PacketContext);
 #define BGRC_P_FORCEDSTDISABLE_MSG(a)
 #endif
 
-/***************************************************************************/
-#if (!defined(BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB) && ((BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0 - BCHP_M2MC_OUTPUT_SURFACE_ADDR_0) == 0x8))
-#define BGRC_P_64BITS_ADDR    1
-#else
-#define BGRC_P_64BITS_ADDR    0
-#endif
 
-#if BGRC_P_64BITS_ADDR
-typedef enum
-{
-    BGRC_P_AddrType_eReg32,
-    BGRC_P_AddrType_eAddr,
-    BGRC_P_AddrType_eGap
-} BGRC_P_AddrType;
-#endif
-
-#define BGRC_P_GET_UINT64_HIGH(x)   ((uint32_t)((x)>>32))
-#define BGRC_P_GET_UINT64_LOW(x)    ((uint32_t)((x) & 0xFFFFFFFF))
 
 /***************************************************************************/
 #ifdef BCHP_M2MC1_REVISION

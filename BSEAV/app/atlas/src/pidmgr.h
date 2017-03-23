@@ -94,6 +94,7 @@ public:
     bool                isEmpty(void);
     uint16_t            getProgram(void)             { return(_program); }
     void                setProgram(uint16_t program) { _program = program; }
+    bool                isImmutable(void) { return(_bImmutable); }
     void                print(bool bForce = false);
     void                dump(bool bForce = false) { print(bForce); }
 
@@ -108,6 +109,7 @@ protected:
     uint16_t            _pmtPid;
     uint16_t            _program;
     CConfiguration *    _pCfg;
+    bool                _bImmutable;
 };
 
 #ifdef __cplusplus

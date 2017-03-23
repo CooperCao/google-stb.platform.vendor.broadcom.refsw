@@ -303,7 +303,7 @@ eRet CRecord::start()
     }
 
     BDBG_MSG(("Record START"));
-    /* IndexName will always be the same as the filename except with .nav extension.*/
+    /* Video will have all the information for Index and Video Name and the Paths can be independant */
     fullFilePath  = _currentVideo->getVideoNamePath();
     fullIndexPath = _currentVideo->getIndexNamePath();
 

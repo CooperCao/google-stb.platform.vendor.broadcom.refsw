@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Sep 14 16:45:41 2016
- *                 Full Compile MD5 Checksum  2d2ed423991a1e4e4d03ca98bc390b2c
+ * Date:           Generated on               Tue Jan 17 10:08:35 2017
+ *                 Full Compile MD5 Checksum  2edd384c1405a388347db27089ee12b7
  *                     (minus title and desc)
- *                 MD5 Checksum               8cad5c3953d7e5df4439153720b00628
+ *                 MD5 Checksum               6e5ced4da0f0f15efb4ae46ce86e004a
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -100,48 +100,64 @@
 /***************************************************************************
  *PUT - Put pointer
  ***************************************************************************/
+/* RVC_0 :: PUT :: reserved0 [63:40] */
+#define BCHP_RVC_0_PUT_reserved0_MASK                              BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_RVC_0_PUT_reserved0_SHIFT                             40
+
 /* RVC_0 :: PUT :: Put_Ptr [39:00] */
-#define BCHP_RVC_0_PUT_Put_Ptr_MASK                                0xffffffffff
+#define BCHP_RVC_0_PUT_Put_Ptr_MASK                                BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_RVC_0_PUT_Put_Ptr_SHIFT                               0
-#define BCHP_RVC_0_PUT_Put_Ptr_DEFAULT                             0x0003000000
+#define BCHP_RVC_0_PUT_Put_Ptr_DEFAULT                             50331648
 
 /***************************************************************************
  *GET - Get pointer
  ***************************************************************************/
-/* RVC_0 :: GET :: Get_Ptr [39:05] */
-#define BCHP_RVC_0_GET_Get_Ptr_MASK                                0xffffffffe0
-#define BCHP_RVC_0_GET_Get_Ptr_SHIFT                               5
-#define BCHP_RVC_0_GET_Get_Ptr_DEFAULT                             0x0000000000
+/* RVC_0 :: GET :: reserved0 [63:40] */
+#define BCHP_RVC_0_GET_reserved0_MASK                              BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_RVC_0_GET_reserved0_SHIFT                             40
 
-/* RVC_0 :: GET :: reserved0 [04:00] */
-#define BCHP_RVC_0_GET_reserved0_MASK                              0x000000001f
-#define BCHP_RVC_0_GET_reserved0_SHIFT                             0
+/* RVC_0 :: GET :: Get_Ptr [39:05] */
+#define BCHP_RVC_0_GET_Get_Ptr_MASK                                BCHP_UINT64_C(0x000000ff, 0xffffffe0)
+#define BCHP_RVC_0_GET_Get_Ptr_SHIFT                               5
+#define BCHP_RVC_0_GET_Get_Ptr_DEFAULT                             0
+
+/* RVC_0 :: GET :: reserved1 [04:00] */
+#define BCHP_RVC_0_GET_reserved1_MASK                              BCHP_UINT64_C(0x00000000, 0x0000001f)
+#define BCHP_RVC_0_GET_reserved1_SHIFT                             0
 
 /***************************************************************************
  *BASE - Circular buffer base address
  ***************************************************************************/
+/* RVC_0 :: BASE :: reserved0 [63:40] */
+#define BCHP_RVC_0_BASE_reserved0_MASK                             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_RVC_0_BASE_reserved0_SHIFT                            40
+
 /* RVC_0 :: BASE :: Base_Addr [39:20] */
-#define BCHP_RVC_0_BASE_Base_Addr_MASK                             0xfffff00000
+#define BCHP_RVC_0_BASE_Base_Addr_MASK                             BCHP_UINT64_C(0x000000ff, 0xfff00000)
 #define BCHP_RVC_0_BASE_Base_Addr_SHIFT                            20
-#define BCHP_RVC_0_BASE_Base_Addr_DEFAULT                          0x0000000030
+#define BCHP_RVC_0_BASE_Base_Addr_DEFAULT                          48
 
 /* RVC_0 :: BASE :: Base_Addr_lsb [19:00] */
-#define BCHP_RVC_0_BASE_Base_Addr_lsb_MASK                         0x00000fffff
+#define BCHP_RVC_0_BASE_Base_Addr_lsb_MASK                         BCHP_UINT64_C(0x00000000, 0x000fffff)
 #define BCHP_RVC_0_BASE_Base_Addr_lsb_SHIFT                        0
-#define BCHP_RVC_0_BASE_Base_Addr_lsb_DEFAULT                      0x0000000000
+#define BCHP_RVC_0_BASE_Base_Addr_lsb_DEFAULT                      0
 
 /***************************************************************************
  *END - Circular buffer end address
  ***************************************************************************/
+/* RVC_0 :: END :: reserved0 [63:40] */
+#define BCHP_RVC_0_END_reserved0_MASK                              BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_RVC_0_END_reserved0_SHIFT                             40
+
 /* RVC_0 :: END :: End_Addr [39:20] */
-#define BCHP_RVC_0_END_End_Addr_MASK                               0xfffff00000
+#define BCHP_RVC_0_END_End_Addr_MASK                               BCHP_UINT64_C(0x000000ff, 0xfff00000)
 #define BCHP_RVC_0_END_End_Addr_SHIFT                              20
-#define BCHP_RVC_0_END_End_Addr_DEFAULT                            0x000000003f
+#define BCHP_RVC_0_END_End_Addr_DEFAULT                            63
 
 /* RVC_0 :: END :: End_Addr_lsb [19:00] */
-#define BCHP_RVC_0_END_End_Addr_lsb_MASK                           0x00000fffff
+#define BCHP_RVC_0_END_End_Addr_lsb_MASK                           BCHP_UINT64_C(0x00000000, 0x000fffff)
 #define BCHP_RVC_0_END_End_Addr_lsb_SHIFT                          0
-#define BCHP_RVC_0_END_End_Addr_lsb_DEFAULT                        0x00000fffff
+#define BCHP_RVC_0_END_End_Addr_lsb_DEFAULT                        1048575
 
 /***************************************************************************
  *RANGE1_START - Address range start

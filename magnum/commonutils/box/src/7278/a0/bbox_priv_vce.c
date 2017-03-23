@@ -67,6 +67,12 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
          BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x3, 0 ),
       },
    },
+   /* Box Mode: 1001 (1080p30x1) */
+   { 1001,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x1, 0 ),
+      },
+   },
 };
 
 const size_t BBOX_P_Vce_CapabilitiesLUT_size = sizeof( BBOX_P_Vce_CapabilitiesLUT );

@@ -406,7 +406,7 @@ void CPanelDecode::processNotification(CNotification & notification)
         CHECK_PTR_ERROR_GOTO("decode start notification received with invalid decoder data", pAudioDecode, ret, eRet_Ok, error);
 
         /* SW7439-895: we need to get a correct value- eUnknown so we can query and do this again when audio panel is requested.
-           temporary undetermenistic sleep, This gives audio a change to probe and get the correct value. */
+         * temporary undetermenistic sleep, This gives audio a change to probe and get the correct value. */
         BKNI_Sleep(500);
         ret = pAudioDecode->getStatus(&nDecodeStatus);
         CHECK_ERROR_GOTO("getting audio decoder status failed!", ret, error);

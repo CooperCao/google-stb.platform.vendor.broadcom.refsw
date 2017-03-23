@@ -2238,7 +2238,6 @@ int decode_path_initialize( int idx, struct util_opts_t *opts, struct dolby_digi
     {
         NEXUS_AudioDecoder_GetDefaultOpenSettings(&decoderOpenSettings);
         decoderOpenSettings.multichannelFormat = dolby->multiCh71 ? NEXUS_AudioMultichannelFormat_e7_1 : NEXUS_AudioMultichannelFormat_e5_1;
-        BDBG_ERR(("---decoderOpenSettings.multichannelFormat %d", decoderOpenSettings.multichannelFormat));
         recs->audioDecoders[idx] = NEXUS_AudioDecoder_Open(idx, &decoderOpenSettings);
         BDBG_ASSERT(recs->audioDecoders[idx]);
     }

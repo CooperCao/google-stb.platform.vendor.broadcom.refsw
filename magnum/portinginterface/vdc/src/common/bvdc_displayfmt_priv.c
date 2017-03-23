@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1275,7 +1275,7 @@ static const BVDC_P_ColorSpaceData s_aColorSpaceDataTable_54MHz[] =
     (sizeof(s_aFormatDataTable) / sizeof(BVDC_P_FormatData))
 
 /* Pick color space data with colorspace search */
-const BVDC_P_ColorSpaceData* BVDC_P_GetColorSpaceData_isr(
+static const BVDC_P_ColorSpaceData* BVDC_P_GetColorSpaceData_isr(
     const BVDC_P_ColorSpaceData *paColorSpaceDataTable,
     BVDC_P_Output eOutputColorSpace)
 {

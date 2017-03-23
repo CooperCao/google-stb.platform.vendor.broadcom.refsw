@@ -54,11 +54,10 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_vdc_box9_config.h"
 
 BDBG_MODULE(BBOX_RTS_BOX9);
 BDBG_OBJECT_ID(BBOX_RTS_BOX9);
-
-extern BBOX_Rts stBoxRts_1u_0t_box9;
 
 void BBOX_P_GetBox9Rts
     ( BBOX_Rts *pBoxRts )

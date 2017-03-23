@@ -36,7 +36,20 @@
 # ANY LIMITED REMEDY.
 ###############################################################################
 export V3D_SUPPORT=n
-export B_REFSW_OS=ucos_iii
+export B_REFSW_OS=ucos
+export B_REFSW_UCOS_VERSION=3
+
+ifeq ($(B_REFSW_UCOS_VERSION),1)
+    export B_REFSW_UCOS_SUBDIR_NAME=ucos
+else
+    ifeq ($(B_REFSW_UCOS_VERSION),2)
+        export B_REFSW_UCOS_SUBDIR_NAME=ucos_ii
+    else
+        ifeq ($(B_REFSW_UCOS_VERSION),3)
+            export B_REFSW_UCOS_SUBDIR_NAME=ucos_iii
+        endif
+    endif
+endif
 
 #
 # Reference Software Makefile
@@ -52,32 +65,18 @@ export B_REFSW_OS=ucos_iii
 ###First thing we must include the tools
 #####
 
-#########
-#### Figure out OS
-#########
-ifeq ($(B_REFSW_OS),)
-export B_REFSW_OS=ucos_iii
-endif
-
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
-# REFERENCE VERSION
-# BOLT_DIR_NAME = ../../../reference/modified/bolt-v1.00
-# CFE_DIR_NAME = ../../../reference/modified/CFE_15_2
-
-# GIT VERSION
-# BOLT_DIR_NAME = ../../bolt
-
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.19
-CFE_DIR_NAME = CFE_16_3
+BOLT_DIR_NAME = bolt_v1.26
+CFE_DIR_NAME = CFE_17_1
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
 ROCKFORD_DIR = $(shell cd "../../../../../rockford" && ${PWD})
 MAGNUM_DIR = $(shell cd "../../../../../magnum" && ${PWD})
-BOLT_DIR = $(shell cd "../../../../../$(BOLT_DIR_NAME)" && ${PWD})
-CFE_DIR = $(shell cd "../../../../../$(CFE_DIR_NAME)" && ${PWD})
+BOLT_DIR = $(shell cd "../../../../../../../$(BOLT_DIR_NAME)" && ${PWD})
+CFE_DIR = $(shell cd "../../../../../../../$(CFE_DIR_NAME)" && ${PWD})
 NEXUS_TOP = $(NEXUS_DIR)
 ifeq ($(NEXUS_PLATFORM),)
 # PLATFORM is deprecated
@@ -259,6 +258,9 @@ UCOS ?= lib
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
     CPU = arm
+    ifeq ($(filter $(NEXUS_PLATFORM),97260 97268 97271), $(NEXUS_PLATFORM))
+        export ARM_ARCH=V8
+    endif
 else
     ifeq ($(filter $(NEXUS_PLATFORM),97208 97358 97360 97401 97468 97550 97552), $(NEXUS_PLATFORM))
         CPU = bmips3300
@@ -272,7 +274,7 @@ else
                 ifeq ($(NEXUS_PLATFORM),97325)
                     CPU = mti34kf
                 else
-                    Unknown platform
+                    $(error Unknown platform)
                 endif
             endif
         endif

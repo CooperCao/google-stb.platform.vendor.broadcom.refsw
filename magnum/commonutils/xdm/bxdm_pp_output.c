@@ -898,6 +898,9 @@ static void BXDM_PPOUT_S_SetDisplayParameters_isr(
 
    BDBG_ASSERT(pPicture);
 
+   /* SWSTB-1873: support for color range */
+   pPicture->eColorRange = pUnifiedPicture->stDisplayInfo.eColorRange;
+
    /* Set Defaults */
    pPicture->eMatrixCoefficients = pDefaultParams->eMatrixCoefficients;
    pPicture->eColorPrimaries = pDefaultParams->eColorPrimaries;

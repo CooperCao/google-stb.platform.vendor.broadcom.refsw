@@ -80,14 +80,14 @@ endif
 
 
 
-.PHONY: api clean
+.PHONY: api clean freetype clean_freetype
 
 ifeq ($(APP),)
 all: $(APPS)
-$(APPS): api freetype
+$(APPS): api
 else
 all: $(APP)
-$(APP): api freetype
+$(APP): api
 endif
 
 # include applib specifics
@@ -107,11 +107,11 @@ CFLAGS += -DB_HAS_SOFT_GFX=1
 endif
 
 ifeq ($(FREETYPE_SUPPORT),y)
-FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype-2.1.5
-CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_DIR)/include
+FREETYPE_DIR = $(NEXUS_TOP)/../BSEAV/opensource/freetype
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 FREETYPE_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/opensource/freetype-2.1.5
+CFLAGS += -DFREETYPE_SUPPORT -I$(FREETYPE_ODIR)/include
 LDFLAGS += -L$(FREETYPE_ODIR) -lfreetype
 freetype:
 	$(MAKE) -C $(FREETYPE_DIR)
@@ -120,7 +120,7 @@ clean_freetype:
 endif
 
 # This builds nexus and needed applibs
-api:
+api: freetype
 	$(MAKE) -C $(NEXUS_TOP)/build
 	$(MAKE) -C $(B_LIB_TOP)/os
 	$(MAKE) -C $(B_BSEAV_TOP)/lib/dcc

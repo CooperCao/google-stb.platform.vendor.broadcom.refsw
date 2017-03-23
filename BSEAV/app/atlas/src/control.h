@@ -111,13 +111,9 @@ public:
     eRet            tuneDeferredChannel(eWindowType windowType = eWindowType_Max);
     eRet            tuneLastChannel(void);
     eRet            addChannelToChList(CChannel * pChannel);
+    eRet            getChannelStats(void);
     eRet            channelUp(void);
     eRet            channelDown(void);
-#if RF4CE_SUPPORT
-    eRet displayRf4ceRemotes(void);
-    eRet addRf4ceRemote(const char * remote_name);
-    eRet removeRf4ceRemote(int pairingRefNum);
-#endif
     eRet tenKey(eKey key);
     eRet playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
     eRet playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
@@ -128,9 +124,6 @@ public:
     eRet encodeStop(CChannel * pChannel = NULL);
     eRet setAudioProgram(uint16_t pid);
     eRet setAudioProcessing(eAudioProcessing audioProcessing);
-#ifdef CPUTEST_SUPPORT
-    eRet setCpuTestLevel(int nLevel);
-#endif
     eRet          ipServerStart(void);
     eRet          ipServerStop(void);
     eRet          setSpdifInput(eSpdifInput spdifInput);
@@ -149,15 +142,8 @@ public:
     void          setModel(CModel * pModel)                { _pModel = pModel; }
     void          setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
     CChannelMgr * getChannelMgr(void)                      { return(_pChannelMgr); }
-#if DVR_LIB_SUPPORT
-    void      setDvrMgr(CDvrMgr * pDvrMgr) { _pDvrMgr = pDvrMgr; }
-    CDvrMgr * getDvrMgr(void)              { return(_pDvrMgr); }
-#endif
     CConfiguration * getCfg(void) { return(_pCfg); }
     void             updatePlaybackList();
-#if NEXUS_HAS_FRONTEND
-    void initializeTuners();
-#endif
     void       dumpPlaybackList(bool bForce = false);
     void       addView(CView * pView, const char * name);
     CView *    findView(const char * name);
@@ -165,8 +151,20 @@ public:
     bool       validateNotification(CNotification & notification, eMode mode);
     eRet       setPowerMode(ePowerMode mode);
     ePowerMode getPowerMode(void);
-
+#ifdef CPUTEST_SUPPORT
+    eRet setCpuTestLevel(int nLevel);
+#endif
+#if RF4CE_SUPPORT
+    eRet displayRf4ceRemotes(void);
+    eRet addRf4ceRemote(const char * remote_name);
+    eRet removeRf4ceRemote(int pairingRefNum);
+#endif
+#if DVR_LIB_SUPPORT
+    void      setDvrMgr(CDvrMgr * pDvrMgr) { _pDvrMgr = pDvrMgr; }
+    CDvrMgr * getDvrMgr(void)              { return(_pDvrMgr); }
+#endif
 #if NEXUS_HAS_FRONTEND
+    void initializeTuners();
     eRet scanTuner(CTunerScanData * pScanData);
 #endif
 

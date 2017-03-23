@@ -539,7 +539,6 @@ eRet CScreenMain::initialize(CModel * pModel)
             {
                 _pMainMenu->addButton(_Network, "Network");
             }
-
         }
 #elif defined (NETAPP_SUPPORT)
         _Network = new CWidgetButton("CScreenMain::_Network", getEngine(), this, MRect(0, 0, 0, 22), font12);
@@ -548,7 +547,7 @@ eRet CScreenMain::initialize(CModel * pModel)
 #ifndef HIDE_NETAPP_WIFI_MENU
         _pMainMenu->addButton(_Network, "Network");
 #endif
-#endif
+#endif /* ifdef WPA_SUPPLICANT_SUPPORT */
 
 #ifdef NETAPP_SUPPORT
         _Bluetooth = new CWidgetButton("CScreenMain::_Bluetooth", getEngine(), this, MRect(0, 0, 0, 22), font12);

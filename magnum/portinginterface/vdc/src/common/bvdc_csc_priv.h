@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -172,10 +172,10 @@ extern "C" {
                                      i_bits, f_bits)
 
 #define BVDC_P_FR_USR_MATRIX(cx, usr_shift, i_bits, f_bits)            \
-    (uint16_t)BMTH_FIX_SIGNED_CONVERT(cx, BVDC_P_FIX_MAX_BITS - usr_shift, usr_shift, i_bits, f_bits)
+    (uint16_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(cx, BVDC_P_FIX_MAX_BITS - usr_shift, usr_shift, i_bits, f_bits)
 
 #define BVDC_P_TO_USR_MATRIX(cx, i_bits, f_bits, usr_shift)            \
-    BMTH_FIX_SIGNED_CONVERT(cx, i_bits, f_bits, BVDC_P_FIX_MAX_BITS - usr_shift, usr_shift)
+    BMTH_FIX_SIGNED_CONVERT_isrsafe(cx, i_bits, f_bits, BVDC_P_FIX_MAX_BITS - usr_shift, usr_shift)
 
 /* An entry */
 #define BVDC_P_MAKE_CSC(Y0, Y1, Y2, YAlpha, YOffset,                \
@@ -494,7 +494,7 @@ extern "C" {
 
 /* fixed point operation multiply */
 #define BVDC_P_CSC_FIX_MUL(x, y) \
-    (BMTH_FIX_SIGNED_MUL(x, y, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_MUL_isrsafe(x, y, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                                BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                                BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS))
 
@@ -509,11 +509,11 @@ extern "C" {
  */
 #define BVDC_P_CSC_FIX_MUL_OFFSET(x, y, matrix) \
     (BVDC_P_CSC_USE_ALPHA(matrix) ? \
-     BMTH_FIX_SIGNED_MUL(x, y >> BVDC_P_CSC_VIDEO_DATA_BITS, \
+     BMTH_FIX_SIGNED_MUL_isrsafe(x, y >> BVDC_P_CSC_VIDEO_DATA_BITS, \
                          BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS,   \
                          BVDC_P_FIX_INT_BITS + BVDC_P_CSC_VIDEO_DATA_BITS, BVDC_P_FIX_FRACTION_BITS - BVDC_P_CSC_VIDEO_DATA_BITS,   \
                          BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS) : \
-     BMTH_FIX_SIGNED_MUL(x, BVDC_P_CSC_FIXTOCO32(y), \
+     BMTH_FIX_SIGNED_MUL_isrsafe(x, BVDC_P_CSC_FIXTOCO32(y), \
                          BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS,   \
                          BVDC_P_FIX_MAX_BITS - BVDC_P_CO_FRACTION_BITS, BVDC_P_CO_FRACTION_BITS,   \
                          BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS))
@@ -541,26 +541,26 @@ extern "C" {
 
 /* convert CX coeffs to common fixed notation */
 #define BVDC_P_CSC_CXTOFIX(x) \
-    (BMTH_FIX_SIGNED_CONVERT(x, BVDC_P_CX_INT_BITS, BVDC_P_CX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_CONVERT_isrsafe(x, BVDC_P_CX_INT_BITS, BVDC_P_CX_FRACTION_BITS, \
                                 BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS))
 
 /* convert common fixed notation to CX coeffs */
 #define BVDC_P_CSC_FIXTOCX(x) \
-    (BMTH_FIX_SIGNED_CONVERT(BVDC_P_CSC_FIX_CLAMPTOCX(x), BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_CONVERT_isrsafe(BVDC_P_CSC_FIX_CLAMPTOCX(x), BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                                 BVDC_P_CX_INT_BITS, BVDC_P_CX_FRACTION_BITS))
 
 /* convert CO offsets to common fixed notation */
 #define BVDC_P_CSC_COTOFIX(x) \
-    (BMTH_FIX_SIGNED_CONVERT(x, BVDC_P_CO_INT_BITS, BVDC_P_CO_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_CONVERT_isrsafe(x, BVDC_P_CO_INT_BITS, BVDC_P_CO_FRACTION_BITS, \
                                 BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS))
 
 /* convert common fixed notation to CO offsets */
 #define BVDC_P_CSC_FIXTOCO(x) \
-    (BMTH_FIX_SIGNED_CONVERT(BVDC_P_CSC_FIX_CLAMPTOCO(x), BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_CONVERT_isrsafe(BVDC_P_CSC_FIX_CLAMPTOCO(x), BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                                 BVDC_P_CO_INT_BITS, BVDC_P_CO_FRACTION_BITS))
 
 #define BVDC_P_CSC_FIXTOCO32(x) \
-    (BMTH_FIX_SIGNED_CONVERT(x, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_CONVERT_isrsafe(x, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                                 BVDC_P_FIX_MAX_BITS - BVDC_P_CO_FRACTION_BITS, BVDC_P_CO_FRACTION_BITS))
 
 /* convert CO offsets to integer representation */
@@ -569,12 +569,12 @@ extern "C" {
 
 /* sin, with linear interpolation */
 #define BVDC_P_CSC_FIX_SIN(x) \
-    (BMTH_FIX_SIGNED_SIN(x, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_SIN_isrsafe(x, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                             BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS))
 
 /* cos, with linear interpolation */
 #define BVDC_P_CSC_FIX_COS(x) \
-    (BMTH_FIX_SIGNED_COS(x, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
+    (BMTH_FIX_SIGNED_COS_isrsafe(x, BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS, \
                             BVDC_P_FIX_INT_BITS, BVDC_P_FIX_FRACTION_BITS))
 
 /* Convert csc matrix object to 4x4 matrix of fixed point values */

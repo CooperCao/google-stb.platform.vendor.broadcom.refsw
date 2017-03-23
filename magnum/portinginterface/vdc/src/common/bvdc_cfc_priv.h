@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -56,10 +56,42 @@ extern "C" {
 #define BVDC_P_IS_BT2020(c) \
     (BAVC_P_Colorimetry_eBt2020 == (c))
 
+#define BVDC_P_IS_HLG_TO_HDR10(i, o) \
+    ((i == BAVC_P_ColorTF_eHlg) && (o == BAVC_P_ColorTF_eBt2100Pq))
+
+#define BVDC_P_IS_SDR_TO_HDR10(i, o) \
+    ((i == BAVC_P_ColorTF_eBt1886) && (o == BAVC_P_ColorTF_eBt2100Pq))
+
+#define BVDC_P_IS_HLG_TO_SDR(i, o) \
+    ((i == BAVC_P_ColorTF_eHlg) && (o == BAVC_P_ColorTF_eBt1886))
+
+#define BVDC_P_IS_HDR10_TO_SDR(i, o) \
+    ((i == BAVC_P_ColorTF_eBt2100Pq) && (o == BAVC_P_ColorTF_eBt1886))
+
+#define BVDC_P_IS_SDR_TO_HLG(i, o) \
+    ((i == BAVC_P_ColorTF_eBt1886) && (o == BAVC_P_ColorTF_eHlg))
+
+#define BVDC_P_IS_HDR10_TO_HLG(i, o) \
+    ((i == BAVC_P_ColorTF_eBt2100Pq) && (o == BAVC_P_ColorTF_eHlg))
+
 #define BVDC_P_NEED_BLEND_MATRIX(hCompositor) \
     ((hCompositor)->abBlenderUsed[0] && \
      (hCompositor)->stCfcCapability[0].stBits.bCscBlendOut && \
      !BVDC_P_IS_SDR((hCompositor)->stOutColorSpace.stAvcColorSpace.eColorTF))
+
+#define BVDC_P_CFC_IN_CMP0V0(id)   ((id) == BVDC_P_CfcId_eComp0_V0)
+
+#define BVDC_P_CFC_IN_CMP0(id)     ((id) <= BVDC_P_CfcId_eComp0_V1)
+
+#define BVDC_P_CFC_IN_CMP(id)      ((id) <= BVDC_P_CfcId_eComp6_V0)
+
+#define BVDC_P_CFC_IN_GFD0(id)     ((id) == BVDC_P_CfcId_eComp0_G0)
+
+#define BVDC_P_CFC_IN_GFD(id)      (((id) >= BVDC_P_CfcId_eComp0_G0) && ((id) <= BVDC_P_CfcId_eComp6_G0))
+
+#define BVDC_P_CFC_IN_VFC(id)      (((id) >= BVDC_P_CfcId_eVfc0) && ((id) <= BVDC_P_CfcId_eVfcMax))
+
+#define BVDC_P_CFC_IN_DVI(id)      ((id) == BVDC_P_CfcId_eDisplay0)
 
 #define BVDC_P_CSC_SW_MAX_BITS             (31)
 #define BVDC_P_CSC_SW_MASK         (0x7FFFFFFF)
@@ -71,6 +103,7 @@ extern "C" {
 #define BVDC_P_CFC_FIX_MAX_BITS            (63)
 #define BVDC_P_CFC_FIX_FRACTION_BITS  (BVDC_P_CSC_SW_CX_F_BITS)
 #define BVDC_P_CFC_FIX_INT_BITS       (BVDC_P_CFC_FIX_MAX_BITS - BVDC_P_CFC_FIX_FRACTION_BITS)
+#define BVDC_P_CFC_SW_F_CX_CO_DIFF_BITS      (BVDC_P_CSC_SW_CX_F_BITS - BVDC_P_CSC_SW_CO_F_BITS)
 
 /* integer to fixed */
 #define BVDC_P_CFC_ITOFIX(x) \
@@ -207,6 +240,8 @@ typedef enum
     BAVC_P_ColorFormat_eRGB = 0,   /* non-linear */
     BAVC_P_ColorFormat_eYCbCr,     /* regular YCbCr, i.e. non-constant luminance */
     BAVC_P_ColorFormat_eYCbCr_CL,  /* constant luminance.  does bt709 have CL combination ??? */
+    BAVC_P_ColorFormat_eLMS,
+    BAVC_P_ColorFormat_eICtCp,
     BAVC_P_ColorFormat_eMax,
     BAVC_P_ColorFormat_eInvalid = BAVC_P_ColorFormat_eMax
 
@@ -266,6 +301,7 @@ typedef enum BAVC_P_ColorTF {
     BAVC_P_ColorTF_eBt1886,      /* SDR */
     BAVC_P_ColorTF_eBt2100Pq,    /* i.e. HDR-PQ, or HDR10 */
     BAVC_P_ColorTF_eHlg,         /* Hybrid Log-Gamma */
+    BAVC_P_ColorTF_eDbv,         /* Dolby Vision */
     BAVC_P_ColorTF_eMax
 } BAVC_P_ColorTF;
 
@@ -333,7 +369,7 @@ typedef union
     } stBits;
 
     uint32_t ulInts;
-} BVDC_P_Cfc_Config;
+} BVDC_P_ColorSpace_Config;
 
 /*
  * Color Space
@@ -343,7 +379,7 @@ typedef struct BVDC_P_ColorSpace
 {
     BAVC_P_ColorSpace           stAvcColorSpace;
 
-    BVDC_P_Cfc_Config           stCfg;
+    BVDC_P_ColorSpace_Config    stCfg;
 
     /* non dynamically changing matrix might be a ptr in future ??? */
     BVDC_P_Csc3x4               stM3x4; /* ColorRange adjusted Ma for input, Mc for display */
@@ -380,10 +416,57 @@ typedef struct BVDC_P_CfcLRangeAdj
 
 } BVDC_P_CfcLRangeAdj;
 
+/*
+ * Ram LUT
+ *
+ */
+#define BVDC_P_MAX_LUT_SEGS   8
+typedef struct
+{
+    uint8_t    ucNumSeg;
+    uint8_t    ucXScale;  /* U1.2 */
+    uint8_t    ucOutIntBits;
+    uint8_t    ucOutFracBits;
+
+    uint16_t   usSegBinEnd[BVDC_P_MAX_LUT_SEGS];
+    uint16_t   usSegOffset[BVDC_P_MAX_LUT_SEGS];
+    uint16_t   usSegIntBits[BVDC_P_MAX_LUT_SEGS];
+
+    const uint32_t  *pulTable;
+
+} BVDC_P_RamLut;
+
 /****************************************************************************
  * CFC (color format conversion)
  *
  */
+
+/* CFC LUT loading command list information. Whenever a new LUT loadind cmd is
+ * added pulCurrent is updated.  When all LUT loading cmds in this CMP / GFD /
+ * DVI-CFC are put into this LUT loading cmd list, it is submitted to HW to
+ * execute with regular RDC RUL */
+typedef struct
+{
+    uint32_t           *pulStart;
+    uint32_t           *pulCurrent;
+    BMMA_DeviceOffset   ullStartDeviceAddr;
+
+    BMMA_Block_Handle   hMmaBlock;
+    uint32_t            ulRulBuildCntr;
+} BVDC_P_CfcLutLoadListInfo;
+
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+/* ram lut cfg tables
+ */
+typedef struct
+{
+    const BVDC_P_RamLut         *pRamLutNL2L;   /* must be NULL if not used */
+    const BVDC_P_RamLut         *pRamLutLMR;    /* must be NULL if not used */
+    const uint32_t              *pulLmrAdj;     /* LMR_A/B/C, must not be NULL if pRamLutLMR is not */
+    const BVDC_P_LRangeAdjTable *pLRngAdjTable; /* cp to pCfc->stLRangeAdj.pTable, not directly used to build */
+    const BVDC_P_RamLut         *pRamLutL2NL;   /* must be NULL if not used */
+} BVDC_P_TfConvRamLuts;
+#endif
 
 /* CFC (color format conversion) ID
  */
@@ -424,12 +507,15 @@ typedef enum
     /* DVI-CSC CFC */
     BVDC_P_CfcId_eDisplay0,
 
+    /* CFC in VFC 0/1/2 */
+    BVDC_P_CfcId_eVfc0,
+    BVDC_P_CfcId_eVfc1,
+    BVDC_P_CfcId_eVfc2,
+    BVDC_P_CfcId_eVfcMax = BVDC_P_CfcId_eVfc2,
+
     /* Must be last */
     BVDC_P_CfcId_eUnknown
 } BVDC_P_CfcId;
-
-#define  BVDC_P_CFC_IN_GFD(i) \
-    ((BVDC_P_CfcId_eComp0_G0 <= (i)) && ((i) <= BVDC_P_CfcId_eComp6_G0))
 
 /*
  * CFC feature flag bits.  Some CFC module only have a sub-set of modules
@@ -444,15 +530,18 @@ typedef union
         uint32_t                 bMa                      : 1;
         uint32_t                 bNL2L                    : 1;
         uint32_t                 bMb                      : 1;  /* 4 */
-        uint32_t                 bHlgOotfAdj              : 1;
+        uint32_t                 bLMR                     : 1;
         uint32_t                 bLRngAdj                 : 1;
         uint32_t                 bL2NL                    : 1;
         uint32_t                 bMc                      : 1;  /* 8 */
         uint32_t                 bDbvToneMapping          : 1;
+        uint32_t                 bRamNL2L                 : 1;
+        uint32_t                 bRamL2NL                 : 1;
+        uint32_t                 bRamLutScb               : 1;  /* 12 */
         uint32_t                 bCscBlendIn              : 1;
         uint32_t                 bCscBlendOut             : 1;
-        uint32_t                 bAlphaDiv                : 1;  /* 12 */
-        uint32_t                 bBlackBoxNLConv          : 1;  /* in 7439 B0 and 7271 A0 CMP1 */
+        uint32_t                 bAlphaDiv                : 1;
+        uint32_t                 bBlackBoxNLConv          : 1;  /* 16 - in 7439 B0 and 7271 A0 CMP1 */
     } stBits;
 
     uint32_t ulInts;
@@ -481,11 +570,19 @@ typedef struct BVDC_P_CfcContext
     bool                        bBlendInMatrixOn;
     bool                        bBypassCfc;
 
-    BVDC_P_CfcLRangeAdj         stLRangeAdj;
     const BVDC_P_Csc3x4        *pMa;
     BVDC_P_Csc3x3               stMb;  /* MbOut * MbIn */
     BVDC_P_Csc3x4               stMc;  /* McOut, or McOut * MbOut * MbIn * MaIn, or identity */
-
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+    BVDC_P_CfcLRangeAdj         stLRangeAdj;
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+    const BVDC_P_TfConvRamLuts *pTfConvRamLuts;
+    uint8_t                     ucRamNL2LRulBuildCntr;  /* too expensive, so extra build optimization */
+    uint8_t                     ucRamLMRRulBuildCntr;   /* too expensive, so extra build optimization */
+    uint8_t                     ucRamL2NLRulBuildCntr;  /* too expensive, so extra build optimization */
+    BVDC_P_CfcLutLoadListInfo  *pLutList;               /* ram lut loading cmd list */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
+#endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2) */
 } BVDC_P_CfcContext;
 
 /*
@@ -505,6 +602,7 @@ typedef struct
  */
 BAVC_P_Colorimetry BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr
     ( BAVC_MatrixCoefficients  eMatrixCoeffs,
+      BAVC_ColorPrimaries      ePrimaries,
       bool                     bXvYcc);
 
 /* generic avc color space init
@@ -519,6 +617,15 @@ void BVDC_P_Cfc_UpdateCfg_isr
     ( BVDC_P_CfcContext        *pCfc,
       bool                      bMosaicMode,
       bool                      bForceDirty);
+
+/* Build RDC RUL for ram LUT loading
+ */
+#if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
+void BVDC_P_Cfc_BuildRulForLutLoading_isr
+    ( BVDC_P_CfcLutLoadListInfo *pLutList,
+      uint32_t                   ulStartReg, /* *_LUT_DESC_ADDR */
+      BVDC_P_ListInfo           *pList);
+#endif
 
 void BVDC_P_Cfc_FromMatrix_isr
     ( BVDC_P_CfcContext        *pCfc,
@@ -541,6 +648,11 @@ BERR_Code BVDC_P_Cfc_ColorTempToAttenuationRGB
       int32_t                         *plAttenuationG,
       int32_t                         *plAttenuationB,
       BVDC_P_Csc3x4                   *pCscCoeffs );
+uint32_t BVDC_P_Compositor_Update_Canvas_Background_isrsafe
+    ( BVDC_Compositor_Handle           hCompositor,
+      uint8_t                          ucRed,
+      uint8_t                          ucGreen,
+      uint8_t                          ucBlue);
 
 void BVDC_P_Cfc_ApplyContrast_isr
     ( int16_t                          sContrast,

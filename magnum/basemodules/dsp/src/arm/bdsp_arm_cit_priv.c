@@ -41,18 +41,18 @@
 
 BDBG_MODULE(bdsp_arm_cit_priv);
 
-static void BDSP_ARM_PopulateAlgoMode(
+static void BDSP_Arm_P_PopulateAlgoMode(
                 BDSP_ArmStage *pArmPrimaryStage,
                 BDSP_CIT_P_sAlgoModePresent *sAlgoModePresent)
 {
     BDBG_ASSERT(NULL != pArmPrimaryStage);
 
     /*Initialize first*/
-    sAlgoModePresent->ui32DolbyPulsePresent = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32DolbyPulsePresent   = BDSP_CIT_P_ABSENT;
     sAlgoModePresent->ui32DDP_PassThruPresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32DTS_EncoderPresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32AC3_EncoderPresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32DdrePresent = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32DTS_EncoderPresent  = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32AC3_EncoderPresent  = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32DdrePresent         = BDSP_CIT_P_ABSENT;
 
     BDSP_ARM_STAGE_TRAVERSE_LOOP_BEGIN(pArmPrimaryStage, pArmConnectStage)
     BSTD_UNUSED(macroBrId);
@@ -63,24 +63,19 @@ static void BDSP_ARM_PopulateAlgoMode(
         {
             case BDSP_Algorithm_eDolbyPulseAdtsDecode:
             case BDSP_Algorithm_eDolbyPulseLoasDecode:
-                sAlgoModePresent->ui32DolbyPulsePresent
-                                = BDSP_CIT_P_PRESENT;
+                sAlgoModePresent->ui32DolbyPulsePresent = BDSP_CIT_P_PRESENT;
                 break;
             case BDSP_Algorithm_eAc3PlusPassthrough:
-                sAlgoModePresent->ui32DDP_PassThruPresent
-                                = BDSP_CIT_P_PRESENT;
+                sAlgoModePresent->ui32DDP_PassThruPresent = BDSP_CIT_P_PRESENT;
                 break;
             case BDSP_Algorithm_eDtsCoreEncode:
-                sAlgoModePresent->ui32DTS_EncoderPresent
-                                = BDSP_CIT_P_PRESENT;
+                sAlgoModePresent->ui32DTS_EncoderPresent = BDSP_CIT_P_PRESENT;
                 break;
             case BDSP_Algorithm_eAc3Encode:
-                sAlgoModePresent->ui32AC3_EncoderPresent
-                                = BDSP_CIT_P_PRESENT;
+                sAlgoModePresent->ui32AC3_EncoderPresent = BDSP_CIT_P_PRESENT;
                 break;
             case BDSP_Algorithm_eDdre:
-                sAlgoModePresent->ui32DdrePresent
-                                = BDSP_CIT_P_PRESENT;
+                sAlgoModePresent->ui32DdrePresent = BDSP_CIT_P_PRESENT;
                 break;
             default:
                 break;
@@ -89,12 +84,12 @@ static void BDSP_ARM_PopulateAlgoMode(
     BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pArmConnectStage)
 }
 
-static BERR_Code BDSP_ARM_P_PopulateFwHwBuffer(
+static BERR_Code BDSP_Arm_P_PopulateFwHwBuffer(
                                 void *pPrimaryStageHandle,
                                 BDSP_AF_P_sFW_HW_CFG        *psFwHwCfg
                             )
 {
-    BERR_Code errCode;
+    BERR_Code errCode = BERR_SUCCESS;
     unsigned output;
 
     unsigned ui32Count = 0, ui32PPMCount = 0, ui32BufferId = 0;
@@ -142,20 +137,19 @@ static BERR_Code BDSP_ARM_P_PopulateFwHwBuffer(
     }
     BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pArmConnectStage)
 
-    return BERR_SUCCESS;
 error:
     return errCode;
 
 }
 
-static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
+static BERR_Code BDSP_Arm_P_FillNodeCfg(
                     BDSP_Stage *pPrimaryStageHandle,
                     uint32_t dspIndex,
                     BDSP_ARM_AF_P_sNODE_CONFIG  *psNodeCfg,
                     unsigned *ui32TotalNodes)
 {
 
-    uint32_t    errCode;
+    BERR_Code   errCode;
     uint32_t    ui32Node;
     uint32_t    ui32NumNodesInAlgo;
     uint32_t    ui32NodeIndex, ui32Ip, ui32Op;
@@ -177,7 +171,7 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
 
     BDSP_AF_P_ValidInvalid          eNodeValid = BDSP_AF_P_eInvalid;
 
-    BDBG_ENTER(BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit);
+    BDBG_ENTER(BDSP_Arm_P_FillNodeCfg);
 
     errCode = BERR_SUCCESS;
 
@@ -304,7 +298,6 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
                 psNodeCfg->sDramStatusBuffer.ui32BufferSizeInBytes =
                                                 BDSP_ARM_sNodeInfo[psNodeCfg->eAlgoId].ui32StatusBuffSize;
 
-
                 /*  Num Src and destination for the node */
                 psNodeCfg->ui32NumSrc = pArmConnectStage->totalInputs;/*inputs of all type*/
                 psNodeCfg->ui32NumDst = pArmConnectStage->totalOutputs; /*Use the modified Dst o/ps*/
@@ -336,17 +329,15 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
                             case BDSP_ConnectionType_eFmmBuffer:
                             case BDSP_ConnectionType_eRaveBuffer:
                             case BDSP_ConnectionType_eRDBBuffer:
-
-
                                 pTempIoBuffer_Cached->eBufferType = pArmConnectStage->sStageInput[ui32Ip].IoBuffer.eBufferType;
                                 pTempIoBuffer_Cached->ui32NumBuffers= pArmConnectStage->sStageInput[ui32Ip].IoBuffer.ui32NumBuffers;
 
                                 for(i=0;i<pTempIoBuffer_Cached->ui32NumBuffers;i++)/*audio channels*/
                                 {   /*ensure that the descriptors for FMM and RAVE that are passed are physical address*/
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr=pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32BaseAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr=pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32EndAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr=pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32ReadAddr;
-                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr=pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32WrapAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr =pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32BaseAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr  =pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32EndAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr =pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32ReadAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr =pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32WrapAddr;
                                     pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr=pArmConnectStage->sStageInput[ui32Ip].IoBuffer.sCircBuffer[i].ui32WriteAddr;
                                 }
                                 BDSP_MMA_P_FlushCache(pArmConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
@@ -355,9 +346,34 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
                                 pTempIoGenBuffer_Cached =(BDSP_AF_P_sIO_GENERIC_BUFFER *)pArmConnectStage->sIdsStageOutput.IoGenBuffDesc.pAddr;
                                 ui32IOGenPhysAddr = pArmConnectStage->sStageInput[ui32Ip].IoGenBuffDesc.offset;
                                 BDBG_MSG(("FMM,RAVE,RDB i/p connection,ui32Ip=%d",ui32Ip));
-
                                 break;
                             case BDSP_ConnectionType_eStage:
+								for (i = 0; i < pTempIoBuffer_Cached->ui32NumBuffers; i++)
+								{
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr
+										= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32BaseAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr
+										= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32EndAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr
+										= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32ReadAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr
+										= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WriteAddr;
+									pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr
+										= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WrapAddr;
+								}
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr
+									= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32BaseAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr
+									= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32EndAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr
+									= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32ReadAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr
+									= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WriteAddr;
+								pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr
+									= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WrapAddr;
+                                BDSP_MMA_P_FlushCache(pArmConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
+                                BDSP_MMA_P_FlushCache(pArmConnectStage->sStageInput[ui32Ip].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
+								BDBG_MSG(("Stage Ip connection and Branch id of interstage=%d", pArmConnectStage->ui32BranchId));
                                 break;
                             case BDSP_ConnectionType_eInterTaskBuffer:
                                 /* Do nothing for inter task connection as the descriptors are populated
@@ -365,7 +381,7 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
                                 break;
                             default:
 
-                                BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit",pArmConnectStage->sStageInput[ui32Ip].eConnectionType));
+                                BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_Arm_P_FillNodeCfg",pArmConnectStage->sStageInput[ui32Ip].eConnectionType));
                                 break;
                         }
 
@@ -491,7 +507,7 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
 											BDSP_ARM_MAX_ALLOC_STAGE);
                                         if (BERR_SUCCESS != errCode)
                                         {
-                                            BDBG_ERR(("BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit: Error in updating the MAP Table for FMM registers"));
+                                            BDBG_ERR(("BDSP_Arm_P_FillNodeCfg: Error in updating the MAP Table for FMM registers"));
                                         }
 										/* The Memory we are trying to MAP is actual Buffer which is allocated by APE/AIO for the FMM buffer. The address is physical and stored in the FMM register.
 										Since Insert enrty table function expects both physical and virtual. The processing inside the function is based on virtual and at the end we pass the physical
@@ -509,43 +525,18 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
 
                                         if (BERR_SUCCESS != errCode)
                                         {
-                                            BDBG_ERR(("BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit: Error in updating the MAP Table for Actual FMM buffer"));
+                                            BDBG_ERR(("BDSP_Arm_P_FillNodeCfg: Error in updating the MAP Table for Actual FMM buffer"));
                                         }
                                     }
                                     BDBG_MSG(("FMM RAVE RDB output connection"));
                                     break;
 
                                 case BDSP_ConnectionType_eInterTaskBuffer: /* Do nothing as descriptor is populated at inter task buffer create */
-									break;
 								case BDSP_ConnectionType_eStage:
-									for (i = 0; i < pTempIoBuffer_Cached->ui32NumBuffers; i++)
-									{
-										pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr
-											= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32BaseAddr;
-										pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr
-											= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32EndAddr;
-										pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr
-											= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32ReadAddr;
-										pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr
-											= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WriteAddr;
-										pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr
-											= pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[pArmConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WrapAddr;
-									}
-									pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr
-										= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32BaseAddr;
-									pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr
-										= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32EndAddr;
-									pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr
-										= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32ReadAddr;
-									pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr
-										= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WriteAddr;
-									pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr
-										= pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[pArmConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WrapAddr;
-									BDBG_MSG(("Stage Op connection and Branch id of interstage=%d", pArmConnectStage->ui32BranchId));
                                     break;
                                 default:
 
-                                    BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit",pArmConnectStage->sStageOutput[ui32Op].eConnectionType));
+                                    BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_Arm_P_FillNodeCfg",pArmConnectStage->sStageOutput[ui32Op].eConnectionType));
                                     break;
                             }
 
@@ -579,13 +570,13 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
 
      *ui32TotalNodes = ui32NodeIndex;
 
-    BDBG_LEAVE(BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit);
+    BDBG_LEAVE(BDSP_Arm_P_FillNodeCfg);
 
     return errCode;
 }
 
 /*  This function fills the global task configuration */
-static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
+static BERR_Code BDSP_Arm_P_FillGblTaskCfg (
                         BDSP_ArmTask *pArmTask,
                         BDSP_ARM_AF_P_sTASK_CONFIG  *psCit,
                         unsigned ui32TotalNodes)
@@ -612,7 +603,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
     BDSP_AF_P_DolbyMsUsageMode  eDolbyMsUsageMode;
     unsigned ui32ZeroFillSamples;
 
-    BDBG_ENTER(BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit);
+    BDBG_ENTER(BDSP_Arm_P_FillGblTaskCfg);
     BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
     pPrimaryStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
     pArmContext = (BDSP_ArmContext *)pPrimaryStage->pContext;
@@ -649,14 +640,14 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
 	psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)BKNI_Malloc(SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
 	if(NULL == psTaskFmmGateOpenConfig)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Couldn't Allocate Memory for Gate Open Config"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Couldn't Allocate Memory for Gate Open Config"));
 		return BERR_OUT_OF_DEVICE_MEMORY;
 	}
 
 	psFmmDestCfg = (BDSP_AF_P_sFMM_DEST_CFG *)BKNI_Malloc(SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS);
 	if(NULL == psFmmDestCfg)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Couldn't Allocate Memory for FMM DEST CONFIG"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Couldn't Allocate Memory for FMM DEST CONFIG"));
 		return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 	}
 
@@ -664,7 +655,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
 	ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskPortConfigAddr, (void *)psFmmDestCfg, SIZEOF(BDSP_AF_P_sFMM_DEST_CFG));
 	if(ui32Error != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in copying the Initialised FMM settings for FMM Port"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in copying the Initialised FMM settings for FMM Port"));
 		goto end;
 	}
     /* Add port Config and SPDIF Config */
@@ -680,13 +671,13 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
                                     );
 		if(ui32Error != BERR_SUCCESS)
 		{
-			BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in Populating the GateOpen Settings"));
+			BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in Populating the GateOpen Settings"));
 			goto end;
 		}
 
         if(pStartSettings->DependentTaskInfo.numTasks >= BDSP_MAX_DEPENDENT_TASK)
         {
-            BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Total number of Dependent task to open their respective gates is %d exceeding limit %d !!!!!!!!!!",pStartSettings->DependentTaskInfo.numTasks, BDSP_MAX_DEPENDENT_TASK));
+            BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Total number of Dependent task to open their respective gates is %d exceeding limit %d !!!!!!!!!!",pStartSettings->DependentTaskInfo.numTasks, BDSP_MAX_DEPENDENT_TASK));
             ui32Error = BERR_INVALID_PARAMETER;
 			goto end;
         }
@@ -697,7 +688,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
             sDependentTaskGateOpenSettings.psFmmGateOpenConfig = BKNI_Malloc(BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK* sizeof(BDSP_AF_P_sFMM_GATE_OPEN_CONFIG));
             if(NULL == sDependentTaskGateOpenSettings.psFmmGateOpenConfig)
             {
-                BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Couldn't allocated memory for retreiving the FMM config of dependent task"));
+                BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Couldn't allocated memory for retreiving the FMM config of dependent task"));
 				ui32Error = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 				goto end;
             }
@@ -705,12 +696,12 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
                                                 &sDependentTaskGateOpenSettings);
 			if(ui32Error != BERR_SUCCESS)
 			{
-				BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in Retreiving the Gate Open Settings for Dependenttask %d",taskindex));
+				BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in Retreiving the Gate Open Settings for Dependenttask %d",taskindex));
 				goto end;
 			}
             if(sDependentTaskGateOpenSettings.ui32MaxIndepDelay != psTaskFmmGateOpenConfig->ui32MaxIndepDelay)
             {
-                BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit:Different Max Independent Delay provided: For Dependent task is (%d) and For Gate Open Incharge Task is (%d)",
+                BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg:Different Max Independent Delay provided: For Dependent task is (%d) and For Gate Open Incharge Task is (%d)",
                     sDependentTaskGateOpenSettings.ui32MaxIndepDelay,
                     psTaskFmmGateOpenConfig->ui32MaxIndepDelay));
 				ui32Error = BERR_INVALID_PARAMETER;
@@ -741,7 +732,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
 
             if((psTaskFmmGateOpenConfig->ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts)> BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK)
             {
-                BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Total number of FMM ports (%d) in the ecosystem exceeding the limit %d !!!!!!!!!!",
+                BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Total number of FMM ports (%d) in the ecosystem exceeding the limit %d !!!!!!!!!!",
                     (psTaskFmmGateOpenConfig->ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts),
                     BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK));
                 BKNI_Free(sDependentTaskGateOpenSettings.psFmmGateOpenConfig);
@@ -764,28 +755,28 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
     psGblTaskCfg->ui32FmmGateOpenConfigAddr = TaskGateOpenConfigAddr.offset;
 	if(ui32Error != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in Copying the Gate Open Configurations to Firmware Offset"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in Copying the Gate Open Configurations to Firmware Offset"));
 		goto end;
 	}
 
     /*Populating FwHw starts here*/
-    ui32Error = BDSP_ARM_P_PopulateFwHwBuffer( (void *)pPrimaryStage, &sFwHwCfg);
+    ui32Error = BDSP_Arm_P_PopulateFwHwBuffer( (void *)pPrimaryStage, &sFwHwCfg);
 	if(ui32Error != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in Populating the FwHwBuffer"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in Populating the FwHwBuffer"));
 		goto end;
 	}
     ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskFwHwCfgAddr, (void *)&sFwHwCfg, SIZEOF(BDSP_AF_P_sFW_HW_CFG));
 	if(ui32Error != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in copying the FwHwBuffer to Firmware Offset"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in copying the FwHwBuffer to Firmware Offset"));
 		goto end;
 	}
     /* Add Fw Hw cfg address*/
     psGblTaskCfg->ui32TaskFwHwCfgAddr = TaskFwHwCfgAddr.offset;
 
     /*First populate sAlgoModePresent, along with that get the number of nodes in Network also*/
-    BDSP_ARM_PopulateAlgoMode(pPrimaryStage, &sAlgoModePresent);
+    BDSP_Arm_P_PopulateAlgoMode(pPrimaryStage, &sAlgoModePresent);
 
     if (pStartSettings->pSampleRateMap)
     {
@@ -793,7 +784,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
         ui32Error = BDSP_MMA_P_CopyDataToDram(&FwOpSamplingFreqMapLutAddr, (void *)pStartSettings->pSampleRateMap, BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE);
 		if(ui32Error != BERR_SUCCESS)
 		{
-			BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in Copying the SampleRate LUT provided by APE for Firmware"));
+			BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in Copying the SampleRate LUT provided by APE for Firmware"));
 			goto end;
 		}
     }
@@ -803,7 +794,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
         ui32Error = BDSP_P_FillSamplingFrequencyMapLut(eDolbyMsUsageMode, &sAlgoModePresent, &FwOpSamplingFreqMapLutAddr);
 		if(ui32Error != BERR_SUCCESS)
 		{
-			BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in filling the Samplerate LUT when APE doesnot provide the same"));
+			BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in filling the Samplerate LUT when APE doesnot provide the same"));
 			goto end;
 		}
     }
@@ -815,7 +806,7 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
     ui32Error = BDSP_MMA_P_CopyDataToDram(&StcTriggerCfgAddr, (void *)&sStcTrigConfig, SIZEOF(BDSP_AF_P_sStcTrigConfig));
 	if(ui32Error != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in copying the STCTrigger configuration to firmware offset"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in copying the STCTrigger configuration to firmware offset"));
 		goto end;
 	}
 
@@ -824,13 +815,13 @@ static BERR_Code BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit (
 
 #if 0  /* Finding the Zero Fill Samples  */  /*Need to check whether FW is using */
     /* Finding the Zero Fill Samples  */  /*Need to check whether FW is using */
-    ui32Error = BDSP_CITGEN_P_GetNumZeroFillSamples(
+    ui32Error = BDSP_Raaga_P_GetNumZeroFillSamples(
                                     &ui32ZeroFillSamples,
                                     pPrimaryStage
                                 );
 	if(ui32Error != BERR_SUCCESS)
 	{
-		BDBG_ERR(("BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit: Error in filling the Number of Zerofill samples"));
+		BDBG_ERR(("BDSP_Arm_P_FillGblTaskCfg: Error in filling the Number of Zerofill samples"));
 		goto end;
 	}
 #else
@@ -847,11 +838,11 @@ end:
 	BKNI_Free(psTaskFmmGateOpenConfig);
 	BKNI_Free(psFmmDestCfg);
 
-    BDBG_LEAVE(BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit);
+    BDBG_LEAVE(BDSP_Arm_P_FillGblTaskCfg);
     return ui32Error;
 }
 
-BERR_Code BDSP_P_GenArmCit(void* pTaskHandle)
+BERR_Code BDSP_Arm_P_GenCit(void* pTaskHandle)
 {
     BERR_Code ui32Err = BERR_SUCCESS ;
 
@@ -861,13 +852,12 @@ BERR_Code BDSP_P_GenArmCit(void* pTaskHandle)
     /*BDSP_ARM_CIT_P_sTaskBuffInfo sTaskBuffInfo;*/
     unsigned ui32TotalNodes = 0;
 
-    /*the whole of citOutput should be filled here*/
-    BDBG_ENTER(BDSP_P_GenArmCit);
+    BDBG_ENTER(BDSP_Arm_P_GenCit);
 
     BDBG_ASSERT(NULL != pArmTask);
     BDBG_ASSERT(NULL != pArmTask->startSettings.primaryStage);
 
-    ui32Err = BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
+    ui32Err = BDSP_Arm_P_FillNodeCfg(
                     (void *) pArmTask->startSettings.primaryStage->pStageHandle,
                     pArmTask->settings.dspIndex,
                     &psCitOp->sCit.sNodeConfig[0],
@@ -886,25 +876,20 @@ BERR_Code BDSP_P_GenArmCit(void* pTaskHandle)
     BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
 
     /*  Fill the global task configuration into CIT */
-    ui32Err = BDSP_CITGEN_ARM_P_FillGblTaskCfgIntoNewCit(
+    ui32Err = BDSP_Arm_P_FillGblTaskCfg(
                             pArmTask,
                             &psCitOp->sCit,
                             ui32TotalNodes); /*BDSP_AF_P_sTASK_CONFIG*/
 
-    if( ui32Err != BERR_SUCCESS)
-    {
-        goto BDSP_CITGENMODULE_P_EXIT_POINT;
-    }
-
-/* EXIT Point */
 BDSP_CITGENMODULE_P_EXIT_POINT:
 
     /* Check for Error and assert */
     if(ui32Err !=BERR_SUCCESS)
     {
+	BDBG_ERR(("BDSP_Arm_P_GenCit: Error in Filling the CIT for ARM"));
         BDBG_ASSERT(0);
     }
 
-    BDBG_LEAVE(BDSP_P_GenArmCit);
+    BDBG_LEAVE(BDSP_Arm_P_GenCit);
     return ui32Err;
 }

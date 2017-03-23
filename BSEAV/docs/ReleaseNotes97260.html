@@ -1,0 +1,610 @@
+<html>
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=us-ascii">
+<title>Broadcom 97260 A0 Phase 17.1 Set-Top Unified Reference Software
+Release (URSR) Release Notes</title>
+</head>
+
+<body lang=EN-US link=blue vlink=purple>
+
+<div class=WordSection1>
+
+<h1 style='margin-left:15.0pt'><span style='font-size:12.0pt'>Index</span></h1>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#software_deliverables"><span style='color:#0070C0'>Software Deliverables</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#documentation"><span style='color:#0070C0'>Documentation</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#features"><span
+style='color:#0070C0'>Features</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#known_bugs"><span
+style='color:#0070C0'>Known Issues</span></a> </span></p>
+
+<div>
+
+<p><a name=top><strong>Broadcom 97260 A0 Phase 17.1 </strong></a><strong>Unified Set-Top
+Reference Software Release Notes</strong></p>
+
+<p><strong>Release Date: </strong></p>
+
+<blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
+<p>March 22, 2017</p>
+<p>Phase 17.1 Release </p>
+</blockquote>
+
+<p><strong>Platforms Supported: </strong></p>
+<ul style='margin-top:0in' type=disc>
+<li>972603/4SV - BCM72603/4 A0</li>
+<li>97260SV - BCM7260 A0</li>
+<li>972603/4SFF_HB - BCM72603/4 A0</li>
+<li>972603/4USFF - BCM72603/4 A0</li>
+<li>97260USFF - BCM7260 A0</li>
+<li>972603/4DV - BCM72603/4 A0</li>
+</ul>
+
+<p>&nbsp;</p>
+
+<p >Please also be aware that 7260 supports a 64 bit ARM CPU. The supplied kernel comes in 32bit and 64
+bit flavors. The BOLT bootloader is common to 32 and 64-bit, and can boot both of the kernels.
+Please refer to &#8220;Reference software 64 bit Migration Application Note&#8221; for more
+details.</p>
+<p >&nbsp;</p>
+
+<p ><strong>Software Deliverables:</strong><br>
+<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
+
+<table Table border=1 cellspacing=1 cellpadding=0 width="75%">
+ <tr>
+  <td><p><strong>Description</strong></p></td>
+  <td width="50%"><p><strong>Filename</strong></p></td>
+  <td width="20%"><p><strong>Licensing</strong></p></td>
+ </tr>
+ <tr>
+  <td ><p >root filesystem images</p></td>
+  <td>
+  <p>jffs2-128k-arm.img</p>
+  <p>jffs2-256k-arm.img</p>
+  <p>jffs2-64k-arm.img</p>
+  <p>squashfs-arm.img</p>
+  <p>ubifs-128k-1-arm.img</p>
+  <p>ubifs-256k-1-arm.img</p>
+  <p>ubifs-64k-1-arm.img</p>
+  <p>jffs2-128k-arm64.img</p>
+  <p>jffs2-256k-arm64.img</p>
+  <p>jffs2-64k-arm64.img</p>
+  <p>squashfs-arm64.img</p>
+  <p>ubifs-128k-1-arm64.img</p>
+  <p>ubifs-256k-1-arm64.img</p>
+  <p>ubifs-64k-1-arm64.img</p>
+  </td>
+  <td ><p >GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>root filesystem source</p></td>
+  <td><p>rootfs-4.1-[1.7|1.8].tar.bz2</p></td>
+  <td><p>GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>root filesystem source<br>
+  [lib/directfb]<br>
+  [user/lxc]</p>
+  </td>
+  <td><p>rootfs-4.1-[1.7|1.8].tar.bz2</p></td>
+  <td><p>GPL 2.1</p></td>
+ </tr>
+ <tr>
+  <td>
+  <p>root filesystem source <br>
+  [lib/binutils/gas]<br>
+  [lib/binutils/bfd]<br>
+  [user/gdb/gdb]<br>
+  [user/gdb/bfd]<br>
+  [user/lttcontrol]</p>
+  </td>
+  <td><p>rootfs-4.1-[1.7|1.8].tar.bz2</p></td>
+  <td><p>GPL 3.0</p></td>
+ </tr>
+ <tr>
+  <td><p>root filesystem binaries</p></td>
+  <td>
+  <p>nfsroot-arm.tar.bz2</p>
+  <p>nfsroot-arm64.tar.bz2</p>
+  </td>
+  <td><p>GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>toolchain binary</p></td>
+  <td><p>stbgcc-4.8-1.5.tar.bz2<br>(source available upon request)</p></td>
+  <td><p>GPL 3.0</p></td>
+ </tr>
+ <tr>
+  <td><p>BOLT bootloader binary</p></td>
+  <td><p>bolt/bolt-v1.26-7260a0-bb-bfw-4.1.5.bin</p></td>
+  <td><p>Broadcom SLA</p></td>
+ </tr>
+ <tr>
+  <td><p>Kernel Source</p></td>
+  <td><p>stblinux-4.1-1.8.tar.bz2</p></td>
+  <td><p>GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>Kernel Binary</p></td>
+  <td><p>vmlinuz-arm</p><p>vmlinuz-arm64</p></td>
+  <td><p>GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>Initrd Kernel Binary</p></td>
+  <td><p>vmlinuz-initrd-arm</p><p>vmlinuz-initrd-arm64</p></td>
+  <td><p>GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>Reference Software source</p></td>
+  <td><p>refsw_release_unified_20170322.src.tgz</p></td>
+  <td><p>Broadcom SLA</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes boa</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/boa</p></td>
+  <td><p>GPL 2.0</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes FreeType</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/freetype-2.1.5</p></td>
+  <td><p>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes FreeType</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/framework3d/freetype-2.3.12</p></td>
+  <td><p>Dual GPL 2.0 or BSD type*</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes glob</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/glob</p></td>
+  <td><p>BSD</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes libpng</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/libpng</p></td>
+  <td><p>BSD type*</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes libjpeg</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/jpeg-6b</p></td>
+  <td><p>BSD type*</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes libexif</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/libexif-0.6.12</p></td>
+  <td><p>LGPL 2.1</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes liveMedia</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/livemedia</p></td>
+  <td><p>LGPL 2.1</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes Lua</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/lua</p></td>
+  <td><p>MIT</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- uses openssl (downloaded from Internet)</p></td>
+  <td><p>&nbsp;- build system found at BSEAV/lib/openssl</p></td>
+  <td><p>OpenSSL License and<br>SSLeay License</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes truetype TeenBold font</p></td>
+  <td><p>&nbsp;- found at BSEAV/app/brutus/build/fonts/teenbold</p></td>
+  <td><p>Freeware/BSD type*</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes truetype MSWebFonts</p></td>
+  <td><p>&nbsp;- found at BSEAV/app/brutus/build/fonts/mswebfonts</p></td>
+  <td><p>Microsoft EULA</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes ARC ELF relocation</p></td>
+  <td><p>&nbsp;- found at magnum/portinginterface/xvd/src/bxvd_relf.h</p></td>
+  <td><p>ARC International license for Broadcom customers</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes zlib</p></td>
+  <td><p>&nbsp;- found at BSEAV/lib/zlib</p></td>
+  <td><p>BSD type*</p></td>
+ </tr>
+ <tr>
+  <td><p>&nbsp;- includes libc/quad</p></td>
+  <td><p>&nbsp;- found at nexus/platforms/common/src/support/libgcc</p></td>
+  <td><p>BSD</p></td>
+ </tr>
+ <tr>
+  <td><p>Reference Software binary for 97260</p></td>
+  <td><p>refsw-20170322.97260a0_SV-linux-atlas.bin.tgz (Atlas application binary)</p></td>
+  <td><p>Broadcom SLA</p></td>
+ </tr>
+ <tr>
+  <td><p>Wake-up driver shim for Nexus</p></td>
+  <td><p>&nbsp;- found at BSEAV/driver/wakeup</p></td>
+  <td><p>LGPL 2.1</p></td>
+ </tr>
+</table>
+
+<p >&nbsp;</p>
+
+<p><a name=documentation><strong>Documentation Deliverables:</strong></a><br>
+<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+
+<table Table border=1 cellspacing=1 cellpadding=0 width="75%">
+ <tr>
+  <td><p><strong>Description</strong></p></td>
+  <td><p><strong>Filename</strong></p></td>
+ </tr>
+ <tr>
+  <td><p>Release Notes</p></td>
+  <td><p>ReleaseNotes97260.html</p></td>
+ </tr>
+ <tr>
+  <td><p>Reference Software auto-generated documentation</p></td>
+  <td><p>doxygen_magnum_20170322.tgz<br>doxygen_nexus_20170322.tgz</p></td>
+ </tr>
+ <tr>
+  <td><p>How to Setup the Build Environment, prepare the reference board</p></td>
+  <td><p>BSEAV/app/atlas/docs/BroadcomReferencePlatformSetup.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Reference Software Debug Guide</p></td>
+  <td><p>nexus/docs/RefswDebuggingGuide.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Architecture Guide</p></td>
+  <td><p>nexus/docs/Nexus_Architecture.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Overview Guide</p></td>
+  <td><p>nexus/docs/Nexus_Overview.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Graphics Usage</p></td>
+  <td><p>nexus/docs/Nexus_Graphics.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Usage Manual</p></td>
+  <td><p>nexus/docs/Nexus_Usage.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Development Guide</p></td>
+  <td><p>nexus/docs/Nexus_Development.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus MultiProcess Guide</p></td>
+  <td><p>nexus/docs/Nexus_MultiProcess.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Surface Compositor</p></td>
+  <td><p>nexus/docs/Nexus_SurfaceCompositor.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>OpenGL ES Quick Start Guide</p></td>
+  <td><p>nexus/docs/OpenGL_ES_QuickStart.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Nexus Memory guide</p></td>
+  <td><p>nexus/docs/Nexus_Memory.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Power Management Overview</p></td>
+  <td><p>nexus/docs/RefswPowerManagementOverview.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Atlas Architecture Guide</p></td>
+  <td><p>BSEAV/app/atlas/docs/Atlas_Architecture.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>Atlas User Guide</p></td>
+  <td><p>BSEAV/app/atlas/docs/Atlas_User_Guide.pdf</p></td>
+ </tr>
+ <tr>
+  <td><p>PlayReady 2.5 User Guide</p></td>
+  <td><p>BSEAV/lib/playready/2.5/doc/PlayReady_25_User_Guide.pdf<br>
+  in refsw_release_unified_20170322-prd_bin.tgz to licensed recipients only</p></td>
+ </tr>
+ <tr>
+  <td><p>Reference Software 64 bit Migration Application Note</p></td>
+  <td><p>Reference_Software_64bit_Migration_Application_Note.pdf</p></td>
+ </tr>
+</table>
+
+<p><a name="where_to_start"><strong>Where To Start</strong></a><br>
+<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+
+<p >Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
+Read Atlas_User_Guide.pdf for information on configuring the Linux environment
+on your Build Server and Set-Top, and information on building and installing
+Atlas as part of the Reference Software. </p>
+
+<p >&nbsp;</p>
+<p><strong>Quick Build Instructions</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li ># tar -xvjf rootfs-4.1-[1.7|1.8].tar.bz2 </li>
+ <li ># tar -xvjf stblinux-4.1-1.8.tar.bz2 </li>
+ <li ># cd rootfs </li>
+ <li ># make vmlinuz-initrd-arm <i>(For 32-bit version of
+     the kernel build)</i></li>
+ <li ># make vmlinuz-initrd-arm64 <i>(For 64-bit version of the
+     kernel build)</i></li>
+ <li ># cd ../linux </li>
+ <li >export LINUX=`pwd` </li>
+ <li >tar -C /opt/toolchains -xvjf stbgcc-4.8-1.5.tar.bz2 </li>
+ <li >PATH=/opt/toolchains/ stbgcc-4.8-1.5/bin:$PATH </li>
+ <li >export B_REFSW_ARCH=arm-linux </li>
+ <li >or export B_REFSW_ARCH=aarch64-linux (For compiling the code with 64 bit toolchain)</li>
+</ul>
+
+<p >&nbsp;</p>
+
+<p><strong>Quick Boot instructions</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li >BOLT&gt; boot &lt;network_location&gt;:41-1.5/vmlinuz-initrd-arm
+     </li>
+ <li >BOLT&gt; boot &lt;network_location&gt;:41-1.5/vmlinuz-initrd-arm64&nbsp; - This command
+     will boot 64 bit kernel instead of 32 bit kernel. </li>
+</ul>
+
+<p  style='margin-left:.5in'>&nbsp;</p>
+
+<p ><strong>Set the kernel to autoboot</strong> </p>
+<ul style='margin-top:0in' type=disc>
+ <li >BOLT&gt; flash &lt;network_location&gt;:41-1.5/vmlinuz-initrd-arm flash0.kernel </li>
+ <li >Or BOLT&gt; flash &lt;network_location&gt;:41-1.5/vmlinuz-initrd-arm64 flash0.kernel - For 64-bit kernel</li>
+ <li >BOLT&gt; setenv -p STARTUP &quot;boot flash0.kernel:&quot; </li>
+ <li >BOLT&gt; reboot</li>
+</ul>
+
+<p >&nbsp;</p>
+
+<p ><b>How to set a board to autoboot with kernel and ubifs
+rootfs and binaries into the flash:</b></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li>Boot with vmlinuz-initrd kernel. </li>
+ <li>Run &quot;stbutil&quot; </li>
+ <li>Select option 1 for flashing the noninitrd kernel to the flash. Again run &quot;stbutil&quot; and select 2 to flash rootfs into the flash.</li>
+ <li>Reboot the board with &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0 rootfstype=ubifs root=ubi0:rootfs rw'&quot;</li>
+ <li>In case you want to run any application on the startup then, copy the application binaries in /data/bin of the flash. Copy the streams in /data/media. Create
+     /root/rc.user and put the commands you want to run after the boot. Save the file.</li>
+ <li>Set the STARTUP variable to &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0 rootfstype=ubifs root=ubi0:rootfs rw'&quot;</li>
+ <li>Reboot the board.</li>
+</ul>
+
+<p><strong>Following is the list of boards that are supported and the
+options required to build the software. </strong></p>
+
+<table Table border=1 cellspacing=1 cellpadding=0 width="75%">
+ <tr>
+  <td >
+  <p ><b>Board</b></p>
+  </td>
+  <td >
+  <p ><b>export NEXUS_PLATFORM</b></p>
+  </td>
+  <td >
+  <p ><b>export BCHP_VER</b></p>
+  </td>
+  <td >
+  <p ><b>Additional build option, BOLT, Kernel information</b></p>
+  </td>
+  <td >
+  <p ><b>Notes</b></p>
+  </td>
+ </tr>
+  <tr>
+  <td >
+  <p >97260 972603/4 SV/HB/USFF/DV</p>
+  </td>
+  <td >
+  <p >97260</p>
+  </td>
+  <td >
+  <p ><b>A0</b></p>
+  </td>
+  <td >
+  <p >&nbsp;See &#8220;Quick Build Instructions&#8221; on how to
+  setup LINUX and B_REFSW_ARCH variables</p>
+  </td>
+  <td >
+  <p ></p>
+  </td>
+ </tr>
+</table>
+
+<p><strong>There are different box modes in the RTS to support separate
+versions and features of this chip. See the table below to know the runtime
+options needed to be set to try these box modes:</strong></p>
+
+<table Table border=1 cellspacing=1 cellpadding=0 width="75%"
+ style='width:75%'>
+ <tr style='height:19.65pt'>
+  <td width="5%">
+  <p ><strong>Box modes</strong></p>
+  </td>
+  <td width="15%" style='width:15.02%;padding:0in 0in 0in 0in;height:19.65pt'>
+  <p ><b>Runtime option to be set before running any nexus application</b></p>
+  </td>
+  <td width="30%" valign=top>
+  <p ><strong>Supported Board (A0)</strong></p>
+  </td>
+  <td width="18%" valign=top style='width:18.62%;padding:0in 0in 0in 0in;
+  height:19.65pt'>
+  <p ><strong>Description</strong></p>
+  </td>
+ </tr>
+ <tr style='height:9.45pt'>
+  <td width="5%">
+  <p >Box 1</p>
+  </td>
+  <td style='width:15.02%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p >export B_REFSW_BOXMODE=1</p>
+  </td>
+  <td width="30%" valign=top>
+  <p >BCM97260 BCM972603/4 SV/HB/USFF/DV</p>
+  </td>
+  <td width="18%" valign=top style='width:18.62%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p >Dual 1920x1080p30/60i decode</p>
+  </td>
+ </tr>
+ <tr style='height:9.45pt'>
+  <td width="5%">
+  <p >Box 2</p>
+  </td>
+  <td style='width:15.02%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p >export B_REFSW_BOXMODE=2</p>
+  </td>
+  <td width="30%" valign=top>
+  <p >BCM97260 BCM972603/4S V/HB/USFF/DV</p>
+  </td>
+  <td width="18%" valign=top style='width:18.62%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p >Single1920x1080p60/60i decode</p>
+  </td>
+ </tr>
+ <tr style='height:9.45pt'>
+  <td width="5%" style='width:3.48%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p >Box 3</p>
+  </td>
+  <td style='width:15.02%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p >export B_REFSW_BOXMODE=3</p>
+  </td>
+  <td width="30%" valign=top>
+  <p >BCM972603 SV/HB/USFF/DV</p>
+  </td>
+  <td width="18%" valign=top style='width:18.62%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p >Dual 1920x1080p60 decode</p>
+  </td>
+ </tr>
+ <tr style='height:9.45pt'>
+  <td width="5%" style='width:3.48%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p >Box 4</p>
+  </td>
+  <td style='width:15.02%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p >export B_REFSW_BOXMODE=4</p>
+  </td>
+  <td width="30%" valign=top>
+  <p >BCM972604 SV/HB/USFF/DV</p>
+  </td>
+  <td width="18%" valign=top style='width:18.62%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p >Single 3840x2160p60 decode</p>
+  </td>
+ </tr>
+</table>
+
+<strong>For 72603 and 72604 using box modes 1 and 2 will limit the chips capabilities as they are designed for the 7260 16-bit DDR interface.</strong>
+
+<p ><strong>Instructions to build nexus playback utility and use
+it to decode and display HEVC 4Kx2k@60p 10bit stream </strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li ># tar xvfz refsw_release_97260_20170322.src.tgz </li>
+ <li >#cd nexus/utils </li>
+ <li >#make install </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li >Connect UHD 4K TV to HDMI </li>
+ <li >#export B_REFSW_BOXMODE=4</li>
+ <li >#nexus playback -display_format 3840x2160p60 -component
+     off -max_video 3840,2160 -probe &lt;stream_name &gt;</li>
+</ul>
+
+<p ><b>Instructions to build atlas and use it to play HEVC 4Kx2k
+stream </b></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li ># tar xvfz refsw_release_97260_20170322.src.tgz</li>
+ <li >#cd BSEAV/app/atlas/build </li>
+ <li >#make install </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li >Connect UHD 4K TV to HDMI</li>
+ <li >Mount the USB/SATA containing the 4kX2k stream as
+     /data/videos </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li >Run the following commands to run atlas after extracting
+     the tarball from obj.97260/BSEAV/bin dir.</li>
+ <li >#export B_REFSW_BOXMODE=4 </li>
+ <li >#start install </li>
+ <li >#start atlas </li>
+ <li >From the menu, select Playback -&gt; 4kp60 stream. </li>
+ <li >Using the remote control for the board, select Menu -&gt;
+     Display -&gt; Format -&gt; 2160p 60Hz. You should be able to see the
+     stream playback in 4Kp60 display format.</li>
+</ul>
+
+<p><a name="known_bugs"><strong>Known </strong></a><span class=GramE><span
+style='mso-bookmark:known_bugs'><strong>issues</strong></span></span><span
+style='mso-bookmark:known_bugs'></span><br>
+<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0
+ style='mso-cellspacing:0in;mso-yfti-tbllook:1184;mso-padding-alt:0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=left style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><b>Description</b></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=left style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><b>Jira Ticket </b></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=left style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><b>Area of concern</b></p>
+  </td>
+ </tr>
+ <u1:p></u1:p>
+ <tr style='mso-yfti-irow:1'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=left style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>HDCP 2.2 fails to authenticate on 7260A0&nbsp;</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=left style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><span style='background:whitesmoke'>SWSTB-4245</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=left style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>SECURITY</p>
+  </td>
+ </tr>
+</table>
+
+<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.</p><p>Video Decoder</p><ul><li style="color:green">AVS1-P2 - (<span style="color:green">Jizhun Profile @ L6.0</span>)</li><li style="color:green">Dual HD</li><li style="color:green">H.264 - (<span style="color:green">AVC Constrained BP</span>, <span style="color:green">AVC {MP, HP} @L4.1</span>, <span style="color:green">AVC {MP, HP} @L4.2</span>, <span style="color:green">MVC {MP, HP}@L4.1</span>)</li><li style="color:green">HD + SD</li><li style="color:green">HEVC - (<span style="color:green">HDR Metadata Extraction</span>, <span style="color:green">HDR pass-through</span>, <span style="color:green">HDR-HLG (Hrybrid-Log Gamma)</span>, <span style="color:green">SDR --> HDR conversion</span>, <span style="color:green">{MP} @L5.1 4kx2k/24p</span>, <span style="color:green">{MP} @L5.1 4kx2k/30p</span>)</li><li style="color:green">HW Still Image Decode - (<span style="color:green">GIF</span>, <span style="color:green">JPEG</span>, <span style="color:green">MJPEG</span>, <span style="color:green">PNG</span>)</li><li style="color:green">IP high jitter &amp; trick mode support</li><li style="color:green">Media File Format Support - (<span style="color:green">3GP</span>, <span style="color:green">ASF</span>, <span style="color:green">AVI</span>, <span style="color:green">DiVX</span>, <span style="color:green">DVD vob</span>, <span style="color:green">Flash Video</span>, <span style="color:green">MKV</span>, <span style="color:green">MP4</span>, <span style="color:green">OGG (Vorbis audio only)</span>, <span style="color:green">RealMedia (rm/rmvb/ra/rv)</span>, <span style="color:green">WebM (VP8 video and Vorbis audio)</span>)</li><li style="color:green">Mosaic</li><li style="color:green">MPEG-2 - (<span style="color:green">MP@{LL, ML, HL}</span>)</li><li style="color:green">Single MPEG2 I-frame Decode</li><li style="color:green">Still Picture decoding (Live HD video, MPEG2 and AVC, with SD still)</li><li style="color:green">SW Still image decode (BMP, TIFF, JPEG)</li><li style="color:green">VP9</li></ul><p>Audio Decoder</p><ul><li style="color:green">AAC - (<span style="color:green">HE 5.1</span>, <span style="color:green">HE Stereo</span>, <span style="color:green">LC 5.1</span>, <span style="color:green">LC Stereo</span>, <span style="color:green">V1</span>, <span style="color:green">V2</span>)</li><li style="color:green">AC3 - (<span style="color:green">5.1</span>, <span style="color:green">Stereo</span>)</li><li style="color:green">Dolby - (<span style="color:green">DD</span>, <span style="color:green">DDP to DD convert</span>, <span style="color:green">DDPlus 5.1</span>, <span style="color:green">DDPlus 7.1</span>, <span style="color:green">DDPlus stereo</span>, <span style="color:green">Dolby Pulse</span>)</li><li style="color:green">Dolby MS10</li><li style="color:green">Dolby MS11</li><li style="color:green">Dolby MS11 + 2nd Audio Decode Mixing - (<span style="color:green">Vorbis Audio</span>)</li><li style="color:green">Dolby MS12 - (<span style="color:green">AC4 (A specific Box mode is required)</span>, <span style="color:green">Config A (A specific Box mode is required)</span>, <span style="color:green">Config B</span>, <span style="color:green">Config C</span>, <span style="color:green">Expanded DAPv2 Volume Limiter Controls</span>)</li><li style="color:green">DRA</li><li style="color:green">DTS-HD</li><li style="color:green">DTS-MA - (<span style="color:green">Passthrough</span>)</li><li style="color:green">DVD-LPCM</li><li style="color:green">FLAC</li><li style="color:green">Monkey's Audio</li><li
+ style="color:green">MP3 - (<span style="color:green">Stereo</span>)</li><li style="color:green">MPEG - (<span style="color:green">MPEG-2</span>, <span style="color:green">MPEG-4</span>, <span style="color:green">MPEG-I LI/LII/LIII</span>)</li><li style="color:green">MPEG Audio Descriptor</li><li style="color:green">MPEG Multi Channel</li><li style="color:green">MS11 + PCM Mixing</li><li style="color:green">Ogg Vorbis</li><li style="color:green">Real Audio - (<span style="color:green">10</span>, <span style="color:green">9</span>)</li><li style="color:green">SRS - (<span style="color:green">TruVolume</span>)</li><li style="color:green">Windows Media - (<span style="color:green">WMA (w/LSF, QSF)</span>, <span style="color:green">WMA Pro</span>)</li></ul><p>Security</p><ul><li style="color:green">Common DRM Framework - (<span style="color:green">Adobe Access 5.0 with enhanced robustness</span>, <span style="color:green">DTCP-IP</span>)</li><li style="color:green">MCARD/Cable Card support</li><li style="color:green">SAGE - (<span style="color:green">SAGE Adobe Access 5.0 with enhanced robustness</span>)</li><li style="color:green">Smartcard</li><li style="color:green">SVP - (<span style="color:green">v2.6</span>)</li></ul><p>Audio Post Process</p><ul><li style="color:green">ATSC A/85 volume leveling</li><li style="color:green">Audio Decoder Fade effect</li><li style="color:green">Broadcom - (<span style="color:green">3D surround</span>, <span style="color:green">AVL</span>)</li><li style="color:green">Dolby - (<span style="color:green">DDRE</span>, <span style="color:green">DV-258</span>)</li><li style="color:green">Equalizer - (<span style="color:green">5-band Graphic EQ</span>, <span style="color:green">7-band PEQ</span>, <span style="color:green">Sub sonic filtering</span>, <span style="color:green">Sub woofer channel extraction</span>, <span style="color:green">Tone Balancing</span>)</li><li style="color:green">Independent SPDIF delay</li><li style="color:green">Karaoke support - (<span style="color:green">Karaoke Decode processing</span>, <span style="color:green">Karaoke Vocal processing</span>)</li><li style="color:green">PCM Mixing</li><li style="color:green">Ramping Mute</li><li style="color:green">SRC</li><li style="color:green">SRS - (<span style="color:green">SRS-HD4</span>, <span style="color:green">SRS-TruVolume</span>)</li></ul><p>System</p><ul><li style="color:green">Graphics - (<span style="color:green">2D GFX</span>, <span style="color:green">3D GFX (openGL, OpenVG)</span>)</li><li style="color:green">Kernel Mode</li><li style="color:green">LE</li><li style="color:green">Nexus Multi Process Support</li><li style="color:green">User Mode</li></ul><p>A/V Display</p><ul><li style="color:green">All NTSC/ATSC/PAL resolutions</li><li style="color:green">Audio  - HDMI output - (<span style="color:green">Compressed on HDMI</span>, <span style="color:green">PCM on HDMI</span>)</li><li style="color:green">Audio - DAC output</li><li style="color:green">Audio - I2S - (<span style="color:green">Input</span>, <span style="color:green">Output</span>)</li><li style="color:green">Audio Input - (<span style="color:green">HDMI (Compressed)</span>, <span style="color:green">HDMI (Multi-channel PCM)</span>, <span style="color:green">HDMI (Stereo PCM)</span>, <span style="color:green">I2S</span>)</li><li style="color:green">Audio Output - (<span style="color:green">DAC</span>, <span style="color:green">I2S (Stereo PCM)</span>, <span style="color:green">SPDIF (Compressed)</span>, <span style="color:green">SPDIF (Stereo PCM)</span>)</li><li style="color:green">DSOLA</li><li style="color:green">HDCP support - (<span style="color:green">HDCP 1.4 for HDMI Repeater</span>, <span style="color:green">HDCP 1.4 for HDMI Rx</span>, <span style="color:green">HDCP 1.4 for HDMI Tx</span>, <span style="color:green">HDCP 2.2 for HDMI Repeater/Rx</span>, <span style="color:green">HDCP 2.2 for HDMI Tx</span>)</li><li style="color:green">HDMI support - (<span style="color:green">HDMI 2.0a for HDMI Tx</span>)</li><li style="color:green">PIP: Simultaneous HD+SD display</li><li style="color:green">Stream Pan / Scan</li><li style="color:green">TSM - (<span style="color:green">+/-20mSec</span>)</li><li style="color:green">Video - 1080p display - (<span style="color:green">24p</span>, <span style="color:green">25p</span>, <span style="color:green">30p</span>, <span style="color:green">50p</span>, <span style="color:green">60p</span>)</li><li style="color:green">Video - 4kx2k display</li><li style="color:green">Video - Component output</li><li style="color:green">Video - CVBS and S Video Output</li><li style="color:green">Video - HDMI output - (<span style="color:green">2.0</span>)</li></ul><p>PVR</p><ul><li style="color:green">PVR encryption - (<span style="color:green">3DES</span>, <span style="color:green">AES</span>, <span style="color:green">DES</span>)</li><li style="color:green">PVR TSM</li><li style="color:green">Record - (<span style="color:green">AVC</span>, <span style="color:green">MPEG2</span>, <span style="color:green">MPEG4</span>, <span style="color:green">MVC</span>)</li><li style="color:green">STC rate based trickmode</li><li style="color:green">Timeshift - (<span style="color:green">AVC</span>, <span style="color:green">MPEG2</span>, <span style="color:green">MPEG4</span>, <span style="color:green">MVC</span>)</li><li style="color:green">Trick mode - (<span style="color:green">AVC</span>, <span style="color:green">Decoder trickmode</span>, <span style="color:green">DSOLA with audio</span>, <span style="color:green">Host trickmode</span>, <span style="color:green">Host trickmode w/o index on MPEG-2</span>, <span style="color:green">MPEG2</span>, <span style="color:green">MPEG4</span>, <span style="color:green">MVC</span>, <span style="color:green">playback</span>, <span style="color:green">Slow motion</span>)</li></ul><p>IPTV</p><ul><li style="color:green">BIP API - (<span style="color:green">Dynamic clock recovery reconfiguration</span>, <span style="color:green">IGMP Linstener</span>, <span style="color:green">RTSP server</span>, <span style="color:green">Streamer</span>)</li></ul><p>Networking</p><ul><li style="color:green">Ethernet MAC - (<span style="color:green">10/100 Eth MAC</span>, <span style="color:green">1000 Eth MAC</span>)</li></ul><p>Miscellaneous</p><ul><li style="color:green">Common Download via TR69</li><li style="color:green">NxClient Multiprocess library - (<span style="color:green">AC3+ down-convert</span>, <span style="color:green">API to control audio output configuration</span>, <span style="color:green">API to control slave display settings and sample aspect ratio</span>, <span style="color:green">Audio Primer for fast main/PIP audio swap</span>, <span style="color:green">Auto Volume Level</span>, <span style="color:green">Callback for display changes</span>, <span style="color:green">Display VBI functions</span>, <span style="color:green">Explicit PIP window support</span>, <span style="color:green">HDMI input encoding supporting (included rework of nxclient hdmi input api)</span>, <span style="color:green">Macrovision</span>, <span style="color:green">Main/PIP video swap</span>, <span style="color:green">MS12</span>, <span style="color:green">NRT (non-real-time) transcode</span>, <span style="color:green">nxserver external app mode</span>, <span style="color:green">Per-output audio volume control</span>, <span style="color:green">Picture quality adjustments</span>, <span style="color:green">PIP mosaic</span>, <span style="color:green">Video-as-graphics</span>)</li><li style="color:green">RCU - (<span style="color:green">IR</span>)</li><li style="color:green">Video image input interface</li><li style="color:green">Virtual L2 interrupt</li></ul><p>Transport</p><ul><li style="color:green">Message Filtering</li><li style="color:green">MTSIF</li><li style="color:green">PID Filtering</li><li style="color:green">Remux</li><li style="color:green">TSMF</li></ul><p>Power Management</p><ul><li style="color:green">Adaptive Voltage Scaling</li><li style="color:green">Dynamic Power Management</li><li style="color:green">S1: Active Standby</li><li style="color:green">S2: Low Latency Standby</li><li style="color:green">S3: Deep Standby - (<span style="color:green">cold boot mode</span>, <span style="color:green">Initial warm boot suppport in Bolt and Kernel</span>)</li></ul><p>Picture Quality</p><ul><li style="color:green">CAB (Color Alteration Block)</li><li style="color:green">DNR (Digital Noise Reduction in 65nm) - (<span style="color:green">BNR (Block Noise Reduction)</span>, <span style="color:green">DCR (Digital Countour Reduction)</span>, <span style="color:green">MNR (Mosquito Noise Reduction)</span>)</li><li style="color:green">GNR (Gaussian Noise Reduction) - (<span style="color:green">AND (Analog Noise Detection)</span>, <span style="color:green">MCTF (Motion-Compensated Temporal Filter)</span>)</li><li style="color:green">LAB &amp; HIST (Luma Alteration Block &amp; Luma Histogram)</li><li style="color:green">MAD-R (Motion Adaptive Deinterlacer Re-architected)</li><li style="color:green">TN2T-H (Sharpening)</li></ul><p>3D Video Display</p><ul><li style="color:green">3D packing format - (<span style="color:green">1920x1080i@50Hz</span>, <span style="color:green">1920x1080i@59.94/60Hz</span>, <span style="color:green">1920x1080p@24Hz</span>)</li></ul><p>Linux</p><ul><li style="color:green">CMA</li><li style="color:green">Ethernet link and Ethernet GPhy</li><li style="color:green">Ethernet Switch</li><li style="color:green">File system - (<span style="color:green">UBIFS</span>)</li><li style="color:green">Flash - (<span style="color:green">NAND</span>, <span style="color:green">NOR</span>, <span style="color:green">SPI</span>)</li><li style="color:green">MoCA - (<span style="color:green">V2.0</span>)</li><li style="color:green">PCIe</li><li style="color:green">SATA - (<span style="color:green">Sata2</span>, <span style="color:green">Sata3</span>)</li><li style="color:green">UART port</li><li style="color:green">USB</li></ul><p>Cable FE</p><ul><li style="color:green">BCM3128 tuner support - (<span style="color:green">Full band capture with TR69/135</span>)</li><li style="color:green">CableCARD stack - (<span style="color:green">Basic</span>, <span style="color:green">Basic+DSG</span>, <span style="color:green">Basic+DSG+OOB</span>)</li><li style="color:green">DOCSIS Frontend</li><li style="color:green">DOCSIS3.0 - (<span style="color:green">Annex-A (Europe)</span>, <span style="color:green">Annex-B (North America)</span>, <span style="color:green">Annex-C (Japan)</span>)</li><li style="color:green">DSG Client Controller, DSG Clients</li><li style="color:green">QAM Tuning</li></ul><p>VBI</p><ul><li style="color:green">Copy Protection - (<span style="color:green">CGMS-A</span>, <span style="color:green">DCS</span>)</li><li style="color:green">Data Re-encoding and Rendering - (<span style="color:green">AMOL I/II</span>, <span style="color:green">ANSI/SCTE 20/21</span>, <span style="color:green">CEA-608 (Analog Closed Captioning for RF, composite, S-video and 480i component signals)</span>, <span style="color:green">CEA-708 (Digital Closed Captioning)</span>, <span style="color:green">CEA-805 (for 480p, 720p and 1080i component signals)</span>, <span style="color:green">ETSI EN 300 743</span>, <span style="color:green">Gemstar</span>, <span style="color:green">NABTS (Teletext)</span>, <span style="color:green">Nielsen</span>, <span style="color:green">TVGuide</span>, <span style="color:green">WSS/VPS (ETS 300 294)</span>)</li></ul><br><h4><p><strong><a name="features_future">Features Planned for the Next Release</a></strong><br/><a href="#top">(Top)</a></p></h4>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

@@ -140,6 +140,16 @@ BERR_Code BVDC_P_Vfc_Create
     BVDC_P_SubRul_Init(&(pVfc->SubRul), pVfc->ulVnetMuxAddr,
         pVfc->ulVnetMuxValue, BVDC_P_DrainMode_eBack, 0, hResource);
 
+    /* init CFC capability */
+    pVfc->stCfc.stCapability.stBits.bMc = 1;
+    pVfc->stCfc.stCapability.stBits.bMb = 1;
+    pVfc->stCfc.stCapability.stBits.bMa = 1;
+    pVfc->stCfc.stCapability.stBits.bLRngAdj = 1;
+    pVfc->stCfc.stCapability.stBits.bNL2L = 1;
+    pVfc->stCfc.stCapability.stBits.bL2NL = 1;
+    pVfc->stCfc.stCapability.stBits.bRamNL2L = 1;
+    pVfc->stCfc.stCapability.stBits.bRamL2NL = 1;
+
     /* All done. now return the new fresh context to user. */
     *phVfc = (BVDC_P_Vfc_Handle)pVfc;
 
@@ -186,6 +196,9 @@ void BVDC_P_Vfc_Init_isr
 
     /* Initialize state. */
     hVfc->bInitial = true;
+
+    /* init CFC */
+    BVDC_P_Vfc_InitCfc_isrsafe(hVfc);
 
     BDBG_LEAVE(BVDC_P_Vfc_Init_isr);
     return;
@@ -247,6 +260,7 @@ BERR_Code BVDC_P_Vfc_AcquireConnect_isr
 
     /* init Vfc */
     BVDC_P_Vfc_Init_isr(hVfc);
+    hVfc->stCfc.pColorSpaceOut = &(hWindow->hCompositor->stOutColorSpace);
 
     BDBG_LEAVE(BVDC_P_Vfc_AcquireConnect_isr);
     return BERR_TRACE(eResult);
@@ -352,6 +366,8 @@ void BVDC_P_Vfc_BuildRul_isr
 
     if (ulRulOpsFlags & BVDC_P_RulOp_eEnable)
     {
+        /* build CFC RUL if changed */
+        BVDC_P_Vfc_BuildCfcRul_isr(hVfc, pList);
         BVDC_P_Vfc_BuildRul_SetEnable_isr(hVfc, pList);
 
         /* join in vnet after enable. note: its src mux is initialed as disabled */
@@ -443,6 +459,11 @@ void BVDC_P_Vfc_SetInfo_isr
                 BVDC_P_VFC_GET_REG_DATA(hVfc, VFC_0_BYPASS_DITHER_LFSR_CTRL) = hVfc->stDither.ulLfsrCtrlReg;
             }
         }
+    }
+
+    /* CFC adjust */
+    if(hWindow->bCfcAdjust) {
+        BVDC_P_Cfc_UpdateCfg_isr(&hVfc->stCfc, false, true);
     }
     BDBG_LEAVE(BVDC_P_Vfc_SetInfo_isr);
     return;

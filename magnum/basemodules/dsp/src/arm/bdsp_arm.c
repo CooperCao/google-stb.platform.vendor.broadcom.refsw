@@ -289,7 +289,7 @@ BERR_Code BDSP_Arm_Initialize(BDSP_Handle handle)
     }
     BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
     BDSP_Arm_P_RetrieveEntriesToMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
-    rc = BDSP_ARM_P_SendMapCommand(pDevice, &MapTable[0], ui32NumEntries);
+    rc = BDSP_Arm_P_SendMapCommand(pDevice, &MapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != rc)
     {
         BDBG_ERR(("BDSP_Arm_Initialize: Send ARM MAP Command failed!!!!"));

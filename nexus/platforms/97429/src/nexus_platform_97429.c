@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,6 +79,7 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+    uint8_t i=0;
     const NEXUS_PlatformMemory *pMemory = &g_platformMemory; /* g_platformMemory is completely initialized already */
     BSTD_UNUSED(boxMode);
     /* kernel suggested boot options bmem=192M@64M bmem=512M@512M for boards with >750M memory
@@ -107,6 +108,15 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = -1;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
+
+#if NEXUS_PLATFORM_7241_T2SFF || NEXUS_PLATFORM_7241_DCSFBTSFF
+    for (i=0;i<NEXUS_MAX_I2C_CHANNELS;i++) {
+        if ( i != NEXUS_I2C_CHANNEL_HDMI_TX ){
+            pSettings->i2c[i].settings.interruptMode = false;
+        }
+    }
+#endif
+
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)

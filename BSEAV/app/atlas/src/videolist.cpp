@@ -863,7 +863,7 @@ eRet CPlaybackList::writeInfo(
 
     xmlElemInfo->addAttr(XML_ATT_FILENAME, pVideo->getVideoName());
     xmlElemInfo->addAttr(XML_ATT_SIZE, MString(pVideo->getSize()));
-    if (pVideo->hasIndex())
+    if(pVideo->getIndexName().isEmpty() == false)
     {
         xmlElemInfo->addAttr(XML_ATT_INDEXNAME, pVideo->getIndexName());
     }

@@ -1,5 +1,5 @@
 ############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -102,6 +102,7 @@ ${PROTOBUF_SOURCE_PATH}/.compiled : | build_protoc
 	@if [ ! -e "${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/Makefile" ]; then \
 		echo "================ Configure PROTOBUF"; \
 		cd ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}; \
+		CC=$(strip $(subst $(B_PROTOBUF_TOOLCHAIN_ARCH)-,,$(CC))) \
 		CXXFLAGS="${PROTOBUF_CONFIG_CXXFLAGS}" \
 		./configure \
 		--prefix=${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/${NEXUS_PLATFORM}${LOWER_BCHP_VER} \
@@ -118,8 +119,10 @@ ${PROTOBUF_SOURCE_PATH}/.compiled : | build_protoc
 
 	@echo "================ Compiling PROTOBUF==============================="
 	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} ${MAKE_SUFFIX}
+	@echo "================ Compiling PROTOBUF gtest==============================="
 	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME}/gtest ${MAKE_SUFFIX}
-	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} install ${MAKE_SUFFIX}
+	@echo "================ Installing PROTOBUF headers==============================="
+	${MAKE} ${MAKE_OPTIONS} -C ${PROTOBUF_TAR_PATH}/${PROTOBUF_NAME} install-data ${MAKE_SUFFIX}
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
 		${STRIP} ${PROTOBUF_LIB_FOLDER}/*.so; \
                 ${STRIP} $(GTEST_LIB_FOLDER)/*.so; \

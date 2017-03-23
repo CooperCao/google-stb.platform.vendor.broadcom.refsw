@@ -53,9 +53,7 @@ Function Name: BDSP_MM_P_GetFwMemRequired
                 and the required cumulative memory requirement is found out.
 
 *****************************************************************************/
-
-
-BERR_Code BDSP_MM_P_GetFwMemRequired(
+BERR_Code BDSP_Raaga_P_GetFwMemRequired(
         const BDSP_RaagaSettings  *pSettings,
         BDSP_Raaga_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
         void                      *pImg,
@@ -175,17 +173,21 @@ BERR_Code BDSP_MM_P_GetFwMemRequired(
     return ret;
 }
 
-
-BERR_Code BDSP_MM_P_GetFwMemRequirement(BDSP_Raaga *pDevice)
+static BERR_Code BDSP_Raaga_P_GetFwMemRequirement(BDSP_Raaga *pDevice)
 {
     BDSP_Raaga_P_DwnldMemInfo *pDwnldMemInfo;
-	BERR_Code errCode;
+	BERR_Code errCode = BERR_SUCCESS;
 
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
 
     pDwnldMemInfo = &pDevice->memInfo.sDwnldMemInfo;
 
-    BDSP_MM_P_GetFwMemRequired(&(pDevice->settings),pDwnldMemInfo,(void *)&(pDevice->imgCache[0]),true,NULL);
+    errCode = BDSP_Raaga_P_GetFwMemRequired(&(pDevice->settings),pDwnldMemInfo,(void *)&(pDevice->imgCache[0]),true,NULL);
+	if(errCode != BERR_SUCCESS)
+	{
+		BDBG_ERR(("BDSP_Raaga_P_GetFwMemRequirement: Unable to gather the FW Memory requirement"));
+		goto end;
+	}
 
 #if(BCHP_CHIP != 7278)
 	errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle, pDwnldMemInfo->ui32AllocwithGuardBand, &(pDwnldMemInfo->ImgBuf),BDSP_MMA_Alignment_32bit);
@@ -209,7 +211,8 @@ BERR_Code BDSP_MM_P_GetFwMemRequirement(BDSP_Raaga *pDevice)
 	BDBG_MSG(("**************Allocated size %d, Bin Size = %d, ptr = %p Preloaded = %d", pDwnldMemInfo->ui32AllocwithGuardBand,pDwnldMemInfo->ui32AllocatedBinSize,pDwnldMemInfo->ImgBuf.pAddr,pDwnldMemInfo->IsImagePreLoaded));
 	pDevice->fwHeapSize = pDwnldMemInfo->ui32AllocwithGuardBand;
 	pDevice->pFwHeapMemory = pDwnldMemInfo->ImgBuf.pAddr;
-    return BERR_SUCCESS;
+end:
+    return errCode;
 }
 
 /*#define DWNLD_BUF_DBG*/
@@ -353,7 +356,7 @@ error:
     return retVal;
 }
 
-void BDSP_Raaga_P_InitMem( void *pDeviceHandle)
+static void BDSP_Raaga_P_InitMem( void *pDeviceHandle)
 {
 
     BDSP_Raaga *pDevice = (BDSP_Raaga *)pDeviceHandle;
@@ -376,7 +379,6 @@ void BDSP_Raaga_P_InitMem( void *pDeviceHandle)
     }
 
     BDBG_LEAVE(BDSP_Raaga_P_InitMem);
-
 }
 
 /***********************************************************************
@@ -433,9 +435,8 @@ BERR_Code BDSP_Raaga_P_AllocateInitMemory (
 
     BDSP_Raaga_P_InitMem(pDeviceHandle);
 
-
     /* Get memory download requirement here */
-    err = BDSP_MM_P_GetFwMemRequirement(pDeviceHandle);
+    err = BDSP_Raaga_P_GetFwMemRequirement(pDeviceHandle);
     if(BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_MEM_P_CalcMemPoolReq: Error getting firmware memory requirements!"));
@@ -634,7 +635,7 @@ end:
     return err;
 }
 
-BERR_Code BDSP_MM_P_CalcStageMemPoolReq(void *pStageHandle)
+BERR_Code BDSP_Raaga_P_CalcStageMemPoolReq(void *pStageHandle)
 {
     BERR_Code err = BERR_SUCCESS;
     BDSP_AF_P_AlgoId algoId;
@@ -649,7 +650,7 @@ BERR_Code BDSP_MM_P_CalcStageMemPoolReq(void *pStageHandle)
     BDSP_RaagaContext   *pRaagaContext = pRaagaStage->pContext;
 
     BDBG_ASSERT(NULL != pRaagaStage);
-    BDBG_ENTER(BDSP_MM_P_CalcStageMemPoolReq);
+    BDBG_ENTER(BDSP_Raaga_P_CalcStageMemPoolReq);
 
     /* For Decoders */
     for ( i=0; i < BDSP_Algorithm_eMax; i++ )
@@ -746,12 +747,12 @@ BERR_Code BDSP_MM_P_CalcStageMemPoolReq(void *pStageHandle)
     BDBG_MSG(("ui32AlgoIf = %d ui32AlgoCfgBuf =%d ui32AlgoStatusBuf =%d",ui32AlgoIf,ui32AlgoCfgBuf, ui32AlgoStatusBuf));
     BDBG_MSG(("ui32FsIf = %d ui32FsCfgBuf =%d ui32FsStatusBuf =%d",ui32FsIf,ui32FsCfgBuf, ui32FsStatusBuf));
 
-    BDBG_LEAVE(BDSP_MM_P_CalcStageMemPoolReq);
+    BDBG_LEAVE(BDSP_Raaga_P_CalcStageMemPoolReq);
     return err;
 }
 
 /***********************************************************************
-Name        :   BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI
+Name        :   BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI
 
 Type        :   BDSP Internal
 
@@ -766,8 +767,7 @@ Return      :   Error Code to return SUCCESS or FAILURE
 Functionality   :   Following are the operations performed.
         1)  Return the highest Scratch, Interstage IO, Interstage IO Generic and Max channels required/supported by the system.
 ***********************************************************************/
-
-BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(
+BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI(
         uint32_t *pui32ScratchMem,
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
@@ -782,7 +782,7 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(
     uint32_t ui32Scratch = 0, ui32Is = 0, ui32IsIf = 0;
     uint32_t ui32NumCh=0;
 
-    BDBG_ENTER(BDSP_MM_P_CalcScratchAndISbufferReq);
+    BDBG_ENTER(BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI);
 
     /* For Decoders */
     for ( Algoindex=0; Algoindex < BDSP_Algorithm_eMax; Algoindex++ )
@@ -832,12 +832,12 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI(
     *pui32InterstageIOGenMem= ui32IsIf;
     *pui32Numch             = ui32NumCh;
 
-    BDBG_LEAVE(BDSP_MM_P_CalcScratchAndISbufferReq_MemToolAPI);
+    BDBG_LEAVE(BDSP_Raaga_P_CalcScratchAndISbufferReq_MemToolAPI);
     return err;
 }
 
 /***********************************************************************
-Name        :   BDSP_MM_P_CalcScratchAndISbufferReq
+Name        :   BDSP_Raaga_P_CalcScratchAndISbufferReq
 
 Type        :   BDSP Internal
 
@@ -851,8 +851,7 @@ Return      :   Error Code to return SUCCESS or FAILURE
 Functionality   :   Following are the operations performed.
         1)  Return the highest Scratch, Interstage IO, Interstage IO Generic and Max channels required/supported by the system.
 ***********************************************************************/
-
-BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq(
+BERR_Code BDSP_Raaga_P_CalcScratchAndISbufferReq(
         uint32_t *pui32ScratchMem,
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
@@ -866,7 +865,7 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq(
     uint32_t ui32Scratch = 0, ui32Is = 0, ui32IsIf = 0;
     uint32_t ui32NumCh=0;
 
-    BDBG_ENTER(BDSP_MM_P_CalcScratchAndISbufferReq);
+    BDBG_ENTER(BDSP_Raaga_P_CalcScratchAndISbufferReq);
 
     /* For Decoders */
     for ( Algoindex=0; Algoindex < BDSP_Algorithm_eMax; Algoindex++ )
@@ -914,12 +913,11 @@ BERR_Code BDSP_MM_P_CalcScratchAndISbufferReq(
     *pui32InterstageIOGenMem= ui32IsIf;
     *pui32Numch             = ui32NumCh;
 
-    BDBG_LEAVE(BDSP_MM_P_CalcScratchAndISbufferReq);
-
+    BDBG_LEAVE(BDSP_Raaga_P_CalcScratchAndISbufferReq);
     return err;
 }
 
-BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
+BERR_Code BDSP_Raaga_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 {
 
     BERR_Code err = BERR_SUCCESS;
@@ -934,11 +932,10 @@ BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Raaga);
     i32MaxDsp = pDevice->numDsp; /* Added to beat coverity job of IRVINE */
 
-
-    BDBG_ENTER(BDSP_MM_P_CalcandAllocScratchISbufferReq);
+    BDBG_ENTER(BDSP_Raaga_P_CalcandAllocScratchISbufferReq);
 	for(i32SchedulingGroupIndex=0; i32SchedulingGroupIndex<(int32_t)BDSP_AF_P_eSchedulingGroup_Max; i32SchedulingGroupIndex++)
 	{
-	    BDSP_MM_P_CalcScratchAndISbufferReq(&ui32TempScratch[i32SchedulingGroupIndex],
+	    BDSP_Raaga_P_CalcScratchAndISbufferReq(&ui32TempScratch[i32SchedulingGroupIndex],
 			&ui32TempIs[i32SchedulingGroupIndex],
 			&ui32TempIsIf[i32SchedulingGroupIndex],
 			&ui32NumCh[i32SchedulingGroupIndex],
@@ -984,7 +981,7 @@ BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 #endif
 				if(err != BERR_SUCCESS)
 				{
-					BDBG_ERR(("BDSP_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for Scratch Buffer!"));
+					BDBG_ERR(("BDSP_Raaga_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for Scratch Buffer!"));
 					err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 					goto error_alloc_scratch_mem;
 				}
@@ -1005,7 +1002,7 @@ BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 #endif
 				if(err != BERR_SUCCESS)
 				{
-					BDBG_ERR(("BDSP_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Buffer!"));
+					BDBG_ERR(("BDSP_Raaga_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Buffer!"));
 					err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 					/*free scratch*/
 					goto error_alloc_IO_mem;
@@ -1039,7 +1036,7 @@ BERR_Code BDSP_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 #endif
 				if(err != BERR_SUCCESS)
 				{
-					BDBG_ERR(("BDSP_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Generic!"));
+					BDBG_ERR(("BDSP_Raaga_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Generic!"));
 					err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 					/*Free scratch and IO buffer here*/
 					goto error_alloc_IOGen_mem;
@@ -1139,7 +1136,7 @@ error_alloc_scratch_mem :
 
 #endif /* (BCHP_CHIP != 7278) */
 end:
-    BDBG_LEAVE(BDSP_MM_P_CalcandAllocScratchISbufferReq);
+    BDBG_LEAVE(BDSP_Raaga_P_CalcandAllocScratchISbufferReq);
     return err;
 }
 
@@ -1379,7 +1376,7 @@ BERR_Code BDSP_Raaga_P_AllocateStageMemory(
     BDSP_Raaga *pDevice = (BDSP_Raaga *)pRaagaContext->pDevice;
     unsigned bytesreqd=0;
 
-    err = BDSP_MM_P_CalcStageMemPoolReq ((void *)pRaagaStage);
+    err = BDSP_Raaga_P_CalcStageMemPoolReq ((void *)pRaagaStage);
     if(err != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Raaga_P_AllocateStageMemory: "
@@ -2408,7 +2405,7 @@ BERR_Code BDSP_Raaga_P_CalcAndAllocRWMemoryReq(
 
 	for(i32SchedulingGroupIndex=0; i32SchedulingGroupIndex<(int32_t)BDSP_AF_P_eSchedulingGroup_Max; i32SchedulingGroupIndex++)
 	{
-	    err = BDSP_MM_P_CalcScratchAndISbufferReq(&ui32TempScratch[i32SchedulingGroupIndex],
+	    err = BDSP_Raaga_P_CalcScratchAndISbufferReq(&ui32TempScratch[i32SchedulingGroupIndex],
 				&ui32TempIs[i32SchedulingGroupIndex],
 				&ui32TempIsIf[i32SchedulingGroupIndex],
 				&ui32NumCh[i32SchedulingGroupIndex],

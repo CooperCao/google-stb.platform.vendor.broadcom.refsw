@@ -141,10 +141,7 @@
 #define BCHP_PWR_DV_HVD_CTRL_CH2_div                              0xff000056
 #define BCHP_PWR_DV_HVD_CTRL_CH5_div                              0xff000057
 #define BCHP_PWR_DV_NETWORK_CTRL_CH5_div                          0xff000058
-#define BCHP_PWR_DV_XPT_CTRL_CH1_div                              0xff000059
-#define BCHP_PWR_DV_XPT_CTRL_CH2_div                              0xff00005a
-#define BCHP_PWR_DV_XPT_CTRL_CH4_div                              0xff00005b
-#define BCHP_PWR_DV_XPT_CTRL_CH5_div                              0xff00005c
+#define BCHP_PWR_DV_XPT_CTRL_CH4_div                              0xff000059
 
 /* This is the link between the public and private interface */
 void BCHP_PWR_P_HW_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, bool activate);
@@ -153,11 +150,11 @@ void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resou
 void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);
 
 #define BCHP_PWR_P_NUM_NONLEAFS   59
-#define BCHP_PWR_P_NUM_NONLEAFSHW 35
-#define BCHP_PWR_P_NUM_LEAFS      44
+#define BCHP_PWR_P_NUM_NONLEAFSHW 32
+#define BCHP_PWR_P_NUM_LEAFS      47
 #define BCHP_PWR_P_NUM_MUXES      4
-#define BCHP_PWR_P_NUM_DIVS       9
-#define BCHP_PWR_P_NUM_ALLNODES   151
-#define BCHP_PWR_NUM_P_MAPS     4
+#define BCHP_PWR_P_NUM_DIVS       6
+#define BCHP_PWR_P_NUM_ALLNODES   148
+#define BCHP_PWR_NUM_P_MAPS     6
 
 #endif

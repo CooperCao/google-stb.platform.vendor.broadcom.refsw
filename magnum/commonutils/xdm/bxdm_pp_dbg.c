@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -891,7 +891,7 @@ void BXDM_PPDBG_P_PrintMFD_isr(
       default:                            cBarDataType = 'i';     break;
    }
 
-   BDBG_MODULE_MSG( BXDM_MFD2, ("%c%x:[%02x.%03x] clp:%dx%d afd:%d(%d) bar:%dx%d(%c) pan:%dx%d loc:%d ci:%s cp:%d tc:%d mc:%d %s dp:%s chk:%08x %s%s",
+   BDBG_MODULE_MSG( BXDM_MFD2, ("%c%x:[%02x.%03x] clp:%dx%d afd:%d(%d) bar:%dx%d(%c) pan:%dx%d loc:%d ci:%s cp:%d tc:%d mc:%d cr:%d %s dp:%s chk:%08x %s%s",
                                  ( pMFD->bMute ) ? 'M' : ' ',
                                  pDebug->uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
@@ -910,6 +910,7 @@ void BXDM_PPDBG_P_PrintMFD_isr(
                                  pMFD->eColorPrimaries,
                                  pMFD->eTransferCharacteristics,
                                  pMFD->eMatrixCoefficients,
+                                 pMFD->eColorRange,
                                  BXDM_P_BAVCPictureCodingToStrLUT[ pMFD->ePictureType ],
                                  ( BAVC_VideoBitDepth_e10Bit == pMFDPicture->eBitDepth ) ? "10" : "8",
                                  pMFD->ulChunkId,

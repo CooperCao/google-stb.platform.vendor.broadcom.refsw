@@ -733,19 +733,13 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
         switch (requested->colorDepth)
         {
         default :
-            BDBG_MSG(("Unknown ColorDepth %d ; Using Auto Color Depth",
+            BDBG_WRN(("Unknown requested Color Depth %d ; Using Auto Color Depth",
                 requested->colorDepth)) ;
 
             /* FALL  THROUGH */
 
+        case 0 : /* For non-4k auto colordepth(=0) */
         case NEXUS_HdmiColorDepth_eMax :
-            preferred->colorDepth = 8 ;  /* initialize to 8 bit Color Depth */
-            if (!stRequestedVideoFormatSupport.yCbCr444rgb444) /* supports YcbCr 422 */
-            {
-                /* should never get here 4:4:4: should always be supported */
-                BDBG_ERR(("Requested format %d is not supported", requested->videoFormat)) ;
-                goto selectPreferredFormat ;
-            }
 
             /* ***FALL THROUGH*** */
 
@@ -776,7 +770,6 @@ static NEXUS_Error NEXUS_HdmiOutput_ValidateVideoSettingsNon4K_priv(
 
             /* ***FALL THROUGH*** */
 
-        case 0 : /* For non-4k auto colordepth(=0), use 8 bits for consistent performance in prior releases  */
         case NEXUS_HdmiColorDepth_e8bit :
             preferred->colorDepth = 8 ;
             break ;
@@ -806,7 +799,7 @@ selectPreferredFormat:
     rc = NEXUS_HdmiOutput_SelectEdidPreferredFormat_priv(hdmiOutput, requested, preferred) ;
     if (rc) {BERR_TRACE(rc); return rc ;}
 
-done: ;
+done:
     rc = NEXUS_HdmiOutput_OverrideVideoSettings_priv(hdmiOutput, requested, preferred) ;
 
     return rc ;

@@ -1078,7 +1078,7 @@ static NEXUS_Error NEXUS_Platform_P_CalculateBootParams(struct NEXUS_Platform_P_
 
 static bool NEXUS_Platform_P_TestIntersect(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
 {
-    return (addr1 < addr2+size2-1) && (addr2 < addr1+size1-1);
+    return (addr1 < addr2+size2) && (addr2 < addr1 + size1);
 }
 
 static bool NEXUS_Platform_P_TestContain(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)

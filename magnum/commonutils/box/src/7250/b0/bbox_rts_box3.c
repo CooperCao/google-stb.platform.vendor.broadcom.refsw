@@ -54,11 +54,10 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_vdc_box3_config.h"
 
 BDBG_MODULE(BBOX_RTS_BOX3);
 BDBG_OBJECT_ID(BBOX_RTS_BOX3);
-
-extern BBOX_Rts stBoxRts_1u_0t_box3;
 
 /* Memc Index for box mode 3. BBOX_MemcIndex_Invalid means it's not used */
 static const BBOX_MemConfig stBoxMemConfig_7250B0_box3 =

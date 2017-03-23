@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -311,6 +311,18 @@ static void playerPrintStatus(
                 BIP_ToStr_BIP_PlayerMode(hPlayer->mode),
                 pbipStatus.totalConsumed
              ));
+    if (hPlayer->playerProtocol == BIP_PlayerProtocol_eRtp)
+    {
+        BDBG_WRN(("RTP Stats: bytes rcvd=%"PRIu64 " consumed=%" PRIu64 " pkts: rcvd=%u outOfSeq=%u discarded=%u lost=%u lossEvents=%u",
+                    pbipStatus.rtpStats.bytesReceived,
+                    pbipStatus.totalConsumed,
+                    pbipStatus.rtpStats.packetsReceived,
+                    pbipStatus.rtpStats.packetsOutOfSequence,
+                    pbipStatus.rtpStats.packetsDiscarded,
+                    pbipStatus.rtpStats.packetsLost,
+                    pbipStatus.rtpStats.lossEvents
+                 ));
+    }
     playerPrintNexusStatus(hPlayer);
 }
 
@@ -8432,6 +8444,17 @@ void processPlayerState(
                     hPlayer->getStatusApi.pStatus->stats.hlsStats.lastSegmentDuration = pbipStatus.hlsStats.lastSegmentDuration;
                 }
                 hPlayer->getStatusApi.pStatus->stats.totalConsumed = pbipStatus.totalConsumed;
+                if (hPlayer->playerProtocol == BIP_PlayerProtocol_eRtp)
+                {
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.packetsReceived = pbipStatus.rtpStats.packetsReceived;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.bytesReceived = pbipStatus.rtpStats.bytesReceived;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.packetsDiscarded = pbipStatus.rtpStats.packetsDiscarded;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.packetsOutOfSequence = pbipStatus.rtpStats.packetsOutOfSequence;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.packetsLost = pbipStatus.rtpStats.packetsLost;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.packetsLostBeforeErrorCorrection = pbipStatus.rtpStats.packetsLostBeforeErrorCorrection;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.lossEvents = pbipStatus.rtpStats.lossEvents;
+                    hPlayer->getStatusApi.pStatus->stats.rtpStats.lossEventsBeforeErrorCorrection = pbipStatus.rtpStats.lossEventsBeforeErrorCorrection;
+                }
                 completionStatus = BIP_SUCCESS;
             }
             else

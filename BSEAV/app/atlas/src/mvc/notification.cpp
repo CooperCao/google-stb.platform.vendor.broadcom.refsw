@@ -104,6 +104,7 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStop).s(), "eNotify_Network
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResultRetrieve).s(), "eNotify_NetworkWifiScanResultRetrieve")         /* command  - retrieve results of wifi network scan */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectedNetworkStatus).s(), "eNotify_NetworkWifiConnectedNetworkStatus") /* command  - retrieve status of the currently connected network */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnect).s(), "eNotify_NetworkWifiConnect")                               /* command  - connect to given wifi network */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiGetConnectState).s(), "eNotify_NetworkWifiGetConnectState")               /* command  - get the wifi connection state */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnect).s(), "eNotify_NetworkWifiDisconnect")                         /* command  - disconnect from current wifi network */
 #ifdef NETAPP_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryStart).s(), "eNotify_BluetoothDiscoveryStart") /* command  - start bluetooth disovery */
@@ -187,6 +188,7 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStopped).s(), "eNotify_Netw
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanFailure).s(), "eNotify_NetworkWifiScanFailure")                                     /* status   - wifi network scan failed */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResult).s(), "eNotify_NetworkWifiScanResult")                                       /* status   - results of wifi network scan are available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectionStatus).s(), "eNotify_NetworkWifiConnectionStatus")                           /* status   - wifi network connection status is available */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectState).s(), "eNotify_NetworkWifiConnectState")                                   /* status   - wifi network connection state */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnected).s(), "eNotify_NetworkWifiConnected")                                         /* status   - wifi network connected */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectAssocStart).s(), "eNotify_NetworkWifiConnectAssocStart")                         /* status   - wifi network connection association with AP started */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectFailure).s(), "eNotify_NetworkWifiConnectFailure")                               /* status   - wifi network connection attempt failure */

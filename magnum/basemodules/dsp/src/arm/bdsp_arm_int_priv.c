@@ -242,7 +242,7 @@ BERR_Code BDSP_Arm_P_ProcessWatchdogInterrupt(
 
 		BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
 		BDSP_Arm_P_RetrieveEntriesToUnMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
-		err = BDSP_ARM_P_SendUnMapCommand(pDevice, &MapTable[0], ui32NumEntries);
+		err = BDSP_Arm_P_SendUnMapCommand(pDevice, &MapTable[0], ui32NumEntries);
 		if (BERR_SUCCESS != err)
 		{
 			BDBG_ERR(("BDSP_Arm_P_ProcessWatchdogInterrupt: Send ARM UNMAP Command failed!!!!"));

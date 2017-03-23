@@ -142,8 +142,7 @@ void BDSP_Arm_P_Validate_Open_settings(void *pDeviceHandle)
 
 }
 
-
-uint32_t BDSP_ARM_P_CheckSum(void *ImgStart,uint32_t ui32ChunkLen)
+uint32_t BDSP_Arm_P_CheckSum(void *ImgStart,uint32_t ui32ChunkLen)
 {
     uint32_t i,sum=0;
     uint8_t *data = ImgStart;
@@ -152,7 +151,6 @@ uint32_t BDSP_ARM_P_CheckSum(void *ImgStart,uint32_t ui32ChunkLen)
         sum += data[i];
     }
     return sum;
-
 }
 
 BERR_Code BDSP_Arm_P_DownloadFwToAstra(BTEE_ClientHandle hClient,BDSP_Arm *pDevice, BDSP_Arm_SystemImgId ImgId)
@@ -390,7 +388,7 @@ BERR_Code BDSP_Arm_P_Open(
             ret = BERR_TRACE(ret);
             goto err_allocate_initmem;
         }
-        ret = BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
+        ret = BDSP_Arm_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
         if (ret != BERR_SUCCESS)
         {
             ret = BERR_TRACE(ret);
@@ -585,7 +583,7 @@ BERR_Code BDSP_Arm_P_Open(
             }
             BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
             BDSP_Arm_P_RetrieveEntriesToMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
-            ret = BDSP_ARM_P_SendMapCommand(pDeviceHandle, &MapTable[0], ui32NumEntries);
+            ret = BDSP_Arm_P_SendMapCommand(pDeviceHandle, &MapTable[0], ui32NumEntries);
             if (BERR_SUCCESS != ret)
             {
                 BDBG_ERR(("BDSP_ARM_P_Open: Send ARM MAP Command failed!!!!"));
@@ -660,7 +658,7 @@ void BDSP_Arm_P_Close(
 
     BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
     BDSP_Arm_P_RetrieveEntriesToUnMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
-    err = BDSP_ARM_P_SendUnMapCommand(pDeviceHandle, &MapTable[0], ui32NumEntries);
+    err = BDSP_Arm_P_SendUnMapCommand(pDeviceHandle, &MapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_Close: Send ARM UNMAP Command failed!!!!"));
@@ -1393,7 +1391,7 @@ void BDSP_Arm_P_DestroyTask(
 
     BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_TASK*sizeof(BDSP_MAP_Table_Entry)));
     BDSP_Arm_P_RetrieveEntriesToUnMap(&(pTask->sTaskMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_TASK);
-    err = BDSP_ARM_P_SendUnMapCommand(pTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
+    err = BDSP_Arm_P_SendUnMapCommand(pTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_DestroyTask: Send ARM UNMAP Command failed!!!!"));
@@ -2138,7 +2136,7 @@ void BDSP_Arm_P_RemoveOutput(
     /*Added Specially for ARM */
     BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_STAGE*sizeof(BDSP_MAP_Table_Entry)));
     BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmStage->sStageMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_STAGE);
-    err = BDSP_ARM_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
+    err = BDSP_Arm_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_RemoveOutput: Send ARM UNMAP Command failed!!!!"));
@@ -2386,7 +2384,7 @@ void BDSP_Arm_P_RemoveInput(
     /*Added Specially for ARM */
     BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_STAGE*sizeof(BDSP_MAP_Table_Entry)));
     BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmStage->sStageMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_STAGE);
-    err = BDSP_ARM_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
+    err = BDSP_Arm_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_RemoveInput: Send ARM UNMAP Command failed!!!!"));
@@ -2404,6 +2402,7 @@ void BDSP_Arm_P_RemoveInput(
             pArmInterTaskBuffer->distinctOp = BDSP_AF_P_DistinctOpType_eMax;
         }
 		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoBufferDesc, BDSP_ARM_MAX_ALLOC_STAGE);
+		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoBufferGenericDesc, BDSP_ARM_MAX_ALLOC_STAGE);
 		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoBuffer, BDSP_ARM_MAX_ALLOC_STAGE);
 		BDSP_Arm_P_DeleteEntry_MapTable(&(pArmStage->sStageMapTable[0]), &pArmInterTaskBuffer->IoGenBuffer, BDSP_ARM_MAX_ALLOC_STAGE);
     }
@@ -2712,7 +2711,7 @@ void BDSP_Arm_P_DestroyStage(
 
     BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_STAGE*sizeof(BDSP_MAP_Table_Entry)));
     BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmStage->sStageMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_STAGE);
-    err = BDSP_ARM_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
+    err = BDSP_Arm_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_Arm_P_DestroyStage: Send ARM UNMAP Command failed!!!!"));
@@ -3435,7 +3434,7 @@ static BERR_Code BDSP_Arm_P_CheckConfigLimitations(BDSP_AudioTaskDelayMode eDela
     return BERR_SUCCESS;
 }
 
-BERR_Code BDSP_ARM_P_SendMapCommand(
+BERR_Code BDSP_Arm_P_SendMapCommand(
     void *pDeviceHandle,
     BDSP_MAP_Table_Entry *pMapTableEntries,
     uint32_t ui32NumEntries
@@ -3447,11 +3446,11 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
     BDSP_MAP_Table *pMapTable = NULL;
     uint32_t physAddress = 0;
 
-    BDBG_ENTER(BDSP_ARM_P_SendMapCommand);
+    BDBG_ENTER(BDSP_Arm_P_SendMapCommand);
 
     if(ui32NumEntries == 0)
     {
-        BDBG_MSG(("BDSP_ARM_P_SendMapCommand: Number of entries send to MAP is ZERO"));
+        BDBG_MSG(("BDSP_Arm_P_SendMapCommand: Number of entries send to MAP is ZERO"));
         return err;
     }
 
@@ -3488,7 +3487,7 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
 
     if (BERR_SUCCESS != err)
     {
-        BDBG_ERR(("BDSP_ARM_P_SendMapCommand: MAP Command failed!"));
+        BDBG_ERR(("BDSP_Arm_P_SendMapCommand: MAP Command failed!"));
         err = BERR_TRACE(err);
         goto end;
     }
@@ -3497,18 +3496,18 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
     err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
     if (BERR_TIMEOUT == err)
     {
-        BDBG_ERR(("BDSP_ARM_P_SendMapCommand: MAP_CMD ACK timeout!"));
+        BDBG_ERR(("BDSP_Arm_P_SendMapCommand: MAP_CMD ACK timeout!"));
         err = BERR_TRACE(err);
         goto end;
     }
 end:
     BKNI_Free(psCommand);
 err_malloc_command:
-    BDBG_LEAVE(BDSP_ARM_P_SendMapCommand);
+    BDBG_LEAVE(BDSP_Arm_P_SendMapCommand);
     return err;
 }
 
-BERR_Code BDSP_ARM_P_SendUnMapCommand(
+BERR_Code BDSP_Arm_P_SendUnMapCommand(
     void *pDeviceHandle,
     BDSP_MAP_Table_Entry *pMapTableEntries,
     uint32_t ui32NumEntries
@@ -3520,11 +3519,11 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
     BDSP_MAP_Table *pMapTable = NULL;
     uint32_t physAddress = 0;
 
-    BDBG_ENTER(BDSP_ARM_P_SendUnMapCommand);
+    BDBG_ENTER(BDSP_Arm_P_SendUnMapCommand);
 
     if(ui32NumEntries == 0)
     {
-        BDBG_MSG(("BDSP_ARM_P_SendUnMapCommand: Number of entries send to UNMAP is ZERO"));
+        BDBG_MSG(("BDSP_Arm_P_SendUnMapCommand: Number of entries send to UNMAP is ZERO"));
         return err;
     }
 
@@ -3563,7 +3562,7 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
 
         if (BERR_SUCCESS != err)
         {
-            BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UnMAP Command failed!"));
+            BDBG_ERR(("BDSP_Arm_P_SendUnMapCommand: UnMAP Command failed!"));
             err = BERR_TRACE(err);
             goto end;
         }
@@ -3572,7 +3571,7 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
         err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
         if (BERR_TIMEOUT == err)
         {
-            BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UNMAP_CMD ACK timeout!"));
+            BDBG_ERR(("BDSP_Arm_P_SendUnMapCommand: UNMAP_CMD ACK timeout!"));
             err = BERR_TRACE(err);
             goto end;
         }
@@ -3580,11 +3579,11 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
 end:
     BKNI_Free(psCommand);
 err_malloc_command:
-    BDBG_LEAVE(BDSP_ARM_P_SendUnMapCommand);
+    BDBG_LEAVE(BDSP_Arm_P_SendUnMapCommand);
     return err;
 }
 
-BERR_Code BDSP_ARM_P_PrepareAndSendMapCommand(
+BERR_Code BDSP_Arm_P_PrepareAndSendMapCommand(
     void *pTaskHandle
     )
 {
@@ -3593,7 +3592,7 @@ BERR_Code BDSP_ARM_P_PrepareAndSendMapCommand(
     BDSP_MAP_Table_Entry *pMapTable = NULL;
     uint32_t ui32NumEntries = 0, ui32NumStageIterationEntries = 0;
 
-    BDBG_ENTER(BDSP_ARM_P_PrepareAndSendMapCommand);
+    BDBG_ENTER(BDSP_Arm_P_PrepareAndSendMapCommand);
 
     pMapTable = (BDSP_MAP_Table_Entry *)BKNI_Malloc(BDSP_ARM_MAX_MAP_TABLE_ENTRY*sizeof(BDSP_MAP_Table_Entry));
     if ( NULL == pMapTable )
@@ -3622,7 +3621,7 @@ BERR_Code BDSP_ARM_P_PrepareAndSendMapCommand(
 
     BDBG_MSG(("Total Number of Entries for the TASK = %d",ui32NumEntries));
 
-    err = BDSP_ARM_P_SendMapCommand(pArmTask->pContext->pDevice, &pMapTable[0], ui32NumEntries);
+    err = BDSP_Arm_P_SendMapCommand(pArmTask->pContext->pDevice, &pMapTable[0], ui32NumEntries);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_ARM_P_Open: Send ARM MAP Command failed!!!!"));
@@ -3630,7 +3629,7 @@ BERR_Code BDSP_ARM_P_PrepareAndSendMapCommand(
 
     BKNI_Free(pMapTable);
 err_malloc_maptable:
-    BDBG_LEAVE(BDSP_ARM_P_PrepareAndSendMapCommand);
+    BDBG_LEAVE(BDSP_Arm_P_PrepareAndSendMapCommand);
     return err;
 }
 
@@ -3939,7 +3938,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         goto end;
     }
 
-    err = BDSP_P_GenArmCit(pTaskHandle);
+    err = BDSP_Arm_P_GenCit(pTaskHandle);
     if (BERR_SUCCESS != err)
     {
         BDBG_ERR(("ERROR returned from ARM Cit module %d!",err));
@@ -3947,7 +3946,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         goto err_gen_citinput;
     }
 
-    err = BDSP_ARM_P_PrepareAndSendMapCommand(pTaskHandle);
+    err = BDSP_Arm_P_PrepareAndSendMapCommand(pTaskHandle);
     if( err != BERR_SUCCESS)
     {
         return BERR_TRACE(err);
@@ -4415,7 +4414,7 @@ BERR_Code BDSP_Arm_P_StopTask(
         /*Added Specially for ARM */
         BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_STAGE*sizeof(BDSP_MAP_Table_Entry)));
         BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmStage->sStageMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_STAGE);
-        err = BDSP_ARM_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
+        err = BDSP_Arm_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
         if (BERR_SUCCESS != err)
         {
             BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command failed!!!!"));
@@ -4435,7 +4434,7 @@ BERR_Code BDSP_Arm_P_StopTask(
         {
             BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_TASK*sizeof(BDSP_MAP_Table_Entry)));
             BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmTask->sTaskMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_TASK);
-            err = BDSP_ARM_P_SendUnMapCommand(pArmTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
+            err = BDSP_Arm_P_SendUnMapCommand(pArmTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
             if (BERR_SUCCESS != err)
             {
                 BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command for task failed!!!!"));

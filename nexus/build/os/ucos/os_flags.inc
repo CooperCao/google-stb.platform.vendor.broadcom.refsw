@@ -1,5 +1,5 @@
 #############################################################
-#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
+#
 ############################################################
 
 ############################################################
@@ -46,7 +47,8 @@
 NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=${NEXUS_ENDIAN}
 NEXUS_CFLAGS += -nostdlib -ffreestanding -W -Wstrict-prototypes -Wall
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+#ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     ifeq ($(ARM_ARCH), V8)
         NEXUS_CFLAGS += -marm -mcpu=cortex-a53 -march=armv8-a
     else

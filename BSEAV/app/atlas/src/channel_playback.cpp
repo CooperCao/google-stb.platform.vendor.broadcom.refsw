@@ -121,7 +121,7 @@ void CChannelPlayback::writeXML(MXmlElement * xmlElemChannel)
     CChannel::writeXML(xmlElemChannel);
 
     xmlElemChannel->addAttr(XML_ATT_TYPE, _strType);
-    xmlElemChannel->addAttr(XML_ATT_FREQ, MString(_nFrequency));
+    xmlElemChannel->addAttr(XML_ATT_FILENAME, _strFilename);
 } /* writeXML */
 
 CChannelPlayback::~CChannelPlayback()

@@ -103,10 +103,14 @@ public:
     CRecordData(
             const char * strFileName = NULL,
             const char * strPath = NULL,
+            const char * strIndexName = NULL,
+            const char * strIndexPath = NULL,
             CVideo *     video = NULL
             ) :
         _strFileName(strFileName),
         _strPath(strPath),
+        _strIndexName(strIndexName),
+        _strIndexPath(strIndexPath),
         _video(video),
         _security("none")
     {}
@@ -114,6 +118,8 @@ public:
 public:
     MString  _strFileName;
     MString  _strPath;
+    MString  _strIndexName;
+    MString  _strIndexPath;
     CVideo * _video;
     MString  _security;
 };

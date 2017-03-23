@@ -597,11 +597,15 @@ typedef struct
  * SW7445-586: added BXVD_P_PPB_EXT0_FLAG_DUPLICATE_FIELD for
  * HEVC interlaced content. For 3:2 content, indicates that the
  * third field is a repeat and can be dropped.
- */
+ * SWSTB-3950: added BXVD_P_PPB_EXT0_FLAG_META_DATA
+ * SWSTB-1873: added BXVD_P_PPB_EXT0_FLAG_VIDEO_FULL_RANGE */
+
 #define BXVD_P_PPB_EXT0_FLAG_LAST_PICTURE          (0x00000001)
 #define BXVD_P_PPB_EXT0_FLAG_LUMA_10_BIT_PICTURE   (0x00000002)
 #define BXVD_P_PPB_EXT0_FLAG_CHROMA_10_BIT_PICTURE (0x00000004)
 #define BXVD_P_PPB_EXT0_FLAG_DUPLICATE_FIELD       (0x00000008)
+#define BXVD_P_PPB_EXT0_FLAG_VIDEO_FULL_RANGE      (0x00000010)
+#define BXVD_P_PPB_EXT0_FLAG_META_DATA             (0x00000020)
 
 #endif
 

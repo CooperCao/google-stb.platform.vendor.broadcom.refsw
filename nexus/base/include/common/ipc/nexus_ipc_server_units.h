@@ -129,5 +129,7 @@
 #define B_IPC_CALLBACK_INIT_FIELD_IN_FINALIZE(api, arg, field, first_arg, id) /* BDBG_CASSERT(0); */ /* NOT SUPPORTED */
 #define B_IPC_CALLBACK_UNKNOWN_FIELD_OUT(api, arg, field, first_arg, id)  /* DO NOTHING */
 
+#define B_IPC_SERVER_FAKE_HANDLE_NULL(api, arg, type) if(B_IPC_FIELD(api, in, args.arg) != NULL) {__rc = NEXUS_P_SERVER_ERROR_TRACE(NEXUS_INVALID_PARAMETER);goto api##_done;} /* FAKE handles if passed to function that allows NULL handles, must be NULL */
+#define B_IPC_SERVER_FAKE_HANDLE(api, arg, type) BDBG_CASSERT(0); /* If functions can not access NULL as argument, it can't accept FAKE handles */
 
 /* END OF FILE */

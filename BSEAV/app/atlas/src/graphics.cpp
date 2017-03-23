@@ -899,6 +899,9 @@ bwin_framebuffer_t CGraphics::createBwinFramebuffer(
     nerror = NEXUS_Surface_GetMemory(surface, &surfaceMem);
     CHECK_NEXUS_ERROR_GOTO("unable to get thumb surface memory", ret, nerror, error);
 
+    /* surface may be re-used and cache contains stale data */
+    NEXUS_Surface_Flush(surface);
+
     pGraphicsData = new CGraphicsData(this, surface);
     CHECK_PTR_ERROR_GOTO("unable to allocate graphics data", pGraphicsData, ret, eRet_OutOfMemory, error);
 

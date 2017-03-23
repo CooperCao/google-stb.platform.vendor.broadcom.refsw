@@ -51,6 +51,8 @@ STRING_TO_ENUM_START()
 STRING_TO_ENUM_ENTRY("UNKNOWN", eConnectedState_Unknown)
 STRING_TO_ENUM_ENTRY("ASSOCIATING", eConnectedState_Connecting)
 STRING_TO_ENUM_ENTRY("CONNECTING", eConnectedState_Connecting)
+STRING_TO_ENUM_ENTRY("4WAY_HANDSHAKE", eConnectedState_Handshake)
+STRING_TO_ENUM_ENTRY("ASSOCIATED", eConnectedState_Connecting)
 STRING_TO_ENUM_ENTRY("COMPLETED", eConnectedState_Connected)
 STRING_TO_ENUM_ENTRY("CONNECTED", eConnectedState_Connected)
 STRING_TO_ENUM_ENTRY("DISCONNECTING", eConnectedState_Disconnecting)
@@ -61,6 +63,20 @@ STRING_TO_ENUM_ENTRY("FAILURE ASSOC REJECT", eConnectedState_Failure_Assoc_Rejec
 STRING_TO_ENUM_ENTRY("FAILURE NETWORK NOT FOUND", eConnectedState_Failure_Network_Not_Found)
 STRING_TO_ENUM_ENTRY("FAILURE SSID TEMP DISABLED", eConnectedState_Failure_Ssid_Temp_Disabled)
 STRING_TO_ENUM_END(eConnectedState)
+
+ENUM_TO_MSTRING_INIT_CPP(CWifi, connectedStateToString, eConnectedState)
+ENUM_TO_MSTRING_START()
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Unknown, "UNKNOWN")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Connecting, "CONNECTING")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Handshake, "4WAY_HANDSHAKE")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Connected, "CONNECTED")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Disconnecting, "DISCONNECTING")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Disconnected, "DISCONNECTED")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Scanning, "SCANNING")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Failure_Assoc_Reject, "FAILURE ASSOC REJECT")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Failure_Network_Not_Found, "FAILURE NETWORK NOT FOUND")
+ENUM_TO_MSTRING_ENTRY(eConnectedState_Failure_Ssid_Temp_Disabled, "FAILURE SSID TEMP DISABLED")
+ENUM_TO_MSTRING_END()
 
 static MStringHash gHashFreqChannel;
 
@@ -190,6 +206,9 @@ void CWifi::processWpaResponse(const char * strCallback)
                          *  state to disconnected state so stop DHCP */
                         ret = dhcpStop();
                         CHECK_ERROR("DHCP STOP failure", ret);
+
+                        ret = requestStatus();
+                        CHECK_ERROR("Unable to request connection status", ret);
                     }
 
                     _bScanEnabled = true;
@@ -205,6 +224,9 @@ void CWifi::processWpaResponse(const char * strCallback)
                          * state to connected so get IP address */
                         ret = dhcpStart();
                         CHECK_ERROR("DHCP START failure", ret);
+
+                        ret = requestStatus();
+                        CHECK_ERROR("Unable to request connection status", ret);
                     }
 
                     _bScanEnabled = true;
@@ -212,11 +234,10 @@ void CWifi::processWpaResponse(const char * strCallback)
                     notifyResponse = eNotify_NetworkWifiConnected;
                 }
                 else
-                if ((connectedState == eConnectedState_Connecting)    ||
-                    (connectedState == eConnectedState_Disconnecting) ||
-                    (connectedState == eConnectedState_Scanning))
+                if ((connectedState == eConnectedState_Connecting) ||
+                    (connectedState == eConnectedState_Disconnecting))
                 {
-                    BDBG_MSG(("intermediate wifi connection state:%d - requesting status again", connectedState));
+                    BDBG_MSG(("intermediate wifi connection state:%s - requesting status again", connectedStateToString(connectedState).s()));
                     BKNI_Sleep(200);
                     /* intermediate status so retry getting status */
                     ret = requestStatus();
@@ -247,33 +268,43 @@ void CWifi::processWpaResponse(const char * strCallback)
             ret = dhcpStop();
             CHECK_ERROR("DHCP STOP failure", ret);
 
-            notifyResponse = eNotify_NetworkWifiConnectFailure;
-            if (-1 != pResponse->_strResponse.find("CTRL-EVENT-ASSOC-REJECT"))
-            {
-                notifyResponse = eNotify_NetworkWifiConnectFailureAssocReject;
-            }
-            else
-            if (-1 != pResponse->_strResponse.find("CTRL-EVENT-NETWORK-NOT-FOUND"))
-            {
-                notifyResponse = eNotify_NetworkWifiConnectFailureNetworkNotFound;
-            }
-            else
-            if (-1 != pResponse->_strResponse.find("CTRL-EVENT-SSID-TEMP-DISABLED"))
-            {
-                /* parse reason */
-                int     indexCurrent = pResponse->_strResponse.find("reason=") + strlen("reason=");
-                MString strReason    = pResponse->_strResponse.mid(indexCurrent);
+            _nNetworkConnectErrors++;
+            BDBG_WRN(("CONNECT FAILURE: #%d", _nNetworkConnectErrors));
 
-                if (strReason == "WRONG_KEY")
+            if (-1 != pResponse->_strResponse.find("WRONG_KEY"))
+            {
+                BDBG_ERR(("Connect failure: wrong key"));
+                notifyResponse = eNotify_NetworkWifiConnectFailureWrongKey;
+
+                disconnectWifi();
+            }
+            else
+            if (2 < _nNetworkConnectErrors)
+            {
+                if (-1 != pResponse->_strResponse.find("CTRL-EVENT-SSID-TEMP-DISABLED"))
                 {
-                    notifyResponse = eNotify_NetworkWifiConnectFailureWrongKey;
+                    notifyResponse = eNotify_NetworkWifiConnectFailure;
                 }
-            }
+                else
+                if (-1 != pResponse->_strResponse.find("CTRL-EVENT-ASSOC-REJECT"))
+                {
+                    BDBG_ERR(("Connect failure: association rejected"));
+                    notifyResponse = eNotify_NetworkWifiConnectFailureAssocReject;
+                }
+                else
+                if (-1 != pResponse->_strResponse.find("CTRL-EVENT-NETWORK-NOT-FOUND"))
+                {
+                    BDBG_ERR(("Connect failure: network not found"));
+                    notifyResponse = eNotify_NetworkWifiConnectFailureNetworkNotFound;
+                }
 
+                disconnectWifi();
+            }
             break;
         }
 
         case eNotify_NetworkWifiScanFailure:
+            BDBG_ERR(("Scan failure"));
             notifyResponse = eNotify_NetworkWifiScanFailure;
             break;
 
@@ -289,9 +320,9 @@ void CWifi::processWpaResponse(const char * strCallback)
             strSsid = pResponse->_strResponse.mid(indexSsidBegin, indexSsidEnd - indexSsidBegin);
 
             notifyResponse = eNotify_NetworkWifiConnectAssocStart;
-            pVoid = (void *)&strSsid;
+            pVoid          = (void *)&strSsid;
         }
-            break;
+        break;
 
         default:
             BDBG_ERR(("%s:%s unhandled", __FUNCTION__, notificationToString(pResponse->_notification).s()));
@@ -331,6 +362,7 @@ CWifi::CWifi(
     _scannedNetworksListMutex(NULL),
     _connectedStatusMutex(NULL),
     _noiseLevel(0),
+    _nNetworkConnectErrors(0),
     _threadWorker(NULL),
     _actionMutex(NULL),
     _responseMutex(NULL),
@@ -616,7 +648,7 @@ static void wifiWorkerThread(void * pParam)
     BDBG_ASSERT(NULL != pWifi);
 
     /* when first starting thread we will check connection status in case
-       wpa supplicant has already auto connected based on the wpa_supplicant.conf file */
+     * wpa supplicant has already auto connected based on the wpa_supplicant.conf file */
     {
         CWifiResponse * pResponse = NULL;
 
@@ -675,17 +707,16 @@ doneStatus:
                     else
                     if (-1 != strBuf.find("CTRL-EVENT-CONNECTED"))
                     {
-                        /* we are connected so get status info on newly connected network */
-                        strWpaCommand = "STATUS";
-                        ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
-                        CHECK_ERROR_CONTINUE("unable to send request to wpa supplicant", ret);
-
                         /* update wpa_supplicant.conf with newly connected network */
                         strWpaCommand = "SAVE_CONFIG";
                         ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
                         CHECK_ERROR_CONTINUE("unable to send request to wpa supplicant", ret);
 
-                        /* create response for connect event */
+                        /* we are connected so get status info on newly connected network */
+                        strWpaCommand = "STATUS";
+                        ret           = pWifi->sendRequest(strWpaCommand.s(), &strResponse, wpa_msg_cb);
+                        CHECK_ERROR_CONTINUE("unable to send request to wpa supplicant", ret);
+                        /* after checking status, create response for connect event */
                         pResponse = new CWifiResponse();
                         CHECK_PTR_ERROR_CONTINUE("unable to allocate CWifiResponse", pResponse, ret, eRet_OutOfMemory);
                         pResponse->_notification = eNotify_NetworkWifiConnected;
@@ -900,7 +931,6 @@ doneStatus:
                     BDBG_WRN(("Wifi protected setup cancelled"));
                     strWpaCommand = "WPS_CANCEL";
                 }
-
             }
             break;
 
@@ -1061,6 +1091,9 @@ eRet CWifi::connectWps()
 
     CHECK_PTR_ERROR_GOTO("connect to wifi failed: not connected to WPA Supplicant", _pWpaControl, ret, eRet_InvalidState, error);
 
+    /* reset connection error count before connecting */
+    _nNetworkConnectErrors = 0;
+
     pCommand = new CWifiCommand();
     CHECK_PTR_ERROR_GOTO("unable to allocate wifi command", pCommand, ret, eRet_OutOfMemory, error);
 
@@ -1074,7 +1107,7 @@ eRet CWifi::connectWps()
 
 error:
     return(ret);
-}
+} /* connectWps */
 
 eRet CWifi::connectWifi(
         const char * strSSID,
@@ -1089,6 +1122,9 @@ eRet CWifi::connectWifi(
     CWifiCommand *               pCommand = NULL;
 
     CHECK_PTR_ERROR_GOTO("connect to wifi failed: not connected to WPA Supplicant", _pWpaControl, ret, eRet_InvalidState, error);
+
+    /* reset connection error count before connecting */
+    _nNetworkConnectErrors = 0;
 
     pCommand = new CWifiCommand();
     CHECK_PTR_ERROR_GOTO("unable to allocate wifi command", pCommand, ret, eRet_OutOfMemory, error);
@@ -1201,11 +1237,22 @@ void CWifi::clearConnectedStatus()
     _connectedStatusHash.clear();
 }
 
-void CWifi::addConnectedStatus(const char * strToken, const char * strValue)
+void CWifi::addConnectedStatus(
+        const char * strToken,
+        const char * strValue
+        )
 {
     CScopedMutex scopedMutex(_connectedStatusMutex);
 
     _connectedStatusHash.add(strToken, strValue);
+}
+
+void CWifi::notifyConnectedState()
+{
+    eRet ret = eRet_Ok;
+
+    ret = notifyObservers(eNotify_NetworkWifiConnectState, (void *)this);
+    CHECK_ERROR("error notifying observers", ret);
 }
 
 eRet CWifi::updateNetworksParse(MString * pStrResponse)
@@ -1343,7 +1390,7 @@ eRet CWifi::scanResultsParse(MString * pStrResponse)
         /* skip to end of line */
         indexCurrent = indexDelim + 1;
 
-        /* BDBG_ERR(("TTT %s %s %d %s %s", pNetwork->_strFrequency.s(), pNetwork->_strFrequency.s(), pNetwork->_signalToNoise, pNetwork->_strFlags.s(), pNetwork->_strSSID.s())); */
+        BDBG_WRN(("%s %s %d %s %s", pNetwork->_strFrequency.s(), pNetwork->_strFrequency.s(), pNetwork->_signalToNoise, pNetwork->_strFlags.s(), pNetwork->_strSSID.s()));
     }
 
 error:
@@ -1434,10 +1481,12 @@ eRet CWifi::disconnectedNetworkParse(MString * pStrResponse)
     BDBG_WRN(("disconnect response:%s", pStrResponse->s()));
     strBSSID = pStrResponse->mid(indexCurrent, indexDelim - indexCurrent);
     BDBG_MSG(("disconnecting from:%s", strBSSID.s()));
+
+    setConnectedState(eConnectedState_Disconnected);
 error:
     clearConnectedStatus();
     return(ret);
-} /* connectedNetworkParse */
+} /* disconnectedNetworkParse */
 
 eRet CWifi::bssNoiseLevelParse(MString * pStrResponse)
 {

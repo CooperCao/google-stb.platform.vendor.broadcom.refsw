@@ -349,6 +349,8 @@ clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) cle
 dist-clean: clean dist-clean-netapp
 	@echo [Clean..... libraries]
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/lib
+	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/opensource
+	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/target
 	@echo [Clean..... linux]
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/linux
 

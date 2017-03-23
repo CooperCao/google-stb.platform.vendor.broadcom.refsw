@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
@@ -3833,7 +3832,7 @@ static NEXUS_Error NEXUS_FrontendDevice_P_3128_GetDeviceAmplifierStatus(void *ha
     BSTD_UNUSED(lnaStatus);
     {
         unsigned i, numPowered = 0;
-        for (i=0; i < pDevice->numChannels; i++) {
+        for (i=0; i < NEXUS_MAX_3128_FRONTENDS; i++) {
             if (pDevice->isPoweredOn[i])
                 numPowered++;
         }

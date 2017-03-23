@@ -345,7 +345,7 @@ done:
 
     if (NULL != pPidVideo)
     {
-        pPidVideo->close();
+        pPidVideo->close(_pPlaypump);
     }
 
     bthumbnail_extractor_stop_playpump(_extractor);
@@ -364,12 +364,9 @@ eRet CThumb::getStillSurface(
     eRet                               ret            = eRet_Ok;
     NEXUS_Error                        nerror         = NEXUS_SUCCESS;
     NEXUS_StripedSurfaceHandle         stripedSurface = NULL;
-    NEXUS_StripedSurfaceCreateSettings stripedSurfaceCreateSettings;
 
     nerror = NEXUS_StillDecoder_GetStripedSurface(pStillDecode->getStillVideoDecode(), &stripedSurface);
     CHECK_NEXUS_ERROR_GOTO("unable to get striped surface", ret, nerror, error);
-
-    NEXUS_StripedSurface_GetCreateSettings(stripedSurface, &stripedSurfaceCreateSettings);
 
     ret = pGraphics->destripeToSurface(stripedSurface, stillSurface, MRect(0, 0, width, height));
     CHECK_ERROR_GOTO("unable to destripe surface", ret, error);

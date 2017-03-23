@@ -52,7 +52,8 @@ CPidMgr::CPidMgr() :
     _caPid(0),
     _pmtPid(0),
     _program(0),
-    _pCfg(NULL)
+    _pCfg(NULL),
+    _bImmutable(false)
 {
     _videoPidList.clear();
     _audioPidList.clear();
@@ -67,7 +68,8 @@ CPidMgr::CPidMgr(const CPidMgr & src) :
     _caPid(src._caPid),
     _pmtPid(src._pmtPid),
     _program(0),
-    _pCfg(src._pCfg)
+    _pCfg(src._pCfg),
+    _bImmutable(false)
 {
     /* copy pids */
     MListItr <CPid> itrVideo(&(src._videoPidList));
@@ -569,6 +571,12 @@ void CPidMgr::readXML(MXmlElement * xmlElem)
             _pPcrPid = pPid;
         }
     }
+
+    /* mark pids as being read from xml file.  this will prevent them from being changed in
+       the case that the source stream pids change.  channels that are defined without the
+       <stream> tag and associated pids, will have their pids dynamically change based on
+       source stream. */
+    _bImmutable = ((0 < _videoPidList.total()) || (0 < _audioPidList.total())) ? true : false;
 } /* readXML */
 
 MXmlElement * CPidMgr::writeXML(MXmlElement * xmlElem)

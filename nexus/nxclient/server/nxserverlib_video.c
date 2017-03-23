@@ -667,9 +667,16 @@ err_malloc:
 static void video_decoder_release(struct video_decoder_resource *r)
 {
     nxserver_t server = r->session->server;
+    bool secure = false;
+
+#if NEXUS_HAS_SAGE
+    secure = r->connect->settings.simpleVideoDecoder[0].decoderCapabilities.secureVideo && nxserver_p_urr_on(server);
+#endif
+
     BDBG_MSG(("video_decoder_release %p: connect %p, index %d", (void*)r, (void*)r->connect, r->index));
     BDBG_OBJECT_ASSERT(r->connect, b_connect);
     if (IS_MOSAIC(r->connect) || server->settings.externalApp.enableAllocIndex[nxserverlib_index_type_video_decoder] ||
+        secure ||
         server->settings.videoDecoder.dynamicPictureBuffers ||
         r->index >= NEXUS_NUM_VIDEO_DECODERS /* SID or DSP decoder */
         )

@@ -83,8 +83,7 @@ BDBG_FILE_MODULE(BVDC_MTGW);
 BDBG_FILE_MODULE(BVDC_MTGR);
 BDBG_FILE_MODULE(BVDC_MTGR__);
 BDBG_FILE_MODULE(BVDC_CFC_2); /* print CFC configure */
-BDBG_FILE_MODULE(BVDC_CFC_3); /* print implementation detail */
-BDBG_FILE_MODULE(BVDC_CFC_4); /* print flooded msgs */
+BDBG_FILE_MODULE(BVDC_CFC_5); /* print flooded msgs */
 BDBG_OBJECT_ID(BVDC_WIN);
 
 /* SW3556-886 */
@@ -2149,7 +2148,8 @@ BERR_Code BVDC_P_Window_ValidateChanges
              * is allowed) we will use BBOX_Vdc_SclCapBias_eSclBeforeCap.
              * When the display format is larger than 1080p, we will use
              * BBOX_Vdc_SclCapBias_eAutoDisable. */
-            if(BFMT_IS_UHD(hCompositor->stNewInfo.pFmtInfo->eVideoFmt))
+            if((pNewInfo->stDstRect.ulWidth  > BFMT_1080I_WIDTH) ||
+               (pNewInfo->stDstRect.ulHeight > BFMT_1080I_HEIGHT))
             {
                 /* special case to support Live Feed */
                 pNewInfo->bForceCapture = false;
@@ -3477,7 +3477,7 @@ static void BVDC_P_Window_SetMiscellaneous_isr
         !hWindow->stSettings.bBypassVideoProcessings));
 #endif
 
-    BDBG_MODULE_MSG(BVDC_CFC_4,("Cmp%d_V%d invokes setBypassColor_isr by %s", hWindow->hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__));
+    BDBG_MODULE_MSG(BVDC_CFC_5,("Cmp%d_V%d invokes setBypassColor_isr by %s", hWindow->hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__));
     BVDC_P_Window_SetBypassColor_isr (hWindow,
         (BVDC_MuteMode_eConst == hWindow->stCurInfo.hSource->stCurInfo.eMuteMode) || hWindow->bMuteBypass);
 
@@ -6040,9 +6040,7 @@ void BVDC_P_Window_DecideCapture_isr
         && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) || bProgressivePullDown) && bCapture)
     {
         hWindow->ulBufCntNeeded--;
-        if(eWriterVsReaderRateCode == eReaderVsWriterRateCode)
-            hWindow->ulBufDelay--;
-        else
+        if(eWriterVsReaderRateCode != eReaderVsWriterRateCode)
             /* Progressive pull down case */
             hWindow->bBufferCntDecrementedForPullDown = true;
 
@@ -9989,7 +9987,7 @@ void BVDC_P_Window_SetReconfiguring_isr
  * Check the status if this window is shut down, and ready for reconfiguring
  * source or vnet.  Return true if completed.
  */
-bool BVDC_P_Window_NotReconfiguring_isr
+static bool BVDC_P_Window_NotReconfiguring_isr
     ( BVDC_Window_Handle               hWindow )
 {
     BVDC_P_Window_DirtyBits *pCurDirty;
@@ -11589,7 +11587,7 @@ static bool BVDC_P_Window_DecideBufsCfgs_isr
  * ignore cadence matching.
  *
  */
-void BVDC_P_Window_SetCadenceHandling_isr
+static void BVDC_P_Window_SetCadenceHandling_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_MVD_Field            *pMvdFieldData,
       bool                             bTrickMode,
@@ -11809,7 +11807,7 @@ void BVDC_P_Window_SetCadenceHandling_isr
  * This function detects trick modes and adjusts how the window is going to
  * handle picture cadences.
  */
-void BVDC_P_Window_AdjustCadenceHandling_isr
+static void BVDC_P_Window_AdjustCadenceHandling_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_MVD_Field            *pMvdFieldData )
 {
@@ -11843,7 +11841,7 @@ void BVDC_P_Window_AdjustCadenceHandling_isr
  * This function sets a picture's polarity to be captured
  *
  */
-void BVDC_P_Window_SetCapturePolarity_isr
+static void BVDC_P_Window_SetCapturePolarity_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eFieldId,
       BVDC_P_PictureNode              *pPicture )
@@ -12552,7 +12550,7 @@ static void BVDC_P_Window_UnsetReaderVnet_isr
  *
  * writer vnet shut down process.
  */
-void BVDC_P_Window_WriterShutDown_isr
+static void BVDC_P_Window_WriterShutDown_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_Polarity              eFieldId,
       BVDC_P_ListInfo                 *pList )
@@ -13962,78 +13960,8 @@ void BVDC_P_Window_Reader_isr
         bFixedColor = true;
     }
 
-    /* Update the compositor's surface color space conversion matrix. */
+    /* maybe used by VFC first or CMP CFC */
     hWindow->bCfcAdjust |= hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace;
-    hWindow->bCfcAdjust |= BVDC_P_Window_AssignMosaicCfcToRect_isr(
-		hWindow, pPicture, hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace);
-    if (hWindow->bCfcAdjust || pCurDirty->stBits.bMosaicMode)
-    {
-#if (BDBG_DEBUG_BUILD)
-        BVDC_P_WindowId eV0Id = BVDC_P_CMP_GET_V0ID(hCompositor);
-#endif
-        BDBG_MODULE_MSG(BVDC_CFC_4,("Cmp%d_V%d invokes setBypassColor_isr by %s due to (%d || %d)",
-            hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__, hWindow->bCfcAdjust, pCurDirty->stBits.bMosaicMode));
-        BVDC_P_Window_SetBypassColor_isr(hWindow, bFixedColor);
-    }
-    if(!hCompositor->bIsBypass && hWindow->bCfcAdjust)
-    {
-        /* Select the color space conversion. */
-#if BVDC_P_CMP_0_MOSAIC_CFCS
-        if(hWindow->stCurInfo.bClearRect)
-        {
-            uint16_t i, ulCmpNumCscs;
-            ulCmpNumCscs = (BVDC_CompositorId_eCompositor0 != hCompositor->eId)?
-                BVDC_P_CMP_i_MOSAIC_CFCS : BVDC_P_CMP_CFCS;
-            for (i = 0; i < ulCmpNumCscs; i++)
-            {
-                BVDC_P_Cfc_UpdateCfg_isr(&hWindow->astMosaicCfc[i], true, true);
-            }
-
-            /* set the mosaic csc indices into shadow regs */
-            BVDC_P_Window_SetMosaicCsc_isr(hWindow);
-        }
-        else
-#endif
-        {
-            BVDC_P_Cfc_UpdateCfg_isr(hWindow->pMainCfc, false, true);
-            if(pCurInfo->bUserCsc)
-            {
-                BVDC_P_Cfc_FromMatrix_isr(hWindow->pMainCfc, pCurInfo->pl32_Matrix, pCurInfo->ulUserShift);
-            }
-        }
-
-        /* set count to let cmp RUL update matrix */
-        hCompositor->ulCscAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
-        hCompositor->bCscCompute[hWindow->eId] = true;
-        hCompositor->bCscDemoCompute[hWindow->eId] = true;
-    }
-    hWindow->bCfcAdjust = BVDC_P_CLEAN;
-    pCurDirty->stBits.bMosaicMode = BVDC_P_CLEAN;
-
-    if(!hCompositor->bIsBypass)
-    {
-        /* Evaluate dither condition for compositor: */
-        /* Input Dither is enable if source is 10-bit and window is 10-bit */
-        /* and MADR is not in the path or not enable */
-        bool bInDitherEnable = (pPicture->bSrc10Bit && hWindow->bIs10BitCore &&
-           !(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode) &&
-             hWindow->stCurResource.hMcvp->hMcdi->bMadr)) ? true : false;
-        /* CSC dither is enabled with the above condition and HDMI output */
-        /* color depth is 8-bit */
-        bool bHdmiOutput8Bit =
-            ((hCompositor->hDisplay->stDviChan.bEnable || hCompositor->hDisplay->stCurInfo.bEnableHdmi) &&
-             (hCompositor->hDisplay->stCurInfo.stHdmiSettings.eHdmiColorDepth == BAVC_HDMI_BitsPerPixel_e24bit)) ? true : false;
-        bool bCscDitherEnable = bInDitherEnable & bHdmiOutput8Bit & !hWindow->stCurInfo.bMosaicMode;
-        /* disable input dithering for transcode path */
-        bInDitherEnable &= !hCompositor->hDisplay->stCurInfo.bEnableStg;
-        if(bInDitherEnable != hCompositor->bInDitherEnable[hWindow->eId] ||
-           bCscDitherEnable != hCompositor->bCscDitherEnable[hWindow->eId])
-        {
-            hCompositor->bInDitherEnable[hWindow->eId] = bInDitherEnable;
-            hCompositor->bCscDitherEnable[hWindow->eId] = bCscDitherEnable;
-            hCompositor->ulDitherChange[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
-        }
-    }
 
     /* Note: the reader side setting should start from upstream then to the downstream. */
     /* Setup video feeder that playback from captured buffer */
@@ -14119,6 +14047,82 @@ void BVDC_P_Window_Reader_isr
     if(hWindow->eId == BVDC_P_WindowId_eComp0_V0)
     {
         BVDC_P_Pep_SetInfo_isr(hWindow->stCurResource.hPep, pPicture);
+    }
+
+    /* Update the compositor's surface color space conversion matrix. Note this must be after possible VFC update. */
+    hWindow->bCfcAdjust |= BVDC_P_Window_AssignMosaicCfcToRect_isr(
+        hWindow, pPicture, hCompositor->stCurInfo.stDirty.stBits.bOutColorSpace);
+    if (hWindow->bCfcAdjust || pCurDirty->stBits.bMosaicMode)
+    {
+#if (BDBG_DEBUG_BUILD)
+        BVDC_P_WindowId eV0Id = BVDC_P_CMP_GET_V0ID(hCompositor);
+#endif
+        BDBG_MODULE_MSG(BVDC_CFC_5,("Cmp%d_V%d invokes setBypassColor_isr by %s due to (%d || %d)",
+            hCompositor->eId, hWindow->eId-eV0Id, __FUNCTION__, hWindow->bCfcAdjust, pCurDirty->stBits.bMosaicMode));
+        BVDC_P_Window_SetBypassColor_isr(hWindow, bFixedColor);
+    }
+    if(!hCompositor->bIsBypass && hWindow->bCfcAdjust)
+    {
+        /* Select the color space conversion. */
+#if BVDC_P_CMP_0_MOSAIC_CFCS
+        if(hWindow->stCurInfo.bClearRect)
+        {
+            uint16_t i, ulCmpNumCscs;
+            ulCmpNumCscs = (BVDC_CompositorId_eCompositor0 != hCompositor->eId)?
+                BVDC_P_CMP_i_MOSAIC_CFCS : BVDC_P_CMP_CFCS;
+            for (i = 0; i < ulCmpNumCscs; i++)
+            {
+                BVDC_P_Cfc_UpdateCfg_isr(&hWindow->astMosaicCfc[i], true, true);
+            }
+
+            /* set the mosaic csc indices into shadow regs */
+            BVDC_P_Window_SetMosaicCsc_isr(hWindow);
+        }
+        else
+#endif
+        {
+            BVDC_P_Cfc_UpdateCfg_isr(hWindow->pMainCfc, false, true);
+            if(pCurInfo->bUserCsc)
+            {
+                BVDC_P_Cfc_FromMatrix_isr(hWindow->pMainCfc, pCurInfo->pl32_Matrix, pCurInfo->ulUserShift);
+            }
+        }
+
+        /* set count to let cmp RUL update matrix */
+        hCompositor->ulCscAdjust[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
+        hCompositor->bCscCompute[hWindow->eId] = true;
+        hCompositor->bCscDemoCompute[hWindow->eId] = true;
+    }
+    hWindow->bCfcAdjust = BVDC_P_CLEAN;
+    pCurDirty->stBits.bMosaicMode = BVDC_P_CLEAN;
+
+    if(!hCompositor->bIsBypass)
+    {
+        /* Evaluate dither condition for compositor: */
+        /* Input Dither is enable if source is 10-bit and window is 10-bit */
+        /* and MADR is not in the path or not enable */
+        bool bInDitherEnable = (pPicture->bSrc10Bit && hWindow->bIs10BitCore &&
+           !(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode) &&
+             hWindow->stCurResource.hMcvp->hMcdi->bMadr)) ? true : false;
+        /* CSC dither is enabled with the above condition and HDMI output */
+        /* color depth is 8-bit */
+        bool bHdmiOutput8Bit =
+            ((hCompositor->hDisplay->stDviChan.bEnable || hCompositor->hDisplay->stCurInfo.bEnableHdmi) &&
+             (hCompositor->hDisplay->stCurInfo.stHdmiSettings.eHdmiColorDepth == BAVC_HDMI_BitsPerPixel_e24bit)) ? true : false;
+        bool bCscDitherEnable = bInDitherEnable & bHdmiOutput8Bit & !hWindow->stCurInfo.bMosaicMode;
+        /* disable input dithering for transcode path */
+        bInDitherEnable &= !hCompositor->hDisplay->stCurInfo.bEnableStg;
+#if BVDC_DITHER_OFF
+        bInDitherEnable = false;
+        bCscDitherEnable = false;
+#endif
+        if(bInDitherEnable != hCompositor->bInDitherEnable[hWindow->eId] ||
+           bCscDitherEnable != hCompositor->bCscDitherEnable[hWindow->eId])
+        {
+            hCompositor->bInDitherEnable[hWindow->eId] = bInDitherEnable;
+            hCompositor->bCscDitherEnable[hWindow->eId] = bCscDitherEnable;
+            hCompositor->ulDitherChange[hWindow->eId] = BVDC_P_RUL_UPDATE_THRESHOLD;
+        }
     }
 
     /* Update the informations that are tied to pPicture;

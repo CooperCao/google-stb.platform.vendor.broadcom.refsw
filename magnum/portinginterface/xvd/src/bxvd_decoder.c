@@ -2629,6 +2629,17 @@ static void BXVD_Decoder_S_UnifiedQ_ValidatePicture_isr(
           break;
    }
 
+   /* SWSTB-1873: support for color range */
+
+   pstXdmPicture->stDisplayInfo.eColorRange = BAVC_ColorRange_eAuto;
+
+#if BXVD_P_PPB_EXTENDED
+   if ( uiFlagsExt0 & BXVD_P_PPB_EXT0_FLAG_VIDEO_FULL_RANGE )
+   {
+      pstXdmPicture->stDisplayInfo.eColorRange = BAVC_ColorRange_eFull;
+   }
+#endif
+
    /************************/
    /* BXDM_Picture_PanScan */
    /************************/

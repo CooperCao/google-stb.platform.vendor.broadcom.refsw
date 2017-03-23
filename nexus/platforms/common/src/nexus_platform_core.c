@@ -254,7 +254,11 @@ static bool NEXUS_Platform_P_IsGio_isrsafe(uint32_t reg)
 static bool NEXUS_Platform_P_IsSystemSharedRegister_isrsafe(uint32_t reg)
 {
     /* this call must occur after shared gpio submodule is initialized */
+#if NEXUS_HAS_GPIO
     return NEXUS_Platform_P_SharedGpioSupported() && NEXUS_Platform_P_IsGio_isrsafe(reg);
+#else
+    return false;
+#endif
 }
 
 static bool NEXUS_Platform_P_IsRegisterAtomic_isrsafe(void *context, uint32_t reg)

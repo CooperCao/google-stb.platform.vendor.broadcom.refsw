@@ -271,8 +271,10 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             }
             if (probeResults.chip.familyId == 0x3158) {
                 NEXUS_FrontendStandbyCallback callback;
+                BKNI_Memset(&callback, 0, sizeof(callback));
                 callback.platformStandby = NEXUS_Platform_FrontendStandby;
                 /* Set platform specific context data */
+                callback.context = NULL;
                 NEXUS_Frontend_SetStandbyCallback_priv(device, &callback);
             }
         } else {

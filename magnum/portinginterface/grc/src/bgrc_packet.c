@@ -1034,7 +1034,12 @@ BERR_Code BGRC_Packet_SubmitPackets(
             BGRC_P_SWPKT_MSG(("ctx[%d] sw pkt submit: wrap [%p, %p]", hContext->ulId, hContext->pSwPktWritePtr, hContext->pSwPktWrapPtr));
         }
 
+    /*SWSTB-3670  workaround for 7278A0 blit hw change, hw will be fixed in 7278B0*/
+#if BGRC_PACKET_P_BLIT_WORKAROUND
+        if( hContext->ulSwPktSizeToProc > BGRC_PACKET_P_BLIT_GROUP_SIZE_MAX)
+#else
         if( hContext->ulSwPktSizeToProc > hContext->create_settings.packet_buffer_store )
+#endif
             BGRC_PACKET_P_ProcessSwPktFifo( hGrc, hContext );
     }
 
@@ -1167,17 +1172,17 @@ static void BGRC_PrintStatus(
     BGRC_PacketContext_Handle hContext;
     uint32_t blit_status;
     uint32_t list_status;
-    uint32_t cur_desc;
+    BSTD_DeviceOffset cur_desc;
 
     blit_status = BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STATUS );
     list_status = BGRC_P_ReadReg32( hGrc->hRegister, LIST_STATUS );
-    cur_desc = BGRC_P_ReadReg32( hGrc->hRegister, LIST_CURR_PKT_ADDR );
-    BDBG_WRN(("Total HwPkt range[" BDBG_UINT64_FMT "," BDBG_UINT64_FMT "], w " BDBG_UINT64_FMT ", r " BDBG_UINT64_FMT ", last " BDBG_UINT64_FMT ", blitStatus 0x%x, listStatus 0x%x, curDesc 0x%x, %s",
+    cur_desc = BGRC_P_ReadAddr( hGrc->hRegister, LIST_CURR_PKT_ADDR );
+    BDBG_WRN(("Total HwPkt range[" BDBG_UINT64_FMT "," BDBG_UINT64_FMT "], w " BDBG_UINT64_FMT ", r " BDBG_UINT64_FMT ", last " BDBG_UINT64_FMT ", blitStatus 0x%x, listStatus 0x%x, curDesc 0x"BDBG_UINT64_FMT ", %s",
               BDBG_UINT64_ARG(hGrc->ulHwPktFifoBaseOffset), BDBG_UINT64_ARG(hGrc->ulHwPktFifoBaseOffset + hGrc->ulHwPktFifoSize),
               BDBG_UINT64_ARG(bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pHwPktWritePtr)),
               BDBG_UINT64_ARG(hGrc->ulHwPktOffsetExecuted),
               BDBG_UINT64_ARG(bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pLastHwPktPtr)),
-              blit_status, list_status, cur_desc,
+              blit_status, list_status, BDBG_UINT64_ARG(cur_desc),
               hGrc->secure?"secure":"unsecure"));
 
     /* get first context */
@@ -1200,15 +1205,15 @@ static void BGRC_P_WatchdogReset(
     BGRC_Handle hGrc,
     BGRC_PacketContext_Handle hContext )
 {
-    uint32_t ulCurDesc;
+    BSTD_DeviceOffset ulCurDesc;
 
     BSTD_UNUSED(hContext);
 
     BGRC_PrintStatus(hGrc);
 
-    ulCurDesc = BGRC_P_ReadReg32( hGrc->hRegister, LIST_CURR_PKT_ADDR );
+    ulCurDesc = BGRC_P_ReadAddr( hGrc->hRegister, LIST_CURR_PKT_ADDR );
     BGRC_P_ResetDevice(hGrc);
-    BGRC_P_WriteReg32( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulCurDesc );
+    BGRC_P_WriteAddr( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulCurDesc );
     BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
                        BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, Ack ) |
                        BCHP_FIELD_ENUM( M2MC_LIST_CTRL, RUN, Run ) |

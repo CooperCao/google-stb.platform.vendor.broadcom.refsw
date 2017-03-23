@@ -57,11 +57,10 @@
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_vdc_box9_config.h"
 
 BDBG_MODULE(BBOX_VDC_PRIV_BOX9);
 BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX9);
-
-extern BBOX_Rts stBoxRts_7252S_4K2t_large_xcode_HiTemp_box9;
 
 /* Memc Index for box mode 9. BBOX_MemcIndex_Invalid means it's not used */
 static const BBOX_MemConfig stBoxMemConfig_7439B0_box9 =

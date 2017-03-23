@@ -150,8 +150,8 @@ void CEncode::simple_encoder_destroy(void)
 
 eRet CEncode::simple_encoder_create()
 {
-    NEXUS_DisplaySettings         displaySettings;
-    unsigned                      i;
+    NEXUS_DisplaySettings          displaySettings;
+    unsigned                       i;
     eRet                           ret    = eRet_Ok;
     NEXUS_Error                    nerror = NEXUS_SUCCESS;
     NEXUS_VideoEncoderCapabilities cap;

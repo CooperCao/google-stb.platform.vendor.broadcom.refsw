@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
+
  ******************************************************************************/
 #ifndef BVDC_H__
 #define BVDC_H__
@@ -2234,7 +2235,7 @@ typedef struct
     /* Memc Index for hdmi display CFC */
     struct {
         bool                    bUsed;
-        uint32_t                aulMemcIndex;
+        uint32_t                ulMemcIndex;
     } hdmiDisplayCfc[BBOX_VDC_HDMI_DISPLAY_COUNT];
 
 } BVDC_MemConfigSettings;
@@ -2249,9 +2250,10 @@ Description:
         ulSize - Defines total size (byte) of VDC buffers on specific memc.
         stHeapSettings - Defines size and count of VDC buffers in each category
             on specific memc
-        ulRulSize - Combined RDC (Regisger DMA Controller) RUL (Regisgter Update List)
-            memory and CFC (Color Format Converter) command list driver heap size.
+        ulRulSize - RDC (Regisger DMA Controller) RUL (Regisgter Update List)
+            memory driver heap size.
         ulVipSize - VIP (Video Input Processor) picture memory size for new soft transcoder.
+        ulCfcLutSize - CFC (Color Format Converter) command list driver heap size.
 
     stDisplay - Defines VDC memory configuration per display.
         stWindow - Defines VDC memory configuration per window.
@@ -2268,10 +2270,11 @@ Description:
 typedef struct BVDC_MemConfig
 {
     struct {
-        uint32_t           ulSize;
-        uint32_t           ulRulSize;
-        uint32_t           ulVipSize; /* for VIP heap allocation */
-        BVDC_Heap_Settings stHeapSettings;
+        uint32_t           ulSize; /* total non-VIP picture heap size per memc */
+        uint32_t           ulRulSize; /* total RUL heap (cpu accessible) size per memc */
+        uint32_t           ulVipSize; /* total VIP heap (picture) size per memc */
+        uint32_t           ulCfcLutSize; /* total CFC LUT heap (cpu accessible) size per memc */
+        BVDC_Heap_Settings stHeapSettings; /* total non-VIP picture heap settings per memc */
     } stMemc[BVDC_MAX_MEMC];
 
     struct {

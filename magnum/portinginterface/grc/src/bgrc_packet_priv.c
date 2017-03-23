@@ -323,7 +323,7 @@ static const uint32_t s_BGRC_PACKET_P_DeviceGroupHeaderMasks[] =
 static const uint32_t s_BGRC_PACKET_P_DeviceGroupSizes[] =
 {
     0,
-    sizeof (uint32_t),
+    sizeof (BSTD_DeviceOffset),
     0,
     0,
     BGRC_M2MC(SRC_CM_C34) - BGRC_M2MC(SRC_CM_C00_C01) + sizeof (uint32_t),
@@ -1993,7 +1993,12 @@ static void BGRC_PACKET_P_ProcSwPktSourcePalette( BGRC_PacketContext_Handle hCon
     if (packet->address)
     {
         BGRC_PACKET_P_DEBUG_PRINT_CTX( "-- Palette            " );
-        BGRC_PACKET_P_STORE_REG( SRC_CLUT_ENTRY_i_ARRAY_BASE, packet->address );
+#if BGRC_P_64BITS_ADDR
+        BGRC_PACKET_P_STORE_REG( SRC_CLUT_ENTRY_i_ARRAY_BASE, BGRC_P_GET_UINT64_HIGH(packet->address ));
+        BGRC_PACKET_P_STORE_REG_OFFSET( SRC_CLUT_ENTRY_i_ARRAY_BASE, BGRC_P_GET_UINT64_LOW(packet->address ), 1);
+#else
+        BGRC_PACKET_P_STORE_REG( SRC_CLUT_ENTRY_i_ARRAY_BASE, BGRC_P_GET_UINT64_LOW(packet->address ));
+#endif
         hContext->ulGroupMask |= BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_CLUT_GRP_CNTRL_MASK;
         BGRC_PACKET_P_DEBUG_PRINT( "\n" );
     }
@@ -3712,6 +3717,9 @@ void BGRC_PACKET_P_WriteHwPkt(
 
     /* so no more LUT table loading */
     BGRC_PACKET_P_STORE_REG( SRC_CLUT_ENTRY_i_ARRAY_BASE, 0x0 );
+#if BGRC_P_64BITS_ADDR
+    BGRC_PACKET_P_STORE_REG_OFFSET( SRC_CLUT_ENTRY_i_ARRAY_BASE, 0, 1);
+#endif
 }
 
 /***************************************************************************/
@@ -3742,7 +3750,7 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
         BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 
         /* flush "next offset" from previous blits */
-        BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktSubmitLinkPtr, sizeof (uint32_t) );
+        BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktSubmitLinkPtr, sizeof (BSTD_DeviceOffset) );
 
         BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
@@ -3795,10 +3803,21 @@ BERR_Code BGRC_PACKET_P_ProcessSwPktFifo(
     /* reload every thing as context switch or reset */
     if( (hGrc->hContext != hContext) || (hContext->bResetState) )
     {
+        bool   bSRCCLUTNULL = false;
+#if BGRC_P_64BITS_ADDR
+        uint32_t ulClutIndex;
+
+        ulClutIndex = BGRC_PACKET_P_GET_STORED_REG_INDEX(SRC_CLUT_ENTRY_i_ARRAY_BASE);
+#endif
         hGrc->hContext = hContext;
         hContext->bResetState = false;
         hContext->ulGroupMask = BGRC_PACKET_P_DEVICE_GROUP_MASK_FULL;
-        if (0 != BGRC_PACKET_P_GET_REG(SRC_CLUT_ENTRY_i_ARRAY_BASE))
+        bSRCCLUTNULL =
+#if BGRC_P_64BITS_ADDR
+            (BGRC_PACKET_P_GET_REG_FROM_INDEX(ulClutIndex+1)!=0) ||
+#endif
+            (BGRC_PACKET_P_GET_REG(SRC_CLUT_ENTRY_i_ARRAY_BASE)!=0);
+        if (bSRCCLUTNULL)
         {
             hContext->ulGroupMask |= BCHP_M2MC_LIST_PACKET_HEADER_1_SRC_CLUT_GRP_CNTRL_MASK;
         }

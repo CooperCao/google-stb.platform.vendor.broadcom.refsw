@@ -1,5 +1,5 @@
 /***************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -242,7 +242,7 @@ void BVDC_P_Source_Init
 
     if(hSource->hGfxFeeder)
     {
-        BVDC_P_GfxFeeder_Init(hSource->hGfxFeeder);
+        BVDC_P_GfxFeeder_Init(hSource->hGfxFeeder, NULL);
         pNewInfo->eCtInputType = BVDC_P_CtInput_eUnknown;
     }
 
@@ -770,12 +770,6 @@ static void BVDC_P_Window_SetBlender_isr
     return;
 }
 
-void BVDC_P_Window_SetSurfaceSize_isr
-    ( BVDC_Window_Handle               hWindow,
-      const BVDC_P_Rect               *pSurRect,
-      BAVC_Polarity                    eScanType );
-
-
 /***************************************************************************
  * {private}
  *
@@ -1031,8 +1025,9 @@ void BVDC_P_Compositor_WindowsReader_isr
     if(!hCompositor->bIsBypass)
     {
         hCompositor->stOutColorSpace.stAvcColorSpace.eColorimetry =
-			BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
-				BAVC_GetDefaultMatrixCoefficients_isrsafe(hCompositor->stCurInfo.pFmtInfo->eVideoFmt, false), false);
+            BVDC_P_AvcMatrixCoeffs_to_Colorimetry_isr(
+                BAVC_GetDefaultMatrixCoefficients_isrsafe(hCompositor->stCurInfo.pFmtInfo->eVideoFmt, false),
+                BAVC_ColorPrimaries_eUnknown, false);
     }
 
     /* set compositor size -- number of lines. */

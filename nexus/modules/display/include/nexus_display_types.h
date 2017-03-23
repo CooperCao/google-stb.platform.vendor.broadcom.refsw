@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -567,6 +567,11 @@ typedef struct NEXUS_DisplayModuleSettings {
     unsigned primaryDisplayHeapIndex;    /* The heap given to BVDC_Open for general use.
                                             This is usually the heap index for videoWindowHeapIndex[0][0] i.e HD Main Video window */
     unsigned rdcHeapIndex;               /* The heap used by RDC for RUL's */
+    struct {
+        unsigned cmpHeapIndex[NEXUS_MAX_DISPLAYS]; /* The heap used by CMP CFC for LUT's */
+        unsigned gfdHeapIndex[NEXUS_MAX_DISPLAYS]; /* The heap used by GFD CFC for LUT's */
+        unsigned vecHeapIndex[NEXUS_MAX_HDMI_OUTPUTS]; /* The heap used by VEC_HDMI CFC for LUT's */
+    } cfc;
     bool dropFrame;                      /* Deprecated. See NEXUS_DisplaySettings.dropFrame. */
 
     uint32_t dacBandGapAdjust[NEXUS_MAX_VIDEO_DACS];  /*Adjustment to the video TDAC and QDAC bandgap setting.

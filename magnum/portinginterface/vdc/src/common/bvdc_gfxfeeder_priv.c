@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -288,10 +288,14 @@ BERR_Code BVDC_P_GfxFeeder_Create
         pGfxFeeder->stCfc.stCapability.stBits.bNL2L = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bL2NL = 1;
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_2)
+        pGfxFeeder->stCfc.stCapability.stBits.bRamNL2L = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bRamL2NL = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bMb = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bLRngAdj = 1;
+
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
-        pGfxFeeder->stCfc.stCapability.stBits.bHlgOotfAdj = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bRamLutScb = 1;
+        pGfxFeeder->stCfc.stCapability.stBits.bLMR = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bAlphaDiv = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bCscBlendIn = 1;
         pGfxFeeder->stCfc.stCapability.stBits.bCscBlendOut = 1;
@@ -346,6 +350,16 @@ BERR_Code BVDC_P_GfxFeeder_Destroy
     BDBG_ENTER(BVDC_P_GfxFeeder_Destroy);
     BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
 
+#if BVDC_P_CMP_CFC_VER >= 3
+    if(hGfxFeeder->stCfcLutList.hMmaBlock) {
+        BMMA_Unlock(hGfxFeeder->stCfcLutList.hMmaBlock, hGfxFeeder->stCfcLutList.pulStart);
+        BMMA_UnlockOffset(hGfxFeeder->stCfcLutList.hMmaBlock, hGfxFeeder->stCfcLutList.ullStartDeviceAddr);
+        BMMA_Free(hGfxFeeder->stCfcLutList.hMmaBlock);
+        hGfxFeeder->stCfcLutList.hMmaBlock = NULL;
+        hGfxFeeder->hCfcHeap  = NULL;
+    }
+#endif
+
     /* free surface address shadow registers back to scratch pool */
     BVDC_P_GfxSurface_FreeShadowRegs(
         &hGfxFeeder->stGfxSurface, hGfxFeeder->hRdc);
@@ -386,7 +400,8 @@ static void BVDC_P_GfxFeeder_SetAllDirty(
  * until the GFD is really going to be used.
  */
 void BVDC_P_GfxFeeder_Init(
-    BVDC_P_GfxFeeder_Handle          hGfxFeeder )
+    BVDC_P_GfxFeeder_Handle          hGfxFeeder,
+    const BVDC_Source_Settings      *pSettings )
 {
     BDBG_ENTER(BVDC_P_GfxFeeder_Init);
     BDBG_OBJECT_ASSERT(hGfxFeeder, BVDC_GFX);
@@ -414,6 +429,28 @@ void BVDC_P_GfxFeeder_Init(
 
     BVDC_P_GfxFeeder_InitCfc(hGfxFeeder);
 
+#if BVDC_P_CMP_CFC_VER >= 3
+    /* GFD CFC LUT allocated only when required, but released until VDC close. */
+    if(pSettings && pSettings->hCfcHeap)
+    {
+        if(!hGfxFeeder->stCfcLutList.hMmaBlock) {
+            hGfxFeeder->hCfcHeap = pSettings->hCfcHeap;
+            hGfxFeeder->stCfcLutList.hMmaBlock = BMMA_Alloc(pSettings->hCfcHeap,
+                BVDC_P_GFD_CFC_LUT_SIZE, sizeof(uint32_t), NULL);
+            if( !hGfxFeeder->stCfcLutList.hMmaBlock )
+            {
+                BDBG_ERR(( "Out of Device Memory" ));
+                BDBG_ASSERT(0);
+            }
+            hGfxFeeder->stCfcLutList.pulStart = hGfxFeeder->stCfcLutList.pulCurrent =
+                BMMA_Lock(hGfxFeeder->stCfcLutList.hMmaBlock);
+            hGfxFeeder->stCfcLutList.ullStartDeviceAddr =
+                BMMA_LockOffset(hGfxFeeder->stCfcLutList.hMmaBlock);
+        }
+    }
+#else
+    BSTD_UNUSED(pSettings);
+#endif
     BDBG_LEAVE(BVDC_P_GfxFeeder_Init);
     return;
 }
@@ -2138,7 +2175,9 @@ void BVDC_P_GfxFeeder_BuildRul_isr
     BVDC_P_SurfaceInfo  *pCurSur;
     BVDC_P_GfxFeederCfgInfo  *pCurCfg;
     BVDC_P_GfxDirtyBits  stCurDirty;
+#ifndef BVDC_FOR_BOOTUPDATER
     BVDC_P_Csc3x4 const *pRGBToYCbCr, *pYCbCrToRGB;
+#endif
 
     BDBG_ENTER(BVDC_P_GfxFeeder_BuildRul_isr);
 
@@ -2234,9 +2273,9 @@ void BVDC_P_GfxFeeder_BuildRul_isr
                 }
             }
 
-            BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hGfxFeeder->hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
 #ifndef BVDC_FOR_BOOTUPDATER
-        /* color adjustment */
+            BVDC_P_Cfc_GetCfcToApplyAttenuationRGB_isr(hGfxFeeder->hWindow->pMainCfc->pColorSpaceOut->stAvcColorSpace.eColorimetry, &pYCbCrToRGB, &pRGBToYCbCr);
+            /* color adjustment */
             BVDC_P_Cfc_ApplyContrast_isr(hGfxFeeder->hWindow->stCurInfo.sContrast, &hGfxFeeder->stCfc.stMc);
             BVDC_P_Cfc_ApplyBrightness_isr(hGfxFeeder->hWindow->stCurInfo.sBrightness, &hGfxFeeder->stCfc.stMc);
             BVDC_P_Cfc_ApplySaturationAndHue_isr(

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -87,6 +87,7 @@ Get Mixer Algo
 BDSP_Algorithm BAPE_P_GetCodecMixer_isrsafe(void);
 BAPE_DolbyMSVersion BAPE_P_GetDolbyMSVersion_isrsafe(void);
 BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void);
+BAPE_DolbyMSVersion BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(BAPE_MixerHandle handle);
 
 #define BAPE_P_GetCodecName(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->pName)
 #define BAPE_P_GetCodecAudioDecode(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->decodeAlgorithm)
@@ -96,6 +97,7 @@ BAPE_DolbyMs12Config BAPE_P_GetDolbyMS12Config_isrsafe(void);
 #define BAPE_P_GetCodecMultichannelFormat(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->multichannelFormat)
 #define BAPE_P_GetDolbyMSVersion(void) (BAPE_P_GetDolbyMSVersion_isrsafe())
 #define BAPE_P_GetDolbyMS12Config(void) (BAPE_P_GetDolbyMS12Config_isrsafe())
+#define BAPE_P_FwMixer_GetDolbyUsageVersion(handle) BAPE_P_FwMixer_GetDolbyUsageVersion_isrsafe(handle)
 #define BAPE_P_CodecSupportsPassthrough(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->compressedOutputValid)
 #define BAPE_P_CodecRequiresSrc(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->srcRequired)
 #define BAPE_P_CodecRequiresGenericPassthru(codec) (BAPE_P_GetCodecAttributes_isrsafe((codec))->genericPassthruRequired)

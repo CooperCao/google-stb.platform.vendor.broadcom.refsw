@@ -1,0 +1,1125 @@
+<html>
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=us-ascii">
+<meta name=Generator content="Microsoft Word 14 (filtered)">
+<title>Broadcom 97278 A0 Phase 17.1 Set-Top Unified Reference Software Release
+(URSR) Release Notes</title>
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Cambria;
+	panose-1:2 4 5 3 5 4 6 3 2 4;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{margin:0in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+h1
+	{mso-style-link:"Heading 1 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:24.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+h4
+	{mso-style-link:"Heading 4 Char";
+	margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	font-weight:bold;}
+h5
+	{mso-style-link:"Heading 5 Char";
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:0in;
+	margin-bottom:.0001pt;
+	page-break-after:avoid;
+	font-size:12.0pt;
+	font-family:"Cambria","serif";
+	color:#243F60;
+	font-weight:normal;}
+a:link, span.MsoHyperlink
+	{color:blue;
+	text-decoration:underline;}
+a:visited, span.MsoHyperlinkFollowed
+	{color:purple;
+	text-decoration:underline;}
+p.MsoPlainText, li.MsoPlainText, div.MsoPlainText
+	{mso-style-link:"Plain Text Char";
+	margin:0in;
+	margin-bottom:.0001pt;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";}
+p
+	{margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
+	{margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+span.Heading1Char
+	{mso-style-name:"Heading 1 Char";
+	mso-style-link:"Heading 1";
+	font-family:"Cambria","serif";
+	color:#365F91;
+	font-weight:bold;}
+span.Heading4Char
+	{mso-style-name:"Heading 4 Char";
+	mso-style-link:"Heading 4";
+	font-family:"Cambria","serif";
+	color:#4F81BD;
+	font-weight:bold;
+	font-style:italic;}
+span.Heading5Char
+	{mso-style-name:"Heading 5 Char";
+	mso-style-link:"Heading 5";
+	font-family:"Cambria","serif";
+	color:#243F60;}
+span.PlainTextChar
+	{mso-style-name:"Plain Text Char";
+	mso-style-link:"Plain Text";
+	font-family:"Calibri","sans-serif";}
+p.msolistparagraphcxspfirst, li.msolistparagraphcxspfirst, div.msolistparagraphcxspfirst
+	{mso-style-name:msolistparagraphcxspfirst;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+p.msolistparagraphcxspmiddle, li.msolistparagraphcxspmiddle, div.msolistparagraphcxspmiddle
+	{mso-style-name:msolistparagraphcxspmiddle;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+p.msolistparagraphcxsplast, li.msolistparagraphcxsplast, div.msolistparagraphcxsplast
+	{mso-style-name:msolistparagraphcxsplast;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+p.msochpdefault, li.msochpdefault, div.msochpdefault
+	{mso-style-name:msochpdefault;
+	margin-right:0in;
+	margin-left:0in;
+	font-size:10.0pt;
+	font-family:"Times New Roman","serif";}
+p.gmail-m-5047815134937865191msolistparagraph, li.gmail-m-5047815134937865191msolistparagraph, div.gmail-m-5047815134937865191msolistparagraph
+	{mso-style-name:gmail-m_-5047815134937865191msolistparagraph;
+	margin-right:0in;
+	margin-left:0in;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";}
+span.apple-converted-space
+	{mso-style-name:apple-converted-space;}
+span.gmailmsg
+	{mso-style-name:gmailmsg;}
+span.gmail-m-5047815134937865191gmailmsg
+	{mso-style-name:gmail-m_-5047815134937865191gmailmsg;}
+.MsoChpDefault
+	{font-size:10.0pt;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;}
+div.WordSection1
+	{page:WordSection1;}
+ /* List Definitions */
+ ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+
+</head>
+
+<body lang=EN-US link=blue vlink=purple>
+
+<div class=WordSection1>
+
+<h1 style='margin-left:15.0pt'><span style='font-size:12.0pt'>Index</span></h1>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#software_deliverables"><span style='color:#0070C0'>Software Deliverables</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#documentation"><span style='color:#0070C0'>Documentation</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#features"><span
+style='color:#0070C0'>Features</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#known_bugs"><span
+style='color:#0070C0'>Known Issues</span></a> </span></p>
+
+<div>
+
+<p><a name=top><strong>Broadcom 97278/7278 A0 Phase 17.1 </strong></a><strong>Set-Top
+Unified Reference Software Release Notes</strong></p>
+
+<p><strong>Release Date: </strong></p>
+
+<blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
+
+<p>March 22, 2017</p>
+
+<p>Phase 17.1 Release </p>
+
+</blockquote>
+
+<p><strong>Platforms Supported: </strong></p>
+
+<p class=MsoNormal style='text-indent:.5in'>97278SV BCM7278 A0 Revision</p>
+
+<p class=MsoNormal style='text-indent:.5in'>97278HB BCM7278 A0 Revision</p>
+
+<p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><b>BCM7278 A0 Supported boards</b> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>SV</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Silicon verification</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>HB</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Hybrid</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><a name="software_deliverables">Note: BCM7278 includes a 64
+bit ARM CPU. The supplied kernel comes in 32-bit and 64-bit flavors. 64 bit
+kernel files can be identified by &#8220;64&#8221; suffix. Bolt bootloader can
+boot either kernel. Please refer to &#8220;64 bit Migration Application
+Note&#8221; for more details.</a></p>
+
+<p class=MsoNormal><strong>&nbsp;</strong></p>
+
+<p class=MsoNormal><strong>Software Deliverables:</strong><br>
+<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="75%"
+ style='width:75.0%'>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Description</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Filename</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Licensing</strong></p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem images</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p>jffs2-128k-arm64.img</p>
+  <p>jffs2-256k-arm64.img</p>
+  <p>jffs2-64k-arm64.img</p>
+  <p>squashfs-arm64.img</p>
+  <p>ubifs-128k-1-arm64.img</p>
+  <p>ubifs-256k-1-arm64.img</p>
+  <p>ubifs-64k-1-arm64.img</p>
+  <p>jffs2-128k-arm.img</p>
+  <p>jffs2-256k-arm.img</p>
+  <p>jffs2-64k-arm.img</p>
+  <p>squashfs-arm.img</p>
+  <p>ubifs-128k-1-arm.img</p>
+  <p>ubifs-256k-1-arm.img</p>
+  <p>ubifs-64k-1-arm.img</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem source</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-1.8.tar.bz2</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem source <br>
+  [lib/directfb]</p>
+  <p class=MsoNormal>[user/lxc]</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-1.8.tar.bz2</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.1</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem source <br>
+  [lib/binutils/gas]<br>
+  [lib/binutils/bfd]<br>
+  [user/gdb/gdb]<br>
+  [user/gdb/bfd]</p>
+  <p class=MsoNormal>[user/lttcontrol]</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-1.8.tar.bz2</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 3.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root filesystem binaries</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='margin-bottom:12.0pt'>nfsroot-arm64.tar.bz2</p>
+  <p class=MsoNormal style='margin-bottom:12.0pt'>nfsroot-arm.tar.bz2</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>toolchain binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>stbgcc-4.8-1.5.tar.bz2</p>
+  <p class=MsoNormal>(source available upon request) </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 3.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BOLT bootloader binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>bolt-v1.26-7278a0-ba-bfw-1.0.0.bin</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Kernel Source</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>stblinux-4.1-1.8.tar.bz2</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Kernel Binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>vmlinuz-arm64</p>
+  <p class=MsoNormal>vmlinuz-arm</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0 </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Initrd Kernel Binary </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>vmlinuz-initrd-arm64</p>
+  <p class=MsoNormal>vmlinuz-initrd-arm</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software source</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>refsw_release_unified_20170322.src.tgz</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes boa</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/boa</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes FreeType</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/freetype-2.1.5</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes FreeType</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/freetype-2.3.12</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes glob</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/glob</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libpng</p>
+  </td>
+  <td width="57%" valign=top style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/libpng</p>
+  </td>
+  <td width="15%" valign=top style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libjpeg</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/jpeg-6b</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libexif</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/libexif</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes liveMedia</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/livemedia</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes Lua</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/lua</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>MIT</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- uses openssl (downloaded from Internet)</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- build system found at BSEAV/opensource/openssl</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>OpenSSL License and<br>
+  SSLeay License</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes truetype TeenBold font</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/app/brutus/build/fonts/teenbold</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Freeware/BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes truetype MSWebFonts</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/app/brutus/build/fonts/mswebfonts</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Microsoft EULA</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes ARC ELF relocation</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at
+  magnum/portinginterface/xvd/src/bxvd_relf.h</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ARC International license for Broadcom customers</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes zlib</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/opensource/zlib</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes libc/quad</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at nexus/platforms/common/src/support/libgcc</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software binary for 97278</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>refsw-20170322.97278a0_SV-linux-atlas.bin.tgz (Atlas
+  application binary)</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Wake-up driver shim for Nexus</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>- found at BSEAV/driver/wakeup</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name=documentation><strong>Documentation Deliverables:</strong></a><br>
+<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="87%"
+ style='width:87.82%'>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Description</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Filename</strong></p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Release Notes</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ReleaseNotes97278.html </p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software auto-generated documentation</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>doxygen_magnum_20170322.tgz<br>
+  doxygen_nexus_20170322.tgz</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>How to Setup the Build Environment, prepare the reference
+  board</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/app/atlas/docs/BroadcomReferencePlatformSetup.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software Debug Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/RefswDebuggingGuide.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Architecture Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Architecture.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Overview Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Overview.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Graphics Usage</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Graphics.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Usage Manual</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Usage.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Development Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Development.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus MultiProcess Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_MultiProcess.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Surface Compositor</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_SurfaceCompositor.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>OpenGL ES Quick Start Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/OpenGL_ES_QuickStart.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Memory guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Memory.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Power Management Overview</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/RefswPowerManagementOverview.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Atlas Architecture Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/app/atlas/docs/Atlas_Architecture.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Atlas User Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/app/atlas/docs/Atlas_User_Guide.pdf</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>PlayReady 3.0 User Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/lib/playready/3.0/doc/PlayReady_30_User_Guide.pdf<br>
+  in refsw_release_unified_20170322-prd_bin.tgz to licensed recipients only</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>64 bit Migration Application Note</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference_Software_64bit_Migration_Application_Note.pdf</p>
+  </td>
+ </tr>
+</table>
+
+<p><a name="where_to_start"><strong>Where To Start</strong></a><br>
+<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+
+<p class=MsoNormal>Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
+Read Atlas_User_Guide.pdf for information on configuring the Linux environment
+on your Build Server and Set-Top, and information on building and installing
+Atlas as part of the Reference Software. </p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><strong>Important Notes about Limitations</strong></p>
+
+<p class=MsoNormal>In the 17.1.1 Engineering Release and in URSR 17.1, audio /
+DSP support is limited:</p>
+
+<p class=MsoNormal>7278 audio support in this release includes standalone UDC
+(AC3/DDP) and MPEG audio decode from TS or ES content.</p>
+
+<p class=MsoNormal>No other codecs are supported on 7278 in this release. In
+addition, advanced usage cases requiring DspMixer or</p>
+
+<p class=MsoNormal>Transcode are not supported on 7278 in this release.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Security (NEXUS_SECURITY_SUPPORT, SAGE_SUPPORT) is not
+supported in this release. </p>
+
+<p class=MsoNormal>Nexus Video Encoder (VIDEO_ENCODER_SUPPORT=y) is not
+supported in this release.</p>
+
+<p class=MsoNormal>Nexus Power Management (NEXUS_POWER_MANAGEMENT=y) is not
+supported in this release.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;&nbsp; HDR 2.0 features supported in this release:</p>
+
+<p class=MsoNormal>&middot;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+Conversion between SDR &lt;-&gt; SDR</p>
+
+<p class=MsoNormal>&middot;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Conversion
+among 170M, Bt470_BG, BT709, BT2020-NCL and BT2020-CL.</p>
+
+<p class=MsoNormal>&nbsp;&nbsp;</p>
+
+<p><strong>Quick Build Instructions</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar -xvjf rootfs-4.1-1.8.tar.bz2 </li>
+ <li class=MsoNormal># tar -xvjf stblinux-4.1-1.8.tar.bz2 </li>
+ <li class=MsoNormal># cd rootfs </li>
+ <li class=MsoNormal># make vmlinuz-initrd-arm <i>(For 32-bit version of the
+     kernel build)</i></li>
+ <li class=MsoNormal># make vmlinuz-initrd-arm64 <i>(For 64-bit version of the
+     kernel build)</i></li>
+ <li class=MsoNormal># cd ../linux </li>
+ <li class=MsoNormal>export LINUX=`pwd` </li>
+ <li class=MsoNormal>tar -C /opt/toolchains -xvjf stbgcc-4.8-1.5.tar.bz2 </li>
+ <li class=MsoNormal>PATH=/opt/toolchains/ stbgcc-4.8-1.5/bin:$PATH </li>
+ <li class=MsoNormal>export B_REFSW_ARCH=arm-linux </li>
+ <li class=MsoNormal>or <span style='font-size:7.0pt;color:black'>&nbsp;<span
+     class=apple-converted-space>&nbsp;</span></span><span style='color:black'><span
+     style='orphans: auto;text-align:start;widows: 1;-webkit-text-stroke-width: 0px;
+     word-spacing:0px'>export B_REFSW_ARCH=aarch64-linux (For compiling the
+     code with 64 bit toolchain)</span></span></li>
+</ul>
+
+<p><strong>Quick Boot instructions</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; boot -z
+     &lt;network_location&gt;:41-1.8/vmlinuz-initrd-arm </li>
+ <li class=MsoNormal>BOLT&gt; boot -z
+     &lt;network_location&gt;:41-1.8/vmlinuz-initrd-arm64&nbsp; - This command
+     will boot 64 bit kernel instead of 32 bit kernel. </li>
+</ul>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><strong>Set the kernel to autoboot</strong> </p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; flash
+     &lt;network_location&gt;:41-1.8/vmlinuz-initrd-arm flash0.kernel </li>
+</ul>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-size:
+10.0pt;font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Or BOLT&gt; flash &lt;network_location&gt;:41-1.8/vmlinuz-initrd-arm64
+flash0.kernel&nbsp; - For 64 bit kernel</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>BOLT&gt; setenv -p STARTUP &quot;boot -z
+     flash0.kernel:&quot; </li>
+ <li class=MsoNormal>BOLT&gt; reboot</li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>How to set a board to autoboot with kernel and ubifs
+rootfs and binaries into the flash:</b></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Boot
+with vmlinuz-initrd kernel.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Run
+&quot;stbutil&quot;</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Select
+option 1 for flashing the noninitrd kernel to the flash. Again run
+&quot;stbutil&quot; and select 2 to flash rootfs into the flash.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
+the board with &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0
+rootfstype=ubifs root=ubi0:rootfs rw'&quot; </p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>In
+case you want to run any application on the startup then, copy the application
+binaries in /data/bin of the flash. Copy the streams in /data/media. Edit
+/etc/profile and put the commands you want to run after the boot. Save the
+file.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Set
+the STARTUP variable to &quot;boot flash0.kernel 'ubi.mtd=flash1.rootfs0
+rootfstype=ubifs root=ubi0:rootfs rw'&quot; </p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
+the board.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>Following is the list of boards that are supported and the
+options required to build the software. </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="81%"
+ style='width:81.4%'>
+ <tr>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><b>Board</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><b>export NEXUS_PLATFORM</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><b>export BCHP_VER</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><b>Additional build option, BOLT, Kernel information</b></p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal>97278 SV/HB</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal>97278</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal><b>A0</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal>See &#8220;Quick Build Instructions&#8221; on how to setup
+  LINUX and B_REFSW_ARCH variables</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>There are different box modes in the RTS to support separate
+versions and features of this chip. See the table below to know the runtime
+options needed to be set to try these box modes:</p>
+
+<p class=MsoNormal><b>&nbsp;</b></p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="96%"
+ style='width:96.24%'>
+ <tr style='height:19.65pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  19.65pt'>
+  <p class=MsoNormal><strong>Box modes</strong></p>
+  </td>
+  <td width="40%" style='width:40.38%;padding:0in 0in 0in 0in;height:19.65pt'>
+  <p class=MsoNormal><b>Runtime option to be set before running any nexus
+  application</b></p>
+  </td>
+  <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
+  height:19.65pt'>
+  <p class=MsoNormal><strong>Description</strong></p>
+  </td>
+ </tr>
+ <tr style='height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal>Box1</p>
+  </td>
+  <td width="40%" style='width:40.38%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal>export B_REFSW_BOXMODE=1</p>
+  </td>
+  <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal>4Kp60 10-bit decode, UHD,SD (graphics only),
+  Multi-PIP(3+1) support, HDMI input</p>
+  </td>
+ </tr>
+ <tr style='height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal>Box2</p>
+  </td>
+  <td width="40%" style='width:40.38%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal>export B_REFSW_BOXMODE=2</p>
+  </td>
+  <td width="50%" valign=top style='width:50.02%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal>Two 4Kp60 10-bit decode, UHD with Main + PIP,
+  Multi-PIP(3+3) support, HDMI input</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal><span lang=EN-GB style='color:#1F497D'>&nbsp;</span></p>
+
+<p class=MsoNormal><strong>Instructions to build nexus playback utility and use
+it to decode and display a UHD stream </strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar xvfz refsw_release_97278_20170322.src.tgz </li>
+ <li class=MsoNormal>#cd nexus/utils </li>
+ <li class=MsoNormal>#make install </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>Connect UHD 4K TV to HDMI </li>
+ <li class=MsoNormal>#nexus playback -display_format 3840x2160p60 -component
+     off -max_video 3840,2160 -probe &lt;stream_name &gt;</li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><b>Instructions to build atlas and use it to play UHD stream
+</b></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal># tar xvfz refsw_release_97278_20170322.src.tgz</li>
+ <li class=MsoNormal>#cd BSEAV/app/atlas/build </li>
+ <li class=MsoNormal>#make install </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>Connect UHD 4K TV to HDMI</li>
+ <li class=MsoNormal>Mount the USB/SATA containing the 4kX2k stream as
+     /data/videos </li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal>Run the following commands to run atlas after extracting
+     the tarball from obj.97278/BSEAV/bin dir.</li>
+ <li class=MsoNormal>#start install </li>
+ <li class=MsoNormal>#start atlas </li>
+ <li class=MsoNormal>From the menu, select Playback -&gt; 4kp60 stream. </li>
+ <li class=MsoNormal>Using the remote control for the board, select Menu -&gt;
+     Display -&gt; Format -&gt; 2160p 60Hz. You should be able to see the
+     stream playback in 4Kp60 display format.</li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name="known_bugs"><strong>Known issues</strong></a><br>
+<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0>
+ <tr>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Description</b></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Jira Ticket </b></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:center'><b>Area of concern</b></p>
+  </td>
+ </tr>
+ <u1:p></u1:p>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='text-align:left'>nexus/examples/graphics/blit_with_alpha_blend.c
+  has GRC failure on 7278&nbsp;</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><span style='background:whitesmoke'>SWSTB-4075</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GRAPHICS</p>
+  </td>
+ </tr>
+ <u1:p></u1:p>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/examples/graphics/palette.c and palette_blit.c do
+  not work on 7278&nbsp;</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><span style='background:whitesmoke'>SWSTB-4076</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GRAPHICS</p>
+  </td>
+ </tr>
+ <u1:p></u1:p>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>64-bit kernel won't fit in flash&nbsp;</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><span style='background:whitesmoke'>SWBOLT-2212</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BOLT</p>
+  </td>
+ </tr>
+ <tr>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Raaga watchdog and Segmentation Fault occur, on configuring HDMI to pcm-multichannel mode&nbsp;</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><span style='background:whitesmoke'>SWSTB-4632</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>AUDIO</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name=features><strong>Features in this Release</strong></a><br>
+<a href="#top">(Top)</a></p>
+
+<p>This table is not available yet, will be provided by final release of URSR
+17.1.</p>
+
+<p><a name="features_future"><strong>Features Planned for the Next Release</strong></a><b><br>
+<a href="#top">(Top)</a></b></p>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

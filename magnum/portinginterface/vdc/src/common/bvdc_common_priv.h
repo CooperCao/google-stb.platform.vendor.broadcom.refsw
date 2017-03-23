@@ -2222,8 +2222,8 @@ extern "C" {
 #define BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT   (0) /* Number of CMP_6_Vx */
 #define BVDC_P_CMP_6_MAX_GFX_WINDOW_COUNT     (0) /* Number of CMP_6_Gx */
 #define BVDC_P_CMP_CFC_VER                    (3)
-#define BVDC_P_CMP_0_MOSAIC_CFCS              (6)
-#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (0)
+#define BVDC_P_CMP_0_MOSAIC_CFCS              (8)
+#define BVDC_P_CMP_0_MOSAIC_TF_CONV_CFCS      (4)
 #define BVDC_P_CMP_i_MOSAIC_CFCS              (6) /* cmps other than cmp 0 */
 #define BVDC_P_CMP_0_V0_CLEAR_RECTS           (16)
 #define BVDC_P_CMP_0_V1_CLEAR_RECTS           (16)
@@ -2315,6 +2315,13 @@ extern "C" {
 #else
 #define BVDC_P_CMP_CFCS                       2 /* primary and demo */
 #endif
+
+/***************************************************************************
+ * CFC LUT size macros by default allocates the worst case
+ */
+#define BVDC_P_CMP_CFC_LUT_SIZE               18328
+#define BVDC_P_GFD_CFC_LUT_SIZE               7348
+#define BVDC_P_HDMI_CFC_LUT_SIZE              5620
 
 /* cause reconfig vdet after input signal loss and re-lock */
 #ifndef BVDC_P_CLEANUP_VNET

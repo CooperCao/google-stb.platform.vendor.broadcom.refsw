@@ -75,9 +75,15 @@ BBOX_SOURCES += \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_vdc_box6_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_rts_box6.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_memc_box6_config.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_vdc_box7_config.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_rts_box7.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_memc_box7_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_vdc_box8_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_rts_box8.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_memc_box8_config.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_vdc_box9_config.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_rts_box9.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/b0/bbox_memc_box9_config.c \
         $(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_nop.c
 
 #

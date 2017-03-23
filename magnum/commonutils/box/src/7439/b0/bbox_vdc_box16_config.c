@@ -57,11 +57,10 @@
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_vdc_box16_config.h"
 
 BDBG_MODULE(BBOX_VDC_PRIV_BOX16);
 BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX16);
-
-extern BBOX_Rts stBoxRts_7439_4K1t_933_box16;
 
 /* Memc Index for box mode 16. BBOX_MemcIndex_Invalid means it's not used */
 static const BBOX_MemConfig stBoxMemConfig_7439B0_box16 =
@@ -71,7 +70,7 @@ static const BBOX_MemConfig stBoxMemConfig_7439B0_box16 =
       BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(1,       Invalid, 1,       Invalid, 1      ),  /* disp 0 */
-         BBOX_MK_WIN_MEMC_IDX(1,       Invalid, Invalid, Invalid, 1      ),  /* disp 1 */
+         BBOX_MK_WIN_MEMC_IDX(0,       Invalid, Invalid, Invalid, 0      ),  /* disp 1 */
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 2 */
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 0,       Invalid, Invalid),  /* disp 3 */
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid),  /* disp 4 */

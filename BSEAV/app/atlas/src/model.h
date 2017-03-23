@@ -199,6 +199,8 @@ public:
     CChannel *                           getChannelTuneInProgress(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _channelTuneInProgress[_fullScreenWindowType] : _channelTuneInProgress[windowType]); }
     void                                 setChannelTuneInProgress(CChannel * pChannel = NULL, eWindowType windowType = eWindowType_Max);
     CChannel *                           getLastTunedChannel(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _lastChannel[_fullScreenWindowType] : _lastChannel[windowType]); }
+    void                                 restoreLastTunedChannelPowerSave(void) { _lastChannel[_fullScreenWindowType] = _lastChannelPowerSave; }
+    void                                 saveLastTunedChannelPowerSave(void) { _lastChannelPowerSave = _lastChannel[_fullScreenWindowType]; }
     void                                 resetChannelHistory(void);
     uint16_t                             numMatchingCurrentChannels(CChannel * pChannel, eWindowType excluded = eWindowType_Max);
     eWindowType                          getFullScreenWindowType(void) { return(_fullScreenWindowType); }
@@ -319,6 +321,7 @@ protected:
     CChannel *                           _currentChannel[eWindowType_Max];
     CChannel *                           _channelTuneInProgress[eWindowType_Max];
     CChannel *                           _lastChannel[eWindowType_Max];
+    CChannel *                           _lastChannelPowerSave;
     CPlayback *                          _currentPlayback[eWindowType_Max];
     CPower *                             _pPower;
 #if DVR_LIB_SUPPORT

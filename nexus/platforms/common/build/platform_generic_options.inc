@@ -69,7 +69,7 @@ endif
 ifneq ($(filter $(B_REFSW_OS),linuxkernel bare),$(B_REFSW_OS))
 NEXUS_USERMODE := y
 endif
-ifneq ($(filter $(B_REFSW_OS),linuxuser linuxkernel bare),)
+ifneq ($(filter $(B_REFSW_OS),linuxuser linuxkernel ucos bare),)
 # Include uart for non-linux systems only.
 ifeq ($(NEXUS_UART_SUPPORT),)
 NEXUS_UART_SUPPORT := n
