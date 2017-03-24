@@ -360,7 +360,7 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)");
     res = curl_easy_perform(curl);
-    LOGD(("s_prBuffer: %s, res: %d", s_prBuffer.c_str(), res));
+    LOGW(("%s: s_prBuffer(%d): %s, res: %d", __FUNCTION__, s_prBuffer.size(), s_prBuffer.c_str(), res));
 
     if (res != 0) {
         LOGE(("%s: curl error %d", __FUNCTION__, res));
@@ -380,15 +380,8 @@ std::string PlayreadyDecryptor::GetKeyRequestResponse(std::string url)
         drm_head += 4;
         drm_msg = s_prBuffer.substr(drm_head);
     } else {
-        drm_head = s_prBuffer.find("\r\n", body_head);
-        if (drm_head != std::string::npos) {
-            LOGD(("%s: old style DRM message found", __FUNCTION__));
-            drm_head += 2;
-            drm_msg = s_prBuffer.substr(drm_head);
-        } else {
-            LOGD(("%s: return body anyway", __FUNCTION__));
-            drm_msg = s_prBuffer.substr(body_head);
-        }
+        LOGW(("%s: return body anyway", __FUNCTION__));
+        drm_msg = s_prBuffer.substr(body_head);
     }
 
     LOGD(("HTTP response body: (%u bytes): %s", drm_msg.size(), drm_msg.c_str()));

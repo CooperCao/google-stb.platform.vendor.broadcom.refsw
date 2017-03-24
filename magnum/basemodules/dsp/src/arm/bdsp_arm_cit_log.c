@@ -36,7 +36,6 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
-
 #include "bdsp_arm_priv_include.h"
 
 BDBG_MODULE(bdsp_cit);

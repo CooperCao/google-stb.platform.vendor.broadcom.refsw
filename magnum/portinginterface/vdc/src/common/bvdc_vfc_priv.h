@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -173,6 +173,9 @@ typedef struct BVDC_P_VfcContext
 
     BVDC_Window_Handle             hWindow;
 
+    /* CFC */
+    BVDC_P_CfcContext              stCfc;
+
     uint32_t                       ulPrevWidth;
     uint32_t                       ulPrevHeight;
     BFMT_Orientation               ePrevSrcOrientation;
@@ -198,8 +201,11 @@ BERR_Code BVDC_P_Vfc_Create
 void BVDC_P_Vfc_Destroy
     ( BVDC_P_Vfc_Handle             hVfc );
 
-void BVDC_P_Vfc_Init_isr
+void BVDC_P_Vfc_Init_isrsafe
     ( BVDC_P_Vfc_Handle             hVfc );
+
+void BVDC_P_Vfc_InitCfc_isrsafe
+    ( BVDC_P_Vfc_Handle             hVfc);
 
 BERR_Code BVDC_P_Vfc_AcquireConnect_isr
     ( BVDC_P_Vfc_Handle             hVfc,
@@ -217,6 +223,10 @@ void BVDC_P_Vfc_BuildRul_isr
       BVDC_P_ListInfo              *pList,
       BVDC_P_State                  eVnetState,
       BVDC_P_PicComRulInfo         *pPicComRulInfo );
+
+void BVDC_P_Vfc_BuildCfcRul_isr
+    ( BVDC_P_Vfc_Handle                hVfc,
+      BVDC_P_ListInfo                 *pList);
 
 void BVDC_P_Vfc_SetInfo_isr
     ( BVDC_P_Vfc_Handle             hVfc,

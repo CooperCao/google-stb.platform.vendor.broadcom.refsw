@@ -47,6 +47,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_7445_1u3t_box18;
+
 void BBOX_P_Vdc_SetBox18DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap );
 

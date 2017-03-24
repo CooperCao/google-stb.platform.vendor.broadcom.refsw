@@ -44,9 +44,9 @@
 /* Prototype Definition for CIT Genreation functions */
 /*---------------------------------------------------*/
 
-uint32_t BDSP_P_GenNewCit(void* pTaskHandle);
-uint32_t BDSP_P_GenNewScmCit(void* pTaskHandle);
+BERR_Code BDSP_Raaga_P_GenCit(void* pTaskHandle);
+BERR_Code BDSP_Raaga_P_GenScmCit(void* pTaskHandle);
 
-uint32_t BDSP_P_GenNewVideoCit( void                       *pTaskHandle,
-                                            BDSP_AlgorithmType          eAlgorithm);
+BERR_Code BDSP_Raaga_P_GenVideoCit(void                *pTaskHandle,
+                                               BDSP_AlgorithmType   eAlgorithm);
 #endif /*BDSP_RAAGA_CIT_PRIV_H__*/

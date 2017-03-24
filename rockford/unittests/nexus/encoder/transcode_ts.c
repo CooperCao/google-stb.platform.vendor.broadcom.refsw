@@ -3241,6 +3241,7 @@ static void xcode_create_systemdata( TranscodeContext  *pContext )
             case NEXUS_VideoCodec_eMpeg2:         vidStreamType = 0x2; break;
             case NEXUS_VideoCodec_eMpeg4Part2:    vidStreamType = 0x10; break;
             case NEXUS_VideoCodec_eH264:          vidStreamType = 0x1b; break;
+            case NEXUS_VideoCodec_eH265:          vidStreamType = 0x24; break;
             case NEXUS_VideoCodec_eVc1SimpleMain: vidStreamType = 0xea; break;
             default:
                 BDBG_ERR(("Video encoder codec %d is not supported!\n", pContext->encodeSettings.encoderVideoCodec));
@@ -3442,10 +3443,6 @@ static void xcode_av_sync(
             /* to allow 23.976p passthru; TODO: allow user to configure minimum framerate to achieve lower delay!
              * Note: lower minimum framerate means longer encode delay */
             pVideoEncoderStartConfig->bounds.inputFrameRate.min = NEXUS_VideoFrameRate_e23_976;
-
-            /* to allow 15 ~ 60p dynamic frame rate coding TODO: allow user to config higher minimum frame rate for lower delay! */
-            pVideoEncoderStartConfig->bounds.outputFrameRate.min = NEXUS_VideoFrameRate_e7_493;
-            pVideoEncoderStartConfig->bounds.outputFrameRate.max = NEXUS_VideoFrameRate_e60;
 
             /* max encode size allows 1080p encode; TODO: allow user to choose lower max resolution for lower encode delay */
             pVideoEncoderStartConfig->bounds.inputDimension.max.width =

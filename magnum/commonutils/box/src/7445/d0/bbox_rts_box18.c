@@ -36,15 +36,14 @@
  *  ANY LIMITED REMEDY.
 
  ******************************************************************************/
- #include "bstd.h"                /* standard types */
+#include "bstd.h"                /* standard types */
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_vdc_box18_config.h"
 
 BDBG_MODULE(BBOX_RTS_BOX18);
 BDBG_OBJECT_ID(BBOX_RTS_BOX18);
-
-extern BBOX_Rts stBoxRts_7445_1u3t_box18;
 
 /* Memc Index for box mode 14. BBOX_MemcIndex_Invalid means it's not used */
 static const BBOX_MemConfig stBoxMemConfig_7445D0_box18 =

@@ -663,6 +663,17 @@ sub process_arguments {
         } else {
             $callback_kind = '_ENUM';
         }
+        if ($param->{INPARAM}) {
+            if(is_handle($param->{TYPE}, $class_handles)) {
+                if( not (exists $enum_handles{$param->{TYPE}} or is_class_handle($param->{TYPE}, $class_handles))) {
+                    if(exists $param->{attr}->{'null_allowed'} && $param->{attr}->{'null_allowed'} eq "true") {
+                        push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_FAKE_HANDLE($api, $param->{NAME}, $param->{TYPE})";
+                    } else {
+                        push @{$code->{SERVER}{RECV}}, "B_IPC_SERVER_FAKE_HANDLE_NULL($api, $param->{NAME}, $param->{TYPE})";
+                    }
+                }
+            }
+        }
         if(exists $param->{BASETYPE} && $param->{BASETYPE} eq 'NEXUS_CallbackDesc') {
             my $id = sprintf("0x%05x", ((bapi_util::func_id $functions, $func)*256 + $arg_no + 0x10000));
             if ($param->{INPARAM}) {

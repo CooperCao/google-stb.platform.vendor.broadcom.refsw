@@ -199,6 +199,9 @@ BERR_Code BVDC_P_Display_Create
 #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3)
     pDisplay->stCfc.stCapability.stBits.bNL2L = 1;
     pDisplay->stCfc.stCapability.stBits.bL2NL = 1;
+    pDisplay->stCfc.stCapability.stBits.bRamNL2L = 1;
+    pDisplay->stCfc.stCapability.stBits.bRamL2NL = 1;
+    pDisplay->stCfc.stCapability.stBits.bRamLutScb = 1;
     pDisplay->stCfc.stCapability.stBits.bMb = 1;
     pDisplay->stCfc.stCapability.stBits.bLRngAdj = 1;
 #endif /* #if (BVDC_P_CMP_CFC_VER >= BVDC_P_CFC_VER_3) */
@@ -503,6 +506,15 @@ void BVDC_P_Display_Destroy
 
     /* At this point application should have disabled all the
      * callbacks &slots */
+#if BVDC_P_CMP_CFC_VER >= 3
+    if(hDisplay->stCfcLutList.hMmaBlock) {
+        BMMA_Unlock(hDisplay->stCfcLutList.hMmaBlock, hDisplay->stCfcLutList.pulStart);
+        BMMA_UnlockOffset(hDisplay->stCfcLutList.hMmaBlock, hDisplay->stCfcLutList.ullStartDeviceAddr);
+        BMMA_Free(hDisplay->stCfcLutList.hMmaBlock);
+        hDisplay->stCfcLutList.hMmaBlock = NULL;
+        hDisplay->hCfcHeap  = NULL;
+    }
+#endif
 
     /* [3] Remove display handle from main VDC handle */
     hDisplay->hVdc->ahDisplay[hDisplay->eId] = NULL;

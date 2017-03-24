@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_UHDp60_or_DualHDPiP_box4;
+
 void BBOX_P_Vdc_SetBox4SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 

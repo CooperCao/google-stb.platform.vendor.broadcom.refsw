@@ -1,5 +1,5 @@
 #############################################################################
-# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+# Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,8 +54,11 @@ $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 
 B_CURL_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
-CURL_CONFIG_CFLAGS  := -O2 -fPIC -DCURL_MAX_WRITE_SIZE=65536
+CURL_CONFIG_CFLAGS  := -O2 -fPIC
+CURL_CONFIG_CPPFLAGS := -DCURL_MAX_WRITE_SIZE=65536
 CURL_CONFIG_LDFLAGS := -L${B_OPENSSL_SOURCE_PATH}
+
+CA_CERTS_PATH ?= /etc/ssl/certs
 
 .PHONY: source all clean
 
@@ -109,7 +112,11 @@ ${CURL_SOURCE_PATH}/.compiled : | source
 	@if [ ! -e "${CURL_TAR_PATH}/${CURL_NAME}/Makefile" -o -z "${shell grep 'CC \= ' ${CURL_TAR_PATH}/${CURL_NAME}/Makefile |grep ${B_CURL_TOOLCHAIN_ARCH}}" ]; then \
 		echo "================ Configure CURL B_CURL_TOOLCHAIN_ARCH is $(B_CURL_TOOLCHAIN_ARCH)"; \
 		cd ${CURL_TAR_PATH}/${CURL_NAME}; \
+		CC="${CC} -I${B_OPENSSL_SOURCE_PATH}/include" \
+		MANIFEST_TOOL="/bin/true" \
+		PKGCONFIG="/bin/true" \
 		CFLAGS="${CURL_CONFIG_CFLAGS}" \
+		CPPFLAGS="${CURL_CONFIG_CPPFLAGS}" \
 		LDFLAGS="${CURL_CONFIG_LDFLAGS}" \
 		LIBS="-lssl -lcrypto" \
 		./configure \
@@ -120,13 +127,17 @@ ${CURL_SOURCE_PATH}/.compiled : | source
 		--enable-crypto-auth \
 		--enable-optimize \
                 --enable-ssl \
+		--with-ca-path="${CA_CERTS_PATH}" \
 		--enable-ipv6 \
 		--enable-threaded-resolver \
 		--disable-verbose \
 		--enable-hidden-symbols \
 		--enable-shared \
 		--enable-thread \
+		--without-libpsl \
 		--without-libidn \
+		--disable-ldap \
+		--disable-ldaps \
 		--with-pic \
 		--with-ssl=${B_OPENSSL_SOURCE_PATH} \
 		--disable-manual \

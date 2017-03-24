@@ -36,7 +36,20 @@
 # ANY LIMITED REMEDY.
 ###############################################################################
 export V3D_SUPPORT=n
-export B_REFSW_OS=ucos_iii
+export B_REFSW_OS=ucos
+export B_REFSW_UCOS_VERSION=3
+
+ifeq ($(B_REFSW_UCOS_VERSION),1)
+    export B_REFSW_UCOS_SUBDIR_NAME=ucos
+else
+    ifeq ($(B_REFSW_UCOS_VERSION),2)
+        export B_REFSW_UCOS_SUBDIR_NAME=ucos_ii
+    else
+        ifeq ($(B_REFSW_UCOS_VERSION),3)
+            export B_REFSW_UCOS_SUBDIR_NAME=ucos_iii
+        endif
+    endif
+endif
 
 #
 # Reference Software Makefile
@@ -52,32 +65,18 @@ export B_REFSW_OS=ucos_iii
 ###First thing we must include the tools
 #####
 
-#########
-#### Figure out OS
-#########
-ifeq ($(B_REFSW_OS),)
-export B_REFSW_OS=ucos_iii
-endif
-
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
-# REFERENCE VERSION
-# BOLT_DIR_NAME = ../../../reference/modified/bolt-v1.00
-# CFE_DIR_NAME = ../../../reference/modified/CFE_15_2
-
-# GIT VERSION
-# BOLT_DIR_NAME = ../../bolt
-
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.19
-CFE_DIR_NAME = CFE_16_2
+BOLT_DIR_NAME = bolt_v1.26
+CFE_DIR_NAME = CFE_17_1
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
 ROCKFORD_DIR = $(shell cd "../../../../../rockford" && ${PWD})
 MAGNUM_DIR = $(shell cd "../../../../../magnum" && ${PWD})
-BOLT_DIR = $(shell cd "../../../../../$(BOLT_DIR_NAME)" && ${PWD})
-CFE_DIR = $(shell cd "../../../../../$(CFE_DIR_NAME)" && ${PWD})
+BOLT_DIR = $(shell cd "../../../../../../../$(BOLT_DIR_NAME)" && ${PWD})
+CFE_DIR = $(shell cd "../../../../../../../$(CFE_DIR_NAME)" && ${PWD})
 NEXUS_TOP = $(NEXUS_DIR)
 ifeq ($(NEXUS_PLATFORM),)
 # PLATFORM is deprecated
@@ -104,8 +103,14 @@ USE_LOCAL_PRINTF = 1
 # MIPS_BSU_HEAP_ADDR = 0x53000000
 # MIPS_BSU_HEAP_SIZE = 208*1024*1024
 
+#ifeq ($(filter $(NEXUS_PLATFORM),97268 97364 97439), $(NEXUS_PLATFORM))
+# Extra heap need for MoCA
+#MIPS_BSU_HEAP_ADDR = 0x09200000
+#MIPS_BSU_HEAP_SIZE = 0x06e00000
+#else
 MIPS_BSU_HEAP_ADDR = 0
 MIPS_BSU_HEAP_SIZE = 0
+#endif
 
 # Enable memory test, if MIPS_BSU_HEAP_SIZE is non-zero.
 MIPS_BSU_HEAP_TEST = 0
@@ -113,6 +118,12 @@ MIPS_BSU_HEAP_TEST = 0
 #########
 #### Figure out processor
 #########
+
+# Newest plat scripts set B_REFSW_ARCH to mipsel-linux.  Need the following, to fix MIPS builds
+ifeq ($(B_REFSW_ARCH),mipsel-linux)
+    B_REFSW_ARCH=sde
+    export B_REFSW_ARCH
+endif
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
     ifeq ($(TOOLCHAIN_PATH),)
@@ -247,6 +258,9 @@ UCOS ?= lib
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
     CPU = arm
+    ifeq ($(filter $(NEXUS_PLATFORM),97260 97268 97271), $(NEXUS_PLATFORM))
+        export ARM_ARCH=V8
+    endif
 else
     ifeq ($(filter $(NEXUS_PLATFORM),97208 97358 97360 97401 97468 97550 97552), $(NEXUS_PLATFORM))
         CPU = bmips3300
@@ -254,13 +268,13 @@ else
         ifeq ($(filter $(NEXUS_PLATFORM),97019 97125 97205 97228 97230 97231 97335 97340 97342 97362 973625 97405 97408 97466 97563 975635 97584 975845), $(NEXUS_PLATFORM))
             CPU = bmips4380
         else
-            ifeq ($(filter $(NEXUS_PLATFORM),97241 93380vms 97344 97346 97410 97420 97422 97425 97428 97429 97435), $(NEXUS_PLATFORM))
+            ifeq ($(filter $(NEXUS_PLATFORM),97241 972415 93380vms 97344 97346 973465 97410 97420 97422 97425 97428 974285 97429 974295 97435), $(NEXUS_PLATFORM))
                 CPU = bmips5000
             else
                 ifeq ($(NEXUS_PLATFORM),97325)
                     CPU = mti34kf
                 else
-                    Unknown platform
+                    $(error Unknown platform)
                 endif
             endif
         endif

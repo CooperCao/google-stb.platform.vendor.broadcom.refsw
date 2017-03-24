@@ -1360,10 +1360,23 @@ typedef struct BIP_PlayerHlsContainerStats
     bool     bounded;                           /* set to true if EXT-ENDLIST tag is present, meaning the Playlist represents the bounded content. */
 } BIP_PlayerHlsContainerStats;
 
+typedef struct BIP_PlayerRtpStats
+{
+    uint32_t packetsReceived;                   /* total IP/UDP/RTP packets received */
+    uint64_t bytesReceived;                     /* total AV Payload bytes received in RTP Packets */
+    uint32_t packetsDiscarded;                  /* total packets discarded: */
+    uint32_t packetsOutOfSequence;              /* total packets whose RTP sequence doesn't match the expected next sequence */
+    uint32_t packetsLost;                       /* total packets that were lost */
+    uint32_t packetsLostBeforeErrorCorrection;  /* */
+    uint32_t lossEvents;                        /* total number of times an expected packet was lost */
+    uint32_t lossEventsBeforeErrorCorrection;   /* */
+} BIP_PlayerRtpStats;
+
 typedef struct BIP_PlayerStats
 {
     off_t                       totalConsumed;  /*!< Total bytes consumed by the Media player */
     BIP_PlayerHlsContainerStats hlsStats;       /*!< HLS Container related stats. */
+    BIP_PlayerRtpStats          rtpStats;       /*!< RTP related stats. */
 } BIP_PlayerStats;
 
 typedef enum BIP_PlayerState

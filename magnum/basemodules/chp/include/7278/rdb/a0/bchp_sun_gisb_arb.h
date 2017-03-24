@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep  1 14:32:39 2016
- *                 Full Compile MD5 Checksum  6fb3c439bf5a497d10d0a09493b41526
+ * Date:           Generated on               Tue Jan 17 10:08:34 2017
+ *                 Full Compile MD5 Checksum  2edd384c1405a388347db27089ee12b7
  *                     (minus title and desc)
- *                 MD5 Checksum               c7e6f0a8e19df692ab31ede29db92393
+ *                 MD5 Checksum               6e5ced4da0f0f15efb4ae46ce86e004a
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1105
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -403,18 +403,26 @@
 /***************************************************************************
  *BP_START_ADDR_0 - GISB ARBITER Breakpoint Start Address 0 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_0 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_0 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_0_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_0 - GISB ARBITER Breakpoint End Address 0 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_0 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_0 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_0_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_0 - GISB ARBITER Breakpoint Master Read Access 0 Register
@@ -782,18 +790,26 @@
 /***************************************************************************
  *BP_START_ADDR_1 - GISB ARBITER Breakpoint Start Address 1 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_1 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_1 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_1_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_1 - GISB ARBITER Breakpoint End Address 1 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_1 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_1 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_1_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_1 - GISB ARBITER Breakpoint Master Read Access 1 Register
@@ -1161,18 +1177,26 @@
 /***************************************************************************
  *BP_START_ADDR_2 - GISB ARBITER Breakpoint Start Address 2 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_2 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_2 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_2_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_2 - GISB ARBITER Breakpoint End Address 2 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_2 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_2 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_2_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_2 - GISB ARBITER Breakpoint Master Read Access 2 Register
@@ -1540,18 +1564,26 @@
 /***************************************************************************
  *BP_START_ADDR_3 - GISB ARBITER Breakpoint Start Address 3 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_3 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_3 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_3_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_3 - GISB ARBITER Breakpoint End Address 3 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_3 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_3 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_3_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_3 - GISB ARBITER Breakpoint Master Read Access 3 Register
@@ -1919,18 +1951,26 @@
 /***************************************************************************
  *BP_START_ADDR_4 - GISB ARBITER Breakpoint Start Address 4 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_4 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_4 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_4_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_4 - GISB ARBITER Breakpoint End Address 4 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_4 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_4 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_4_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_4 - GISB ARBITER Breakpoint Master Read Access 4 Register
@@ -2298,18 +2338,26 @@
 /***************************************************************************
  *BP_START_ADDR_5 - GISB ARBITER Breakpoint Start Address 5 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_5 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_5 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_5_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_5 - GISB ARBITER Breakpoint End Address 5 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_5 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_5 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_5_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_5 - GISB ARBITER Breakpoint Master Read Access 5 Register
@@ -2677,18 +2725,26 @@
 /***************************************************************************
  *BP_START_ADDR_6 - GISB ARBITER Breakpoint Start Address 6 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_6 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_6 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_6_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_6 - GISB ARBITER Breakpoint End Address 6 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_6 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_6 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_6_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_6 - GISB ARBITER Breakpoint Master Read Access 6 Register
@@ -3056,18 +3112,26 @@
 /***************************************************************************
  *BP_START_ADDR_7 - GISB ARBITER Breakpoint Start Address 7 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_7 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_7 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_7_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_7 - GISB ARBITER Breakpoint End Address 7 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_7 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_7 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_7_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_7 - GISB ARBITER Breakpoint Master Read Access 7 Register
@@ -3435,18 +3499,26 @@
 /***************************************************************************
  *BP_START_ADDR_8 - GISB ARBITER Breakpoint Start Address 8 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_8 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_8 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_8_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_8 - GISB ARBITER Breakpoint End Address 8 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_8 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_8 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_8_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_8 - GISB ARBITER Breakpoint Master Read Access 8 Register
@@ -3814,18 +3886,26 @@
 /***************************************************************************
  *BP_START_ADDR_9 - GISB ARBITER Breakpoint Start Address 9 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_9 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_reserved0_SHIFT          40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_9 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_start_MASK               0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_start_MASK               BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_start_SHIFT              0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_start_DEFAULT            0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_9_start_DEFAULT            0
 
 /***************************************************************************
  *BP_END_ADDR_9 - GISB ARBITER Breakpoint End Address 9 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_9 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_reserved0_MASK             BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_reserved0_SHIFT            40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_9 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_end_MASK                   0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_end_MASK                   BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_end_SHIFT                  0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_end_DEFAULT                0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_9_end_DEFAULT                0
 
 /***************************************************************************
  *BP_READ_9 - GISB ARBITER Breakpoint Master Read Access 9 Register
@@ -4193,18 +4273,26 @@
 /***************************************************************************
  *BP_START_ADDR_10 - GISB ARBITER Breakpoint Start Address 10 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_10 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_reserved0_MASK          BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_reserved0_SHIFT         40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_10 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_start_MASK              0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_start_MASK              BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_start_SHIFT             0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_start_DEFAULT           0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_10_start_DEFAULT           0
 
 /***************************************************************************
  *BP_END_ADDR_10 - GISB ARBITER Breakpoint End Address 10 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_10 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_reserved0_MASK            BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_reserved0_SHIFT           40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_10 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_end_MASK                  0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_end_MASK                  BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_end_SHIFT                 0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_end_DEFAULT               0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_10_end_DEFAULT               0
 
 /***************************************************************************
  *BP_READ_10 - GISB ARBITER Breakpoint Master Read Access 10 Register
@@ -4572,18 +4660,26 @@
 /***************************************************************************
  *BP_START_ADDR_11 - GISB ARBITER Breakpoint Start Address 11 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_11 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_reserved0_MASK          BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_reserved0_SHIFT         40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_11 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_start_MASK              0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_start_MASK              BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_start_SHIFT             0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_start_DEFAULT           0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_11_start_DEFAULT           0
 
 /***************************************************************************
  *BP_END_ADDR_11 - GISB ARBITER Breakpoint End Address 11 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_11 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_reserved0_MASK            BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_reserved0_SHIFT           40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_11 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_end_MASK                  0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_end_MASK                  BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_end_SHIFT                 0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_end_DEFAULT               0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_11_end_DEFAULT               0
 
 /***************************************************************************
  *BP_READ_11 - GISB ARBITER Breakpoint Master Read Access 11 Register
@@ -4951,18 +5047,26 @@
 /***************************************************************************
  *BP_START_ADDR_12 - GISB ARBITER Breakpoint Start Address 12 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_12 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_reserved0_MASK          BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_reserved0_SHIFT         40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_12 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_start_MASK              0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_start_MASK              BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_start_SHIFT             0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_start_DEFAULT           0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_12_start_DEFAULT           0
 
 /***************************************************************************
  *BP_END_ADDR_12 - GISB ARBITER Breakpoint End Address 12 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_12 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_reserved0_MASK            BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_reserved0_SHIFT           40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_12 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_end_MASK                  0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_end_MASK                  BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_end_SHIFT                 0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_end_DEFAULT               0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_12_end_DEFAULT               0
 
 /***************************************************************************
  *BP_READ_12 - GISB ARBITER Breakpoint Master Read Access 12 Register
@@ -5330,18 +5434,26 @@
 /***************************************************************************
  *BP_START_ADDR_13 - GISB ARBITER Breakpoint Start Address 13 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_13 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_reserved0_MASK          BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_reserved0_SHIFT         40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_13 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_start_MASK              0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_start_MASK              BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_start_SHIFT             0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_start_DEFAULT           0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_13_start_DEFAULT           0
 
 /***************************************************************************
  *BP_END_ADDR_13 - GISB ARBITER Breakpoint End Address 13 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_13 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_reserved0_MASK            BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_reserved0_SHIFT           40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_13 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_end_MASK                  0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_end_MASK                  BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_end_SHIFT                 0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_end_DEFAULT               0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_13_end_DEFAULT               0
 
 /***************************************************************************
  *BP_READ_13 - GISB ARBITER Breakpoint Master Read Access 13 Register
@@ -5709,18 +5821,26 @@
 /***************************************************************************
  *BP_START_ADDR_14 - GISB ARBITER Breakpoint Start Address 14 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_14 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_reserved0_MASK          BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_reserved0_SHIFT         40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_14 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_start_MASK              0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_start_MASK              BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_start_SHIFT             0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_start_DEFAULT           0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_14_start_DEFAULT           0
 
 /***************************************************************************
  *BP_END_ADDR_14 - GISB ARBITER Breakpoint End Address 14 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_14 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_reserved0_MASK            BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_reserved0_SHIFT           40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_14 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_end_MASK                  0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_end_MASK                  BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_end_SHIFT                 0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_end_DEFAULT               0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_14_end_DEFAULT               0
 
 /***************************************************************************
  *BP_READ_14 - GISB ARBITER Breakpoint Master Read Access 14 Register
@@ -6088,18 +6208,26 @@
 /***************************************************************************
  *BP_START_ADDR_15 - GISB ARBITER Breakpoint Start Address 15 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_START_ADDR_15 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_reserved0_MASK          BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_reserved0_SHIFT         40
+
 /* SUN_GISB_ARB :: BP_START_ADDR_15 :: start [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_start_MASK              0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_start_MASK              BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_start_SHIFT             0
-#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_start_DEFAULT           0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_START_ADDR_15_start_DEFAULT           0
 
 /***************************************************************************
  *BP_END_ADDR_15 - GISB ARBITER Breakpoint End Address 15 Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_END_ADDR_15 :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_reserved0_MASK            BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_reserved0_SHIFT           40
+
 /* SUN_GISB_ARB :: BP_END_ADDR_15 :: end [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_end_MASK                  0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_end_MASK                  BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_end_SHIFT                 0
-#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_end_DEFAULT               0x0000000000
+#define BCHP_SUN_GISB_ARB_BP_END_ADDR_15_end_DEFAULT               0
 
 /***************************************************************************
  *BP_READ_15 - GISB ARBITER Breakpoint Master Read Access 15 Register
@@ -6467,8 +6595,12 @@
 /***************************************************************************
  *BP_CAP_ADDR - GISB ARBITER Breakpoint Capture Address Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: BP_CAP_ADDR :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_BP_CAP_ADDR_reserved0_MASK               BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_BP_CAP_ADDR_reserved0_SHIFT              40
+
 /* SUN_GISB_ARB :: BP_CAP_ADDR :: address [39:00] */
-#define BCHP_SUN_GISB_ARB_BP_CAP_ADDR_address_MASK                 0xffffffffff
+#define BCHP_SUN_GISB_ARB_BP_CAP_ADDR_address_MASK                 BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_BP_CAP_ADDR_address_SHIFT                0
 
 /***************************************************************************
@@ -6626,10 +6758,14 @@
 /***************************************************************************
  *ERR_CAP_ADDR - GISB ARBITER Error Capture Address Register
  ***************************************************************************/
+/* SUN_GISB_ARB :: ERR_CAP_ADDR :: reserved0 [63:40] */
+#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_reserved0_MASK              BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_reserved0_SHIFT             40
+
 /* SUN_GISB_ARB :: ERR_CAP_ADDR :: address [39:00] */
-#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_address_MASK                0xffffffffff
+#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_address_MASK                BCHP_UINT64_C(0x000000ff, 0xffffffff)
 #define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_address_SHIFT               0
-#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_address_DEFAULT             0x0000000000
+#define BCHP_SUN_GISB_ARB_ERR_CAP_ADDR_address_DEFAULT             0
 
 /***************************************************************************
  *ERR_CAP_DATA - GISB ARBITER Error Capture Data Register

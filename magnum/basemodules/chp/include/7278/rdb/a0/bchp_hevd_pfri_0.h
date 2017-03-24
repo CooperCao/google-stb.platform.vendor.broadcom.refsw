@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Wed Sep 14 16:45:40 2016
- *                 Full Compile MD5 Checksum  2d2ed423991a1e4e4d03ca98bc390b2c
+ * Date:           Generated on               Tue Jan 17 10:08:34 2017
+ *                 Full Compile MD5 Checksum  2edd384c1405a388347db27089ee12b7
  *                     (minus title and desc)
- *                 MD5 Checksum               8cad5c3953d7e5df4439153720b00628
+ *                 MD5 Checksum               6e5ced4da0f0f15efb4ae46ce86e004a
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -152,19 +152,23 @@
 #define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_ARRAY_BASE                   0x00c26880
 #define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_ARRAY_START                  0
 #define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_ARRAY_END                    22
-#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_ARRAY_ELEMENT_SIZE           40
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_ARRAY_ELEMENT_SIZE           64
 
 /***************************************************************************
  *PICT_BASE_Y%i - SDRAM Picture Base Registers
  ***************************************************************************/
-/* HEVD_PFRI_0 :: PICT_BASE_Yi :: Addr [39:12] */
-#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_Addr_MASK                    0xfffffff000
-#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_Addr_SHIFT                   12
-#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_Addr_DEFAULT                 0x0000000000
+/* HEVD_PFRI_0 :: PICT_BASE_Yi :: reserved0 [63:40] */
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_reserved0_MASK               BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_reserved0_SHIFT              40
 
-/* HEVD_PFRI_0 :: PICT_BASE_Yi :: reserved0 [11:00] */
-#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_reserved0_MASK               0x0000000fff
-#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_reserved0_SHIFT              0
+/* HEVD_PFRI_0 :: PICT_BASE_Yi :: Addr [39:12] */
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_Addr_MASK                    BCHP_UINT64_C(0x000000ff, 0xfffff000)
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_Addr_SHIFT                   12
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_Addr_DEFAULT                 0
+
+/* HEVD_PFRI_0 :: PICT_BASE_Yi :: reserved1 [11:00] */
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_reserved1_MASK               BCHP_UINT64_C(0x00000000, 0x00000fff)
+#define BCHP_HEVD_PFRI_0_PICT_BASE_Yi_reserved1_SHIFT              0
 
 
 /***************************************************************************
@@ -173,19 +177,23 @@
 #define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_ARRAY_BASE                  0x00c26980
 #define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_ARRAY_START                 0
 #define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_ARRAY_END                   22
-#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_ARRAY_ELEMENT_SIZE          40
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_ARRAY_ELEMENT_SIZE          64
 
 /***************************************************************************
  *PICT_BASE_UV%i - SDRAM Picture Base Registers
  ***************************************************************************/
-/* HEVD_PFRI_0 :: PICT_BASE_UVi :: Addr [39:12] */
-#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_Addr_MASK                   0xfffffff000
-#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_Addr_SHIFT                  12
-#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_Addr_DEFAULT                0x0000000000
+/* HEVD_PFRI_0 :: PICT_BASE_UVi :: reserved0 [63:40] */
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_reserved0_MASK              BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_reserved0_SHIFT             40
 
-/* HEVD_PFRI_0 :: PICT_BASE_UVi :: reserved0 [11:00] */
-#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_reserved0_MASK              0x0000000fff
-#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_reserved0_SHIFT             0
+/* HEVD_PFRI_0 :: PICT_BASE_UVi :: Addr [39:12] */
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_Addr_MASK                   BCHP_UINT64_C(0x000000ff, 0xfffff000)
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_Addr_SHIFT                  12
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_Addr_DEFAULT                0
+
+/* HEVD_PFRI_0 :: PICT_BASE_UVi :: reserved1 [11:00] */
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_reserved1_MASK              BCHP_UINT64_C(0x00000000, 0x00000fff)
+#define BCHP_HEVD_PFRI_0_PICT_BASE_UVi_reserved1_SHIFT             0
 
 
 #endif /* #ifndef BCHP_HEVD_PFRI_0_H__ */

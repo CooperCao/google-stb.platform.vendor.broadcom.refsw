@@ -403,7 +403,7 @@ eRet CStreamerUdp::addAllTracks()
     CPid *                pPid      = NULL;
     BIP_StreamerTrackInfo streamerTrackInfo;
     int                   trackIndex = 0;
-    uint16_t              pmtPid     = 0;
+    uint16_t              pmtPid     = 10;
 
     /* Set mediaInfo parameters.*/
     if (eUdpStreamerInputType_File == _streamerInputType)
@@ -423,8 +423,8 @@ eRet CStreamerUdp::addAllTracks()
     pmtPid = pPidMgr->getPmtPid();
 
     /* Add PAT & PMT */
-    if (pmtPid != 0)
     /* TODO: Since PAT may contain multiple programs, we will need to substitute it w/ a PAT containing just this one PMT */
+    if (pmtPid == 0)
     {
         B_Os_Memset(&streamerTrackInfo, 0, sizeof(streamerTrackInfo));
         streamerTrackInfo.trackId = 0; /* PAT is always at PID == 0 */
@@ -438,6 +438,9 @@ eRet CStreamerUdp::addAllTracks()
         streamerTrackInfo.type    = BIP_MediaInfoTrackType_ePmt;
         bipStatus                 = BIP_UdpStreamer_AddTrack(_hUdpStreamer, &streamerTrackInfo, NULL);
         CHECK_BIP_ERROR_GOTO("BIP_UdpStreamer_AddTrack Failed for PMT", ret, bipStatus, error);
+    } else{
+        BDBG_ERR(("No PMT Pid Found. Please use a Stream that contains PAT and PMT data"));
+        goto error;
     }
 
     /* Add pcr track*/
@@ -478,7 +481,6 @@ eRet CStreamerUdp::addAllTracks()
         B_Os_Memset(&streamerTrackInfo, 0, sizeof(streamerTrackInfo));
         streamerTrackInfo.trackId = pPid->getPid();
         streamerTrackInfo.type    = BIP_MediaInfoTrackType_eAudio;
-
         streamerTrackInfo.info.audio.codec = pPid->getAudioCodec();
 
         bipStatus = BIP_UdpStreamer_AddTrack(_hUdpStreamer, &streamerTrackInfo, NULL);
@@ -568,7 +570,7 @@ eRet CStreamerUdp::start()
                   ));
 
         BDBG_MSG(("----------------------------------------------------------------------------------"));
-        BDBG_MSG((" Set UDPStreamer HOST %s,PORT %d ", pChannel->getHost().s(), pChannel->getPort()));
+        BDBG_MSG((" Set UDPStreamer HOST %s,PORT %d , Countinous play %s", pChannel->getHost().s(), pChannel->getPort(), (_continuousPlay)?"yes":"no"));
         BDBG_MSG(("----------------------------------------------------------------------------------"));
 
         {

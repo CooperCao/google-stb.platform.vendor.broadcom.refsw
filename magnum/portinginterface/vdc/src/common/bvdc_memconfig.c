@@ -1,44 +1,41 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
- ***************************************************************************/
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
 
+ ******************************************************************************/
 #include "bstd.h"                 /* standard types */
 #include "bkni.h"                 /* memcpy calls */
 #include "bvdc.h"
@@ -183,6 +180,20 @@ BERR_Code BVDC_GetMemoryConfiguration
     if(err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
+#if BVDC_P_CMP_CFC_VER >= 3
+    for(ulDispIndex = 0; ulDispIndex < BBOX_VDC_HDMI_DISPLAY_COUNT; ulDispIndex++)
+    {
+        /* CFC memory config */
+        if(pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].bUsed)
+        {
+            BDBG_MSG(("to compute the mem config for hdmiCfc[%d]: MEMC[%d]",
+                ulDispIndex, pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex));
+            pMemConfig->stMemc[pMemConfigSettings->hdmiDisplayCfc[ulDispIndex].ulMemcIndex].ulCfcLutSize += BVDC_P_HDMI_CFC_LUT_SIZE;
+            BDBG_MSG(("    VEC_HDMI CFC LUT size = %d", BVDC_P_HDMI_CFC_LUT_SIZE));
+        }
+    }
+#endif
+
     for(ulDispIndex = 0; ulDispIndex < BVDC_MAX_DISPLAYS; ulDispIndex++)
     {
         BVDC_DispMemConfigSettings  *pDisplay;
@@ -217,8 +228,23 @@ BERR_Code BVDC_GetMemoryConfiguration
             stVipMemSettings.MaxPictureWidthInPels = pDisplay->vip.stCfgSettings.ulMaxWidth;
             stVipMemSettings.MaxPictureHeightInPels = pDisplay->vip.stCfgSettings.ulMaxHeight;
             pMemConfig->stMemc[pDisplay->vip.stCfgSettings.ulMemcId].ulVipSize += BVDC_P_MemConfig_GetVipBufSizes(&stVipMemSettings, &stVipMemConfig);
+            BDBG_MSG(("    VIP size = %d", pMemConfig->stMemc[pDisplay->vip.stCfgSettings.ulMemcId].ulVipSize));
         }
 #endif
+
+#if BVDC_P_CMP_CFC_VER >= 3
+        /* CFC memory config */
+        if(pDisplay->cfc.bUsed)
+        {
+            BDBG_MSG(("to compute the mem config for display[%d].cfc: CMP_LUT <- MEMC[%d], GFD LUT <- MEMC[%d]",
+                ulDispIndex, pDisplay->cfc.ulCmpMemcIndex, pDisplay->cfc.ulGfdMemcIndex));
+            pMemConfig->stMemc[pDisplay->cfc.ulCmpMemcIndex].ulCfcLutSize += BVDC_P_CMP_CFC_LUT_SIZE;
+            pMemConfig->stMemc[pDisplay->cfc.ulGfdMemcIndex].ulCfcLutSize += BVDC_P_GFD_CFC_LUT_SIZE;
+            BDBG_MSG(("    CMP CFC LUT size = %d", BVDC_P_CMP_CFC_LUT_SIZE));
+            BDBG_MSG(("    GFD CFC LUT size = %d", BVDC_P_GFD_CFC_LUT_SIZE));
+        }
+#endif
+
         /* Get settings for each display */
         for(ulWinIndex = 0; ulWinIndex < BVDC_MAX_VIDEO_WINDOWS; ulWinIndex++)
         {
@@ -381,12 +407,18 @@ BERR_Code BVDC_GetMemoryConfiguration
     BDBG_MSG(("---Total Memory (bytes) Per Memory Controller---"));
     for(ulMemcIndex = 0; ulMemcIndex < BVDC_MAX_MEMC; ulMemcIndex++)
     {
-        BDBG_MSG(("Memc[%d] settings: PicSize = %9d, RulSize = %9d, Total: %9d",
+        BDBG_MSG(("Memc[%d] settings: PicSize = %9d, RulSize = %9d",
             ulMemcIndex,
             pMemConfig->stMemc[ulMemcIndex].ulSize,
-            pMemConfig->stMemc[ulMemcIndex].ulRulSize,
-            pMemConfig->stMemc[ulMemcIndex].ulSize +
             pMemConfig->stMemc[ulMemcIndex].ulRulSize));
+#if BVDC_P_SUPPORT_VIP
+        BDBG_MSG(("                   Total VIP size = %d",
+            pMemConfig->stMemc[ulMemcIndex].ulVipSize));
+#endif
+#if BVDC_P_CMP_CFC_VER >= 3
+        BDBG_MSG(("                   Total CFC LUT size = %d",
+            pMemConfig->stMemc[ulMemcIndex].ulCfcLutSize));
+#endif
     }
 
     if(pSystemConfigInfo)

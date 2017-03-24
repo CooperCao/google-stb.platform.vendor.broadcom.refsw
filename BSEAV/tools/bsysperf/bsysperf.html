@@ -83,22 +83,27 @@
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
 <tr id=row_Record style="visibility:hidden;" ><th align=left valign=top id=Record colspan=2 >
-<table border=0 style="border-collapse:collapse;" cols=5 >
-<tr><td colspan=5 class=whiteborders18 align=left style="font-weight:bold;width:320px;" >Record and Playback Controls</td></tr>
+<table border=0 style="border-collapse:collapse;" cols=6 >
+<tr><td colspan=6 class=whiteborders18 align=left style="font-weight:bold;width:320px;" >Record and Playback Controls</td></tr>
 <tr>
 <td style="width:120px;" ><input type=button id=buttonRecordStart value="Start Record" onclick="MyClick(event);" style="background-color:lightgreen;width:110px;" ></td>
 <td style="width:120px;" valign=middle ><input type=submit id=RecordSaveFile value="Save File" style="background-color:lightgreen;width:110px;" disabled="disabled" ></td>
-<td style="width:200px;" ><table cols=1 style="border-collapse:collapse;border-color:red;" border=0 ><tr>
-<td id=recorddescriptor align=right >&nbsp;</td>
-<td id=recordsize ></td>
-</tr></table>
+<td colspan=2 style="width:250px;" >
+  <table cols=1 style="border-collapse:collapse;border-color:red;" border=0 >
+    <tr>
+      <td id=recorddescriptor align=right >&nbsp;</td>
+      <td id=recordsize ></td>
+    </tr>
+  </table><!-- File size: 18.8 KB (0:30) -->
 </td>
-<td valign=middle ><table border=0 style="border-collapse:collapse;border-color:lime;" ><tr><td>
-<input type="file" id=buttonChooseFile onchange='readText(this)' style="width: 400px" />
-<span id=selected_filename ><!-- put filename here --></span>
-</td></tr></table>
+<td valign=middle style="width:400;" ><table border=0 style="border-collapse:collapse;border-color:lime;" >
+                                        <tr><td><input type="file" id=buttonChooseFile onchange='readText(this)' style="width:400px" />
+                                                <span id=selected_filename ><!-- put filename here --></span>
+                                            </td>
+                                        </tr>
+                                      </table>
 </td>
-<td><input type=image  id=buttonPlaybackRun src=bmemperf_play.jpg style="height:30px;width:30px;" onclick="MyClick(event);" ></td>
+<td style="width:50;" ><input type=image  id=buttonPlaybackRun src=bmemperf_play.jpg style="height:30px;width:30px;" onclick="MyClick(event);" ></td>
 </tr>
 <!-- end first recording row -->
 <tr>
@@ -108,7 +113,10 @@
 <td style="width:120px;" >
   <input type=button id=buttonExportNetStats value="Export Net Stats" onclick="MyClick(event);" style="background-color:lightblue;width:110px;" disabled="disabled" >
 </td>
-<td >&nbsp;</td><!-- spacer -->
+<td style="width:120px;" >
+  <input type=button id=buttonExportAllStats value="Export All" onclick="MyClick(event);" style="background-color:lightblue;width:110px;" disabled="disabled" >
+</td>
+<td ><img src=bsysperf_record1.png height=10 id=record_all onclick="MyClick(event);" >&nbsp;Select&nbsp;All</td>
 <td colspan=2 ><svg width="500" height="8" style="border:1px solid black;"><polygon id="progressbar" style="fill:lime;" ></svg></td>
 </tr>
 </table>

@@ -890,6 +890,8 @@ static void setup_decryptor()
     // New API - AddKey
     if (!s_app.decryptor->AddKey(key_response)) {
         LOGE(("Failed to add key"));
+        dump_hex("key_response", key_response.data(), key_response.size(), true);
+        LOGE(("key_response string: %s", key_response.c_str()));
         exit(EXIT_FAILURE);
     }
     dump_hex("key_response", key_response.data(), key_response.size());

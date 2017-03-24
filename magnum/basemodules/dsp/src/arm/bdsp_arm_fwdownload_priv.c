@@ -69,8 +69,8 @@ Summary:
 BERR_Code BDSP_Arm_P_CopyFWImageToMem(
         const BIMG_Interface *iface,
         void *pImgContext,
-		BDSP_MMA_Memory *pMemory,
-		unsigned firmware_id
+        BDSP_MMA_Memory *pMemory,
+        unsigned firmware_id
         )
 {
     void *image = NULL;
@@ -104,7 +104,7 @@ BERR_Code BDSP_Arm_P_CopyFWImageToMem(
     ui32Size =((uint32_t *) data)[0];
     ui32numOfChunks = ((uint32_t *) data)[1];
 
-	pMemAddr = (uint8_t *)pMemory->pAddr;
+    pMemAddr = (uint8_t *)pMemory->pAddr;
 
     /*BDBG_MSG(("Total Size = %d",ui32Size));*/
     for (ui32Count = 1;ui32Count <= ui32numOfChunks; ui32Count++)
@@ -137,8 +137,6 @@ BERR_Code BDSP_Arm_P_CopyFWImageToMem(
       uiSizeCopied +=  ui32ChunkLen;
     }
 
-	BDSP_MMA_P_FlushCache((*pMemory),uiSizeCopied);
-
     if(uiSizeCopied != ui32Size)
     {
       BDBG_ERR(("FW Image (Id =%#x) not downloaded properly",firmware_id));
@@ -156,7 +154,7 @@ BERR_Code BDSP_Arm_P_RequestImg(
     BDSP_ArmImgCacheEntry *imgCache,
     unsigned imageId,
     bool bDownload,
-	BDSP_MMA_Memory *pMemory
+    BDSP_MMA_Memory *pMemory
     )
 {
     BERR_Code errCode=BERR_SUCCESS;
@@ -166,16 +164,16 @@ BERR_Code BDSP_Arm_P_RequestImg(
 
     if ( imgCache[imageId].size > 0 )
     {
-		BDBG_ASSERT( pMemory->pAddr != NULL );
-		imgCache[imageId].pMemory = pMemory->pAddr;
-		imgCache[imageId].offset  = pMemory->offset;
+        BDBG_ASSERT( pMemory->pAddr != NULL );
+        imgCache[imageId].pMemory = pMemory->pAddr;
+        imgCache[imageId].offset  = pMemory->offset;
 
         if( bDownload == true )
         {
-			errCode = BDSP_Arm_P_CopyFWImageToMem(pImageInterface,
-													pImageContext,
-													pMemory,
-													imageId);
+            errCode = BDSP_Arm_P_CopyFWImageToMem(pImageInterface,
+                                                    pImageContext,
+                                                    pMemory,
+                                                    imageId);
             if ( errCode )
             {
                 imgCache[imageId].pMemory = NULL;
@@ -197,7 +195,7 @@ BERR_Code BDSP_Arm_P_PreLoadFwImages(const BIMG_Interface *pImageInterface,
 )
 {
     unsigned imageId;
-	BDSP_MMA_Memory MemoryInit = *pMemory;
+    BDSP_MMA_Memory MemoryInit = *pMemory;
     bool bDownload = true;
     size_t size_check=0;
     BERR_Code errCode=BERR_SUCCESS;
@@ -208,12 +206,12 @@ BERR_Code BDSP_Arm_P_PreLoadFwImages(const BIMG_Interface *pImageInterface,
         if(imgCache[imageId].size == 0 ){
             continue;
         }
-		/* Making the address 16byte aligned */
-		pMemory->pAddr = (void *)(((uintptr_t)pMemory->pAddr+127)&0xFFFFFF80);
-		pMemory->offset= ((pMemory->offset+127)&0xFFFFFF80);
-		errCode = BDSP_Arm_P_RequestImg(pImageInterface,pImageContext, imgCache, imageId, bDownload, pMemory);
-		pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + imgCache[imageId].size);
-		pMemory->offset = pMemory->offset + imgCache[imageId].size;
+        /* Making the address 16byte aligned */
+        pMemory->pAddr = (void *)(((uintptr_t)pMemory->pAddr+127)&0xFFFFFF80);
+        pMemory->offset= ((pMemory->offset+127)&0xFFFFFF80);
+        errCode = BDSP_Arm_P_RequestImg(pImageInterface,pImageContext, imgCache, imageId, bDownload, pMemory);
+        pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + imgCache[imageId].size);
+        pMemory->offset = pMemory->offset + imgCache[imageId].size;
 
         if ( errCode ){
             errCode = BERR_TRACE(errCode);
@@ -224,14 +222,14 @@ BERR_Code BDSP_Arm_P_PreLoadFwImages(const BIMG_Interface *pImageInterface,
     }
 
     /* Error Check */
-	if(pMemory->pAddr > (void *)((uint8_t *)MemoryInit.pAddr + ui32AllocatedSize))
-	{
-		BDBG_ERR(("Used memory more than allocated memory.MemInfo size parameter might be corrupted.\
-		Used till %p Allocated till %p -- exclusive", pMemory->pAddr, \
-		(void *)((uint8_t *)MemoryInit.pAddr + ui32AllocatedSize)));
-		errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
-		goto error;
-	}
+    if(pMemory->pAddr > (void *)((uint8_t *)MemoryInit.pAddr + ui32AllocatedSize))
+    {
+        BDBG_ERR(("Used memory more than allocated memory.MemInfo size parameter might be corrupted.\
+        Used till %p Allocated till %p -- exclusive", pMemory->pAddr, \
+        (void *)((uint8_t *)MemoryInit.pAddr + ui32AllocatedSize)));
+        errCode = BERR_TRACE(BERR_INVALID_PARAMETER);
+        goto error;
+    }
 
 error:
 
@@ -269,7 +267,7 @@ BERR_Code BDSP_Arm_P_AssignMem_DwnldBuf(void *pDeviceHandle, BDSP_MMA_Memory *pM
 
             pDwnldBufInfo->Memory = *pMemory;
             pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pAlgoBufInfo[i].ui32Size);
-			pMemory->offset= pMemory->offset + pAlgoBufInfo[i].ui32Size;
+            pMemory->offset= pMemory->offset + pAlgoBufInfo[i].ui32Size;
 
             if(pDwnldBufInfo->Memory.pAddr == NULL)
             {
@@ -322,30 +320,33 @@ BERR_Code BDSP_Arm_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, BDSP_MMA_Memory 
 
                 if ( algoId < BDSP_ARM_AF_P_AlgoId_eMax )
                 {
-/*					  BDBG_MSG((" AlgoId (%d) %s", algoId, algoidname[algoId]));*/
+/*                    BDBG_MSG((" AlgoId (%d) %s", algoId, algoidname[algoId]));*/
 #if 0  /* TBD : CODE_DOWNLOAD Enable when individual algo code download is enabled */
                     errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext,\
                                                         pDevice->imgCache, BDSP_ARM_IMG_ID_CODE(algoId), bDownload, pMemory);
+                    IF_ERR_GOTO_error;
+                    BDSP_MMA_P_FlushCache((*pMemory),pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size);
                     pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size);
                     pMemory->offset= pMemory->offset + pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size;
-                    IF_ERR_GOTO_error;
 #endif
                     errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext,\
                                                         pDevice->imgCache, BDSP_ARM_IMG_ID_IFRAME(algoId), bDownload, pMemory);
+                    IF_ERR_GOTO_error;
+                    BDSP_MMA_P_FlushCache((*pMemory),pDevice->imgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size);
                     pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pDevice->imgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size);
                     pMemory->offset= pMemory->offset + pDevice->imgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size;
-                    IF_ERR_GOTO_error;
 
                     if ( BDSP_Arm_P_AlgoHasTables(algoId) )
                     {
-						/* Making the address 16byte aligned */
-						pMemory->pAddr = (void *)(((uintptr_t)pMemory->pAddr+127)&0xFFFFFF80);
-						pMemory->offset= ((pMemory->offset+127)&0xFFFFFF80);
+                        /* Making the address 16byte aligned */
+                        pMemory->pAddr = (void *)(((uintptr_t)pMemory->pAddr+127)&0xFFFFFF80);
+                        pMemory->offset= ((pMemory->offset+127)&0xFFFFFF80);
                         errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext,\
                                                             pDevice->imgCache, BDSP_ARM_IMG_ID_TABLE(algoId), bDownload, pMemory);
+                        IF_ERR_GOTO_error;
+                        BDSP_MMA_P_FlushCache((*pMemory),pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(algoId)].size);
                         pMemory->pAddr = (void *)((uint8_t *)pMemory->pAddr + pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(algoId)].size);
                         pMemory->offset= pMemory->offset + pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(algoId)].size;
-                        IF_ERR_GOTO_error;
                     }
 
                 }
@@ -368,8 +369,8 @@ BERR_Code BDSP_Arm_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, BDSP_MMA_Memory 
     }
 
 error:
-	/* All the memory will be freed in the parent function "BDSP_Raaga_P_Alloc_DwnldFwExec" */
-	return errCode;
+    /* All the memory will be freed in the parent function "BDSP_Raaga_P_Alloc_DwnldFwExec" */
+    return errCode;
 }
 
 void BDSP_Arm_P_FreeFwExec(   void *pDeviceHandle)
@@ -413,7 +414,7 @@ BERR_Code BDSP_Arm_P_Alloc_DwnldFwExec(
     BDSP_Arm_P_DwnldMemInfo *pDwnldMemInfo;
     unsigned imageId;
     unsigned i=0,j=0;
-	BDSP_MMA_Memory Memory;
+    BDSP_MMA_Memory Memory;
     bool bDownload = true;
     BDSP_Arm_P_AlgoTypeImgBuf *pAlgoTypeBuf;
 
@@ -485,13 +486,15 @@ BERR_Code BDSP_Arm_P_Alloc_DwnldFwExec(
     /*Rest of the Image Code download/allocation */
     if( pDevice->memInfo.sDwnldMemInfo.IsImagePreLoaded == true )
     {
-		errCode = BDSP_Arm_P_PreLoadFwImages(
-						pDevice->settings.pImageInterface,
-						pDevice->settings.pImageContext,
-						pDevice->imgCache,
-						&Memory,
-						pDwnldMemInfo->ui32AllocatedBinSize
-						);
+        errCode = BDSP_Arm_P_PreLoadFwImages(
+                        pDevice->settings.pImageInterface,
+                        pDevice->settings.pImageContext,
+                        pDevice->imgCache,
+                        &Memory,
+                        pDwnldMemInfo->ui32AllocatedBinSize
+                        );
+        IF_ERR_GOTO_error;
+        BDSP_MMA_P_FlushCache(pDwnldMemInfo->ImgBuf, pDwnldMemInfo->ui32AllocatedBinSize);
     }
     else
     {
@@ -501,17 +504,18 @@ BERR_Code BDSP_Arm_P_Alloc_DwnldFwExec(
             if(pDevice->imgCache[imageId].size == 0 ){
                     continue;
             }
-			errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, imageId, bDownload, &Memory);
-			Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[imageId].size);
-			Memory.offset= Memory.offset + pDevice->imgCache[imageId].size;
-            IF_ERR_GOTO_error   ;
+            errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, imageId, bDownload, &Memory);
+            IF_ERR_GOTO_error;
+            BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[imageId].size);
+            Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[imageId].size);
+            Memory.offset= Memory.offset + pDevice->imgCache[imageId].size;
         }
         /* Code download happens during start task when images are not
              preloaded. Only pointers are allocated here.*/
-		errCode = BDSP_Arm_P_AssignMem_DwnldBuf(pDeviceHandle, &Memory);
+        errCode = BDSP_Arm_P_AssignMem_DwnldBuf(pDeviceHandle, &Memory);
         IF_ERR_GOTO_error;
 #if 0 /* Not Audio Post process algo to be preloaded as of now */
-		errCode = BDSP_Arm_P_Dwnld_AudioProc_Algos(pDeviceHandle, &(pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].DwnldBufUsageInfo[0].Memory));
+        errCode = BDSP_Arm_P_Dwnld_AudioProc_Algos(pDeviceHandle, &(pDevice->memInfo.sDwnldMemInfo.AlgoTypeBufs[BDSP_AlgorithmType_eAudioProcessing].DwnldBufUsageInfo[0].Memory));
         IF_ERR_GOTO_error;
 #endif
     }
@@ -765,27 +769,27 @@ BERR_Code BDSP_Arm_P_RequestAlgorithm(
             {
 #if 0  /* TBD : CODE_DOWNLOAD Enable when individual algo code download is enabled */
                 errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_ARM_IMG_ID_CODE(algoId), bDownload, &Memory);
+                IF_ERR_GOTO_error;
+                BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size);
                 Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size);
                 Memory.offset= Memory.offset + pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].size;
-                IF_ERR_GOTO_error;
 #endif
                 errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_ARM_IMG_ID_IFRAME(algoId), bDownload, &Memory);
+                IF_ERR_GOTO_error;
+                BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size);
                 Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size);
                 Memory.offset= Memory.offset + pDevice->imgCache[BDSP_ARM_IMG_ID_IFRAME(algoId)].size;
-                IF_ERR_GOTO_error;
-
                 if ( BDSP_Arm_P_AlgoHasTables(algoId) )
                 {
-					/* Making the address 16byte aligned */
-					Memory.pAddr = (void *)(((uintptr_t)Memory.pAddr+127)&0xFFFFFF80);
-					Memory.offset= ((Memory.offset+127)&0xFFFFFF80);
+                    /* Making the address 16byte aligned */
+                    Memory.pAddr = (void *)(((uintptr_t)Memory.pAddr+127)&0xFFFFFF80);
+                    Memory.offset= ((Memory.offset+127)&0xFFFFFF80);
                     errCode = BDSP_Arm_P_RequestImg(pDevice->settings.pImageInterface,pDevice->settings.pImageContext, pDevice->imgCache, BDSP_ARM_IMG_ID_TABLE(algoId), bDownload, &Memory);
+                    IF_ERR_GOTO_error;
+                    BDSP_MMA_P_FlushCache(Memory, pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(algoId)].size);
                     Memory.pAddr = (void *)((uint8_t *)Memory.pAddr + pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(algoId)].size);
                     Memory.offset= Memory.offset + pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(algoId)].size;
-                    IF_ERR_GOTO_error;
                 }
-
-
             }
 #ifdef ARM_FWDWNLD_DBG
 #if 0  /* TBD : CODE_DOWNLOAD Enable when individual algo code download is enabled */

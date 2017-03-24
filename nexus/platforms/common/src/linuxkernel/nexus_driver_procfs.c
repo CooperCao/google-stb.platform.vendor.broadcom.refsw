@@ -452,7 +452,6 @@ brcm_proc_dbgprint_capture(
     if ((level != BDBG_eTrace) && (kind != BDBG_ModulePrintKind_eHeader)) {
         struct dbgprint_page *page;
         int left;
-        BKNI_AcquireMutex(NEXUS_P_ProcFsState.lock);
         /* find available page or alloc a new one */
         if (!dbgprint_page_done(&NEXUS_P_ProcFsState.first)) {
             page = &NEXUS_P_ProcFsState.first;
@@ -472,7 +471,6 @@ brcm_proc_dbgprint_capture(
                 if (!page->buf) {
                     BKNI_Free(page);
                     BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-                    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
                     return;
                 }
                 BLST_Q_INSERT_TAIL(&NEXUS_P_ProcFsState.additional, page, link);
@@ -492,7 +490,6 @@ brcm_proc_dbgprint_capture(
             page->buf[page->wptr+(left)] = '\0';
             page->wptr += left;
         }
-        BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
     }
 }
 
@@ -509,10 +506,10 @@ static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize,
     nexus_driver_proc_data *p = (nexus_driver_proc_data *)PDE_DATA(file_inode(fp));
     off_t off = (loff_t) *offp;
 #endif
+    unsigned total = 0;
     if (off > 0) {
         /* subsequent read */
         struct dbgprint_page *page;
-        unsigned total = 0;
         if(NEXUS_P_ProcFsState.current_proc != p) {
             (void)BERR_TRACE(NEXUS_NOT_SUPPORTED); /* we support only one procfs node at a time */
             return -EIO;
@@ -550,7 +547,6 @@ static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize,
     NEXUS_P_ProcFsState.first.rptr = 0;
     NEXUS_P_ProcFsState.first.wptr = 0;
     nexus_p_free_capture_buffers();
-    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
 
     /* call function which captures to NEXUS_P_ProcFsState */
     BDBG_SetModulePrintFunction(p->dbg_modules,brcm_proc_dbgprint_capture);
@@ -565,7 +561,9 @@ static ssize_t brcm_proc_dbgprint_read(struct file *fp,char *buf,size_t bufsize,
     #else
     *offp = NEXUS_P_ProcFsState.first.wptr;
     #endif
-    return NEXUS_P_ProcFsState.first.wptr;
+    total = NEXUS_P_ProcFsState.first.wptr;
+    BKNI_ReleaseMutex(NEXUS_P_ProcFsState.lock);
+    return total;
 }
 #if LINUX_VERSION_CODE <= KERNEL_VERSION(3,10,0)
 #else

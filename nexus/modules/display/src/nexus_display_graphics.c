@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -280,6 +280,7 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     const BPXL_Plane *surface;
     NEXUS_SurfaceCreateSettings surfaceCfg;
     BVDC_Window_Settings windowCfg;
+    BVDC_Source_Settings sourceSettings;
 
     BDBG_MSG((">graphics: %ux%u video=%p display=%p graphics=%p", cfg->position.width, cfg->position.height, (void*)video, (void*)display, (void*)graphics));
     if (display->index >= sizeof(gfx_ids)/sizeof(*gfx_ids)) {
@@ -299,7 +300,12 @@ NEXUS_Display_P_CreateGraphics(NEXUS_DisplayHandle display, const NEXUS_Graphics
     graphics->frameBufferWidth = surfaceCfg.width;
     graphics->frameBufferPixelFormat = surfaceCfg.pixelFormat;
 
-    rc = BVDC_Source_Create( video->vdc, &graphics->source, gfx_ids[display->index], NULL);
+    BVDC_Source_GetDefaultSettings(gfx_ids[display->index], &sourceSettings);
+    /* CFC LUT heap */
+    if(NEXUS_MAX_HEAPS != video->moduleSettings.cfc.gfdHeapIndex[display->index]) {
+        sourceSettings.hCfcHeap = g_pCoreHandles->heap[video->moduleSettings.cfc.gfdHeapIndex[display->index]].mma;
+    }
+    rc = BVDC_Source_Create( video->vdc, &graphics->source, gfx_ids[display->index], &sourceSettings);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_source;}
     rc = NEXUS_Display_P_SetGraphicsSource(display, &graphics->frameBuffer3D, surface);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_source_cfg;}

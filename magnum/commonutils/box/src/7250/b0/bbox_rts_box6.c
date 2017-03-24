@@ -54,12 +54,12 @@
 #include "bkni.h"
 #include "bdbg.h"                /* Debug message */
 #include "bbox.h"
+#include "bbox_vdc_box6_config.h"
 
 BDBG_MODULE(BBOX_RTS_BOX6);
 BDBG_OBJECT_ID(BBOX_RTS_BOX6);
 
 /* Box mode 6 is similar to box mode 2 except for what is defined below */
-extern BBOX_Rts stBoxRts_1u_0t_box6;
 
 void BBOX_P_GetBox6Rts
     ( BBOX_Rts *pBoxRts )

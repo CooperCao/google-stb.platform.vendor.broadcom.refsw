@@ -241,6 +241,7 @@ eRet CConfig::initResources()
 
     /* if atlas.cfg does not override number of resources, use nexus values */
     NEXUS_AudioCapabilities audioCapabilities;
+
     NEXUS_GetAudioCapabilities(&audioCapabilities);
 
     if (0 > nDisplays) { nDisplays = NEXUS_NUM_DISPLAYS; }

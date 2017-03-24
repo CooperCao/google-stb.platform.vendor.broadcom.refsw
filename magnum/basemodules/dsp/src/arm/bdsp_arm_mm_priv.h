@@ -155,7 +155,7 @@ typedef struct BDSP_Arm_P_TaskMemoryInfo
 BERR_Code BDSP_Arm_P_AllocateInitMemory (
     void *pDeviceHandle
     );
-BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle);
+BERR_Code BDSP_Arm_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle);
 
 void BDSP_Arm_P_FreeScratchISbuffer(
             void *pDeviceHandle

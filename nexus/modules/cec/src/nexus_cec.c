@@ -453,23 +453,11 @@ NEXUS_Error NEXUS_Cec_TransmitMessage(
 
 	BDBG_OBJECT_ASSERT(handle, NEXUS_Cec);
 
-
-#if BCEC_CONFIG_ENABLE_COMPLIANCE_TEST_WORKAROUND
-	if ((pMessage->buffer[0] == NEXUS_CEC_OpFeatureAbort)
-	|| (pMessage->buffer[0] == NEXUS_CEC_OpReportPhysicalAddress))
-	{
-		/* Ignore pending status of previous sent message since SENT interrupt
-			was never fired due to the workaround for compliance test */
-	}
-	else
-#endif
-	{
-		if (handle->status.messageTransmitPending)
-		{
-			rc = NEXUS_NOT_AVAILABLE;
-			goto done;
-		}
-	}
+    if (handle->status.messageTransmitPending)
+    {
+        rc = NEXUS_NOT_AVAILABLE;
+        goto done;
+    }
 
     /* polling message request */
     if (handle->cecSettings.disableLogicalAddressPolling

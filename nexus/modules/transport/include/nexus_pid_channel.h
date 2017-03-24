@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #ifndef NEXUS_PID_CHANNEL_H__
 #define NEXUS_PID_CHANNEL_H__
@@ -161,7 +160,8 @@ If the NEXUS_PidChannelSettings are different between the set of SW pid channels
 Nexus will try to resolve. For example:
 * pidChannelIndex must be the same for all or Nexus will fail.
 * enabled is aggregated by and-ing: if any is disabled, the HW is disabled.
-* dssHdFilter, remap and continuityCountEnabled are aggregated by last-one-wins.
+* remap and continuityCountEnabled are aggregated by last-one-wins.
+* different dssHdFilters will result in a separate HW PID channel being allocated. HW doesn't see this as a 'duplicate PID channel' situation.
 **/
 NEXUS_PidChannelHandle NEXUS_PidChannel_Open( /* attr{destructor=NEXUS_PidChannel_Close}  */
     NEXUS_ParserBand parserBand,              /* Data source for the PID channel */

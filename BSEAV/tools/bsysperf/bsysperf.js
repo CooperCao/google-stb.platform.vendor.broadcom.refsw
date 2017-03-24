@@ -40,6 +40,9 @@ var MasterDebug=0;
 
 var REFRESH_IN_MILLISECONDS=1000;
 var BMEMPERF_MAX_NUM_CPUS=8;
+var BMEMPERF_IRQ_MAX_TYPES=120 /* number of different interrupts listed in /proc/interrupts */
+var NET_STATS_MAX = 10;
+var RECORD_BUTTON_HEIGHT = 10;
 var passcount=0;
 var UUID = ""; // used to allow multiple browsers to access the STB
 var previous_height = 0;
@@ -55,12 +58,13 @@ var localtime = 0; // usually new Date() but could also be time read in from rec
 var localdatetime = "";
 var userAgent = 0;
 var gNumCpus = 0;
-var gCpuData = [0,0,0,0,0,0,0,0];
-var gCpuFreq = [0,0,0,0,0,0,0,0];
-var gIrqLatestData = [0,0,0,0,0,0,0,0];
-var gIrqMaxData = [0,0,0,0,0,0,0,0];
+var gCpuData = [0,0,0,0,0,0,0,0]; // indexed by BMEMPERF_MAX_NUM_CPUS
+var gCpuFreq = [0,0,0,0,0,0,0,0]; // indexed by BMEMPERF_MAX_NUM_CPUS
+var gIrqLatestData = [0,0,0,0,0,0,0,0]; // indexed by BMEMPERF_MAX_NUM_CPUS
+var gIrqMaxData = [0,0,0,0,0,0,0,0]; // indexed by BMEMPERF_MAX_NUM_CPUS
 var bCpuDataHeightSet = 0;
 var bIrqDataHeightSet = 0;
+
 var NetBytesPrev =[[0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0]]; // up to 10 network interfaces with Rx and Tx for each of the 10
 var NetBytesCummulative =[[0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0], [0,0]]; // up to 10 network interfaces with Rx and Tx for each of the 10
 var NetBytesRx10SecondsCount=[0,0,0,0,0,0,0,0,0,0];
@@ -73,6 +77,7 @@ var NetBytesSeconds = 0; // net bytes are accumulated for as long as the browser
 var NetGfxCheckbox=[0,0,0,0,0,0,0,0,0,0]; // up to 10 network interfaces ... indicates whether checkbox_netifgfx is checked or not
 var NetGfxDivisor= [[1,1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1,1]]; // divisor will increase/decrease relative to network bytes received per second
 var NetGfxBytes= [["","","","","","","","","",""], ["","","","","","","","","",""]]; // 10 network interfaces ... also indexed by Rx/Tx
+
 var RxTxStr = ["rx","tx"];
 var POINTS_PER_GRAPH = 250;
 var GetCpuInfo = {Value: 0};
@@ -157,6 +162,19 @@ var RecordFileContents = "";
 var RecordFileContents2 = ""; // used by asynchronous reader.onload() function in readText() function
 var RecordFileContentsArray = new Array();
 var RecordTimeStart = 0;
+var RecordStateCpus = [0,0,0,0,0,0,0,0]; // indexed by BMEMPERF_MAX_NUM_CPUS
+var RecordStateIrqsName = new Array(BMEMPERF_IRQ_MAX_TYPES); // indexed by BMEMPERF_IRQ_MAX_TYPES: contains IRQ description
+var RecordStateIrqsValue = new Array(BMEMPERF_IRQ_MAX_TYPES); // indexed by BMEMPERF_IRQ_MAX_TYPES: contains IRQ state value
+var RecordStateNets = [0,0,0,0,0,0,0,0,0,0]; // indexed by NET_STATS_MAX
+var RecordStatePHY_RSSI_ANT = 0;
+var RecordStateWIFIRATE = 0;
+var RecordStateNRate = 0;
+var RecordStateFilename = [ "bsysperf_record1.png", "bsysperf_record2.png" ];
+var RecordCustomToCsv = "";
+var RecordCustomToCsvLastItem = "";
+var RecordCustomToCsvCount = 0;
+var RecordCustomToCsvFilename = "not_set_yet";
+
 var PlaybackControl =  {Value: 0}; // 0=>idle, 1=>read next entry
 var PlaybackTimeSeconds = 0;
 var PlaybackFileContentsArrayIdx = 0;
@@ -176,6 +194,7 @@ var sRecordFilename = "";
 var gTextFile = null;
 var GovernorSettingNow = 0;
 var GovernorSettingPrev = 0;
+var wlanZero = false;
 
 Number.prototype.padZero= function(len){
     var s= String(this), c= '0';
@@ -544,10 +563,21 @@ function MyLoad()
         var objExportNetStats = document.getElementById("buttonExportNetStats");
         objExportNetStats.addEventListener('click', ExportNetStatsListener, false);
 
+        var objExportAllStats = document.getElementById("buttonExportAllStats");
+        objExportAllStats.addEventListener('click', ExportAllStatsListener, false);
+
         //console.log( "MyLoad: calling sendCgiRequest()");
         CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
 
         processDebugOutputBox( document.getElementById("debugoutputbox") ); // hide or show the debugoutputbox
+
+        for ( idx=0; idx<BMEMPERF_MAX_NUM_CPUS; idx++ ) {
+            RecordStateCpus[idx] = 0;
+        }
+        for ( idx=0; idx<BMEMPERF_IRQ_MAX_TYPES; idx++ ) {
+            RecordStateIrqsName[idx] = "";
+            RecordStateIrqsValue[idx] = 0;
+        }
 
         //alert("pass 0 done");
     } else {
@@ -806,6 +836,15 @@ function checkboxwifiDoit( fieldValue )
     hideOrShow("row_wifi_stats", fieldValue);
     if (fieldValue == false) {
         hideOrShow("row_wifi_ampdu", fieldValue);
+    } else {
+        var obj2 = document.getElementById( "record_all" );
+        // if the record_all button is checked
+        if ( obj2 && obj2.src.indexOf( RecordStateFilename[1] ) >= 0 ) {
+            RecordStatePHY_RSSI_ANT = 1;
+            RecordStateWIFIRATE = 1;
+            RecordStateNRate = 1;
+        }
+
     }
     GetWifiStats.Init = fieldValue;
 }
@@ -838,13 +877,25 @@ function checkboxSelected ( fieldName, fieldValue )
         iperfInit = fieldValue;
         GetNetStatsInit = fieldValue;
 
-        // hide all ten of the histogram rows
-        for ( var idx=0; idx<10; idx++) {
+        // hide all of the histogram rows
+        for ( var idx=0; idx<NET_STATS_MAX; idx++) {
             hideOrShow("row_netgfxsvg" + idx, HIDE );
             hideOrShow("row_netgfxtxt" + idx, HIDE );
             NetGfxCheckbox[idx] = 0;
 
             ClearNetGfxGraph ( idx );
+        }
+        var obj2 = document.getElementById( "record_all" );
+        // if the record_all button is checked
+        if ( obj2 && obj2.src.indexOf( RecordStateFilename[1] ) >= 0 ) {
+            for ( var idx=0; idx<NET_STATS_MAX; idx++) {
+                RecordStateNets[idx] = 1;
+            }
+        }
+
+        // update the record buttons
+        for ( var idx=0; idx<NET_STATS_MAX; idx++) {
+            SetElementSrc( "record_net" + idx, RecordStateFilename[ RecordStateNets[idx] ] );
         }
     } else if (fieldName == "checkboxwifi" ) {
         checkboxwifiDoit( fieldValue );
@@ -1021,7 +1072,7 @@ function checkboxSelected ( fieldName, fieldValue )
         }
     } else if ( fieldName.indexOf ( "checkbox_netgfx" ) == 0 ) {
         var idx = fieldName.substr(15);
-        if ( idx < 10 ) {
+        if ( idx < NET_STATS_MAX ) {
             NetGfxCheckbox[idx] = fieldValue;
             hideOrShow("row_netgfxsvg" + idx, fieldValue );
             hideOrShow("row_netgfxtxt" + idx, fieldValue );
@@ -1251,6 +1302,7 @@ function setVariable(fieldName)
 
                         setButtonDisabled( 'buttonExportCpuStats', true );
                         setButtonDisabled( 'buttonExportNetStats', true );
+                        setButtonDisabled( 'buttonExportAllStats', true );
                         setButtonDisabled( 'buttonChooseFile', true );
 
                         RecordPlaybackConfigure ( "START" );
@@ -1273,6 +1325,14 @@ function setVariable(fieldName)
                         PlaybackSTBTIMEsaved = PlaybackSTBTIME;
                         RecordFileSize = RecordFileContents.length;
 
+                        RecordCustomToCsv = "";
+                        RecordCustomToCsvLastItem = "";
+                        RecordCustomToCsvCount = 0;
+
+                        var local = new Date();
+                        var date_time = local.toString();
+                        if ( RecordCustomToCsv.length == 0 ) RecordCustomToCsvHeaders ( date_time );
+
                         sendCgiRequest();
                     } else {
                         RecordControl.Value = 0; // stop recording
@@ -1284,6 +1344,7 @@ function setVariable(fieldName)
 
                         setButtonDisabled( 'buttonExportCpuStats', false );
                         setButtonDisabled( 'buttonExportNetStats', false );
+                        setButtonDisabled( 'buttonExportAllStats', false );
                         setButtonDisabled( 'buttonChooseFile', false );
 
                         RecordFileContentsArray = RecordFileContents.split("UNIXTIME ");
@@ -1296,6 +1357,10 @@ function setVariable(fieldName)
             } else if (fieldName == "buttonExportNetStats") {
 
                 // process is handled in function ExportNetStatsListener()
+
+            } else if (fieldName == "buttonExportAllStats") {
+
+                // process is handled in function ExportAllStatsListener()
 
             }
         } else if ( obj.type == "image" ) {
@@ -1339,6 +1404,28 @@ function setVariable(fieldName)
                     //console.log( fieldName + "; new state:" + PlaybackControl.Value );
 
                     setButtonDisabled( 'checkboxRecord', false ); // make sure the Record checkbox is enabled
+                }
+            }
+        } else if ( obj.tagName == "IMG" || obj.localname == "img" ) {
+            if ( fieldName.indexOf( "record_") == 0 ) {
+
+                // do not allow any changes to the record buttons unless recording is idle
+                if ( RecordControl.Value == 0 ) {
+                    var obj = document.getElementById ( fieldName );
+                    var state = 0;
+                    if ( obj ) {
+                        if ( obj.src.indexOf( RecordStateFilename[0] ) > 0 ) {
+                            obj.src = RecordStateFilename[1]; // toggle the image to the other image
+                            state = 1;
+                            if ( fieldName == "record_all" ) SetRecordAll( state );
+                        } else {
+                            obj.src = RecordStateFilename[0];
+                            state = 0;
+                            if ( fieldName == "record_all" ) SetRecordAll( state );
+                        }
+                    }
+                    //console.log( "Element (" + fieldName + ") state is (" + obj.src + ")"); // DEBUG
+                    UpdateRecordState( fieldName, state );
                 }
             }
         } else if ( obj.type == "select-one" ) {
@@ -1639,6 +1726,11 @@ function sendCgiRequest( )
         url += "&GovernorSetting=" + GovernorSettingNow;
         GovernorSettingPrev = GovernorSettingNow;
         GovernorSettingNow = 0;
+    }
+
+    if ( wlanZero ) {
+        wlanZero = false;
+        url += "&wlanZero=1";
     }
 
     // seems the data sent to the browser cannot exceed 1010 for unknown reason
@@ -1987,6 +2079,9 @@ function ComputeNewNetGfxDivisor ( RxTxIndex, netIfIdx, newValue )
 {
     var prev_divisor = NetGfxDivisor[RxTxIndex][netIfIdx];
     var next_divisor = Number ( newValue / 100 );
+    if ( next_divisor < 1 ) {
+        next_divisor = 1;
+    }
     var newValueStr = newValue.toString();
     var log10 = Math.max ( 1, Number ( newValueStr.length - 2 ) ); // Math.ceil ( Math.log10 ( next_divisor ));
     //var log10_chrome_ff_safari = Math.ceil ( Math.log10 ( next_divisor )); // fails on IE9 and Safari Windows
@@ -2023,6 +2118,10 @@ function ComputeNewNetGfxDivisor ( RxTxIndex, netIfIdx, newValue )
         }
     }
     NetGfxDivisor[RxTxIndex][netIfIdx] = next_divisor = Number ( newMaxValue ) / 100;
+    if ( NetGfxDivisor[RxTxIndex][netIfIdx] < 10 ) {
+        NetGfxDivisor[RxTxIndex][netIfIdx] = 10;
+    }
+
     //console.log("For (" + newValueStr + ") ... log10 (" + log10 + ") ... NetGfxDivisor (" + next_divisor +
     //    ") newMaxValue (" + newMaxValue + ") for (" + RxTxIndex + ")");
 
@@ -2139,11 +2238,12 @@ function AppendToTextarea ( textareaId, newValue )
 function UpdateNetGfxElements ( netIfIdx, RxTxIndex, previousBytes, currentBytes )
 {
     var temp = 0;
+    var deltaFromPreviousSecond = ComputeDeltaFromPreviousSecond ( currentBytes, previousBytes );
 
-    if ( NetGfxCheckbox[netIfIdx] && 0 <= RxTxIndex && RxTxIndex <=1 && currentBytes >= previousBytes ) {
+    if ( NetGfxCheckbox[netIfIdx] && 0 <= RxTxIndex && RxTxIndex <=1 && deltaFromPreviousSecond >= 0 ) {
         var objbox = document.getElementById( 'checkbox_netgfx' + netIfIdx );
         if ( objbox ) {
-            var delta1 = Math.floor ( Number ( (currentBytes - previousBytes) * 8 ) );
+            var delta1 = Math.floor ( Number ( deltaFromPreviousSecond * 8 ) );
             var objline = document.getElementById( 'polyline_netgfx_' + RxTxStr[RxTxIndex] + '_' + netIfIdx );
 
             if ( delta1 < 0 ) delta1 = 0; // do not allow the num bytes to go negative
@@ -2160,6 +2260,8 @@ function UpdateNetGfxElements ( netIfIdx, RxTxIndex, previousBytes, currentBytes
             // value could be quite large ... 951,155,955
             // reverse the number so that lower number has a "higher" Y coordinate value on the browser
             var delta2 = Math.floor ( Number ( delta1 / NetGfxDivisor[RxTxIndex][netIfIdx] ) );
+            //if ( Number.isNaN(delta2) ) { // DEBUG
+            //}
             delta2 = Number(100 - delta2);
             if (objline) {
                 var minYcoord = AddSvgPoints ( objline, delta2 );
@@ -2250,6 +2352,7 @@ function ProcessPlaybackEvents( )
             // make sure the export buttons are enabled
             setButtonDisabled( 'buttonExportCpuStats', false );
             setButtonDisabled( 'buttonExportNetStats', false );
+            setButtonDisabled( 'buttonExportAllStats', false );
 
             if ( PlaybackFileContentsArrayIdx >= RecordFileContentsArray.length ) { // playback is done
                 PlaybackFileContentsArrayIdx = 0;
@@ -2276,6 +2379,137 @@ function ProcessPlaybackEvents( )
 }
 
 /**
+ *  Function: This function will search the array of known network interfaces for the name
+ *            specified in the argument list. Sometimes, the list of network interfaces
+ *            that comes back from the CGI does not arrive in the same order every time.
+ *            Because the order can be different, we must search the list of interfaces
+ *            and match the saved index with the new interface name.
+ **/
+function find_matching_interface( netname )
+{
+    var idx=0;
+    for( idx=0; idx<NET_STATS_MAX; idx++ ) {
+        var obj=document.getElementById( "netname" + idx );
+        if ( obj ) {
+            var obj_contents = obj.innerHTML;
+            if ( obj_contents == netname ) return idx;
+        }
+    }
+
+    return idx; // the specified name was NOT found
+}
+
+/**
+ *  Function: This function will search the array of known irq descriptions for the one
+ *            specified by the caller. Since the irq table arrives every second and can
+ *            be in a totally different order than the previous one (like when the user
+ *            started/stopped a record/playback), we have to operate on the elements of
+ *            the table only after we have matched the previous index with the current
+ *            index.
+ **/
+function find_matching_irq( irqname )
+{
+    var idx=0;
+    for( idx=0; idx<BMEMPERF_IRQ_MAX_TYPES; idx++ ) {
+        if ( RecordStateIrqsName[idx] == irqname ) {
+            // we found the specified name ... return the index to the name
+            return idx;
+        }
+        if ( RecordStateIrqsName[idx] == "" ) {
+            // we found the end of known IRQ names; stop searching and add this name to the end
+            break;
+        }
+    }
+    // if there is room for another IRQ
+    if ( idx < BMEMPERF_IRQ_MAX_TYPES ) {
+        RecordStateIrqsName[idx] = irqname;
+    }
+
+    return idx; // the specified name was NOT found
+}
+
+/**
+ *  Function: This function is similar to the function find_matching_irq(), but instead
+ *            of searching the global array RecordStateIrqsName[], it searches the HTML
+ *            table that is returned from the CGI every second.
+ **/
+function find_matching_irq_html( irqname )
+{
+    var idx=0;
+    var targetId = "";
+    var obj = 0;
+    var value = "";
+
+    for( idx=0; idx<BMEMPERF_IRQ_MAX_TYPES; idx++ ) {
+        targetId = "name_irq" + idx;
+        obj = document.getElementById( targetId);
+        if ( obj ) {
+            value = GetInnerHtml( targetId );
+            if ( value == irqname ) {
+                // we found the specified name ... return the index to the name
+                return idx;
+            }
+        } else {
+            // we found the end of known IRQ names; stop searching
+            break;
+        }
+    }
+    return idx; // the specified name was NOT found
+}
+
+/**
+ *  Function: This function will re-initialize all of the global network related arrays
+ *            back to their default states. This is needed for when the STB has added
+ *            or deleted a network interface from the ifconfig list.
+ **/
+function NetBytesInit()
+{
+    var idx=0;
+    var rxtx=0;
+
+    for(idx<0; idx<NET_STATS_MAX; idx++ ) {
+        for(rxtx=0; rxtx<2; rxtx++ ) {
+            NetBytesPrev[idx][rxtx] = 0;
+            NetBytesCummulative[idx][rxtx] = 0;
+            NetGfxDivisor[rxtx][idx] = 1;
+            NetGfxBytes[rxtx][idx] = "";
+        }
+        for(rxtx=0; rxtx<10 /* 10 seconds of history */; rxtx++ ) {
+            NetBytesRx10Seconds[idx][rxtx] = 0;
+            NetBytesTx10Seconds[idx][rxtx] = 0;
+        }
+        NetBytesRx10SecondsCount[idx] = 0;
+        NetBytesTx10SecondsCount[idx] = 0;
+        NetGfxCheckbox[idx] = 0;
+    }
+    NetBytesSeconds = 0;
+}
+
+/**
+ *  Function: This function will compute the difference between the current number
+ *            of bytes and the previous second's number of bytes. It has to take
+ *            into account the 32-bit (4GB) wrap around condition.
+ **/
+function ComputeDeltaFromPreviousSecond( currentValue, previousValue )
+{
+    var delta = 0;
+
+    if ( Number(currentValue) >= Number(previousValue) ) {
+        delta = Number(currentValue) - Number(previousValue);
+    } else {
+        // In some instances, current=598 and previous=8422 (do not know why this happens)
+        if ( Number(currentValue) < Number(previousValue) ) {
+            delta = 0;
+        } else {
+            delta = Number( 4*1024*1024*1024 ) - Number(previousValue);
+            delta += Number( currentValue );
+        }
+    }
+
+    return delta;
+}
+
+/**
  *  Function: This function will step through all of the responses that come back from the
  *            CGI call. Each response typically has special processing associated with each
  *            of them. This function is also called during Playback to simulate the same
@@ -2294,11 +2528,16 @@ function ProcessResponses ( oResponses )
         row_profiling_html.innerHTML = ""; // clear out the row
     }
 
+    if ( RecordCustomToCsv.length ) RecordCustomToCsvNewLineStarted = RecordCustomToCsvAddDate();
+
     if(debug) console.log("ProcessResponses: for i = 0 to " + oResponses.length );
     // loop through <response> elements, and add each nested
     for ( i = 0; i < oResponses.length; i++) {
         var entry = oResponses[i];
         if ( entry.length>1 ) if(debug==1) console.log("Entry " + entry + "; next len " + oResponses[i+1].length + eol );
+        if ( entry.length == 0 ) {
+            continue;
+        }
         if ( entry == "ALLDONE" ) {
             AddToDebugOutput ( entry + eol );
             ResponseCount++;
@@ -2310,6 +2549,13 @@ function ProcessResponses ( oResponses )
                 }
             }
 
+            // these values only come in once every 10 seconds, but we want to record them every second
+            RecordValueToCsv( "PHY_RSSI_ANT", 0, 0); // the values will be extracted from the wifi table in this function
+            RecordValueToCsv( "NRate", 0, 0); // the values will be extracted from the wifi table in this function
+            RecordValueToCsv( "WIFIRATE", 0, 0); // the values will be extracted from the wifi table in this function
+
+            RecordValueToCsv( entry, 0, 0);
+
             //AddToDebugOutput ( entry + ": calling setTimeout(); ID (" + CgiTimeoutId + ")"  + eol );
         } else if (entry == "FATAL") {
             AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
@@ -2318,6 +2564,7 @@ function ProcessResponses ( oResponses )
         } else if ( entry == "DEBUG" ) {
             AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
             if(debug) alert(entry + ":" + oResponses[i+1]);
+            console.log(entry + ":" + oResponses[i+1]);
             i++;
         } else if (entry == "VERSION") {
             AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
@@ -2400,10 +2647,15 @@ function ProcessResponses ( oResponses )
                                     if (objtitle) {
                                         var MHz = Number(gCpuFreq[idx]);
                                         if ( MHz == 0 || MHz == 999999 ) MHz = "__";
-                                        objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(&nbsp;" + usage + "% @ " + MHz + " MHz)";
+                                        // the img src filename is one more than the state variable ... state 0 -> record1.png
+                                        objtitle.innerHTML = "<img src=bsysperf_record" + Number(RecordStateCpus[idx] + 1).toString() +
+                                            ".png height=" + RECORD_BUTTON_HEIGHT + " id=record_cpu" + idx +
+                                            " onclick=\"MyClick(event);\" >&nbsp;&nbsp;CPU " + idx + "&nbsp;&nbsp;(&nbsp;" +
+                                            usage + "% @ " + MHz + " MHz)";
                                     }
 
                                     cpuUsageTotal += Number(usage);
+                                    RecordValueToCsv( "cpu", idx, usage );
                                     cpuActiveCount++;
                                 }
 
@@ -2431,9 +2683,11 @@ function ProcessResponses ( oResponses )
 
                         // if there are two or more CPUs, update the red overall average line and the limegreen 5-second cpu average line
                         if (gNumCpus > 1) {
-                            AppendPolylineXY ( 0, 100 - Math.floor ( Number( cpuUsageTotal / cpuActiveCount ) ) ); // update red CPU utilization average line
+                            var line_height = Math.floor ( Number( cpuUsageTotal / cpuActiveCount ) );
+                            AppendPolylineXY ( 0, 100 - line_height ); // update red CPU utilization average line
                             AppendPolylineXY ( gNumCpus, 100 - Math.floor ( Number( avg ) ) ); // line number needs to match the polyline0x definition in bsysperf.c
                                                                                                // update green 5-second CPU utilization average line
+                            RecordValueToCsv( "cpu", 0, Number( cpuUsageTotal / cpuActiveCount ).toFixed(1) );
                         }
                     }
 
@@ -2472,6 +2726,8 @@ function ProcessResponses ( oResponses )
             var obj2=document.getElementById("IRQDETAILS");
             if (obj2) {
                 obj2.innerHTML = oResponses[i+1];
+                RefreshRecordButtonsIrqs();
+                RecordValueToCsv( "irq", 0, 0); // the values will be extracted from the new table in this function
             }
             i++;
         } else if (entry == "MEMORY") {
@@ -2491,6 +2747,7 @@ function ProcessResponses ( oResponses )
             }
             i++;
         } else if (entry == "netStatsInit") { // only return when user first checks the Network Stats checkbox
+            NetBytesInit();
             PlaybacknetStatsInit = oResponses[i+1];
             if( RecordControl.Value > 0 ) RecordFileContents += "~" + entry + "~" + oResponses[i+1];
             var obj2 = document.getElementById("checkboxnets");
@@ -2500,13 +2757,31 @@ function ProcessResponses ( oResponses )
                     var obj2=document.getElementById("NETSTATS");
                     if (obj2) {
                         obj2.innerHTML = oResponses[i+1];
-                        AddToDebugOutput ( entry + ":iperfClientServerRow:" + iperfClientServerRow + eol );
+                        //AddToDebugOutput ( entry + ":iperfClientServerRow:" + iperfClientServerRow + eol );
                     }
 
                     // hide all ten of the histogram rows because the visibility:hidden attribute in the HTML doesn't work initially
-                    for ( var idx=0; idx<10; idx++) {
+                    for ( var idx=0; idx<NET_STATS_MAX; idx++) {
                         hideOrShow("row_netgfxsvg" + idx, HIDE );
                         hideOrShow("row_netgfxtxt" + idx, HIDE );
+                    }
+
+                    // set any record buttons that may have been previously checked
+                    for ( var idx=0; idx<NET_STATS_MAX; idx++) {
+                        SetElementSrc( "record_net" + idx, RecordStateFilename[ RecordStateNets[idx] ] );
+                    }
+
+                    // if we performed a Restore above, some graphs may be checked on
+                    for ( var idx=0; idx<NET_STATS_MAX; idx++) {
+                        var obj = document.getElementById( "checkbox_netgfx" + idx );
+                        if ( obj ) {
+                            if ( obj.checked ) {
+                                hideOrShow("row_netgfxsvg" + idx, SHOW );
+                                hideOrShow("row_netgfxtxt" + idx, SHOW );
+                            }
+                        } else {
+                            break;
+                        }
                     }
 
                     // if we are doing a playback
@@ -2539,22 +2814,34 @@ function ProcessResponses ( oResponses )
                 if( RecordControl.Value > 0 ) RecordFileContents += "~" + oResponses[i];
                 var splits = oResponses[i].split('|'); // rx_bytes|tx_bytes|rx_error|tx_error
                 if(debug) console.log ( entry + ":" + idx + " - " + oResponses[i] + ": splits.length=" + splits.length + eol );
-                if ( splits.length == 4 ) {
-                    var objcell = "";
-                    var tagid = "";
-                    for ( var jdx=0; jdx<splits.length; jdx++ ) {
-                        if ( jdx==0 ) {
-                            tagid = "netif_rxBytes_" + idx;
-                        } else if ( jdx==1 ) {
-                            tagid = "netif_txBytes_" + idx;
-                        } else if ( jdx==2 ) {
-                            tagid = "netif_rxError_" + idx;
-                        } else if ( jdx==3 ) {
-                            tagid = "netif_txError_" + idx;
-                        }
-                        objcell = document.getElementById( tagid );
-                        if (objcell) {
-                            objcell.innerHTML = splits[jdx];
+                if ( splits.length >= 5 ) {
+
+                    // the 3rd interface in the response might be the 4th interface in the HTML table
+                    var html_idx = find_matching_interface( splits[4] );
+                    if ( html_idx != idx ) {
+                        GetNetStatsInit = false;
+                        break;
+                    }
+
+                    if ( idx < NET_STATS_MAX ) {
+                        var objcell = "";
+                        var tagid = "";
+                        var loopmax = Math.min(splits.length,4); // Do not allow loop index to exceed Rx Bytes, Tx Bytes, Rxerrors, Txerrors.
+                                                                 // When we added the interface name as the 5th element, we had to add this check.
+                        for ( var jdx=0; jdx<loopmax; jdx++ ) {
+                            if ( jdx==0 ) {
+                                tagid = "netif_rxBytes_" + idx;
+                            } else if ( jdx==1 ) {
+                                tagid = "netif_txBytes_" + idx;
+                            } else if ( jdx==2 ) {
+                                tagid = "netif_rxError_" + idx;
+                            } else if ( jdx==3 ) {
+                                tagid = "netif_txError_" + idx;
+                            }
+                            objcell = document.getElementById( tagid );
+                            if (objcell) {
+                                objcell.innerHTML = splits[jdx];
+                            }
                         }
                     }
                 }
@@ -2591,81 +2878,129 @@ function ProcessResponses ( oResponses )
                     if(debug) console.log ( entry + ":" + oResponses[i+1] + eol );
                     NetBytesSeconds++;
 
+                    var idx;
                     var response = oResponses[i+1];
                     if(debug) console.log ( entry + ":" + response + "; NetBytesSeconds " + NetBytesSeconds + eol );
                     var oRxTxPairs = response.split( "," ); // split the response using comma delimiter
+                    var oRxTx = "";
 
-                    for (var idx = 0; idx < oRxTxPairs.length; idx++) {
+                    for (idx = 0; idx < oRxTxPairs.length; idx++) {
                         if(debug) console.log ( "NetIF " + idx + "str(" + oRxTxPairs[idx] + ")" + eol );
-                        if (idx < 10 && oRxTxPairs[idx].length >= 3 ) { // if we haven't exceeded array size and rxtx pair has some values
-                            var oRxTx = oRxTxPairs[idx].split( " " ); // split the response using space as delimiter
-                            var tagRx = "netif" + idx + "rx";
-                            var objRx = document.getElementById(tagRx);
-                            var tagTx = "netif" + idx + "tx";
-                            var objTx = document.getElementById(tagTx);
+                        if (idx < NET_STATS_MAX && oRxTxPairs[idx].length >= 3 ) { // if we haven't exceeded array size and rxtx pair has some values
+                            oRxTx = oRxTxPairs[idx].split( " " ); // 45835 1004 eth0 ... split the response using space as delimiter
 
-                            if(debug) console.log( entry + ": objRx (" + objRx + ") objTx (" + objTx + ")" );
-                            if (! objRx ) {
-                                continue;
+                            // the 3rd interface in the response might be the 4th interface in the HTML table
+                            var html_idx = find_matching_interface( oRxTx[2] );
+                            if ( html_idx != idx ) {
+                                GetNetStatsInit = false;
+                                break;
                             }
 
-                            if (! objTx ) {
-                                continue;
-                            }
+                            if ( idx < NET_STATS_MAX ) {
+                                var tagRx = "netif" + idx + "rx";
+                                var objRx = document.getElementById(tagRx);
+                                var tagTx = "netif" + idx + "tx";
+                                var objTx = document.getElementById(tagTx);
+                                var deltaFromPreviousSecond = 0;
 
-                            // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                            Mbps =  Number( (oRxTx[RX] - NetBytesPrev[idx][RX]) / 128 / 1024);
-                            Bits =  Number( (oRxTx[RX] - NetBytesPrev[idx][RX]) * 8 );
+                                if(debug) console.log( entry + ": objRx (" + objRx + ") objTx (" + objTx + ")" );
+                                if ( idx != idx ) { // a network interface was added or deleted
+                                    GetNetStatsInit = true; // refresh the network interface list
+                                    //console.log( "response " + idx + " differs from global " + idx + " for " + oRxTx[2] + ";  response (" + response + ")" );
+                                }
 
-                            if (NetBytesPrev[idx][RX] > 0 && (oRxTx[RX] >= NetBytesPrev[idx][RX]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
-                                // if the array has filled up
-                                if (NetBytesRx10SecondsCount[idx] == 10) {
-                                    for (idx2=0; idx2<(NetBytesRx10SecondsCount[idx]-1); idx2++) {
-                                        NetBytesRx10Seconds[idx][idx2] = NetBytesRx10Seconds[idx][idx2+1];
+                                if (! objRx ) {
+                                    continue;
+                                }
+
+                                if (! objTx ) {
+                                    continue;
+                                }
+
+                                deltaFromPreviousSecond = ComputeDeltaFromPreviousSecond ( oRxTx[RX], NetBytesPrev[idx][RX] );
+
+                                // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                                Mbps =  Number( deltaFromPreviousSecond / 128 / 1024);
+                                Bits =  Number( deltaFromPreviousSecond * 8 );
+
+                                if (NetBytesPrev[idx][RX] > 0 && (NetBytesSeconds > 1) && (Mbps > 0) ) {
+                                    // if the array has filled up
+                                    if ( NetBytesRx10SecondsCount[idx] == 10 /* 10 seconds */ ) {
+                                        for (idx2=0; idx2<(NetBytesRx10SecondsCount[idx]-1); idx2++) {
+                                            NetBytesRx10Seconds[idx][idx2] = NetBytesRx10Seconds[idx][idx2+1];
+                                        }
+                                        NetBytesRx10SecondsCount[idx] = 9;
                                     }
-                                    NetBytesRx10SecondsCount[idx] = 9;
-                                }
-                                NetBytesRx10Seconds[idx][NetBytesRx10SecondsCount[idx]] = Mbps;
-                                NetBytesRx10SecondsCount[idx]++;
-                                if (objRx) {
-                                    // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
-                                    // convert bytes to megabits
-                                    // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                    objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, RX ) + ")"; // 0 for RX and 1 for TX
-                                }
-                            } else {
-                                objRx.innerHTML = "0.000 (0.000)";
-                            }
-                            UpdateNetGfxElements ( idx, RX, NetBytesPrev[idx][RX], oRxTx[RX] );
-                            NetBytesPrev[idx][RX] = oRxTx[RX];
-
-                            // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                            Mbps =  Number( (oRxTx[TX] - NetBytesPrev[idx][TX]) / 128 / 1024);
-                            Bits =  Number( (oRxTx[TX] - NetBytesPrev[idx][TX]) * 8 );
-
-                            if (NetBytesPrev[idx][TX] > 0 && (oRxTx[TX] >= NetBytesPrev[idx][TX]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
-                                // if the array has filled up, move the entries left one position and add new entry to the very end
-                                if (NetBytesTx10SecondsCount[idx] == 10) {
-                                    for (idx2=0; idx2<(NetBytesTx10SecondsCount[idx]-1); idx2++) {
-                                        NetBytesTx10Seconds[idx][idx2] = NetBytesTx10Seconds[idx][idx2+1];
+                                    NetBytesRx10Seconds[idx][NetBytesRx10SecondsCount[idx]] = Mbps;
+                                    NetBytesRx10SecondsCount[idx]++;
+                                    if ( NetBytesRx10SecondsCount[idx] > 10 ) NetBytesRx10SecondsCount[idx] = 10;
+                                    if (objRx) {
+                                        // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
+                                        // convert bytes to megabits
+                                        // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                                        objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, RX ) + ")"; // 0 for RX and 1 for TX
                                     }
-                                    NetBytesTx10SecondsCount[idx] = 9;
+                                } else {
+                                    objRx.innerHTML = "0.000 (0.000)";
+                                    wlanZero = true;
+                                    if ( oRxTx[2] == "wlan0" ) {
+                                        if ( oRxTx[RX] == NetBytesPrev[idx][RX] ) {
+                                            //console.log( "RX bytes current match previous ... " + oRxTx[RX] + " and " + NetBytesPrev[idx][RX] );
+                                        } else {
+                                            if ( NetBytesPrev[idx][RX] == 0 ) {
+                                            } else {
+                                                //console.log( "RX bytes current differs from  previous ... " + oRxTx[RX] + " and " + NetBytesPrev[idx][RX] );
+                                            }
+                                        }
+                                    }
                                 }
-                                NetBytesTx10Seconds[idx][NetBytesTx10SecondsCount[idx]] = Mbps;
-                                NetBytesTx10SecondsCount[idx]++;
-                                if (objTx) {
-                                    // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
-                                    // convert bytes to megabits
-                                    // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                    objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, TX ) + ")"; // 0 for RX and 1 for TX
+                                UpdateNetGfxElements ( idx, RX, NetBytesPrev[idx][RX], oRxTx[RX] );
+                                NetBytesPrev[idx][RX] = oRxTx[RX];
+                                RecordValueToCsv( "netRx", idx, deltaFromPreviousSecond );
+
+                                deltaFromPreviousSecond = ComputeDeltaFromPreviousSecond ( oRxTx[TX], NetBytesPrev[idx][TX] );
+
+                                // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                                Mbps =  Number( deltaFromPreviousSecond / 128 / 1024);
+                                Bits =  Number( deltaFromPreviousSecond * 8 );
+
+                                if (NetBytesPrev[idx][RX] > 0 && (NetBytesSeconds > 1) && (Mbps > 0) ) {
+                                    // if the array has filled up, move the entries left one position and add new entry to the very end
+                                    if ( NetBytesTx10SecondsCount[idx] == 10 /* 10 seconds */ ) {
+                                        for (idx2=0; idx2<(NetBytesTx10SecondsCount[idx]-1); idx2++) {
+                                            NetBytesTx10Seconds[idx][idx2] = NetBytesTx10Seconds[idx][idx2+1];
+                                        }
+                                        NetBytesTx10SecondsCount[idx] = 9;
+                                    }
+                                    NetBytesTx10Seconds[idx][NetBytesTx10SecondsCount[idx]] = Mbps;
+                                    NetBytesTx10SecondsCount[idx]++;
+                                    if ( NetBytesTx10SecondsCount[idx] > 10 ) NetBytesTx10SecondsCount[idx] = 10;
+                                    if (objTx) {
+                                        // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
+                                        // convert bytes to megabits
+                                        // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
+                                        objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, TX ) + ")"; // 0 for RX and 1 for TX
+                                    }
+                                } else {
+                                    objTx.innerHTML = "0.000 (0.000)";
+                                    wlanZero = true;
+                                    if ( oRxTx[2] == "wlan0" ) {
+                                        if ( oRxTx[TX] == NetBytesPrev[idx][TX] ) {
+                                            //console.log( "TX bytes current match previous ... " + oRxTx[TX] + " and " + NetBytesPrev[idx][TX] );
+                                        } else {
+                                            if ( NetBytesPrev[idx][TX] == 0 ) {
+                                            } else {
+                                                //console.log( "TX bytes current differs from  previous ... " + oRxTx[TX] + " and " + NetBytesPrev[idx][TX] );
+                                            }
+                                        }
+                                    }
                                 }
-                            } else {
-                                objTx.innerHTML = "0.000 (0.000)";
+                                UpdateNetGfxElements ( idx, TX, NetBytesPrev[idx][TX], oRxTx[TX] );
+                                NetBytesPrev[idx][TX] = oRxTx[TX];
+                                RecordValueToCsv( "netTx", idx, deltaFromPreviousSecond );
                             }
-                            UpdateNetGfxElements ( idx, TX, NetBytesPrev[idx][TX], oRxTx[TX] );
-                            NetBytesPrev[idx][TX] = oRxTx[TX];
-                        }
-                    }
+                        } // endif netname returned as response
+                    }  // endfor each response
                 } else {
                     AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
                 }
@@ -2849,8 +3184,14 @@ function ProcessResponses ( oResponses )
                     //alert( entry + " - (" + oResponses[i+1] + ")" );
                     var obj3=document.getElementById("WIFISTATS");
                     if (obj3) {
+                        var obj4 = 0;
                         obj3.innerHTML = oResponses[i+1];
                         GetWifiStats.Value = 0;
+
+                        // adjust the record button status based on previous value
+                        if ( RecordStatePHY_RSSI_ANT ) SetElementSrc( "record_PHY_RSSI_ANT", RecordStateFilename[1] );
+                        if ( RecordStateWIFIRATE     ) SetElementSrc( "record_WIFIRATE",     RecordStateFilename[1] );
+                        if ( RecordStateNRate        ) SetElementSrc( "record_NRate",        RecordStateFilename[1] );
                     }
                     GetWifiStatsCountdown = 10;
                 } else {
@@ -4236,7 +4577,7 @@ function ExportNetStatsListener ()
                                 csv += "UNIXTIME";
                                 var obj = 0;
                                 for ( var eth=0; eth<eth_entries.length; eth++ ) {
-                                    obj = document.getElementById ( "ethname" + eth ); //look for the ethernet interface name
+                                    obj = document.getElementById ( "netname" + eth ); //look for the ethernet interface name
                                     if ( obj ) {
                                         csv += "," + obj.innerHTML + " RX," + obj.innerHTML + " TX"; // we found the interface name
                                     } else {
@@ -4259,6 +4600,25 @@ function ExportNetStatsListener ()
     }
 
     link.href = makeTextFile( csv );
+    document.body.appendChild(link);
+
+    // wait for the link to be added to the document
+    window.requestAnimationFrame(function () {
+        var event = new MouseEvent('click');
+        link.dispatchEvent(event);
+        document.body.removeChild(link);
+    }); // end call to requestAnimationFrame
+}
+
+/**
+ *  Function: This function will handle the processing when the user selects the "Export All Stats" button.
+ **/
+function ExportAllStatsListener ()
+{
+    var link = document.createElement('a');
+
+    link.setAttribute('download', RecordCustomToCsvFilename );
+    link.href = makeTextFile( RecordCustomToCsv );
     document.body.appendChild(link);
 
     // wait for the link to be added to the document
@@ -4368,6 +4728,7 @@ function readText(that)
             // unlike the other inputs, these two buttons should get enabled but never disabled
             setButtonDisabled( 'buttonExportCpuStats', false );
             setButtonDisabled( 'buttonExportNetStats', false );
+            setButtonDisabled( 'buttonExportAllStats', false );
 
             UpdateProgressGraph ();
 
@@ -4399,4 +4760,509 @@ function output_size_in_human( num_bytes )
     {
         return ( Number( num_bytes / 1024 / 1024 / 1024).toFixed(1) + " GB" );
     }
+}
+
+/**
+ *  Function: This function will create a new string number that has commas after
+ *            every three digits.
+ **/
+function AddCommas ( num )
+{
+    var num_abs = Math.abs(num);
+    var numStr = num_abs.toString();
+    var new_num = "";
+    var decimal = 0;
+    // sometimes we have to add a comma after just one (1,234) or two (12,345) digits
+    var precharge = Number (3 - ( num_abs.toFixed(0).length % 3 ) );
+    // loop through each digit of the number ... inserting commas along the way
+    for (var idx=0; idx<numStr.length; idx++ ) {
+        // if we ever find a decimal point, stop adding commas
+        if ( ( new_num.length ) && ( (precharge%3) == 0 ) && ( decimal == 0 ) ) {
+            if ( numStr.charAt(idx) == '.' ) {
+                decimal = 1;
+            } else {
+                new_num += ',';
+            }
+        }
+        new_num += numStr.charAt(idx);
+        precharge++;
+    }
+
+    if ( num < 0 ) new_num = "(" + new_num + ")";
+    return new_num;
+}
+
+/**
+ *  Function: This function will update the persistent record state when the user clicks
+ *            one of the small record buttons (cpu, network, irqs, wifi).
+ **/
+function UpdateRecordState( fieldName, state )
+{
+    var which_idx = 0;
+    if ( fieldName.indexOf( "_cpu" ) > 0 ) {
+        which_idx = fieldName.substr(10,99);
+        //console.log( "CPU (" + which_idx + ")" );
+        if ( which_idx < BMEMPERF_MAX_NUM_CPUS ) {
+            RecordStateCpus[which_idx] = state;
+        }
+    } else if ( fieldName.indexOf( "_net" ) > 0 ) {
+        which_idx = fieldName.substr(10,99);
+        var targetId = "netname" + which_idx;
+        var obj = document.getElementById( targetId );
+        if ( obj ) {
+            //console.log( "NET (" + targetId + ") ... name (" + obj.innerHTML + ")" );
+            if ( which_idx < NET_STATS_MAX) {
+                RecordStateNets[which_idx] = state;
+            }
+        }
+    } else if ( fieldName.indexOf( "_irq" ) > 0 ) {
+        which_idx = fieldName.substr(10,99);
+        var targetId = "name_irq" + which_idx;
+        var obj = document.getElementById( targetId );
+        if ( obj ) {
+            if ( which_idx < BMEMPERF_IRQ_MAX_TYPES) {
+                // Because the IRQs in from the STB in sorted order, the IRQs could be in radically different order ...
+                // especially when records and playback startup and stop.
+                var g_idx = find_matching_irq( obj.innerHTML );
+                if ( g_idx < BMEMPERF_IRQ_MAX_TYPES ) {
+                    RecordStateIrqsValue[g_idx] = state;
+                    //console.log( "IRQ (" + targetId + ") ... description (" + obj.innerHTML + ") ... g_idx (" + g_idx + ")"); // DEBUG
+                }
+            }
+        }
+    } else if ( fieldName.indexOf( "PHY_RSSI_ANT" ) > 0 ) {
+        // look for element id=PHY_RSSI_ANT
+        var targetId = "PHY_RSSI_ANT";
+        var obj = document.getElementById( targetId );
+        if ( obj ) {
+            RecordStatePHY_RSSI_ANT = state;
+        }
+    } else if ( fieldName.indexOf( "WIFIRATE" ) > 0 ) {
+        // look for element id=WIFIRATE
+        var targetId = "WIFIRATE";
+        var obj = document.getElementById( targetId );
+        if ( obj ) {
+            RecordStateWIFIRATE = state;
+        }
+    } else if ( fieldName.indexOf( "NRate" ) > 0 ) {
+        // look for element id=NRate
+        var targetId = "NRate";
+        var obj = document.getElementById( targetId );
+        if ( obj ) {
+            RecordStateNRate = state;
+        }
+    }
+}
+
+/**
+ *  Function: This function will loop through all of the irqs that are listed in the
+ *            current table and match them with any irq that had previously been click
+ *            on for record. Since the irq table is refreshed every second and since the
+ *            new order might be totally different from the previous order, we have to
+ *            loop through each and every one of them to remember which one had been
+ *            clicked for record in the past.
+ **/
+function RefreshRecordButtonsIrqs()
+{
+    var idx=0;
+    for( idx=0; idx<BMEMPERF_IRQ_MAX_TYPES; idx++ ) {
+        // if the IRQ name is valid and it state indicates the record button should be on
+        if ( RecordStateIrqsName[idx] != "" ) {
+            if ( RecordStateIrqsValue[idx] == 1 ) {
+                var g_idx = 0;
+                for( g_idx=0; g_idx<BMEMPERF_IRQ_MAX_TYPES; g_idx++ ) {
+                    var obj = document.getElementById( "name_irq" + g_idx );
+                    var obj_button = document.getElementById( "record_irq" + g_idx );
+                    if ( obj && obj_button ) {
+                        var obj_name = obj.innerHTML;
+                        var obj_src = obj_button.src;
+                        if ( obj_name == RecordStateIrqsName[idx] ) {
+                            obj_button.src = RecordStateFilename[1]; // set the image to ... "recording on"
+                            break; // we found what we were looking for; exit this inner loop
+                        }
+                    } else {
+                        break; // we have reached the end of known IRQs; stop looking
+                    }
+                }
+            }
+        } else {
+            break;
+        }
+    }
+}
+
+var RecordCustomToCsvMilliseconds = 0;
+var RecordCustomToCsvNewLineStarted = false;
+/**
+ *  Function: This function will append to the running CSV string the current date and
+ *            exclude the time portion of the string.
+ **/
+function RecordCustomToCsvHeadersBeginning ( mydate )
+{
+    if ( RecordCustomToCsv.length == 0 ) {
+        // Create a new filename based on the current browser time (will be used when user hits the "Export All" button.
+        var local = new Date();
+        var localdatetime = local.getFullYear() + (local.getMonth()+1).padZero() + local.getDate().padZero() +
+            "_" + local.getHours().padZero() + local.getMinutes().padZero() + local.getSeconds().padZero();
+
+        RecordCustomToCsvFilename = "bsysperf_allstats_" + localdatetime + ".csv";
+
+        RecordCustomToCsv += mydate.substr( 0, Number(mydate.indexOf(":") - 3)); // only include the date ... not the time
+        RecordCustomToCsvNewLineStarted = true;
+    }
+    return true;
+}
+
+/**
+ *  Function: This function will append to the running CSV string the header row that
+ *            is associated with all of the items the user is attempting to record.
+ *            The order of the header row needs to match the order that the entries
+ *            are added to the CSV string in the function ProcessResponses().
+ **/
+function RecordCustomToCsvHeaders ( mydate )
+{
+    var elements = document.querySelectorAll("[id^='record_']");
+    var e = 0;
+    var targetId = "";
+    var which_idx = 0;
+    var value = "";
+    var bHeaderStarted = false;
+    var obj = 0;
+
+    obj = document.getElementById('checkboxcpus');
+    if ( obj && obj.checked ) {
+        var cpu_count = 0;
+        // loop through all of the elements to see which elements have been selected to be recorded
+        for(var idx=0; idx<elements.length; idx++ ) {
+           e = elements[idx];
+           targetId = e.id;
+           if ( targetId.indexOf( "cpu" ) > 0) { // record_cpu1
+               which_idx = targetId.substr(10,99);
+               if ( RecordStateCpus[which_idx] ) {
+                   if ( bHeaderStarted == false ) bHeaderStarted = RecordCustomToCsvHeadersBeginning ( mydate );
+                   RecordValueToCsv( targetId, which_idx, "CPU " + which_idx );
+                   cpu_count++;
+               }
+            }
+        }
+        // if we output more than one cpu, also output the cpu average
+        if ( cpu_count > 1 ) RecordValueToCsv( "cpu", 999, "CPU AVG" );
+    }
+    obj = document.getElementById('checkboxirqs');
+    if ( obj && obj.checked ) {
+        for(var idx=0; idx<elements.length; idx++ ) {
+           e = elements[idx];
+           targetId = e.id;
+           if ( targetId.indexOf( "irq" ) > 0 ) { // record_irq14
+               which_idx = targetId.substr(10,99);
+               if ( RecordStateIrqsValue[which_idx] ) {
+                   // some of the possible cpus could be inactive or physically non-existent; we need to check each of possible cpus
+                   for( var cpu=0; cpu<BMEMPERF_MAX_NUM_CPUS; cpu++ ) {
+                       var irqid = "irqs_cpu" + cpu;
+                       var value = GetInnerHtml( irqid );
+                       if ( value.indexOf("CPU") == 0 ) {
+                           if ( bHeaderStarted == false ) bHeaderStarted = RecordCustomToCsvHeadersBeginning ( mydate );
+                           RecordValueToCsv( "irq", 999, "IRQ:" + RecordStateIrqsName[which_idx] + " - CPU " + cpu );
+                       }
+                   }
+               }
+            }
+        }
+    }
+    obj = document.getElementById('checkboxnets');
+    if ( obj && obj.checked ) {
+        for(var idx=0; idx<elements.length; idx++ ) {
+           e = elements[idx];
+           targetId = e.id;
+           if ( targetId.indexOf( "net" ) > 0 ) { // record_net2
+               which_idx = targetId.substr(10,99);
+               if ( RecordStateNets[which_idx] ) {
+                   var netname = GetInnerHtml ( "netname" + which_idx );
+                   var netipAddress = GetInnerHtml ( "netipAddress" + which_idx );
+                   if ( bHeaderStarted == false ) bHeaderStarted = RecordCustomToCsvHeadersBeginning ( mydate );
+                   RecordValueToCsv( "net" + which_idx, which_idx, netname + " (" + netipAddress + ") Rx Bytes" );
+                   RecordValueToCsv( "net" + which_idx, which_idx, netname + " (" + netipAddress + ") Tx Bytes" );
+               }
+            }
+        }
+    }
+    obj = document.getElementById('checkboxwifi');
+    if ( obj && obj.checked ) {
+        for(var idx=0; idx<elements.length; idx++ ) {
+           e = elements[idx];
+           targetId = e.id;
+           if ( targetId.indexOf( "PHY_RSSI_ANT" ) > 0 ) { // record_PHY_RSSI_ANT
+               if ( RecordStatePHY_RSSI_ANT ) {
+                   var PHY_RSSI_ANT = GetInnerHtml ( "PHY_RSSI_ANT" );
+                   if ( bHeaderStarted == false ) bHeaderStarted = RecordCustomToCsvHeadersBeginning ( mydate );
+                   for (var ant=0; ant<4; ant++ ) {
+                       RecordValueToCsv( "PHY_RSSI_ANT", 999, "PHY_RSSI_ANT " + ant );
+                   }
+               }
+            }
+        }
+        for(var idx=0; idx<elements.length; idx++ ) {
+           e = elements[idx];
+           targetId = e.id;
+           if ( targetId.indexOf( "NRate" ) > 0 ) { // record_NRate
+               if ( RecordStateNRate ) {
+                   var NRate = GetInnerHtml ( "NRate" );
+                   if ( bHeaderStarted == false ) bHeaderStarted = RecordCustomToCsvHeadersBeginning ( mydate );
+                   RecordValueToCsv( "NRate", 999, "MCS");
+                   RecordValueToCsv( "NRate", 999, "NSS");
+                   RecordValueToCsv( "NRate", 999, "BW");
+               }
+           }
+        }
+        for(var idx=0; idx<elements.length; idx++ ) {
+           e = elements[idx];
+           targetId = e.id;
+           if ( targetId.indexOf( "WIFIRATE" ) > 0 ) { // record_WIFIRATE
+               if ( RecordStateWIFIRATE ) {
+                   var WIFIRATE = GetInnerHtml ( "WIFIRATE" );
+                   if ( bHeaderStarted == false ) bHeaderStarted = RecordCustomToCsvHeadersBeginning ( mydate );
+                   RecordValueToCsv( "WIFIRATE", 999, "WIFIRATE");
+               }
+            }
+        }
+    }
+    //if ( bHeaderStarted == true ) RecordCustomToCsv += "\n";
+    return true;
+} // RecordCustomToCsvHeaders
+
+/**
+ *  Function: This function will append to the running CSV string the current time in the
+ *            hh:mm:ss format. This function is responsible for determining if it has been
+ *            called too soon (i.e. less than 900 milliseconds since the previous call).
+ *            Sometimes when the user selects one of the buttons on the page, a request
+ *            will get sent to the CGI just a few milliseonds after the previous request.
+ *            This function ensures that the CSV lines are a second apart.
+ **/
+function RecordCustomToCsvAddDate()
+{
+    if ( RecordCustomToCsvLastItem == "" && RecordControl.Value > 0 ) {
+        var local = new Date();
+        var date_time = local.toString();
+        var just_time = "";
+        var colon = date_time.indexOf(":");
+        var milliseconds_now = Date.now();
+        var delta = Number( milliseconds_now - RecordCustomToCsvMilliseconds );
+
+        if ( colon > 0 ) {
+            date_time = date_time.substr(0,Number(colon+6)) /*+ "." + local.getMilliseconds()*/;
+            just_time = date_time.substr(Number(date_time.indexOf(":") - 2),99); // only include the time ... not the date
+        }
+
+        // ignore timestamps that are less than a second (900 milliseconds handles requests that come in after just 954 milliseconds);
+        if ( delta > 900 ) {
+            RecordCustomToCsv += /*"," + delta + "..." + */ just_time;
+            RecordCustomToCsvLastItem = just_time;
+            RecordCustomToCsvMilliseconds = milliseconds_now;
+            return true;
+        }
+    }
+
+    return false;
+}
+/**
+ *  Function: This function will append to the running CSV string the value provided
+ *            by the caller. Some entries require some pre-processing before being
+ *            appended to the CSV string (e.g. each irq has 2, 4, or 8 CPUs associated
+ *            with each one. Some of the Wifi entries need to be parsed to extract
+ *            elements from a larger string (MCS, NSS, BW, etc).
+ **/
+function RecordValueToCsv( tagId, which_idx, value )
+{
+    if ( Number(value) > Number(3*1024*1024*1024) ) {
+        var temp = value;
+    }
+    if ( RecordControl.Value > 0 ) {
+        var objwifi = document.getElementById('checkboxwifi');
+        //var milliseconds_now = Date.now();
+        //var delta = Number( milliseconds_now - RecordCustomToCsvMilliseconds );
+        // ignore timestamps that are less than a second (900 milliseconds handles requests that come in after just 954 milliseconds);
+        if ( RecordCustomToCsvNewLineStarted ) {
+            if ( tagId.indexOf("cpu") >= 0 ) {
+                if ( which_idx == 999 ) { // caller is providing the needed value
+                    RecordCustomToCsv += "," + value;
+                    RecordCustomToCsvLastItem = tagId;
+                } else {
+                    if ( which_idx < BMEMPERF_MAX_NUM_CPUS && RecordStateCpus[which_idx] == 1 ) {
+                        RecordCustomToCsv += "," + value;
+                        RecordCustomToCsvLastItem = tagId + which_idx;
+                    } else {
+                        //RecordCustomToCsv += ",cpu" + which_idx + "not recording";
+                    }
+                }
+            } else if ( tagId.indexOf("net") >= 0 ) {
+                if ( which_idx < NET_STATS_MAX && RecordStateNets[which_idx] == 1 ) {
+                    RecordCustomToCsv += "," + value;
+                    RecordCustomToCsvLastItem = tagId + which_idx;
+                }
+            } else if ( tagId.indexOf("irq") >= 0 ) {
+                if ( which_idx == 999 ) { // caller is providing the needed value
+                    RecordCustomToCsv += "," + value;
+                    RecordCustomToCsvLastItem = tagId;
+                } else {
+                    // loop through all possible irqs and find ones that are being recorded
+                    for( var idx=0; idx<BMEMPERF_IRQ_MAX_TYPES ; idx++ ) {
+                        var value = 0;
+                        if ( RecordStateIrqsValue[idx] == 1 ) {
+                            var g_idx = find_matching_irq_html( RecordStateIrqsName[idx] );
+                            if ( g_idx < BMEMPERF_IRQ_MAX_TYPES ) {
+                                // get the irq values associated with all active cpus
+                                for(var cpu=0; cpu<BMEMPERF_MAX_NUM_CPUS ; cpu++ ) {
+                                   // get value from id=irq%u_cpu%u
+                                   value = GetInnerHtml( "irq" + g_idx + "_" + "cpu" + cpu );
+                                   if ( value.length > 0 ) {
+                                       if ( value.indexOf( "unknown" ) > 0 ) {
+                                           // we found a cpu that does not exist
+                                       } else {
+                                           // look for the value in parentheses and extract it; if no parentheses found ... value is 0
+                                           var left_paren = value.indexOf( "(" );
+                                           if ( left_paren > 0 ) {
+                                               left_paren++;
+                                               value = value.substr(left_paren, Number(value.indexOf( ")" ) - left_paren ) );
+                                               // remove any commas that may be in the value ... e.g. 648,211
+                                               value = value.replace(/,/g,"");
+                                           } else {
+                                               value = 0;
+                                           }
+                                           RecordCustomToCsv += "," + value;
+                                           RecordCustomToCsvLastItem = "irq" + g_idx + "_" + "cpu" + cpu;
+                                       }
+                                   }
+                                }
+                            }
+                        } else if ( RecordStateIrqsName[idx] == "" ) { // if we reached the end of known irq descriptions, stop looking
+                            break;
+                        }
+                    }
+                }
+            } else if ( tagId.indexOf("PHY_RSSI_ANT") >= 0 ) {
+                if ( which_idx == 999 ) { // caller is providing the needed value
+                    RecordCustomToCsv += "," + value;
+                    RecordCustomToCsvLastItem = tagId;
+                } else {
+                    if ( RecordStatePHY_RSSI_ANT == 1 && objwifi && objwifi.checked ) {
+                        // extract the four antenna values from the table
+                        var value = GetInnerHtml ( "PHY_RSSI_ANT" );
+                        value = value.replace( /&nbsp;&nbsp;/g, " " );
+                        var values = value.split(" ");
+                        for(var idx=0; idx<values.length; idx++) {
+                            if ( values[idx].length ) RecordCustomToCsv += "," + values[idx];
+                        }
+                        RecordCustomToCsvLastItem = tagId + which_idx;
+                    }
+                }
+            } else if ( tagId.indexOf("WIFIRATE") >= 0 ) {
+                if ( which_idx == 999 ) { // caller is providing the needed value
+                    RecordCustomToCsv += "," + value;
+                    RecordCustomToCsvLastItem = tagId;
+                } else {
+                    if ( RecordStateWIFIRATE == 1 && objwifi && objwifi.checked ) {
+                        var value = GetInnerHtml ( "WIFIRATE" );
+                        RecordCustomToCsv += "," + value;
+                        RecordCustomToCsvLastItem = tagId + which_idx;
+                    }
+                }
+            } else if ( tagId.indexOf("NRate") >= 0 ) {
+                if ( which_idx == 999 ) { // caller is providing the needed value
+                    RecordCustomToCsv += "," + value;
+                    RecordCustomToCsvLastItem = tagId;
+                } else {
+                    if ( RecordStateNRate == 1 && objwifi && objwifi.checked ) {
+                        var value = GetInnerHtml ( "NRate" );
+                        value = value.replace( /&nbsp;/g, " " );
+                        var values = value.split(" ");
+                        // extract MCS, NSS, and BW
+                        for (var idx=0; idx<values.length; idx++ ) {
+                            if ( values[idx] == "mcs" ) {
+                                RecordCustomToCsv += "," + values[idx+1];
+                                break;
+                            }
+                        }
+                        if ( idx==values.length) RecordCustomToCsv += ",0" ; // the "mcs" tag could not be found
+
+                        for (var idx=0; idx<values.length; idx++ ) {
+                            if ( values[idx] == "Nss" ) {
+                                RecordCustomToCsv += "," + values[idx+1];
+                                break;
+                            }
+                        }
+                        if ( idx==values.length) RecordCustomToCsv += ",0" ; // the "Nss" tag could not be found
+
+                        for (var idx=0; idx<values.length; idx++ ) {
+                            if ( values[idx] == "BW" ) {
+                                RecordCustomToCsv += "," + values[idx+1];
+                                break;
+                            }
+                        }
+                        if ( idx==values.length) RecordCustomToCsv += ",0" ; // the "BW" tag could not be found
+
+                        RecordCustomToCsvLastItem = tagId + which_idx;
+                    }
+                }
+            } else {
+            }
+        }
+        if ( tagId == "ALLDONE" ) {
+            // if something was recorded during this pass, add end of line to the file
+            if ( RecordCustomToCsvLastItem.length ) {
+                    RecordCustomToCsv += "\n";
+                    RecordCustomToCsvCount++;
+            }
+            RecordCustomToCsvLastItem = "";
+        }
+    }
+}
+/**
+ *  Function: This function will return to the caller the current contents of the innerHTML
+ *            field of the element specified.
+ **/
+function GetInnerHtml ( targetId )
+{
+    var obj = document.getElementById ( targetId );
+    if ( obj ) {
+        return obj.innerHTML;
+    }
+    return ( targetId + " is unknown" );
+}
+/**
+ *  Function: This function will set the source file for the specified HTML element.
+ **/
+function SetElementSrc ( targetId, new_src_file )
+{
+    var obj = document.getElementById ( targetId );
+    if ( obj ) {
+        if ( targetId.indexOf( "net") >= 0 ) {
+            var temp = targetId;
+        }
+        obj.src = new_src_file;
+    }
+}
+/**
+ *  Function: This function will loop through all of the record buttons and change the
+ *            image to the corresponding "record on" for all entries. This is a much
+ *            faster method than having the user click all 20 or 30-so recordable entries.
+ **/
+function SetRecordAll( state )
+{
+    var idx = 0;
+    var targetId = "";
+    var elements = document.querySelectorAll("[id^='record_']");
+    // loop through all of the elements
+    for(idx=0; idx<elements.length; idx++ ) {
+       var e = elements[idx];
+       if ( e ) {
+           targetId = e.id;
+           UpdateRecordState( targetId, state );
+           if ( state == 0 ) {
+               SetElementSrc( targetId, RecordStateFilename[0] );
+           } else {
+               SetElementSrc( targetId, RecordStateFilename[1] );
+           }
+       }
+    }
+    return true;
 }

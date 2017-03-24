@@ -445,6 +445,7 @@ typedef struct BXDM_Picture_DisplayInfo
    BAVC_ColorPrimaries eColorPrimaries;
    BAVC_TransferCharacteristics eTransferCharacteristics;
    BXDM_Picture_VideoFormat eVideoFormat;
+   BAVC_ColorRange eColorRange; /* SWSTB-1873: support for color range */
 
    uint32_t bValid;
 } BXDM_Picture_DisplayInfo;

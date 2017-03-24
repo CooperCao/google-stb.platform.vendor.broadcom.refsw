@@ -496,15 +496,22 @@ sub generate_nodes {
 
             if($clk_tree->{$src}{_div}) {
 
-                $hw_node = $node;
-                $hw_node =~ s/^HW_//;
-                $hw_node =~ s/DIS_//;
-                $hw_node =~ s/CH_\d_//;
-                $hw_node =~ s/CH_//;
-                $hw_node =~ s/POST_//;
-                $hw_node =~ s/DIV_//;
-                $hw_node =~ s/HOLD_//;
-                $hw_node = "DV_".$hw_node."_div";
+                if($create_hw) {
+                    #$hw_node = $node;
+                    $hw_node = $src;
+                    $hw_node =~ s/^HW_//;
+                    $hw_node =~ s/DIS_//;
+                    $hw_node =~ s/CH_\d_//;
+                    $hw_node =~ s/CH_//;
+                    $hw_node =~ s/POST_//;
+                    $hw_node =~ s/(M|N|P)DIV_//;
+                    $hw_node =~ s/DIV_//;
+                    $hw_node =~ s/PLL_//g;
+                    $hw_node =~ s/HOLD_//;
+                    $hw_node =~ s/CLKGEN_//;
+                    $hw_node =~ s/CHANNEL_//g;
+                    $hw_node = "DV_".$hw_node."_div";
+                }
 
                 if(!exists $nodes->{$node}{_list}{$hw_node}) {
                     push(@{$nodes->{$node}{_order}}, $hw_node);
@@ -516,6 +523,16 @@ sub generate_nodes {
                 if(!exists $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_pmap}) {
                     if(exists $clk_tree->{$src}{_pmap}) {
                         $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_pmap} = $clk_tree->{$src}{_pmap}
+                    }
+                }
+
+                if(!exists $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_shared}) {
+                    $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_shared} = 0;
+                    foreach my $func (@{$clk_tree->{$src}{_funcs}}){
+                        if(!is_nexus_function($func)) {
+                            $hw_desc->{$hw_node}{$reg}{_field}{$clk_tree->{$src}{_div}}{_shared} = 1;
+                            last;
+                        }
                     }
                 }
 
@@ -594,6 +611,52 @@ sub generate_nodes {
 	}
 }
 
+sub trim_dv_nodes {
+    my ($nodes, $hw_desc) = @_;
+
+    foreach my $node (keys %$nodes) {
+        foreach my $hw_node (keys %{$nodes->{$node}{_list}}) {
+            if($hw_node =~ /^DV_/) {
+                my $pmap_found = 0;
+                foreach my $reg (sort keys %{$hw_desc->{$hw_node}}) {
+                    foreach my $div (sort keys %{$hw_desc->{$hw_node}{$reg}{_field}}) {
+                        if(exists $hw_desc->{$hw_node}{$reg}{_field}{$div}{_pmap}) {
+                            $pmap_found = 1;
+                            last;
+                        }
+                    }
+                    if($pmap_found) {last;}
+                }
+                if(!$pmap_found) {
+                    #print "Delete $hw_node\n";
+                    delete $hw_desc->{$hw_node};
+                    if(exists $nodes->{$hw_node}) {
+                        #print "Assign $hw_node $node\n";
+                        delete $nodes->{$node}{_list};
+                        delete $nodes->{$node}{_order};
+                        foreach my $list (keys %{$nodes->{$hw_node}{_list}}) {
+                            $nodes->{$node}{_list}{$list} = $nodes->{$hw_node}{_list}{$list}
+                        }
+                        foreach my $order (@{$nodes->{$hw_node}{_order}}) {
+                            push(@{$nodes->{$node}{_order}}, $order);
+                        }
+
+                        #$nodes->{$node}{_list} = $nodes->{$hw_node}{_list};
+                        #$nodes->{$node}{_order} = $nodes->{$hw_node}{_order};
+                        #print "Delete $hw_node\n";
+                        delete $nodes->{$hw_node}{_list};
+                        delete $nodes->{$hw_node}{_order};
+                        delete $nodes->{$hw_node};
+                    } else {
+                        #print "Delete $node\n";
+                        delete $nodes->{$node};
+                    }
+                }
+            }
+        }
+    }
+}
+
 sub generate_nexus_nodes {
     my ($clk_tree, $functions, $nodes, $hw_desc) = @_;
 
@@ -602,6 +665,7 @@ sub generate_nexus_nodes {
             generate_nodes($clk_tree, \@{$functions->{$func}}, $nodes, $hw_desc, $func, "", 0);
         }
     }
+    trim_dv_nodes($nodes, $hw_desc);
 }
 
 sub generate_user_defined_nodes {
@@ -865,13 +929,15 @@ sub generate_bchp_impl_string {
 
     if ($div) {
         my $var;
-        my (@lines1, @lines2, @lines3);
-        push @lines, "    if(set) {\n";
+        my $write_count = 0;
+        my (@lines0, @lines1, @lines2, @lines3);
+        push @lines, "    if(!set) {\n";
         push @lines1, "        BREG_Write32(handle->regHandle, BCHP_".$register.", reg);\n";
-        push @lines1, "    } else {\n";
+        push @lines0, "    } else {\n";
         foreach my $divisor (keys %{$hw_desc->{$hw_node}{$reg}{_field}}) {
             foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{$divisor}}) {
                 if($field eq "_pmap") {next;}
+                if($field eq "_shared") {next;}
                 if ($divisor eq "POSTDIV") {
                     $var = "*postdiv";
                 } else {
@@ -884,13 +950,19 @@ sub generate_bchp_impl_string {
                         next;
                     }
                 }
-                push @lines2, "        BCHP_SET_FIELD_DATA(reg, $register, $field, ".$var.");\n";
+                if(!$hw_desc->{$hw_node}{$reg}{_field}{$divisor}{_shared}) {
+                    push @lines2, "        BCHP_SET_FIELD_DATA(reg, $register, $field, ".$var.");\n";
+                    $write_count++;
+                }
                 push @lines3, "        ".$var." = BCHP_GET_FIELD_DATA(reg, $register, $field);\n";
             }
         }
-        push @lines, @lines2;
-        push @lines, @lines1;
         push @lines, @lines3;
+        if($write_count) {
+            push @lines, @lines0;
+            push @lines, @lines2;
+            push @lines, @lines1;
+        }
         push @lines, "    }\n";
     } elsif ($mux) {
         foreach my $field (keys %{$hw_desc->{$hw_node}{$reg}{_field}{_mux}}) {
@@ -1723,17 +1795,29 @@ sub main {
         generate_bchp_files(\%nodes, \%hw_desc, $chp);
 
         if(defined $dbg) {
+            my $fh;
+
             print_tree(\%clk_tree, \%functions);
+
+            open($fh, ">clk.txt") or die "Can't open output file";
+            print $fh Dumper (%clk_tree);
+            close $fh;
+            open($fh, ">func.txt") or die "Can't open output file";
+            print $fh Dumper (%functions);
+            close $fh;
+            open($fh, ">nodes.txt") or die "Can't open output file";
+            print $fh Dumper (%nodes);
+            close $fh;
+            open($fh, ">desc.txt") or die "Can't open output file";
+            print $fh Dumper (%hw_desc);
+            close $fh;
+            open($fh, ">profiles.txt") or die "Can't open output file";
+            print $fh Dumper (@profiles);
+            close $fh;
         }
     } else {
         print_power_tree(\%clk_tree, \%functions, $chp);
     }
-
-    #print Dumper (%clk_tree);
-    #print Dumper (%functions);
-    #print Dumper (%nodes);
-    #print Dumper (%hw_desc);
-    #print Dumper (@profiles);
 }
 
 exit main();

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1381,6 +1381,11 @@ void BVDC_P_Window_BuildCfcRul_isr
     ( BVDC_Window_Handle               hWindow,
       uint32_t                         ulRectIdx, /* Mosaic rect index */
       BVDC_P_ListInfo                 *pList);
+
+void BVDC_P_Window_SetSurfaceSize_isr
+    ( BVDC_Window_Handle               hWindow,
+      const BVDC_P_Rect               *pSurRect,
+      BAVC_Polarity                    eScanType );
 
 #ifdef __cplusplus
 }

@@ -61,10 +61,10 @@ static const int32_t s_lFixSinMagTable[] =
 
 
 /*************************************************************************
- * BMTH_FIX_SIGNED_CONVERT
+ * BMTH_FIX_SIGNED_CONVERT_isrsafe
  *
  *************************************************************************/
-uint32_t BMTH_FIX_SIGNED_CONVERT(uint32_t x, uint32_t inint, uint32_t infract, uint32_t outint, uint32_t outfract)
+uint32_t BMTH_FIX_SIGNED_CONVERT_isrsafe(uint32_t x, uint32_t inint, uint32_t infract, uint32_t outint, uint32_t outfract)
 {
 	uint32_t lFixOut;
 	uint32_t ulFixInt;
@@ -95,7 +95,7 @@ uint32_t BMTH_FIX_SIGNED_CONVERT(uint32_t x, uint32_t inint, uint32_t infract, u
  * BMTH_FIX_SIGNED_CONVERT_64
  *
  *************************************************************************/
-int64_t BMTH_FIX_SIGNED_CONVERT_64(int64_t x, uint32_t infract, uint32_t outfract)
+int64_t BMTH_FIX_SIGNED_CONVERT_64_isrsafe(int64_t x, uint32_t infract, uint32_t outfract)
 {
 	int64_t lFixOut;
 
@@ -107,15 +107,15 @@ int64_t BMTH_FIX_SIGNED_CONVERT_64(int64_t x, uint32_t infract, uint32_t outfrac
  * BMTH_FIX_SIGNED_MUL
  *
  *************************************************************************/
-uint32_t BMTH_FIX_SIGNED_MUL(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract)
+uint32_t BMTH_FIX_SIGNED_MUL_isrsafe(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfract, uint32_t yint, uint32_t yfract, uint32_t outint, uint32_t outfract)
 {
 	int64_t lFixOut; /* 64-bit to hold intermediate multiplied value of two 32-bit values */
 
 #if 0
 	/* used to debug overflows */
 	int32_t lhi, llo;
-	int32_t lExtendedX = (int32_t)BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - xfract, xfract);
-	int32_t lExtendedY = (int32_t)BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract);
+	int32_t lExtendedX = (int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - xfract, xfract);
+	int32_t lExtendedY = (int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract);
 	int32_t lSignMask = BMTH_P_FIX_SIGN_BIT(BMTH_P_FIX_SIGNED_MAX_BITS, 0);
 
 	BMTH_HILO_32TO64_Mul (lExtendedX, lExtendedY, &lhi, &llo);
@@ -143,14 +143,14 @@ uint32_t BMTH_FIX_SIGNED_MUL(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfr
 #else
 	if(outfract > (xfract + yfract))
 	{
-		lFixOut = ((int64_t)(int32_t)BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - xfract, xfract) *
-				            (int32_t)BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract))
+		lFixOut = ((int64_t)(int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - xfract, xfract) *
+				            (int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract))
 				  << (outfract - (xfract + yfract));
 	}
 	else
 	{
-		lFixOut = ((int64_t)(int32_t)BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - xfract, xfract) *
-				            (int32_t)BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract))
+		lFixOut = ((int64_t)(int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - xfract, xfract) *
+				            (int32_t)BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract))
 				  >> ((xfract + yfract) - outfract);
 	}
 
@@ -163,20 +163,20 @@ uint32_t BMTH_FIX_SIGNED_MUL(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfr
  * BMTH_FIX_SIGNED_MUL_64
  *
  *************************************************************************/
-int64_t BMTH_FIX_SIGNED_MUL_64(int64_t x, int64_t y, uint32_t xfract, uint32_t yfract, uint32_t outfract)
+int64_t BMTH_FIX_SIGNED_MUL_64_isrsafe(int64_t x, int64_t y, uint32_t xfract, uint32_t yfract, uint32_t outfract)
 {
 	int64_t lFixOut;
 
 	if(outfract > (xfract + yfract))
 	{
-		lFixOut = ((int64_t)BMTH_FIX_SIGNED_CONVERT_64(x, xfract, xfract) *
-				            BMTH_FIX_SIGNED_CONVERT_64(y, yfract, yfract))
+		lFixOut = ((int64_t)BMTH_FIX_SIGNED_CONVERT_64_isrsafe(x, xfract, xfract) *
+				            BMTH_FIX_SIGNED_CONVERT_64_isrsafe(y, yfract, yfract))
 				  << (outfract - (xfract + yfract));
 	}
 	else
 	{
-		lFixOut = ((int64_t)BMTH_FIX_SIGNED_CONVERT_64(x, xfract, xfract) *
-				            BMTH_FIX_SIGNED_CONVERT_64(y, yfract, yfract))
+		lFixOut = ((int64_t)BMTH_FIX_SIGNED_CONVERT_64_isrsafe(x, xfract, xfract) *
+				            BMTH_FIX_SIGNED_CONVERT_64_isrsafe(y, yfract, yfract))
 				  >> ((xfract + yfract) - outfract);
 	}
 
@@ -211,7 +211,7 @@ uint32_t BMTH_FIX_LOG2(uint32_t x)
 uint32_t BMTH_P_FIX_SIGNED_MININTBITS(uint32_t x, uint32_t intbits, uint32_t fractbits)
 {
 	uint32_t ulMinIntBits;
-	int32_t ulFixInput = BMTH_FIX_SIGNED_CONVERT(x, intbits, fractbits, BMTH_P_FIX_SIGNED_MAX_BITS, 0);
+	int32_t ulFixInput = BMTH_FIX_SIGNED_CONVERT_isrsafe(x, intbits, fractbits, BMTH_P_FIX_SIGNED_MAX_BITS, 0);
 
 	if(x & BMTH_P_FIX_SIGN_BIT(intbits, fractbits))
 	{
@@ -256,13 +256,13 @@ uint32_t BMTH_FIX_SIGNED_MOD(uint32_t x, uint32_t y, uint32_t xint, uint32_t xfr
 	ulTempFractBits = BMTH_P_FIX_SIGNED_MAX_BITS - ulTempIntBits;
 
 	/* convert to common format */
-	lFixX = BMTH_FIX_SIGNED_CONVERT(x, xint, xfract,
+	lFixX = BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract,
 		                            ulTempIntBits, ulTempFractBits);
-	lFixY = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract,
+	lFixY = BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract,
 		                            ulTempIntBits, ulTempFractBits);
 	lFixMod = lFixX % lFixY;
 
-	return BMTH_FIX_SIGNED_CONVERT(lFixMod, ulTempIntBits, ulTempFractBits, outint, outfract);
+	return BMTH_FIX_SIGNED_CONVERT_isrsafe(lFixMod, ulTempIntBits, ulTempFractBits, outint, outfract);
 }
 
 
@@ -332,11 +332,11 @@ uint32_t BMTH_P_FIX_SIGNED_SIN_CALC(uint32_t x, uint32_t xint, uint32_t xfract, 
 	ulFixInterpDem = ulFixHalfPi / BMTH_P_FIX_SINMAG_TABLE_SIZE;
 
 
-	ulFixInterpNum = BMTH_FIX_SIGNED_CONVERT(ulFixInterpNum,
+	ulFixInterpNum = BMTH_FIX_SIGNED_CONVERT_isrsafe(ulFixInterpNum,
 											 ulRadIntBits, ulRadFractBits,
 											 ulInterpIntBits, ulInterpFractBits);
 
-	ulFixInterpDem = BMTH_FIX_SIGNED_CONVERT(ulFixInterpDem,
+	ulFixInterpDem = BMTH_FIX_SIGNED_CONVERT_isrsafe(ulFixInterpDem,
 											 ulRadIntBits, ulRadFractBits,
 											 ulInterpIntBits, ulInterpFractBits);
 
@@ -345,18 +345,18 @@ uint32_t BMTH_P_FIX_SIGNED_SIN_CALC(uint32_t x, uint32_t xint, uint32_t xfract, 
 								           ulInterpIntBits, ulInterpFractBits,
 								           ulInterpIntBits, ulInterpFractBits);
 
-	ulFixSinMag = BMTH_FIX_SIGNED_CONVERT(ulFixSinMag,
+	ulFixSinMag = BMTH_FIX_SIGNED_CONVERT_isrsafe(ulFixSinMag,
 										  ulSinMagIntBits, ulSinMagFractBits,
 										  ulInterpIntBits, ulInterpFractBits);
 
-	ulFixSinMagNext = BMTH_FIX_SIGNED_CONVERT(ulFixSinMagNext,
+	ulFixSinMagNext = BMTH_FIX_SIGNED_CONVERT_isrsafe(ulFixSinMagNext,
 											  ulSinMagIntBits, ulSinMagFractBits,
 											  ulInterpIntBits, ulInterpFractBits);
 
-	return (BMTH_FIX_SIGNED_CONVERT(ulFixSinMag,
+	return (BMTH_FIX_SIGNED_CONVERT_isrsafe(ulFixSinMag,
 									ulInterpIntBits, ulInterpFractBits,
 									sinint, sinfract) +
-		    BMTH_FIX_SIGNED_MUL((ulFixSinMagNext - ulFixSinMag), ulFixInterpCoeff,
+		    BMTH_FIX_SIGNED_MUL_isrsafe((ulFixSinMagNext - ulFixSinMag), ulFixInterpCoeff,
 							    ulInterpIntBits, ulInterpFractBits,
 								ulInterpIntBits, ulInterpFractBits,
 	                            sinint, sinfract)) *
@@ -368,7 +368,7 @@ uint32_t BMTH_P_FIX_SIGNED_SIN_CALC(uint32_t x, uint32_t xint, uint32_t xfract, 
  * BMTH_FIX_SIGNED_COS
  *
  *************************************************************************/
-uint32_t BMTH_FIX_SIGNED_COS(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
+uint32_t BMTH_FIX_SIGNED_COS_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
 {
 	uint32_t ulFixX;
 	uint32_t ulRadIntBits      = BMTH_P_FIX_SIGNED_RAD_INT_BITS;
@@ -385,7 +385,7 @@ uint32_t BMTH_FIX_SIGNED_COS(uint32_t x, uint32_t xint, uint32_t xfract, uint32_
  * BMTH_FIX_SIGNED_SIN
  *
  *************************************************************************/
-uint32_t BMTH_FIX_SIGNED_SIN(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
+uint32_t BMTH_FIX_SIGNED_SIN_isrsafe(uint32_t x, uint32_t xint, uint32_t xfract, uint32_t sinint, uint32_t sinfract)
 {
 	uint32_t ulFixX;
 	uint32_t ulRadIntBits      = BMTH_P_FIX_SIGNED_RAD_INT_BITS;

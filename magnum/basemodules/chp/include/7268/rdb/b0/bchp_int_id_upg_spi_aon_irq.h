@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:34:15 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Feb  9 17:17:21 2017
+ *                 Full Compile MD5 Checksum  9d6215899d3e76f8389b268683fe448f
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               4201b1b2476c5b5ee227db9566df87e2
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                unknown
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1255
  *                 generate_int_id.pl         1.0
  *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/generate_int_id.pl
- *                 DVTSWVER                   current
+ *                 Script Source              home/pntruong/sbin/generate_int_id.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -70,7 +70,7 @@
 #ifndef BCHP_INT_ID_UPG_SPI_AON_IRQ_H__
 #define BCHP_INT_ID_UPG_SPI_AON_IRQ_H__
 
-#define BCHP_INT_ID_spare_00                  BCHP_INT_ID_CREATE(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS, BCHP_UPG_SPI_AON_IRQ_CPU_STATUS_spare_00_SHIFT)
+#define BCHP_INT_ID_UPG_SPI_AON_IRQ_spare_00  BCHP_INT_ID_CREATE(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS, BCHP_UPG_SPI_AON_IRQ_CPU_STATUS_spare_00_SHIFT)
 #define BCHP_INT_ID_spi                       BCHP_INT_ID_CREATE(BCHP_UPG_SPI_AON_IRQ_CPU_STATUS, BCHP_UPG_SPI_AON_IRQ_CPU_STATUS_spi_SHIFT)
 
 #endif /* #ifndef BCHP_INT_ID_UPG_SPI_AON_IRQ_H__ */

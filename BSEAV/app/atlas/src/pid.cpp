@@ -495,11 +495,11 @@ void CPid::encrypt(
     if (_pCrypto)
     {
         /* Info should already be done by read XML or it will go to default */
+        BDBG_MSG((" I already have a CRYPTO KEY"));
         _pCrypto->encrypt(encrypt);
         _pCrypto->keySlotConfig();
         _pCrypto->setAlgorithmSettings();
-    }
-    else
+    } else
     {
         BDBG_MSG(("Setting up new Crypto"));
         CCryptoCP * pCrypto = new CCryptoCP("Crypto Pid");
@@ -598,9 +598,11 @@ void CPid::writeXML(MXmlElement * xmlElem)
 
 CPid::~CPid()
 {
-   if (_pCrypto) {
-       DEL(_pCrypto);
-   }
+    if (_pCrypto)
+    {
+        /* Pid Close should close remove the key from the pidMgr */
+        DEL(_pCrypto);
+    }
 }
 
 eRet CPid::open(CParserBand * pParserBand)
@@ -848,12 +850,12 @@ eRet CPid::close(void)
     eRet ret = eRet_Ok;
 
     CHECK_PTR_MSG_GOTO("Nexus PidChannel Not Opened", _pidChannel, ret, eRet_NotAvailable, error);
-    if (_pCrypto)
+
+    if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        DEL(_pCrypto);
+        BDBG_MSG(("Key is removed %s--Regular", __FUNCTION__));
     }
-
     NEXUS_PidChannel_Close(_pidChannel);
 
 error:
@@ -870,10 +872,10 @@ eRet CPid::close(CPlaypump * pPlaypump)
     CHECK_PTR_MSG_GOTO("Nexus PidChannel Not Opened", _pidChannel, ret, eRet_NotAvailable, error);
     CHECK_PTR_ERROR_GOTO("Invalid Nexus Playpump Handle", pPlaypump, ret, eRet_InvalidParameter, error);
 
-    if (_pCrypto)
+    if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        DEL(_pCrypto);
+        BDBG_MSG(("Key is removed %s(pPlaypump)", __FUNCTION__));
     }
 
     nerror = NEXUS_Playpump_ClosePidChannel(pPlaypump->getPlaypump(), _pidChannel);
@@ -892,10 +894,10 @@ eRet CPid::close(CPlayback * pPlayback)
     CHECK_PTR_MSG_GOTO("Nexus PidChannel Not Opened", _pidChannel, ret, eRet_NotAvailable, error);
     CHECK_PTR_ERROR_GOTO("Invalid Nexus Playback Handle", pPlayback, ret, eRet_InvalidParameter, error);
 
-    if (_pCrypto)
+    if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        DEL(_pCrypto);
+        BDBG_MSG(("Key is removed %s(pPlayback)", __FUNCTION__));
     }
     NEXUS_Playback_ClosePidChannel(pPlayback->getPlayback(), _pidChannel);
 
@@ -917,10 +919,10 @@ eRet CPid::close(CRecord * pRecord)
     nerror = NEXUS_Record_RemovePidChannel(pRecord->getRecord(), _pidChannel);
     CHECK_NEXUS_ERROR_GOTO("Cannot Close Pid Channel", ret, nerror, error);
 
-    if (_pCrypto)
+    if ((_pCrypto != NULL) && (_pCrypto->inUse() == true))
     {
         _pCrypto->removeKey(_pidChannel);
-        DEL(_pCrypto);
+        BDBG_MSG(("key is removed %s(pRecord)", __FUNCTION__));
     }
 
 error:

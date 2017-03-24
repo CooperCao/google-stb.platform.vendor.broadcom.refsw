@@ -410,8 +410,9 @@ int main(int argc, char *argv[])
     #else
     NEXUS_AudioInputCapture_GetSettings(inputCapture, &icSettings);
     icSettings.dataCallback.callback = capture_callback;
-    icSettings.dataCallback.context = inputCapture;
-    icSettings.dataCallback.param = (int)event;
+    captureCBParams.capture = inputCapture;
+    captureCBParams.event = event;
+    icSettings.dataCallback.context = &captureCBParams;
     NEXUS_AudioInputCapture_SetSettings(inputCapture, &icSettings);
 
     NEXUS_AudioInputCapture_GetDefaultStartSettings(&icStartSettings);

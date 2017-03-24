@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -132,6 +132,10 @@ extern "C"
 {
 #endif
 
+#ifndef NEXUS_MAX_I2C_CHANNELS
+#define NEXUS_MAX_I2C_CHANNELS 7
+#endif
+
 /***************************************************************************
 Summary:
 Run time configuration for the File Module
@@ -178,7 +182,6 @@ typedef struct NEXUS_PlatformHeapSettings {
         bool sage; /* if set to true, then this HEAP should be placed to conform to SAGE requirements */
     } placement;
 } NEXUS_PlatformHeapSettings;
-
 
 /***************************************************************************
 Summary:
@@ -241,6 +244,20 @@ typedef struct NEXUS_PlatformSettings
     NEXUS_FileModulePlatformSettings fileModuleSettings;
     NEXUS_SageModuleSettings sageModuleSettings;
     NEXUS_PwmModuleSettings pwmSettings;
+    struct {
+        bool open; /* Default = true. If true, the I2C channels are opened with default setttings
+                                 by NEXUS_Platform_Init().  If false, application is responsible for opening the
+                                 I2C channel with correct settings as required by that particular platform. */
+        NEXUS_I2cSettings settings; /* Default channel settings are set in nexus_platform_97xxx.c */
+        struct{
+            NEXUS_GpioType type;
+            unsigned gpio;
+        }clock; /*Applicable only if i2cSettings.softI2c == true*/
+        struct{
+            NEXUS_GpioType type;
+            unsigned gpio;
+        }data; /*Applicable only if i2cSettings.softI2c == true*/
+    }i2c[NEXUS_MAX_I2C_CHANNELS];
 } NEXUS_PlatformSettings;
 
 

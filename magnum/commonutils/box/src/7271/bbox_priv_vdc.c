@@ -66,7 +66,9 @@
 #include "bbox_vdc_box4_config.h"
 #include "bbox_vdc_box5_config.h"
 #include "bbox_vdc_box6_config.h"
+#include "bbox_vdc_box7_config.h"
 #include "bbox_vdc_box8_config.h"
+#include "bbox_vdc_box9_config.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -117,8 +119,16 @@ void BBOX_P_Vdc_SetSourceCapabilities
         case 6:
             BBOX_P_Vdc_SetBox6SourceCapabilities(pSourceCap);
             break;
+        case 7: /* similar to box mode 6 except without gfx compression */
+            BBOX_P_Vdc_SetBox6SourceCapabilities(pSourceCap);
+            /* this sets gfx compression to false */
+            BBOX_P_Vdc_SetBox7SourceCapabilities(pSourceCap);
+            break;
         case 8:
             BBOX_P_Vdc_SetBox8SourceCapabilities(pSourceCap);
+            break;
+        case 9:
+            BBOX_P_Vdc_SetBox9SourceCapabilities(pSourceCap);
             break;
     }
 }
@@ -145,10 +155,14 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             BBOX_P_Vdc_SetBox5DisplayCapabilities(pDisplayCap);
             break;
         case 6:
+        case 7:
             BBOX_P_Vdc_SetBox6DisplayCapabilities(pDisplayCap);
             break;
         case 8:
             BBOX_P_Vdc_SetBox8DisplayCapabilities(pDisplayCap);
+            break;
+        case 9:
+            BBOX_P_Vdc_SetBox9DisplayCapabilities(pDisplayCap);
             break;
 
         }
@@ -176,12 +190,15 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
             BBOX_P_Vdc_SetBox5DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 6:
+        case 7:
             BBOX_P_Vdc_SetBox6DeinterlacerCapabilities(pDeinterlacerCap);
             break;
         case 8:
             BBOX_P_Vdc_SetBox8DeinterlacerCapabilities(pDeinterlacerCap);
             break;
-
+        case 9:
+            BBOX_P_Vdc_SetBox9DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
     }
 }
 
@@ -207,10 +224,14 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             BBOX_P_Vdc_SetBox5XcodeCapabilities(pXcodeCap);
             break;
         case 6:
+        case 7:
             BBOX_P_Vdc_SetBox6XcodeCapabilities(pXcodeCap);
             break;
         case 8:
             BBOX_P_Vdc_SetBox8XcodeCapabilities(pXcodeCap);
+            break;
+        case 9:
+            BBOX_P_Vdc_SetBox9XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -243,10 +264,14 @@ BERR_Code BBOX_P_GetMemConfig
             BBOX_P_GetBox5MemConfig(pBoxMemConfig);
             break;
         case 6:
+        case 7:
             BBOX_P_GetBox6MemConfig(pBoxMemConfig);
             break;
         case 8:
             BBOX_P_GetBox8MemConfig(pBoxMemConfig);
+            break;
+        case 9:
+            BBOX_P_GetBox9MemConfig(pBoxMemConfig);
             break;
     }
 
@@ -277,8 +302,14 @@ BERR_Code BBOX_P_GetRtsConfig
         case 6:
             BBOX_P_GetBox6Rts(pBoxRts);
             break;
+        case 7:
+            BBOX_P_GetBox7Rts(pBoxRts);
+            break;
         case 8:
             BBOX_P_GetBox8Rts(pBoxRts);
+            break;
+        case 9:
+            BBOX_P_GetBox9Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

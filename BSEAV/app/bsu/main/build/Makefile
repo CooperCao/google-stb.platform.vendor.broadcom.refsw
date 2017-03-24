@@ -68,8 +68,8 @@ endif
 include ../../../../../nexus/build/os/ucos/os_tools.inc
 
 # OFFICIAL RELEASE VERSION
-BOLT_DIR_NAME = bolt_v1.23
-CFE_DIR_NAME = CFE_16_4
+BOLT_DIR_NAME = bolt_v1.26
+CFE_DIR_NAME = CFE_17_1
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
@@ -130,9 +130,9 @@ ifeq ($(B_REFSW_ARCH),mipsel-linux)
     export B_REFSW_ARCH
 endif
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     ifeq ($(TOOLCHAIN_PATH),)
-        TOOLCHAIN_PATH=/opt/toolchains/stbgcc-4.8-1.0
+        TOOLCHAIN_PATH=/opt/toolchains/stbgcc-4.8-1.5
     endif
 else
     ifeq ($(TOOLCHAIN_PATH),)
@@ -273,9 +273,9 @@ endif
 BUILD_UART = A
 UCOS ?= lib
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     CPU = arm
-    ifeq ($(filter $(NEXUS_PLATFORM),97268 97271), $(NEXUS_PLATFORM))
+    ifeq ($(filter $(NEXUS_PLATFORM),97260 97268 97271), $(NEXUS_PLATFORM))
         export ARM_ARCH=V8
     endif
 else
@@ -317,8 +317,8 @@ ifeq ($(BE), 1)
     ENDIAN_FLAG = -EB
     LDFLAGS += -EB
     ENDIAN_SUFFIX = be
-    ifeq ($(B_REFSW_ARCH), arm-linux)
-        LIBPATHS = $(TOOLCHAIN_PATH)/lib/gcc/arm-linux-gnueabihf/4.8.4
+    ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
+        LIBPATHS = $(TOOLCHAIN_PATH)/lib/gcc/arm-linux-gnueabihf/4.8.5
     else
         STUB_LIB = $(ROCKFORD_DIR)/bsp/common/lib/sde/stubs_be.o
         LIBPATHS = $(TOOLCHAIN_PATH)/sde/lib/mips32/sof
@@ -331,8 +331,8 @@ else
     ENDIAN_FLAG = -EL
     LDFLAGS += -EL
     ENDIAN_SUFFIX = le
-    ifeq ($(B_REFSW_ARCH), arm-linux)
-        LIBPATHS = $(TOOLCHAIN_PATH)/lib/gcc/arm-linux-gnueabihf/4.8.4
+    ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
+        LIBPATHS = $(TOOLCHAIN_PATH)/lib/gcc/arm-linux-gnueabihf/4.8.5
     else
         STUB_LIB = $(ROCKFORD_DIR)/bsp/common/lib/sde/stubs_le.o
         LIBPATHS = $(TOOLCHAIN_PATH)/sde/lib/el/mips32/sof
@@ -365,7 +365,7 @@ ifeq ($(B_REFSW_UCOS_VERSION),1)
 endif
 
 ifeq ($(NEWLIB),)
-    ifeq ($(B_REFSW_ARCH), arm-linux)
+    ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
         BSU_OBJECTS += \
             bsu_stdlib.o \
             bsu_string.o \
@@ -398,13 +398,13 @@ else
         export NEXUS_EXTRA_CFLAGS += -DNEWLIB
 endif
 
-ifneq ($(B_REFSW_ARCH), arm-linux)
+ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     BSU_OBJECTS += \
         cache_util.o \
         setup_tlb.o
 endif
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     ASM_SRC += init.s vectors.s
 else
     ASM_SRC += reset_noos.s cpuctrl.s
@@ -428,7 +428,7 @@ else
             $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-CPU/Cfg/Template \
             $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-LIB
 
-        ifeq ($(B_REFSW_ARCH), arm-linux)
+        ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
             VPATH += \
                 $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uCOS-III/Ports/ARM-Cortex-A15/Generic/GNU \
                 $(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-CPU/ARM-Cortex-A15/GNU
@@ -471,7 +471,7 @@ endif
 VPATH += \
     $(ROCKFORD_DIR)/bsp/common/lib/bootloader
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     VPATH += \
         $(ROCKFORD_DIR)/bsp/common/arm
 else
@@ -564,7 +564,6 @@ else
         bsu_nvram_test.o \
         bsu_prompt.o \
         bsu_test.o \
-        bsu_uart_test.o \
         bsu_usb_test.o
 
     ifeq ($(filter $(BUILD_MOCA_SUPPORT),1 2), $(BUILD_MOCA_SUPPORT))
@@ -583,6 +582,10 @@ else
     # ifeq ($(filter $(BOARD),97346dbsmb 97358dbsv 97358sff 97360sff 97360sv 97362sff 97362sv 97425dbs), $(BOARD))
     ifeq ($(filter $(NEXUS_PLATFORM),97346 97360 97362 97425), $(NEXUS_PLATFORM))
         BUILD_SAT_TEST=1
+    endif
+
+    ifeq ($(BUILD_UART_SUPPORT),1)
+        BUILD_UART_TEST=1
     endif
 
     ifeq ($(BUILD_MOCA_TEST),1)
@@ -612,9 +615,16 @@ else
         CFLAGS += \
             -DBSU_SAT_TEST
     endif
+
+    ifeq ($(BUILD_UART_TEST),1)
+        APP_OBJECTS += \
+            bsu_uart_test.o
+        CFLAGS += \
+            -DBSU_UART_TEST
+    endif
 endif
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     VPATH += \
         $(BSEAV_DIR)/app/bsu/main/build/arm
 
@@ -652,7 +662,7 @@ else
 endif
 
 ifneq ($(MIPS_BSU_HEAP_SIZE),0)
-    ifeq ($(B_REFSW_ARCH), arm-linux)
+    ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
         VPATH += \
             $(ROCKFORD_DIR)/bsp/common/lib/bootloader/arm
     else
@@ -668,7 +678,7 @@ ifneq ($(MIPS_BSU_HEAP_SIZE),0)
     ifeq ($(MIPS_BSU_HEAP_TEST),1)
         CFLAGS += -DMIPS_BSU_HEAP_TEST
     endif
-    ifneq ($(B_REFSW_ARCH), arm-linux)
+    ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
         CFLAGS += -DUSE_BSU_MALLOC_NAME
     endif
     BSU_OBJECTS += \
@@ -681,7 +691,7 @@ export NEXUS_EXTRA_CFLAGS += \
     -I$(BSEAV_DIR)/app/bsu/main/src \
     -I$(ROCKFORD_DIR)/bsp/common/lib/bootloader
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     export NEXUS_EXTRA_CFLAGS += \
         -I$(BOLT_DIR)/include \
         -I$(BOLT_DIR)/include/arm
@@ -718,7 +728,7 @@ else
             -I$(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-CPU/Cfg/Template \
             -I$(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-LIB
 
-        ifeq ($(B_REFSW_ARCH), arm-linux)
+        ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
             export NEXUS_EXTRA_CFLAGS += \
                 -I$(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uCOS-III/Ports/ARM-Cortex-A15/Generic/GNU \
                 -I$(ROCKFORD_DIR)/bsp/common/ucos_iii/Micrium/Software/uC-CPU/ARM-Cortex-A15/GNU
@@ -732,7 +742,7 @@ endif
 
 # No WEBHIF timer exists for 7250, so use UPG timer 3 instead.
 # Important:  when adding a new platform, need to modify respective bint_xxx.c file, to add support for the BSU_USE_UPG_TIMER compile flag.
-ifeq ($(filter $(NEXUS_PLATFORM),97145 97250 97268 97271 97364 97366), $(NEXUS_PLATFORM))
+ifeq ($(filter $(NEXUS_PLATFORM),97145 97250 97260 97268 97271 97278 97364 97366), $(NEXUS_PLATFORM))
     export NEXUS_EXTRA_CFLAGS += -DNEXUS_TMR_EXCLUSION_MASK=0x8 \
                                  -DBSU_USE_UPG_TIMER
 endif
@@ -741,7 +751,8 @@ endif
 ##### uC/OS
 ##########
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+#ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     UCOS_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/gnu/arm
 else
     UCOS_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/sde
@@ -767,7 +778,7 @@ endif
 ##### MoCA
 ##########
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     MOCA_LIB_DIR = $(ROCKFORD_DIR)/bsp/common/lib/gnu/arm
     MOCA_CPU = arm
 else
@@ -847,7 +858,7 @@ BSU_OBJECTS += $(ASM_SRC:.s=.o)
 BSU_DIRS += ../src
 BSU_DIRS += $(ROCKFORD_DIR)/bsp/common
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     BSU_DIRS += $(ROCKFORD_DIR)/bsp/common/arm
 endif
 
@@ -914,7 +925,7 @@ LDFLAGS += $(addprefix -L, $(LIBPATHS))
 LDFLAGS += -Map $(BSU_ODIR)/bsu.map
 AFLAGS += $(CFLAGS)
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
     LDFLAGS += -T arm/init.lds
     LDFLAGS += -nostdlib -static --gc-sections
 else
@@ -949,7 +960,7 @@ else
     LDFLAGS += --architecture mips --stats $(TEXT_FLAG) --gc-sections
 endif
 
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
 	AR = arm-linux-ar
 	RANLIB = arm-linux-ranlib
 else
@@ -970,7 +981,7 @@ moca20core-gen23.c:
 # Implicit rule for building local app
 $(APP): api $(BSU_ODIR) build_date $(addprefix $(BSU_ODIR)/,$(APP_OBJECTS)) $(STUB_LIB) $(BSU_LIB) $(UCOS_LIB) $(MOCA_LIB)
 	@echo [Linking... $(notdir $@)]
-ifeq ($(B_REFSW_ARCH), arm-linux)
+ifeq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
 	$(Q_)$(LD) $(LDFLAGS) --start-group $(BSU_LIB) $(UCOS_LIB) $(MOCA_LIB) $(STUB_LIB) $(NEWLIB) -lgcc --end-group -o $@
 	$(Q_)$(OBJCOPY) -O binary $@ $@.bin
 else
@@ -991,28 +1002,28 @@ endif
 $(BSU_ODIR)/%.o: %.c
 	@echo [Compile ... $(notdir $<)]
 	$(Q_)$(CC) -c -o $@ $< $(CFLAGS) $(C_ONLY_FLAGS)
-ifneq ($(B_REFSW_ARCH), arm-linux)
+ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
 	$(Q_)$(PERL) $(NEXUS_DIR)/build/os/ucos/fix_dep.pl $(dir $@) $(notdir $(@:.o=.d)) $(patsubst %.o,%.d,$@)
 endif
 
 $(BSU_ODIR)/%.o: %.cpp
 	@echo [Compile... $(notdir $<)]
 	$(Q_)$(CXX) -c -o $@ $< $(filter-out $(C_ONLY_FLAGS),$(CFLAGS)) $(CXXFLAGS)
-ifneq ($(B_REFSW_ARCH), arm-linux)
+ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
 	$(Q_)$(PERL) $(NEXUS_DIR)/build/os/ucos/fix_dep.pl $(dir $@) $(notdir $(@:.o=.d)) $(patsubst %.o,%.d,$@)
 endif
 
 $(BSU_ODIR)/%.o: %.s
 	@echo [Assemble... $(notdir $<)]
 	$(Q_)$(AS) $(AFLAGS) -MMD -c -o $@ $<
-ifneq ($(B_REFSW_ARCH), arm-linux)
+ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
 	$(Q_)$(PERL) $(NEXUS_DIR)/build/os/ucos/fix_dep.pl $(dir $@) $(notdir $(@:.o=.d)) $(patsubst %.o,%.d,$@)
 endif
 
 $(BSU_ODIR)/%.o: %.S
 	@echo [Assemble... $(notdir $<)]
 	$(Q_)$(AS) $(AFLAGS) -MMD -c -o $@ $<
-ifneq ($(B_REFSW_ARCH), arm-linux)
+ifneq ($(filter $(B_REFSW_ARCH),arm-linux aarch64-linux), $(B_REFSW_ARCH))
 	$(Q_)$(PERL) $(NEXUS_DIR)/build/os/ucos/fix_dep.pl $(dir $@) $(notdir $(@:.o=.d)) $(patsubst %.o,%.d,$@)
 endif
 

@@ -679,7 +679,7 @@ static pthread_t Bsysperf_WifiAmpduStart(
         /*printf( "%s: AMPDU collecting in progress; clearing out old data \n", __FUNCTION__ );*/
         Bsysperf_WifiClearAmpdu( WIFI_INTERFACE_NAME );
 
-        Bsysperf_WifiClearCounters( WIFI_INTERFACE_NAME );
+        /* Bsysperf_WifiClearCounters( WIFI_INTERFACE_NAME ); CAD 2017-02-27 ... causes Rx Bytes and Tx Bytes to reset */
 
         g_wifiAmpduStartTime = 0;
     }

@@ -2358,19 +2358,7 @@ BERR_Code BI2C_GetChannelDefaultSettings(
     BSTD_UNUSED(hDev);
     BKNI_Memset(pChnSettings, 0, sizeof(*pChnSettings));
 
-    if( channelNo < hDev->maxChnNo )
-    {
-        pChnSettings->softI2c = false;
-
-        pChnSettings->clkRate = BI2C_Clk_eClk400Khz;
-        pChnSettings->intMode = true;
-        pChnSettings->timeoutMs = 0;
-        pChnSettings->burstMode = false;
-        pChnSettings->autoI2c.enabled = false;
-        pChnSettings->fourByteXferMode = true;
-        pChnSettings->inputSwitching5V = false;
-    }
-    else if(channelNo == BI2C_SOFT_I2C_CHANNEL_NUMBER){
+    if(channelNo == BI2C_SOFT_I2C_CHANNEL_NUMBER){
         pChnSettings->softI2c = true;
 
         pChnSettings->clkRate = BI2C_Clk_eClk400Khz;
@@ -2386,11 +2374,15 @@ BERR_Code BI2C_GetChannelDefaultSettings(
         pChnSettings->gpio.sda.shift = 0;
     }
     else{
-        if( channelNo >= hDev->maxChnNo )
-            BDBG_ERR(("BSC Index %d is not supported on this platoform.", channelNo));
-        else
-            BDBG_ERR(("For soft I2C, Channel Number %d is not supported. Set channelNo to BI2C_SOFT_I2C_CHANNEL_NUMBER.", channelNo));
-        retCode = BERR_TRACE(BERR_NOT_AVAILABLE);
+        pChnSettings->softI2c = false;
+
+        pChnSettings->clkRate = BI2C_Clk_eClk400Khz;
+        pChnSettings->intMode = true;
+        pChnSettings->timeoutMs = 0;
+        pChnSettings->burstMode = false;
+        pChnSettings->autoI2c.enabled = false;
+        pChnSettings->fourByteXferMode = true;
+        pChnSettings->inputSwitching5V = false;
     }
 
     return( retCode );

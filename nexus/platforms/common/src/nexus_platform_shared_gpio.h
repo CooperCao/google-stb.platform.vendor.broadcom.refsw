@@ -41,9 +41,13 @@
 #ifndef NEXUS_PLATFORM_SHARED_GPIO_H
 #define NEXUS_PLATFORM_SHARED_GPIO_H 1
 
+#if NEXUS_HAS_GPIO
 #include "nexus_gpio_init.h"
+#endif
 
+#if NEXUS_HAS_GPIO
 void NEXUS_Platform_P_GetGpioModuleOsSharedBankSettings(NEXUS_GpioModuleOsSharedBankSettings * pSettings);
+#endif
 bool NEXUS_Platform_P_SharedGpioSupported(void);
 void NEXUS_Platform_P_InitSharedGpioSubmodule(void);
 void NEXUS_Platform_P_UninitSharedGpioSubmodule(void);

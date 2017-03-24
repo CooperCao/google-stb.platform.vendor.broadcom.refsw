@@ -892,7 +892,7 @@ int32_t PRDY_HTTP_Client_GetSecureTimeUrl (
         int32_t len;
         char *pch = NULL;
 
-        pch = PRDY_HTTP_Engine_GetHeader(&http, HDR_TAG_CONTENT_LENGTH);
+        pch = (char*)PRDY_HTTP_Engine_GetHeader(&http, HDR_TAG_CONTENT_LENGTH);
         len = (pch) ? atoi(pch) : (HTTP_XMLRPC_BUFSIZE);
 
         /* printf("%s - at line %d read body of length: %u \n", __FUNCTION__, __LINE__, len); */

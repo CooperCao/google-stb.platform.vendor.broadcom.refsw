@@ -1,5 +1,5 @@
-/***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,8 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * Module Description:
  *
  **************************************************************************/
 #include "nexus_base.h"
@@ -720,9 +718,17 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
 {
     BERR_Code rc=BERR_SUCCESS;
     BVDC_DisplayId vdcDisplayId;
+    BVDC_CompositorId vdcCmpId = BVDC_CompositorId_eCompositor0 + displayIndex;
+    BVDC_Compositor_Settings vdcCmpSettings;
     bool bModifiedSync = (g_NEXUS_DisplayModule_State.moduleSettings.componentOutputSyncType == NEXUS_ComponentOutputSyncType_eAllChannels);
     BDBG_MODULE_MSG(nexus_flow_display, ("open %p, index %d, type %d",
         (void *)display, displayIndex, pSettings->displayType));
+
+    BVDC_Compositor_GetDefaultSettings(vdcCmpId, &vdcCmpSettings);
+    /* CFC LUT heap */
+    if(NEXUS_MAX_HEAPS != pVideo->moduleSettings.cfc.cmpHeapIndex[displayIndex]) {
+        vdcCmpSettings.hCfcHeap = g_pCoreHandles->heap[pVideo->moduleSettings.cfc.cmpHeapIndex[displayIndex]].mma;
+    }
 
     if (pSettings->displayType == NEXUS_DisplayType_eDvo || pSettings->displayType == NEXUS_DisplayType_eLvds) {
         BVDC_Display_Settings vdcDisplayCfg;
@@ -731,7 +737,7 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
             BDBG_ERR(("invalid dvo display"));
             goto err_compositor;
         }
-        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, BVDC_CompositorId_eCompositor0, NULL);
+        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
         vdcDisplayId = BVDC_DisplayId_eDisplay0;
         BVDC_Display_GetDefaultSettings(vdcDisplayId, &vdcDisplayCfg);
@@ -743,7 +749,7 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
     else if (pSettings->displayType == NEXUS_DisplayType_eBypass) {
         BVDC_Display_Settings vdcDisplayCfg;
 
-        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, BVDC_CompositorId_eCompositor0 + displayIndex, NULL);
+        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
         BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay2, &vdcDisplayCfg);
@@ -769,7 +775,7 @@ NEXUS_Display_P_Open(NEXUS_DisplayHandle display, unsigned displayIndex, const N
         else {
             vecIndex = (unsigned)pSettings->vecIndex;
         }
-        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, BVDC_CompositorId_eCompositor0+displayIndex, NULL);
+        rc = BVDC_Compositor_Create(pVideo->vdc, &display->compositor, vdcCmpId, &vdcCmpSettings);
         if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc);goto err_compositor;}
 
         BVDC_Display_GetDefaultSettings(BVDC_DisplayId_eDisplay0+vecIndex, &vdcDisplayCfg);

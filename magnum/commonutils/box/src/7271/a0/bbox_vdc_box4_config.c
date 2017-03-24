@@ -72,7 +72,7 @@ void BBOX_P_Vdc_SetBox4SourceCapabilities
 void BBOX_P_Vdc_SetBox4DisplayCapabilities
     ( BBOX_Vdc_Display_Capabilities *pDisplayCap )
 {
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid, Class2);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display0, 3840x2160p_60Hz, 3840x2160p_60Hz, Invalid, Invalid, Invalid, Class4);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Auto);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display0, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 

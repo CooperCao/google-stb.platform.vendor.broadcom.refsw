@@ -1,0 +1,4792 @@
+<html xmlns:v="urn:schemas-microsoft-com:vml"
+xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns:m="http://schemas.microsoft.com/office/2004/12/omml"
+xmlns="http://www.w3.org/TR/REC-html40">
+
+<head>
+<meta http-equiv=Content-Type content="text/html; charset=us-ascii">
+<meta name=ProgId content=Word.Document>
+<meta name=Generator content="Microsoft Word 14">
+<meta name=Originator content="Microsoft Word 14">
+<link rel=File-List href="ReleaseNotes97271_97268_files/filelist.xml">
+<title>Broadcom 97268 / 97271 A0 Phase 17.1 Set-Top Unified Reference Software
+Release (URSR) Release Notes</title>
+<!--[if gte mso 9]><xml>
+ <o:DocumentProperties>
+  <o:Author>Manan Patel</o:Author>
+  <o:Template>Normal</o:Template>
+  <o:LastAuthor>Manan Patel</o:LastAuthor>
+  <o:Revision>3</o:Revision>
+  <o:TotalTime>1</o:TotalTime>
+  <o:Created>2017-03-09T22:59:00Z</o:Created>
+  <o:LastSaved>2017-03-09T23:00:00Z</o:LastSaved>
+  <o:Pages>7</o:Pages>
+  <o:Words>2350</o:Words>
+  <o:Characters>15402</o:Characters>
+  <o:Company>LSI Corporation</o:Company>
+  <o:Lines>128</o:Lines>
+  <o:Paragraphs>35</o:Paragraphs>
+  <o:CharactersWithSpaces>17717</o:CharactersWithSpaces>
+  <o:Version>14.00</o:Version>
+ </o:DocumentProperties>
+</xml><![endif]-->
+<link rel=themeData href="ReleaseNotes97271_97268_files/themedata.thmx">
+<link rel=colorSchemeMapping
+href="ReleaseNotes97271_97268_files/colorschememapping.xml">
+<!--[if gte mso 9]><xml>
+ <w:WordDocument>
+  <w:Zoom>134</w:Zoom>
+  <w:SpellingState>Clean</w:SpellingState>
+  <w:GrammarState>Clean</w:GrammarState>
+  <w:TrackMoves/>
+  <w:TrackFormatting/>
+  <w:ValidateAgainstSchemas/>
+  <w:SaveIfXMLInvalid>false</w:SaveIfXMLInvalid>
+  <w:IgnoreMixedContent>false</w:IgnoreMixedContent>
+  <w:AlwaysShowPlaceholderText>false</w:AlwaysShowPlaceholderText>
+  <w:DoNotPromoteQF/>
+  <w:LidThemeOther>EN-US</w:LidThemeOther>
+  <w:LidThemeAsian>X-NONE</w:LidThemeAsian>
+  <w:LidThemeComplexScript>X-NONE</w:LidThemeComplexScript>
+  <w:Compatibility>
+   <w:BreakWrappedTables/>
+   <w:SplitPgBreakAndParaMark/>
+  </w:Compatibility>
+  <w:BrowserLevel>MicrosoftInternetExplorer4</w:BrowserLevel>
+  <m:mathPr>
+   <m:mathFont m:val="Cambria Math"/>
+   <m:brkBin m:val="before"/>
+   <m:brkBinSub m:val="&#45;-"/>
+   <m:smallFrac m:val="off"/>
+   <m:dispDef/>
+   <m:lMargin m:val="0"/>
+   <m:rMargin m:val="0"/>
+   <m:defJc m:val="centerGroup"/>
+   <m:wrapIndent m:val="1440"/>
+   <m:intLim m:val="subSup"/>
+   <m:naryLim m:val="undOvr"/>
+  </m:mathPr></w:WordDocument>
+</xml><![endif]--><!--[if gte mso 9]><xml>
+ <w:LatentStyles DefLockedState="false" DefUnhideWhenUsed="true"
+  DefSemiHidden="true" DefQFormat="false" DefPriority="99"
+  LatentStyleCount="267">
+  <w:LsdException Locked="false" Priority="0" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Normal"/>
+  <w:LsdException Locked="false" Priority="9" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="heading 1"/>
+  <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 2"/>
+  <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 3"/>
+  <w:LsdException Locked="false" Priority="9" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="heading 4"/>
+  <w:LsdException Locked="false" Priority="9" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="heading 5"/>
+  <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 6"/>
+  <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 7"/>
+  <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 8"/>
+  <w:LsdException Locked="false" Priority="9" QFormat="true" Name="heading 9"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 1"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 2"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 3"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 4"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 5"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 6"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 7"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 8"/>
+  <w:LsdException Locked="false" Priority="39" Name="toc 9"/>
+  <w:LsdException Locked="false" Priority="35" QFormat="true" Name="caption"/>
+  <w:LsdException Locked="false" Priority="10" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Title"/>
+  <w:LsdException Locked="false" Priority="1" Name="Default Paragraph Font"/>
+  <w:LsdException Locked="false" Priority="11" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Subtitle"/>
+  <w:LsdException Locked="false" Priority="22" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Strong"/>
+  <w:LsdException Locked="false" Priority="20" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Emphasis"/>
+  <w:LsdException Locked="false" Priority="59" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Table Grid"/>
+  <w:LsdException Locked="false" UnhideWhenUsed="false" Name="Placeholder Text"/>
+  <w:LsdException Locked="false" Priority="1" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="No Spacing"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading Accent 1"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List Accent 1"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid Accent 1"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1 Accent 1"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2 Accent 1"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1 Accent 1"/>
+  <w:LsdException Locked="false" UnhideWhenUsed="false" Name="Revision"/>
+  <w:LsdException Locked="false" Priority="34" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="List Paragraph"/>
+  <w:LsdException Locked="false" Priority="29" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Quote"/>
+  <w:LsdException Locked="false" Priority="30" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Intense Quote"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2 Accent 1"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1 Accent 1"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2 Accent 1"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3 Accent 1"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List Accent 1"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading Accent 1"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List Accent 1"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid Accent 1"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading Accent 2"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List Accent 2"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid Accent 2"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1 Accent 2"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2 Accent 2"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1 Accent 2"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2 Accent 2"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1 Accent 2"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2 Accent 2"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3 Accent 2"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List Accent 2"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading Accent 2"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List Accent 2"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid Accent 2"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading Accent 3"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List Accent 3"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid Accent 3"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1 Accent 3"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2 Accent 3"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1 Accent 3"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2 Accent 3"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1 Accent 3"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2 Accent 3"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3 Accent 3"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List Accent 3"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading Accent 3"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List Accent 3"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid Accent 3"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading Accent 4"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List Accent 4"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid Accent 4"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1 Accent 4"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2 Accent 4"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1 Accent 4"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2 Accent 4"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1 Accent 4"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2 Accent 4"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3 Accent 4"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List Accent 4"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading Accent 4"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List Accent 4"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid Accent 4"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading Accent 5"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List Accent 5"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid Accent 5"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1 Accent 5"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2 Accent 5"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1 Accent 5"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2 Accent 5"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1 Accent 5"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2 Accent 5"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3 Accent 5"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List Accent 5"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading Accent 5"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List Accent 5"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid Accent 5"/>
+  <w:LsdException Locked="false" Priority="60" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Shading Accent 6"/>
+  <w:LsdException Locked="false" Priority="61" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light List Accent 6"/>
+  <w:LsdException Locked="false" Priority="62" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Light Grid Accent 6"/>
+  <w:LsdException Locked="false" Priority="63" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 1 Accent 6"/>
+  <w:LsdException Locked="false" Priority="64" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Shading 2 Accent 6"/>
+  <w:LsdException Locked="false" Priority="65" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 1 Accent 6"/>
+  <w:LsdException Locked="false" Priority="66" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium List 2 Accent 6"/>
+  <w:LsdException Locked="false" Priority="67" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 1 Accent 6"/>
+  <w:LsdException Locked="false" Priority="68" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 2 Accent 6"/>
+  <w:LsdException Locked="false" Priority="69" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Medium Grid 3 Accent 6"/>
+  <w:LsdException Locked="false" Priority="70" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Dark List Accent 6"/>
+  <w:LsdException Locked="false" Priority="71" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Shading Accent 6"/>
+  <w:LsdException Locked="false" Priority="72" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful List Accent 6"/>
+  <w:LsdException Locked="false" Priority="73" SemiHidden="false"
+   UnhideWhenUsed="false" Name="Colorful Grid Accent 6"/>
+  <w:LsdException Locked="false" Priority="19" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Subtle Emphasis"/>
+  <w:LsdException Locked="false" Priority="21" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Intense Emphasis"/>
+  <w:LsdException Locked="false" Priority="31" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Subtle Reference"/>
+  <w:LsdException Locked="false" Priority="32" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Intense Reference"/>
+  <w:LsdException Locked="false" Priority="33" SemiHidden="false"
+   UnhideWhenUsed="false" QFormat="true" Name="Book Title"/>
+  <w:LsdException Locked="false" Priority="37" Name="Bibliography"/>
+  <w:LsdException Locked="false" Priority="39" QFormat="true" Name="TOC Heading"/>
+ </w:LatentStyles>
+</xml><![endif]-->
+<style>
+<!--
+ /* Font Definitions */
+ @font-face
+	{font-family:Cambria;
+	panose-1:2 4 5 3 5 4 6 3 2 4;
+	mso-font-charset:0;
+	mso-generic-font-family:roman;
+	mso-font-pitch:variable;
+	mso-font-signature:-536870145 1073743103 0 0 415 0;}
+@font-face
+	{font-family:Calibri;
+	panose-1:2 15 5 2 2 2 4 3 2 4;
+	mso-font-charset:0;
+	mso-generic-font-family:swiss;
+	mso-font-pitch:variable;
+	mso-font-signature:-536870145 1073786111 1 0 415 0;}
+ /* Style Definitions */
+ p.MsoNormal, li.MsoNormal, div.MsoNormal
+	{mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-parent:"";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+h1
+	{mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 1 Char";
+	mso-margin-top-alt:auto;
+	margin-right:0in;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:1;
+	font-size:24.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	font-weight:bold;}
+h4
+	{mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 4 Char";
+	mso-margin-top-alt:auto;
+	margin-right:0in;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	mso-outline-level:4;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	font-weight:bold;}
+h5
+	{mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	mso-style-link:"Heading 5 Char";
+	margin-top:10.0pt;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	page-break-after:avoid;
+	mso-outline-level:5;
+	font-size:12.0pt;
+	font-family:"Cambria","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	color:#243F60;
+	font-weight:normal;}
+a:link, span.MsoHyperlink
+	{mso-style-noshow:yes;
+	mso-style-priority:99;
+	color:blue;
+	text-decoration:underline;
+	text-underline:single;}
+a:visited, span.MsoHyperlinkFollowed
+	{mso-style-noshow:yes;
+	mso-style-priority:99;
+	color:purple;
+	text-decoration:underline;
+	text-underline:single;}
+p.MsoPlainText, li.MsoPlainText, div.MsoPlainText
+	{mso-style-noshow:yes;
+	mso-style-priority:99;
+	mso-style-link:"Plain Text Char";
+	margin:0in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:11.0pt;
+	font-family:"Calibri","sans-serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;
+	mso-bidi-font-family:"Times New Roman";}
+p
+	{mso-style-priority:99;
+	mso-margin-top-alt:auto;
+	margin-right:0in;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+p.MsoListParagraph, li.MsoListParagraph, div.MsoListParagraph
+	{mso-style-priority:34;
+	mso-style-unhide:no;
+	mso-style-qformat:yes;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+span.Heading1Char
+	{mso-style-name:"Heading 1 Char";
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 1";
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-hansi-font-family:Cambria;
+	color:#365F91;
+	font-weight:bold;}
+span.Heading4Char
+	{mso-style-name:"Heading 4 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 4";
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-hansi-font-family:Cambria;
+	color:#4F81BD;
+	font-weight:bold;
+	font-style:italic;}
+span.Heading5Char
+	{mso-style-name:"Heading 5 Char";
+	mso-style-noshow:yes;
+	mso-style-priority:9;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Heading 5";
+	font-family:"Cambria","serif";
+	mso-ascii-font-family:Cambria;
+	mso-hansi-font-family:Cambria;
+	color:#243F60;}
+span.PlainTextChar
+	{mso-style-name:"Plain Text Char";
+	mso-style-noshow:yes;
+	mso-style-priority:99;
+	mso-style-unhide:no;
+	mso-style-locked:yes;
+	mso-style-link:"Plain Text";
+	font-family:"Calibri","sans-serif";
+	mso-ascii-font-family:Calibri;
+	mso-hansi-font-family:Calibri;}
+p.msolistparagraphcxspfirst, li.msolistparagraphcxspfirst, div.msolistparagraphcxspfirst
+	{mso-style-name:msolistparagraphcxspfirst;
+	mso-style-priority:99;
+	mso-style-unhide:no;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+p.msolistparagraphcxspmiddle, li.msolistparagraphcxspmiddle, div.msolistparagraphcxspmiddle
+	{mso-style-name:msolistparagraphcxspmiddle;
+	mso-style-priority:99;
+	mso-style-unhide:no;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+p.msolistparagraphcxsplast, li.msolistparagraphcxsplast, div.msolistparagraphcxsplast
+	{mso-style-name:msolistparagraphcxsplast;
+	mso-style-priority:99;
+	mso-style-unhide:no;
+	margin-top:0in;
+	margin-right:0in;
+	margin-bottom:0in;
+	margin-left:.5in;
+	margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+p.msochpdefault, li.msochpdefault, div.msochpdefault
+	{mso-style-name:msochpdefault;
+	mso-style-priority:99;
+	mso-style-unhide:no;
+	mso-margin-top-alt:auto;
+	margin-right:0in;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:"Times New Roman";
+	mso-fareast-theme-font:minor-fareast;}
+p.gmail-m-5047815134937865191msolistparagraph, li.gmail-m-5047815134937865191msolistparagraph, div.gmail-m-5047815134937865191msolistparagraph
+	{mso-style-name:gmail-m_-5047815134937865191msolistparagraph;
+	mso-style-priority:99;
+	mso-style-unhide:no;
+	mso-margin-top-alt:auto;
+	margin-right:0in;
+	mso-margin-bottom-alt:auto;
+	margin-left:0in;
+	mso-pagination:widow-orphan;
+	font-size:12.0pt;
+	font-family:"Times New Roman","serif";
+	mso-fareast-font-family:Calibri;
+	mso-fareast-theme-font:minor-latin;}
+span.apple-converted-space
+	{mso-style-name:apple-converted-space;
+	mso-style-unhide:no;}
+span.gmailmsg
+	{mso-style-name:gmailmsg;
+	mso-style-unhide:no;}
+span.gmail-m-5047815134937865191gmailmsg
+	{mso-style-name:gmail-m_-5047815134937865191gmailmsg;
+	mso-style-unhide:no;}
+span.SpellE
+	{mso-style-name:"";
+	mso-spl-e:yes;}
+span.GramE
+	{mso-style-name:"";
+	mso-gram-e:yes;}
+.MsoChpDefault
+	{mso-style-type:export-only;
+	mso-default-props:yes;
+	font-size:10.0pt;
+	mso-ansi-font-size:10.0pt;
+	mso-bidi-font-size:10.0pt;}
+@page WordSection1
+	{size:8.5in 11.0in;
+	margin:1.0in 1.0in 1.0in 1.0in;
+	mso-header-margin:.5in;
+	mso-footer-margin:.5in;
+	mso-paper-source:0;}
+div.WordSection1
+	{page:WordSection1;}
+ /* List Definitions */
+ @list l0
+	{mso-list-id:7412694;
+	mso-list-template-ids:991314154;}
+@list l0:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l0:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1
+	{mso-list-id:37703954;
+	mso-list-template-ids:-1038874310;}
+@list l1:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l1:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2
+	{mso-list-id:98724228;
+	mso-list-template-ids:-1924003914;}
+@list l2:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l2:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3
+	{mso-list-id:191380307;
+	mso-list-template-ids:1455066868;}
+@list l3:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l3:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4
+	{mso-list-id:299652945;
+	mso-list-template-ids:-80678448;}
+@list l4:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l4:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5
+	{mso-list-id:315645453;
+	mso-list-template-ids:-890487046;}
+@list l5:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l5:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6
+	{mso-list-id:342173809;
+	mso-list-template-ids:-2012966344;}
+@list l6:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l6:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7
+	{mso-list-id:512107671;
+	mso-list-template-ids:-832961070;}
+@list l7:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l7:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8
+	{mso-list-id:543102057;
+	mso-list-template-ids:1474194628;}
+@list l8:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l8:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9
+	{mso-list-id:550772321;
+	mso-list-template-ids:1634517460;}
+@list l9:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l9:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10
+	{mso-list-id:636111145;
+	mso-list-template-ids:-799129796;}
+@list l10:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l10:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11
+	{mso-list-id:639457476;
+	mso-list-template-ids:1110636304;}
+@list l11:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l11:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12
+	{mso-list-id:743841223;
+	mso-list-template-ids:945349140;}
+@list l12:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l12:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13
+	{mso-list-id:774710799;
+	mso-list-template-ids:1841833238;}
+@list l13:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l13:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14
+	{mso-list-id:784426907;
+	mso-list-template-ids:-9133898;}
+@list l14:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l14:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15
+	{mso-list-id:798575107;
+	mso-list-template-ids:1427941522;}
+@list l15:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l15:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16
+	{mso-list-id:905070039;
+	mso-list-template-ids:993844864;}
+@list l16:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l16:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17
+	{mso-list-id:1254825430;
+	mso-list-template-ids:-1849154610;}
+@list l17:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l17:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18
+	{mso-list-id:1265187782;
+	mso-list-template-ids:-1486312288;}
+@list l18:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l18:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19
+	{mso-list-id:1339697780;
+	mso-list-template-ids:-1135551756;}
+@list l19:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l19:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20
+	{mso-list-id:1519393874;
+	mso-list-template-ids:1952510248;}
+@list l20:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l20:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21
+	{mso-list-id:1531067796;
+	mso-list-template-ids:1063919030;}
+@list l21:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l21:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22
+	{mso-list-id:1559707312;
+	mso-list-template-ids:775067572;}
+@list l22:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l22:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23
+	{mso-list-id:1678147359;
+	mso-list-template-ids:1216014592;}
+@list l23:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l23:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24
+	{mso-list-id:1745296469;
+	mso-list-template-ids:819390246;}
+@list l24:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l24:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25
+	{mso-list-id:1943492691;
+	mso-list-template-ids:1759118350;}
+@list l25:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l25:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26
+	{mso-list-id:1993175234;
+	mso-list-template-ids:960771982;}
+@list l26:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l26:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27
+	{mso-list-id:2001034109;
+	mso-list-template-ids:263888322;}
+@list l27:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l27:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28
+	{mso-list-id:2107995877;
+	mso-list-template-ids:144627984;}
+@list l28:level1
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level2
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level3
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:1.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level4
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level5
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:2.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level6
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level7
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:3.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level8
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.0in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+@list l28:level9
+	{mso-level-number-format:bullet;
+	mso-level-text:\F0B7;
+	mso-level-tab-stop:4.5in;
+	mso-level-number-position:left;
+	text-indent:-.25in;
+	mso-ansi-font-size:10.0pt;
+	font-family:Symbol;}
+ol
+	{margin-bottom:0in;}
+ul
+	{margin-bottom:0in;}
+-->
+</style>
+<!--[if gte mso 10]>
+<style>
+ /* Style Definitions */
+ table.MsoNormalTable
+	{mso-style-name:"Table Normal";
+	mso-tstyle-rowband-size:0;
+	mso-tstyle-colband-size:0;
+	mso-style-noshow:yes;
+	mso-style-priority:99;
+	mso-style-parent:"";
+	mso-padding-alt:0in 5.4pt 0in 5.4pt;
+	mso-para-margin:0in;
+	mso-para-margin-bottom:.0001pt;
+	mso-pagination:widow-orphan;
+	font-size:10.0pt;
+	font-family:"Times New Roman","serif";}
+</style>
+<![endif]--><!--[if gte mso 9]><xml>
+ <o:shapedefaults v:ext="edit" spidmax="1026"/>
+</xml><![endif]--><!--[if gte mso 9]><xml>
+ <o:shapelayout v:ext="edit">
+  <o:idmap v:ext="edit" data="1"/>
+ </o:shapelayout></xml><![endif]-->
+</head>
+
+<body lang=EN-US link=blue vlink=purple style='tab-interval:.5in'>
+
+<div class=WordSection1>
+
+<h1 style='margin-left:15.0pt'><span style='font-size:12.0pt;mso-fareast-font-family:
+"Times New Roman"'>Index</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></h1>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#software_deliverables"><span style='color:#0070C0'>Software Deliverables</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#documentation"><span style='color:#0070C0'>Documentation</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#features"><span
+style='color:#0070C0'>Features</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a
+href="#where_to_start"><span style='color:#0070C0'>Where to Start</span></a></span></p>
+
+<p style='margin-left:15.0pt'><span style='color:#0070C0'><a href="#known_bugs"><span
+style='color:#0070C0'>Known Issues</span></a> </span></p>
+
+<div>
+
+<p><a name=top><strong>Broadcom 97271/7268 A0 Phase 17.1 </strong></a><strong>Set-Top
+Unified Reference Software Release Notes</strong></p>
+
+<p><strong>Release Date: </strong></p>
+
+<blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
+
+<p>March 22, 2017</p>
+
+<p>Phase 17.1 Release </p>
+
+</blockquote>
+
+<p><strong>Platforms Supported: </strong></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+text-indent:.5in'><span style='mso-fareast-font-family:"Times New Roman"'>97271SV
+BCM7271 A0/B0 Revision<o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+text-indent:.5in'><span style='mso-fareast-font-family:"Times New Roman"'>97271DV
+BCM7271 A0/B0 Revision<o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+text-indent:.5in'><span style='mso-fareast-font-family:"Times New Roman"'>97271WLAN
+BCM7271 A0/B0 Revision<o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+text-indent:.5in'><span style='mso-fareast-font-family:"Times New Roman"'>97271IP
+BCM7271 A0/B0 Revision<o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+text-indent:.5in'><span style='mso-fareast-font-family:"Times New Roman"'>&nbsp;<o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b><span
+style='mso-fareast-font-family:"Times New Roman"'>BCM7268 A0/B0 Supported
+boards</span></b><span style='mso-fareast-font-family:"Times New Roman"'> <o:p></o:p></span></p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0
+ style='mso-cellspacing:.7pt;mso-yfti-tbllook:1184;mso-padding-alt:0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>SV<o:p></o:p></span></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>Silicon verification<o:p></o:p></span></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:1'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>DV<o:p></o:p></span></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>Developer<o:p></o:p></span></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:2'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>HB<o:p></o:p></span></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>Hybrid<o:p></o:p></span></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:3;mso-yfti-lastrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>USFF<o:p></o:p></span></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+  style='mso-fareast-font-family:"Times New Roman"'>Ultra Small Form Factor<o:p></o:p></span></p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><a name="software_deliverables">
+
+<span style='color:red'>The B0 versions of the 7268/71 include a new revision of the video decoder hardware
+which has dropped support for &#8221legacy&#8221 video codecs. The supported video codecs can be found in the feature list
+at the end of this document.
+</p>
+<p>&nbsp;</p>
+<span style='color:red'>The 7268 and 7271 contain a 64 bit ARM CPU.
+The supplied kernel comes in 32bit and 64 bit flavors. The 64 bit kernel images can
+be identified by the &#8220;arm64&#8221; suffix.
+The BOLT </span></a><span class=SpellE><spanstyle='mso-bookmark:software_deliverables'><span style='color:red'>bootloader</span></span></span><span
+style='mso-bookmark:software_deliverables'><span style='color:red'> is common
+to both variants and can boot both kernels types. Please refer to the &#8220;64
+bit Migration Application Note&#8221; for more details.</span></span>
+<p>&nbsp;</p>
+<p class=MsoNormal><strong>&nbsp;</strong></p>
+
+<p class=MsoNormal><strong>Software Deliverables<span class=GramE>:</span></strong><br>
+<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="75%"
+ style='width:75.0%;mso-cellspacing:.7pt;mso-yfti-tbllook:1184;mso-padding-alt:
+ 0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Description</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Filename</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Licensing</strong></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:1'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root <span class=SpellE>filesystem</span> images</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p>jffs2-128k-arm64.img</p>
+  <p>jffs2-256k-arm64.img</p>
+  <p>jffs2-64k-arm64.img</p>
+  <p>squashfs-arm64.img</p>
+  <p>ubifs-128k-1-arm64.img</p>
+  <p>ubifs-256k-1-arm64.img</p>
+  <p>ubifs-64k-1-arm64.img</p>
+  <p>jffs2-128k-arm.img</p>
+  <p>jffs2-256k-arm.img</p>
+  <p>jffs2-64k-arm.img</p>
+  <p><span class=SpellE>squashfs-arm.img</span></p>
+  <p>ubifs-128k-1-arm.img</p>
+  <p>ubifs-256k-1-arm.img</p>
+  <p>ubifs-64k-1-arm.img</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:2'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root <span class=SpellE>filesystem</span> source</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:3'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root <span class=SpellE>filesystem</span> source <br>
+  [lib/<span class=SpellE>directfb</span>]</p>
+  <p class=MsoNormal>[user/<span class=SpellE>lxc</span>]</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.1</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:4'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root <span class=SpellE>filesystem</span> source <br>
+  [lib/<span class=SpellE>binutils</span>/gas]<br>
+  [lib/<span class=SpellE>binutils</span>/<span class=SpellE>bfd</span>]<br>
+  [user/<span class=SpellE>gdb</span>/<span class=SpellE>gdb</span>]<br>
+  [user/<span class=SpellE>gdb</span>/<span class=SpellE>bfd</span>]</p>
+  <p class=MsoNormal>[user/<span class=SpellE>lttcontrol</span>]</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 3.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:5'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>root <span class=SpellE>filesystem</span> binaries</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal style='margin-bottom:12.0pt'>nfsroot-arm64.tar.bz2</p>
+  <p class=MsoNormal style='margin-bottom:12.0pt'>nfsroot-arm.tar.bz2</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:6'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>toolchain binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>stbgcc-4.8-1.5.tar.bz2</p>
+  <p class=MsoNormal>(source available upon request) </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 3.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:7'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BOLT <span class=SpellE>bootloader</span> binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>bolt/bolt-v1.26-7268a0-bb-bfw-4.2.3.bin</p>
+  <p class=MsoNormal>bolt/bolt-v1.26-7271a0-bb-bfw-4.2.3.bin</p>
+  <p class=MsoNormal>bolt/bolt-v1.26-7268b0-bb-bfw-4.2.3.bin</p>
+  <p class=MsoNormal>bolt/bolt-v1.26-7271b0-bb-bfw-4.2.3.bin</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA </p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:8'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Kernel Source</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>stblinux-4.1-1.8.tar.bz2</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:9'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Kernel Binary</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>vmlinuz-arm64</p>
+  <p class=MsoNormal><span class=SpellE>vmlinuz</span>-arm</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0 </p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:10'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><span class=SpellE>Initrd</span> Kernel Binary </p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>vmlinuz-initrd-arm64</p>
+  <p class=MsoNormal><span class=SpellE>vmlinuz</span>-<span class=SpellE>initrd</span>-arm</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:11'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software source</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>refsw_release_unified_20170322.src.tgz</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA </p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:12'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes boa</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/boa</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>GPL 2.0</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:13'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>FreeType</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/freetype-2.1.5</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:14'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>FreeType</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/framework3d/freetype-2.3.12</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Dual GPL 2.0 or BSD type*</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:15'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes glob</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/glob</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:16'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>libpng</span></p>
+  </td>
+  <td width="57%" valign=top style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/<span class=SpellE>libpng</span></p>
+  </td>
+  <td width="15%" valign=top style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:17'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>libjpeg</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/jpeg-6b</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:18'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>libexif</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/libexif-0.6.12</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:19'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>liveMedia</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/<span class=SpellE>livemedia</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:20'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>Lua</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/<span class=SpellE>lua</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>MIT</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:21'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- uses <span class=SpellE>openssl</span> (downloaded
+  from Internet)</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- build system found at BSEAV/lib/<span
+  class=SpellE>openssl</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><span class=SpellE>OpenSSL</span> License and<br>
+  <span class=SpellE>SSLeay</span> License</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:22'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>truetype</span> <span
+  class=SpellE>TeenBold</span> font</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/app/<span class=SpellE>brutus</span>/build/fonts/<span
+  class=SpellE>teenbold</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Freeware/BSD type*</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:23'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>truetype</span> <span
+  class=SpellE>MSWebFonts</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/app/<span class=SpellE>brutus</span>/build/fonts/<span
+  class=SpellE>mswebfonts</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Microsoft EULA</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:24'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes ARC ELF relocation</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at magnum/<span class=SpellE>portinginterface</span>/<span
+  class=SpellE>xvd</span>/<span class=SpellE>src</span>/<span class=SpellE>bxvd_relf.h</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ARC International license for Broadcom customers</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:25'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>zlib</span></p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at BSEAV/lib/<span class=SpellE>zlib</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD type*</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:26'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- includes <span class=SpellE>libc</span>/quad</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>&nbsp;- found at nexus/platforms/common/<span
+  class=SpellE>src</span>/support/<span class=SpellE>libgcc</span></p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSD</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:27'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software binary for 97271</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>refsw-20170322.97271a0_SV-linux-atlas.bin.tgz (Atlas
+  application binary)</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Broadcom SLA</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:28;mso-yfti-lastrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Wake-up driver shim for Nexus</p>
+  </td>
+  <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>- found at BSEAV/driver/wakeup</p>
+  </td>
+  <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>LGPL 2.1</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name=documentation><strong>Documentation Deliverables</strong></a><span
+class=GramE><span style='mso-bookmark:documentation'><strong>:</strong></span></span><span
+style='mso-bookmark:documentation'></span><br>
+<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="87%"
+ style='width:87.82%;mso-cellspacing:.7pt;mso-yfti-tbllook:1184;mso-padding-alt:
+ 0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Description</strong></p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal><strong>Filename</strong></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:1'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Release Notes</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>ReleaseNotes97271_97268.html </p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:2'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software auto-generated documentation</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>doxygen_magnum_20170322.tgz<br>
+  doxygen_nexus_20170322.tgz</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:3'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>How to Setup the Build Environment, prepare the reference
+  board</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/app/atlas/docs/BroadcomReferencePlatformSetup.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:4'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference Software Debug Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/RefswDebuggingGuide.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:5'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Architecture Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Architecture.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:6'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Overview Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Overview.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:7'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Graphics Usage</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Graphics.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:8'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Usage Manual</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Usage.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:9'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Development Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Development.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:10'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus <span class=SpellE>MultiProcess</span> Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_MultiProcess.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:11'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Surface Compositor</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_SurfaceCompositor.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:12'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>OpenGL ES Quick Start Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/OpenGL_ES_QuickStart.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:13'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Nexus Memory guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/Nexus_Memory.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:14'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Power Management Overview</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>nexus/docs/RefswPowerManagementOverview.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:15'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Atlas Architecture Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/app/atlas/docs/Atlas_Architecture.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:16'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Atlas User Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/app/atlas/docs/Atlas_User_Guide.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:17'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Introduction of the BSECK-B secured parts</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Security update notice V4.0.pdf</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:18'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>PlayReady 2.5 User Guide</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>BSEAV/lib/<span class=SpellE>playready</span>/2.5/doc/PlayReady_25_User_Guide.pdf<br>
+  in refsw_release_unified_20170322-prd_bin.tgz to licensed recipients only</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:19;mso-yfti-lastrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>64 bit Migration Application Note</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal>Reference_Software_64bit_Migration_Application_Note.pdf</p>
+  </td>
+ </tr>
+</table>
+
+<p><a name="where_to_start"><strong>Where To </strong></a><span class=GramE><span
+style='mso-bookmark:where_to_start'><strong>Start</strong></span></span><span
+style='mso-bookmark:where_to_start'></span><br>
+<a href="#top"><b><span style='color:windowtext'>(Top)</span></b></a></p>
+
+<p class=MsoNormal>Read BroadcomReferencePlatformSetup.pdf for an overview.<br>
+Read Atlas_User_Guide.pdf for information on configuring the Linux environment
+on your Build Server and Set-Top, and information on building and installing
+Atlas as part of the Reference Software. </p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;&nbsp;</p>
+
+<p><strong>Quick Build Instructions</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># tar -<span
+     class=SpellE>xvjf</span> rootfs-4.1-[1.7|1.8].tar.bz2 <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># tar -<span
+     class=SpellE>xvjf</span> stblinux-4.1-1.8.tar.bz2 <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># cd <span class=SpellE>rootfs</span>
+     <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># make <span
+     class=SpellE>vmlinuz</span>-<span class=SpellE>initrd</span>-arm <i>(For 32-bit
+     version of the kernel build)</i><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># make
+     vmlinuz-initrd-arm64 <i>(For 64-bit version of the kernel build)</i><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># <span class=GramE>cd
+     ..</span>/<span class=SpellE>linux</span> <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>export LINUX=`<span
+     class=SpellE>pwd</span>` <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>tar -C /opt/toolchains -<span
+     class=SpellE>xvjf</span> stbgcc-4.8-1.5.tar.bz2 <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>PATH=/opt/toolchains/
+     stbgcc-4.8-1.5/bin:$PATH <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>export B_REFSW_ARCH=arm-<span
+     class=SpellE>linux</span> <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>or </span><span
+     style='font-size:7.0pt;mso-fareast-font-family:"Times New Roman";
+     color:black'>&nbsp;<span class=apple-converted-space>&nbsp;</span></span><span
+     style='mso-fareast-font-family:"Times New Roman";color:black'><span
+     style='orphans: auto;text-align:start;widows: 1;-webkit-text-stroke-width: 0px;
+     word-spacing:0px'>export B_REFSW_ARCH=aarch64-linux (For compiling the
+     code with 64 bit toolchain)</span></span><span style='mso-fareast-font-family:
+     "Times New Roman"'><o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><strong>Quick Boot instructions</strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l3 level1 lfo2;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; boot -z &lt;<span
+     class=SpellE>network_location</span>&gt;:41-1.8/<span class=SpellE>vmlinuz</span>-<span
+     class=SpellE>initrd</span>-arm <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l3 level1 lfo2;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; boot -z &lt;<span
+     class=SpellE>network_location</span>&gt;:41-1.8/vmlinuz-initrd-arm64<span
+     class=GramE>&nbsp; -</span> This command will boot 64 bit kernel instead
+     of 32 bit kernel. <o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><strong>Set the kernel to <span class=SpellE>autoboot</span></strong>
+</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l24 level1 lfo3;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; flash &lt;<span
+     class=SpellE>network_location</span>&gt;:41-1.8/<span class=SpellE>vmlinuz</span>-<span
+     class=SpellE>initrd</span>-arm flash0.kernel <o:p></o:p></span></li>
+</ul>
+
+<p class=MsoListParagraph style='text-indent:-.25in'><span style='font-size:
+10.0pt;font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span>Or BOLT&gt; flash &lt;<span class=SpellE>network_location</span>&gt;:41-1.8/vmlinuz-initrd-arm64
+flash0.kernel<span class=GramE>&nbsp; -</span> For 64 bit kernel</p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo4;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; <span
+     class=SpellE>setenv</span> -p STARTUP &quot;boot -z flash0.kernel:&quot; <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l5 level1 lfo4;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; reboot<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><b>How to set a board to <span class=SpellE>autoboot</span>
+with kernel and <span class=SpellE>ubifs</span> <span class=SpellE>rootfs</span>
+and binaries into the flash:</b></p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Boot
+with <span class=SpellE>vmlinuz-initrd</span> kernel.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Run
+&quot;<span class=SpellE>stbutil</span>&quot;</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Select
+option 1 for flashing the <span class=SpellE>noninitrd</span> kernel to the
+flash. Again run &quot;<span class=SpellE>stbutil</span>&quot; and select 2 to
+flash <span class=SpellE>rootfs</span> into the flash.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
+the board with &quot;boot flash0.kernel '<span class=SpellE>ubi.mtd</span>=flash1.rootfs0
+<span class=SpellE>rootfstype</span>=<span class=SpellE>ubifs</span> root=ubi0<span
+class=GramE>:rootfs</span> <span class=SpellE>rw</span>'&quot; </p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>In
+case you want to run any application on the startup then, copy the application
+binaries in /data/bin of the flash. Copy the streams in /data/media. Edit /<span
+class=SpellE>etc</span>/profile and put the commands you want to run after the
+boot. Save the file.</p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Set
+the STARTUP variable to &quot;boot flash0.kernel '<span class=SpellE>ubi.mtd</span>=flash1.rootfs0
+<span class=SpellE>rootfstype</span>=<span class=SpellE>ubifs</span> root=ubi0<span
+class=GramE>:rootfs</span> <span class=SpellE>rw</span>'&quot; </p>
+
+<p class=MsoListParagraph style='text-indent:-.25in'>&middot;<span
+style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Reboot
+the board.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>Following
+is the list of boards that are supported and the options required to build the
+software. </p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="81%"
+ style='width:81.4%;mso-cellspacing:.7pt;mso-yfti-tbllook:1184;mso-padding-alt:
+ 0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>Board</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>export
+  NEXUS_PLATFORM</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>export
+  BCHP_VER</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>Additional
+  build option, BOLT, Kernel information</b></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:1'>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>97271
+  SV/DV/WLAN/IP</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>97271</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>A0/B0</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>See
+  &#8220;Quick Build Instructions&#8221; on how to setup LINUX and B_REFSW_ARCH
+  variables</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:2;mso-yfti-lastrow:yes'>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>97268
+  SV/DV/HB/USFF</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>97268</p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>A0/B0</b></p>
+  </td>
+  <td style='padding:0in 0in 0in 0in'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>&nbsp;See
+  &#8220;Quick Build Instructions&#8221; on how to setup LINUX and B_REFSW_ARCH
+  variables</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>&nbsp;</p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>There
+are different box modes in the RTS to support separate versions and features of
+this chip. See the table below to know the runtime options needed to be set to
+try these box modes:</p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>&nbsp;</b></p>
+
+<table class=MsoNormalTable border=1 cellspacing=1 cellpadding=0 width="96%"
+ style='width:96.24%;mso-cellspacing:.7pt;mso-yfti-tbllook:1184;mso-padding-alt:
+ 0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes;height:19.65pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  19.65pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><strong>Box
+  modes</strong></p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:19.65pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><b>Runtime
+  option to be set before running any nexus application</b></p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:19.65pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><strong>Description</strong></p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:1;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box1</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=1</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10-bit decode, Main only (No PIP), UHD +
+  SD, Multi-PIP(4+0) support, HDMI input</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:2;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box2</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=2</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10-bit decode (No live decode), UHD display
+  only, Multi-PIP(4+0) support, HDMI input</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:3;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box3</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=3</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Dual 1080p60 decode, UHD display only, MAIN+PIP</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:4;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box4</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=4</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Single 1080p60 decode, UHD+SD display</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:5;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box5</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=5</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p60 10bit decode(Limited
+  usages), Multi-PIP(3+1)(Limited usages),UHD display only(no SD) , MAIN+PIP,
+  HDMI input</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:6;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box6</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=6</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p60 10bit decode,
+  Multi-PIP(3+1),UHD display only(no SD) , MAIN+PIP, HDMI input</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:7;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box7</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=7</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p30 decode,
+  Multi-PIP(3+1),UHD display only(no SD) , MAIN+PIP, HDMI input</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:8;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box8</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=8</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p30 10bit decode,
+  Multi-PIP(3+1),UHD display only(no SD) , MAIN+PIP(PIP has some mosaic
+  capabilities)</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:9;mso-yfti-lastrow:yes;height:9.45pt'>
+  <td width="9%" style='width:9.36%;padding:.75pt .75pt .75pt .75pt;height:
+  9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>Box9</p>
+  </td>
+  <td width="40%" style='width:40.36%;padding:0in 0in 0in 0in;height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>export B_REFSW_BOXMODE=9</p>
+  </td>
+  <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
+  height:9.45pt'>
+  <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+  mso-line-height-alt:9.45pt'>4Kp60 10-bit decode, Main only (No PIP), UHD +
+  SD, Multi-PIP(3+0) support, HDMI input</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'>&nbsp;<b><span
+lang=EN-GB style='mso-ansi-language:EN-GB'>Note: </span></b><span lang=EN-GB
+style='mso-ansi-language:EN-GB'>Due to the features enabled in box mode 6 for
+7268/71 it&#8217;s necessary to alter the power map (<span class=SpellE>pmap</span>)
+for this box mode away from the default. This can be done in BOLT by using the <span
+class=SpellE>pmap</span> command. &nbsp;For box mode 6 you&#8217;ll need to set
+the <span class=SpellE>pmap</span> to 4 e.g. <span class=SpellE>pmap</span>
+-set=4.</span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+lang=EN-GB style='color:#1F497D;mso-ansi-language:EN-GB'>&nbsp;</span></p>
+
+<p class=MsoNormal><strong><span
+style='mso-spacerun:yes'>&nbsp;</span>Instructions to build the WLAN driver for
+<span class=SpellE>wi-fi</span> support:</strong></p>
+
+<p style='margin-left:.5in;text-indent:-.25in'><span style='font-size:10.0pt;
+font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span class=GramE>Please</span> refer to <b>BSEAV\connectivity\<span
+class=SpellE>wlan</span>\README.txt</b> to get the instructions on how to build
+the <span class=SpellE>wlan</span> driver.</p>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal><strong>Instructions to build nexus playback utility and use
+it to decode and display a UHD stream </strong></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l11 level1 lfo5;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># tar <span
+     class=SpellE>xvfz</span> refsw_release_97271_20170322.src.tgz <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l11 level1 lfo5;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#cd nexus/<span
+     class=SpellE>utils</span> <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l11 level1 lfo5;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#make install <o:p></o:p></span></li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l26 level1 lfo6;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Connect UHD 4K TV to
+     HDMI <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l26 level1 lfo6;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#nexus playback -<span
+     class=SpellE>display_format</span> 3840x2160p60 -component off -<span
+     class=SpellE>max_video</span> 3840,2160 -probe &lt;<span class=SpellE>stream_name</span>
+     &gt;<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p class=MsoNormal style='margin-left:.5in'>&nbsp;</p>
+
+<p class=MsoNormal><b>Instructions to build atlas and use it to play a UHD
+stream </b></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo7;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'># tar <span
+     class=SpellE>xvfz</span> refsw_release_97271_20170322.src.tgz<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo7;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#cd BSEAV/app/atlas/build
+     <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l23 level1 lfo7;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#make install <o:p></o:p></span></li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo8;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Connect UHD 4K TV to
+     HDMI<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l15 level1 lfo8;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Mount the USB/SATA
+     containing the 4kX2k stream as /data/videos <o:p></o:p></span></li>
+</ul>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l18 level1 lfo9;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Run the following
+     commands to run atlas after extracting the <span class=SpellE>tarball</span>
+     from obj.97271/BSEAV/bin dir.<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l18 level1 lfo9;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#start install <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l18 level1 lfo9;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>#start atlas <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l18 level1 lfo9;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>From the menu, select
+     Playback -&gt; 4kp60 stream. <o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l18 level1 lfo9;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Using the remote control
+     for the board, select Menu -&gt; Display -&gt; Format -&gt; 2160p 60Hz.
+     You should be able to see the stream playback in 4Kp60 display format.<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name="known_bugs"><strong>Known </strong></a><span class=GramE><span
+style='mso-bookmark:known_bugs'><strong>issues</strong></span></span><span
+style='mso-bookmark:known_bugs'></span><br>
+<a href="#top"><span style='color:windowtext'>(Top)</span></a> </p>
+
+<table class=MsoNormalTable border=1 cellspacing=0 cellpadding=0
+ style='mso-cellspacing:0in;mso-yfti-tbllook:1184;mso-padding-alt:0in 0in 0in 0in'>
+ <tr style='mso-yfti-irow:0;mso-yfti-firstrow:yes'>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><b>Description</b></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><b>Jira Ticket </b></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='background:#99CCCC;padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><b>Area of concern</b></p>
+  </td>
+ </tr>
+ <u1:p></u1:p>
+ <tr style='mso-yfti-irow:1'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>WOWL is only work with PM0&nbsp;</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><span style='background:whitesmoke'>SWWLAN-139381</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>WIRELESS</p>
+  </td>
+ </tr>
+ <u1:p></u1:p>
+ <tr style='mso-yfti-irow:2'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'><span lang=EN-GB style='mso-ansi-language:EN-GB'>7268/7271
+  B0: S2 standby operation fails</span></p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>SWLINUX-4257</p>
+  </td>
+  <u1:p></u1:p>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>POWER MANAGEMENT</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:3'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>Atlas: Bus error system crash doing UDP Wi-Fi decode</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>SWSTB-4214</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>ATLAS</p>
+  </td>
+ </tr>
+ <tr style='mso-yfti-irow:4;mso-yfti-lastrow:yes'>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <h1><span style='font-size:12.0pt;font-weight:normal;mso-bidi-font-weight:
+  bold'>Atlas: BMRC_MONITOR reports a memory access violation in MEMC0 when
+  doing a channel change from QAM to HTTP.</span><span style='font-size:12.0pt'><o:p></o:p></span></h1>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>SWSTB-3960</p>
+  </td>
+  <td style='padding:.75pt .75pt .75pt .75pt'>
+  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+  auto;text-align:center'>ATLAS</p>
+  </td>
+ </tr>
+</table>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name=features><strong>Features in this </strong></a><span class=GramE><span
+style='mso-bookmark:features'><strong>Release</strong></span></span><span
+style='mso-bookmark:features'></span><br>
+<a href="#top">(Top)</a></p>
+
+<p>All features listed in <span style='color:green'>green</span> are new to
+this release. (However, this table is not yet current, will be updated by final
+release.)</p>
+
+<p>Platforms Supported</p>
+
+<p class=MsoNormal><span style='mso-hansi-font-family:Symbol'><span
+style='mso-spacerun:yes'>&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span
+style='font-family:Symbol;mso-ascii-font-family:"Times New Roman"'>&middot;</span><span
+style='mso-spacerun:yes'>&nbsp;&nbsp;&nbsp; </span>Board Support: SV, DV, WLAN,
+C/T/D and IP, <span class=GramE>HB(</span>7268), USFF(7268)<u1:p></u1:p> </p>
+
+<p class=MsoNormal><span style='mso-hansi-font-family:Symbol'><span
+style='mso-spacerun:yes'>&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span
+style='font-family:Symbol;mso-ascii-font-family:"Times New Roman"'>&middot;</span><span
+style='mso-hansi-font-family:Symbol'><span style='mso-spacerun:yes'>&nbsp;
+</span></span><span style='mso-spacerun:yes'>&nbsp;&nbsp;</span>Chip Rev
+Support: A0/B0<span style='mso-fareast-font-family:"Times New Roman"'> <o:p></o:p></span></p>
+
+<ul style='margin-top:0in' type=disc>
+ <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Kernel Version: 4.1-1.8<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
+     style='mso-fareast-font-family:"Times New Roman"'>Toolchain:
+     stbgcc-4.8-1.5<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+class=SpellE><span style='mso-fareast-font-family:"Times New Roman"'>WiFi</span></span><span
+style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dual Band support (2G/5G band)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Security (all formats)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>SoftAP</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>WET (Wireless Ethernet)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Wifi</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> channel/Bandwidth -
+     (20MHz, 40MHz, 80MHz)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>WPS (<span class=SpellE>Wifi</span> Protected Setup)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>TDLS (Tunneled Direct Link Setup)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>WDS (Wireless distribution system)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Wifi</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> Direct<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>ZPL (Zero Packet Loss)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Protected Management Frame<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>WPSD+AEPD<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>NAS authenticator<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>NVRAM Daemon<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Wifi</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> Direct (aka P2P)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>WOWL (Wake on wireless LAN)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>CFG80211<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>WPA supplicant<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>HostAPD</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Android<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>11v&#8217;s BSS transition frame support<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MBSS (different SSID)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Power Management (WMMPS, PM1.PM2)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DFS Slave Radar detection<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DFS Master<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>TX-BF (<span class=SpellE>Beamformee</span> and <span
+     class=SpellE>Beamformer</span>)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>TDCS (Time Domain Channel Smoothing)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>ACI performance optimization, preemption, SWACI, HWACI<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Tempsense</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Video Decoder<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP,
+     HP} @L4.2, MVC {MP, HP}@L4.1)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>HD + SD<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>HEVC - (HDR Metadata Extraction, HDR pass-through,
+     HDR-HLG (<span class=SpellE>Hrybrid</span>-Log Gamma), {MP} @L5.1
+     4kx2k/24p, {MP} @L5.1 4kx2k/30p, {MP} @L5.1 4kx2k/60p)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>HW Still Image Decode - (GIF, JPEG, MJPEG, PNG)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>IP high jitter &amp; trick mode support<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Media File Format Support - (3GP, ASF, AVI, DVD <span
+     class=SpellE>vob</span>, MKV, MP4, OGG (<span class=SpellE>Vorbis</span>
+     audio only), <span class=SpellE>WebM</span> (VP9 video and <span
+     class=SpellE>Vorbis</span> audio))<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Mosaic<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MPEG-2 - (MP@{LL, ML, HL})<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Single MPEG2 I-frame Decode<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Still Picture decoding (Live HD video, MPEG2 and AVC, with
+     SD still)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SW Still image decode (BMP, TIFF, JPEG)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>VP9<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Audio Decoder<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>AAC - (HE 5.1, HE Stereo, LC 5.1, LC Stereo, V1, V2)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>AC3 - (5.1, Stereo)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dolby - (DD, DDP to DD convert, <span class=SpellE>DDPlus</span>
+     5.1, <span class=SpellE>DDPlus</span> 7.1, <span class=SpellE>DDPlus</span>
+     stereo, Dolby Pulse)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dolby MS10<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dolby MS11<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dolby MS11 + 2nd Audio Decode Mixing - (<span
+     class=SpellE>Vorbis</span> Audio)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dolby MS12 - (AC4 (A specific Box mode is required), <span
+     class=SpellE>Config</span> A (A specific Box mode is required), <span
+     class=SpellE>Config</span> B, <span class=SpellE>Config</span> C, Expanded
+     DAPv2 Volume Limiter Controls)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DRA<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DTS-HD<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DTS-MA - (<span class=SpellE>Passthrough</span>)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DVD-LPCM<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>FLAC<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Monkey's Audio<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MP3 - (Stereo)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MPEG Audio Descriptor<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MPEG Multi Channel<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MS11 + PCM Mixing<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Ogg</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> <span class=SpellE>Vorbis</span><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Real Audio - (10, 9)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SRS - (<span class=SpellE>TruVolume</span>)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Windows Media - (WMA (w/LSF, QSF), WMA Pro)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Security<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l7 level1 lfo14;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Common DRM Framework - (Adobe Access 5.0 with enhanced
+     robustness, DTCP-IP)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l7 level1 lfo14;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MCARD/Cable Card support<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l7 level1 lfo14;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SAGE - (SAGE Adobe Access 5.0 with enhanced robustness)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+margin-left:1.0in;text-indent:-.25in;tab-stops:list 1.0in'><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Notable
+changes in this release</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Fixes
+for the defects found in various long term testing</span><span
+style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Added
+support for 7271B0 and 7268B0</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Allow
+Type 2 DRM bin file to use key other than OTP-A</span><span style='mso-fareast-font-family:
+"Times New Roman"'><o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Add
+support for larger than 4GB per memory controller</span><span style='mso-fareast-font-family:
+"Times New Roman"'><o:p></o:p></span></p>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+margin-left:1.0in;text-indent:-.25in;tab-stops:list 1.0in'><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>SAGE
+Software Framework 3.1.8 requires SAGE <span class=SpellE>Bootloader</span>
+2.2.8 (bundled together)</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l19 level1 lfo15;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Smartcard<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l19 level1 lfo15;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SVP - (v2.6)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Audio Post Process<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>ATSC A/85 volume leveling<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Audio Decoder Fade effect<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Broadcom - (3D surround, AVL)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dolby - (DDRE, DV-258)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic
+     filtering, <span class=SpellE>Sub woofer</span> channel extraction, Tone
+     Balancing)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Independent SPDIF delay<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Karaoke support - (Karaoke Decode processing, Karaoke
+     Vocal processing)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>PCM Mixing<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Ramping Mute<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SRC<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SRS - (SRS-HD4, SRS-<span class=SpellE>TruVolume</span>)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>System<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Graphics - (2D GFX, 3D GFX (<span class=SpellE>openGL</span>))<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Kernel Mode<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>LE<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Nexus Multi Process Support<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>User Mode<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>A/V Display<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>All NTSC/ATSC/PAL resolutions<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Audio - HDMI output - (Compressed on HDMI, PCM on HDMI)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Audio - DAC output<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Audio - I2S - (Input, Output)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Audio Input - (HDMI (Compressed), HDMI (Multi-channel
+     PCM), HDMI (Stereo PCM), I2S)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Audio Output - (DAC, I2S (Stereo PCM), SPDIF
+     (Compressed), SPDIF (Stereo PCM))<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DSOLA<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>HDCP support - (HDCP 1.4 for HDMI Repeater, HDCP 1.4
+     for HDMI Rx, HDCP 1.4 for HDMI <span class=SpellE>Tx</span>, HDCP 2.2 for
+     HDMI Repeater/Rx, HDCP 2.2 for HDMI <span class=SpellE>Tx</span>)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>HDMI Input<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>HDMI support - (HDMI 2.0a for HDMI <span class=SpellE>Tx</span>)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>PIP: Simultaneous HD+SD display<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Stream Pan / Scan<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>TSM - (+/-20mSec)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Video - 4kx2k display<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Video - CVBS Output<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Video - HDMI output - (2.0) <o:p></o:p></span></li>
+</ul>
+
+<p class=gmail-m-5047815134937865191msolistparagraph style='margin-left:1.0in;
+text-indent:-.25in;mso-list:l13 level2 lfo18;tab-stops:list 1.0in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol'><span
+style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span></span><![endif]><span class=gmail-m-5047815134937865191gmailmsg><span
+style='color:#00B050'>HDR 2.0 features supported in this release:</span></span></p>
+
+<p class=gmail-m-5047815134937865191msolistparagraph style='margin-left:1.0in;
+text-indent:.5in'><span style='font-size:10.0pt;font-family:Symbol;color:#00B050'>&middot;</span><span
+style='font-size:7.0pt;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class=gmail-m-5047815134937865191gmailmsg><span style='color:#00B050'>&nbsp;Conversion
+between SDR &lt;-&gt; HDR10,&nbsp;</span></span><span style='color:#00B050'>SDR
+&lt;-&gt; HLG, HDR10&nbsp;&lt;-&gt; HLG</span></p>
+
+<p class=gmail-m-5047815134937865191msolistparagraph style='margin-left:1.0in;
+text-indent:.5in'><span class=GramE><span style='font-size:10.0pt;font-family:
+Symbol;color:#00B050'>&middot;</span><span style='font-size:7.0pt;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
+class=gmail-m-5047815134937865191gmailmsg><span style='color:#00B050'>&nbsp;Conversion
+among 170M, Bt470_BG, BT709, BT2020-NCL and BT2020-CL.</span></span></span><span
+class=gmail-m-5047815134937865191gmailmsg><span style='color:#00B050'> &nbsp;</span></span></p>
+
+<p class=MsoListParagraph style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+auto;text-indent:-.25in;mso-list:l2 level1 lfo19;tab-stops:list .5in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol'><span
+style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>PVR<o:p></o:p></span></p>
+
+<p class=MsoListParagraph style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
+auto;text-indent:-.25in;mso-list:l2 level1 lfo19;tab-stops:list .5in'><![if !supportLists]><span
+style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
+mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol'><span
+style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>PVR
+encryption - (3DES, AES, DES)<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>PVR TSM<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Record - (AVC, MPEG2, MVC)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>STC rate based <span class=SpellE>trickmode</span><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Timeshift</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> - (AVC, MPEG2, MVC)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Trick mode - (AVC, Decoder <span class=SpellE>trickmode</span>,
+     DSOLA with audio, Host <span class=SpellE>trickmode</span>, Host <span
+     class=SpellE>trickmode</span> w/o index on MPEG-2, MPEG2, MVC, playback,
+     Slow motion)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>IPTV<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l8 level1 lfo20;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>BIP API - (Dynamic clock recovery reconfiguration, IGMP
+     <span class=SpellE>Linstener</span>, RTSP server, Streamer, HSL Server
+     side <span class=SpellE>trickmode</span>)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Networking<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l6 level1 lfo21;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Ethernet MAC - (10/100 Eth MAC, 1000 Eth MAC)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Miscellaneous<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Common Download via TR69<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>NxClient</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> <span class=SpellE>Multiprocess</span>
+     library - (AC3+ down-convert, API to control audio output configuration,
+     API to control slave display settings and sample aspect ratio, Audio
+     Primer for fast main/PIP audio swap, Auto Volume Level, Callback for
+     display changes, Display VBI functions, Explicit PIP window support, HDMI
+     input encoding supporting (included rework of <span class=SpellE>nxclient</span>
+     <span class=SpellE>hdmi</span> input <span class=SpellE>api</span>), <span
+     class=SpellE>Macrovision</span>, Main/PIP video swap, MS12, NRT
+     (non-real-time) transcode, <span class=SpellE>nxserver</span> external app
+     mode, Per-output audio volume control, Picture quality adjustments, PIP
+     mosaic, Video-as-graphics, SCMS for SPDIF)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>RCU - (IR)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Video image input interface<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Virtual L2 interrupt<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Transport<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Message Filtering<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MTSIF<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>PID Filtering<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>Remux</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>TSMF<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Power Management<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l20 level1 lfo24;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Adaptive Voltage Scaling<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l20 level1 lfo24;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Dynamic Power Management<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l20 level1 lfo24;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>S1: Active Standby<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Picture Quality<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>CAB (Color Alteration Block)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DNR (Digital Noise Reduction in 65nm) - (BNR (Block
+     Noise Reduction), DCR (Digital <span class=SpellE>Countour</span>
+     Reduction), MNR (Mosquito Noise Reduction))<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>GNR (Gaussian Noise Reduction) - (AND (Analog Noise
+     Detection), MCTF (Motion-Compensated Temporal Filter))<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>LAB &amp; HIST (<span class=SpellE>Luma</span>
+     Alteration Block &amp; <span class=SpellE>Luma</span> Histogram)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>MAD-R (Motion Adaptive <span class=SpellE>Deinterlacer</span>
+     Re-architected)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>TN2T-H (Sharpening)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>3D Video Display<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l12 level1 lfo26;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>3D packing format - (1920x1080i@50Hz,
+     1920x1080i@59.94/60Hz, 1920x1080p@24Hz)<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Linux<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>CMA<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Ethernet link and Ethernet <span class=SpellE>EPhy</span><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>File system - (UBIFS)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Flash - (NAND, NOR, SPI)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>MoCA</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> - (V2.0)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>PCIe</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>SATA - (Sata2, Sata3)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>UART port<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>USB<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>Cable FE<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>BCM3128 tuner support - (Full band capture with
+     TR69/135)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span class=SpellE><span
+     style='mso-fareast-font-family:"Times New Roman"'>CableCARD</span></span><span
+     style='mso-fareast-font-family:"Times New Roman"'> stack - (Basic, <span
+     class=SpellE>Basic+DSG</span>, <span class=SpellE>Basic+DSG+OOB</span>)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DOCSIS Frontend<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DOCSIS3.0 - (Annex-A (Europe), Annex-B (North America),
+     Annex-C (Japan))<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>DSG Client Controller, DSG Clients<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>QAM Tuning<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
+style='mso-fareast-font-family:"Times New Roman"'>VBI<o:p></o:p></span></p>
+
+<ul type=disc>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l1 level1 lfo29;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Copy Protection - (CGMS-A, DCS)<o:p></o:p></span></li>
+ <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
+     mso-list:l1 level1 lfo29;tab-stops:list .5in'><span style='mso-fareast-font-family:
+     "Times New Roman"'>Data Re-encoding and Rendering - (AMOL I/II, ANSI/SCTE
+     20/21, CEA-608 (Analog Closed Captioning for RF, composite, S-video and
+     480i component signals), CEA-708 (Digital Closed Captioning), CEA-805 (for
+     480p, 720p and 1080i component signals), ETSI EN 300 743, Gemstar, NABTS
+     (Teletext), Nielsen, <span class=SpellE>TVGuide</span>, WSS/VPS (ETS 300
+     294))<o:p></o:p></span></li>
+</ul>
+
+<p class=MsoNormal>&nbsp;</p>
+
+<p><a name="features_future"><strong>Features Planned for the Next </strong></a><span
+class=GramE><span style='mso-bookmark:features_future'><strong>Release</strong></span></span><span
+style='mso-bookmark:features_future'></span><b><br>
+<a href="#top">(Top)</a></b></p>
+
+</div>
+
+</div>
+
+</body>
+
+</html>

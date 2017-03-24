@@ -348,7 +348,7 @@ NEXUS_P_HwPidChannel *NEXUS_P_HwPidChannel_Open(NEXUS_ParserBandHandle parserBan
         for (pidChannel = BLST_S_FIRST(&pTransport->pidChannels); pidChannel; pidChannel = BLST_S_NEXT(pidChannel, link)) {
 #if B_REFSW_DSS_SUPPORT
             /* a different ENABLE_HD_FILTER value allows for a duplicate pid channel */
-            if ((pidChannel->settings.dssHdFilter == NEXUS_PidChannelDssHdFilter_eDisabled) != (pSettings->dssHdFilter == NEXUS_PidChannelDssHdFilter_eDisabled)) {
+            if (pidChannel->settings.dssHdFilter != pSettings->dssHdFilter) {
                 continue;
             }
 #endif

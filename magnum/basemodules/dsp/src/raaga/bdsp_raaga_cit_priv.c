@@ -46,877 +46,219 @@
 
 #include "bchp_aud_fmm_bf_ctrl.h"
 
- /* CIT-Gen  header File Inclusion */
-
 BDBG_MODULE(bdsp_cit_priv);
 
-/*#undef ANALYZE_IO_CFG */
-/*--------------------------------------------------*/
-/*    Static Memory Allocations for CIT-Gen Module  */
-/*--------------------------------------------------*/
+/******************************************************************************
+Summary:
 
-/* Arrays for :- Display Messages */
-static const char AlgoIdEnum2Char[BDSP_AF_P_AlgoId_eMax+1][MAX_CHAR_LENGTH] =
+    Compute the Buffer Size of a Task's stack
+
+Description:
+
+    Every Task will be assiciated with a DRAM stack. This is to enable stack swap
+    in DSP.
+
+    Allocated stack size per task is BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES
+    bytes.
+
+Input:
+        None
+Output:
+        psTaskBuffInfo : Buffer information for a task
+Returns:
+        None
+
+******************************************************************************/
+static void BDSP_Raaga_P_ComputeTaskStackBuffSize(
+                    BDSP_CIT_P_sTaskBuffInfo    *psTaskBuffInfo )
+
 {
-    {"MpegDecode"},
-    {"Ac3Decode"},
-    {"AacDecode"},
-    {"AacHeLpSbrDecode"},
-    {"DdpDecode"},
-    {"DdLosslessDecode"},
-    {"LpcmCustomDecode"},
-    {"BdLpcmDecode"},
-    {"DvdLpcmDecode"},
-    {"HdDvdLpcmDecode"},
-    {"MpegMcDecode"},
-    {"WmaStdDecode"},
-    {"WmaProStdDecode"},
-    {"MlpDecode"},
-    {"Ddp71Decode"},
-    {"DtsDecode"},
-    {"DtsLbrDecode"},
-    {"DtsHdDecode"},
-    {"PcmWavDecode"},
-    {"Amr Decode"},
-    {"Dra Decode"},
-    {"Real Audio LBR Decode"},
-    {"Dolby Pulse Decode"},
-    {"Ms10 DdpDecode"},
-    {"Adpcm Decode"},
-    {"G.711/G.726 Decode"},
-    {"G.729 Decode"},
-    {"VORBIS Decode"},
-    {"G.723.1 Decode"},
-    {"FLAC Decode"},
-    {"MAC Decode"},
-    {"Amrwb Decode"},
-    {"iLBC Decode"},
-    {"ISAC Decode"},
-    {"UDC Decode"},
-    {"Dolby AACHE Decode"},
-    {"Opus Decode"},
-    {"ALS Decode"},
-    {"AC4 Decode"},
-    {"EndOfAudioDecodeAlgos"},
-    {"Real Video Decode"},
-    {"VP6 Video Decode"},
-    {"EndOfDecodeAlgos"},
-    {"MpegFrameSync"},
-    {"MpegMcFrameSync"},
-    {"AdtsFrameSync"},
-    {"LoasFrameSync"},
-    {"WmaStdFrameSync"},
-    {"WmaProFrameSync"},
-    {"Ac3FrameSync"},
-    {"DdpFrameSync"},
-    {"Ddp71FrameSync"},
-    {"DtsFrameSync"},
-    {"DtsLbrFrameSync"},
-    {"DtsHdFrameSync"},
-    {"DtsHdFrameSync_1"},
-    {"DtsHdHdDvdFrameSync"},
-    {"DdLosslessFrameSync"},
-    {"MlpFrameSync"},
-    {"MlpHdDvdFrameSync"},
-    {"PesFrameSync"},
-    {"BdLpcmFrameSync"},
-    {"HdDvdLpcmFrameSync"},
-    {"DvdLpcmFrameSync"},
-    {"DvdLpcmFrameSync_1"},
-    {"PcmWavFrameSync"},
-    {"Dra FrameSync"},
-    {"Real Audio LBR FrameSync"},
-    {"Ms10 Ddp FrameSync"},
-    {"VORBIS FrameSync"},
-    {"FLAC FrameSync"},
-    {"MAC FrameSync"},
-    {"UDC FrameSync"},
-    {"AC4 FrameSync"},
-    {"ALS FrameSync"},
-    {"EndOfAudioDecFsAlgos"},
-    {"Real Video FrameSync"},
-    {"VP6 Video FrameSync"},
-    {"EndOfDecFsAlgos"},
-    {"Ac3Encode"},
-    {"MpegL2Encode"},
-    {"MpegL3Encode"},
-    {"AacLcEncode"},
-    {"AacHeEncode"},
-    {"DtsEncode"},
-    {"DtsBroadcastEncode"},
-    {"SBC Encode"},
-    {"DD Transcode"},
-    {"G.711/G.726 Encode"},
-    {"G.729 Encode"},
-    {"G.723.1 Encode"},
-    {"G.722 Encode"},
-    {"Amr Encode"},
-    {"Amrwb Encode"},
-    {"ILBC Encode"},
-    {"ISAC Encode"},
-    {"Lpcm Encode"},
-    {"Opus Encode"},
-    {"DDP Encode"},
-    {"EndOfAudioEncodeAlgos"},
-    {"H.264 Video Encoder"},
-    {"X.264 Video Encoder"},
-    {"X.VP8 Video Encoder"},
-    {"EndOfVideoEncodeAlgos"},
-    {"Ac3EncFrameSync"},
-    {"MpegL3EncFrameSync"},
-    {"MpegL2EncFrameSync"},
-    {"AacLcEncFrameSync"},
-    {"AacHeEncFrameSync"},
-    {"DtsEncFrameSync"},
-    {"EndOfEncFsAlgos"},
-    {"PassThru"},
-    {"MlpPassThru"},
-    {"EndOfAuxAlgos"},
-    {"SrsTruSurroundPostProc"},
-    {"SrcPostProc"},
-    {"DdbmPostProc"},
-    {"DownmixPostProc"},
-    {"CustomSurroundPostProc"},
-    {"CustomBassPostProc"},
-    {"KaraokeCapablePostProc"},
-    {"CustomVoicePostProc"},
-    {"PeqPostProc"},
-    {"AvlPostProc"},
-    {"Pl2PostProc"},
-    {"XenPostProc"},
-    {"BbePostProc"},
-    {"DsolaPostProc"},
-    {"DtsNeoPostProc"},
-    {"DDConvert"},
-    {"AudioDescriptorFadePostProc"},
-    {"AudioDescriptorPanPostProc"},
-    {"PCMRouterPostProc"},
-    {"WMAPassThrough"},
-    {"SrsTruSurroundHDPostProc"},
-    {"SrsTruVolumePostProc"},
-    {"DolbyVolumePostProc"},
-    {"Brcm3D SurroundPostProc"},
-    {"FwMixer PostProc"},
-    {"MonoDownMix PostProc"},
-    {"Ms10 DDConvert"},
-    {"DdrePostProc"},
-    {"Dv258PostProc"},
-    {"DpcmrPostProc"},
-    {"CdbItbGenPostProc"},
-    {"Btsc Encoder"},
-    {"Speex Acoustic echo canceller"},
-    {"Karaoke"},
-    {"MixerDapv2 PostProc"},
-    {"Output Formatter"},
-    {"Vocal PostProc"},
-    {"Fade Control"},
-    {"EndOfPpAlgos"},
-    {"MixerFrameSync"},
-    {"MixerDapv2FrameSync"},
-    {"EndOfPpFsAlgos"},
-    {"SysLib"},
-    {"AlgoLib"},
-    {"IDSCommonLib"},
-    {"VideoIDSCommonLib"},
-    {"EndOfLibAlgos"},
-    {"Scm1 Processing"},
-    {"Scm2 Processing"},
-    {"Scm3Processing"},
-    {"EndOfScmAlgos"},
-    {"SCMTask"},
-    {"EndOfTasks"},
-    {"EndOfAlgos"}
-};
+    BDBG_ENTER(BDSP_Raaga_P_ComputeTaskStackBuffSize);
 
-static void BDSP_CITGEN_P_ComputeTaskStackBuffSize(
-            BDSP_CIT_P_sTaskBuffInfo                *psTaskBuffInfo
-        );
+    psTaskBuffInfo->ui32TaskStackMemSize
+                        = BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES;
 
-static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
-            BDSP_RaagaStage *pPrimaryStageHandle,
-            uint32_t dspIndex,
-            BDSP_AF_P_sNODE_CONFIG          *psCit,
-            unsigned *ui32TotalNodes,
-            BDSP_AF_P_eSchedulingGroup eSchedulingGroup);
+    BDBG_LEAVE(BDSP_Raaga_P_ComputeTaskStackBuffSize);
 
-static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
-                        BDSP_RaagaTask *pRaagaTask,
-                        BDSP_AF_P_sTASK_CONFIG  *psCit,
-                        unsigned ui32TotalNodes);
-static uint32_t BDSP_CITGEN_P_FillInputforVideoEncode (BDSP_RaagaTask *pRaagaTask);
+}
+static BERR_Code BDSP_Raaga_P_PopulateFwHwBuffer(
+                                void                  *pPrimaryStageHandle,
+                                BDSP_AF_P_sFW_HW_CFG  *psFwHwCfg)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    unsigned output;
 
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoDecodeCit (
-                        BDSP_RaagaTask               *pRaagaTask,
-                        BDSP_VF_P_sDEC_TASK_CONFIG   *psVideoDecodeCit,
-                        BDSP_sVDecoderIPBuffCfg      *psVDecodeBuffCfgIp,
-                        unsigned                      ui32TotalNodes);
+    unsigned ui32Count = 0, ui32PPMCount = 0, ui32BufferId = 0;
 
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
-                        BDSP_RaagaTask              *pRaagaTask,
-                        BDSP_VF_P_sENC_TASK_CONFIG  *psVideoEncodeCit,
-                        BDSP_sVEncoderIPConfig *psVEncoderCfgIp,
-                        unsigned                     ui32TotalNodes);
+    BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pPrimaryStageHandle;
 
-BERR_Code BDSP_P_PopulateFwHwBuffer(
-                                void *pPrimaryStageHandle,
-                                BDSP_AF_P_sFW_HW_CFG        *sFwHwCfg
-                            );
-static uint32_t BDSP_PopulateAlgoMode(
+    BDBG_ASSERT(NULL != pRaagaPrimaryStage);
+
+    /*Initialization*/
+    for(ui32Count =0; ui32Count<BDSP_AF_P_MAX_ADAPTIVE_RATE_BLOCKS;ui32Count++)
+    {
+        psFwHwCfg->sPpmCfg[ui32Count].ePPMChannel    = BDSP_AF_P_eDisable;
+        psFwHwCfg->sPpmCfg[ui32Count].ui32PPMCfgAddr = (uint32_t)((unsigned long)NULL);
+    }
+
+    BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
+    BSTD_UNUSED(macroBrId);
+    BSTD_UNUSED(macroStId);
+    {
+        for(output=0;output<BDSP_AF_P_MAX_OP_FORKS;output++)
+        {
+            if(pRaagaConnectStage->sStageOutput[output].eConnectionType == BDSP_ConnectionType_eFmmBuffer &&
+                pRaagaConnectStage->sStageOutput[output].eNodeValid==BDSP_AF_P_eValid)
+            {
+                for(ui32Count =0; ui32Count<BDSP_AF_P_MAX_CHANNEL_PAIR;ui32Count++)
+                {
+                    ui32BufferId = pRaagaConnectStage->sStageOutput[output].Metadata.rateController[ui32Count].wrcnt;
+                    /*ui32BufferId would be -1 by default by init if FMM dest not added*/
+                    if(ui32BufferId != BDSP_CIT_P_PI_INVALID)
+                    {
+                        if(ui32PPMCount >= BDSP_AF_P_MAX_ADAPTIVE_RATE_BLOCKS)
+                        {
+                            errCode = BERR_LEAKED_RESOURCE;
+                            goto error;
+                        }
+
+                        psFwHwCfg->sPpmCfg[ui32PPMCount].ePPMChannel = BDSP_AF_P_eEnable;
+
+                        psFwHwCfg->sPpmCfg[ui32PPMCount].ui32PPMCfgAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32BufferId );
+
+                        ui32PPMCount = ui32PPMCount + 1;
+                    }
+                }
+
+            }
+        }
+    }
+    BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
+error:
+    return errCode;
+}
+
+static BERR_Code BDSP_Raaga_P_PopulateAlgoMode(
                 BDSP_RaagaStage *pRaagaPrimaryStage,
-                BDSP_CIT_P_sAlgoModePresent *sAlgoModePresent
-                );
-static uint32_t  BDSP_CITGEN_P_GetNumZeroFillSamples(
+                BDSP_CIT_P_sAlgoModePresent *sAlgoModePresent)
+{
+    BERR_Code errCode = BERR_SUCCESS;
+    BDBG_ASSERT(NULL != pRaagaPrimaryStage);
+
+    /*Initialize first*/
+    sAlgoModePresent->ui32DolbyPulsePresent   = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32DDP_PassThruPresent = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32DTS_EncoderPresent  = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32AC3_EncoderPresent  = BDSP_CIT_P_ABSENT;
+    sAlgoModePresent->ui32DdrePresent         = BDSP_CIT_P_ABSENT;
+
+    BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
+    BSTD_UNUSED(macroBrId);
+    BSTD_UNUSED(macroStId);
+    {
+        /* Handle special case algorithms */
+        switch ( pRaagaConnectStage->algorithm )
+        {
+            case BDSP_Algorithm_eDolbyPulseAdtsDecode:
+            case BDSP_Algorithm_eDolbyPulseLoasDecode:
+                sAlgoModePresent->ui32DolbyPulsePresent = BDSP_CIT_P_PRESENT;
+                break;
+            case BDSP_Algorithm_eAc3PlusPassthrough:
+            case BDSP_Algorithm_eUdcPassthrough:
+                sAlgoModePresent->ui32DDP_PassThruPresent = BDSP_CIT_P_PRESENT;
+                break;
+            case BDSP_Algorithm_eDtsCoreEncode:
+                sAlgoModePresent->ui32DTS_EncoderPresent = BDSP_CIT_P_PRESENT;
+                break;
+            case BDSP_Algorithm_eAc3Encode:
+                sAlgoModePresent->ui32AC3_EncoderPresent = BDSP_CIT_P_PRESENT;
+                break;
+            case BDSP_Algorithm_eDdre:
+                sAlgoModePresent->ui32DdrePresent = BDSP_CIT_P_PRESENT;
+                break;
+            default:
+                break;
+        }
+    }
+    BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
+
+    return errCode;
+}
+
+static BERR_Code  BDSP_Raaga_P_GetNumZeroFillSamples(
     uint32_t    *pui32ZeroFillSamples,
     BDSP_RaagaStage *pRaagaPrimaryStage
-    );
-/*Modification*/
-
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
-                        BDSP_RaagaTask *pRaagaTask,
-                        BDSP_SCM_P_sTASK_CONFIG *psCit,
-                        unsigned ui32TotalNodes);
-static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
-                    BDSP_RaagaStage *pPrimaryStageHandle,
-                    BDSP_SCM_P_sTASK_CONFIG         *psCit,
-                    unsigned *ui32TotalNodes);
-
-uint32_t BDSP_P_GenNewCit(void* pTaskHandle)
+    )
 {
-    unsigned ui32Err = BERR_SUCCESS ;
+    BERR_Code errCode = BERR_SUCCESS;
+    bool foundValidStage = false;
+    BDSP_RaagaStage *pRaagaStage = NULL;
 
-    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-    BDSP_CIT_P_Output   *psCitOp = &(pRaagaTask->citOutput);
+    BDBG_ENTER(BDSP_Raaga_P_GetNumZeroFillSamples);
+    BDBG_ASSERT(NULL != pRaagaPrimaryStage);
 
-    BDSP_CIT_P_sTaskBuffInfo sTaskBuffInfo;
-    unsigned ui32TotalNodes = 0;
-
-    /*the whole of citOutput should be filled here*/
-
-    BDBG_ENTER(BDSP_P_GenNewCit);
-
-    BDSP_CITGEN_P_ComputeTaskStackBuffSize(&sTaskBuffInfo);
-
-    BDBG_ASSERT(NULL != pRaagaTask);
-    BDBG_ASSERT(NULL != pRaagaTask->startSettings.primaryStage);
-
-    ui32Err = BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
-                    (void *) pRaagaTask->startSettings.primaryStage->pStageHandle,
-                    pRaagaTask->settings.dspIndex,
-                    &psCitOp->sCit.sNodeConfig[0]/*BDSP_AF_P_sTASK_CONFIG*/ ,
-                    &ui32TotalNodes,
-                    pRaagaTask->eSchedulingGroup);
-
-    if( ui32Err != BERR_SUCCESS || ui32TotalNodes == 0)
+    BDSP_STAGE_TRAVERSE_LOOP_V1_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage, branchId, stageId)
+    BSTD_UNUSED(stageId);
     {
-        goto BDSP_CITGENMODULE_P_EXIT_POINT;
-    }
-
-    if(ui32TotalNodes > BDSP_AF_P_MAX_NODES)
-    {
-        BDBG_ERR(("Error : The number of nodes in the system is %d. Maximum Allowed is %d", ui32TotalNodes,BDSP_AF_P_MAX_NODES));
-        return(BERR_NOT_SUPPORTED);
-    }
-    BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
-    /*  Fill the global task configuration into CIT */
-    ui32Err = BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit(
-                            (void *) pRaagaTask,
-                            &psCitOp->sCit,
-                            ui32TotalNodes); /*BDSP_AF_P_sTASK_CONFIG*/
-
-    if( ui32Err != BERR_SUCCESS)
-    {
-        goto BDSP_CITGENMODULE_P_EXIT_POINT;
-    }
-
-    /* EXIT Point */
-    BDSP_CITGENMODULE_P_EXIT_POINT:
-
-    /* Check for Error and assert */
-    if(ui32Err !=BERR_SUCCESS)
-    {
-        BDBG_ASSERT(0);
-    }
-
-    BDBG_LEAVE(BDSP_P_GenNewCit);
-
-    return ui32Err;
-}
-/*************************************************/
-/*   CIT Generation Module's Private defines     */
-/**************************************************/
-/*
-    #define BDSP_CIT_P_PRINT_STAGE_PORT_CONNECTION
-    #define BDSP_CIT_P_PRINT_PPM_CFG
-*/
-/**************************************************/
-
-/*---------------------------------------------------------------------
-                Top level CIT Generation Function
----------------------------------------------------------------------*/
-
-uint32_t BDSP_P_GenNewScmCit(   void* pTaskHandle )
-{
-
-
-    unsigned ui32Err = BERR_SUCCESS ;
-
-    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
-    BDSP_CIT_P_ScmCITOutput     *psScmCitOp = &(pRaagaTask->scmCitOutput);
-
-    BDSP_CIT_P_sTaskBuffInfo sTaskBuffInfo;
-    unsigned ui32TotalNodes = 0;
-
-    /*the whole of citOutput should be filled here*/
-
-    BDBG_ENTER(BDSP_P_GenNewScmCit);
-
-    BDSP_CITGEN_P_ComputeTaskStackBuffSize(&sTaskBuffInfo);
-
-    BDBG_ASSERT(NULL != pRaagaTask);
-    BDBG_ASSERT(NULL != pRaagaTask->startSettings.primaryStage);
-
-    ui32Err = BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
-                    (void *) pRaagaTask->startSettings.primaryStage->pStageHandle,
-                    &psScmCitOp->sScmCit,
-                    &ui32TotalNodes);
-
-    if( ui32Err != BERR_SUCCESS || ui32TotalNodes == 0)
-    {
-        goto BDSP_CITGENMODULE_P_EXIT_POINT;
-    }
-    if(ui32TotalNodes > BDSP_AF_P_MAX_NODES)
-    {
-        BDBG_ERR(("Error : The number of nodes in the system is %d. Maximum Allowed is %d", ui32TotalNodes,BDSP_AF_P_MAX_NODES));
-        return(BERR_NOT_SUPPORTED);
-    }
-    BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
-
-    /*  Fill the global task configuration into CIT */
-    ui32Err = BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit(
-                            (void *) pRaagaTask,
-                            &psScmCitOp->sScmCit,
-                            ui32TotalNodes);
-
-    if( ui32Err != BERR_SUCCESS)
-    {
-        goto BDSP_CITGENMODULE_P_EXIT_POINT;
-    }
-
-
-    /* EXIT Point */
-    BDSP_CITGENMODULE_P_EXIT_POINT:
-
-    /* Check for Error and assert */
-    if(ui32Err !=BERR_SUCCESS)
-    {
-        BDBG_ASSERT(0);
-    }
-
-    BDBG_LEAVE(BDSP_P_GenNewScmCit);
-
-    return ui32Err;
-
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/************************* VIDEO TASK  **************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*---------------------------------------------------------------------
-                Top level Video CIT Generation Function
----------------------------------------------------------------------*/
-
-static uint32_t BDSP_CITGEN_P_FillInputforVideoEncode (BDSP_RaagaTask *pRaagaTask)
-{
-
-    uint32_t    ui32Error, ui32RegOffset;
-    BDSP_RaagaStage *pRaagaPrimaryStage;
-
-    BDBG_ENTER(BDSP_CITGEN_P_FillInputforVideoEncode);
-
-    ui32Error = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
-    pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
-
-    pRaagaPrimaryStage->sStageInput[0].eNodeValid              = BDSP_AF_P_eValid;
-    pRaagaPrimaryStage->sStageInput[0].eConnectionType         = BDSP_ConnectionType_eRDBBuffer;
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.eBufferType    = BDSP_AF_P_BufferType_eRDB;
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.ui32NumBuffers = 3;
-
-    /* PDQ - FIFO 15  values passed */
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
-    (ui32RegOffset * pRaagaTask->hRDQueue->i32FifoId);
-
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET ) ;
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-
-    /* PRQ - FIFO 16 values passed */
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
-    (ui32RegOffset * pRaagaTask->hRRQueue->i32FifoId);
-
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-
-
-    /* CCDQ - FIFO 14  values passed */
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
-    (ui32RegOffset * pRaagaTask->hCCDQueue->i32FifoId);
-
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
-    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-
-    pRaagaPrimaryStage->totalInputs++;
-
-    pRaagaPrimaryStage->sStageInput[0].StageIOBuffDescAddr = pRaagaPrimaryStage->sStageInput[0].IoBuffDesc.offset;
-    pRaagaPrimaryStage->sStageInput[0].StageIOGenericBuffDescAddr = pRaagaPrimaryStage->sStageInput[0].IoGenBuffDesc.offset;
-    BDBG_LEAVE(BDSP_CITGEN_P_FillInputforVideoEncode);
-
-    return ui32Error;
-
-}
-
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoDecodeCit (
-                        BDSP_RaagaTask               *pRaagaTask,
-                        BDSP_VF_P_sDEC_TASK_CONFIG   *psVideoDecodeCit,
-                        BDSP_sVDecoderIPBuffCfg      *psVDecodeBuffCfgIp,
-                        unsigned                      ui32TotalNodes)
-{
-    uint32_t    ui32Error;
-    uint32_t    ui32Count, ui32RegOffset;
-
-    BDSP_VF_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
-    BDSP_VF_P_sVDecodeBuffCfg     *psGlobalTaskConfigFromPI;
-
-    BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoDecodeCit);
-
-    ui32Error = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
-
-    psGblTaskCfg             = &psVideoDecodeCit->sGlobalTaskConfig;
-    psGlobalTaskConfigFromPI = &psGblTaskCfg->sGlobalTaskConfigFromPI;
-
-    /*Update the number if Nodes in the Task*/
-    psGblTaskCfg->ui32NumberOfNodesInTask = ui32TotalNodes;
-
-    /* Calculate the PDQ and PRQ Structure Addresses and
-            Update it into The Global Config parameters*/
-    /* PDQ - FIFO 15  values passed */
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
-    (ui32RegOffset * pRaagaTask->hPDQueue->i32FifoId);
-
-
-    psGlobalTaskConfigFromPI->sPDQ.ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
-    psGlobalTaskConfigFromPI->sPDQ.ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-    psGlobalTaskConfigFromPI->sPDQ.ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
-    psGlobalTaskConfigFromPI->sPDQ.ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
-    psGlobalTaskConfigFromPI->sPDQ.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-
-    /* PRQ - FIFO 16 values passed */
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
-    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
-
-    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
-    (ui32RegOffset * pRaagaTask->hPRQueue->i32FifoId);
-
-    psGlobalTaskConfigFromPI->sPRQ.ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
-    psGlobalTaskConfigFromPI->sPRQ.ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-    psGlobalTaskConfigFromPI->sPRQ.ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
-    psGlobalTaskConfigFromPI->sPRQ.ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
-    psGlobalTaskConfigFromPI->sPRQ.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
-
-
-    /* Set the Reference Values to 720 */
-    /* Currently hard coded but remove if PI provides proper configuration */
-#if 0
-    psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = psVDecodeBuffCfgIp->MaxFrameWidth;
-    psGlobalTaskConfigFromPI->ui32MaxFrameHeight = psVDecodeBuffCfgIp->MaxFrameHeight;
-#else
-    psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = 720;
-    psGlobalTaskConfigFromPI->ui32MaxFrameHeight = 576;
-#endif  /* 0 */
-    psGlobalTaskConfigFromPI->ui32StripeWidth    = pRaagaTask->pContext->pDevice->settings.memc[0].stripeWidth;
-
-    /* DISPLAY FRAME BUFFER CONFIGURATION */
-    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32NumBuffAvl =
-                                            psVDecodeBuffCfgIp->sDisplayFrameBuffParams.ui32NumBuffAvl;
-
-    /* Currently hard coded but remove if PI provides proper configuration */
-#if 0
-    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32ChromaStripeHeight
-                            = psVDecodeBuffCfgIp->sDisplayFrameBuffParams.ui32ChromaStripeHeight;
-    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32LumaStripeHeight
-                            = psVDecodeBuffCfgIp->sDisplayFrameBuffParams.ui32LumaStripeHeight;
-#else
-
-    /*(CEILING((MaxVertSize/2)/16) x 16)*/
-    /*(CEILING((576/2)/16) x 16) */
-    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32ChromaStripeHeight= 288;
-
-    /*(CEILING(MaxVertSize/16) x 16) */
-    /*(CEILING(576/16) x 16) */
-    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32LumaStripeHeight = 576;
-#endif  /* 0 */
-
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
-    {
-        /* Luma */
-        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress =
-                        psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress;
-
-        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes =
-                        psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes;
-
-        /* Chroma */
-        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress =
-                psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress;
-
-        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes =
-                        psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes;
-
-    }
-
-    /* REFERENCE FRAME BUFFER CONFIGURATION */
-        /* Currently hard coded but remove if PI provides proper configuration */
-#if 0
-    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32ChromaStripeHeight
-                            = psVDecodeBuffCfgIp->sReferenceBuffParams.ui32ChromaStripeHeight;
-    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32LumaStripeHeight
-                            = psVDecodeBuffCfgIp->sReferenceBuffParams.ui32LumaStripeHeight;
-#else
-    /*TotalHorzPadd = 96, TotalVertPadd_Luma = 96, and TotalVertPadd_Chroma = 48*/
-    /*(CEILING(((MaxVertSize/2) + TotalVertPadd_Chroma)/16) x 16)*/
-    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32ChromaStripeHeight = 336;
-
-    /*(CEILING((MaxVertSize + TotalVertPadd_Luma)/16) x 16)*/
-    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32LumaStripeHeight = 672;
-#endif /*0 */
-
-    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32NumBuffAvl =
-                                            psVDecodeBuffCfgIp->sReferenceBuffParams.ui32NumBuffAvl;
-
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;ui32Count++)
-    {
-        /* Luma */
-        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress =
-                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress;
-
-        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes =
-                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes;
-
-
-        /* Chroma */
-        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress =
-                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress;
-
-        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes =
-                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes;
-    }
-
-    /* UPB BUFFER CONFIGURATION  */
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
-    {
-        psGlobalTaskConfigFromPI->sUPBs[ui32Count].ui32DramBufferAddress =
-                        psVDecodeBuffCfgIp->sUPBs[ui32Count].ui32DramBufferAddress;
-
-        psGlobalTaskConfigFromPI->sUPBs[ui32Count].ui32BufferSizeInBytes =
-                        psVDecodeBuffCfgIp->sUPBs[ui32Count].ui32BufferSizeInBytes;
-    }
-
-    BDBG_LEAVE(BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoDecodeCit);
-    return ui32Error;
-}
-
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
-                        BDSP_RaagaTask              *pRaagaTask,
-                        BDSP_VF_P_sENC_TASK_CONFIG  *psVideoEncodeCit,
-                        BDSP_sVEncoderIPConfig      *psVEncoderCfgIp,
-                        unsigned                     ui32TotalNodes)
-{
-    uint32_t    ui32Error;
-    uint32_t    ui32Count;
-
-    BDSP_VF_P_sENC_GLOBAL_TASK_CONFIG *psVideoEncodeGlobalTaskConfig;
-    BDSP_VF_P_sVEncodeConfig          *psGlobalEncodeTaskConfig;
-
-    BDSP_RaagaStage *pRaagaPrimaryStage;
-    BDSP_RaagaContext *pRaagaContext;
-    BDSP_Raaga *pRaagaDevice;
-    BDSP_MMA_Memory  vRrqAddr;
-    unsigned int                    i=0;
-
-#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
-    unsigned int                    uiDspIndex;
-    unsigned int                    uiOffset;
-    uint32_t                        ui32DramMap5AddrCfg;
-#endif
-
-    BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit);
-    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
-
-    ui32Error = BERR_SUCCESS;
-#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
-    uiDspIndex = 0;
-    uiOffset = 0;
-    ui32DramMap5AddrCfg = 0;
-#endif
-    pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
-    pRaagaContext      = (BDSP_RaagaContext *)pRaagaPrimaryStage->pContext;
-    pRaagaDevice       = (BDSP_Raaga *)pRaagaContext->pDevice;
-
-    psVideoEncodeGlobalTaskConfig  = &psVideoEncodeCit->sEncGlobalTaskConfig;
-    psGlobalEncodeTaskConfig       = &psVideoEncodeGlobalTaskConfig->sGlobalVideoEncoderConfig;
-
-    psVideoEncodeGlobalTaskConfig->ui32NumberOfNodesInTask = ui32TotalNodes;
-
-    /* Hook RDQ/RRQ to CIT's branch input */
-
-    /* From base Address of pRaagaTask->hRRQueue fill all the buffers. Fill RRQ in the beginning */
-    /* This conversion is done to pass a virtual address as the second argument
-        of BDSP_Raaga_P_MemWrite32 */
-    vRrqAddr = pRaagaTask->hRRQueue->Memory;
-    for(i = 0; i < BDSP_FWMAX_VIDEO_BUFF_AVAIL; i++)
-    {
-        ui32Error = BDSP_MMA_P_MemWrite32(&vRrqAddr, psVEncoderCfgIp->sPPBs[i].ui32DramBufferAddress);
-        if(ui32Error != BERR_SUCCESS)
+        pRaagaStage = pRaagaConnectStage;
+        if(branchId == 0)/*check only the first branch*/
         {
-            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit: Error in Updating the PPB Dram Buffer Address"));
-            goto end;
+            /* Iterate till you hit the first Decode/Encode stage */
+            switch ( BDSP_RAAGA_P_ALGORITHM_TYPE(pRaagaConnectStage->algorithm) )
+            {
+                case BDSP_AlgorithmType_eAudioDecode:
+                case BDSP_AlgorithmType_eAudioMixer:
+                case BDSP_AlgorithmType_eAudioPassthrough:
+                case BDSP_AlgorithmType_eAudioEncode:
+                case BDSP_AlgorithmType_eVideoDecode:
+                case BDSP_AlgorithmType_eVideoEncode:
+                case BDSP_AlgorithmType_eSecurity:
+                    foundValidStage = true;
+                    break;
+                default:
+                    break;
+            }
         }
-        vRrqAddr.pAddr = (void *)((uint8_t *)vRrqAddr.pAddr + 4);
+        else
+        {
+            /*break after the end of first branch*/
+            break;
+        }
     }
-    /* Common Parameters */
-    psGlobalEncodeTaskConfig->ui32MaxFrameHeight = psVEncoderCfgIp->MaxFrameHeight;
-    psGlobalEncodeTaskConfig->ui32MaxFrameWidth  = psVEncoderCfgIp->MaxFrameWidth;
-    psGlobalEncodeTaskConfig->ui32StripeWidth    = pRaagaDevice->settings.memc[0].stripeWidth;
-#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
-    if ( pRaagaDevice->settings.memc[0].stripeWidth == 128 )
+    BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
+
+    BDBG_ASSERT(NULL != pRaagaStage);
+
+    if( !(foundValidStage) )
     {
-        ui32DramMap5AddrCfg =0x00080005;
+        *pui32ZeroFillSamples = 0;
+        BDBG_ERR(("Unable to find the Decoder/Encoder stage in the 1st branch "));
+        BDBG_LEAVE(BDSP_Raaga_P_GetNumZeroFillSamples);
+        return BERR_UNKNOWN;
     }
-    else if ( pRaagaDevice->settings.memc[0].stripeWidth == 256 )
+
+    switch(pRaagaStage->algorithm)
     {
-        ui32DramMap5AddrCfg =0x00090005;
+        case BDSP_Algorithm_eMpegAudioDecode:
+        case BDSP_Algorithm_eMpegAudioPassthrough:
+            *pui32ZeroFillSamples = 13824;
+            break;
+        case BDSP_Algorithm_eAc3Decode:
+        case BDSP_Algorithm_eAc3Passthrough:
+        case BDSP_Algorithm_eUdcPassthrough:
+            *pui32ZeroFillSamples = 18432;
+            break;
+
+        default:
+            *pui32ZeroFillSamples = 0;
+            break;
     }
 
-    for (uiDspIndex =0 ; uiDspIndex < pRaagaDevice->numDsp; uiDspIndex++)
-    {
-            uiOffset = pRaagaDevice->dspOffset[uiDspIndex];
-#ifdef BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG
-            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG + uiOffset,
-                            ui32DramMap5AddrCfg);
-#endif
-#ifdef BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG
-            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG + uiOffset,
-                                ui32DramMap5AddrCfg);
-#endif
-#ifdef BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG
-            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG + uiOffset,
-                                ui32DramMap5AddrCfg);
-#endif
-
-#if 0
-#ifdef BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK
-            ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 + uiOffset);\
-            ui32RegVal = ui32RegVal & ( ~(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK) );
-            ui32RegVal |= (5 << BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT);
-            BDSP_Write32(pRaagaDevice->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 + uiOffset, ui32RegVal);
-
-
-#endif
-#ifdef BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_MASK
-            ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_55 + uiOffset);
-            ui32RegVal |= (BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_ENABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_SHIFT);
-            BDSP_Write32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_55 + uiOffset, ui32RegVal);
-
-
-#endif
-#ifdef BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_MASK
-                ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_127 + uiOffset);
-                ui32RegVal |= (BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_ENABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_SHIFT);
-                BDSP_Write32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_127 + uiOffset, ui32RegVal);
-#endif
-#endif
-    }
-#endif /*(defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)*/
-
-    /* REFERENCE FRAME BUFFER SETTINGS */
-    psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32NumBuffAvl = psVEncoderCfgIp->sReferenceBuffParams.ui32NumBuffAvl;
-
-    /*TotalHorzPadd = 96, TotalVertPadd_Luma = 96, and TotalVertPadd_Chroma = 48*/
-    /*(CEILING(((MaxVertSize/2) + TotalVertPadd_Chroma)/16) x 16)*/
-    psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32LumaStripeHeight = psVEncoderCfgIp->sReferenceBuffParams.ui32LumaStripeHeight;
-
-    /*(CEILING((MaxVertSize + TotalVertPadd_Luma)/16) x 16)*/
-    psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32ChromaStripeHeight = psVEncoderCfgIp->sReferenceBuffParams.ui32ChromaStripeHeight;
-
-    /* Reference Frame Buffers */
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;ui32Count++)
-    {
-        /* Luma */
-        psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress =
-            psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress;
-
-        psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes =
-                        psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes;
-
-        /* Chroma */
-                psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress =
-                    psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress;
-
-        psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes =
-                        psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes;
-    }
-
-    /* sPPBs */
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
-    {
-        psGlobalEncodeTaskConfig->sPPBs[ui32Count].ui32DramBufferAddress =
-                        psVEncoderCfgIp->sPPBs[ui32Count].ui32DramBufferAddress;
-
-        psGlobalEncodeTaskConfig->sPPBs[ui32Count].ui32BufferSizeInBytes =
-                        psVEncoderCfgIp->sPPBs[ui32Count].ui32BufferSizeInBytes;
-    }
-
-    psGlobalEncodeTaskConfig->sEncoderParams.ui32Frames2Accum = psVEncoderCfgIp->sEncoderParams.ui32Frames2Accum;
-    psGlobalEncodeTaskConfig->sEncoderParams.IsGoBitInterruptEnabled =
-                                                psVEncoderCfgIp->sEncoderParams.IsGoBitInterruptEnabled;
-    psGlobalEncodeTaskConfig->sEncoderParams.eEncodeFrameRate = psVEncoderCfgIp->sEncoderParams.eEncodeFrameRate;
-
-    psGlobalEncodeTaskConfig->sEncoderParams.ui32InterruptBit[0] = psVEncoderCfgIp->sEncoderParams.ui32InterruptBit[0];
-    psGlobalEncodeTaskConfig->sEncoderParams.ui32InterruptBit[1] = psVEncoderCfgIp->sEncoderParams.ui32InterruptBit[1];
-
-    psGlobalEncodeTaskConfig->sEncoderParams.ui32StcAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((psVEncoderCfgIp->sEncoderParams.ui32StcAddr));
-    psGlobalEncodeTaskConfig->sEncoderParams.ui32StcAddr_hi = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((psVEncoderCfgIp->sEncoderParams.ui32StcAddr_hi));
-
-    /* We need to send the RDQ and RRQ's DRAM address too in global task configuration */
-    psGlobalEncodeTaskConfig->sRawDataQueues.ui32DramBufferAddress
-                = psVideoEncodeCit->sNodeConfig[0].ui32NodeIpBuffCfgAddr[0];
-    psGlobalEncodeTaskConfig->sRawDataQueues.ui32BufferSizeInBytes
-                = SIZEOF(BDSP_AF_P_sIO_BUFFER);
-
-end:
-    BDBG_LEAVE(BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit);
-    return ui32Error;
+    BDBG_LEAVE(BDSP_Raaga_P_GetNumZeroFillSamples);
+    return errCode;
 }
 
-uint32_t BDSP_P_GenNewVideoCit( void                       *pTaskHandle,
-                                            BDSP_AlgorithmType          eAlgorithm)
-{
-    unsigned ui32Err = BERR_SUCCESS ;
-
-    BDSP_RaagaTask            *pRaagaTask      = (BDSP_RaagaTask *)pTaskHandle;
-    BDSP_CIT_P_VideoCITOutput *psVideoCitOp    = &(pRaagaTask->videoCitOutput);
-    BDSP_RaagaStage *pPrimaryStageHandle;
-
-    BDSP_CIT_P_sTaskBuffInfo sTaskBuffInfo;
-    unsigned ui32TotalNodes = 0;
-
-    /*the whole of citOutput should be filled here*/
-
-    BDBG_ENTER(BDSP_P_GenNewVideoCit);
-
-    BDSP_CITGEN_P_ComputeTaskStackBuffSize(&sTaskBuffInfo);
-
-    BDBG_ASSERT(NULL != pRaagaTask);
-    BDBG_ASSERT(NULL != pRaagaTask->startSettings.primaryStage);
-
-    pPrimaryStageHandle = (BDSP_RaagaStage *) pRaagaTask->startSettings.primaryStage->pStageHandle;
-
-    if(BDSP_AlgorithmType_eVideoDecode == eAlgorithm)
-    {
-        ui32Err = BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
-                        pPrimaryStageHandle,
-                        pRaagaTask->settings.dspIndex,
-                        &psVideoCitOp->uVideoCit.sVideoDecTaskConfig.sNodeConfig[0],
-                        &ui32TotalNodes,
-                        pRaagaTask->eSchedulingGroup);
-    }
-    else
-    {
-        /* Fill IO Buffer Explicitly for Video Encode case with the HRD , HRR and CCD Queue */
-        ui32Err |= BDSP_CITGEN_P_FillInputforVideoEncode(pRaagaTask);
-
-        ui32Err |= BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
-                        pPrimaryStageHandle,
-                        pRaagaTask->settings.dspIndex,
-                        &psVideoCitOp->uVideoCit.sVideoEncTaskConfig.sNodeConfig[0],
-                        &ui32TotalNodes,
-                        pRaagaTask->eSchedulingGroup);
-    }
-    if( ui32Err != BERR_SUCCESS)
-    {
-        goto BDSP_VIDEOCITGENMODULE_P_EXIT_POINT;
-    }
-
-    if(ui32TotalNodes > BDSP_AF_P_MAX_NODES)
-    {
-        BDBG_ERR(("Error : The number of nodes in the system is %d. Maximum Allowed is %d", ui32TotalNodes,BDSP_AF_P_MAX_NODES));
-        return(BERR_NOT_SUPPORTED);
-    }
-    BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
-
-    /*  Fill the global task configuration into CIT */
-    if(BDSP_AlgorithmType_eVideoDecode == eAlgorithm)
-    {
-        ui32Err = BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoDecodeCit(
-                                (void *)pRaagaTask,
-                                &psVideoCitOp->uVideoCit.sVideoDecTaskConfig,/*BDSP_VF_P_sDEC_TASK_CONFIG*/
-                                (BDSP_sVDecoderIPBuffCfg *)pRaagaTask->startSettings.psVDecoderIPBuffCfg,
-                                ui32TotalNodes);
-    }
-    else
-    {
-        ui32Err = BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit(
-                                (void *)pRaagaTask,
-                                &psVideoCitOp->uVideoCit.sVideoEncTaskConfig,/*BDSP_VF_P_sENC_TASK_CONFIGs*/
-                                (BDSP_sVEncoderIPConfig *)pRaagaTask->startSettings.psVEncoderIPConfig,
-                                ui32TotalNodes);
-    }
-    if( ui32Err != BERR_SUCCESS)
-    {
-        goto BDSP_VIDEOCITGENMODULE_P_EXIT_POINT;
-    }
-
-    /* EXIT Point */
-    BDSP_VIDEOCITGENMODULE_P_EXIT_POINT:
-
-    /* Check for Error and assert */
-    if(ui32Err != BERR_SUCCESS)
-    {
-        BDBG_ASSERT(0);
-    }
-
-    BDBG_LEAVE(BDSP_P_GenNewVideoCit);
-
-    return ui32Err;
-}
-
-static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
+static BERR_Code BDSP_Raaga_P_FillNodeCfg(
                     BDSP_RaagaStage *pPrimaryStageHandle,
                     uint32_t dspIndex,
                     BDSP_AF_P_sNODE_CONFIG  *psNodeCfg,
@@ -924,7 +266,7 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                     BDSP_AF_P_eSchedulingGroup eSchedulingGroup)
 {
 
-    uint32_t    errCode;
+    BERR_Code   errCode = BERR_SUCCESS;
     uint32_t    ui32Node;
     uint32_t    ui32NumNodesInAlgo;
     uint32_t    ui32NodeIndex, ui32Ip, ui32Op;
@@ -944,7 +286,7 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
 
     BDSP_AF_P_ValidInvalid          eNodeValid = BDSP_AF_P_eInvalid;
 
-    BDBG_ENTER(BDSP_CITGEN_P_FillNodeCfgIntoNewCit);
+    BDBG_ENTER(BDSP_Raaga_P_FillNodeCfg);
 
     errCode = BERR_SUCCESS;
 
@@ -1140,8 +482,6 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                             case BDSP_ConnectionType_eFmmBuffer:
                             case BDSP_ConnectionType_eRaveBuffer:
                             case BDSP_ConnectionType_eRDBBuffer:
-
-
                                 pTempIoBuffer_Cached->eBufferType = pRaagaConnectStage->sStageInput[ui32Ip].IoBuffer.eBufferType;
                                 pTempIoBuffer_Cached->ui32NumBuffers= pRaagaConnectStage->sStageInput[ui32Ip].IoBuffer.ui32NumBuffers;
 
@@ -1159,35 +499,34 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                                 pTempIoGenBuffer_Cached = (BDSP_AF_P_sIO_GENERIC_BUFFER *)pRaagaConnectStage->sIdsStageOutput.IoGenBuffDesc.pAddr;
                                 ui32IOGenPhysAddr = pRaagaConnectStage->sIdsStageOutput.StageIOGenericBuffDescAddr;
                                 BDBG_MSG(("FMM,RAVE,RDB i/p connection,ui32Ip=%d",ui32Ip));
-
                                 break;
                             case BDSP_ConnectionType_eStage:
-								for (i = 0; i < pTempIoBuffer_Cached->ui32NumBuffers; i++)
-								{
-									pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr
-										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32BaseAddr;
-									pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr
-										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32EndAddr;
-									pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr
-										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32ReadAddr;
-									pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr
-										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WriteAddr;
-									pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr
-										= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WrapAddr;
-								}
-								pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr
-									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32BaseAddr;
-								pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr
-									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32EndAddr;
-								pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr
-									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32ReadAddr;
-								pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr
-									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WriteAddr;
-								pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr
-									= pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WrapAddr;
+                                for (i = 0; i < pTempIoBuffer_Cached->ui32NumBuffers; i++)
+                                {
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32BaseAddr
+                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32BaseAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32EndAddr
+                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32EndAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32ReadAddr
+                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32ReadAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32WriteAddr
+                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WriteAddr;
+                                    pTempIoBuffer_Cached->sCircBuffer[i].ui32WrapAddr
+                                        = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOBuff.sCircBuffer[i].ui32WrapAddr;
+                                }
+                                pTempIoGenBuffer_Cached->sCircBuffer.ui32BaseAddr
+                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32BaseAddr;
+                                pTempIoGenBuffer_Cached->sCircBuffer.ui32EndAddr
+                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32EndAddr;
+                                pTempIoGenBuffer_Cached->sCircBuffer.ui32ReadAddr
+                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32ReadAddr;
+                                pTempIoGenBuffer_Cached->sCircBuffer.ui32WriteAddr
+                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WriteAddr;
+                                pTempIoGenBuffer_Cached->sCircBuffer.ui32WrapAddr
+                                    = pRaagaDevice->memInfo.sScratchandISBuff[dspIndex].InterStageIOGenericBuff[eSchedulingGroup][pRaagaConnectStage->ui32BranchId].IOGenericBuff.sCircBuffer.ui32WrapAddr;
                                 BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoBuffDesc, sizeof(BDSP_AF_P_sIO_BUFFER));
                                 BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageInput[ui32Ip].IoGenBuffDesc, sizeof(BDSP_AF_P_sIO_GENERIC_BUFFER));
-								BDBG_MSG(("Stage Ip connection and Branch id of interstage=%d", pRaagaConnectStage->ui32BranchId));
+                                BDBG_MSG(("Stage Ip connection and Branch id of interstage=%d", pRaagaConnectStage->ui32BranchId));
                                 break;
                             case BDSP_ConnectionType_eInterTaskBuffer:
                                 /* Do nothing for inter task connection as the descriptors are populated
@@ -1195,7 +534,7 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                                 break;
                             default:
 
-                                BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_CITGEN_P_FillNodeCfgIntoNewCit",pRaagaConnectStage->sStageInput[ui32Ip].eConnectionType));
+                                BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_Raaga_P_FillNodeCfg",pRaagaConnectStage->sStageInput[ui32Ip].eConnectionType));
                                 break;
                         }
 
@@ -1321,7 +660,7 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
                                 case BDSP_ConnectionType_eStage: /* Interstage buffer descriptors are shared and gets populated in Input configuration*/
                                     break;
                                 default:
-                                    BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_CITGEN_P_FillNodeCfgIntoNewCit",pRaagaConnectStage->sStageOutput[ui32Op].eConnectionType));
+                                    BDBG_ERR(("ERROR: Invalid Connection type %d in BDSP_Raaga_P_FillNodeCfg",pRaagaConnectStage->sStageOutput[ui32Op].eConnectionType));
                                     break;
                             }
                             BDSP_MMA_P_FlushCache(pRaagaConnectStage->sStageOutput[ui32Op].IoBuffDesc,sizeof(BDSP_AF_P_sIO_BUFFER));
@@ -1354,17 +693,15 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewCit(
 
      *ui32TotalNodes = ui32NodeIndex;
 
-    BDBG_LEAVE(BDSP_CITGEN_P_FillNodeCfgIntoNewCit);
-
+    BDBG_LEAVE(BDSP_Raaga_P_FillNodeCfg);
     return errCode;
 }
 
 /*  This function fills the global task configuration */
-static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
+static BERR_Code BDSP_Raaga_P_FillAudioGblTaskCfg (
                         BDSP_RaagaTask *pRaagaTask,
                         BDSP_AF_P_sTASK_CONFIG  *psCit,
                         unsigned ui32TotalNodes)
-
 {
     BERR_Code ui32Error = BERR_SUCCESS;
     int32_t  taskindex, index, index2;
@@ -1389,7 +726,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     BDSP_AF_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
     BDSP_AF_P_eSchedulingGroup eSchedulingGroup = pRaagaTask->eSchedulingGroup;
 
-    BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit);
+    BDBG_ENTER(BDSP_Raaga_P_FillAudioGblTaskCfg);
     BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
     pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
@@ -1429,14 +766,14 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     psTaskFmmGateOpenConfig = (BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG *)BKNI_Malloc(SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
     if(NULL == psTaskFmmGateOpenConfig)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Couldn't Allocate Memory for Gate Open Config"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Couldn't Allocate Memory for Gate Open Config"));
         return BERR_OUT_OF_DEVICE_MEMORY;
     }
 
     psFmmDestCfg = (BDSP_AF_P_sFMM_DEST_CFG *)BKNI_Malloc(SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS);
     if(NULL == psFmmDestCfg)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Couldn't Allocate Memory for FMM DEST CONFIG"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Couldn't Allocate Memory for FMM DEST CONFIG"));
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
 
@@ -1444,7 +781,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskPortConfigAddr, (void *)psFmmDestCfg, (SIZEOF(BDSP_AF_P_sFMM_DEST_CFG)*BDSP_AF_P_MAX_NUM_PLLS));
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in copying the Initialised FMM settings for FMM Port"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in copying the Initialised FMM settings for FMM Port"));
         goto end;
     }
     /* Add port Config and SPDIF Config */
@@ -1461,12 +798,12 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
                                     );
         if(ui32Error != BERR_SUCCESS)
         {
-            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Populating the GateOpen Settings"));
+            BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Populating the GateOpen Settings"));
             goto end;
         }
         if(pStartSettings->DependentTaskInfo.numTasks >= BDSP_MAX_DEPENDENT_TASK)
         {
-            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Total number of Dependent task to open their respective gates is %d exceeding limit %d !!!!!!!!!!",pStartSettings->DependentTaskInfo.numTasks, BDSP_MAX_DEPENDENT_TASK));
+            BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Total number of Dependent task to open their respective gates is %d exceeding limit %d !!!!!!!!!!",pStartSettings->DependentTaskInfo.numTasks, BDSP_MAX_DEPENDENT_TASK));
             ui32Error = BERR_INVALID_PARAMETER;
             goto end;
         }
@@ -1477,7 +814,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
             sDependentTaskGateOpenSettings.psFmmGateOpenConfig = BKNI_Malloc(BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK* sizeof(BDSP_AF_P_sFMM_GATE_OPEN_CONFIG));
             if(NULL == sDependentTaskGateOpenSettings.psFmmGateOpenConfig)
             {
-                BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Couldn't allocated memory for retreiving the FMM config of dependent task"));
+                BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Couldn't allocated memory for retreiving the FMM config of dependent task"));
                 ui32Error = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
                 goto end;
             }
@@ -1486,12 +823,12 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
                                                 &sDependentTaskGateOpenSettings);
             if(ui32Error != BERR_SUCCESS)
             {
-                BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Retreiving the Gate Open Settings for Dependenttask %d",taskindex));
+                BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Retreiving the Gate Open Settings for Dependenttask %d",taskindex));
                 goto end;
             }
             if(sDependentTaskGateOpenSettings.ui32MaxIndepDelay != psTaskFmmGateOpenConfig->ui32MaxIndepDelay)
             {
-                BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Different Max Independent Delay provided: For Dependent task is (%d) and For Gate Open Incharge Task is (%d)",
+                BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Different Max Independent Delay provided: For Dependent task is (%d) and For Gate Open Incharge Task is (%d)",
                     sDependentTaskGateOpenSettings.ui32MaxIndepDelay,
                     psTaskFmmGateOpenConfig->ui32MaxIndepDelay));
                 ui32Error = BERR_INVALID_PARAMETER;
@@ -1522,7 +859,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
 
             if((psTaskFmmGateOpenConfig->ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts)> BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK)
             {
-                BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Total number of FMM ports (%d) in the ecosystem exceeding the limit %d !!!!!!!!!!",
+                BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Total number of FMM ports (%d) in the ecosystem exceeding the limit %d !!!!!!!!!!",
                     (psTaskFmmGateOpenConfig->ui32NumPorts + sDependentTaskGateOpenSettings.ui32NumPorts),
                     BDSP_AF_P_MAX_FMM_OP_PORTS_IN_TASK));
                 BKNI_Free(sDependentTaskGateOpenSettings.psFmmGateOpenConfig);
@@ -1541,29 +878,29 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     }
     else
     {
-        BDBG_MSG(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Gate Open is turned OFF for this task"));
+        BDBG_MSG(("BDSP_Raaga_P_FillAudioGblTaskCfg: Gate Open is turned OFF for this task"));
     }
 
     /*Adding Gate open */
     ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskGateOpenConfigAddr, (void *)psTaskFmmGateOpenConfig, SIZEOF(BDSP_AF_P_TASK_sFMM_GATE_OPEN_CONFIG));
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Copying the Gate Open Configurations to Firmware Offset"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Copying the Gate Open Configurations to Firmware Offset"));
         goto end;
     }
     psGblTaskCfg->ui32FmmGateOpenConfigAddr = TaskGateOpenConfigAddr.offset;
 
     /*Populating FwHw starts here*/
-    ui32Error = BDSP_P_PopulateFwHwBuffer((void *)pRaagaPrimaryStage, &sFwHwCfg);
+    ui32Error = BDSP_Raaga_P_PopulateFwHwBuffer((void *)pRaagaPrimaryStage, &sFwHwCfg);
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Populating the FwHwBuffer"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Populating the FwHwBuffer"));
         goto end;
     }
     ui32Error = BDSP_MMA_P_CopyDataToDram(&TaskFwHwCfgAddr, (void *)&sFwHwCfg, SIZEOF(BDSP_AF_P_sFW_HW_CFG));
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in copying the FwHwBuffer to Firmware Offset"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in copying the FwHwBuffer to Firmware Offset"));
         goto end;
     }
     /* Add Fw Hw cfg address*/
@@ -1571,10 +908,10 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
 
     /*Populating LUTTable starts here*/
     /*First populate sAlgoModePresent, along with that get the number of nodes in Network also*/
-    ui32Error = BDSP_PopulateAlgoMode(pRaagaPrimaryStage, &sAlgoModePresent);
+    ui32Error = BDSP_Raaga_P_PopulateAlgoMode(pRaagaPrimaryStage, &sAlgoModePresent);
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Populating the Algorithm Mode"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Populating the Algorithm Mode"));
         goto end;
     }
     if (pStartSettings->pSampleRateMap)
@@ -1583,7 +920,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
         ui32Error = BDSP_MMA_P_CopyDataToDram(&FwOpSamplingFreqMapLutAddr,(void *)pStartSettings->pSampleRateMap, BDSP_CIT_P_TASK_FS_MAPPING_LUT_SIZE);
         if(ui32Error != BERR_SUCCESS)
         {
-            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in Copying the SampleRate LUT provided by APE for Firmware"));
+            BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in Copying the SampleRate LUT provided by APE for Firmware"));
             goto end;
         }
     }
@@ -1594,7 +931,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
         ui32Error = BDSP_P_FillSamplingFrequencyMapLut(eDolbyMsUsageMode, &sAlgoModePresent, &FwOpSamplingFreqMapLutAddr);
         if(ui32Error != BERR_SUCCESS)
         {
-            BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in filling the Samplerate LUT when APE doesnot provide the same"));
+            BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in filling the Samplerate LUT when APE doesnot provide the same"));
             goto end;
         }
     }
@@ -1608,7 +945,7 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     ui32Error = BDSP_MMA_P_CopyDataToDram(&StcTriggerCfgAddr, (void *)&sStcTrigConfig, SIZEOF(BDSP_AF_P_sStcTrigConfig));
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in copying the STCTrigger configuration to firmware offset"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in copying the STCTrigger configuration to firmware offset"));
         goto end;
     }
 
@@ -1616,10 +953,10 @@ static BERR_Code BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit (
     psGblTaskCfg->ui32StcTrigConfigAddr = StcTriggerCfgAddr.offset;
 
     /* Finding the Zero Fill Samples  */  /*Need to check whether FW is using */
-    ui32Error = BDSP_CITGEN_P_GetNumZeroFillSamples(&ui32ZeroFillSamples, pRaagaPrimaryStage);
+    ui32Error = BDSP_Raaga_P_GetNumZeroFillSamples(&ui32ZeroFillSamples, pRaagaPrimaryStage);
     if(ui32Error != BERR_SUCCESS)
     {
-        BDBG_ERR(("BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit: Error in filling the Number of Zerofill samples"));
+        BDBG_ERR(("BDSP_Raaga_P_FillAudioGblTaskCfg: Error in filling the Number of Zerofill samples"));
         goto end;
     }
 
@@ -1633,17 +970,411 @@ end:
     BKNI_Free(psTaskFmmGateOpenConfig);
     BKNI_Free(psFmmDestCfg);
 
-    BDBG_LEAVE(BDSP_CITGEN_P_FillGblTaskCfgIntoNewCit);
+    BDBG_LEAVE(BDSP_Raaga_P_FillAudioGblTaskCfg);
     return ui32Error;;
 }
 
-static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
+static BERR_Code BDSP_Raaga_P_FillVideoDecodeGblTaskCfg (
+                        BDSP_RaagaTask               *pRaagaTask,
+                        BDSP_VF_P_sDEC_TASK_CONFIG   *psVideoDecodeCit,
+                        BDSP_sVDecoderIPBuffCfg      *psVDecodeBuffCfgIp,
+                        unsigned                      ui32TotalNodes)
+{
+    BERR_Code   ui32Error = BERR_SUCCESS;
+    uint32_t    ui32Count, ui32RegOffset;
+
+    BDSP_VF_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
+    BDSP_VF_P_sVDecodeBuffCfg     *psGlobalTaskConfigFromPI;
+
+    BDBG_ENTER(BDSP_Raaga_P_FillVideoDecodeGblTaskCfg);
+
+    ui32Error = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+
+    psGblTaskCfg             = &psVideoDecodeCit->sGlobalTaskConfig;
+    psGlobalTaskConfigFromPI = &psGblTaskCfg->sGlobalTaskConfigFromPI;
+
+    /*Update the number if Nodes in the Task*/
+    psGblTaskCfg->ui32NumberOfNodesInTask = ui32TotalNodes;
+
+    /* Calculate the PDQ and PRQ Structure Addresses and
+            Update it into The Global Config parameters*/
+    /* PDQ - FIFO 15  values passed */
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
+        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
+
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
+    (ui32RegOffset * pRaagaTask->hPDQueue->i32FifoId);
+
+
+    psGlobalTaskConfigFromPI->sPDQ.ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
+    psGlobalTaskConfigFromPI->sPDQ.ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+    psGlobalTaskConfigFromPI->sPDQ.ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
+    psGlobalTaskConfigFromPI->sPDQ.ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
+    psGlobalTaskConfigFromPI->sPDQ.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+
+    /* PRQ - FIFO 16 values passed */
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
+    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
+
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
+    (ui32RegOffset * pRaagaTask->hPRQueue->i32FifoId);
+
+    psGlobalTaskConfigFromPI->sPRQ.ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
+    psGlobalTaskConfigFromPI->sPRQ.ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+    psGlobalTaskConfigFromPI->sPRQ.ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
+    psGlobalTaskConfigFromPI->sPRQ.ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
+    psGlobalTaskConfigFromPI->sPRQ.ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+
+
+    /* Set the Reference Values to 720 */
+    /* Currently hard coded but remove if PI provides proper configuration */
+#if 0
+    psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = psVDecodeBuffCfgIp->MaxFrameWidth;
+    psGlobalTaskConfigFromPI->ui32MaxFrameHeight = psVDecodeBuffCfgIp->MaxFrameHeight;
+#else
+    psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = 720;
+    psGlobalTaskConfigFromPI->ui32MaxFrameHeight = 576;
+#endif  /* 0 */
+    psGlobalTaskConfigFromPI->ui32StripeWidth    = pRaagaTask->pContext->pDevice->settings.memc[0].stripeWidth;
+
+    /* DISPLAY FRAME BUFFER CONFIGURATION */
+    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32NumBuffAvl =
+                                            psVDecodeBuffCfgIp->sDisplayFrameBuffParams.ui32NumBuffAvl;
+
+    /* Currently hard coded but remove if PI provides proper configuration */
+#if 0
+    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32ChromaStripeHeight
+                            = psVDecodeBuffCfgIp->sDisplayFrameBuffParams.ui32ChromaStripeHeight;
+    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32LumaStripeHeight
+                            = psVDecodeBuffCfgIp->sDisplayFrameBuffParams.ui32LumaStripeHeight;
+#else
+
+    /*(CEILING((MaxVertSize/2)/16) x 16)*/
+    /*(CEILING((576/2)/16) x 16) */
+    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32ChromaStripeHeight= 288;
+
+    /*(CEILING(MaxVertSize/16) x 16) */
+    /*(CEILING(576/16) x 16) */
+    psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32LumaStripeHeight = 576;
+#endif  /* 0 */
+
+    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
+    {
+        /* Luma */
+        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress =
+                        psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress;
+
+        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes =
+                        psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes;
+
+        /* Chroma */
+        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress =
+                psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress;
+
+        psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes =
+                        psVDecodeBuffCfgIp->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes;
+
+    }
+
+    /* REFERENCE FRAME BUFFER CONFIGURATION */
+        /* Currently hard coded but remove if PI provides proper configuration */
+#if 0
+    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32ChromaStripeHeight
+                            = psVDecodeBuffCfgIp->sReferenceBuffParams.ui32ChromaStripeHeight;
+    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32LumaStripeHeight
+                            = psVDecodeBuffCfgIp->sReferenceBuffParams.ui32LumaStripeHeight;
+#else
+    /*TotalHorzPadd = 96, TotalVertPadd_Luma = 96, and TotalVertPadd_Chroma = 48*/
+    /*(CEILING(((MaxVertSize/2) + TotalVertPadd_Chroma)/16) x 16)*/
+    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32ChromaStripeHeight = 336;
+
+    /*(CEILING((MaxVertSize + TotalVertPadd_Luma)/16) x 16)*/
+    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32LumaStripeHeight = 672;
+#endif /*0 */
+
+    psGlobalTaskConfigFromPI->sReferenceBuffParams.ui32NumBuffAvl =
+                                            psVDecodeBuffCfgIp->sReferenceBuffParams.ui32NumBuffAvl;
+
+    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;ui32Count++)
+    {
+        /* Luma */
+        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress =
+                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress;
+
+        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes =
+                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes;
+
+
+        /* Chroma */
+        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress =
+                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress;
+
+        psGlobalTaskConfigFromPI->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes =
+                        psVDecodeBuffCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes;
+    }
+
+    /* UPB BUFFER CONFIGURATION  */
+    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
+    {
+        psGlobalTaskConfigFromPI->sUPBs[ui32Count].ui32DramBufferAddress =
+                        psVDecodeBuffCfgIp->sUPBs[ui32Count].ui32DramBufferAddress;
+
+        psGlobalTaskConfigFromPI->sUPBs[ui32Count].ui32BufferSizeInBytes =
+                        psVDecodeBuffCfgIp->sUPBs[ui32Count].ui32BufferSizeInBytes;
+    }
+
+    BDBG_LEAVE(BDSP_Raaga_P_FillVideoDecodeGblTaskCfg);
+    return ui32Error;
+}
+
+static BERR_Code BDSP_Raaga_P_FillInputforVideoEncode (BDSP_RaagaTask *pRaagaTask)
+{
+    BERR_Code  ui32Error = BERR_SUCCESS;
+    uint32_t   ui32RegOffset;
+    BDSP_RaagaStage *pRaagaPrimaryStage;
+
+    BDBG_ENTER(BDSP_Raaga_P_FillInputforVideoEncode);
+
+    ui32Error = BERR_SUCCESS;
+
+    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+    pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+
+    pRaagaPrimaryStage->sStageInput[0].eNodeValid              = BDSP_AF_P_eValid;
+    pRaagaPrimaryStage->sStageInput[0].eConnectionType         = BDSP_ConnectionType_eRDBBuffer;
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.eBufferType    = BDSP_AF_P_BufferType_eRDB;
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.ui32NumBuffers = 3;
+
+    /* PDQ - FIFO 15  values passed */
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
+        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
+
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
+    (ui32RegOffset * pRaagaTask->hRDQueue->i32FifoId);
+
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET ) ;
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[0].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+
+    /* PRQ - FIFO 16 values passed */
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
+    BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
+
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
+    (ui32RegOffset * pRaagaTask->hRRQueue->i32FifoId);
+
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[1].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+
+
+    /* CCDQ - FIFO 14  values passed */
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_1_BASE_ADDR - \
+        BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR;
+
+    ui32RegOffset = BCHP_RAAGA_DSP_FW_CFG_FIFO_0_BASE_ADDR + \
+    (ui32RegOffset * pRaagaTask->hCCDQueue->i32FifoId);
+
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32BaseAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_BASE_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32EndAddr  = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32WriteAddr= BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_WRITE_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32ReadAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_READ_OFFSET );
+    pRaagaPrimaryStage->sStageInput[0].IoBuffer.sCircBuffer[2].ui32WrapAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP(  ui32RegOffset + BDSP_RAAGA_P_FIFO_END_OFFSET );
+
+    pRaagaPrimaryStage->totalInputs++;
+
+    pRaagaPrimaryStage->sStageInput[0].StageIOBuffDescAddr = pRaagaPrimaryStage->sStageInput[0].IoBuffDesc.offset;
+    pRaagaPrimaryStage->sStageInput[0].StageIOGenericBuffDescAddr = pRaagaPrimaryStage->sStageInput[0].IoGenBuffDesc.offset;
+
+    BDBG_LEAVE(BDSP_Raaga_P_FillInputforVideoEncode);
+    return ui32Error;
+}
+
+static BERR_Code BDSP_Raaga_P_FillVideoEncodeGblTaskCfg(
+                        BDSP_RaagaTask              *pRaagaTask,
+                        BDSP_VF_P_sENC_TASK_CONFIG  *psVideoEncodeCit,
+                        BDSP_sVEncoderIPConfig      *psVEncoderCfgIp,
+                        unsigned                     ui32TotalNodes)
+{
+    BERR_Code   ui32Error = BERR_SUCCESS;
+    uint32_t    ui32Count;
+
+    BDSP_VF_P_sENC_GLOBAL_TASK_CONFIG *psVideoEncodeGlobalTaskConfig;
+    BDSP_VF_P_sVEncodeConfig          *psGlobalEncodeTaskConfig;
+
+    BDSP_RaagaStage *pRaagaPrimaryStage;
+    BDSP_RaagaContext *pRaagaContext;
+    BDSP_Raaga *pRaagaDevice;
+    BDSP_MMA_Memory  vRrqAddr;
+    unsigned int                    i=0;
+
+#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
+    unsigned int                    uiDspIndex;
+    unsigned int                    uiOffset;
+    uint32_t                        ui32DramMap5AddrCfg;
+#endif
+
+    BDBG_ENTER(BDSP_Raaga_P_FillVideoEncodeGblTaskCfg);
+    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
+
+    ui32Error = BERR_SUCCESS;
+#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
+    uiDspIndex = 0;
+    uiOffset = 0;
+    ui32DramMap5AddrCfg = 0;
+#endif
+    pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
+    pRaagaContext      = (BDSP_RaagaContext *)pRaagaPrimaryStage->pContext;
+    pRaagaDevice       = (BDSP_Raaga *)pRaagaContext->pDevice;
+
+    psVideoEncodeGlobalTaskConfig  = &psVideoEncodeCit->sEncGlobalTaskConfig;
+    psGlobalEncodeTaskConfig       = &psVideoEncodeGlobalTaskConfig->sGlobalVideoEncoderConfig;
+
+    psVideoEncodeGlobalTaskConfig->ui32NumberOfNodesInTask = ui32TotalNodes;
+
+    /* Hook RDQ/RRQ to CIT's branch input */
+
+    /* From base Address of pRaagaTask->hRRQueue fill all the buffers. Fill RRQ in the beginning */
+    /* This conversion is done to pass a virtual address as the second argument
+        of BDSP_Raaga_P_MemWrite32 */
+    vRrqAddr = pRaagaTask->hRRQueue->Memory;
+    for(i = 0; i < BDSP_FWMAX_VIDEO_BUFF_AVAIL; i++)
+    {
+        ui32Error = BDSP_MMA_P_MemWrite32(&vRrqAddr, psVEncoderCfgIp->sPPBs[i].ui32DramBufferAddress);
+        if(ui32Error != BERR_SUCCESS)
+        {
+            BDBG_ERR(("BDSP_Raaga_P_FillVideoEncodeGblTaskCfg: Error in Updating the PPB Dram Buffer Address"));
+            goto end;
+        }
+        vRrqAddr.pAddr = (void *)((uint8_t *)vRrqAddr.pAddr + 4);
+    }
+    /* Common Parameters */
+    psGlobalEncodeTaskConfig->ui32MaxFrameHeight = psVEncoderCfgIp->MaxFrameHeight;
+    psGlobalEncodeTaskConfig->ui32MaxFrameWidth  = psVEncoderCfgIp->MaxFrameWidth;
+    psGlobalEncodeTaskConfig->ui32StripeWidth    = pRaagaDevice->settings.memc[0].stripeWidth;
+#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
+    if ( pRaagaDevice->settings.memc[0].stripeWidth == 128 )
+    {
+        ui32DramMap5AddrCfg =0x00080005;
+    }
+    else if ( pRaagaDevice->settings.memc[0].stripeWidth == 256 )
+    {
+        ui32DramMap5AddrCfg =0x00090005;
+    }
+
+    for (uiDspIndex =0 ; uiDspIndex < pRaagaDevice->numDsp; uiDspIndex++)
+    {
+            uiOffset = pRaagaDevice->dspOffset[uiDspIndex];
+#ifdef BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG
+            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG + uiOffset,
+                            ui32DramMap5AddrCfg);
+#endif
+#ifdef BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG
+            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG + uiOffset,
+                                ui32DramMap5AddrCfg);
+#endif
+#ifdef BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG
+            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG + uiOffset,
+                                ui32DramMap5AddrCfg);
+#endif
+
+#if 0
+#ifdef BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK
+            ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 + uiOffset);\
+            ui32RegVal = ui32RegVal & ( ~(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK) );
+            ui32RegVal |= (5 << BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_SHIFT);
+            BDSP_Write32(pRaagaDevice->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 + uiOffset, ui32RegVal);
+
+
+#endif
+#ifdef BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_MASK
+            ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_55 + uiOffset);
+            ui32RegVal |= (BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_ENABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_SHIFT);
+            BDSP_Write32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_55 + uiOffset, ui32RegVal);
+
+
+#endif
+#ifdef BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_MASK
+                ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_127 + uiOffset);
+                ui32RegVal |= (BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_ENABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_SHIFT);
+                BDSP_Write32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_127 + uiOffset, ui32RegVal);
+#endif
+#endif
+    }
+#endif /*(defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)*/
+
+    /* REFERENCE FRAME BUFFER SETTINGS */
+    psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32NumBuffAvl = psVEncoderCfgIp->sReferenceBuffParams.ui32NumBuffAvl;
+
+    /*TotalHorzPadd = 96, TotalVertPadd_Luma = 96, and TotalVertPadd_Chroma = 48*/
+    /*(CEILING(((MaxVertSize/2) + TotalVertPadd_Chroma)/16) x 16)*/
+    psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32LumaStripeHeight = psVEncoderCfgIp->sReferenceBuffParams.ui32LumaStripeHeight;
+
+    /*(CEILING((MaxVertSize + TotalVertPadd_Luma)/16) x 16)*/
+    psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32ChromaStripeHeight = psVEncoderCfgIp->sReferenceBuffParams.ui32ChromaStripeHeight;
+
+    /* Reference Frame Buffers */
+    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;ui32Count++)
+    {
+        /* Luma */
+        psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress =
+            psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress;
+
+        psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes =
+                        psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes;
+
+        /* Chroma */
+                psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress =
+                    psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress;
+
+        psGlobalEncodeTaskConfig->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes =
+                        psVEncoderCfgIp->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes;
+    }
+
+    /* sPPBs */
+    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
+    {
+        psGlobalEncodeTaskConfig->sPPBs[ui32Count].ui32DramBufferAddress =
+                        psVEncoderCfgIp->sPPBs[ui32Count].ui32DramBufferAddress;
+
+        psGlobalEncodeTaskConfig->sPPBs[ui32Count].ui32BufferSizeInBytes =
+                        psVEncoderCfgIp->sPPBs[ui32Count].ui32BufferSizeInBytes;
+    }
+
+    psGlobalEncodeTaskConfig->sEncoderParams.ui32Frames2Accum = psVEncoderCfgIp->sEncoderParams.ui32Frames2Accum;
+    psGlobalEncodeTaskConfig->sEncoderParams.IsGoBitInterruptEnabled =
+                                                psVEncoderCfgIp->sEncoderParams.IsGoBitInterruptEnabled;
+    psGlobalEncodeTaskConfig->sEncoderParams.eEncodeFrameRate = psVEncoderCfgIp->sEncoderParams.eEncodeFrameRate;
+
+    psGlobalEncodeTaskConfig->sEncoderParams.ui32InterruptBit[0] = psVEncoderCfgIp->sEncoderParams.ui32InterruptBit[0];
+    psGlobalEncodeTaskConfig->sEncoderParams.ui32InterruptBit[1] = psVEncoderCfgIp->sEncoderParams.ui32InterruptBit[1];
+
+    psGlobalEncodeTaskConfig->sEncoderParams.ui32StcAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((psVEncoderCfgIp->sEncoderParams.ui32StcAddr));
+    psGlobalEncodeTaskConfig->sEncoderParams.ui32StcAddr_hi = BDSP_RAAGA_REGSET_ADDR_FOR_DSP((psVEncoderCfgIp->sEncoderParams.ui32StcAddr_hi));
+
+    /* We need to send the RDQ and RRQ's DRAM address too in global task configuration */
+    psGlobalEncodeTaskConfig->sRawDataQueues.ui32DramBufferAddress
+                = psVideoEncodeCit->sNodeConfig[0].ui32NodeIpBuffCfgAddr[0];
+    psGlobalEncodeTaskConfig->sRawDataQueues.ui32BufferSizeInBytes
+                = SIZEOF(BDSP_AF_P_sIO_BUFFER);
+
+end:
+    BDBG_LEAVE(BDSP_Raaga_P_FillVideoEncodeGblTaskCfg);
+    return ui32Error;
+}
+
+static BERR_Code BDSP_Raaga_P_FillNodeCfgIntoNewScmCit(
                     BDSP_RaagaStage *pPrimaryStageHandle,
                     BDSP_SCM_P_sTASK_CONFIG         *psCit,
                     unsigned *ui32TotalNodes)
 {
-
-    uint32_t    errCode;
+    BERR_Code   errCode = BERR_SUCCESS;
     uint32_t    ui32Node;
     uint32_t    ui32NumNodesInAlgo;
     uint32_t    ui32NodeIndex;
@@ -1658,7 +1389,7 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
 
     BDSP_Raaga *pRaagaDevice;
 
-    BDBG_ENTER(BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit);
+    BDBG_ENTER(BDSP_Raaga_P_FillNodeCfgIntoNewScmCit);
 
     errCode = BERR_SUCCESS;
 
@@ -1800,20 +1531,17 @@ static uint32_t BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit(
 
      *ui32TotalNodes = ui32NodeIndex;
 
-    BDBG_LEAVE(BDSP_CITGEN_P_FillNodeCfgIntoNewScmCit);
-
+    BDBG_LEAVE(BDSP_Raaga_P_FillNodeCfgIntoNewScmCit);
     return errCode;
 }
 
-/* Specific function for SCM */
-/*  This function fills the global task configuration */
-static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
+static BERR_Code BDSP_Raaga_P_FillScmGblTaskCfg(
                         BDSP_RaagaTask *pRaagaTask,
                         BDSP_SCM_P_sTASK_CONFIG *psCit,
                         unsigned ui32TotalNodes)
 
 {
-    uint32_t    ui32Error;
+    BERR_Code    ui32Error = BERR_SUCCESS;
     BDSP_CIT_P_sAlgoModePresent sAlgoModePresent;
 
     BDSP_RaagaStage *pRaagaPrimaryStage;
@@ -1824,7 +1552,7 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
     BDSP_SCM_P_sGLOBAL_TASK_CONFIG *psGblTaskCfg;
     BDSP_AF_P_eSchedulingGroup eSchedulingGroup = pRaagaTask->eSchedulingGroup;
 
-    BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit);
+    BDBG_ENTER(BDSP_Raaga_P_FillScmGblTaskCfg);
 
     ui32Error = BERR_SUCCESS;
 
@@ -1841,238 +1569,199 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
     /*  Start node index */
     psGblTaskCfg->ui32StartNodeIndexOfCoreScmAlgo = BDSP_CIT_P_NODE0;
 
-
-    /*Populating LUTTable starts here*/
-
     /*First populate sAlgoModePresent, along with that get the number of nodes in Network also*/
-    BDSP_PopulateAlgoMode(pRaagaPrimaryStage, &sAlgoModePresent);
+    BDSP_Raaga_P_PopulateAlgoMode(pRaagaPrimaryStage, &sAlgoModePresent);
 
     psGblTaskCfg->ui32NumberOfNodesInTask = ui32TotalNodes;
 
-
-    BDBG_LEAVE(BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit);
-
+    BDBG_LEAVE(BDSP_Raaga_P_FillScmGblTaskCfg);
     return ui32Error;
 }
-/*******************************************************************************/
 
-/******************************************************************************
-Summary:
-
-    Compute the Buffer Size of a Task's stack
-
-Description:
-
-    Every Task will be assiciated with a DRAM stack. This is to enable stack swap
-    in DSP.
-
-    Allocated stack size per task is BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES
-    bytes.
-
-Input:
-        None
-Output:
-        psTaskBuffInfo : Buffer information for a task
-Returns:
-        None
-
-******************************************************************************/
-
-static void BDSP_CITGEN_P_ComputeTaskStackBuffSize(
-                    BDSP_CIT_P_sTaskBuffInfo    *psTaskBuffInfo )
-
+BERR_Code BDSP_Raaga_P_GenCit(void* pTaskHandle)
 {
-    BDBG_ENTER(BDSP_CITGEN_P_ComputeTaskStackBuffSize);
+    BERR_Code ui32Err = BERR_SUCCESS ;
 
-    psTaskBuffInfo->ui32TaskStackMemSize
-                        = BDSP_CIT_P_TASK_SWAP_BUFFER_SIZE_INBYTES;
+    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
+    BDSP_CIT_P_Output   *psCitOp = &(pRaagaTask->citOutput);
 
-    BDBG_LEAVE(BDSP_CITGEN_P_ComputeTaskStackBuffSize);
+    BDSP_CIT_P_sTaskBuffInfo sTaskBuffInfo;
+    unsigned ui32TotalNodes = 0;
 
+    BDBG_ENTER(BDSP_Raaga_P_GenCit);
+
+    BDSP_Raaga_P_ComputeTaskStackBuffSize(&sTaskBuffInfo);
+
+    BDBG_ASSERT(NULL != pRaagaTask);
+    BDBG_ASSERT(NULL != pRaagaTask->startSettings.primaryStage);
+
+    ui32Err = BDSP_Raaga_P_FillNodeCfg(
+                    (void *) pRaagaTask->startSettings.primaryStage->pStageHandle,
+                    pRaagaTask->settings.dspIndex,
+                    &psCitOp->sCit.sNodeConfig[0]/*BDSP_AF_P_sTASK_CONFIG*/ ,
+                    &ui32TotalNodes,
+                    pRaagaTask->eSchedulingGroup);
+
+    if( ui32Err != BERR_SUCCESS || ui32TotalNodes == 0)
+    {
+        goto BDSP_CITGENMODULE_P_EXIT_POINT;
+    }
+
+    if(ui32TotalNodes > BDSP_AF_P_MAX_NODES)
+    {
+        BDBG_ERR(("Error : The number of nodes in the system is %d. Maximum Allowed is %d", ui32TotalNodes,BDSP_AF_P_MAX_NODES));
+        return(BERR_NOT_SUPPORTED);
+    }
+    BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
+    /*  Fill the global task configuration into CIT */
+    ui32Err = BDSP_Raaga_P_FillAudioGblTaskCfg(
+                            (void *) pRaagaTask,
+                            &psCitOp->sCit,
+                            ui32TotalNodes);
+BDSP_CITGENMODULE_P_EXIT_POINT:
+    if(ui32Err !=BERR_SUCCESS)
+    {
+    BDBG_ERR(("Error in Filling the CIT for AUDIO"));
+        BDBG_ASSERT(0);
+    }
+
+    BDBG_LEAVE(BDSP_Raaga_P_GenCit);
+
+    return ui32Err;
 }
 
-BERR_Code BDSP_P_PopulateFwHwBuffer(
-                                void *pPrimaryStageHandle,
-                                BDSP_AF_P_sFW_HW_CFG        *psFwHwCfg
-                            )
+BERR_Code BDSP_Raaga_P_GenVideoCit( void            *pTaskHandle,
+                                            BDSP_AlgorithmType   eAlgorithm)
 {
-    BERR_Code errCode;
-    unsigned output;
+    BERR_Code ui32Err = BERR_SUCCESS ;
 
-    unsigned ui32Count = 0, ui32PPMCount = 0, ui32BufferId = 0;
+    BDSP_RaagaTask            *pRaagaTask      = (BDSP_RaagaTask *)pTaskHandle;
+    BDSP_CIT_P_VideoCITOutput *psVideoCitOp    = &(pRaagaTask->videoCitOutput);
+    BDSP_RaagaStage *pPrimaryStageHandle;
 
-    BDSP_RaagaStage *pRaagaPrimaryStage = (BDSP_RaagaStage *)pPrimaryStageHandle;
+    BDSP_CIT_P_sTaskBuffInfo sTaskBuffInfo;
+    unsigned ui32TotalNodes = 0;
 
-    BDBG_ASSERT(NULL != pRaagaPrimaryStage);
+    BDBG_ENTER(BDSP_Raaga_P_GenVideoCit);
 
-    /*Initialization*/
-    for(ui32Count =0; ui32Count<BDSP_AF_P_MAX_ADAPTIVE_RATE_BLOCKS;ui32Count++)
+    BDSP_Raaga_P_ComputeTaskStackBuffSize(&sTaskBuffInfo);
+
+    BDBG_ASSERT(NULL != pRaagaTask);
+    BDBG_ASSERT(NULL != pRaagaTask->startSettings.primaryStage);
+
+    pPrimaryStageHandle = (BDSP_RaagaStage *) pRaagaTask->startSettings.primaryStage->pStageHandle;
+
+    if(BDSP_AlgorithmType_eVideoDecode == eAlgorithm)
     {
-        psFwHwCfg->sPpmCfg[ui32Count].ePPMChannel       = BDSP_AF_P_eDisable;
-        psFwHwCfg->sPpmCfg[ui32Count].ui32PPMCfgAddr    = (uint32_t)((unsigned long)NULL);
+        ui32Err = BDSP_Raaga_P_FillNodeCfg(
+                        pPrimaryStageHandle,
+                        pRaagaTask->settings.dspIndex,
+                        &psVideoCitOp->uVideoCit.sVideoDecTaskConfig.sNodeConfig[0],
+                        &ui32TotalNodes,
+                        pRaagaTask->eSchedulingGroup);
+    }
+    else
+    {
+        /* Fill IO Buffer Explicitly for Video Encode case with the HRD , HRR and CCD Queue */
+        ui32Err |= BDSP_Raaga_P_FillInputforVideoEncode(pRaagaTask);
+
+        ui32Err |= BDSP_Raaga_P_FillNodeCfg(
+                        pPrimaryStageHandle,
+                        pRaagaTask->settings.dspIndex,
+                        &psVideoCitOp->uVideoCit.sVideoEncTaskConfig.sNodeConfig[0],
+                        &ui32TotalNodes,
+                        pRaagaTask->eSchedulingGroup);
+    }
+    if( ui32Err != BERR_SUCCESS)
+    {
+        goto BDSP_VIDEOCITGENMODULE_P_EXIT_POINT;
     }
 
-    BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
-    BSTD_UNUSED(macroBrId);
-    BSTD_UNUSED(macroStId);
+    if(ui32TotalNodes > BDSP_AF_P_MAX_NODES)
     {
-        for(output=0;output<BDSP_AF_P_MAX_OP_FORKS;output++)
-        {
-            if(pRaagaConnectStage->sStageOutput[output].eConnectionType == BDSP_ConnectionType_eFmmBuffer &&
-                pRaagaConnectStage->sStageOutput[output].eNodeValid==BDSP_AF_P_eValid)
-            {
-                for(ui32Count =0; ui32Count<BDSP_AF_P_MAX_CHANNEL_PAIR;ui32Count++)
-                {
-                    ui32BufferId = pRaagaConnectStage->sStageOutput[output].Metadata.rateController[ui32Count].wrcnt;
-                    /*ui32BufferId would be -1 by default by init if FMM dest not added*/
-                    if(ui32BufferId != BDSP_CIT_P_PI_INVALID)
-                    {
-                        if(ui32PPMCount >= BDSP_AF_P_MAX_ADAPTIVE_RATE_BLOCKS)
-                        {
-                            errCode = BERR_LEAKED_RESOURCE;
-                            goto error;
-                        }
-
-                        psFwHwCfg->sPpmCfg[ui32PPMCount].ePPMChannel = BDSP_AF_P_eEnable;
-
-                        psFwHwCfg->sPpmCfg[ui32PPMCount].ui32PPMCfgAddr = BDSP_RAAGA_REGSET_ADDR_FOR_DSP( ui32BufferId );
-
-                        ui32PPMCount = ui32PPMCount + 1;
-                    }
-                }
-
-            }
-        }
+        BDBG_ERR(("Error : The number of nodes in the system is %d. Maximum Allowed is %d", ui32TotalNodes,BDSP_AF_P_MAX_NODES));
+        return(BERR_NOT_SUPPORTED);
     }
-    BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
+    BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
 
-    return BERR_SUCCESS;
-error:
-    return errCode;
+    /*  Fill the global task configuration into CIT */
+    if(BDSP_AlgorithmType_eVideoDecode == eAlgorithm)
+    {
+        ui32Err = BDSP_Raaga_P_FillVideoDecodeGblTaskCfg(
+                                (void *)pRaagaTask,
+                                &psVideoCitOp->uVideoCit.sVideoDecTaskConfig,/*BDSP_VF_P_sDEC_TASK_CONFIG*/
+                                (BDSP_sVDecoderIPBuffCfg *)pRaagaTask->startSettings.psVDecoderIPBuffCfg,
+                                ui32TotalNodes);
+    }
+    else
+    {
+        ui32Err = BDSP_Raaga_P_FillVideoEncodeGblTaskCfg(
+                                (void *)pRaagaTask,
+                                &psVideoCitOp->uVideoCit.sVideoEncTaskConfig,/*BDSP_VF_P_sENC_TASK_CONFIGs*/
+                                (BDSP_sVEncoderIPConfig *)pRaagaTask->startSettings.psVEncoderIPConfig,
+                                ui32TotalNodes);
+    }
+BDSP_VIDEOCITGENMODULE_P_EXIT_POINT:
+    if(ui32Err != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error in Filling the CIT for VIDEO"));
+        BDBG_ASSERT(0);
+    }
 
+    BDBG_LEAVE(BDSP_Raaga_P_GenVideoCit);
+
+    return ui32Err;
 }
 
-static uint32_t  BDSP_CITGEN_P_GetNumZeroFillSamples(
-    uint32_t    *pui32ZeroFillSamples,
-    BDSP_RaagaStage *pRaagaPrimaryStage
-    )
+BERR_Code BDSP_Raaga_P_GenScmCit( void* pTaskHandle )
 {
-    BERR_Code errCode = BERR_SUCCESS;
-    bool foundValidStage = false;
-    BDSP_RaagaStage *pRaagaStage = NULL;
+    BERR_Code ui32Err = BERR_SUCCESS ;
 
-    BDBG_ENTER(BDSP_CITGEN_P_GetNumZeroFillSamples);
-    BDBG_ASSERT(NULL != pRaagaPrimaryStage);
+    BDSP_RaagaTask *pRaagaTask = (BDSP_RaagaTask *)pTaskHandle;
+    BDSP_CIT_P_ScmCITOutput     *psScmCitOp = &(pRaagaTask->scmCitOutput);
 
-    BDSP_STAGE_TRAVERSE_LOOP_V1_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage, branchId, stageId)
-    BSTD_UNUSED(stageId);
+    BDSP_CIT_P_sTaskBuffInfo sTaskBuffInfo;
+    unsigned ui32TotalNodes = 0;
+
+    BDBG_ENTER(BDSP_Raaga_P_GenScmCit);
+
+    BDSP_Raaga_P_ComputeTaskStackBuffSize(&sTaskBuffInfo);
+
+    BDBG_ASSERT(NULL != pRaagaTask);
+    BDBG_ASSERT(NULL != pRaagaTask->startSettings.primaryStage);
+
+    ui32Err = BDSP_Raaga_P_FillNodeCfgIntoNewScmCit(
+                    (void *) pRaagaTask->startSettings.primaryStage->pStageHandle,
+                    &psScmCitOp->sScmCit,
+                    &ui32TotalNodes);
+
+    if( ui32Err != BERR_SUCCESS || ui32TotalNodes == 0)
     {
-        pRaagaStage = pRaagaConnectStage;
-        if(branchId == 0)/*check only the first branch*/
-        {
-            /* Iterate till you hit the first Decode/Encode stage */
-            switch ( BDSP_RAAGA_P_ALGORITHM_TYPE(pRaagaConnectStage->algorithm) )
-            {
-                case BDSP_AlgorithmType_eAudioDecode:
-                case BDSP_AlgorithmType_eAudioMixer:
-                case BDSP_AlgorithmType_eAudioPassthrough:
-                case BDSP_AlgorithmType_eAudioEncode:
-                case BDSP_AlgorithmType_eVideoDecode:
-                case BDSP_AlgorithmType_eVideoEncode:
-                case BDSP_AlgorithmType_eSecurity:
-                    foundValidStage = true;
-                    break;
-                default:
-                    break;
-            }
-        }
-        else
-        {
-            /*break after the end of first branch*/
-            break;
-        }
+        goto BDSP_CITGENMODULE_P_EXIT_POINT;
     }
-    BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
-
-    BDBG_ASSERT(NULL != pRaagaStage);
-
-    if( !(foundValidStage) )
+    if(ui32TotalNodes > BDSP_AF_P_MAX_NODES)
     {
-        *pui32ZeroFillSamples = 0;
-        BDBG_ERR(("Unable to find the Decoder/Encoder stage in the 1st branch "));
-        BDBG_LEAVE(BDSP_CITGEN_P_GetNumZeroFillSamples);
-        return BERR_UNKNOWN;
+        BDBG_ERR(("Error : The number of nodes in the system is %d. Maximum Allowed is %d", ui32TotalNodes,BDSP_AF_P_MAX_NODES));
+        return(BERR_NOT_SUPPORTED);
     }
+    BDBG_MSG(("ui32TotalNodes in Network = %d", ui32TotalNodes));
 
-    switch(pRaagaStage->algorithm)
+    /*  Fill the global task configuration into CIT */
+    ui32Err = BDSP_Raaga_P_FillScmGblTaskCfg(
+                    (void *) pRaagaTask,
+                    &psScmCitOp->sScmCit,
+                    ui32TotalNodes);
+
+BDSP_CITGENMODULE_P_EXIT_POINT:
+
+    /* Check for Error and assert */
+    if(ui32Err !=BERR_SUCCESS)
     {
-        case BDSP_Algorithm_eMpegAudioDecode:
-        case BDSP_Algorithm_eMpegAudioPassthrough:
-            *pui32ZeroFillSamples = 13824;
-            break;
-        case BDSP_Algorithm_eAc3Decode:
-        case BDSP_Algorithm_eAc3Passthrough:
-        case BDSP_Algorithm_eUdcPassthrough:
-            *pui32ZeroFillSamples = 18432;
-            break;
-
-        default:
-            *pui32ZeroFillSamples = 0;
-            break;
+    BDBG_ERR(("Error in Filling the CIT for SCM"));
+        BDBG_ASSERT(0);
     }
 
-    BDBG_LEAVE(BDSP_CITGEN_P_GetNumZeroFillSamples);
-    return errCode;
-}
+    BDBG_LEAVE(BDSP_Raaga_P_GenScmCit);
 
-static uint32_t BDSP_PopulateAlgoMode(
-                BDSP_RaagaStage *pRaagaPrimaryStage,
-                BDSP_CIT_P_sAlgoModePresent *sAlgoModePresent)
-{
-    BERR_Code errCode = BERR_SUCCESS;
-    BDBG_ASSERT(NULL != pRaagaPrimaryStage);
-
-    /*Initialize first*/
-    sAlgoModePresent->ui32DolbyPulsePresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32DDP_PassThruPresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32DTS_EncoderPresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32AC3_EncoderPresent = BDSP_CIT_P_ABSENT;
-    sAlgoModePresent->ui32DdrePresent = BDSP_CIT_P_ABSENT;
-
-    BDSP_STAGE_TRAVERSE_LOOP_BEGIN(pRaagaPrimaryStage, pRaagaConnectStage)
-    BSTD_UNUSED(macroBrId);
-    BSTD_UNUSED(macroStId);
-    {
-        /* Handle special case algorithms */
-        switch ( pRaagaConnectStage->algorithm )
-        {
-            case BDSP_Algorithm_eDolbyPulseAdtsDecode:
-            case BDSP_Algorithm_eDolbyPulseLoasDecode:
-                sAlgoModePresent->ui32DolbyPulsePresent
-                                = BDSP_CIT_P_PRESENT;
-                break;
-            case BDSP_Algorithm_eAc3PlusPassthrough:
-            case BDSP_Algorithm_eUdcPassthrough:
-                sAlgoModePresent->ui32DDP_PassThruPresent
-                                = BDSP_CIT_P_PRESENT;
-                break;
-            case BDSP_Algorithm_eDtsCoreEncode:
-                sAlgoModePresent->ui32DTS_EncoderPresent
-                                = BDSP_CIT_P_PRESENT;
-                break;
-            case BDSP_Algorithm_eAc3Encode:
-                sAlgoModePresent->ui32AC3_EncoderPresent
-                                = BDSP_CIT_P_PRESENT;
-                break;
-            case BDSP_Algorithm_eDdre:
-                sAlgoModePresent->ui32DdrePresent
-                                = BDSP_CIT_P_PRESENT;
-                break;
-            default:
-                break;
-        }
-    }
-    BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
-
-    return errCode;
+    return ui32Err;
 }

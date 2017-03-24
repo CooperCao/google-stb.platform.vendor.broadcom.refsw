@@ -51,6 +51,7 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
     switch (g_pPreInitState->boxMode) {
         case 1:
+        case 1001:
             pSettings->videoDecoder[0].mosaic.maxNumber = 3;
             pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
             pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
@@ -88,6 +89,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     switch(boxMode)
     {
         case 1:
+        case 1001:
         {
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 64*1024*1024;
             pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_SECONDARY_GRAPHICS;

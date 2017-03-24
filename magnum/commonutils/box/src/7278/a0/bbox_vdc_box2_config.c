@@ -57,6 +57,7 @@
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_vdc_box2_config.h"
 
 
 BDBG_MODULE(BBOX_VDC_PRIV_BOX2);

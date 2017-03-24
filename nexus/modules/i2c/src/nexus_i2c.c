@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,9 @@
 #include "nexus_base.h"
 #include "nexus_platform_features.h"
 #include "breg_i2c_priv.h"  /* For BREG_I2C_Impl */
+#if NEXUS_HAS_GPIO
 #include "priv/nexus_gpio_priv.h"
+#endif
 
 BDBG_MODULE(nexus_i2c);
 
@@ -62,8 +64,10 @@ typedef struct magnum_i2c {
     BREG_I2C_Impl asyncReg;     /* A pointer to this will be returned when the module owner requests a handle */
     unsigned refcnt;
     bool s3standby;
+#if NEXUS_HAS_GPIO
     NEXUS_GpioPinData clkPin;
     NEXUS_GpioPinData dataPin;
+#endif
     NEXUS_I2cSettings settings; /* settings used to open */
 } magnum_i2c;
 
@@ -91,7 +95,7 @@ static void NEXUS_I2c_P_FillSyncRegHandle(
     NEXUS_ModuleHandle moduleHandle
     );
 
-void NEXUS_I2c_GetDefaultSettings(
+void NEXUS_I2c_GetDefaultSettings_priv(
     NEXUS_I2cSettings *pSettings    /* [out] */
     )
 {
@@ -99,7 +103,10 @@ void NEXUS_I2c_GetDefaultSettings(
 
     BDBG_ASSERT(NULL != pSettings);
 
-    BI2C_GetChannelDefaultSettings(g_NEXUS_i2cHandle, 0, &channelSettings);
+    /* we don't need a device handle for getting the default settings.
+    BI2C_OpenChannel doesn't use the device handle so pass in a bogus one */
+
+    BI2C_GetChannelDefaultSettings((BI2C_Handle)1, 0, &channelSettings);
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->clockRate = (NEXUS_I2cClockRate)channelSettings.clkRate;
@@ -112,6 +119,15 @@ void NEXUS_I2c_GetDefaultSettings(
     pSettings->use5v = channelSettings.inputSwitching5V;
 }
 
+void NEXUS_I2c_GetDefaultSettings(
+    NEXUS_I2cSettings *pSettings    /* [out] */
+    )
+{
+    BDBG_ASSERT(NULL != pSettings);
+
+    NEXUS_I2c_GetDefaultSettings(pSettings);
+}
+
 static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)
 {
     NEXUS_Error errCode = NEXUS_SUCCESS;
@@ -120,6 +136,7 @@ static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)
     const NEXUS_I2cSettings *pSettings = &i2cHandle->settings;
     NEXUS_I2cSettings *magnumSettings=NULL;
     magnum_i2c_handle magnumI2cHandle=NULL;
+#if NEXUS_HAS_GPIO
     NEXUS_GpioPinData clkPin, dataPin;
 
     BKNI_Memset(&clkPin, 0, sizeof(clkPin));
@@ -145,16 +162,19 @@ static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)
             goto done;
         }
     }
+#endif
 
     for ( magnumI2cHandle = BLST_S_FIRST(&g_magnum_i2c_channels); NULL != magnumI2cHandle; magnumI2cHandle = BLST_S_NEXT(magnumI2cHandle, node) )
     {
         BDBG_OBJECT_ASSERT(magnumI2cHandle, magnum_i2c);
         magnumSettings = &magnumI2cHandle->settings;
         if(pSettings->softI2c){
+#if NEXUS_HAS_GPIO
             if((magnumSettings->softI2c) && !BKNI_Memcmp(&magnumI2cHandle->clkPin, &clkPin, sizeof(NEXUS_GpioPinData)) &&
                 !BKNI_Memcmp(&magnumI2cHandle->dataPin, &dataPin, sizeof(NEXUS_GpioPinData))){
                 break;
             }
+#endif
         }
         else if(magnumI2cHandle->index == i2cHandle->index) {
             if(!BKNI_Memcmp(magnumSettings, pSettings, sizeof(NEXUS_I2cSettings))){
@@ -192,16 +212,18 @@ static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)
         channelSettings.softI2c = pSettings->softI2c;
         channelSettings.fourByteXferMode = pSettings->fourByteXferMode;
         channelSettings.inputSwitching5V = pSettings->use5v;
-        BDBG_MSG(("Open I2C Channel %d: clk %d, int %d, timeout %d, burst %d, softI2c %d, autoI2c %d, four byte xfer mode %d",
+        BDBG_MSG(("Open I2C Channel %d: clk %d, int %d, timeout %d, burst %d, softI2c %d, autoI2c %d, four byte xfer mode %d, use5v = %d",
             i2cHandle->index, channelSettings.clkRate, channelSettings.intMode, channelSettings.timeoutMs, channelSettings.burstMode, channelSettings.softI2c,
-            channelSettings.autoI2c.enabled, channelSettings.fourByteXferMode));
+            channelSettings.autoI2c.enabled, channelSettings.fourByteXferMode, channelSettings.inputSwitching5V));
 
+#if NEXUS_HAS_GPIO
         if(pSettings->softI2c){
             channelSettings.gpio.scl.address = clkPin.address;
             channelSettings.gpio.scl.shift = clkPin.shift;
             channelSettings.gpio.sda.address =  dataPin.address;
             channelSettings.gpio.sda.shift = dataPin.shift;
         }
+#endif
 
         errCode = BI2C_OpenBSCChannel(g_NEXUS_i2cHandle, &magnumI2cHandle->channel, i2cHandle->index, &channelSettings);
         if ( errCode == NEXUS_NOT_AVAILABLE){
@@ -224,10 +246,12 @@ static NEXUS_Error nexus_i2c_p_open_channel(NEXUS_I2cHandle i2cHandle)
 
         magnumI2cHandle->settings = *pSettings;
         magnumI2cHandle->index = i2cHandle->index;
+#if NEXUS_HAS_GPIO
         if(pSettings->softI2c){
             magnumI2cHandle->clkPin = clkPin;
             magnumI2cHandle->dataPin = dataPin;
         }
+#endif
 
         /* The default handle is our async version */
         magnumI2cHandle->asyncReg = *regHandle;

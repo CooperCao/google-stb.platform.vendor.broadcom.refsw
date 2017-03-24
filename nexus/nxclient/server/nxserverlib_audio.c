@@ -681,6 +681,7 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
                         if ( server->settings.session[r->session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12 ) {
                             session->audioProcessingSettings.dolby.ddre.fixedEncoderFormat = true;
                         }
+                        NEXUS_DolbyDigitalReencode_SetSettings(r->ddre, &session->audioProcessingSettings.dolby.ddre);
                     }
                 }
             }
@@ -2302,8 +2303,12 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
     }
     if ((pSettings->avl.enabled && session->main_audio->avl) || !pSettings->avl.enabled) {
         if (session->main_audio->avl) {
-            rc = NEXUS_AutoVolumeLevel_SetSettings(session->main_audio->avl, &pSettings->avl);
-            if (rc) return BERR_TRACE(rc);
+            NEXUS_AutoVolumeLevelSettings currentAVLSettings;
+            NEXUS_AutoVolumeLevel_GetSettings(session->main_audio->avl, &currentAVLSettings);
+            if ( 0 != BKNI_Memcmp(&currentAVLSettings, &pSettings->avl, sizeof(NEXUS_AutoVolumeLevelSettings)) ) {
+                rc = NEXUS_AutoVolumeLevel_SetSettings(session->main_audio->avl, &pSettings->avl);
+                if (rc) return BERR_TRACE(rc);
+            }
         }
     }
     else {
@@ -2311,8 +2316,12 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
     }
     if ((pSettings->truVolume.enabled && session->main_audio->truVolume) || !pSettings->truVolume.enabled) {
         if (session->main_audio->truVolume) {
-            rc = NEXUS_TruVolume_SetSettings(session->main_audio->truVolume, &pSettings->truVolume);
-            if (rc) return BERR_TRACE(rc);
+            NEXUS_TruVolumeSettings currentTruVolumeSettings;
+            NEXUS_TruVolume_GetSettings(session->main_audio->truVolume, &currentTruVolumeSettings);
+            if ( 0 != BKNI_Memcmp(&currentTruVolumeSettings, &pSettings->truVolume, sizeof(NEXUS_TruVolumeSettings)) ) {
+                rc = NEXUS_TruVolume_SetSettings(session->main_audio->truVolume, &pSettings->truVolume);
+                if (rc) return BERR_TRACE(rc);
+            }
         }
     }
     else {
@@ -2320,23 +2329,33 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
     }
     if ((pSettings->dolby.dolbyVolume258.enabled && session->main_audio->dolbyVolume258) || !pSettings->dolby.dolbyVolume258.enabled) {
         if (session->main_audio->dolbyVolume258) {
-            rc = NEXUS_DolbyVolume258_SetSettings(session->main_audio->dolbyVolume258, &pSettings->dolby.dolbyVolume258);
-            if (rc) return BERR_TRACE(rc);
+            NEXUS_DolbyVolume258Settings currentDolbyVolumeSettings;
+            NEXUS_DolbyVolume258_GetSettings(session->main_audio->dolbyVolume258, &currentDolbyVolumeSettings);
+            if ( 0 != BKNI_Memcmp(&currentDolbyVolumeSettings, &pSettings->dolby.dolbyVolume258, sizeof(NEXUS_DolbyVolume258Settings)) ) {
+                rc = NEXUS_DolbyVolume258_SetSettings(session->main_audio->dolbyVolume258, &pSettings->dolby.dolbyVolume258);
+                if (rc) return BERR_TRACE(rc);
+            }
         }
     }
     else {
         return BERR_TRACE(NEXUS_NOT_AVAILABLE);
     }
     if (session->main_audio->ddre) {
-        rc = NEXUS_DolbyDigitalReencode_SetSettings(session->main_audio->ddre, &pSettings->dolby.ddre);
-        if (rc) return BERR_TRACE(rc);
+        NEXUS_DolbyDigitalReencodeSettings currentDDRESettings;
+        NEXUS_DolbyDigitalReencode_GetSettings(session->main_audio->ddre, &currentDDRESettings);
+        if ( 0 != BKNI_Memcmp(&currentDDRESettings, &pSettings->dolby.ddre, sizeof(NEXUS_DolbyDigitalReencodeSettings)) ) {
+            rc = NEXUS_DolbyDigitalReencode_SetSettings(session->main_audio->ddre, &pSettings->dolby.ddre);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
     if (session->server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12)
     {
         NEXUS_AudioMixerSettings mixerSettings;
         NEXUS_AudioMixer_GetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
-        BKNI_Memcpy(&mixerSettings.dolby, &pSettings->dolby.dolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
-        NEXUS_AudioMixer_SetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
+        if ( 0 != BKNI_Memcmp(&mixerSettings.dolby, &pSettings->dolby.dolbySettings, sizeof(NEXUS_AudioMixerDolbySettings)) ) {
+            BKNI_Memcpy(&mixerSettings.dolby, &pSettings->dolby.dolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
+            NEXUS_AudioMixer_SetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
+        }
     }
     session->audioProcessingSettings = *pSettings;
     return 0;

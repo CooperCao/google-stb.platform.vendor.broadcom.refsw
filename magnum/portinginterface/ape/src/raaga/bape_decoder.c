@@ -1523,108 +1523,6 @@ static BERR_Code BAPE_Decoder_P_Start(
             goto err_stages;
         }
     }
-    if ( ((handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eStereo)) || handle->stereoOnMultichannel) )
-    {
-        /* Add SRC if required */
-        if ( !handle->passthrough && BAPE_P_CodecRequiresSrc(handle->startSettings.codec) && handle->hSrcStageStereo )
-        {
-            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hSrcStageStereo, &output, &input);
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_stages;
-            }
-            hStage = handle->hSrcStageStereo;
-        }
-        /* Add Karaokee post process if required */
-        if ( pSettings->karaokeModeEnabled && handle->hKaraokeStage )
-        {
-            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hKaraokeStage, &output, &input);
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_stages;
-            }
-            hStage = handle->hKaraokeStage;
-        }
-        /* Add DSOLA if required */
-        if ( pSettings->decodeRateControl && handle->hDsolaStageStereo )
-        {
-            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hDsolaStageStereo, &output, &input);
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_stages;
-            }
-            hStage = handle->hDsolaStageStereo;
-        }
-    }
-    handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage = hStage;
-
-    if ( handle->stereoOnMultichannel )
-    {
-        handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage;
-    }
-    else
-    {
-        /* Determine branch/stage outputting data to multichannel PCM path  */
-        hStage = handle->hPrimaryStage;
-        if ( handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eMultichannel) )
-        {
-            BDSP_DataType dataType = BAPE_DSP_P_GetDataTypeFromConnector(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]);
-            /* Add SRC if required */
-            if ( !handle->passthrough && BAPE_P_CodecRequiresSrc(handle->startSettings.codec) && handle->hSrcStageMultichannel )
-            {
-                errCode = BDSP_Stage_AddOutputStage(hStage, dataType, handle->hSrcStageMultichannel, &output, &input);
-                if ( errCode )
-                {
-                    errCode = BERR_TRACE(errCode);
-                    goto err_stages;
-                }
-                hStage = handle->hSrcStageMultichannel;
-            }
-            /* Add DSOLA if required */
-            if ( pSettings->decodeRateControl && handle->hDsolaStageMultichannel )
-            {
-                errCode = BDSP_Stage_AddOutputStage(hStage, dataType, handle->hDsolaStageMultichannel, &output, &input);
-                if ( errCode )
-                {
-                    errCode = BERR_TRACE(errCode);
-                    goto err_stages;
-                }
-                hStage = handle->hDsolaStageMultichannel;
-            }
-        }
-        handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = hStage;
-    }
-
-    /* Determine if we need to add passthrough */
-    if ( handle->stereoOnCompressed )
-    {
-        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage = handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage;
-    }
-    else
-    {
-        hStage = handle->hPrimaryStage;
-#if BAPE_DECODER_ENABLE_GENERIC_PT
-        if ( handle->simul && BAPE_P_CodecRequiresGenericPassthru(handle->startSettings.codec) )
-        {
-            /* CITTODO - force branch?  Use aux data out? */
-            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_eIec61937, handle->hPassthroughStage, &output, &input);
-            if ( errCode )
-            {
-                errCode = BERR_TRACE(errCode);
-                goto err_stages;
-            }
-            hStage = handle->hPassthroughStage;
-        }
-#endif
-        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage = hStage;
-    }
-    handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].hStage =
-        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage;
-    handle->node.connectors[BAPE_ConnectorFormat_eCompressed16x].hStage =
-        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage;
 
     /* Prepare all branches to start */
     if ( handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections )
@@ -1762,6 +1660,109 @@ static BERR_Code BAPE_Decoder_P_Start(
             goto err_format_change;
         }
     }
+
+    if ( ((handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eStereo)) || handle->stereoOnMultichannel) )
+    {
+        /* Add SRC if required */
+        if ( !handle->passthrough && BAPE_P_CodecRequiresSrc(handle->startSettings.codec) && handle->hSrcStageStereo )
+        {
+            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hSrcStageStereo, &output, &input);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_stages;
+            }
+            hStage = handle->hSrcStageStereo;
+        }
+        /* Add Karaokee post process if required */
+        if ( pSettings->karaokeModeEnabled && handle->hKaraokeStage )
+        {
+            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hKaraokeStage, &output, &input);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_stages;
+            }
+            hStage = handle->hKaraokeStage;
+        }
+        /* Add DSOLA if required */
+        if ( pSettings->decodeRateControl && handle->hDsolaStageStereo )
+        {
+            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_ePcmStereo, handle->hDsolaStageStereo, &output, &input);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_stages;
+            }
+            hStage = handle->hDsolaStageStereo;
+        }
+    }
+    handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage = hStage;
+
+    if ( handle->stereoOnMultichannel )
+    {
+        handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage;
+    }
+    else
+    {
+        /* Determine branch/stage outputting data to multichannel PCM path  */
+        hStage = handle->hPrimaryStage;
+        if ( handle->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0 && !BAPE_Decoder_P_OrphanConnector(handle, BAPE_ConnectorFormat_eMultichannel) )
+        {
+            BDSP_DataType dataType = BAPE_DSP_P_GetDataTypeFromConnector(&handle->node.connectors[BAPE_ConnectorFormat_eMultichannel]);
+            /* Add SRC if required */
+            if ( !handle->passthrough && BAPE_P_CodecRequiresSrc(handle->startSettings.codec) && handle->hSrcStageMultichannel )
+            {
+                errCode = BDSP_Stage_AddOutputStage(hStage, dataType, handle->hSrcStageMultichannel, &output, &input);
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_stages;
+                }
+                hStage = handle->hSrcStageMultichannel;
+            }
+            /* Add DSOLA if required */
+            if ( pSettings->decodeRateControl && handle->hDsolaStageMultichannel )
+            {
+                errCode = BDSP_Stage_AddOutputStage(hStage, dataType, handle->hDsolaStageMultichannel, &output, &input);
+                if ( errCode )
+                {
+                    errCode = BERR_TRACE(errCode);
+                    goto err_stages;
+                }
+                hStage = handle->hDsolaStageMultichannel;
+            }
+        }
+        handle->node.connectors[BAPE_ConnectorFormat_eMultichannel].hStage = hStage;
+    }
+
+    /* Determine if we need to add passthrough */
+    if ( handle->stereoOnCompressed )
+    {
+        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage = handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage;
+    }
+    else
+    {
+        hStage = handle->hPrimaryStage;
+#if BAPE_DECODER_ENABLE_GENERIC_PT
+        if ( handle->simul && BAPE_P_CodecRequiresGenericPassthru(handle->startSettings.codec) )
+        {
+            /* CITTODO - force branch?  Use aux data out? */
+            errCode = BDSP_Stage_AddOutputStage(hStage, BDSP_DataType_eIec61937, handle->hPassthroughStage, &output, &input);
+            if ( errCode )
+            {
+                errCode = BERR_TRACE(errCode);
+                goto err_stages;
+            }
+            hStage = handle->hPassthroughStage;
+        }
+#endif
+        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage = hStage;
+    }
+    handle->node.connectors[BAPE_ConnectorFormat_eCompressed4x].hStage =
+        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage;
+    handle->node.connectors[BAPE_ConnectorFormat_eCompressed16x].hStage =
+        handle->node.connectors[BAPE_ConnectorFormat_eCompressed].hStage;
 
     /* Mono outputs will always start from branch/stage 0 - no SRC or DSOLA. */
     handle->node.connectors[BAPE_ConnectorFormat_eMono].hStage = handle->node.connectors[BAPE_ConnectorFormat_eStereo].hStage;
@@ -3003,6 +3004,13 @@ void BAPE_Decoder_GetCodecSettings(
     case BAVC_AudioCompressionStd_eAacPlusLoas:
         *pSettings = handle->aacPlusSettings;
         break;
+    case BAVC_AudioCompressionStd_eMpegL1:
+    case BAVC_AudioCompressionStd_eMpegL2:
+        *pSettings = handle->mpegSettings;
+        break;
+    case BAVC_AudioCompressionStd_eMpegL3:
+        *pSettings = handle->mp3Settings;
+        break;
     case BAVC_AudioCompressionStd_eDts:
     case BAVC_AudioCompressionStd_eDtshd:
     case BAVC_AudioCompressionStd_eDtsLegacy:
@@ -3022,6 +3030,10 @@ void BAPE_Decoder_GetCodecSettings(
         break;
     case BAVC_AudioCompressionStd_eWmaPro:
         *pSettings = handle->wmaProSettings;
+        break;
+    case BAVC_AudioCompressionStd_eAls:
+    case BAVC_AudioCompressionStd_eAlsLoas:
+        *pSettings = handle->alsSettings;
         break;
     default:
         break;
@@ -3831,21 +3843,28 @@ static BERR_Code BAPE_Decoder_P_DeriveMultistreamLinkage(BAPE_DecoderHandle hand
     {
         BAPE_PathConnector *pMaster = fwMixer->master;
         BAPE_PathNode *pNode;
-        if ( NULL == pMaster )
+        if ( NULL == pMaster && BAPE_P_FwMixer_GetDolbyUsageVersion(fwMixer) != BAPE_DolbyMSVersion_eMS12 )
         {
             BDBG_ERR(("A DSP mixer was found downstream from decoder %u but it does not have a master input designated.  This is not supported.", handle->index));
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
-        pNode = pMaster->pParent;
-        if ( pNode == &handle->node )
+        else if (NULL != pMaster)
         {
-            /* I am the master directly */
-            master = true;
+            pNode = pMaster->pParent;
+            if ( pNode == &handle->node )
+            {
+                /* I am the master directly */
+                master = true;
+            }
+            else
+            {
+                /* Possibly another post-processing node is between the decoder and FW mixer.  Test if the master between this node and the mixer. */
+                master = BAPE_PathNode_P_NodeIsConsumer(&handle->node, pNode);
+            }
         }
         else
         {
-            /* Possibly another post-processing node is between the decoder and FW mixer.  Test if the master between this node and the mixer. */
-            master = BAPE_PathNode_P_NodeIsConsumer(&handle->node, pNode);
+            master = false; /* For MS-12 we can start a DSP mixer without a mixer set */
         }
     }
 

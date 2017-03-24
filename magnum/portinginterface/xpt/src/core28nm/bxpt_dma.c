@@ -106,7 +106,11 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 #define BXPT_DMA_BAND_ID_OFFSET BXPT_NUM_PLAYBACKS
 
 #define BXPT_DMA_MCPB_DESC_WORDS 8
+#if BXPT_HAS_MCPB_VER_3
+#define BXPT_DMA_WDMA_DESC_WORDS 8
+#else
 #define BXPT_DMA_WDMA_DESC_WORDS 4
+#endif
 
 /* all sizes in bytes */
 #define BXPT_DMA_MCPB_DESC_SIZE    (BXPT_DMA_MCPB_DESC_WORDS*4) /* requires 32-byte alignment (eight word descriptor format) */
@@ -115,14 +119,12 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 
 #define BXPT_DMA_MCPB_LLD_TYPE 0 /* 8-word descriptor format */
 
-#define BXPT_DMA_USE_40BIT_ADDRESSES 1
-#if BXPT_DMA_USE_40BIT_ADDRESSES
 #define BXPT_DMA_ADDRESS_LIMIT_SHIFT (40)
-#else
-#define BXPT_DMA_ADDRESS_LIMIT_SHIFT (32)
-#endif
 #define BXPT_DMA_PWR_BO_COUNT      0x3fffffff
 #define BXPT_DMA_DEF_BO_COUNT      0
+
+#define GET_UPPER(val) ((val >> 32) & 0xFF)
+#define GET_LOWER(val) (val & 0xFFFFFFFF)
 
 #define UINT32_V(value) ((uint32_t)(value & 0xFFFFFFFF))
 
@@ -168,8 +170,10 @@ BDBG_OBJECT_ID(BXPT_Dma_Context);
 #define BXPT_DMA_WDMA_DESC_APPEND_NULL 1 /* CRXPT-985 */
 #endif
 
-/* TODO: #if for affected platforms */
-#if (!BXPT_DMA_HAS_MEMDMA_MCPB)
+/* TODO: currently, 7278 B0 is the only one confirmed to have fix */
+#if ( (BCHP_CHIP==7271 && BCHP_VER<BCHP_VER_C0) || (BCHP_CHIP==7268 && BCHP_VER<BCHP_VER_C0) || \
+      (BCHP_CHIP==7586 && BCHP_VER<BCHP_VER_B0) || (BCHP_CHIP==7260 && BCHP_VER<BCHP_VER_B0) || \
+      (BCHP_CHIP==7278 && BCHP_VER<BCHP_VER_B0) )
 #define BXPT_DMA_WDMA_ENDIAN_SWAP_CBIT 1
 #endif
 
@@ -948,18 +952,18 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     }
 
     /* clear FIRST_DESC_ADDR */
-    BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset, 0);
-    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset, 0);
+    BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset, 0);
+    BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset, 0);
 
     /* clear other state */
-    BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
+    BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_BTP_PACKET_GROUP_ID + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_RUN_VERSION_CONFIG + dma->wdmaRamOffset, 0);
     BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_OVERFLOW_REASONS + dma->wdmaRamOffset, 0);
 
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_STATUS + dma->mcpbRegOffset, 0);
-    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_ADDR + dma->mcpbRegOffset, 0);
-    BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_DONE_INT_ADDR + dma->mcpbRegOffset, 0);
+    BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_ADDR + dma->mcpbRegOffset, 0);
+    BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_DONE_INT_ADDR + dma->mcpbRegOffset, 0);
 #ifdef BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR
     BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR + dma->mcpbRegOffset, 0);
 #else
@@ -1448,7 +1452,7 @@ BERR_Code BXPT_Dma_Context_SetSettings(
     BDBG_ASSERT(pSettings);
 
     if (hCtx->state != ctx_state_eIdle) {
-        return BERR_NOT_SUPPORTED;
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if (pSettings->maxNumBlocks != hCtx->settings.maxNumBlocks) {
@@ -1490,7 +1494,7 @@ static void
 BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
 {
     BXPT_Dma_ContextHandle ctx;
-    uint32_t reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset);
+    uint64_t reg = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset);
     bool sleep = BXPT_Dma_P_GetWdmaSleep_isrsafe(dma);
     int completedIdx = -1, idx;
     BSTD_UNUSED(sleep);
@@ -1510,7 +1514,7 @@ BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
 }
 #endif
 
-    BDBG_MSG_TRACE(("%u: start update (CDA %#lx)", dma->channelNum, reg));
+    BDBG_MSG_TRACE(("%u: start update (CDA " BDBG_UINT64_FMT ")", dma->channelNum, BDBG_UINT64_ARG(reg)));
     for (ctx=BLST_SQ_FIRST(&dma->activeCtxList), idx=0; ctx; ctx=BLST_SQ_NEXT(ctx, activeNode), idx++) {
         uint32_t LAST_WDMA_DESC_OFFSET_INT = LAST_WDMA_DESC_OFFSET(ctx); /* desc with INT set */
 #if BXPT_DMA_WDMA_DESC_APPEND_NULL
@@ -1538,7 +1542,7 @@ BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
         }
     }
     else {
-        BDBG_MSG_TRACE(("%u: no completions", dma->channelNum, reg));
+        BDBG_MSG_TRACE(("%u: no completions", dma->channelNum));
     }
 
     if (dma->wakeDisabled) {
@@ -1553,18 +1557,18 @@ BXPT_Dma_P_UpdateStatus_isr(BXPT_Dma_Handle dma)
 
             BXPT_Dma_P_IncrementRunVersion_isrsafe(dma);
 
-            BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
+            BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
             BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_STATUS + dma->mcpbRegOffset, 0); /* clear DCPM status before RUN */
             BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + dma->mcpbRegOffset, 0); /* can be used to check if packets were released from MCPB */
 
             /* always start WDMA before MCPB */
-            BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset, FIRST_WDMA_DESC_OFFSET(ctx));
+            BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset, FIRST_WDMA_DESC_OFFSET(ctx));
             BXPT_Dma_P_SetWdmaRun_isrsafe(dma, 1);
 
-            BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset, FIRST_MCPB_DESC_OFFSET(ctx) | BXPT_DMA_MCPB_LLD_TYPE);
+            BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset, FIRST_MCPB_DESC_OFFSET(ctx) | BXPT_DMA_MCPB_LLD_TYPE);
             BXPT_Dma_P_SetMcpbRun_isrsafe(dma, 1);
 
-            BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " restart (%u blocks, WDMA desc %#lx)", BDBG_UINT64_ARG(CTX_ID(ctx)), ctx->numBlocks, FIRST_WDMA_DESC_OFFSET(ctx)));
+            BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " restart (%u blocks, WDMA desc " BDBG_UINT64_FMT ")", BDBG_UINT64_ARG(CTX_ID(ctx)), ctx->numBlocks, BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx))));
 
             ctx->cntRun++;
             ctx->parent->cntRun++;
@@ -1659,15 +1663,15 @@ BXPT_Dma_Context_P_Start_isr(BXPT_Dma_Handle dma, BXPT_Dma_ContextHandle ctx)
             BSTD_UNUSED(runVersion);
         }
 
-        BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
+        BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
         BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_STATUS + dma->mcpbRegOffset, 0); /* clear DCPM status before RUN */
         BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_LOCAL_PACKET_COUNTER + dma->mcpbRegOffset, 0); /* can be used to check if packets were released from MCPB */
 
         /* always start WDMA before MCPB */
-        BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset, FIRST_WDMA_DESC_OFFSET(ctx));
+        BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset, FIRST_WDMA_DESC_OFFSET(ctx));
         BXPT_Dma_P_SetWdmaRun_isrsafe(dma, 1);
 
-        BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset, FIRST_MCPB_DESC_OFFSET(ctx) | BXPT_DMA_MCPB_LLD_TYPE);
+        BREG_WriteAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset, FIRST_MCPB_DESC_OFFSET(ctx) | BXPT_DMA_MCPB_LLD_TYPE);
         BXPT_Dma_P_SetMcpbRun_isrsafe(dma, 1);
 
 #if BXPT_DMA_RATE_TEST
@@ -1682,7 +1686,7 @@ BXPT_Dma_Context_P_Start_isr(BXPT_Dma_Handle dma, BXPT_Dma_ContextHandle ctx)
     }
     else {
         /* we can WAKE even if ctx==lastCtx since we have a pingpong scheme */
-        uint32_t reg;
+        uint64_t reg;
         if (dma->wakeDisabled) {
             return BXPT_DMA_QUEUED;
         }
@@ -1691,20 +1695,23 @@ BXPT_Dma_Context_P_Start_isr(BXPT_Dma_Handle dma, BXPT_Dma_ContextHandle ctx)
         /* test that LAST flags are still set in the last descriptor */
         BMMA_FlushCache_isr(lastCtx->mcpbBlock[lastCtx->lpp], LAST_MCPB_DESC_CACHED_START(lastCtx), BXPT_DMA_MCPB_DESC_SIZE);
         BMMA_FlushCache_isr(lastCtx->wdmaBlock[lastCtx->lpp], LAST_WDMA_DESC_CACHED_START(lastCtx), BXPT_DMA_WDMA_DESC_SIZE);
-        BDBG_ASSERT(LAST_MCPB_DESC_CACHED_START(lastCtx)[2] & MCPB_DW2_LAST_DESC);
-        BDBG_ASSERT(LAST_WDMA_DESC_CACHED_START(lastCtx)[3] & WDMA_DW3_LAST);
+        BDBG_ASSERT(LAST_MCPB_DESC_CACHED_START(lastCtx)[MCPB_DW_NEXTDESCADDRLO] & MCPB_DW2_LAST_DESC);
+        BDBG_ASSERT(LAST_WDMA_DESC_CACHED_START(lastCtx)[WDMA_DW_NEXTDESCADDRLO] & WDMA_DW3_LAST);
 #endif
 
         /* sanity check on CDA */
         /* coverity[unreachable] */
-        reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset);
+        reg = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset);
         if (FIRST_WDMA_DESC_OFFSET(ctx) <= reg && reg <= LAST_WDMA_DESC_OFFSET(ctx)) { /* note that LAST_WDMA_DESC_OFFSET is based on numBlocks, not maxNumBlocks */
-            BDBG_ERR(("" BDBG_UINT64_FMT ": CDA (%#x) points to descriptor range " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", BDBG_UINT64_ARG(CTX_ID(ctx)), reg, BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)), BDBG_UINT64_ARG(LAST_WDMA_DESC_OFFSET(ctx))));
-            BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
+            BDBG_ERR(("" BDBG_UINT64_FMT ": CDA (" BDBG_UINT64_FMT ") points to descriptor range " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", BDBG_UINT64_ARG(CTX_ID(ctx)), BDBG_UINT64_ARG(reg), BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)), BDBG_UINT64_ARG(LAST_WDMA_DESC_OFFSET(ctx))));
+            BREG_WriteAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
         }
 
         /* update NEXT_DESC_ADDR, clear LAST flag, then WAKE. do it for WDMA first */
-        LAST_WDMA_DESC_CACHED_START(lastCtx)[3] = FIRST_WDMA_DESC_OFFSET(ctx) | lastCtx->wdmaDescW3;
+#if BXPT_HAS_MCPB_VER_3
+        LAST_WDMA_DESC_CACHED_START(lastCtx)[WDMA_DW_NEXTDESCADDRHI] = GET_UPPER(FIRST_WDMA_DESC_OFFSET(ctx));
+#endif
+        LAST_WDMA_DESC_CACHED_START(lastCtx)[WDMA_DW_NEXTDESCADDRLO] = GET_LOWER(FIRST_WDMA_DESC_OFFSET(ctx)) | lastCtx->wdmaDescW3;
         BMMA_FlushCache_isr(lastCtx->wdmaBlock[lastCtx->lpp], LAST_WDMA_DESC_CACHED_START(lastCtx), BXPT_DMA_WDMA_DESC_SIZE);
 #if BXPT_DMA_MSA_DEBUG_MODE
         BXPT_Dma_P_AssertWdmaDescMem(ctx, true);
@@ -1712,7 +1719,8 @@ BXPT_Dma_Context_P_Start_isr(BXPT_Dma_Handle dma, BXPT_Dma_ContextHandle ctx)
         BXPT_Dma_P_SetWdmaWake_isrsafe(dma, 1);
 
         /* do MCPB next */
-        LAST_MCPB_DESC_CACHED_START(lastCtx)[2] = FIRST_MCPB_DESC_OFFSET(ctx);
+        LAST_MCPB_DESC_CACHED_START(lastCtx)[MCPB_DW_NEXTDESCADDRHI] = GET_UPPER(FIRST_MCPB_DESC_OFFSET(ctx));
+        LAST_MCPB_DESC_CACHED_START(lastCtx)[MCPB_DW_NEXTDESCADDRLO] = GET_LOWER(FIRST_MCPB_DESC_OFFSET(ctx));
         BMMA_FlushCache_isr(lastCtx->mcpbBlock[lastCtx->lpp], LAST_MCPB_DESC_CACHED_START(lastCtx), BXPT_DMA_MCPB_DESC_SIZE);
 #if BXPT_DMA_MSA_DEBUG_MODE
         BXPT_Dma_P_AssertMcpbDescMem(ctx, true);
@@ -1738,7 +1746,7 @@ static BERR_Code BXPT_Dma_Context_P_PrepareBlocks(BXPT_Dma_ContextHandle ctx, co
 {
     unsigned i, dmaLength;
     uint32_t *desc;
-    uint32_t nextDescOffset;
+    uint64_t nextDescOffset;
     BXPT_Dma_ContextHandle context;
 #if (!BXPT_DMA_AVOID_WAKE)
     bool wakeDisabled = false;
@@ -1914,43 +1922,38 @@ static BERR_Code BXPT_Dma_Context_P_PrepareBlocks(BXPT_Dma_ContextHandle ctx, co
         nextDescOffset += BXPT_DMA_MCPB_DESC_SIZE;
         BDBG_ASSERT((nextDescOffset & 0x1F) == 0); /* 5 LSBs must be 0 */
 
-#if BXPT_DMA_USE_40BIT_ADDRESSES
-        desc[0] = (pSettings->src >> 32) & 0xFF; /* BUFF_ST_RD_ADDR [39:32] */
-        desc[1] = pSettings->src & 0xFFFFFFFF; /* BUFF_ST_RD_ADDR [31:0] */
-#else
-        desc[0] = 0; /* BUFF_ST_RD_ADDR [39:32] */
-        desc[1] = pSettings->src & 0xFFFFFFFF; /* BUFF_ST_RD_ADDR [31:0] */
-#endif
-        desc[2] = nextDescOffset; /* NEXT_DESC_ADDR [31:5] */
-        desc[3] = pSettings->size; /* BUFF_SIZE [31:0] */
-        desc[4] = ctx->mcpbDescW4;
-        desc[5] = ctx->mcpbDescW5;
-        desc[6] = ctx->mcpbDescW6;
-        desc[7] = 0;
+        desc[MCPB_DW_READADDRHI] = GET_UPPER(pSettings->src); /* BUFF_ST_RD_ADDR [39:32] */
+        desc[MCPB_DW_READADDRLO] = GET_LOWER(pSettings->src); /* BUFF_ST_RD_ADDR [31:0] */
+        desc[MCPB_DW_NEXTDESCADDRHI] = GET_UPPER(nextDescOffset); /* NEXT_DESC_ADDR [39:32] */
+        desc[MCPB_DW_NEXTDESCADDRLO] = GET_LOWER(nextDescOffset); /* NEXT_DESC_ADDR [31:5] */
+        desc[MCPB_DW_READSIZE] = pSettings->size; /* BUFF_SIZE [31:0] */
+        desc[MCPB_DW_FLAGS0] = ctx->mcpbDescW4;
+        desc[MCPB_DW_FLAGS1] = ctx->mcpbDescW5;
+        desc[MCPB_DW_PIDCHANNEL] = ctx->mcpbDescW6;
 
         if (pSettings->resetCrypto && pSettings->sgScramStart) { /* ignore resetCrypto when not paired with sgScramStart */
-            desc[5] |= MCPB_DW5_SCRAM_INIT;
+            desc[MCPB_DW_FLAGS1] |= MCPB_DW5_SCRAM_INIT;
         }
         if (pSettings->sgScramStart) {
-            desc[5] |= MCPB_DW5_SCRAM_START;
+            desc[MCPB_DW_FLAGS1] |= MCPB_DW5_SCRAM_START;
         }
         if (pSettings->sgScramEnd) {
-            desc[5] |= MCPB_DW5_SCRAM_END;
+            desc[MCPB_DW_FLAGS1] |= MCPB_DW5_SCRAM_END;
         }
         if (pSettings->securityBtp) {
-            desc[4] |= MCPB_DW4_HOST_DATA_INS_EN; /* this is generic */
-            desc[5] |= MCPB_DW5_HOST_INS_DATA_AS_BTP_PKT; /* the scope of this is very specific to BTPs processed by security engine */
+            desc[MCPB_DW_FLAGS0] |= MCPB_DW4_HOST_DATA_INS_EN; /* this is generic */
+            desc[MCPB_DW_FLAGS1] |= MCPB_DW5_HOST_INS_DATA_AS_BTP_PKT; /* the scope of this is very specific to BTPs processed by security engine */
         }
 
         if (i==numBlocksMcpb-1) {
-            desc[2] = 0; /* set nextDescOffset to 0 */
-            desc[2] |= MCPB_DW2_LAST_DESC;
+            desc[MCPB_DW_NEXTDESCADDRHI] = 0;
+            desc[MCPB_DW_NEXTDESCADDRLO] = 0; /* set nextDescOffset to 0 */
+            desc[MCPB_DW_NEXTDESCADDRLO] |= MCPB_DW2_LAST_DESC;
             if (!pSettings->sgScramEnd) { /* PUSH_PARTIAL_PKT not supported with sgScram */
-                desc[4] |= MCPB_DW4_PUSH_PARTIAL_PKT;
+                desc[MCPB_DW_FLAGS0] |= MCPB_DW4_PUSH_PARTIAL_PKT;
             }
-
 #if BXPT_DMA_MCPB_DESC_DONE_IRQ
-            desc[4] |= MCPB_DW4_INT_EN; /* normally, we're only interested in the WDMA interrupt, not the MCPB interrupt */
+            desc[MCPB_DW_FLAGS0] |= MCPB_DW4_INT_EN; /* normally, we're only interested in the WDMA interrupt, not the MCPB interrupt */
 #endif
 
             ctx->lastMcpbDescCached[ctx->pp] = desc;
@@ -2041,22 +2044,23 @@ static BERR_Code BXPT_Dma_Context_P_PrepareBlocks(BXPT_Dma_ContextHandle ctx, co
         nextDescOffset += BXPT_DMA_WDMA_DESC_SIZE;
         BDBG_ASSERT((nextDescOffset & 0xF) == 0); /* 4 LSBs must be 0 */
 
-#if BXPT_DMA_USE_40BIT_ADDRESSES
-        desc[0] = (dst >> 32) & 0xFF; /* write address [39:32] */
-        desc[1] = dst & 0xFFFFFFFF; /* write address [31:0] */
-#else
-        desc[0] = 0; /* write address [39:32] */
-        desc[1] = dst & 0xFFFFFFFF; /* write address [31:0] */
-#endif
-        desc[2] = size; /* transfer size [31:0] */
+        desc[WDMA_DW_WRITEADDRHI] = GET_UPPER(dst); /* write address [39:32] */
+        desc[WDMA_DW_WRITEADDRLO] = GET_LOWER(dst); /* write address [31:0] */
+        desc[WDMA_DW_WRITESIZE] = size; /* transfer size [31:0] */
 
         BDBG_ASSERT((ctx->wdmaDescW3 & 0xFFFFFFF0) == 0); /* sanity check on prototype */
-        desc[3] = nextDescOffset | ctx->wdmaDescW3;
+        desc[WDMA_DW_NEXTDESCADDRLO] = GET_LOWER(nextDescOffset) | ctx->wdmaDescW3;
+#if BXPT_HAS_MCPB_VER_3
+        desc[WDMA_DW_NEXTDESCADDRHI] = GET_UPPER(nextDescOffset);
+        desc[WDMA_DW_RESERVED3] = 0;
+        desc[WDMA_DW_RESERVED4] = 0;
+        desc[WDMA_DW_RESERVED5] = 0;
+#endif
 
         if (i==numBlocksWdma-1) {
 #if (!BXPT_DMA_WDMA_DESC_APPEND_NULL)
-            desc[3] = ctx->wdmaDescW3;
-            desc[3] |= WDMA_DW3_INTR_EN | WDMA_DW3_LAST;
+            desc[WDMA_DW_NEXTDESCADDRLO] = ctx->wdmaDescW3;
+            desc[WDMA_DW_NEXTDESCADDRLO] |= WDMA_DW3_INTR_EN | WDMA_DW3_LAST;
 
             ctx->lastWdmaDescCached[ctx->pp] = desc;
 #else
@@ -2144,9 +2148,9 @@ BERR_Code BXPT_Dma_Context_Enqueue(
 
     /* only if there are no other queued contexts, can we possibly short-circuit. otherwise we have to traverse through activeCtxList */
     if (BLST_SQ_FIRST(&dma->activeCtxList)==NULL) {
-        uint32_t reg = BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset);
+        uint64_t reg = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset);
         if (reg == LAST_WDMA_DESC_OFFSET(hCtx)) {
-            BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " fast complete", CTX_ID(hCtx)));
+            BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " fast complete", BDBG_UINT64_ARG(CTX_ID(hCtx))));
             hCtx->state = ctx_state_eIdle; /* no need to add to list */
             hCtx->cntCompleted++;
             hCtx->parent->cntCompleted++;
@@ -2176,7 +2180,7 @@ BERR_Code BXPT_Dma_Context_GetStatus(
 
     if (hCtx->state != ctx_state_eIdle) {
         BKNI_EnterCriticalSection();
-        BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " GetStatus", CTX_ID(hCtx)));
+        BDBG_MSG_TRACE(("" BDBG_UINT64_FMT " GetStatus", BDBG_UINT64_ARG(CTX_ID(hCtx))));
         BXPT_Dma_P_UpdateStatus_isr(hCtx->parent);
         BKNI_LeaveCriticalSection();
     }
@@ -2490,8 +2494,8 @@ void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, boo
     BKNI_Printf("dma %2u: %s started %u, completed %u, run %u\n", dma->channelNum, "              ", dma->cntStarted, dma->cntCompleted, dma->cntRun);
     BKNI_Printf("ctx " BDBG_UINT64_FMT ": %s: started %u, completed %u, run %u. pp %u, lpp %u\n", BDBG_UINT64_ARG(CTX_ID(ctx)), link_only ? "LINK ":"START",
         ctx->cntStarted, ctx->cntCompleted, ctx->cntRun, ctx->pp, ctx->lpp);
-    BKNI_Printf("  MCPB offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %#x:%#x\n", ctx->firstMcpbDescOffset[0], ctx->firstMcpbDescOffset[1], ctx->firstMcpbDescCached[0], ctx->firstMcpbDescCached[1]);
-    BKNI_Printf("  WDMA offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %#x:%#x\n", ctx->firstWdmaDescOffset[0], ctx->firstWdmaDescOffset[1], ctx->firstWdmaDescCached[0], ctx->firstWdmaDescCached[1]);
+    BKNI_Printf("  MCPB offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %p:%p\n", BDBG_UINT64_ARG(ctx->firstMcpbDescOffset[0]), BDBG_UINT64_ARG(ctx->firstMcpbDescOffset[1]), (void*)ctx->firstMcpbDescCached[0], (void*)ctx->firstMcpbDescCached[1]);
+    BKNI_Printf("  WDMA offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %p:%p\n", BDBG_UINT64_ARG(ctx->firstWdmaDescOffset[0]), BDBG_UINT64_ARG(ctx->firstWdmaDescOffset[1]), (void*)ctx->firstWdmaDescCached[0], (void*)ctx->firstWdmaDescCached[1]);
 
     for (p=0; p<2; p++) {
         /* don't print the other ping/pong that we're not interested in */
@@ -2526,8 +2530,8 @@ void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, boo
         for (i=0; i<numBlocksWdma; i++, desc+=BXPT_DMA_WDMA_DESC_WORDS, descOffset+=BXPT_DMA_WDMA_DESC_SIZE) {
             if (link_only && i<numBlocksWdma-1) { continue; }
 #if PRINT_SIMPLE
-            BKNI_Printf("WDMA desc%2u:" BDBG_UINT64_FMT ": %08x %08x %08x %08x\n",
-                i, BDBG_UINT64_ARG(descOffset), desc[0], desc[1], desc[2], desc[3]);
+            BKNI_Printf("WDMA desc%2u:" BDBG_UINT64_FMT ": %08x %08x %08x %08x %08x %08x %08x %08x\n",
+                i, BDBG_UINT64_ARG(descOffset), desc[0], desc[1], desc[2], desc[3], desc[4], desc[5], desc[6], desc[7]);
 #else
             BKNI_Printf("WDMA %s[%2u:" BDBG_UINT64_FMT ":%s] %08x %08x %08x %08x\n",
                 !link_only ? "desc" : "link",
@@ -2545,14 +2549,15 @@ void BXPT_Dma_P_StatusDump(BXPT_Dma_Handle dma)
 {
     /* dump before Enqueue should be all 0s */
     BXPT_Dma_ContextHandle ctx;
-    uint64_t reg[8];
+    uint64_t lreg[8];
+    uint32_t reg[8];
     BKNI_Printf("Status: channel %u\n", dma->channelNum);
-    reg[0] = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset); /* should match LAST_WDMA_DESC_OFFSET(ctx) after done */
-    reg[1] = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset); /* should match FIRST_WDMA_DESC_OFFSET(ctx) after Enqueue() */
+    lreg[0] = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset); /* should match LAST_WDMA_DESC_OFFSET(ctx) after done */
+    lreg[1] = BREG_ReadAddr(dma->reg, BCHP_XPT_WDMA_CH0_FIRST_DESC_ADDR + dma->wdmaRamOffset); /* should match FIRST_WDMA_DESC_OFFSET(ctx) after Enqueue() */
     reg[2] = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_RUN_BITS_0_31);
     reg[3] = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_SLEEP_STATUS_0_31);
     reg[4] = BREG_Read32(dma->reg, BCHP_XPT_WDMA_REGS_WAKE_BITS_0_31);
-    BKNI_Printf("  WDMA: CDA %#lx, FDA %#lx, RUN %#lx, SLEEP %#lx, WAKE %#lx\n", reg[0], reg[1], reg[2], reg[3], reg[4]);
+    BKNI_Printf("  WDMA: CDA " BDBG_UINT64_FMT ", FDA " BDBG_UINT64_FMT ", RUN %#x, SLEEP %#x, WAKE %#x\n", BDBG_UINT64_ARG(lreg[0]), BDBG_UINT64_ARG(lreg[1]), reg[2], reg[3], reg[4]);
 
     /* after done, both READ_PTR and WRITE_PTR should be the (number of descriptors) % 4 */
     reg[0] = BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_DMQ_CONTROL_STRUCT + dma->wdmaRamOffset);
@@ -2560,31 +2565,31 @@ void BXPT_Dma_P_StatusDump(BXPT_Dma_Handle dma)
     reg[2] = BCHP_GET_FIELD_DATA(reg[0], XPT_WDMA_CH0_DMQ_CONTROL_STRUCT, WRITE_PTR);
     BKNI_Printf("  WDMA: DMQ: READ %u, WRITE %u\n", reg[1], reg[2]);
 
-    reg[0] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset); /* should match FIRST_MCPB_DESC_OFFSET(ctx) after Enqueue() */
+    lreg[0] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DESC_CONTROL + dma->mcpbRegOffset); /* should match FIRST_MCPB_DESC_OFFSET(ctx) after Enqueue() */
     reg[1] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_RUN_STATUS_0_31);
     reg[2] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_WAKE_STATUS_0_31);
-    BKNI_Printf("  MCPB: FDA %#lx, RUN %#lx, WAKE %#lx\n", reg[0], reg[1], reg[2]);
+    BKNI_Printf("  MCPB: FDA " BDBG_UINT64_FMT ", RUN %#x, WAKE %#x\n", BDBG_UINT64_ARG(lreg[0]), reg[1], reg[2]);
 
     reg[0] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_STATUS + dma->mcpbRegOffset);
     reg[1] = BCHP_GET_FIELD_DATA(reg[0], XPT_MEMDMA_MCPB_CH0_DCPM_STATUS, DESC_ADDRESS_STATUS);
     reg[2] = BCHP_GET_FIELD_DATA(reg[0], XPT_MEMDMA_MCPB_CH0_DCPM_STATUS, DESC_DONE_INT_ADDRESS_STATUS);
     reg[3] = BCHP_GET_FIELD_DATA(reg[0], XPT_MEMDMA_MCPB_CH0_DCPM_STATUS, DATA_ADDR_CUR_DESC_ADDR_STATUS);
-    reg[4] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_ADDR + dma->mcpbRegOffset); /* should match LAST_MCPB_DESC_OFFSET(ctx) after done */
-    reg[5] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_DONE_INT_ADDR + dma->mcpbRegOffset);
+    lreg[4] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_ADDR + dma->mcpbRegOffset); /* should match LAST_MCPB_DESC_OFFSET(ctx) after done */
+    lreg[5] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DESC_DONE_INT_ADDR + dma->mcpbRegOffset);
 #ifdef BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR
-    reg[6] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR + dma->mcpbRegOffset);
+    lreg[6] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR + dma->mcpbRegOffset);
 #else
-    reg[6] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR_LOWER + dma->mcpbRegOffset);
+    lreg[6] = BREG_ReadAddr(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DCPM_DATA_ADDR_LOWER + dma->mcpbRegOffset);
 #endif
-    BKNI_Printf("  MCPB: DCPM_DESC_ADDR          %#lx (valid %u)\n", reg[4], reg[1]);
-    BKNI_Printf("  MCPB: DCPM_DESC_DONE_INT_ADDR %#lx (valid %u)\n", reg[5], reg[2]);
-    BKNI_Printf("  MCPB: DCPM_DATA_ADDR          %#lx (valid %u)\n", reg[6], reg[3]);
+    BKNI_Printf("  MCPB: DCPM_DESC_ADDR          " BDBG_UINT64_FMT " (valid %u)\n", BDBG_UINT64_ARG(lreg[4]), reg[1]);
+    BKNI_Printf("  MCPB: DCPM_DESC_DONE_INT_ADDR " BDBG_UINT64_FMT " (valid %u)\n", BDBG_UINT64_ARG(lreg[5]), reg[2]);
+    BKNI_Printf("  MCPB: DCPM_DATA_ADDR          " BDBG_UINT64_FMT " (valid %u)\n", BDBG_UINT64_ARG(lreg[6]), reg[3]);
 
     reg[0] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_DESC_RD_IN_PROGRESS_0_31); /* should be 0 after done */
     reg[1] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_DATA_RD_IN_PROGRESS_0_31); /* should be 0 after done */
     reg[2] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_LAST_DESC_REACHED_0_31); /* should be set with bit for this channel after done */
     reg[3] = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_BUFF_DATA_RDY_0_31); /* should be 0 after done */
-    BKNI_Printf("  MCPB: DESC_RD %#lx, DATA_RD %#lx, LAST_DESC %#lx, BUFF_DATA %#lx\n", reg[0], reg[1], reg[2], reg[3]);
+    BKNI_Printf("  MCPB: DESC_RD %#x, DATA_RD %#x, LAST_DESC %#x, BUFF_DATA %#x\n", reg[0], reg[1], reg[2], reg[3]);
 
     /* print out activeCtx's and their WDMA desc ranges */
     for (ctx=BLST_SQ_FIRST(&dma->activeCtxList); ctx; ctx=BLST_SQ_NEXT(ctx, activeNode)) {

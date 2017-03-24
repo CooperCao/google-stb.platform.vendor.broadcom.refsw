@@ -666,12 +666,12 @@ debug=0;
                     }
                     window.document.title = CurrentPlatform + " " + oResponses[i+1];
                     i++;
-                } else if (entry == "variant") {
-                    var objvariant = document.getElementById("variant");
+                } else if (entry == "VARIANT") {
+                    var objvariant = document.getElementById( entry );
                     if ( objvariant ) {
                         objvariant.innerHTML = "(Variant: " + oResponses[i+1] + ")";
                     } else {
-                        alert("varient element not found");
+                        alert("variant element not found");
                     }
                     i++;
                 } else if (entry == "VERSION") {
@@ -679,9 +679,15 @@ debug=0;
                     i++;
                 } else if (entry == "UNAME") {
                     //alert(entry + ":" + oResponses[i+1] );
-                    var objplatform = document.getElementById("uname");
+                    var objplatform = document.getElementById( entry );
                     if (objplatform) {
                         objplatform.innerHTML = "Kernel: " + oResponses[i+1];
+                    }
+                    i++;
+                } else if (entry == "BOLTVER") {
+                    var objplatform = document.getElementById( entry );
+                    if (objplatform) {
+                        objplatform.innerHTML = "Bolt: " + oResponses[i+1];
                     }
                     i++;
                 } else if ( entry.length ) {

@@ -50,6 +50,7 @@ typedef enum eConnectedState
 {
     eConnectedState_Unknown,
     eConnectedState_Connecting,
+    eConnectedState_Handshake,
     eConnectedState_Connected,
     eConnectedState_Disconnecting,
     eConnectedState_Disconnected,
@@ -145,55 +146,56 @@ public:
             );
     virtual ~CWifi(void);
 
-    eRet                      open(CWidgetEngine * _pWidgetEngine);
-    void                      close(void);
-    eRet                      start(void);
-    void                      stop(void);
-    void                      processWpaResponse(const char * strCallback);
-    eRet                      readInterface(void);
-    eRet                      connectWps(void);
-    eRet                      connectWifi(const char * strSSID, const char * strPassword);
-    eRet                      disconnectWps(void);
-    eRet                      disconnectWifi(void);
-    eRet                      startScanWifi(void);
-    eRet                      stopScanWifi(void);
-    eRet                      retrieveScanResults(void);
-    eRet                      requestStatus(void);
-    eRet                      updateNetworks(void);
-    eRet                      updateNetworksParse(MString * pStrResponse);
-    eRet                      scanResultsParse(MString * pStrResponse);
-    eRet                      connectedNetworkParse(MString * pStrResponse);
-    eRet                      bssNoiseLevelParse(MString * pStrResponse);
-    eRet                      disconnectedNetworkParse(MString * pStrResponse);
-    eRet                      sendRequest(MString strCommand, MString * pStrResponse = NULL, CWifiWpaCallback replyCallback = NULL);
-    eRet                      trigger(CWifiResponse * pResponse);
-    CWidgetEngine *           getWidgetEngine(void) { return(_pWidgetEngine); }
-    void                      addAction(CAction * pAction);
-    CAction *                 getAction(void);
-    CAction *                 removeAction(void);
-    void                      addResponse(CWifiResponse * pResponse);
-    CWifiResponse *           getResponse(void);
-    CWifiResponse *           removeResponse(void);
-    eRet                      trigger(CAction * pAction);
-    void                      setConnectedState(const char * strConnectedState);
-    void                      setConnectedState(eConnectedState connectedState);
-    eConnectedState           getConnectedState(void);
-    eRet                      dhcpStart(void);
-    eRet                      dhcpStop(void);
-    void                      setModel(CModel * pModel)    { _pModel = pModel;  }
-    CModel *                  getModel(void)               { return(_pModel); }
-    bool                      getStartState(void)          { return(_bThreadRun); }
-    void                      setStartState(bool bStarted) { _bThreadRun = bStarted; }
-    void                      getConnectedStatus(MStringHash * pStringHash);
-    MString                   getConnectedBSSID(void);
-    void                      clearConnectedStatus(void);
-    void                      addConnectedStatus(const char * strToken, const char * strValue);
-    bool                      isNetworkListEmpty(void)     { return(0 < _networksList.total() ? false : true); }
-    bool                      isScanEnabled(void)          { return(_bScanEnabled); }
-
-    CNetworkWifi *            getScannedNetwork(int index);
+    eRet            open(CWidgetEngine * _pWidgetEngine);
+    void            close(void);
+    eRet            start(void);
+    void            stop(void);
+    void            processWpaResponse(const char * strCallback);
+    eRet            readInterface(void);
+    eRet            connectWps(void);
+    eRet            connectWifi(const char * strSSID, const char * strPassword);
+    eRet            disconnectWps(void);
+    eRet            disconnectWifi(void);
+    eRet            startScanWifi(void);
+    eRet            stopScanWifi(void);
+    eRet            retrieveScanResults(void);
+    eRet            requestStatus(void);
+    eRet            updateNetworks(void);
+    eRet            updateNetworksParse(MString * pStrResponse);
+    eRet            scanResultsParse(MString * pStrResponse);
+    eRet            connectedNetworkParse(MString * pStrResponse);
+    eRet            bssNoiseLevelParse(MString * pStrResponse);
+    eRet            disconnectedNetworkParse(MString * pStrResponse);
+    eRet            sendRequest(MString strCommand, MString * pStrResponse = NULL, CWifiWpaCallback replyCallback = NULL);
+    eRet            trigger(CWifiResponse * pResponse);
+    CWidgetEngine * getWidgetEngine(void) { return(_pWidgetEngine); }
+    void            addAction(CAction * pAction);
+    CAction *       getAction(void);
+    CAction *       removeAction(void);
+    void            addResponse(CWifiResponse * pResponse);
+    CWifiResponse * getResponse(void);
+    CWifiResponse * removeResponse(void);
+    eRet            trigger(CAction * pAction);
+    void            setConnectedState(const char * strConnectedState);
+    void            setConnectedState(eConnectedState connectedState);
+    eConnectedState getConnectedState(void);
+    eRet            dhcpStart(void);
+    eRet            dhcpStop(void);
+    void            setModel(CModel * pModel)    { _pModel = pModel;  }
+    CModel *        getModel(void)               { return(_pModel); }
+    bool            getStartState(void)          { return(_bThreadRun); }
+    void            setStartState(bool bStarted) { _bThreadRun = bStarted; }
+    void            getConnectedStatus(MStringHash * pStringHash);
+    MString         getConnectedBSSID(void);
+    void            clearConnectedStatus(void);
+    void            addConnectedStatus(const char * strToken, const char * strValue);
+    void            notifyConnectedState(void);
+    bool            isNetworkListEmpty(void) { return(0 < _networksList.total() ? false : true); }
+    bool            isScanEnabled(void)      { return(_bScanEnabled); }
+    CNetworkWifi *  getScannedNetwork(int index);
 
     STRING_TO_ENUM_DECLARE(stringToConnectedState, eConnectedState)
+    ENUM_TO_MSTRING_DECLARE(connectedStateToString, eConnectedState)
 
     struct wpa_ctrl * getWpaControl(void) { return(_pWpaControl); }
     struct wpa_ctrl * getWpaMonitor(void) { return(_pWpaMonitor); }
@@ -219,6 +221,7 @@ protected:
     MStringHash             _connectedStatusHash;
     B_MutexHandle           _connectedStatusMutex;
     int32_t                 _noiseLevel;
+    uint32_t                _nNetworkConnectErrors;
 
     B_ThreadHandle        _threadWorker;
     MList <CAction>       _actionList;

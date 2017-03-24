@@ -228,6 +228,48 @@ error:
     return(ret);
 } /* setState */
 
+void CChannelBip::getStats(void)
+{
+    BIP_PlayerStatus    pStatus;
+    BIP_Status          bipStatus = BIP_SUCCESS;
+    MUrl                mUrl(_url.s());
+    MString             protocol = mUrl.protocol();
+    BDBG_INT64_DEC_BUF(buf);
+
+    if( (_pPlayer != NULL) && (protocol.strncmp("rtp") > -1)) {
+        bipStatus = BIP_Player_GetStatus(_pPlayer,&pStatus);
+        if ( bipStatus != BIP_SUCCESS)
+        {
+            BDBG_ERR(("Failed BIP_Player_GetStatus(), bipStatus = %d",bipStatus));
+            goto error;
+        }
+        BDBG_WRN(("--------------------------------------------------"));
+        BDBG_WRN(("\n totalConsumed                    = %lld\n"
+                  " bytesReceived                    = " BDBG_INT64_DEC_FMT "\n"
+                  " packetsReceived                  = %u\n"
+                  " packetsDiscarded                 = %u\n"
+                  " packetsOutOfSequence             = %u\n"
+                  " packetsLost                      = %u\n"
+                  " lossEvents                       = %u\n"
+                  " packetsLostBeforeErrorCorrection = %u\n"
+                  " lossEventsBeforeErrorCorrection  = %u",
+                pStatus.stats.totalConsumed,
+                BDBG_INT64_DEC_ARG(buf,pStatus.stats.rtpStats.bytesReceived),
+                pStatus.stats.rtpStats.packetsReceived,
+                pStatus.stats.rtpStats.packetsDiscarded,
+                pStatus.stats.rtpStats.packetsOutOfSequence,
+                pStatus.stats.rtpStats.packetsLost,
+                pStatus.stats.rtpStats.lossEvents,
+                pStatus.stats.rtpStats.packetsLostBeforeErrorCorrection,
+                pStatus.stats.rtpStats.lossEventsBeforeErrorCorrection));
+        BDBG_WRN(("Stream Protocol %s",protocol.s()));
+        BDBG_WRN(("--------------------------------------------------"));
+    }
+    notifyObservers(eNotify_ChannelStatsShown, NULL);
+error:
+  return;
+}
+
 BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
 {
     eRet             ret       = eRet_Ok;
@@ -280,6 +322,11 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
         BDBG_MSG(("In Disconnected state, start Connect processing on URL=%s", BIP_String_GetString(_pUrl)));
         BIP_Player_GetDefaultConnectSettings(&settings);
         settings.pUserAgent       = "Atlas BIP Player";
+        if (BIP_String_GetLength(_pInterfaceName))
+        {
+            settings.pNetworkInterfaceName = BIP_String_GetString(_pInterfaceName);
+            BDBG_MSG(("Interface value being passed in is %s ", BIP_String_GetString(_pInterfaceName)));
+        }
         _asyncApiCompletionStatus = BIP_INF_IN_PROGRESS;
         bipStatus                 = BIP_Player_ConnectAsync(_pPlayer, BIP_String_GetString(_pUrl), &settings, &_asyncCallbackDesc, &_asyncApiCompletionStatus);
         if ((bipStatus != BIP_INF_IN_PROGRESS) && (bipStatus != BIP_SUCCESS))
@@ -370,14 +417,23 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
             if (!_enableDynamicTrackSelection)
             {
                 /* send this info to the player because we are in Dynamic mode now. Pids are set! */
-                playerSettings.enableDynamicTrackSelection                                = false;
-                playerSettings.videoTrackId                                               = (_pidMgr.getPid(0, ePidType_Video))->getPid();
-                playerSettings.audioTrackId                                               = (_pidMgr.getPid(0, ePidType_Audio))->getPid();
-                playerSettings.videoTrackSettings.pidTypeSettings.video.codec             = (_pidMgr.getPid(0, ePidType_Video))->getVideoCodec();
-                playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = (_pidMgr.getPid(0, ePidType_Audio))->getAudioCodec();
+                playerSettings.enableDynamicTrackSelection                                    = false;
+                if(_pidMgr.getPid(0, ePidType_Video)) {
+                    playerSettings.videoTrackId                                               = (_pidMgr.getPid(0, ePidType_Video))->getPid();
+                    playerSettings.videoTrackSettings.pidTypeSettings.video.codec             = (_pidMgr.getPid(0, ePidType_Video))->getVideoCodec();
+                }
+                if(_pidMgr.getPid(0, ePidType_Audio)) {
+                    playerSettings.audioTrackId                                               = (_pidMgr.getPid(0, ePidType_Audio))->getPid();
+                    playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec = (_pidMgr.getPid(0, ePidType_Audio))->getAudioCodec();
+                }
+
+                if(!_pidMgr.getPid(0, ePidType_Video) && !_pidMgr.getPid(0, ePidType_Audio)) {
+                    BDBG_ERR((" No Audio of Video Pids! _enableDynamicTrackSelection is set"));
+                    goto error;
+                }
 
                 /* Add PCR pid only for Transport TS  */
-                if (_pidMgr.getTransportType() == NEXUS_TransportType_eTs)
+                if ((_pidMgr.getTransportType() == NEXUS_TransportType_eTs )&& _pidMgr.getPid(0, ePidType_Pcr) )
                 {
                     /* All fields should have been copied over, but overwrite the PCR field */
                     _playerStreamInfo.mpeg2Ts.pcrPid = (_pidMgr.getPid(0, ePidType_Pcr))->getPid();
@@ -421,9 +477,13 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
 
             {
                 CPid * videoPid = _pidMgr.getPid(0, ePidType_Video);
-                videoPid->dump();
+                if (videoPid) {
+                    videoPid->dump();
+                }
                 CPid * audioPid = _pidMgr.getPid(0, ePidType_Audio);
-                audioPid->dump();
+                if(audioPid) {
+                    audioPid->dump();
+                }
                 if (!prepareStatus.hVideoPidChannel && !prepareStatus.hAudioPidChannel)
                 {
                     BDBG_ERR(("no audio or video Pid Channels"));
@@ -773,6 +833,13 @@ eRet CChannelBip::readXML(MXmlElement * xmlElemChannel)
         _pidMgr.setTransportType(stringToTransportType(strMode));
     }
 
+    strMode = xmlElemChannel->attrValue(XML_ATT_INTERFACE);
+    if (!strMode.isEmpty())
+    {
+        BDBG_MSG(("Interface name is %s", strMode.s()));
+        BIP_String_StrcpyChar(_pInterfaceName, strMode.s());
+    }
+
     {
         MXmlElement * xmlElemStream = xmlElemChannel->findChild(XML_TAG_STREAM);
         if (NULL != xmlElemStream)
@@ -780,7 +847,7 @@ eRet CChannelBip::readXML(MXmlElement * xmlElemChannel)
             _pidMgr.readXML(xmlElemStream);
         }
 
-        if (!_pidMgr.isEmpty())
+        if (false == _pidMgr.isEmpty())
         {
             /* set dynamic flag so we do not query BIP for PIDS */
             _enableDynamicTrackSelection = false;
@@ -928,10 +995,10 @@ eRet CChannelBip::getChannelInfo(
     BDBG_ASSERT(NULL != pChanInfo);
     BSTD_UNUSED(bScanning);
 
-    if (!_enableDynamicTrackSelection)
+    if (false == _enableDynamicTrackSelection)
     {
-        BDBG_MSG((" No need to getChannelInfo. pidManager contains all pids needed"));
-        BDBG_ASSERT(_pidMgr.isEmpty());
+        BDBG_MSG(("No need to getChannelInfo. pidManager contains all pids needed"));
+        BDBG_ASSERT(false == _pidMgr.isEmpty());
         goto error;
     }
 
@@ -1256,7 +1323,7 @@ eRet CChannelBip::unTune(
 
     BDBG_MSG(("UNTUNE"));
 
-        /* Remove the WidgetCallback */
+    /* Remove the WidgetCallback */
     if (NULL != _pWidgetEngine)
     {
         _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_BIP);
@@ -1268,9 +1335,10 @@ eRet CChannelBip::unTune(
         ret = eRet_ExternalError;
     }
 
-    if (_enableDynamicTrackSelection)
+    if (false == _pidMgr.isImmutable())
     {
         _pidMgr.clearPids();
+        _enableDynamicTrackSelection = true;
     }
     _tuned = false;
     return(ret);

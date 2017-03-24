@@ -78,12 +78,12 @@
 #define VIDEO_PID 0x21
 #define AUDIO_PID 0x22
 #else
-#define FILE_NAME "videos/big_buck_bunny_4kp60_10bit.ts"
+#define FILE_NAME "videos/cnnticker.mpg"
 #define TRANSPORT_TYPE NEXUS_TransportType_eTs
-#define VIDEO_CODEC NEXUS_VideoCodec_eH265
-#define AUDIO_CODEC NEXUS_AudioCodec_eAc3
-#define VIDEO_PID 0x1001
-#define AUDIO_PID 0x1002
+#define VIDEO_CODEC NEXUS_VideoCodec_eMpeg2
+#define AUDIO_CODEC NEXUS_AudioCodec_eMpeg
+#define VIDEO_PID 0x21
+#define AUDIO_PID 0x22
 #endif
 
 static const char HDCP2x_DEFAULT_BIN[] =  "./drm.bin";
@@ -728,10 +728,6 @@ int main(int argc, char **argv)
 
     /* bring up decoder and connect to display */
     videoDecoder = NEXUS_VideoDecoder_Open(0, NULL); /* take default capabilities */
-		NEXUS_VideoDecoder_GetSettings(videoDecoder, &videoDecoderSettings);
-		videoDecoderSettings.maxWidth  = 3840;
-		videoDecoderSettings.maxHeight = 2176;
-		NEXUS_VideoDecoder_SetSettings(videoDecoder, &videoDecoderSettings);
     NEXUS_VideoWindow_AddInput(window, NEXUS_VideoDecoder_GetConnector(videoDecoder));
 
     /* Open the audio and video pid channels */

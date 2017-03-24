@@ -168,6 +168,7 @@ public:
     uint16_t   getPort(void);
     BIP_Status mediaStateMachine(BMediaPlayerAction playerAction);
     void       dump(void);
+    void       getStats();
     void       close(void);
 
 protected:

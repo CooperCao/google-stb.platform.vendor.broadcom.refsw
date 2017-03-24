@@ -76,9 +76,7 @@ extern void bsu_ofdm_test (void);
 extern void bsu_qam_test(void);
 extern void bsu_uart_test (void);
 extern void bsu_ir_input_test(void);
-#ifdef BSU_MOCA_TEST
 extern void bsu_moca_test(void);
-#endif
 extern void mini_exit(void);
 
 
@@ -115,9 +113,7 @@ void bsu_menu(void)
         printf("    6) Ethernet test\n");
         printf("    7) UART test\n");
         printf("    8) IR input test\n");
-#ifdef BSU_MOCA_TEST
         printf("    9) MoCA test\n");
-#endif
 #ifdef MIPS_SDE
         printf("    g) CFE command shell\n");
 #else
@@ -166,18 +162,24 @@ void bsu_menu(void)
                 break;
 
             case '7':
+#ifdef BSU_UART_TEST
                 bsu_uart_test();
+#else
+                printf("not supported\n");
+#endif
                 break;
 
             case '8':
                 bsu_ir_input_test();
                 break;
 
-#ifdef BSU_MOCA_TEST
             case '9':
+#ifdef BSU_MOCA_TEST
                 bsu_moca_test();
-                break;
+#else
+                printf("not supported\n");
 #endif
+                break;
 
             case 'g':
                 {

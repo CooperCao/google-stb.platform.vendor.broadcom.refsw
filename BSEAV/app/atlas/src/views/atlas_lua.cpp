@@ -64,6 +64,9 @@
 #ifdef NETAPP_SUPPORT
 #include "bluetooth.h"
 #endif
+#ifdef WPA_SUPPLICANT_SUPPORT
+#include "wifi.h"
+#endif
 #include "playlist.h"
 
 #ifdef LINENOISE_SUPPORT
@@ -606,6 +609,34 @@ done:
     LUA_RETURN(err);
 } /* atlasLua_ScanSat */
 
+/* atlas.getChannelStats()
+ * Nothing required
+ */
+static int atlasLua_GetChannelStats(lua_State * pLua)
+{
+    CLua *    pThis   = getCLua(pLua);
+    CAction * pAction = NULL;
+    eRet      err     = eRet_Ok;
+
+    BDBG_ASSERT(pThis);
+
+    pAction = new CAction(eNotify_GetChannelStats,     eNotify_ChannelStatsShown, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+}
 /* atlas.scanOfdm(
  *      --- required ---
  *      start frequency,   frequency in Hz at which to begin scanning
@@ -3809,7 +3840,7 @@ static int atlasLua_WifiConnect(lua_State * pLua)
     pNetworkWifiConnectData->_strPassword = luaL_checkstring(pLua, argNum++);
 
     /* create lua action and give it data */
-    pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData, eNotify_NetworkWifiConnected, DEFAULT_LUA_EVENT_TIMEOUT);
+    pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData, eNotify_NetworkWifiConnected, 20000);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
 
     /* save lua action to queue - this action will be serviced when we get the bwin io callback:
@@ -3827,6 +3858,41 @@ error:
 done:
     LUA_RETURN(err);
 } /* atlasLua_WifiConnect */
+
+static int atlasLua_WifiGetConnectState(lua_State * pLua)
+{
+    CLua *  pThis       = getCLua(pLua);
+    eRet    err         = eRet_Ok;
+    uint8_t numArgTotal = lua_gettop(pLua) - 1;
+
+    CDataAction <CNetworkWifiConnectData> * pAction                 = NULL;
+    CNetworkWifiConnectData *               pNetworkWifiConnectData = NULL;
+    uint8_t argNum = 1;
+
+    BDBG_ASSERT(pThis);
+
+    /* add required arguments to VBI data */
+    pNetworkWifiConnectData = new CNetworkWifiConnectData();
+
+    /* create lua action and give it data */
+    pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiGetConnectState, pNetworkWifiConnectData, eNotify_NetworkWifiConnectState, DEFAULT_LUA_EVENT_TIMEOUT);
+    CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
+
+    /* save lua action to queue - this action will be serviced when we get the bwin io callback:
+     * bwinLuaCallback() */
+    pThis->addAction(pAction);
+
+    /* trigger bwin io event here */
+    err = pThis->trigger(pAction);
+
+    goto done;
+error:
+    DEL(pNetworkWifiConnectData);
+    DEL(pAction);
+    err = eRet_InvalidParameter;
+done:
+    LUA_RETURN(err);
+} /* atlasLua_WifiGetConnectState */
 
 static int atlasLua_WifiDisconnect(lua_State * pLua)
 {
@@ -3892,17 +3958,17 @@ static int atlasLua_WifiWps(lua_State * pLua)
     if (true == bConnect)
     {
         /* create lua action and give it data to connect which starts
-           a WPS button press request. */
+         * a WPS button press request. */
         pNetworkWifiConnectData->_bWps = true;
-        pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData);
+        pAction                        = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData);
         CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
     }
     else
     {
         /* create lua action and give it data to disconnect which cancels
-           a previous WPS request. */
+         * a previous WPS request. */
         pNetworkWifiConnectData->_bWps = true;
-        pAction = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiDisconnect, pNetworkWifiConnectData);
+        pAction                        = new CDataAction <CNetworkWifiConnectData>(eNotify_NetworkWifiDisconnect, pNetworkWifiConnectData);
         CHECK_PTR_ERROR_GOTO("Unable to malloc CAction", pAction, err, eRet_OutOfMemory, error);
     }
 
@@ -4786,6 +4852,7 @@ static const struct luaL_Reg atlasLua[] = {
     { "channelTune",                   atlasLua_ChannelTune                           }, /* tune to the given channel */
     { "channelUntune",                 atlasLua_ChannelUnTune                         }, /* UNtune from the current channel */
 #if NEXUS_HAS_FRONTEND
+    { "getChannelStats",               atlasLua_GetChannelStats                       }, /* get Channel Status */
     { "scanQam",                       atlasLua_ScanQam                               }, /* scan for qam channels */
     { "scanVsb",                       atlasLua_ScanVsb                               }, /* scan for vsb channels */
     { "scanSat",                       atlasLua_ScanSat                               }, /* scan for sat channels */
@@ -4853,6 +4920,7 @@ static const struct luaL_Reg atlasLua[] = {
 #endif
     { "wifiScanStart",                 atlasLua_WifiScanStart                         }, /* wifi network scan start */
     { "wifiConnect",                   atlasLua_WifiConnect                           }, /* wifi network connect */
+    { "wifiConnectState",              atlasLua_WifiGetConnectState                   }, /* wifi network connection state */
     { "wifiDisconnect",                atlasLua_WifiDisconnect                        }, /* wifi network disconnect */
     { "wifiWps",                       atlasLua_WifiWps                               }, /* simulate Wifi Protected Setup button press */
 #ifdef NETAPP_SUPPORT
@@ -5507,6 +5575,12 @@ void CLua::processNotification(CNotification & notification)
 
     switch (notification.getId())
     {
+
+    case eNotify_ChannelStatsShown:
+    {
+            BDBG_MSG(("Channel Stats Should show on the Console"));
+            break;
+    }
 #if NEXUS_HAS_FRONTEND
     case eNotify_ScanStarted:
     {
@@ -5608,6 +5682,22 @@ void CLua::processNotification(CNotification & notification)
     }
     break;
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
+
+    case eNotify_NetworkWifiConnectState:
+    {
+#ifdef WPA_SUPPLICANT_SUPPORT
+        CWifi * pWifi = (CWifi *)notification.getData();
+        MString strConnectedState = pWifi->connectedStateToString(pWifi->getConnectedState());
+        int nRetVals = 0;
+
+        lua_pushlstring(_pLua, strConnectedState.s(), strConnectedState.length());
+        nRetVals++;
+
+        /* add 1 to count of return values */
+        _busyAction.setNumReturnVals(_busyAction.getNumReturnVals() + nRetVals);
+#endif
+    }
+    break;
 
     default:
         break;

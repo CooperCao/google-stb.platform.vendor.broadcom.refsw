@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+*  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -446,6 +446,7 @@ B_PlaybackIp_FeedRtpPacketsToPlaypump(
                 BDBG_WRN(("Returned error from NEXUS_Playpump_ReadComplete()!"));
             }
             BDBG_MSG(("%s: fed %lu byte to Playpump, item cnt %d\n", __FUNCTION__, playback_ip->byte_count, item_cnt));
+            playback_ip->totalConsumed += playback_ip->byte_count;
             /* write data to file */
             if (playback_ip->enableRecording && playback_ip->fclear) {
                 fwrite(playback_ip->buffer, 1, playback_ip->byte_count, playback_ip->fclear);

@@ -146,6 +146,6 @@ typedef struct BDSP_ARM_CIT_P_Output
 } BDSP_ARM_CIT_P_Output;
 
 
-BERR_Code BDSP_P_GenArmCit(void* pTaskHandle);
+BERR_Code BDSP_Arm_P_GenCit(void* pTaskHandle);
 
 #endif /* BDSP_ARM_CIT_PRIV_H__ */

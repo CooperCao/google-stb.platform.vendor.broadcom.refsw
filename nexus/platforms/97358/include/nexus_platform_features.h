@@ -98,6 +98,7 @@ upon the chip usage. See below */
 
 /* I2C Channels */
 #define NEXUS_NUM_I2C_CHANNELS 4
+#define NEXUS_I2C_CHANNEL_HDMI_TX 0
 
 
 

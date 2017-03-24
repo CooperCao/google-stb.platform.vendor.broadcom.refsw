@@ -265,7 +265,7 @@ function MouseOver(evt)
   if(obj) {
     obj.style.backgroundColor=cc;
     if(obj_popup) {
-      obj_popup.innerHTML = "&nbsp;&nbsp;&nbsp;" + obj.value;
+      obj_popup.innerHTML = "&nbsp;&nbsp;&nbsp;" + AddCommas( obj.value );
       obj_popup.style.width = Number(obj.value.length*10 + 20).toString() + "px";
       obj_popup.style.left = Number(evt.clientX+15);
       if ( evt.clientY < 15 ) { // if cursor is close to the top of the screen

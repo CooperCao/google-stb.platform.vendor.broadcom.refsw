@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_1u_0t_box9;
+
 /* Box mode 9 is the same as Box mode 2 except for RTS */
 void BBOX_P_GetBox9Rts
     ( BBOX_Rts *pBoxRts );

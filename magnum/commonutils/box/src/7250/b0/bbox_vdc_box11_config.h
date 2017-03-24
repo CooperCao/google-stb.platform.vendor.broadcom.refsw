@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_1u_0t_box11;
+
 void BBOX_P_Vdc_SetBox11SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 

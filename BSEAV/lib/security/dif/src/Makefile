@@ -111,6 +111,7 @@ CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 
 # PlayreadyPK 3.0 is only supported with Sage
 ifeq ($(SAGE_SUPPORT), y)
+include $(BSEAV_TOP)/lib/playready/http/prdyhttp.inc
 CFLAGS += -DUSE_PK_NAMESPACES=1
 CFLAGS += -DMSDRM_PRDY30
 CFLAGS += -DDRM_BUILD_PROFILE=900
@@ -118,6 +119,8 @@ CFLAGS += -DTARGET_LITTLE_ENDIAN=1
 CFLAGS += -DTARGET_SUPPORTS_UNALIGNED_DWORD_POINTERS=1
 CFLAGS += -I${BSEAV_TOP}/lib/drmrootfs
 CFLAGS += -I${BSEAV_TOP}/lib/playready/3.0/inc
+CFLAGS += $(addprefix -I, ${PRDY_HTTP_INCLUDES})
+LDFLAGS += ${PRDY_HTTP_LDFLAGS}
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
 CFLAGS += -DDRM_64BIT_TARGET=1 -D__arch64__
 endif

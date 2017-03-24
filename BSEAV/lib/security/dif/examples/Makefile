@@ -188,9 +188,11 @@ LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbc
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 ifeq ($(SAGE_SUPPORT),y)
+include $(BSEAV_TOP)/lib/playready/http/prdyhttp.inc
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
 LDFLAGS += -lplayready30pk
 LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host
+LDFLAGS += ${PRDY_HTTP_LDFLAGS}
 else
 LDFLAGS += -lplayreadypk
 endif

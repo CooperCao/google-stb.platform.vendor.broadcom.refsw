@@ -514,7 +514,6 @@ static void BAPE_Decoder_P_GetDefaultAlsSettings(BAPE_DecoderHandle handle)
     BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eALSDecode, &handle->userConfig.als, sizeof(handle->userConfig.als)));
 
     handle->alsSettings.codec = BAVC_AudioCompressionStd_eAls;
-    handle->alsLoasSettings.codec = BAVC_AudioCompressionStd_eAlsLoas;
 
     switch ( handle->userConfig.als.sUsrOutputCfg[0].ui32OutMode )
     {
@@ -528,7 +527,6 @@ static void BAPE_Decoder_P_GetDefaultAlsSettings(BAPE_DecoderHandle handle)
     }
 
     handle->alsSettings.codecSettings.als.aribMatrixMixdownIndex = handle->userConfig.als.i32AribMatrixMixdownIndex;
-    BKNI_Memcpy(&handle->alsLoasSettings.codecSettings, &handle->alsSettings.codecSettings, sizeof(handle->alsLoasSettings.codecSettings.als));
 }
 
 void BAPE_Decoder_P_GetDefaultCodecSettings(BAPE_DecoderHandle handle)

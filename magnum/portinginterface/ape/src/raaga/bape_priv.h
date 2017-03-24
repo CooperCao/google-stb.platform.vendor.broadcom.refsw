@@ -1678,7 +1678,7 @@ typedef struct BAPE_Decoder
     BAPE_DecoderCodecSettings adpcmSettings;
     BAPE_DecoderCodecSettings ilbcSettings;
     BAPE_DecoderCodecSettings isacSettings;
-    BAPE_DecoderCodecSettings alsSettings, alsLoasSettings;
+    BAPE_DecoderCodecSettings alsSettings;
     BAPE_DecoderInterruptHandlers interrupts;
 
     /* DSP Task Information */
@@ -2191,6 +2191,7 @@ void BAPE_P_PopulateSupportedBAVCAlgos(
 #define BAPE_P_GetCodecName(x) "Unknown"
 #define BAPE_P_GetDolbyMSVersion(void) BAPE_DolbyMSVersion_eNone
 #define BAPE_P_GetDolbyMS12Config(void) BAPE_DolbyMs12Config_eNone
+#define BAPE_P_FwMixer_GetDolbyUsageVersion(x) BAPE_DolbyMSVersion_eNone
 #endif
 #include "bape_path_priv.h"
 #include "bape_fmm_priv.h"

@@ -62,6 +62,7 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     /* Supported on B0 only*/
     case 5:
     case 6:
+    case 7:
     case 8:
         pSettings->videoDecoder[0].mosaic.maxNumber = 3;
         pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
@@ -71,6 +72,12 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
         pSettings->videoDecoder[1].mosaic.maxWidth = 1920;
         pSettings->videoDecoder[1].mosaic.maxHeight = 1088;
         pSettings->videoDecoder[1].mosaic.colorDepth = 10;
+        break;
+    case 9:
+        pSettings->videoDecoder[0].mosaic.maxNumber = 3;
+        pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
+        pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
+        pSettings->videoDecoder[0].mosaic.colorDepth = 10;
         break;
     default:
         break;

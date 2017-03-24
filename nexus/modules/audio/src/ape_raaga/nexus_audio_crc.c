@@ -236,7 +236,7 @@ Description:
     Close this CRC.  Audio chain must be stopped, and CRC input must be 
     removed to perform this operation.
 ***************************************************************************/
-void NEXUS_AudioCrc_Close(
+static void NEXUS_AudioCrc_P_Finalizer(
     NEXUS_AudioCrcHandle handle
     )
 {
@@ -274,15 +274,15 @@ void NEXUS_AudioCrc_Close(
     BKNI_Memset(handle, 0, sizeof(NEXUS_AudioCrc));
 }
 
-NEXUS_OBJECT_CLASS_MAKE(NEXUS_AudioCrc, NEXUS_AudioCrc_Destroy);
-
-static void NEXUS_AudioCrc_P_Finalizer(
-    NEXUS_AudioCrcHandle handle
-    )
+static void NEXUS_AudioCrc_P_Release( NEXUS_AudioCrcHandle handle )
 {
-    NEXUS_OBJECT_ASSERT(NEXUS_AudioCrc, handle);
-    BKNI_Memset(handle, 0, sizeof(NEXUS_AudioCrc));
+    if (!IS_ALIAS(handle)) {
+        NEXUS_OBJECT_UNREGISTER(NEXUS_AudioCrc, handle, Close);
+    }
+    return;
 }
+
+NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_AudioCrc, NEXUS_AudioCrc_Close);
 
 /***************************************************************************
 Summary:

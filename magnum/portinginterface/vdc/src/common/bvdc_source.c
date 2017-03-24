@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -2206,7 +2206,7 @@ static void BVDC_P_Source_PrintPicture_isr
 /**************************************************************************
  *
  */
-void BVDC_P_Source_ValidateMpegData_isr
+static void BVDC_P_Source_ValidateMpegData_isr
     ( BVDC_Source_Handle         hSource,
       BAVC_MVD_Field            *pNewPic,
       const BAVC_MVD_Field      *pCurPic)
@@ -2335,27 +2335,6 @@ void BVDC_P_Source_ValidateMpegData_isr
             pNewPic->ulDisplayVerticalSize   = BVDC_P_SRC_INPUT_V_MIN;
         }
 
-        /* (2) If we receiving 1088i stream we will assume it contains the
-         * non-active video in the last 8 lines.  We'll drop them.  PR10698.  Or
-         * any value that might break the VDC (restricting to HW limit, not
-         * necessary rts limit). */
-        if((1088 == pNewPic->ulSourceVerticalSize)
-#ifdef BCHP_MFD_0_DISP_VSIZE_VALUE_MASK
-           || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_DISP_VSIZE, VALUE, pNewPic->ulSourceVerticalSize))
-#endif
-#ifdef BCHP_MFD_0_DISP_HSIZE_VALUE_MASK
-           || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_DISP_HSIZE, VALUE, pNewPic->ulSourceHorizontalSize))
-#endif
-#ifdef BCHP_MFD_0_PICTURE0_DISP_VERT_WINDOW_START_MASK
-           || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_PICTURE0_DISP_VERT_WINDOW, START, pNewPic->ulSourceVerticalSize))
-#endif
-          )
-        {
-            pNewPic->ulSourceVerticalSize    =
-                BVDC_P_MIN(pNewPic->ulSourceVerticalSize,    BFMT_1080I_HEIGHT);
-            pNewPic->ulSourceHorizontalSize  =
-                BVDC_P_MIN(pNewPic->ulSourceHorizontalSize,  BFMT_1080I_WIDTH);
-        }
 
 #if (BVDC_P_SUPPORT_DTG_RMD) && (!BVDC_P_SUPPORT_DSCL) && (!BVDC_P_SUPPORT_4kx2k_60HZ)
         /* Can only handle 4kx2k@30, always enable PSF for 4kx2k source */
@@ -2745,6 +2724,35 @@ void BVDC_Source_MpegDataReady_isr
         bNewInterlaced = pXvdPic->eSourcePolarity != BAVC_Polarity_eFrame;
         bCurInterlaced = pVdcPic->eSourcePolarity != BAVC_Polarity_eFrame;
 
+        /* When input vertical size is odd, we round up to even lines for MFD
+             * scan out, then use scaler to cut the last line. Scaler needs to
+             * drain the last line at the end of picture. This drian may cause
+             * scaler input completes after its output. This will cause scaler
+             * enable error in mosaic mode */
+        pXvdPic->ulSourceVerticalSize  = pXvdPic->ulSourceVerticalSize & ~1;
+        pXvdPic->ulDisplayVerticalSize = pXvdPic->ulDisplayVerticalSize & ~1;
+
+        /* If we receiving 1088i stream we will assume it contains the
+         * non-active video in the last 8 lines.  We'll drop them.  PR10698.  Or
+         * any value that might break the VDC (restricting to HW limit, not
+         * necessary rts limit). */
+        if((1088 == pXvdPic->ulSourceVerticalSize)
+#ifdef BCHP_MFD_0_DISP_VSIZE_VALUE_MASK
+           || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_DISP_VSIZE, VALUE, pXvdPic->ulSourceVerticalSize))
+#endif
+#ifdef BCHP_MFD_0_DISP_HSIZE_VALUE_MASK
+           || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_DISP_HSIZE, VALUE, pXvdPic->ulSourceHorizontalSize))
+#endif
+#ifdef BCHP_MFD_0_PICTURE0_DISP_VERT_WINDOW_START_MASK
+           || (!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_PICTURE0_DISP_VERT_WINDOW, START, pXvdPic->ulSourceVerticalSize))
+#endif
+          )
+        {
+            pXvdPic->ulSourceVerticalSize    =
+                BVDC_P_MIN(pXvdPic->ulSourceVerticalSize,    BFMT_1080I_HEIGHT);
+            pXvdPic->ulSourceHorizontalSize  =
+                BVDC_P_MIN(pXvdPic->ulSourceHorizontalSize,  BFMT_1080I_WIDTH);
+        }
 #if BVDC_P_SUPPORT_MOSAIC_MODE
         if ((pVdcPic->ulSourceHorizontalSize !=pXvdPic->ulSourceHorizontalSize) ||
             ((pVdcPic->ulSourceVerticalSize >> bCurInterlaced)!=
@@ -2777,14 +2785,6 @@ void BVDC_Source_MpegDataReady_isr
             pVdcPic->ulSourceHorizontalSize = BVDC_P_MAX(pVdcPic->ulSourceHorizontalSize, BVDC_P_SRC_INPUT_H_MIN);
             pVdcPic->ulSourceVerticalSize   = BVDC_P_MAX(pVdcPic->ulSourceVerticalSize,   BVDC_P_SRC_INPUT_V_MIN);
         }
-
-        /* When input vertical size is odd, we round up to even lines for MFD
-             * scan out, then use scaler to cut the last line. Scaler needs to
-             * drain the last line at the end of picture. This drian may cause
-             * scaler input completes after its output. This will cause scaler
-             * enable error in mosaic mode */
-        pVdcPic->ulSourceVerticalSize  = pVdcPic->ulSourceVerticalSize & ~1;
-        pVdcPic->ulDisplayVerticalSize = pVdcPic->ulDisplayVerticalSize & ~1;
 
         if(hSource->stCurInfo.bMosaicMode)
             pXvdPic = pXvdPic->pNext;

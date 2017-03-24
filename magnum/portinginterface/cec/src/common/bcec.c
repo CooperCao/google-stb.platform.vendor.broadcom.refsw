@@ -451,6 +451,7 @@ static void BCEC_P_EnableReceive_isr(
 static void BCEC_P_TimerExpiration_isr (BCEC_Handle hCEC, int parm2)
 {
 	uint32_t Register, ulOffset;
+	uint8_t i;
 	BREG_Handle hRegister;
 
 	BDBG_ENTER(BCEC_P_TimerExpiration_isr);
@@ -459,6 +460,14 @@ static void BCEC_P_TimerExpiration_isr (BCEC_Handle hCEC, int parm2)
 
 	hRegister = hCEC->stDependencies.hRegister;
 	ulOffset = hCEC->ulRegisterOffset;
+
+	Register = BREG_Read32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset) ;
+	i = BCHP_GET_FIELD_DATA(Register, REGNAME_CEC_CNTRL_1, TX_EOM) ;
+	if (i != 0)
+	{
+		/* successfull transmit last CEC message - no action needed */
+		goto done ;
+	}
 
 	BDBG_MSG(("%s: Stop HW from continue retrying", __FUNCTION__));
 	Register = BREG_Read32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset) ;
@@ -483,6 +492,8 @@ static void BCEC_P_TimerExpiration_isr (BCEC_Handle hCEC, int parm2)
 
 	/* Manually fire CEC Sent Event */
 	BKNI_SetEvent(hCEC->BCEC_EventCec_Transmitted);
+
+done:
 
 	BDBG_LEAVE(BCEC_P_TimerExpiration_isr);
 }
@@ -1262,14 +1273,12 @@ BERR_Code BCEC_XmitMessage(
 		BREG_Write32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset, Register) ;
 
 #if BCEC_CONFIG_ENABLE_COMPLIANCE_TEST_WORKAROUND
-
-		/****  WORKAROUND for CEC compliance test 9.3.1 - 9.3.4 for 28nm*/
-		if ((pMessageData->messageBuffer[0] == BCEC_OpCode_FeatureAbort)
-		|| (pMessageData->messageBuffer[0] == BCEC_OpCode_ReportPhysicalAddress))
+		/**** Always enable work-around for all CEC communication ****/
+		if (1)
 		{
 			uint16_t msDelay=0;
 
-			BDBG_MSG(("%s: Enable CEC compliance test work-around", __FUNCTION__));
+			BDBG_MSG(("%s: Enable CEC work-around to prevent continuous retransmission", __FUNCTION__));
 
 			Register = BREG_Read32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset) ;
 			Register &=  ~ BCHP_MASK_CEC_CNTRL(CEC_CNTRL_1, START_XMIT_BEGIN) ;
@@ -1280,14 +1289,14 @@ BERR_Code BCEC_XmitMessage(
 			BREG_Write32(hRegister, REGADDR_CEC_CNTRL_1 + ulOffset, Register) ;   /* 1 */
 
 			/* Calculate delay needed and kick-start count down timer
-				Delay needed for 1 additional retry */
+				Delay needed for 3 additional retries */
 			msDelay = (uint16_t)
-				/* Required time to send message 2 times */
-				2 * (BCEC_START_BIT_XMIT_TIME + BCEC_PACKET_SIZE*BCEC_NOMINAL_BIT_TIME /* header */+
+				/* Required time to send message 4 times, including up to 3 retries*/
+				4 * (BCEC_START_BIT_XMIT_TIME + BCEC_PACKET_SIZE*BCEC_NOMINAL_BIT_TIME /* header */+
 					BCEC_PACKET_SIZE*BCEC_NOMINAL_BIT_TIME * pMessageData->messageLength)
 				+
 				/* required wait time before retransmission if any >=3 */
-				(4 * BCEC_NOMINAL_BIT_TIME);
+				(3 * 4 * BCEC_NOMINAL_BIT_TIME);
 			BKNI_LeaveCriticalSection();
 
 			/* Arm timer */

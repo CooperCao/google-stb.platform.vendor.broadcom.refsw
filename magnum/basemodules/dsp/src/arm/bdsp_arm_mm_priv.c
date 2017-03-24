@@ -214,7 +214,7 @@ BERR_Code BDSP_Arm_P_RetrieveEntriesToUnMap(
     return err;
 }
 
-void BDSP_Arm_P_InitMem( void *pDeviceHandle)
+static void BDSP_Arm_P_InitMem( void *pDeviceHandle)
 {
 
     BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
@@ -237,7 +237,6 @@ void BDSP_Arm_P_InitMem( void *pDeviceHandle)
     }
 
     BDBG_LEAVE(BDSP_Arm_P_InitMem);
-
 }
 
 /*****************************************************************************
@@ -247,9 +246,7 @@ Function Name: BDSP_MM_P_GetFwMemRequired
                 and the required cumulative memory requirement is found out.
 
 *****************************************************************************/
-
-
-BERR_Code BDSP_ARM_MM_P_GetFwMemRequired(
+static BERR_Code BDSP_Arm_P_GetFwMemRequired(
         const BDSP_ArmSettings  *pSettings,
         BDSP_Arm_P_DwnldMemInfo *pDwnldMemInfo,      /*[out]*/
         void                      *pImg,
@@ -365,8 +362,7 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequired(
     return ret;
 }
 
-
-BERR_Code BDSP_ARM_MM_P_GetFwMemRequirement(BDSP_Arm *pDevice)
+static BERR_Code BDSP_Arm_P_GetFwMemRequirement(BDSP_Arm *pDevice)
 {
 	BERR_Code errCode;
     BDSP_Arm_P_DwnldMemInfo *pDwnldMemInfo;
@@ -375,7 +371,7 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequirement(BDSP_Arm *pDevice)
 
     pDwnldMemInfo = &pDevice->memInfo.sDwnldMemInfo;
 
-    BDSP_ARM_MM_P_GetFwMemRequired(&(pDevice->settings),pDwnldMemInfo,(void *)&(pDevice->imgCache[0]),true,NULL);
+    BDSP_Arm_P_GetFwMemRequired(&(pDevice->settings),pDwnldMemInfo,(void *)&(pDevice->imgCache[0]),true,NULL);
 
 	errCode = BDSP_MMA_P_AllocateAlignedMemory(pDevice->memHandle,pDwnldMemInfo->ui32AllocwithGuardBand, &(pDwnldMemInfo->ImgBuf),BDSP_MMA_Alignment_32bit);
 	if(errCode != BERR_SUCCESS)
@@ -390,8 +386,6 @@ BERR_Code BDSP_ARM_MM_P_GetFwMemRequirement(BDSP_Arm *pDevice)
     return errCode;
 }
 
-
-
 BERR_Code BDSP_Arm_P_AllocateInitMemory (
     void *pDeviceHandle
     )
@@ -404,7 +398,7 @@ BERR_Code BDSP_Arm_P_AllocateInitMemory (
     BDSP_Arm_P_InitMem(pDeviceHandle);
 
     /* Get memory download requirement here */
-    err = BDSP_ARM_MM_P_GetFwMemRequirement(pDeviceHandle);
+    err = BDSP_Arm_P_GetFwMemRequirement(pDeviceHandle);
     if(BERR_SUCCESS != err)
     {
         BDBG_ERR(("BDSP_MEM_P_CalcMemPoolReq: Error getting firmware memory requirements!"));
@@ -569,7 +563,7 @@ BERR_Code BDSP_Arm_P_FreeInitMemory(
 }
 
 /***********************************************************************
-Name        :   BDSP_MM_P_CalcScratchAndISbufferReq
+Name        :   BDSP_Arm_P_CalcScratchAndISbufferReq
 
 Type        :   BDSP Internal
 
@@ -583,8 +577,7 @@ Return      :   Error Code to return SUCCESS or FAILURE
 Functionality   :   Following are the operations performed.
         1)  Return the highest Scratch, Interstage IO, Interstage IO Generic and Max channels required/supported by the system.
 ***********************************************************************/
-
-BERR_Code BDSP_Arm_MM_P_CalcScratchAndISbufferReq(
+static BERR_Code BDSP_Arm_P_CalcScratchAndISbufferReq(
         uint32_t *pui32ScratchMem,
         uint32_t *pui32InterstageIOMem,
         uint32_t *pui32InterstageIOGenMem,
@@ -597,7 +590,7 @@ BERR_Code BDSP_Arm_MM_P_CalcScratchAndISbufferReq(
     uint32_t ui32Scratch = 0, ui32Is = 0, ui32IsIf = 0;
     uint32_t ui32NumCh=0;
 
-    BDBG_ENTER(BDSP_Arm_MM_P_CalcScratchAndISbufferReq);
+    BDBG_ENTER(BDSP_Arm_P_CalcScratchAndISbufferReq);
 
     /* For Decoders */
     for ( Algoindex=0; Algoindex < BDSP_Algorithm_eMax; Algoindex++ )
@@ -645,12 +638,11 @@ BERR_Code BDSP_Arm_MM_P_CalcScratchAndISbufferReq(
     *pui32InterstageIOGenMem= ui32IsIf;
     *pui32Numch             = ui32NumCh;
 
-    BDBG_LEAVE(BDSP_Arm_MM_P_CalcScratchAndISbufferReq);
-
+    BDBG_LEAVE(BDSP_Arm_P_CalcScratchAndISbufferReq);
     return err;
 }
 
-BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
+BERR_Code BDSP_Arm_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 {
     BERR_Code err = BERR_SUCCESS;
     uint32_t ui32TempScratch = 0, ui32TempIs = 0, ui32TempIsIf = 0;
@@ -659,11 +651,11 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
     int32_t i32Index = 0;
     BDSP_Arm *pDevice = (BDSP_Arm *)pDeviceHandle;
 
-    BDBG_ENTER(BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq);
+    BDBG_ENTER(BDSP_Arm_P_CalcandAllocScratchISbufferReq);
 
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
 
-    BDSP_Arm_MM_P_CalcScratchAndISbufferReq(&ui32TempScratch, &ui32TempIs, &ui32TempIsIf, &ui32NumCh);
+    BDSP_Arm_P_CalcScratchAndISbufferReq(&ui32TempScratch, &ui32TempIs, &ui32TempIsIf, &ui32NumCh);
 
     /* Allocate Scratch Memory */
 	if (ui32TempScratch)
@@ -674,14 +666,14 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 			BDSP_MMA_Alignment_32bit);
 		if(BERR_SUCCESS != err)
 		{
-			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for Scratch Buffer!"));
+			BDBG_ERR(("BDSP_Arm_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for Scratch Buffer!"));
 			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 			goto error_alloc;
 		}
 		err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]),&pDevice->memInfo.sScratchandISBuff.DspScratchMemGrant.Buffer, ui32TempScratch, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
 		if (BERR_SUCCESS != err)
 		{
-			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for Scratch Buffer"));
+			BDBG_ERR(("BDSP_Arm_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for Scratch Buffer"));
 			err = BERR_TRACE(err);
 			goto error_alloc;
 		}
@@ -698,7 +690,7 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 					BDSP_MMA_Alignment_32bit);
 		if(BERR_SUCCESS != err)
 		{
-			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Buffer of InterStage!"));
+			BDBG_ERR(("BDSP_Arm_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Buffer of InterStage!"));
 			err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
 			goto error_alloc;
 		}
@@ -706,7 +698,7 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 		err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sScratchandISBuff.InterStageIOBuff[i32Index].Buffer, (ui32TempIs*ui32NumCh), BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
 		if (BERR_SUCCESS != err)
 		{
-			BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO buffer"));
+			BDBG_ERR(("BDSP_Arm_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO buffer"));
 			err = BERR_TRACE(err);
 			goto error_alloc;
 		}
@@ -730,7 +722,7 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 							BDSP_MMA_Alignment_32bit);
         if(BERR_SUCCESS != err)
         {
-            BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Generic!"));
+            BDBG_ERR(("BDSP_Arm_P_CalcandAllocScratchISbufferReq: Unable to Allocate memory for IO Generic!"));
             err = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
             /*Free scratch and IO buffer here*/
             goto error_alloc;
@@ -738,7 +730,7 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
         err = BDSP_Arm_P_InsertEntry_MapTable(&(pDevice->sDeviceMapTable[0]), &pDevice->memInfo.sScratchandISBuff.InterStageIOGenericBuff[i32Index].Buffer, ui32TempIsIf, BDSP_ARM_AF_P_Map_eDram, BDSP_ARM_MAX_ALLOC_DEVICE);
         if (BERR_SUCCESS != err)
         {
-            BDBG_ERR(("BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO Gen buffer"));
+            BDBG_ERR(("BDSP_Arm_P_CalcandAllocScratchISbufferReq: Error in updating the MAP Table for InterStage IO Gen buffer"));
             err = BERR_TRACE(err);
             goto error_alloc;
         }
@@ -758,7 +750,7 @@ BERR_Code BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(void *pDeviceHandle)
 error_alloc:
     BDSP_Arm_P_FreeScratchISbuffer(pDeviceHandle);
 end:
-    BDBG_LEAVE(BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq);
+    BDBG_LEAVE(BDSP_Arm_P_CalcandAllocScratchISbufferReq);
     return err;
 }
 
@@ -798,7 +790,7 @@ void BDSP_Arm_P_FreeScratchISbuffer(
     BDBG_LEAVE(BDSP_Arm_P_FreeScratchISbuffer);
 }
 
-BERR_Code BDSP_Arm_MM_P_CalcStageMemPoolReq(void *pStageHandle)
+static BERR_Code BDSP_Arm_P_CalcStageMemPoolReq(void *pStageHandle)
 {
     BERR_Code err = BERR_SUCCESS;
     BDSP_ARM_AF_P_AlgoId algoId;
@@ -814,7 +806,7 @@ BERR_Code BDSP_Arm_MM_P_CalcStageMemPoolReq(void *pStageHandle)
     BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
     BDBG_OBJECT_ASSERT(pArmContext, BDSP_ArmContext);
 
-    BDBG_ENTER(BDSP_Arm_MM_P_CalcStageMemPoolReq);
+    BDBG_ENTER(BDSP_Arm_P_CalcStageMemPoolReq);
 
     BDBG_ASSERT(NULL != pArmStage);
 
@@ -900,7 +892,7 @@ BERR_Code BDSP_Arm_MM_P_CalcStageMemPoolReq(void *pStageHandle)
     BDBG_MSG(("ui32AlgoIf = %d ui32AlgoCfgBuf =%d ui32AlgoStatusBuf =%d",ui32AlgoIf,ui32AlgoCfgBuf, ui32AlgoStatusBuf));
     BDBG_MSG(("ui32FsIf = %d ui32FsCfgBuf =%d ui32FsStatusBuf =%d",ui32FsIf,ui32FsCfgBuf, ui32FsStatusBuf));
 
-    BDBG_LEAVE(BDSP_Arm_MM_P_CalcStageMemPoolReq);
+    BDBG_LEAVE(BDSP_Arm_P_CalcStageMemPoolReq);
     return err;
 }
 
@@ -1261,7 +1253,7 @@ BERR_Code BDSP_Arm_P_AllocateStageMemory(
 
     BDBG_ENTER(BDSP_Arm_P_AllocateStageMemory);
 
-    err = BDSP_Arm_MM_P_CalcStageMemPoolReq ((void *)pArmStage);
+    err = BDSP_Arm_P_CalcStageMemPoolReq ((void *)pArmStage);
     if(err != BERR_SUCCESS)
     {
         BDBG_ERR(("BDSP_Arm_P_AllocateStageMemory: Unable to get memory requirements for ARM DSP!"));

@@ -227,7 +227,7 @@ static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_AVC41[1] =
 
 static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_AVC4K[1] =
 {
-   {655360-(32*1024),  6598272,  6963200,   10485760,   1606400,   BXVD_P_VideoAtomIndex_eJ,    8}, /* AVC 4K  */
+   {655360-(32*1024),  6598272,  8388608,   10485760,   1606400,   BXVD_P_VideoAtomIndex_eJ,    8}, /* AVC 4K  */
 };
 
 static const BXVD_P_FWMemConfig_V2 sChannelFWMemCfg_AVC51[1] =

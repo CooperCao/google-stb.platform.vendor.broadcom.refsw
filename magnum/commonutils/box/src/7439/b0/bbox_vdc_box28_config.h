@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_7251_4kstb_smallpip_box28;
+
 void BBOX_P_Vdc_SetBox28SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 

@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Sep  1 14:32:39 2016
- *                 Full Compile MD5 Checksum  6fb3c439bf5a497d10d0a09493b41526
+ * Date:           Generated on               Tue Jan 17 10:08:34 2017
+ *                 Full Compile MD5 Checksum  2edd384c1405a388347db27089ee12b7
  *                     (minus title and desc)
- *                 MD5 Checksum               c7e6f0a8e19df692ab31ede29db92393
+ *                 MD5 Checksum               6e5ced4da0f0f15efb4ae46ce86e004a
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1105
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -145,14 +145,18 @@
 /***************************************************************************
  *INST_BASE - Instruction base address register
  ***************************************************************************/
-/* HEVD_OL_CPU_REGS_0 :: INST_BASE :: InstBase [39:10] */
-#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_InstBase_MASK            0xfffffffc00
-#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_InstBase_SHIFT           10
-#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_InstBase_DEFAULT         0x0000000000
+/* HEVD_OL_CPU_REGS_0 :: INST_BASE :: reserved0 [63:40] */
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_reserved0_MASK           BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_reserved0_SHIFT          40
 
-/* HEVD_OL_CPU_REGS_0 :: INST_BASE :: reserved0 [09:00] */
-#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_reserved0_MASK           0x00000003ff
-#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_reserved0_SHIFT          0
+/* HEVD_OL_CPU_REGS_0 :: INST_BASE :: InstBase [39:10] */
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_InstBase_MASK            BCHP_UINT64_C(0x000000ff, 0xfffffc00)
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_InstBase_SHIFT           10
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_InstBase_DEFAULT         0
+
+/* HEVD_OL_CPU_REGS_0 :: INST_BASE :: reserved1 [09:00] */
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_reserved1_MASK           BCHP_UINT64_C(0x00000000, 0x000003ff)
+#define BCHP_HEVD_OL_CPU_REGS_0_INST_BASE_reserved1_SHIFT          0
 
 /***************************************************************************
  *CPU_INT_ENA - CPU interrupt enable
@@ -658,14 +662,18 @@
 /***************************************************************************
  *GLOBAL_IO_BASE - Global IO base register
  ***************************************************************************/
-/* HEVD_OL_CPU_REGS_0 :: GLOBAL_IO_BASE :: GlobalIOBase [39:10] */
-#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_GlobalIOBase_MASK   0xfffffffc00
-#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_GlobalIOBase_SHIFT  10
-#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_GlobalIOBase_DEFAULT 0x0000000000
+/* HEVD_OL_CPU_REGS_0 :: GLOBAL_IO_BASE :: reserved0 [63:40] */
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_reserved0_MASK      BCHP_UINT64_C(0xffffff00, 0x00000000)
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_reserved0_SHIFT     40
 
-/* HEVD_OL_CPU_REGS_0 :: GLOBAL_IO_BASE :: reserved0 [09:00] */
-#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_reserved0_MASK      0x00000003ff
-#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_reserved0_SHIFT     0
+/* HEVD_OL_CPU_REGS_0 :: GLOBAL_IO_BASE :: GlobalIOBase [39:10] */
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_GlobalIOBase_MASK   BCHP_UINT64_C(0x000000ff, 0xfffffc00)
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_GlobalIOBase_SHIFT  10
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_GlobalIOBase_DEFAULT 0
+
+/* HEVD_OL_CPU_REGS_0 :: GLOBAL_IO_BASE :: reserved1 [09:00] */
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_reserved1_MASK      BCHP_UINT64_C(0x00000000, 0x000003ff)
+#define BCHP_HEVD_OL_CPU_REGS_0_GLOBAL_IO_BASE_reserved1_SHIFT     0
 
 /***************************************************************************
  *DRAM_WR_CNTR - CPU DRAM Write access Counter

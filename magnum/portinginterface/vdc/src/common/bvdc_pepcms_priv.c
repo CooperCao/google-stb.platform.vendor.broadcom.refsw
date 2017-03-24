@@ -1,5 +1,5 @@
-/***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/******************************************************************************
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -329,10 +329,10 @@ static const int32_t COS_LUT[] =
 
 static int32_t BMTH_FIX_SIGNED_DIV2(int32_t x, int32_t y, int32_t xint, int32_t xfract, int32_t yint, int32_t yfract, int32_t outint, int32_t outfract)
 {
-    int32_t t1 = (BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) << (outfract - (xfract - yfract)));
-    int32_t t2 = (BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) >> ((xfract - yfract) - outfract));
+    int32_t t1 = (BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) << (outfract - (xfract - yfract)));
+    int32_t t2 = (BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract) >> ((xfract - yfract) - outfract));
     int32_t t3 = (outfract > ((xfract) - (yfract))) ? t1 : t2;
-    int32_t t4 = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract);
+    int32_t t4 = BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - yfract, yfract);
     int32_t t5 = t3 / t4;
     BSTD_UNUSED(outint);
     return t5;
@@ -340,8 +340,8 @@ static int32_t BMTH_FIX_SIGNED_DIV2(int32_t x, int32_t y, int32_t xint, int32_t 
 
 static int32_t BMTH_FIX_SIGNED_MUL2(int32_t x, int32_t y, int32_t xint, int32_t xfract, int32_t yint, int32_t yfract, int32_t outint, int32_t outfract)
 {
-    int32_t t1 = BMTH_FIX_SIGNED_CONVERT(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract);
-    int32_t t2 = BMTH_FIX_SIGNED_CONVERT(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - (yfract), yfract);
+    int32_t t1 = BMTH_FIX_SIGNED_CONVERT_isrsafe(x, xint, xfract, BMTH_P_FIX_SIGNED_MAX_BITS - (xfract), xfract);
+    int32_t t2 = BMTH_FIX_SIGNED_CONVERT_isrsafe(y, yint, yfract, BMTH_P_FIX_SIGNED_MAX_BITS - (yfract), yfract);
 
     int32_t t3 = (outfract > ((xfract) + (yfract))) ?
         (t1 * t2) << ((outfract) - ((xfract) + (yfract))) :
@@ -378,12 +378,12 @@ static void GainAccumulate
             {
                 if(alSatGainRadial[i] != 0 && alSatGainAngle[i] != 0)
                 {
-                    tempGain = BMTH_FIX_SIGNED_MUL(alSatGainRadial[i], pPep->alSatGain[k], 5, 10, 23, 8, 23, 8);
-                    tempGain = BMTH_FIX_SIGNED_MUL(tempGain, alSatGainAngle[i], 23, 8, 5, 10, 23, 8);
-                    deltaCr = BMTH_FIX_SIGNED_MUL(tempGain, COS_LUT[i], 23, 8, 5, 10, 23, 8);
-                    deltaCb = BMTH_FIX_SIGNED_MUL(tempGain, SIN_LUT[i], 23, 8, 5, 10, 23, 8);
-                    *(plCr + i) = BMTH_FIX_SIGNED_CONVERT(*(plCr + i) + deltaCr, 8, 8, 23, 8);
-                    *(plCb + i) = BMTH_FIX_SIGNED_CONVERT(*(plCb + i) + deltaCb, 8, 8, 23, 8);
+                    tempGain = BMTH_FIX_SIGNED_MUL_isrsafe(alSatGainRadial[i], pPep->alSatGain[k], 5, 10, 23, 8, 23, 8);
+                    tempGain = BMTH_FIX_SIGNED_MUL_isrsafe(tempGain, alSatGainAngle[i], 23, 8, 5, 10, 23, 8);
+                    deltaCr = BMTH_FIX_SIGNED_MUL_isrsafe(tempGain, COS_LUT[i], 23, 8, 5, 10, 23, 8);
+                    deltaCb = BMTH_FIX_SIGNED_MUL_isrsafe(tempGain, SIN_LUT[i], 23, 8, 5, 10, 23, 8);
+                    *(plCr + i) = BMTH_FIX_SIGNED_CONVERT_isrsafe(*(plCr + i) + deltaCr, 8, 8, 23, 8);
+                    *(plCb + i) = BMTH_FIX_SIGNED_CONVERT_isrsafe(*(plCb + i) + deltaCb, 8, 8, 23, 8);
                 }
             }
         }
@@ -522,8 +522,8 @@ static void HueGainAccumulate
                     tempGain = BMTH_FIX_SIGNED_MUL2(alHueGainAngle[i], pPep->alHueGain[k], 5, 10, 23, 8, 20, 11);
 /*                  sin_t = BVDC_P_WIN_FIX_SIN(tempGain);
                     cos_t = BVDC_P_WIN_FIX_COS(tempGain);
-*/                  sin_t = BMTH_FIX_SIGNED_SIN(tempGain, 20, 11, 20, 11);
-                    cos_t = BMTH_FIX_SIGNED_COS(tempGain, 20, 11, 20, 11);
+*/                  sin_t = BMTH_FIX_SIGNED_SIN_isrsafe(tempGain, 20, 11, 20, 11);
+                    cos_t = BMTH_FIX_SIGNED_COS_isrsafe(tempGain, 20, 11, 20, 11);
                     fCb = *(plCb + i) - 512;
                     fCr = *(plCr + i) - 512;
 

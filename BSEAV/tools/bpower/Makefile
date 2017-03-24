@@ -40,7 +40,7 @@
 ###############################################################################
 # Nexus examples
 B_THIS_DIR:=BSEAV/tools/bpower
-PHONY := all boa clean clean_apps install nexus_headers clean_boa bpower_tree bpower_regs.h
+PHONY := all boa clean clean_apps install nexus_headers clean_boa bpower_regs.h
 .PHONY: ${PHONY}
 .NOTPARALLEL: apps boa
 
@@ -100,33 +100,20 @@ clean_boa:
 	$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/boa clean
 
 #
-bpower_tree:
-ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
-	@echo [Skipping ... bpower_tree.txt];
-else
-	@test ! -f ${NEXUS_BIN_DIR}/bpower_tree.txt || echo "[Exists ... bpower_tree.txt]" > /dev/null;
-	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || echo "[Creating ... bpower_tree.txt]";
-	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || chmod u+x ${CLKGEN_PATH}/clkgen.pl;
-	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || echo "[Running ... clkgen.pl $(BCHP_CHIP) $(BCHP_VER) perf]";
-	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || (cd ${NEXUS_BIN_DIR} && ${CLKGEN_PATH}/clkgen.pl $(BCHP_CHIP) $(BCHP_VER) perf > /dev/null && echo [clkgen.pl done] > /dev/null);
-	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.txt || mv -f ${NEXUS_BIN_DIR}/bpower_$(BCHP_CHIP)_tree.txt ${NEXUS_BIN_DIR}/bpower_tree.txt;
-endif
-
 bpower_regs.h:
 ifeq ($(findstring $(BCHP_CHIP),7429 7435 7425 7231 7346 7584),$(BCHP_CHIP))
 	@echo "CLK_TREE_REG_INFO registerInfo[] = {{\"none\",\"none\",0,0,0,0 }};" > ${NEXUS_BIN_DIR}/bpower_regs.h;
 else
 	@test ! -f ${NEXUS_BIN_DIR}/bpower_regs.h || echo "[Exists ... bpower_regs.h]" > /dev/null;
 	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || echo "[Creating ... bpower_regs.h]";
-	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower1.awk ${NEXUS_BIN_DIR}/bpower_tree.txt | sort -u > ${NEXUS_BIN_DIR}/temp.c;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower1.awk ${NEXUS_TOP}/../${B_THIS_DIR}/bpower_$(BCHP_CHIP)_$(BCHP_VER)_tree.txt | sort -u > ${NEXUS_BIN_DIR}/temp.c;
 	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || awk -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower2.awk ${NEXUS_BIN_DIR}/temp.c  > ${NEXUS_BIN_DIR}/bpower_regs.h;
-	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || rm -f ${NEXUS_BIN_DIR}/temp.c;
-	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || rm -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower_tree.txt;
+##	@test   -f ${NEXUS_BIN_DIR}/bpower_regs.h || rm -f ${NEXUS_BIN_DIR}/temp.c;
+	@test   -f ${NEXUS_BIN_DIR}/bpower_tree.h || cp ${NEXUS_TOP}/../${B_THIS_DIR}/bpower_$(BCHP_CHIP)_$(BCHP_VER)_tree.txt ${NEXUS_BIN_DIR}/bpower_tree.txt
 endif
 
 clean_bpower_regs:
-	@-$(RM) ${NEXUS_BIN_DIR}/bpower_regs.h
-	@-$(RM) ${NEXUS_BIN_DIR}/bpower_tree.txt
+	@-$(RM) ${NEXUS_BIN_DIR}/bpower_regs.h ${NEXUS_BIN_DIR}/bpower_tree.txt
 
 clean_apps:
 	@-$(RM) $(APPS) *.d *.o *.out
@@ -153,7 +140,7 @@ CFLAGS += -D_LINUX_TYPES_H
 CFLAGS += -DBMEMCONFIG_READ32_SUPPORTED
 
 # Implicit rule for building local apps
-bpower.cgi: boa bpower_tree bpower_regs.h $(MAIN_OBJS) $(EXTRA_OBJS)
+bpower.cgi: boa bpower_regs.h $(MAIN_OBJS) $(EXTRA_OBJS)
 	@echo [Compiling ... $@]
 	$(Q_)$(CC) -o ${NEXUS_BIN_DIR}/$@ $(MAIN_OBJS) $(EXTRA_OBJS) $(CFLAGS) ${CDEP_FLAG} $(LDFLAGS)
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower.html  ${NEXUS_BIN_DIR}
@@ -161,7 +148,7 @@ bpower.cgi: boa bpower_tree bpower_regs.h $(MAIN_OBJS) $(EXTRA_OBJS)
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower.css   ${NEXUS_BIN_DIR}
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bpower.png   ${NEXUS_BIN_DIR}
 #	$(Q_)rm -f ${NEXUS_BIN_DIR}/bpower_regs.h
-#	$(Q_)rm -f ${NEXUS_BIN_DIR}/bpower.d
+	$(Q_)rm -f ${NEXUS_BIN_DIR}/bpower.d
 
 -include *.d
 

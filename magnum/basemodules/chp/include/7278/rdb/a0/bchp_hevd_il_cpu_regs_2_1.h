@@ -1,5 +1,5 @@
 /********************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2017 Broadcom. All rights reserved.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Sep 12 14:24:35 2016
- *                 Full Compile MD5 Checksum  2d2ed423991a1e4e4d03ca98bc390b2c
+ * Date:           Generated on               Tue Jan 17 10:08:35 2017
+ *                 Full Compile MD5 Checksum  2edd384c1405a388347db27089ee12b7
  *                     (minus title and desc)
- *                 MD5 Checksum               8cad5c3953d7e5df4439153720b00628
+ *                 MD5 Checksum               6e5ced4da0f0f15efb4ae46ce86e004a
  *
  * lock_release:   r_1099
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1119
+ *                 RDB.pm                     1255
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/combo_header.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   LOCAL
  *
  *
 ********************************************************************************/
@@ -73,7 +73,7 @@
 #define BCHP_HEVD_IL_CPU_REGS_2_1_HST2CPU_MBX    0x00d50000 /* [RW][32] Host 2 CPU mailbox register */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_CPU2HST_MBX    0x00d50004 /* [RW][32] CPU to Host mailbox register */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_MBX_STAT       0x00d50008 /* [RO][32] Mailbox status flags */
-#define BCHP_HEVD_IL_CPU_REGS_2_1_INST_BASE      0x00d50010 /* [RW][40] Instruction base address register */
+#define BCHP_HEVD_IL_CPU_REGS_2_1_INST_BASE      0x00d50010 /* [RW][64] Instruction base address register */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_CPU_INT_ENA    0x00d50018 /* [RW][32] CPU interrupt enable */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_CPU_INT_STAT   0x00d5001c /* [RO][32] CPU interrupt status */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_HST2CPU_STAT   0x00d50020 /* [RW][32] Host to CPU status register */
@@ -84,7 +84,7 @@
 #define BCHP_HEVD_IL_CPU_REGS_2_1_CPU_INTGEN_MASK 0x00d50034 /* [RW][32] CPU interrupt mask register */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_DRAM_RD_CNTR   0x00d50038 /* [RW][32] CPU DRAM Read access Counter */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_END_OF_CODE    0x00d5003c /* [RW][32] End of code register */
-#define BCHP_HEVD_IL_CPU_REGS_2_1_GLOBAL_IO_BASE 0x00d50040 /* [RW][40] Global IO base register */
+#define BCHP_HEVD_IL_CPU_REGS_2_1_GLOBAL_IO_BASE 0x00d50040 /* [RW][64] Global IO base register */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_DRAM_WR_CNTR   0x00d50048 /* [RW][32] CPU DRAM Write access Counter */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_WATCHDOG_TMR   0x00d5004c /* [RW][32] Watchdog timer register */
 #define BCHP_HEVD_IL_CPU_REGS_2_1_SDRAM_STATUS   0x00d50050 /* [RO][32] SDRAM Status register */

@@ -2491,7 +2491,7 @@ void printflog(const char * szFormat, ... )
     if ( LogFileNameSet == 0 ) {
         memset(sLogFile, 0, sizeof sLogFile );
         sprintf ( sLogFile, "/tmp/bsysperf.log" );
-        fprintf ( stderr, "%s: log file is (%s)\n", __FUNCTION__, sLogFile );
+        /*fprintf ( stderr, "%s: log file is (%s)\n", __FUNCTION__, sLogFile );*/
         LogFileNameSet=1;
     }
 

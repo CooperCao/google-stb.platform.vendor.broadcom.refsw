@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Except as expressly set forth in the Authorized License,
+ *  Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
  *
  *****************************************************************************/
 #include "nexus_base.h"
@@ -67,6 +64,14 @@ static BERR_Code NEXUS_ComponentOutput_P_Connect(void *output,  NEXUS_DisplayHan
 static BERR_Code NEXUS_CompositeOutput_P_Connect(void *output,  NEXUS_DisplayHandle display);
 static BERR_Code NEXUS_SvideoOutput_P_Connect(void *output,  NEXUS_DisplayHandle display);
 static BERR_Code NEXUS_Ccir656Output_P_Connect(void *output,  NEXUS_DisplayHandle display);
+
+static void NEXUS_VideoOutputs_P_HdmiCfcHeap(BVDC_Display_HdmiSettings *pSettings)
+{
+    /* cfc LUT heap */
+    if(NEXUS_MAX_HEAPS != g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId]) {
+        pSettings->hCfcHeap = g_pCoreHandles->heap[g_NEXUS_DisplayModule_State.moduleSettings.cfc.vecHeapIndex[pSettings->ulPortId]].mma;
+    }
+}
 
 void
 NEXUS_VideoOutputs_P_Init(void)
@@ -153,6 +158,7 @@ static BERR_Code NEXUS_VideoOutput_P_SetHdmiDvoFormat(void *output, NEXUS_Displa
     rc = BVDC_Display_GetHdmiSettings(display->displayVdc, &stVdcHdmiSettings);
     stVdcHdmiSettings.ulPortId      = BVDC_Hdmi_0;
     stVdcHdmiSettings.eMatrixCoeffs = g_NEXUS_DisplayModule_State.hdmiDvo.colorimetry;
+    NEXUS_VideoOutputs_P_HdmiCfcHeap(&stVdcHdmiSettings);
     rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &stVdcHdmiSettings);
     if (rc) return BERR_TRACE(rc);
 
@@ -1138,6 +1144,9 @@ static void NEXUS_VideoOutput_P_SetDefaultHdmiSettings(NEXUS_DisplayHandle displ
 
     /* color space */
     displayHdmiSettings.eColorComponent = BAVC_Colorspace_eYCbCr444 ;
+
+    /* cfc LUT heap */
+    NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
     rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
     if (rc) {
         BERR_TRACE(rc) ;
@@ -1316,8 +1325,12 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
 
             /* If only aspect ratio is changing, set the aspectRatioChangeOnly flag for later use in hdmi_output module*/
             aspectRatioChangeOnly = ((display->cfg.aspectRatio != aspectRatio) && (display->cfg.format == format) && (!_3dOrientationChange));
+            rc = NEXUS_P_VideoFormat_ToMagnum_isrsafe(format, &videoFmt);
+            if (rc) {
+                videoFmt = BFMT_VideoFmt_eNTSC; /* don't proceed with uninitialized value. */
+            }
             NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
-            rc = NEXUS_HdmiOutput_P_PreFormatChange_priv(hdmiOutput, aspectRatioChangeOnly);
+            rc = NEXUS_HdmiOutput_P_PreFormatChange_priv(hdmiOutput, videoFmt, aspectRatioChangeOnly);
             NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput);
             if (rc) {
                 rc = BERR_TRACE(rc);
@@ -1361,6 +1374,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
             displayHdmiSettings.eColorComponent = NEXUS_P_ColorSpace_ToMagnum_isrsafe(preferred.colorSpace) ;
             displayHdmiSettings.eColorRange = magnumColorRange;
             displayHdmiSettings.eEotf = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
+            NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
             rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
             if (rc) return BERR_TRACE(rc);
             doneHdmiSettings = true;
@@ -1383,6 +1397,7 @@ NEXUS_VideoOutput_P_ApplyHdmiSettings(void *output, NEXUS_DisplayHandle display,
         displayHdmiSettings.eMatrixCoeffs = magnumMatrixCoefficients;
         displayHdmiSettings.eColorRange   = magnumColorRange;
         displayHdmiSettings.eEotf         = NEXUS_P_VideoEotf_ToMagnum_isrsafe(eotf);
+        NEXUS_VideoOutputs_P_HdmiCfcHeap(&displayHdmiSettings);
         rc = BVDC_Display_SetHdmiSettings(display->displayVdc, &displayHdmiSettings) ;
         if (rc) return BERR_TRACE(rc);
     }

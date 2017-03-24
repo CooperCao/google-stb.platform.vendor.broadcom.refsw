@@ -150,13 +150,12 @@ NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
 
-    /* Configure the streamer (BCM9TS) input to route into input band 3 for SV & DV */
+    /* Configure the streamer (BCM9TS) input to route into input band 3 for SV */
 
     NEXUS_Platform_GetStatus(&platformStatus);
     BDBG_MSG(("Board ID major: %d, minor: %d", platformStatus.boardId.major, platformStatus.boardId.minor));
 
-    if ((platformStatus.boardId.major == 1) /* SV */ ||
-        (platformStatus.boardId.major == 3) /* DV */ ) {
+    if (platformStatus.boardId.major == 1 /* SV */ ) {
 
         BDBG_MSG(("Configuring pin mux for BCM9TS streamer input to input band 3"));
 

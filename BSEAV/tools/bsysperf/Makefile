@@ -138,7 +138,7 @@ clean_apps:
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.html
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.js
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf_flame.js
-	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.png
+	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf*.png
 	@-$(RM) ${NEXUS_BIN_DIR}/bmemperf_play.jpg
 	@-$(RM) ${NEXUS_BIN_DIR}/bmemperf_pause.jpg
 	@-$(RM) ${NEXUS_BIN_DIR}/bsysperf.cgi
@@ -161,9 +161,11 @@ ${NEXUS_BIN_DIR}/bsysperf.css: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.css
 	@echo [Copying ... $(notdir $@)]
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.css     ${NEXUS_BIN_DIR}
 
-${NEXUS_BIN_DIR}/bsysperf.png: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.png
+${NEXUS_BIN_DIR}/bsysperf.png: ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.png ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_record1.png ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_record2.png
 	@echo [Copying ... $(notdir $@)]
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf.png     ${NEXUS_BIN_DIR}
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_record1.png     ${NEXUS_BIN_DIR}
+	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/bsysperf_record2.png     ${NEXUS_BIN_DIR}
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/player/bmemperf_play.jpg     ${NEXUS_BIN_DIR}
 	$(Q_)$(CP) -f ${NEXUS_TOP}/../${B_THIS_DIR}/../bmemperf/player/bmemperf_pause.jpg    ${NEXUS_BIN_DIR}
 

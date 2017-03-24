@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -216,7 +216,7 @@ void BVDC_P_Csc_Print_isr
  * Multiplies two csc matrices set up in 4x4 format.  pCscCoeffs contains
  * bit shift settings and alpha usage information.
  */
-void BVDC_P_Csc_Mult4X4_isr
+static void BVDC_P_Csc_Mult4X4_isr
     ( int32_t                          aalMatrixRet[4][4],
       int32_t                          aalMatrix1[4][4],
       int32_t                          aalMatrix2[4][4],
@@ -1021,7 +1021,7 @@ void BVDC_P_Csc_MatrixInverse
 
 #endif /* #ifndef BVDC_FOR_BOOTUPDATER */
 
-void BVDC_P_Csc_MatrixMultVector_isr
+static void BVDC_P_Csc_MatrixMultVector_isr
     ( BVDC_P_CscCoeffs                *pCscCoeffs,
       uint32_t                         aVector[4],
       uint32_t                         aRetVector[4])

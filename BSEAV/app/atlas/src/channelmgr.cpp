@@ -448,6 +448,38 @@ eRet CChannelMgr::addChannel(CChannel * pChannel)
     return(eRet_Ok);
 } /* addChannel */
 
+/* remove all channels matching the major channel number of the given channel.
+   the given channel is NOT removed from the list. */
+eRet CChannelMgr::removeOtherMajorChannels(CChannel * pChannel)
+{
+    CChannel * pCh = NULL;
+
+    /* search for matching channel in channel list */
+    for (int i = 0; i < eWindowType_Max; i++)
+    {
+        pCh = getFirstChannel((eWindowType)i);
+
+        while (NULL != pCh)
+        {
+            CChannel * pChDel = NULL;
+
+            pChDel = pCh;
+            pCh = getNextChannel(pChDel, false);
+
+            /* compare major channel number and make sure we don't remove given channel */
+            if ((pChDel->getMajor() == pChannel->getMajor()) && (pChDel != pChannel))
+            {
+                /* serialized access to _channelList */
+                CScopedMutex channelListMutex(_mutex);
+
+                /* found matching major channel number - remove/free  it */
+                _channelList[(eWindowType)i].remove(pChDel);
+                DEL(pChDel);
+            }
+        }
+    }
+}
+
 /* find channel based on channel number */
 CChannel * CChannelMgr::findChannel(
         const char * strChannelNum,

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -86,24 +86,9 @@ static bool g_fpgaInit = false;
 static void NEXUS_Platform_P_StartMonitor(void);
 static void NEXUS_Platform_P_StopMonitor(void);
 
-#if ((BCHP_CHIP == 7443) && (BCHP_VER == BCHP_VER_A0)) || \
-    ((BCHP_CHIP == 7429) && (BCHP_VER == BCHP_VER_A0))
-#define NEXUS_HAS_HDMI_SOFTI2C_SUPPORT 1
-#endif
-
-#ifndef NEXUS_MAX_I2C_CHANNELS
-#define NEXUS_MAX_I2C_CHANNELS 7
-#endif
-
 #ifndef NEXUS_I2C_CHANNEL_HDMI_TX
 /* define in nexus_platform_features.h */
 #define NEXUS_I2C_CHANNEL_HDMI_TX 0
-#endif
-
-#if BCHP_HDMI_TX_AUTO_I2C_REG_START && NEXUS_HAS_HDMI_OUTPUT
-#define AUTO_I2C_ENABLED 1
-#else
-#define AUTO_I2C_ENABLED 0
 #endif
 
 #if NEXUS_USE_7425_SV_BOARD || NEXUS_PLATFORM_7418SFF_H
@@ -116,49 +101,6 @@ extern NEXUS_Error NEXUS_Platform_P_InitExternalRfm(const NEXUS_PlatformConfigur
 
 static void NEXUS_Platform_P_StartMonitor(void);
 static void NEXUS_Platform_P_StopMonitor(void);
-
-#if NEXUS_HAS_I2C
-static void NEXUS_Platform_P_GetI2CGpioHandles(unsigned index, NEXUS_GpioHandle *gpioClk , NEXUS_GpioHandle *gpioData)
-{
-    NEXUS_GpioSettings gpioSettings;
-    if(index == 0){
-        if ((BCHP_CHIP==7429) || (BCHP_CHIP==7425) || (BCHP_CHIP==7439) || (BCHP_CHIP==7346)){
-            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonSpecial, &gpioSettings);
-            *gpioClk = NEXUS_Gpio_Open(NEXUS_GpioType_eAonSpecial, 0, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioClk);
-            *gpioData = NEXUS_Gpio_Open(NEXUS_GpioType_eAonSpecial, 1, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioData);
-        }
-        else if ((BCHP_CHIP==7584) || (BCHP_CHIP==7563)){
-            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eSpecial, &gpioSettings);
-            *gpioClk = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 0, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioClk);
-            *gpioData = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 1, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioData);
-        }
-    }
-    else if(index == 3){
-        if(BCHP_CHIP==7439){
-            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eSpecial, &gpioSettings);
-            *gpioClk = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 0, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioClk);
-            *gpioData = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 1, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioData);
-        }
-    }
-    else if(index == 2){
-        if(BCHP_CHIP==7346){
-            NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eSpecial, &gpioSettings);
-            *gpioClk = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 4, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioClk);
-            *gpioData = NEXUS_Gpio_Open(NEXUS_GpioType_eSpecial, 5, &gpioSettings);
-            BDBG_ASSERT(NULL != gpioData);
-        }
-    }
-
-    return;
-}
-#endif
 
 NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
 {
@@ -177,99 +119,44 @@ NEXUS_Error NEXUS_Platform_P_Config(const NEXUS_PlatformSettings *pSettings)
         NEXUS_I2cSettings i2cSettings;
         for ( i = 0; i < NEXUS_MAX_I2C_CHANNELS; i++ )
         {
-
-#ifdef NEXUS_MOCA_I2C_CHANNEL
-/* if NEXUS_MOCA_I2C_CHANNEL is defined in nexus_platform_features.h, nexus will avoid it */
-            if (i == NEXUS_MOCA_I2C_CHANNEL) {
-                continue;
-            }
-#endif
-
-            NEXUS_I2c_GetDefaultSettings(&i2cSettings);
-
-            i2cSettings.autoI2c.enabled = false;
-#if NEXUS_USE_7584_WIFI
-            if(i==1)continue;
-#endif
-
-            /* Because of 7344  A0 issues we need to disable the I2C channel being used for Moca as well as channel  3 */
-#if (BCHP_CHIP==7344)
-#if NEXUS_PLATFORM_7418SFF_H
-            i2cSettings.softI2c = false;
-            i2cSettings.interruptMode = false;
-#endif
-            if (i==3) {
-                continue;
-            }
-#endif
-#if (BCHP_CHIP==7364)
-            if (i==2) {
-                BDBG_MSG(("BSC-C shouldn't be used in 7364."));
-                continue;
-            }
-#elif (BCHP_CHIP==7250)
-            if (i==1) {
-                BDBG_MSG(("BSC-B shouldn't be used in 7250."));
-                continue;
-            }
-#endif
-
-
-            if ( i == NEXUS_I2C_CHANNEL_HDMI_TX )
+            if (pSettings->i2c[i].open)
             {
-                const char *hdmi_i2c_software_mode = NEXUS_GetEnv("hdmi_i2c_software_mode");
-                #if NEXUS_HAS_HDMI_SOFTI2C_SUPPORT
-                bool forceHardI2c = (hdmi_i2c_software_mode && (hdmi_i2c_software_mode[0] == 'n' ||
-                                                                hdmi_i2c_software_mode[0] == 'N'));
-                i2cSettings.softI2c = !forceHardI2c;
-                #else
-                bool forceSoftI2c = (hdmi_i2c_software_mode && (hdmi_i2c_software_mode[0] == 'y' ||
-                                                                hdmi_i2c_software_mode[0] == 'Y'));
-                i2cSettings.softI2c = forceSoftI2c;
-                #endif
-#if AUTO_I2C_ENABLED
-                i2cSettings.autoI2c.enabled = true;
-#endif
-                /* HDMI i2c is always run at 100k */
-                i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
-                i2cSettings.use5v = true;
+                i2cSettings = pSettings->i2c[i].settings;
 
-            }
-            else
-            {
-                /* default all non-65nm frontend i2c to be fast */
-                i2cSettings.fourByteXferMode = true;
-                i2cSettings.clockRate = NEXUS_I2cClockRate_e400Khz;
-#if NEXUS_PLATFORM_7241_T2SFF || NEXUS_PLATFORM_7241_DCSFBTSFF
-                i2cSettings.interruptMode = false;
-#endif
-#if BCHP_CHIP == 7445
-    #if NEXUS_USE_7445_SV
-                if(i==3)i2cSettings.interruptMode = false;
-    #else
-                if(i==4)i2cSettings.interruptMode = false;
-    #endif
-#endif
-            }
+                if ( i == NEXUS_I2C_CHANNEL_HDMI_TX )
+                {
+                    const char *hdmi_i2c_software_mode = NEXUS_GetEnv("hdmi_i2c_software_mode");
+                    #if NEXUS_HAS_HDMI_SOFTI2C_SUPPORT
+                    bool forceHardI2c = (hdmi_i2c_software_mode && (hdmi_i2c_software_mode[0] == 'n' ||
+                                                                    hdmi_i2c_software_mode[0] == 'N'));
+                    i2cSettings.softI2c = !forceHardI2c;
+                    #else
+                    bool forceSoftI2c = (hdmi_i2c_software_mode && (hdmi_i2c_software_mode[0] == 'y' ||
+                                                                    hdmi_i2c_software_mode[0] == 'Y'));
+                    i2cSettings.softI2c = forceSoftI2c;
+                    #endif
+                    i2cSettings.clockRate = NEXUS_I2cClockRate_e100Khz;
+                }
 
-            /* To use a particular channel in soft I2c mode, set i2cSettings.softI2c = true and update NEXUS_Platform_P_GetI2CGpioHandles accordingly based on the gpio pins used.
-                          Also, make sure that the pinmuxes for the clock and data gpio lines are set as gpio.
-                     */
-            if(i2cSettings.softI2c == true){
-                NEXUS_Platform_P_GetI2CGpioHandles(i, &i2cSettings.clockGpio, &i2cSettings.dataGpio);
-            }
-            else{
-                i2cSettings.softI2c = false;
-                i2cSettings.clockGpio = NULL;
-                i2cSettings.dataGpio = NULL;
-            }
+                if(i2cSettings.softI2c == true){
+#if NEXUS_HAS_GPIO
+                    NEXUS_GpioSettings gpioSettings;
 
-            BDBG_MSG(("i = %d, interruptMode = %d, autoI2c = %d, softI2c = %d, fourByteXferMode = %d, burstMode = %d, use5V = %d",
-                        i, i2cSettings.interruptMode, i2cSettings.autoI2c.enabled , i2cSettings.softI2c, i2cSettings.fourByteXferMode, i2cSettings.burstMode, i2cSettings.use5v));
-            pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
-            if (!pConfig->i2c[i]) {
-                /* NEXUS_I2c index is packed, so we can be done */
-                break;
+                    NEXUS_Gpio_GetDefaultSettings(pSettings->i2c[i].clock.type, &gpioSettings);
+                    i2cSettings.clockGpio = NEXUS_Gpio_Open(pSettings->i2c[i].clock.type, pSettings->i2c[i].clock.gpio, &gpioSettings);
+                    if(i2cSettings.clockGpio == NULL) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
+
+                    NEXUS_Gpio_GetDefaultSettings(pSettings->i2c[i].data.type, &gpioSettings);
+                    i2cSettings.dataGpio = NEXUS_Gpio_Open(pSettings->i2c[i].data.type, pSettings->i2c[i].data.gpio, &gpioSettings);
+                    if(i2cSettings.dataGpio == NULL) {errCode = BERR_TRACE(BERR_NOT_SUPPORTED); goto error; }
+#endif
+                }
+
+                pConfig->i2c[i] = NEXUS_I2c_Open(i, &i2cSettings);
+                if (!pConfig->i2c[i]) {
+                    /* NEXUS_I2c index is packed, so we can be done */
+                    break;
+                }
             }
         }
     }

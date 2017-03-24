@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_7445D0_box12;
+
 void BBOX_P_GetBox12MemConfig
     ( BBOX_MemConfig *pBoxMemConfig );
 

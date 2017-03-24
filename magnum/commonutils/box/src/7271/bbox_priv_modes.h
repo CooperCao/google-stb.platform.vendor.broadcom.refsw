@@ -58,7 +58,7 @@
 /***************************************************************************
 	Number of supported box modes for this chip
 */
-#define BBOX_MODES_SUPPORTED        8
+#define BBOX_MODES_SUPPORTED        9
 
 
 #endif /* BBOX_PRIV_MODES_H__ */

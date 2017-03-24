@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_UHD_3200_box5;
+
 void BBOX_P_Vdc_SetBox5SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 

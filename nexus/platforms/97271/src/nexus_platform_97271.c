@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -48,7 +48,8 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
 #if NEXUS_HAS_VIDEO_DECODER
     NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH265);
     NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eVp9);
-    pSettings->videoDecoder[0].supportedCodecs[NEXUS_VideoCodec_eH264_Mvc] = true;
+    NEXUS_P_SupportVideoDecoderCodec(pSettings, NEXUS_VideoCodec_eH264_Mvc);
+
     switch (g_pPreInitState->boxMode) {
     case 1:
     case 2:
@@ -64,6 +65,7 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
     /* supported on b0 only*/
     case 5:
     case 6:
+    case 7:
     case 8:
         pSettings->videoDecoder[0].mosaic.maxNumber = 3;
         pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
@@ -72,6 +74,12 @@ static void nexus_p_modifyDefaultMemoryConfigurationSettings( NEXUS_MemoryConfig
         pSettings->videoDecoder[1].mosaic.maxNumber = 1;
         pSettings->videoDecoder[1].mosaic.maxWidth = 1920;
         pSettings->videoDecoder[1].mosaic.maxHeight = 1088;
+        break;
+    case 9:
+        pSettings->videoDecoder[0].mosaic.maxNumber = 3;
+        pSettings->videoDecoder[0].mosaic.maxWidth = 1920;
+        pSettings->videoDecoder[0].mosaic.maxHeight = 1088;
+        pSettings->videoDecoder[0].mosaic.colorDepth = 10;
         break;
     default:
         break;
@@ -95,6 +103,9 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     case 2:
     case 5:
     case 6:
+    case 7:
+    case 8:
+    case 9:
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 148*1024*1024;
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 108*1024 *1024;
         break;

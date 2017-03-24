@@ -1,24 +1,44 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2003-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Implementatation of the Magnum KNI for user space Linux applications.
+ * Implementation of the Magnum KNI for user space Linux applications.
  *
- * Revision History:
- *
- * $brcm_Log: $ *
- * 
  ***************************************************************************/
 
 #include "bstd.h"
@@ -176,7 +196,7 @@ struct BKNI_EventObj
     bool signal;
 };
 
-static pthread_mutex_t g_csMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_csMutex;
 
 #if BDBG_DEBUG_BUILD
 
@@ -522,7 +542,7 @@ static unsigned g_refcnt = 0;
 
 BERR_Code BKNI_Init(void)
 {
-    BERR_Code result;
+    BERR_Code result = BERR_SUCCESS;
 #if BDBG_DEBUG_BUILD
     if (pthread_self() == 0) {
         /* If this fails, a library outside of magnum has failed. KNI requires this to work. */
@@ -530,15 +550,33 @@ BERR_Code BKNI_Init(void)
     }
 #endif
 
-    if (g_refcnt++ == 0) {
+    if (g_refcnt == 0) {
+        pthread_mutexattr_t attr;
+        int rc;
+
+        pthread_mutexattr_init(&attr);
+#if defined(PTHREAD_PRIO_INHERIT)
+        rc = pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
+        if(rc!=0) {
+            BDBG_WRN(("Can't set PTHREAD_PRIO_INHERIT"));
+        }
+#endif
+        rc = pthread_mutex_init(&g_csMutex, &attr);
+        if(rc!=0) {
+            result = BERR_TRACE(BERR_OS_ERROR);
+            goto done;
+        }
         result = BKNI_P_MutexTrackingState_Init();
+        if(result!=BERR_SUCCESS) {
+            result = BERR_TRACE(result);
+            goto done;
+        }
         BKNI_P_StatsState_Init();
         BKNI_P_TrackAlloc_Init();
     }
-    else {
-        result = 0;
-    }
+    g_refcnt++;
 
+done:
     return result;
 }
 
@@ -683,34 +721,10 @@ static const char *g_csFile;
 static int g_csLine;
 #endif
 
-
-/* BKNI_CS_PRIORITY_ESCALATION is a simple form of priority inheritence.
-In linux user mode, critical sections can be pre-empted and priority inversion problems can result.
-Instead of actually inheriting, this sets any thread entering a critical section to be highest priority & policy for pthreads.
-It currently defaults off. */
-/* #define BKNI_CS_PRIORITY_ESCALATION 1 */
-#if BKNI_CS_PRIORITY_ESCALATION
-static int g_cs_policy = -1;
-static struct sched_param g_cs_sched_param;
-#endif
-
 void BKNI_EnterCriticalSection_tagged(const char *file, unsigned line)
 {
-#if BKNI_CS_PRIORITY_ESCALATION
-      int local_policy;
-      struct sched_param local_sched_param, new_sched_param;
-#endif
 
     ASSERT_NOT_CRITICAL();
-
-#if BKNI_CS_PRIORITY_ESCALATION
-      pthread_getschedparam(pthread_self(), &local_policy, &local_sched_param);
-      memcpy(&new_sched_param, &local_sched_param, sizeof(new_sched_param));
-      new_sched_param.sched_priority = 99;
-
-      /* Temporarily increase thread priority to highest. Do this before trying to lock the mutex. */
-      pthread_setschedparam(pthread_self(), SCHED_FIFO, &new_sched_param);
-#endif
 
     /* WARNING: Do not make g_csMutex a recursive mutex. The usual motivation for doing this is to allow ISR code to call
     into non-ISR code. That would be a violation of Magnum architecture and will cause catastrophic failure. If your application
@@ -721,12 +735,6 @@ void BKNI_EnterCriticalSection_tagged(const char *file, unsigned line)
         BDBG_ASSERT(false);
         return;
     }
-
-#if BKNI_CS_PRIORITY_ESCALATION
-    /* now that we have the CS mutex, we can store the local values into the global state */
-    g_cs_policy = local_policy;
-    g_cs_sched_param = local_sched_param;
-#endif
 
     SET_CRITICAL();
 
@@ -745,11 +753,6 @@ BKNI_LeaveCriticalSection_tagged(const char *file, unsigned line)
 {
 #if BKNI_DEBUG_CS_TIMING
     uint32_t currentCount, elapsedCount;
-#endif
-#if BKNI_CS_PRIORITY_ESCALATION
-    /* copy escalated thread priority/policy into local storage before releasing the CS mutex */
-    int local_policy = g_cs_policy;
-    struct sched_param local_sched_param = g_cs_sched_param;
 #endif
 
 #if BKNI_DEBUG_CS_TIMING
@@ -775,11 +778,6 @@ BKNI_LeaveCriticalSection_tagged(const char *file, unsigned line)
         BDBG_ERR(("pthread_mutex_unlock failed"));
         BDBG_ASSERT(false);
     }
-
-#if BKNI_CS_PRIORITY_ESCALATION
-    /* restore this thread's settings from before the EnterCriticalSection */
-    pthread_setschedparam(pthread_self(), local_policy, &local_sched_param);
-#endif
 
     return;
 }
@@ -1520,6 +1518,7 @@ void BKNI_Uninit(void)
     if (--g_refcnt == 0) {
         BKNI_P_MutexTrackingState_Uninit();
         BKNI_P_TrackAlloc_Uninit();
+        pthread_mutex_destroy(&g_csMutex);
     }
     return;
 }

@@ -119,20 +119,6 @@ public:
 
     virtual eRet registerObserver(CObserver * observer, eNotification notification = eNotify_All);
 
-#ifdef MPOD_SUPPORT
-    void                initialize(void);
-    void                unInitialize(void);
-    static void *       mpegSectionHandler(void * ctx);
-    int                 updateScteMap();
-    void                printChannelMap(channel_list_t * list);
-    static void         sttCallback(unsigned long t, bool dst);
-    static void         easCallback(EA_MSG_INFO * p_ea_msg);
-    static void         scteEventCallback(void * context, int param);
-    CWidgetEngine *     getWidgetEngine(void)                          { return(_pWidgetEngine); }
-    void                setWidgetEngine(CWidgetEngine * pWidgetEngine) { _pWidgetEngine = pWidgetEngine; }
-    CTunerQamScanData * getTunerScanData()                             { return(&_scanData);    }
-#endif /* ifdef MPOD_SUPPORT */
-
     void       setCfg(CConfiguration * pCfg) { _pCfg = pCfg; }
     void       setModel(CModel * pModel)     { _pModel = pModel; }
     eRet       loadChannelList(const char * listName, const bool append = false);
@@ -141,6 +127,7 @@ public:
     eRet       clearChannelList(void);
     void       sortChannelList(void);
     eRet       addChannel(CChannel * pChannel);
+    eRet       removeOtherMajorChannels(CChannel * pChannel);
     CChannel * findChannel(const char * strChannelNum, eWindowType windowType = eWindowType_Max);
     uint32_t   filterChannel(CChannel * pChannel);
     eRet       addChannelList(MList<CChannel> * pList, bool append = true);
@@ -155,11 +142,23 @@ public:
 #if NEXUS_HAS_FRONTEND
     CTuner * checkoutTuner(void);
 #endif
-
 #if B_HAS_DTCP_IP
     void enableDtcp(void);
     void disableDtcp(void);
 #endif
+#ifdef MPOD_SUPPORT
+    void                initialize(void);
+    void                unInitialize(void);
+    static void *       mpegSectionHandler(void * ctx);
+    int                 updateScteMap();
+    void                printChannelMap(channel_list_t * list);
+    static void         sttCallback(unsigned long t, bool dst);
+    static void         easCallback(EA_MSG_INFO * p_ea_msg);
+    static void         scteEventCallback(void * context, int param);
+    CWidgetEngine *     getWidgetEngine(void)                          { return(_pWidgetEngine); }
+    void                setWidgetEngine(CWidgetEngine * pWidgetEngine) { _pWidgetEngine = pWidgetEngine; }
+    CTunerQamScanData * getTunerScanData()                             { return(&_scanData);    }
+#endif /* ifdef MPOD_SUPPORT */
 
 protected:
     MAutoList <CChannel> * getChannelList(eWindowType windowType = eWindowType_Main)
@@ -188,6 +187,7 @@ protected:
     CModel *             _pModel;
     MAutoList <CChannel> _channelList[eWindowType_Max];
     B_MutexHandle        _mutex;
+
 #ifdef MPOD_SUPPORT
     CWidgetEngine *   _pWidgetEngine;
     pthread_t         mpegSectionThread;

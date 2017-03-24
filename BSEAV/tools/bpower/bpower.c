@@ -111,6 +111,7 @@ int main(
     if (epochSeconds)
     {
         struct timeval now          = {1400000000, 0};
+        char          *boltVersion  = NULL;
 
         strncpy( versionInfo.platform, getPlatform(), sizeof( versionInfo.platform ) - 1 );
         strncpy( versionInfo.platVersion, getPlatformVersion(), sizeof( versionInfo.platVersion ) - 1 );
@@ -118,8 +119,15 @@ int main(
         versionInfo.minorVersion   = MINOR_VERSION;
         printf( "~PLATFORM~%s", versionInfo.platform );
         printf( "~PLATVER~%s", versionInfo.platVersion );
-        printf( "~variant~%s~", getProductIdStr() );
+        printf( "~VARIANT~%s~", getProductIdStr() );
         printf( "~VERSION~Ver: %u.%u~", versionInfo.majorVersion, versionInfo.minorVersion );
+
+        boltVersion = getFileContents( "/proc/device-tree/bolt/tag" );
+        if ( boltVersion )
+        {
+            printf( "~BOLTVER~%s", boltVersion );
+            Bsysperf_Free( boltVersion );
+        }
 
         uname(&uname_info);
         printf("~UNAME~%d-bit %s %s~", (sizeof(char*) == 8)?64:32, uname_info.machine , uname_info.release );

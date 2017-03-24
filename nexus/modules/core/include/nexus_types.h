@@ -733,11 +733,6 @@ typedef struct NEXUS_DebugFifoInfo {
     unsigned offset; /* Offset from start of memory block where BDBG_Fifo begins */
 } NEXUS_DebugFifoInfo;
 
-#if !NEXUS_HAS_GPIO
-/* universal stub to avoid #if NEXUS_HAS_GPIO in public types. */
-typedef void *NEXUS_GpioHandle;
-#endif
-
 /**
 Summary:
 Information about the amount of light contained in pixels found throughout the stream.

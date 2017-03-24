@@ -57,11 +57,10 @@
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_vdc_box20_config.h"
 
 BDBG_MODULE(BBOX_VDC_PRIV_BOX20);
 BDBG_OBJECT_ID(BBOX_VDC_BOX_PRIV_BOX20);
-
-extern BBOX_Rts stBoxRts_7251_4kstb50_box20;
 
 /* Memc Index for box mode 20. BBOX_MemcIndex_Invalid means it's not used */
 static const BBOX_MemConfig stBoxMemConfig_7439B0_box20 =

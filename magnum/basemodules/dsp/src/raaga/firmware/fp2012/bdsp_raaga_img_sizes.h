@@ -279,7 +279,7 @@
 #define BDSP_IMG_SRS_TVOL_INTER_FRAME_SIZE                           ((uint32_t)7344)
 #define BDSP_IMG_SRS_TVOL_TABLES_SIZE                                ((uint32_t)4624)
 #define BDSP_IMG_SYSLIB_CODE_SIZE                                    ((uint32_t)16164)
-#define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)68160)
+#define BDSP_IMG_SYSTEM_CODE_SIZE                                    ((uint32_t)68152)
 #define BDSP_IMG_TRUEHD_DECODE_INTER_FRAME_SIZE                      ((uint32_t)5108)
 #define BDSP_IMG_TRUEHD_DECODE_SIZE                                  ((uint32_t)54304)
 #define BDSP_IMG_TRUEHD_DECODE_TABLES_SIZE                           ((uint32_t)4824)

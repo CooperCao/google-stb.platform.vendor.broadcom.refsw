@@ -60,6 +60,9 @@
 extern "C" {
 #endif
 
+/* Box mode 6 is similar to box mode 2 except for what is defined below */
+extern BBOX_Rts stBoxRts_1u_0t_box6;
+
 void BBOX_P_Vdc_SetBox6SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 

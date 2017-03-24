@@ -60,6 +60,8 @@
 extern "C" {
 #endif
 
+extern BBOX_Rts stBoxRts_7252s_headless_dualxcode_pip_box24;
+
 void BBOX_P_Vdc_SetBox24SourceCapabilities
     ( BBOX_Vdc_Source_Capabilities *pSourceCap );
 

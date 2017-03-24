@@ -1,5 +1,5 @@
 /******************************************************************************
- * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -110,10 +110,13 @@ static void print_usage(void)
         );
     printf(
         "  -dde {on|off}  \tenable MS12 Dolby Dialog Enhancer (requires nxserver -ms12)\n"
-        "-ddeEnhancerLevel {0..%d}  \t Controls the Amount of Content Enhancing (requires Dolby Dialog Enhancer enabled)\n"
-        "-ddeSuppressionLevel {0..%d}  \t Controls the Amount of Content Supressing (requires Dolby Volume Leveler enabled)\n",
+        "  -ddeEnhancerLevel {0..%d}  \t Controls the Amount of Content Enhancing (requires Dolby Dialog Enhancer enabled)\n"
+        "  -ddeSuppressionLevel {0..%d}  \t Controls the Amount of Content Supressing (requires Dolby Volume Leveler enabled)\n",
         MAX_DOLBY_ENHANCER,
         MAX_DOLBY_ENHANCER
+        );
+    printf(
+        "  -ms12EncoderFixedOutput {on|off}  \tenable MS12 Dolby Encoder Fixed Output Mode (requires nxserver -ms12)\n"
         );
 }
 
@@ -150,15 +153,16 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         CONVERT_TO_USER_VOL(pSettings->rightVolume, NUM_VOL_STEPS),
         pSettings->volumeType == NEXUS_AudioVolumeType_eLinear?"linear":"decibel");
     printf(
-        "avl                   %s\n"
-        "truVolume             %s\n"
-        "dv258                 %s\n"
-        "dv                    %s\n"
-        "dvIntelligentLoudness %s\n"
-        "dvLevelAmount         %u\n"
-        "dde                   %s\n"
-        "ddeEnhancerLevel      %u\n"
-        "ddeSuppressionLevel   %u\n",
+        "avl                    %s\n"
+        "truVolume              %s\n"
+        "dv258                  %s\n"
+        "dv                     %s\n"
+        "dvIntelligentLoudness  %s\n"
+        "dvLevelAmount          %u\n"
+        "dde                    %s\n"
+        "ddeEnhancerLevel       %u\n"
+        "ddeSuppressionLevel    %u\n"
+        "ms12EncoderFixedOutput %s\n",
         pAudioProcessingSettings->avl.enabled?"on":"off",
         pAudioProcessingSettings->truVolume.enabled?"on":"off",
         pAudioProcessingSettings->dolby.dolbyVolume258.enabled?"on":"off",
@@ -167,7 +171,8 @@ static void print_settings(const NxClient_AudioSettings *pSettings, NxClient_Aud
         pAudioProcessingSettings->dolby.dolbySettings.volumeLimiter.volumeLimiterAmount,
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.enableDialogEnhancer?"on":"off",
         pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.dialogEnhancerLevel,
-        pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.contentSuppressionLevel);
+        pAudioProcessingSettings->dolby.dolbySettings.dialogEnhancer.contentSuppressionLevel,
+        pAudioProcessingSettings->dolby.ddre.fixedEncoderFormat?"on":"off");
 }
 
 static void print_status(void)
@@ -296,7 +301,7 @@ int main(int argc, char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-dvLevelAmount") && curarg+1<argc) {
             unsigned amount;
-            change = true;
+            processing_change = true;
             amount = atoi(argv[++curarg]);
             if (amount > MAX_DOLBY_LEVELER) amount = MAX_DOLBY_LEVELER;
             audioProcessingSettings.dolby.dolbySettings.volumeLimiter.volumeLimiterAmount = amount;
@@ -309,17 +314,21 @@ int main(int argc, char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-ddeEnhancerLevel") && curarg+1<argc) {
             unsigned amount;
-            change = true;
+            processing_change = true;
             amount = atoi(argv[++curarg]);
             if (amount > MAX_DOLBY_ENHANCER) amount = MAX_DOLBY_ENHANCER;
             audioProcessingSettings.dolby.dolbySettings.dialogEnhancer.dialogEnhancerLevel = amount;
         }
         else if (!strcmp(argv[curarg], "-ddeSuppressionLevel") && curarg+1<argc) {
             unsigned amount;
-            change = true;
+            processing_change = true;
             amount = atoi(argv[++curarg]);
             if (amount > MAX_DOLBY_ENHANCER) amount = MAX_DOLBY_ENHANCER;
             audioProcessingSettings.dolby.dolbySettings.dialogEnhancer.contentSuppressionLevel = amount;
+        }
+        else if (!strcmp(argv[curarg], "-ms12EncoderFixedOutput") && argc>curarg+1) {
+            processing_change = true;
+            audioProcessingSettings.dolby.ddre.fixedEncoderFormat = !strcmp(argv[++curarg], "on");
         }
         else {
             print_usage();

@@ -115,6 +115,15 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
            break;
     }
 
+    pSettings->i2c[0].clock.type = NEXUS_GpioType_eAonSpecial;
+    pSettings->i2c[0].clock.gpio = 0;
+    pSettings->i2c[0].data.type = NEXUS_GpioType_eAonSpecial;
+    pSettings->i2c[0].data.gpio = 1;
+    pSettings->i2c[3].clock.type = NEXUS_GpioType_eSpecial;
+    pSettings->i2c[3].clock.gpio = 0;
+    pSettings->i2c[3].data.type = NEXUS_GpioType_eSpecial;
+    pSettings->i2c[3].data.gpio = 1;
+
     return;
 }
 

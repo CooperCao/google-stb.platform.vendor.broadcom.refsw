@@ -57,11 +57,10 @@
 #include "bbox_priv_modes.h"
 #include "bbox_vdc.h"
 #include "bbox_vdc_priv.h"
+#include "bbox_vdc_box8_config.h"
 
 BDBG_MODULE(BBOX_RTS_BOX8);
 BDBG_OBJECT_ID(BBOX_RTS_BOX8);
-
-extern BBOX_Rts stBoxRts_1u_0t_box8;
 
 /* Memc Index for box mode 8. BBOX_MemcIndex_Invalid means it's not used */
 static const BBOX_MemConfig stBoxMemConfig_7250B0_box8 =

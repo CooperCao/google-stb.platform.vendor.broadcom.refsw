@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -654,12 +654,12 @@ NEXUS_Error NEXUS_Display_WriteTeletext(NEXUS_DisplayHandle display, const NEXUS
 
             /* skip lines which are used by other VBI standards */
             if ((ttLineCount == 16 - TT_VBI_LINE_OFFSET) && display->vbi.settings.vpsEnabled) ttLineCount++;
-            /* NOTE: these conflicts aren't even possible if TT_VBI_LINE_OFFSET==1 and MAX_TT_LINES_PER_FIELD==18, but they are here for completeness. */
             if ((ttLineCount == 22 - TT_VBI_LINE_OFFSET) && display->vbi.settings.closedCaptionEnabled) ttLineCount++;
             if ((ttLineCount == 23 - TT_VBI_LINE_OFFSET) && display->vbi.settings.wssEnabled) ttLineCount++;
 
             if (ttLineCount >= MAX_TT_LINES_PER_FIELD) {
                 /* need a field break here */
+                ttLineCount = MAX_TT_LINES_PER_FIELD;
                 break;
             }
 

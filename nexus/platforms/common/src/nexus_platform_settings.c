@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,6 +39,8 @@
 #include "nexus_types.h"
 #include "nexus_base.h"
 #include "priv/nexus_core.h"
+#include "bi2c.h"
+#include "priv/nexus_i2c_priv.h"
 #if NEXUS_HAS_FILE
 #include "nexus_file_init.h"
 #endif
@@ -49,8 +51,15 @@
 #include "nexus_base_compat.h"
 #include "nexus_platform_api_compat.h"
 #endif
+#include "bchp_common.h"
 
 BDBG_MODULE(nexus_platform_settings);
+
+#if BCHP_HDMI_TX_AUTO_I2C_REG_START && NEXUS_HAS_HDMI_OUTPUT
+#define AUTO_I2C_ENABLED 1
+#else
+#define AUTO_I2C_ENABLED 0
+#endif
 
 static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory);
 
@@ -67,7 +76,11 @@ void NEXUS_Platform_GetDefaultSettings_tagged( NEXUS_PlatformSettings *pSettings
        ) {
         NEXUS_Platform_Priv_GetDefaultSettings(preInitState, pSettings);
     } else {
+#if NEXUS_COMPAT_32ABI
+        BDBG_ERR(("NEXUS_Platform_GetDefaultSettings - Mixed ABI:size mismatch %u != %u/%u", (unsigned)sizeof(*pSettings), (unsigned)size,(unsigned)sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformSettings))));
+#else
         BDBG_ERR(("NEXUS_Platform_GetDefaultSettings:size mismatch %u != %u", (unsigned)sizeof(*pSettings), (unsigned)size));
+#endif
         BKNI_Memset(pSettings, 0, size);
     }
     NEXUS_Platform_P_PreUninit();
@@ -160,7 +173,6 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_MemoryConfigurationSettings *pMemConfigSettings;
     NEXUS_MemoryRtsSettings rtsSettings;
     unsigned i;
-
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings)); /* don't call BKNI_Memset prior to initializing magnum */
     if (!g_NEXUS_platformModule && g_NEXUS_platformSettings.heap[0].size) {
@@ -283,6 +295,19 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
 
 #if NEXUS_POWER_MANAGEMENT
     NEXUS_Platform_GetStandbySettings(&pSettings->standbySettings);
+#endif
+#if NEXUS_HAS_I2C
+    for (i=0;i<NEXUS_MAX_I2C_CHANNELS;i++) {
+        NEXUS_I2c_GetDefaultSettings_priv(&pSettings->i2c[i].settings);
+        if ( i == NEXUS_I2C_CHANNEL_HDMI_TX )
+        {
+#if AUTO_I2C_ENABLED
+            pSettings->i2c[i].settings.autoI2c.enabled = true;
+#endif
+            pSettings->i2c[i].settings.use5v = true;
+        }
+        pSettings->i2c[i].open = true;
+    }
 #endif
 
     pMemConfigSettings = BKNI_Malloc(sizeof(*pMemConfigSettings));
@@ -714,8 +739,17 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
     BSTD_UNUSED(i);
     preInitState = NEXUS_Platform_P_PreInit();
     if (!preInitState) return; /* no BERR_TRACE possible */
-    if (size != sizeof(*pCap)) {
+    if (
+        size != sizeof(*pCap)
+#if NEXUS_COMPAT_32ABI
+       && size != sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformCapabilities))
+#endif
+        ) {
+#if NEXUS_COMPAT_32ABI
+        BDBG_ERR(("NEXUS_GetDefaultMemoryConfigurationSettings - Mixed ABI: size mismatch %u/%u != %u", (unsigned)sizeof(*pCap), (unsigned)sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformCapabilities)), (unsigned)size));
+#else
         BDBG_ERR(("NEXUS_GetDefaultMemoryConfigurationSettings: size mismatch %u != %u", (unsigned)sizeof(*pCap), (unsigned)size));
+#endif
         BKNI_Memset(pCap, 0, size);
         return;
     }
@@ -801,11 +835,23 @@ NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSett
     } *state;
     unsigned internal_size = sizeof(NEXUS_PlatformSettings)+sizeof(NEXUS_MemoryConfigurationSettings)+sizeof(NEXUS_PlatformConfigCapabilities);
     unsigned memcIndex, heapIndex;
+#if NEXUS_COMPAT_32ABI
+    unsigned compat_internal_size = sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformSettings))+sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_MemoryConfigurationSettings))+sizeof(B_NEXUS_COMPAT_TYPE(NEXUS_PlatformConfigCapabilities));
+#endif
 
     preInitState = NEXUS_Platform_P_PreInit();
     if (!preInitState) return -1;
-    if (size != internal_size) {
+    if (
+        size != internal_size
+#if NEXUS_COMPAT_32ABI
+       && size != compat_internal_size
+#endif
+        ) {
+#if NEXUS_COMPAT_32ABI
+        BDBG_ERR(("NEXUS_GetPlatformConfigCapabilities - Mixed ABI: size mismatch %u/%u != %u", internal_size, compat_internal_size, size));
+#else
         BDBG_ERR(("NEXUS_GetPlatformConfigCapabilities: size mismatch %u != %u", internal_size, size));
+#endif
         BKNI_Memset(pCap, 0, size);
         return -1;
     }

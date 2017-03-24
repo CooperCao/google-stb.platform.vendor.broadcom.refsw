@@ -349,7 +349,7 @@ mixed)
     NEW_TOOLCHAIN_PATH=xxx
     ;;
 
-4.1-1.7)
+4.1-1.7|4.1-1.8)
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
     NEW_MIPS=y
@@ -834,7 +834,7 @@ if [ -z "$NEXUS_PLATFORM" -a -n "$BCHP_VER" ] || [ -n "$NEXUS_PLATFORM" -a -z "$
 fi
 
 if [ "$LINUX_ROOT" == "" ] ; then
-   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.7
+   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.8
    URSR_ARM64_LINUX_ROOT=$URSR_ARM_LINUX_ROOT
    URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.1
 else
@@ -1133,8 +1133,16 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
     97435)
         case $BCHP_VER in
-        A0|B0)
-        LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+        B0)
+	    case $NEXUS_USE_7425_SV_BOARD in
+            y|Y)
+	    LINUX_ROOT=/opt/brcm/linux-4.1-1.8
+	    NEW_MIPS=y
+	    ;;
+	    *)
+	    LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
+	    ;;
+	    esac
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1400,6 +1408,10 @@ echo "LINUX=$LINUX"
         elif [[ "$B_REFSW_ARCH" == "arm-linux" ]]; then
                 echo "Toolchain found at "`which arm-linux-gcc`
         elif [[ "$NEW_MIPS" == "y" ]]; then
+                echo "Toolchain found at "`which mipsel-linux-gcc`
+        elif [[ "$B_REFSW_ARCH" == "mips-linux" ]]; then
+                echo "Toolchain found at "`which mips-linux-gcc`
+        elif which mipsel-linux-gcc > /dev/null 2>&1; then
                 echo "Toolchain found at "`which mipsel-linux-gcc`
         elif which mipsel-linux-uclibc-gcc > /dev/null 2>&1; then
                 echo "Toolchain found at "`which mipsel-linux-uclibc-gcc`
