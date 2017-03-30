@@ -13247,6 +13247,10 @@ void BVDC_P_Window_Writer_isr
                  !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
         {
                 eMtgMode = BVDC_P_Buffer_MtgMode_eXdmRepeat;
+
+                hWindow->hBuffer->bMtgXdmDisplay1to1RateRelationship = ((eMtgMode == BVDC_P_Buffer_MtgMode_eXdmRepeat) &&
+                    (hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq ==
+                    BVDC_P_Source_RefreshRate_FromFrameRateCode_isrsafe(hWindow->stCurInfo.hSource->eFrameRateCode)));
         }
 
         pPicture = BVDC_P_Buffer_GetNextWriterNode_isr(hWindow, eFieldId, eMtgMode);
