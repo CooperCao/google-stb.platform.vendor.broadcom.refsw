@@ -1660,6 +1660,10 @@ wlc_fbt_clear_ies(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg)
 {
 	bss_fbt_priv_t *fbt_bss_priv;
 	bss_fbt_info_t *fbt_bss = FBT_BSSCFG_CUBBY(fbt_info, cfg);
+	wlc_fbt_priv_t *fbt_priv = WLC_FBT_PRIV_INFO(fbt_info);
+	wlc_info_t *wlc = fbt_priv->wlc;
+
+	BCM_REFERENCE(wlc);
 
 	if (!fbt_bss)
 		return;
@@ -1667,7 +1671,7 @@ wlc_fbt_clear_ies(wlc_fbt_info_t *fbt_info, wlc_bsscfg_t *cfg)
 
 	wlc_fbt_free_ies(fbt_info, cfg);
 
-	if (fbt_bss_priv->wpa != NULL) {
+	if ((fbt_bss_priv->wpa != NULL) && !WOWL_ACTIVE(wlc->pub)) {
 		wlc_wpapsk_free(fbt_bss_priv->wlc, fbt_bss_priv->wpa);
 	}
 	if (fbt_bss_priv->wpa_info != NULL) {

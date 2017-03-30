@@ -349,7 +349,7 @@ mixed)
     NEW_TOOLCHAIN_PATH=xxx
     ;;
 
-4.1-1.7|4.1-1.8)
+4.1-1.7|4.1-1.8|4.1-1.9)
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
     NEW_MIPS=y
@@ -834,7 +834,7 @@ if [ -z "$NEXUS_PLATFORM" -a -n "$BCHP_VER" ] || [ -n "$NEXUS_PLATFORM" -a -z "$
 fi
 
 if [ "$LINUX_ROOT" == "" ] ; then
-   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.8
+   URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.9
    URSR_ARM64_LINUX_ROOT=$URSR_ARM_LINUX_ROOT
    URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-4.1
 else
@@ -1136,7 +1136,7 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         B0)
 	    case $NEXUS_USE_7425_SV_BOARD in
             y|Y)
-	    LINUX_ROOT=/opt/brcm/linux-4.1-1.8
+	    LINUX_ROOT=/opt/brcm/linux-4.1-1.9
 	    NEW_MIPS=y
 	    ;;
 	    *)

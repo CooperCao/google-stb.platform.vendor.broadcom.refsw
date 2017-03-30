@@ -732,14 +732,8 @@ BERR_Code BVDC_Open
 #ifdef BCHP_PWR_RESOURCE_BVN
     BCHP_PWR_AcquireResource(pVdc->hChip, BCHP_PWR_RESOURCE_BVN);
 #endif
-#ifdef BCHP_PWR_RESOURCE_BVN_SRAM
-    BCHP_PWR_AcquireResource(pVdc->hChip, BCHP_PWR_RESOURCE_BVN_SRAM);
-#endif
 #ifdef BCHP_PWR_RESOURCE_VDC_VEC
     BCHP_PWR_AcquireResource(pVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
-#endif
-#ifdef BCHP_PWR_RESOURCE_VDC_VEC_SRAM
-    BCHP_PWR_AcquireResource(pVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC_SRAM);
 #endif
 
     /* (2) Initalize and start timer */
@@ -886,14 +880,8 @@ BVDC_Open_Done:
 #ifdef BCHP_PWR_RESOURCE_BVN
         BCHP_PWR_ReleaseResource(pVdc->hChip, BCHP_PWR_RESOURCE_BVN);
 #endif
-#ifdef BCHP_PWR_RESOURCE_BVN_SRAM
-        BCHP_PWR_ReleaseResource(pVdc->hChip, BCHP_PWR_RESOURCE_BVN_SRAM);
-#endif
 #ifdef BCHP_PWR_RESOURCE_VDC_VEC
         BCHP_PWR_ReleaseResource(pVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
-#endif
-#ifdef BCHP_PWR_RESOURCE_VDC_VEC_SRAM
-        BCHP_PWR_ReleaseResource(pVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC_SRAM);
 #endif
         BDBG_OBJECT_DESTROY(pVdc, BVDC_VDC);
         BKNI_Free((void*)pVdc);
@@ -1000,14 +988,8 @@ BERR_Code BVDC_Close
 #ifdef BCHP_PWR_RESOURCE_BVN
     BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN);
 #endif
-#ifdef BCHP_PWR_RESOURCE_BVN_SRAM
-    BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN_SRAM);
-#endif
 #ifdef BCHP_PWR_RESOURCE_VDC_VEC
     BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
-#endif
-#ifdef BCHP_PWR_RESOURCE_VDC_VEC_SRAM
-    BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC_SRAM);
 #endif
 
     /* [1] Release main context.   User will be responsible for destroying
@@ -1111,14 +1093,8 @@ BERR_Code BVDC_Standby
 #ifdef BCHP_PWR_RESOURCE_BVN
         BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN);
 #endif
-#ifdef BCHP_PWR_RESOURCE_BVN_SRAM
-        BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN_SRAM);
-#endif
 #ifdef BCHP_PWR_RESOURCE_VDC_VEC
         BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
-#endif
-#ifdef BCHP_PWR_RESOURCE_VDC_VEC_SRAM
-        BCHP_PWR_ReleaseResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC_SRAM);
 #endif
         hVdc->bStandby = true;
         BDBG_MSG(("Entering standby mode!"));
@@ -1145,14 +1121,8 @@ BERR_Code BVDC_Resume
 #ifdef BCHP_PWR_RESOURCE_BVN
         BCHP_PWR_AcquireResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN);
 #endif
-#ifdef BCHP_PWR_RESOURCE_BVN_SRAM
-        BCHP_PWR_AcquireResource(hVdc->hChip, BCHP_PWR_RESOURCE_BVN_SRAM);
-#endif
 #ifdef BCHP_PWR_RESOURCE_VDC_VEC
         BCHP_PWR_AcquireResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC);
-#endif
-#ifdef BCHP_PWR_RESOURCE_VDC_VEC_SRAM
-        BCHP_PWR_AcquireResource(hVdc->hChip, BCHP_PWR_RESOURCE_VDC_VEC_SRAM);
 #endif
 
         if(!hVdc->hTimer)

@@ -199,9 +199,25 @@ Description:
 #endif
 
 #ifdef BCHP_RDC_sync_0_arm
-#define BRDC_P_MAX_SYNC                       (32)
+#define BRDC_P_MAX_SYNC                    (32)
 #endif
 
+/* STC flag support */
+#if BCHP_RDC_stc_flag_5
+#define BRDC_P_STC_FLAG_COUNT              (6)
+#elif BCHP_RDC_stc_flag_4
+#define BRDC_P_STC_FLAG_COUNT              (5)
+#elif BCHP_RDC_stc_flag_3
+#define BRDC_P_STC_FLAG_COUNT              (4)
+#elif BCHP_RDC_stc_flag_2
+#define BRDC_P_STC_FLAG_COUNT              (3)
+#elif BCHP_RDC_stc_flag_1
+#define BRDC_P_STC_FLAG_COUNT              (2)
+#elif BCHP_RDC_stc_flag_0
+#define BRDC_P_STC_FLAG_COUNT              (1)
+#else
+#define BRDC_P_STC_FLAG_COUNT              (0)
+#endif
 
 /***************************************************************************
  * Data Structure
@@ -247,7 +263,7 @@ typedef struct BRDC_P_Handle
 #endif
 
     /* sync */
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     bool                               abSyncUsed[BRDC_P_MAX_SYNC];
 #endif
 } BRDC_P_Handle;

@@ -144,13 +144,20 @@ BERR_Code BRDC_P_SoftReset
     for (i=0; i<32; ++i)
     {
         BKNI_EnterCriticalSection();
-
         /* write address and config */
-        BREG_WriteAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset * i, 0);
+        BREG_WriteAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset * i, 0xbaadf00d);
         BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset * i, ulRegConfig);
-
         BKNI_LeaveCriticalSection();
     }
+
+#ifdef BCHP_RDC_stc_flag_0
+    BDBG_CASSERT(BRDC_P_STC_FLAG_COUNT <= BRDC_MAX_STC_FLAG_COUNT);
+    for(i = 0; i < BRDC_P_STC_FLAG_COUNT; i++)
+    {
+        hRdc->aeStcTrigger[i] = BRDC_Trigger_UNKNOWN;
+        BRDC_P_Write32(hRdc, BCHP_RDC_stc_flag_0 + i*sizeof(uint32_t), 0);
+    }
+#endif
 
     /* PR 10095:
      * RDC can only be used to program BVN registers by default (set at bootup).
@@ -163,6 +170,9 @@ BERR_Code BRDC_P_SoftReset
 #endif
 #ifdef BCHP_SUN_GISB_ARB_REQ_MASK_req_mask_5_MASK
     ulReg &= ~BCHP_SUN_GISB_ARB_REQ_MASK_req_mask_5_MASK;
+#endif
+#ifdef BCHP_SUN_GISB_ARB_REQ_MASK_rdc_0_MASK
+    ulReg &= ~BCHP_SUN_GISB_ARB_REQ_MASK_rdc_0_MASK;
 #endif
     BREG_Write32_isr(hRdc->hReg, BCHP_SUN_GISB_ARB_REQ_MASK, ulReg);
     BKNI_LeaveCriticalSection();
@@ -260,29 +270,33 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
     if( ExecuteOnTrigger )
     {
         ulRegVal &= ~(
+#if (BRDC_P_MAX_SYNC)
+            BCHP_MASK(RDC_desc_0_config, sync_sel       ) |
+#endif
+#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
+            BCHP_MASK(RDC_desc_0_config, high_priority  ) |
+#endif
+#if BCHP_RDC_desc_0_config_count_MASK
+            BCHP_MASK(RDC_desc_0_config, count          ) |
+#endif
             BCHP_MASK(RDC_desc_0_config, enable         ) |
             BCHP_MASK(RDC_desc_0_config, repeat         ) |
-            BCHP_MASK(RDC_desc_0_config, trigger_select )
-#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            | BCHP_MASK(RDC_desc_0_config, high_priority  )
-#endif
-#if BCHP_RDC_desc_0_config_count_MASK
-            | BCHP_MASK(RDC_desc_0_config, count          )
-#endif
-            );
+            BCHP_MASK(RDC_desc_0_config, trigger_select ));
 
         ulRegVal |= (
-            BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1                          ) |
-            BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         bRecurring                 ) |
-            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect               )
+#if (BRDC_P_MAX_SYNC)
+            BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel, hSlot->ulSyncId             ) |
+#endif
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority)
+            BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority) |
 #endif
 #if BCHP_RDC_desc_0_config_count_MASK
-            | BCHP_FIELD_DATA(RDC_desc_0_config, count,      hSlot->hList->ulEntries -1)
+            BCHP_FIELD_DATA(RDC_desc_0_config, count,      hSlot->hList->ulEntries -1) |
 #endif
+            BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1                     ) |
+            BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         bRecurring            ) |
+            BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect          )
             );
-
         BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
 
 #if BCHP_RDC_desc_0_count
@@ -307,32 +321,37 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
                 BCHP_MASK(RDC_desc_0_config, repeat         ));
             ulRegVal |= (
                 BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect) |
-                BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         0));
+                BCHP_FIELD_DATA(RDC_desc_0_config, repeat,                    0));
         }
 
         /* enable descriptor and update count */
         ulRegVal &= ~(
             BCHP_MASK(RDC_desc_0_config, enable )
+#if (BRDC_P_MAX_SYNC)
+            | BCHP_MASK(RDC_desc_0_config, sync_sel     )
+#endif
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            | BCHP_MASK(RDC_desc_0_config, high_priority  )
+            | BCHP_MASK(RDC_desc_0_config, high_priority)
 #endif
 #if BCHP_RDC_desc_0_config_count_MASK
-            | BCHP_MASK(RDC_desc_0_config, count          )
+            | BCHP_MASK(RDC_desc_0_config, count        )
 #endif
             );
 
         ulRegVal |= (
             BCHP_FIELD_DATA(RDC_desc_0_config, enable, 1                          )
+#if (BRDC_P_MAX_SYNC)
+            | BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel, hSlot->ulSyncId        )
+#endif
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority,  hSlot->stSlotSetting.bHighPriority)
+            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority)
 #endif
 #if BCHP_RDC_desc_0_config_count_MASK
-            | BCHP_FIELD_DATA(RDC_desc_0_config, count,          hSlot->hList->ulEntries -1)
+            | BCHP_FIELD_DATA(RDC_desc_0_config, count, hSlot->hList->ulEntries -1)
 #endif
             );
 
         BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
-
 
 #if BCHP_RDC_desc_0_count
         ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_count, count,   hSlot->hList->ulEntries -1);
@@ -479,7 +498,7 @@ BERR_Code BRDC_P_AcquireSync
     ( BRDC_Handle                      hRdc,
       uint32_t                        *pulId )
 {
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     uint32_t i;
     BERR_Code rc = BERR_SUCCESS;
     BDBG_ENTER(BRDC_P_AcquireSync);
@@ -536,7 +555,7 @@ BERR_Code BRDC_P_ReleaseSync
     ( BRDC_Handle                      hRdc,
       uint32_t                         ulId )
 {
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     BDBG_ENTER(BRDC_P_ReleaseSync);
 
     BDBG_ASSERT(hRdc);
@@ -577,7 +596,7 @@ BERR_Code BRDC_P_ArmSync_isr
       uint32_t                         ulSyncId,
       bool                             bArm )
 {
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     uint32_t ulReg;
     uint32_t ulAddr;
     BDBG_ENTER(BRDC_P_ArmSync_isr);

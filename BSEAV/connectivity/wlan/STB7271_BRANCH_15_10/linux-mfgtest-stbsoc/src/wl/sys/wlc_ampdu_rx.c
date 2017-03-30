@@ -226,7 +226,7 @@ static const bcm_iovar_t ampdu_iovars[] = {
 
 /* useful macros */
 #define NEXT_SEQ(seq) MODINC_POW2((seq), SEQNUM_MAX)
-#define NEXT_RX_INDEX(index) MODINC_POW2((index), (wlc->ampdu_rx->config->ba_max_rx_wsize))
+#define NEXT_RX_INDEX(ampdu_rx, index) MODINC_POW2((index), ((ampdu_rx)->config->ba_max_rx_wsize))
 #define RX_SEQ_TO_INDEX(ampdu_rx, seq) ((seq) & (((ampdu_rx)->config->ba_max_rx_wsize) - 1))
 
 #define ABS_SEQ_OFFSET(x) \
@@ -504,7 +504,7 @@ wlc_ampdu_release_ordered(wlc_info_t *wlc, scb_ampdu_rx_t *scb_ampdu, uint8 tid)
 		return;
 
 	for (indx = RX_SEQ_TO_INDEX(wlc->ampdu_rx, resp->exp_seq);
-		AMPDU_IS_PKT_PENDING(wlc, resp, indx); indx = NEXT_RX_INDEX(indx))
+		AMPDU_IS_PKT_PENDING(wlc, resp, indx); indx = NEXT_RX_INDEX(wlc->ampdu_rx, indx))
 	{
 		resp->queued--;
 #ifdef WL_TXQ_STALL
@@ -2114,13 +2114,33 @@ ampdu_cleanup_tid_resp(ampdu_rx_info_t *ampdu_rx, struct scb *scb, uint8 tid)
 
 #ifdef STB_SOC_WIFI
 		if (resp->queued != 0) {
-			printf("%s: resp->queued:%d NOT zero. tid:%d alive:%s seq:%d wsize:%d dead_cnt:%d rxholes:%d\n",
-			__FUNCTION__, resp->queued, resp->tid, resp->alive? "TRUE":"FALSE",
-			resp->exp_seq, resp->ba_wsize, resp->dead_cnt, ampdu_rx->cnt->rxholes);
+			void *p = NULL;
+			int i, seq, indx, number = 0;
+
+			WL_ERROR(("%s: resp->queued:%d NOT zero. Free these queued resp pkts.\n",
+			__FUNCTION__, resp->queued));
+
+			for (i = 0, seq = resp->exp_seq;
+				i < ampdu_rx->config->ba_max_rx_wsize;
+				i++, seq = NEXT_SEQ(seq)) {
+				indx = RX_SEQ_TO_INDEX(ampdu_rx, seq);
+				if (AMPDU_RXQ_HASPKT(resp, indx)) {
+					number++;
+					resp->queued--;
+					p = AMPDU_RXQ_GETPKT(resp, indx);
+					if (p != NULL) {
+						WL_ERROR(("Free pkt #%d, PktSeq:%d indx:%d resp->queued:%d ba_max_rx_wsize:%d\n",
+							number, WLPKTTAG(p)->seq >> SEQNUM_SHIFT, indx, resp->queued,
+							ampdu_rx->config->ba_max_rx_wsize));
+						PKTFREE(ampdu_rx->wlc->osh, p, FALSE);
+						AMPDU_RXQ_CLRPKT(resp, indx);
+					}
+				}
+			}
 		}
-#else
+#else /* STB_SOC_WIFI */
 		ASSERT(resp->queued == 0);
-#endif
+#endif /* STB_SOC_WIFI */
 
 #ifdef WLAMPDU_HOSTREORDER
 		if (AMPDU_HOST_REORDER_ENAB(ampdu_rx->wlc->pub)) {

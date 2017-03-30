@@ -5857,8 +5857,6 @@ wlc_phy_set_regtbl_on_band_change_acphy(phy_info_t *pi)
 	bzero(rxcal_cache, sizeof(rxcal_cache));
 	if (ACMAJORREV_40(pi->pubpi->phy_rev)) {
 	       PHY_ERROR(("FIXME 4347A0: Bypass phy_cal_coeffs_upd in band_change\n"));
-	} else if (ACMAJORREV_37(pi->pubpi->phy_rev)) {
-	       PHY_INFORM(("FIXME 7271: Bypass phy_cal_coeffs_upd in band_change\n"));
 	} else {
 		wlc_phy_txcal_coeffs_upd(pi, txcal_cache);
 		wlc_phy_rxcal_coeffs_upd(pi, rxcal_cache);

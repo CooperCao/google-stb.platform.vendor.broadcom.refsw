@@ -124,12 +124,6 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_BVN[] = {{
     BDBG_STRING("BVN")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_BVN_SRAM[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeaf,
-    BCHP_PWR_RESOURCE_BVN_SRAM,
-    BDBG_STRING("BVN_SRAM")
-}};
-
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_VDC_DAC[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_VDC_DAC,
@@ -140,12 +134,6 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_VDC_VEC[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_VDC_VEC,
     BDBG_STRING("VDC_VEC")
-}};
-
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_VDC_VEC_SRAM[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeaf,
-    BCHP_PWR_RESOURCE_VDC_VEC_SRAM,
-    BDBG_STRING("VDC_VEC_SRAM")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_VDC_656_OUT[] = {{
@@ -1212,10 +1200,8 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_RAAGA0_SRAM,
     BCHP_PWR_P_Resource_VDC,
     BCHP_PWR_P_Resource_BVN,
-    BCHP_PWR_P_Resource_BVN_SRAM,
     BCHP_PWR_P_Resource_VDC_DAC,
     BCHP_PWR_P_Resource_VDC_VEC,
-    BCHP_PWR_P_Resource_VDC_VEC_SRAM,
     BCHP_PWR_P_Resource_VDC_656_OUT,
     BCHP_PWR_P_Resource_VDC_STG0,
     BCHP_PWR_P_Resource_VIP,
@@ -1457,10 +1443,8 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_RAAGA0_SRAM[] = {
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC[] = {
     BCHP_PWR_P_Resource_BVN,
-    BCHP_PWR_P_Resource_BVN_SRAM,
     BCHP_PWR_P_Resource_VDC_DAC,
     BCHP_PWR_P_Resource_VDC_VEC,
-    BCHP_PWR_P_Resource_VDC_VEC_SRAM,
     BCHP_PWR_P_Resource_VDC_656_OUT,
     NULL
 };
@@ -1468,10 +1452,6 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC[] = {
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_BVN[] = {
     BCHP_PWR_P_Resource_HW_BVN_CLK,
     BCHP_PWR_P_Resource_HW_BVN_BVB_GISB_CLK,
-    NULL
-};
-
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_BVN_SRAM[] = {
     BCHP_PWR_P_Resource_HW_BVN_SRAM,
     NULL
 };
@@ -1487,13 +1467,9 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_VEC[] = {
     BCHP_PWR_P_Resource_HW_VEC_BVB_216_CLK,
     BCHP_PWR_P_Resource_HW_VEC_AIO_54_CLK,
     BCHP_PWR_P_Resource_HW_VIP_BVB,
+    BCHP_PWR_P_Resource_HW_VEC_SRAM,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL0_CH1,
     BCHP_PWR_P_Resource_HW_PLL_VCXO_PLL1_CH1,
-    NULL
-};
-
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_VDC_VEC_SRAM[] = {
-    BCHP_PWR_P_Resource_HW_VEC_SRAM,
     NULL
 };
 
@@ -2213,10 +2189,8 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_RAAGA0_SRAM,
     BCHP_PWR_P_Depend_VDC,
     BCHP_PWR_P_Depend_BVN,
-    BCHP_PWR_P_Depend_BVN_SRAM,
     BCHP_PWR_P_Depend_VDC_DAC,
     BCHP_PWR_P_Depend_VDC_VEC,
-    BCHP_PWR_P_Depend_VDC_VEC_SRAM,
     BCHP_PWR_P_Depend_VDC_656_OUT,
     BCHP_PWR_P_Depend_VDC_STG0,
     BCHP_PWR_P_Depend_VIP,

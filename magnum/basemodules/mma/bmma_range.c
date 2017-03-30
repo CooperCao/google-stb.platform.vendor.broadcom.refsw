@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2012-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2012-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,6 +54,7 @@ void BMMA_RangeAllocator_GetDefaultCreateSettings(BMMA_RangeAllocator_CreateSett
     BKNI_Memset(settings, 0, sizeof(*settings));
     settings->minAlignment = sizeof(void *);
     settings->printLeakedRanges = true;
+    settings->allocatorMinFreeSize = 0;
     settings->verbose = true;
     return;
 }
@@ -555,6 +556,57 @@ static bool BMMA_P_RangeAllocator_AllocateInRegion(const struct BMMA_RangeAlloca
     return true;
 }
 
+#define BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS  3
+static BMMA_RangeAllocator_Block_Handle BMMA_RangeAllocator_P_AllocCustom(BMMA_RangeAllocator_Handle a, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_P_RangeAllocator_Allocation *allocation)
+{
+    BMMA_RangeAllocator_Block_Handle b;
+    unsigned nFreeBlocks = 0;
+    const BMMA_RangeAllocator_Region *freeRegions[BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS];
+    BMMA_RangeAllocator_Block_Handle freeBlocks[BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS];
+    BMMA_RangeAllocator_Region block;
+
+    BDBG_OBJECT_ASSERT(a, BMMA_RangeAllocator);
+    for(b=BLST_D_FIRST(&a->blocks);b!=NULL;b=BLST_D_NEXT(b, link)) {
+        unsigned i;
+        if(b->state.allocated || b->state.hole) {
+            continue;
+        }
+        if(b->region.length < a->settings.allocatorMinFreeSize) {
+            continue;
+        }
+        freeBlocks[nFreeBlocks] = b;
+        freeRegions[nFreeBlocks] = &b->region;
+        nFreeBlocks++;
+        if(nFreeBlocks>=BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS) {
+            /* call custom allocator when all slots are filled */
+            int allocated = a->settings.allocator(a->settings.context, freeRegions, nFreeBlocks, size, settings, &block);
+            if(allocated>=0) {
+                BDBG_ASSERT((unsigned)allocated < nFreeBlocks);
+                b = freeBlocks[allocated];
+                BMMA_RangeAllocator_P_PlaceAllocation(a, &b->region, &block, settings, allocation);
+                return b;
+            }
+            BDBG_CASSERT(BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS>0);
+            for(i=0;i<BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS-1;i++) {
+                freeRegions[i] = freeRegions[i+1];
+                freeBlocks[i] = freeBlocks[i+1];
+            }
+            nFreeBlocks = BMMA_P_ALLOC_CUSTOM_MAX_BLOCKS-1;
+        }
+    }
+    if(nFreeBlocks) {
+        /* call custom allocator when all blocks were visited */
+        int allocated = a->settings.allocator(a->settings.context, freeRegions, nFreeBlocks, size, settings, &block);
+        if(allocated>=0) {
+            BDBG_ASSERT((unsigned)allocated < nFreeBlocks);
+            b = freeBlocks[allocated];
+            BMMA_RangeAllocator_P_PlaceAllocation(a, &b->region, &block, settings, allocation);
+            return b;
+        }
+    }
+    return NULL;
+}
+
 static BMMA_RangeAllocator_Block_Handle BMMA_RangeAllocator_P_AllocBestFit(BMMA_RangeAllocator_Handle a, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_P_RangeAllocator_Allocation *best_allocation)
 {
     BMMA_RangeAllocator_Block_Handle b;
@@ -570,11 +622,7 @@ static BMMA_RangeAllocator_Block_Handle BMMA_RangeAllocator_P_AllocBestFit(BMMA_
         if(b->region.length < size) { /* terminate search if encountered free block with size less then requested */
             break;
         }
-        if(a->settings.allocator) {
-            if(!a->settings.allocator(a->settings.context, &b->region, size, settings, &block)) {
-                continue;
-            }
-        } else if(!BMMA_RangeAllocator_AllocateInRegion_InFront(&b->region, size, settings, &block)) {
+        if(!BMMA_RangeAllocator_AllocateInRegion_InFront(&b->region, size, settings, &block)) {
             continue;
         }
         BMMA_RangeAllocator_P_PlaceAllocation(a, &b->region, &block, settings, &allocation);
@@ -636,7 +684,12 @@ BERR_Code BMMA_RangeAllocator_Alloc(BMMA_RangeAllocator_Handle a, BMMA_RangeAllo
         defaultSettings.alignment = alignment;
     }
     settings = &defaultSettings;
-    b = BMMA_RangeAllocator_P_AllocBestFit(a, size, settings, &allocation);
+    if(a->settings.allocator==NULL) {
+        b = BMMA_RangeAllocator_P_AllocBestFit(a, size, settings, &allocation);
+    } else {
+        b = BMMA_RangeAllocator_P_AllocCustom(a, size, settings, &allocation);
+    }
+
     if(b==NULL) {
         if(!a->settings.silent) {
             BDBG_ERR(("%p: Can't allocate block %u alignment %u (RANGE " BDBG_UINT64_FMT ":%u allocated:%u,%u free:%u,%u)", (void *)a, (unsigned)size, alignment, BDBG_UINT64_ARG(a->settings.base), (unsigned)a->settings.size, a->status.allocatedBlocks, (unsigned)a->status.allocatedSpace, a->status.freeBlocks, (unsigned)a->status.freeSpace));

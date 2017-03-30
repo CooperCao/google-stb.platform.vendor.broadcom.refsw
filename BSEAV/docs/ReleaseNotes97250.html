@@ -136,7 +136,7 @@ Broadcom 7250 B0 Set-Top Unified Software Release 17.1
   <td width="52%" valign=top style='width:52.74%;padding:0pt 5.4pt 0pt 5.4pt'>
   <p class=MsoTocHeading>Release Date:</p>
   <p style='margin-top:0pt;margin-right:0pt;margin-bottom:0pt;margin-left:1.75pt;
-  margin-bottom:.0001pt'>March 22, 2017</p>
+  margin-bottom:.0001pt'>March 29, 2017</p>
   <p style='margin-top:0cm;margin-right:0cm;margin-bottom:0cm;margin-left:1.75pt;
   margin-bottom:.0001pt'>Phase 17.1 Release</p>
   <p class=MsoTocHeading>Platforms Supported:</p>
@@ -177,8 +177,8 @@ Extract toolchain, root filesystem and Linux kernel tar balls:
 <ul type=none><li><pre>
 tar -C /opt/toolchains -xf stbgcc-4.8-1.5.tar.bz2
 export PATH=/opt/toolchains/stbgcc-4.8-1.5/bin:$PATH
-tar -xf rootfs-4.1-[1.7|1.8].tar.bz2
-tar -xf stblinux-4.1-1.8.tar.bz2
+tar -xf rootfs-4.1-1.9.tar.bz2
+tar -xf stblinux-4.1-1.9.tar.bz2
 cd rootfs
 make vmlinuz-initrd-arm
 </pre></li></ul>
@@ -230,7 +230,7 @@ Build and Usage Instructions for Atlas
 <li>
 Extract reference software tar ball:
 <ul type=none><li><pre>
-tar -xf refsw_release_unified_20170322.src.tgz
+tar -xf refsw_release_unified_20170329.src.tgz
 </pre></li></ul>
 </li>
 </ul>
@@ -952,7 +952,7 @@ Known Issues
 <ul>
 <li>Board Support: SV, SFF, CWF, DGL, ACFF, 72501 USFF, 72501 SATSFF, CD2</li>
 <li>Chip Rev Support: B0</li>
-<li>Kernel Version: 4.1-1.8</li>
+<li>Kernel Version: 4.1-1.9</li>
 <li>Toolchain: stbgcc-4.8-1.5</li>
 </ul><h4></h4>
 <p>Video Decoder</p>

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its
  * licensors, and may only be used, duplicated, modified or distributed pursuant
@@ -1736,22 +1736,6 @@ NEXUS_Error NEXUS_Platform_GetClientStatus( NEXUS_ClientHandle client, NEXUS_Cli
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
 
-NEXUS_Error NEXUS_Platform_AcquireObject(NEXUS_ClientHandle client, const NEXUS_InterfaceName *type, void *object)
-{
-    BSTD_UNUSED(client);
-    BSTD_UNUSED(type);
-    BSTD_UNUSED(object);
-    return BERR_TRACE(NEXUS_NOT_SUPPORTED);
-}
-
-void NEXUS_Platform_ReleaseObject(const NEXUS_InterfaceName *type, void *object)
-{
-    BSTD_UNUSED(type);
-    BSTD_UNUSED(object);
-    (void)BERR_TRACE(NEXUS_NOT_SUPPORTED);
-    return;
-}
-
 void NEXUS_Platform_GetClientResources( NEXUS_ClientHandle client, NEXUS_ClientResources *pResources )
 {
     BSTD_UNUSED(client);
@@ -1791,18 +1775,22 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
 void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
 {
     const struct b_objdb_client *client_id = b_objdb_get_client();
-    const struct NEXUS_Server *server = g_server;
     NEXUS_ClientHandle client;
 
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+#if NEXUS_SERVER_SUPPORT
+    {
+        const struct NEXUS_Server *server = g_server;
 
-    /* find matching client */
-    for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
-        if(client_id == &client->client_state.client) {
-            *pSettings = client->settings.configuration;
-            return;
+        /* find matching client */
+        for (client = BLST_S_FIRST(&server->clients); client; client = BLST_S_NEXT(client, link)) {
+            if(client_id == &client->client_state.client) {
+                *pSettings = client->settings.configuration;
+                return;
+            }
         }
     }
+#endif
 
     {
         /* if fails, return default configuration */

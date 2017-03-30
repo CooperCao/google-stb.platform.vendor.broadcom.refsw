@@ -614,7 +614,7 @@ phy_ac_calmgr_singleshot(phy_info_t *pi, uint8 searchmode, acphy_cal_result_t *a
 
 	wlc_phy_cals_mac_susp_en_other_cr(pi, FALSE);
 
-	if (!ACMAJORREV_37(pi->pubpi->phy_rev) && !ACMAJORREV_40(pi->pubpi->phy_rev)) {
+	if (!ACMAJORREV_40(pi->pubpi->phy_rev)) {
 		if (!ACMAJORREV_32(pi->pubpi->phy_rev) &&
 			!ACMAJORREV_33(pi->pubpi->phy_rev)) {
 			phy_ac_dssf(pi->u.pi_acphy->rxspuri, TRUE);

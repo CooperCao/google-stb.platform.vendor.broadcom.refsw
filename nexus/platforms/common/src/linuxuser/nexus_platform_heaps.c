@@ -397,7 +397,7 @@ struct NEXUS_Platform_P_AllocatorState {
         BMMA_RangeAllocator_Region firstRegion;
         BMMA_RangeAllocator_Block_Handle heaps[NEXUS_MAX_HEAPS];
         bool realAllocation;
-        bool ignoreFirst;
+        bool hasRegionRestrictedHeaps;
         struct {
             int regions;
             struct NEXUS_Platform_P_AllocatorRange heapRegion[3*NEXUS_MAX_HEAPS];
@@ -424,15 +424,36 @@ static bool NEXUS_Platform_P_AllocateInRegionOne(const BMMA_RangeAllocator_Regio
     }
 }
 
-static bool NEXUS_Platform_P_AllocateInRegion(void *context, const BMMA_RangeAllocator_Region *region, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation)
+static void NEXUS_Platform_P_IntersectRegion(const BMMA_RangeAllocator_Region *src, BMMA_RangeAllocator_Region *dst, NEXUS_Addr base, uint64_t length)
 {
-    struct NEXUS_Platform_P_AllocatorState *state = context;
+    uint64_t src_end = src->base + src->length;
+    uint64_t end = base + length;
+    uint64_t dst_end = end <= src_end ? end : src_end;
+    dst->base = base >= src->base ? base : src->base;
+    if(dst_end > dst->base) {
+        dst->length = dst_end - dst->base;
+    } else {
+        dst->length = 0;
+    }
+    return;
+}
+
+static bool NEXUS_Platform_P_AllocateInRegion(struct NEXUS_Platform_P_AllocatorState *state, bool inFront, const BMMA_RangeAllocator_Region *region, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation)
+{
     const uint64_t _4GB = ((uint64_t)1)<<32;
-    bool inFront = false;
+    BMMA_RangeAllocator_Region tmp;
+
     if( (state->allocator.heapSettings->memoryType & NEXUS_MEMORY_TYPE_HIGH_MEMORY) != NEXUS_MEMORY_TYPE_HIGH_MEMORY) {
         if( (region->base + region->length) > _4GB) {
             return false;
         }
+    }
+    if(state->allocator.heapSettings->placement.region.valid) {
+        NEXUS_Platform_P_IntersectRegion(region, &tmp, state->allocator.heapSettings->placement.region.base, state->allocator.heapSettings->placement.region.length);
+        if(tmp.length==0) {
+            return false;
+        }
+        region = &tmp;
     }
     if(state->allocator.heapSettings->placement.sage) {
         bool crosses=false;
@@ -445,44 +466,122 @@ static bool NEXUS_Platform_P_AllocateInRegion(void *context, const BMMA_RangeAll
         const unsigned _1024M = 1024 * 1024 * 1024;
         if(region->base < _1024M && region->base + region->length > _1024M) {
             crosses = true;
-            newRegion.base = _1024M;
-            newRegion.length = (region->base  + region->length) - _1024M;
-            if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
-                return true;
-            }
-            newRegion.base = region->base;
-            newRegion.length = _1024M - region->base;
-            if(newRegion.base < _256M) {
-                newRegion.length = _1024M - _256M;
-                newRegion.base =_256M;
-            }
-            if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
-                return true;
+            if(inFront) {
+                newRegion.base = region->base;
+                newRegion.length = _1024M - region->base;
+                if(newRegion.base < _256M) {
+                    newRegion.length = _1024M - _256M;
+                    newRegion.base =_256M;
+                }
+                if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
+                    return true;
+                }
+                newRegion.base = _1024M;
+                newRegion.length = (region->base  + region->length) - _1024M;
+                if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
+                    return true;
+                }
+            } else {
+                newRegion.base = _1024M;
+                newRegion.length = (region->base  + region->length) - _1024M;
+                if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
+                    return true;
+                }
+
+                newRegion.base = region->base;
+                newRegion.length = _1024M - region->base;
+                if(newRegion.base < _256M) {
+                    newRegion.length = _1024M - _256M;
+                    newRegion.base =_256M;
+                }
+                if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
+                    return true;
+                }
             }
         }
         if(region->base < _256M && region->base + region->length > _256M) {
-            crosses = false;
-            newRegion.base = _256M;
-            newRegion.length = (region->base + region->length) - _256M;
-            if(newRegion.base + newRegion.length > _1024M) {
-                newRegion.length = _1024M - _256M;
-            }
-            if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
-                return true;
-            }
-            newRegion.base = region->base;
-            newRegion.length = _256M - newRegion.base;
-            if(BMMA_RangeAllocator_AllocateInRegion_InBack(&newRegion, size, settings, allocation)) {
-                return true;
+            crosses = true;
+            if(inFront) {
+                newRegion.base = region->base;
+                newRegion.length = _256M - newRegion.base;
+                if(BMMA_RangeAllocator_AllocateInRegion_InBack(&newRegion, size, settings, allocation)) {
+                    return true;
+                }
+                newRegion.base = _256M;
+                newRegion.length = (region->base + region->length) - _256M;
+                if(newRegion.base + newRegion.length > _1024M) {
+                    newRegion.length = _1024M - _256M;
+                }
+                if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
+                    return true;
+                }
+            } else {
+                newRegion.base = _256M;
+                newRegion.length = (region->base + region->length) - _256M;
+                if(newRegion.base + newRegion.length > _1024M) {
+                    newRegion.length = _1024M - _256M;
+                }
+                if(NEXUS_Platform_P_AllocateInRegionOne(&newRegion, size, settings, allocation, inFront)) {
+                    return true;
+                }
+                newRegion.base = region->base;
+                newRegion.length = _256M - newRegion.base;
+                if(BMMA_RangeAllocator_AllocateInRegion_InBack(&newRegion, size, settings, allocation)) {
+                    return true;
+                }
             }
         }
         if(crosses) {
             return false;
         }
     }
+
     return NEXUS_Platform_P_AllocateInRegionOne(region, size, settings, allocation, inFront);
 }
 
+static int NEXUS_Platform_P_AllocateInRegions(void *context,const BMMA_RangeAllocator_Region **freeRegions, unsigned nFreeRegions, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation)
+{
+    struct NEXUS_Platform_P_AllocatorState *state = context;
+    BDBG_MSG(("NEXUS_Platform_P_AllocateInRegions: nFreeRegions %u", nFreeRegions));
+    if(state->allocator.hasRegionRestrictedHeaps) {
+        if(state->allocator.realAllocation) {
+            bool inFront = true;
+            if(nFreeRegions>=1) {
+                if(state->allocator.heapSettings->placement.first && state->allocator.heapSettings->placement.sage) {
+                   /* inFront = false; */
+                }
+                if(NEXUS_Platform_P_AllocateInRegion(state, inFront, freeRegions[0], size, settings, allocation)) {
+                    BDBG_MSG(("NEXUS_Platform_P_AllocateInRegions: ALLOC: 0 %s %#x..%#x -> %#x..%#x", inFront? "inFront":"", (unsigned)freeRegions[0]->base, (unsigned)(freeRegions[0]->base+freeRegions[0]->length), (unsigned)allocation->base, (unsigned)(allocation->base+allocation->length)));
+                    return 0;
+                }
+            }
+        } else {
+            bool inFront = false;
+            if(nFreeRegions>=2) {
+                if(NEXUS_Platform_P_AllocateInRegion(state, true, freeRegions[1], size, settings, allocation)) {
+                    BDBG_MSG(("NEXUS_Platform_P_AllocateInRegions: PLACE 1 %s %#x..%#x -> %#x..%#x", inFront?"inFront":"", (unsigned)freeRegions[1]->base, (unsigned)(freeRegions[1]->base+freeRegions[1]->length), (unsigned)allocation->base, (unsigned)(allocation->base+allocation->length)));
+                    return 1;
+                }
+            }
+            if(nFreeRegions>=1) {
+                if(NEXUS_Platform_P_AllocateInRegion(state, inFront, freeRegions[0], size, settings, allocation)) {
+                    BDBG_MSG(("NEXUS_Platform_P_AllocateInRegions: PLACE: 0 %s %#x..%#x -> %#x..%#x", inFront? "inFront":"", (unsigned)freeRegions[0]->base, (unsigned)(freeRegions[0]->base+freeRegions[0]->length), (unsigned)allocation->base, (unsigned)(allocation->base+allocation->length)));
+                    return 0;
+                }
+            }
+        }
+    } else {
+        if(nFreeRegions>=1) {
+            bool inFront = false;
+            inFront = false;
+            if(NEXUS_Platform_P_AllocateInRegion(state, inFront, freeRegions[0], size, settings, allocation)) {
+                BDBG_MSG(("NEXUS_Platform_P_AllocateInRegions: SIMPLE0 %s %#x..%#x -> %#x..%#x", inFront? "inFront":"", (unsigned)freeRegions[0]->base, (unsigned)(freeRegions[0]->base+freeRegions[0]->length), (unsigned)allocation->base, (unsigned)(allocation->base+allocation->length)));
+                return 0;
+            }
+        }
+    }
+    return -1;
+}
 
 static bool NEXUS_Platform_P_IterateHeapPlacement(void *context, void *block_header, const BMMA_RangeAllocator_Region *region, bool boundary)
 {
@@ -610,11 +709,12 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
     NEXUS_Error rc;
     BMMA_RangeAllocator_Handle allocator = NULL;
     unsigned stage;
-    unsigned min_heap_allignment;
+    unsigned min_heap_alignment;
+    unsigned max_heap_alignment;
 
     state->allocator.placement.regions = 0;
     state->allocator.realAllocation = realAllocation;
-    state->allocator.ignoreFirst = false;
+    state->allocator.hasRegionRestrictedHeaps = false;
     BKNI_Memset(state->allocator.heaps, 0, sizeof(state->allocator.heaps));
     BDBG_MSG(("MEMC%u %s heaps", memcIndex, realAllocation?"allocating":"sizing"));
 #if 0
@@ -624,9 +724,24 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
     }
 #endif
 
-    min_heap_allignment = max_dcache_line_size;
-    if(min_heap_allignment<4096) {
-        min_heap_allignment = 4096;
+    min_heap_alignment = max_dcache_line_size;
+    if(min_heap_alignment<4096) {
+        min_heap_alignment = 4096;
+    }
+    max_heap_alignment = min_heap_alignment;
+    for(i=0;i<NEXUS_MAX_HEAPS;i++) {
+        if(heap[i].size==0) {
+            continue;
+        }
+        if(heap[i].memcIndex != memcIndex) {
+            continue;
+        }
+        if(max_heap_alignment<heap[i].alignment) {
+            max_heap_alignment = heap[i].alignment;
+        }
+        if(heap[i].placement.region.valid) {
+            state->allocator.hasRegionRestrictedHeaps = true;
+        }
     }
 
     /* 1. Create RangeAllocator for MEMC */
@@ -639,11 +754,11 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
             subIndex++;
             if( length+osMemory[i].base == ((uint64_t)1 << 32)) {
                 BDBG_WRN(("truncating MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", memcIndex, subIndex-1, (unsigned)(osMemory[i].length/(1024*1024)), (unsigned)(length), BDBG_UINT64_ARG(osMemory[i].base)));
-                if(length<=min_heap_allignment) {
+                if(length<=min_heap_alignment) {
                     BDBG_WRN(("skipping MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", memcIndex, subIndex-1, (unsigned)(osMemory[i].length/(1024*1024)), (unsigned)(length), BDBG_UINT64_ARG(osMemory[i].base)));
                     continue;
                 }
-                length-=min_heap_allignment;
+                length-=min_heap_alignment;
             }
             if(allocator==NULL) {
                 BMMA_RangeAllocator_CreateSettings settings;
@@ -655,10 +770,13 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
                 if(settings.base + settings.size == ((uint64_t)1) << 32) {
                     settings.size -=1;
                 }
-                settings.minAlignment = min_heap_allignment;
+                settings.minAlignment = min_heap_alignment;
                 settings.allocationHeader = sizeof(unsigned);
                 settings.context = state;
-                settings.allocator = NEXUS_Platform_P_AllocateInRegion;
+                settings.allocator = NEXUS_Platform_P_AllocateInRegions;
+                if(state->allocator.hasRegionRestrictedHeaps) {
+                    settings.allocatorMinFreeSize = max_heap_alignment;
+                }
                 rc = BMMA_RangeAllocator_Create(&allocator, &settings);
                 if(rc!=BERR_SUCCESS) {
                     return BERR_TRACE(rc);
@@ -678,12 +796,19 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
     /* 2. Allocate heaps with BMMA_RangeAllocator */
     for(stage=0;stage<4;stage++) {
         for(i=0;i<NEXUS_MAX_HEAPS;i++) {
-            unsigned heapIndex = (NEXUS_MAX_HEAPS-1)-i; /* allocate starting from largest number, and allocate from highest addresses */
+            unsigned heapIndex = i;
             size_t heap_size;
             BMMA_RangeAllocator_BlockSettings blockSettings;
             unsigned *header;
             BMMA_DeviceOffset deviceOffset;
 
+            if(!state->allocator.hasRegionRestrictedHeaps) {
+                heapIndex = (NEXUS_MAX_HEAPS-1)-i; /* allocate starting from largest number, and allocate from highest addresses */
+            }
+
+            if(heap[heapIndex].size==0) {
+                continue;
+            }
             if(state->allocator.heaps[heapIndex]) {
                 continue;
             }
@@ -723,12 +848,6 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
             blockSettings.alignment = heap[heapIndex].alignment;
             state->allocator.heapSettings = &heap[heapIndex];
             rc = BMMA_RangeAllocator_Alloc(allocator, &state->allocator.heaps[heapIndex], heap_size, &blockSettings);
-            if(rc!=BERR_SUCCESS && heap[heapIndex].placement.first) {
-                BDBG_WRN(("Trying to place HEAP[%u] ignoring placement.first", heapIndex));
-                state->allocator.ignoreFirst = true;
-                rc = BMMA_RangeAllocator_Alloc(allocator, &state->allocator.heaps[heapIndex], heap_size, &blockSettings);
-                state->allocator.ignoreFirst = false;
-            }
             if(rc!=BERR_SUCCESS) {
                 BDBG_ERR(("MEMC%u Can't place HEAP[%u%s] %uMBytes(%u Bytes) with alignment %#x%s", memcIndex, heapIndex, ((heap[heapIndex].memoryType&NEXUS_MEMORY_TYPE_HIGH_MEMORY)==NEXUS_MEMORY_TYPE_HIGH_MEMORY)?":HIGH":"", (unsigned)(heap_size/(1024*1024)), (unsigned)heap_size,heap[heapIndex].alignment, heap[heapIndex].placement.sage?" SAGE":""));
                 return BERR_TRACE(rc);
@@ -1078,7 +1197,7 @@ static NEXUS_Error NEXUS_Platform_P_CalculateBootParams(struct NEXUS_Platform_P_
 
 static bool NEXUS_Platform_P_TestIntersect(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
 {
-    return (addr1 < addr2+size2) && (addr2 < addr1 + size1);
+    return (addr1 < addr2+size2) && (addr2 < addr1+size1);
 }
 
 static bool NEXUS_Platform_P_TestContain(NEXUS_Addr addr1, size_t size1, NEXUS_Addr addr2, size_t size2)
@@ -1128,6 +1247,12 @@ static NEXUS_Error NEXUS_Platform_P_SetCoreCmaSettings_Verify(const nexus_p_memo
                NEXUS_Platform_P_TestIntersect(region->offset, region->length, _256M, 0) ||
                NEXUS_Platform_P_TestIntersect(region->offset, region->length, _1024M, 0)) {
                 BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " can't cross 256M or 1024M boundary", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length)));
+                return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+            }
+        }
+        if(heap->placement.region.valid) {
+            if(!NEXUS_Platform_P_TestContain(heap->placement.region.base, heap->placement.region.length, region->offset, region->length)) {
+                BDBG_ERR(("heap[%u] at " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " must be placed in " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT " range", i, BDBG_UINT64_ARG(region->offset), BDBG_UINT64_ARG(region->offset+region->length), BDBG_UINT64_ARG(heap->placement.region.base), BDBG_UINT64_ARG(heap->placement.region.base + heap->placement.region.length)));
                 return BERR_TRACE(NEXUS_INVALID_PARAMETER);
             }
         }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -920,10 +920,17 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
 
     if (server->state.active) {
         for (i=0;i<NEXUS_MAX_DISPLAYS;i++) {
-            if ((pSettings->display[i].display != server->settings.display[i].display) ||
-                BKNI_Memcmp(&pSettings->display[i].framebuffer, &server->settings.display[i].framebuffer, sizeof(pSettings->display[i].framebuffer)) ||
-                BKNI_Memcmp(&pSettings->display[i].display3DSettings, &server->settings.display[i].display3DSettings, sizeof(pSettings->display[i].display3DSettings)) ||
-                BKNI_Memcmp(&pSettings->bounceBuffer, &server->settings.bounceBuffer, sizeof(pSettings->bounceBuffer)))
+            if (pSettings->display[i].display != server->settings.display[i].display ||
+                pSettings->display[i].framebuffer.number != server->settings.display[i].framebuffer.number ||
+                pSettings->display[i].framebuffer.width != server->settings.display[i].framebuffer.width ||
+                pSettings->display[i].framebuffer.height != server->settings.display[i].framebuffer.height ||
+                pSettings->display[i].framebuffer.pixelFormat != server->settings.display[i].framebuffer.pixelFormat ||
+                pSettings->display[i].framebuffer.heap != server->settings.display[i].framebuffer.heap ||
+                pSettings->display[i].display3DSettings.overrideOrientation != server->settings.display[i].display3DSettings.overrideOrientation ||
+                pSettings->display[i].display3DSettings.orientation != server->settings.display[i].display3DSettings.orientation ||
+                pSettings->bounceBuffer.width != server->settings.bounceBuffer.width ||
+                pSettings->bounceBuffer.height != server->settings.bounceBuffer.height ||
+                pSettings->bounceBuffer.heap != server->settings.bounceBuffer.heap)
             {
                 BDBG_ERR(("you must disable the surface compositor and wait for the inactiveCallback before changing display settings."));
                 return BERR_TRACE(NEXUS_NOT_AVAILABLE);
@@ -937,7 +944,9 @@ NEXUS_Error NEXUS_SurfaceCompositor_SetSettings( NEXUS_SurfaceCompositorHandle s
     enable_changed = pSettings->enabled != server->settings.enabled;
 
     if (!server->state.active) {
-        if(BKNI_Memcmp(&pSettings->bounceBuffer, &server->settings.bounceBuffer, sizeof(pSettings->bounceBuffer))) {
+        if (pSettings->bounceBuffer.width != server->settings.bounceBuffer.width ||
+            pSettings->bounceBuffer.height != server->settings.bounceBuffer.height ||
+            pSettings->bounceBuffer.heap != server->settings.bounceBuffer.heap) {
             if(server->bounceBuffer.buffer) {
                 NEXUS_Surface_Destroy(server->bounceBuffer.buffer);
                 server->bounceBuffer.buffer = NULL;

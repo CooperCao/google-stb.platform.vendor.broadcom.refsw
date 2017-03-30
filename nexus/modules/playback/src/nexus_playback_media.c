@@ -692,6 +692,7 @@ b_play_media_get_dqt_index(void *cntx, unsigned *index, unsigned *openGopPicture
             }
             return rc;
         }
+#if NEXUS_HAS_SIMPLE_DECODER
         if(pid->cfg.pidSettings.pidType==NEXUS_PidType_eVideo && pid->cfg.pidTypeSettings.video.simpleDecoder) {
             NEXUS_VideoDecoderMultiPassDqtData data;
             int rc = NEXUS_SimpleVideoDecoder_ReadMultiPassDqtData(pid->cfg.pidTypeSettings.video.simpleDecoder, &data);
@@ -701,6 +702,7 @@ b_play_media_get_dqt_index(void *cntx, unsigned *index, unsigned *openGopPicture
             }
             return rc;
         }
+#endif
     }
     return -1;
 }
