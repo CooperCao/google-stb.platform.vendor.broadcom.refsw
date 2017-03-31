@@ -616,16 +616,27 @@ typedef struct BVDC_P_BufferContext
     bool                          bRepeatForGap;
 #endif
 
-    /* This is effective while in MTG mode only. Indicates that the relationship
+    /* This is effective while in MtgMode_eMadPhase only. Indicates that the relationship
      * between the display rate and the rate at which the desired pictures coming out
      * of the deinterlacer is about 1:1. Specifically a display rate of 24Hz (or 25Hz)
-     * and a deinterlacer detecting a 3:2 cadence, the corresponding rate at which
+     * and a deinterlacer detecting a 3:2 (or 2:1) cadence, the corresponding rate at which
      * the desired pictures comes out of the deinterlacer is 24Hz; hence, about a 1:1
      * rate relationship. This is needed by the multibuffering algorithm to ensure a
      * gap of 1 exists between writer and reader to prevent tearing. Refer to the
      * multi-buffer algorithm's MTG timeline analysis.
      */
     bool                          bMtgMadDisplay1To1RateRelationship;
+
+    /* This is effective while in MtgMode_eXdmRepeat only. It indicates that the relationship
+     * between the display rate and the rate at which the pictures coming out
+     * of the XDM after dropping the repeated pictures is about 1:1. For example,
+     * if the source's native rate is 24Hz, the XDM  will send pictures out at 60Hz in
+     * a 3:2 cadence with repeats. The multiibuffering algorithm, in turn, drops the repeats,
+     * which essentially results in a 1:1 source-display relationship. This helps the
+     * multibuffering algorithm decide whether to enforce a rate gap between writer and reader
+     * and is meant to prevent tearing.
+     */
+    bool                          bMtgXdmDisplay1to1RateRelationship;
 
     /* This is effective while in MTG mode only and the associated deinterlacer is
      * disabled. This indicates that the repeated pictures sent by the DM are to be
