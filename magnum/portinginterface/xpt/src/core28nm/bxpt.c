@@ -996,7 +996,9 @@ BERR_Code BXPT_Standby(
     rc = BXPT_P_Mcpb_Standby(hXpt);
     if (rc) return BERR_TRACE(rc);
 
-    BXPT_P_PMUMemPwr_Control(hXpt->hRegister, false, pSettings);
+    if (pSettings->S3Standby) {
+        BXPT_P_PMUMemPwr_Control(hXpt->hRegister, false, pSettings);
+    }
 
 #ifdef BCHP_PWR_RESOURCE_XPT_SRAM
     BCHP_PWR_ReleaseResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_SRAM);
@@ -1047,7 +1049,9 @@ BERR_Code BXPT_Resume(
 
     /* required before any XPT register access */
     BREG_Write32(hXpt->hRegister, BCHP_XPT_PMU_CLK_CTRL, 0);
-    BXPT_P_PMUMemPwr_Control(hXpt->hRegister, true, NULL);
+    if( hXpt->bS3Standby ) {
+        BXPT_P_PMUMemPwr_Control(hXpt->hRegister, true, NULL);
+    }
 
 #ifdef BCHP_PWR_RESOURCE_XPT_SRAM
     BCHP_PWR_AcquireResource(hXpt->hChip, BCHP_PWR_RESOURCE_XPT_SRAM);
