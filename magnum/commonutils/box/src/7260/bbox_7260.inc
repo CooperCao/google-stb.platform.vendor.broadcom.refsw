@@ -52,6 +52,7 @@ BBOX_INCLUDES += \
 
 BBOX_SOURCES += \
         $(MAGNUM)/commonutils/box/src/common/bbox_priv_vce_nop.c \
+        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_priv_xvd.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_priv_vdc.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_vdc_box1_config.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP)/$(BCHP_VER_LOWER)/bbox_rts_box1.c \
@@ -74,7 +75,6 @@ BBOX_SOURCES += \
 
 # 7260 and 7250 box mode 2 are identical
 BBOX_SOURCES += \
-        $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP_OVERRIDE)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_priv_xvd.c \
         $(MAGNUM)/commonutils/box/src/$(BCHP_CHIP_OVERRIDE)/$(BCHP_VER_LOWER_OVERRIDE)/bbox_vdc_box2_config.c
 
 #
