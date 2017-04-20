@@ -40,6 +40,7 @@
 ******************************************************************************/
 #include "nexus_security_module.h"
 #include "priv/nexus_security_priv.h"
+#include "priv/nexus_security_regver_priv.h"
 #include "priv/nexus_core.h"
 #include "bhsm.h"
 #include "bhsm_verify_reg.h"
@@ -59,11 +60,6 @@
 #include "nexus_security_regver_key_stub.c"
 #endif
 
-#if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-#include <stdio.h>
-#endif
-
-
 #define MIN(a,b) ((a<b)?(a):(b))
 
 /* OTP enums */
@@ -75,47 +71,8 @@
 #define OTP_ENUM_SID    (142)
 #define OTP_ENUM_SAGE_FSBL (209)
 
-/* Offset to paramters in signature header. */
-#define SIGNATURE_HEADER_OFFSET_SVP_REL_VER    (1)
-#define SIGNATURE_HEADER_OFFSET_CPU_TYPE       (2)
-#define SIGNATURE_HEADER_OFFSET_MARKET_ID      (4)
-#define SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK (8)
-#define SIGNATURE_HEADER_OFFSET_EPOCH_SELECT   (13)
-#define SIGNATURE_HEADER_OFFSET_EPOCH_MASK     (14)
-#define SIGNATURE_HEADER_OFFSET_EPOCH          (15)
-#define SIGNATURE_HEADER_OFFSET_SIG_VERSION    (16)
-#define SIGNATURE_HEADER_OFFSET_SIG_TYPE       (17)
-
 #define DEFAULT_RSA_KEY_INDEX                  (2)
 #define INVALID_RSA_KEY_INDEX                  (0xFFFFFFFF)
-
-/*
-    Verification data and state for one region.
-*/
-typedef struct {
-    bool verificationSupported;               /* Region verifcation is supported for this component. */
-    NEXUS_SecurityRegverRegionID regionId;    /* The Id of this region. */
-    bool verificationRequired;                /* OTP requires region to be verifed. */
-    bool verified;                            /* Region has been verifed. */
-
-    uint8_t* pSignature;                      /* points to signature of region. Includes header at end. */
-    NEXUS_SecuritySignedAtrributes signedAttributes; /* paramters that the signature is signed against */
-
-    unsigned rsaKeyIndex;                     /* The RSA key index */
-    bool useManagedRsaKey;                    /* if true, use the RSA key managed by NEXUS. */
-    bool enableInstructionChecker;            /* Required for SAGE/BHSM_SUPPORT_HDDTA */
-    bool enableBackgroundChecker;             /* Required for SAGE */
-    unsigned scmVersion;                      /* Required for BHSM_SUPPORT_HDDTA */
-
-    uint8_t epochSelect;                      /* todo ... will be read from signature file */
-
-    NEXUS_SecurityVirtualKeyladderID  keyLadderId;     /* Requried for SCPU FSBL region */
-    NEXUS_SecurityKeySource           keyLadderLayer;  /* Requried for SCPU FSBL region*/
-
-    char description[30];                     /* textual description of region. */
-    bool enforceAuthentication;               /* force verification */
-
-}regionData_t;
 
 /*  Region Verification module data.  */
 typedef struct {
@@ -132,21 +89,14 @@ static regionVerificationModuleData_t gRegVerModuleData; /* module data instance
 BDBG_MODULE(nexus_security_verify_reg);
 
 static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize );
-static NEXUS_Error calculateCpuType( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region );
 #define initialiseRegion(region,otpIndex,enf) initialiseRegion_dbg(region,otpIndex,enf,#region)
 static void initialiseRegion_dbg( NEXUS_SecurityRegverRegionID regionId,
                                      BCMD_Otp_CmdMsp_e otpIndex,
                                      bool enforceAuthentication,
                                      char * pRegionStr );
-static regionData_t* getRegionData( NEXUS_SecurityRegverRegionID regionId );
 static NEXUS_Error disableRegion( NEXUS_SecurityRegverRegionID regionId );
 
 static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, const uint8_t* pSignature );
-
-
-#if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize );
-#endif
 
 
 static NEXUS_Error loadDefaultRegionVerificationKey(void);
@@ -163,7 +113,7 @@ static NEXUS_Error loadSignature( unsigned regionId,  const uint8_t *pSigData )
 
     BDBG_ASSERT( regionId < NEXUS_REGVER_MAX_REGIONS );
 
-    pRegionData = getRegionData( regionId );
+    pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
 
     if( pRegionData == NULL )
     {
@@ -442,7 +392,7 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityReg
         NEXUS_Security_RegionQueryInformation_priv( &regionSatus );
         for( x = 0; x < NEXUS_REGVER_MAX_REGIONS; x++ )
         {
-            pRegionData = getRegionData( x );
+            pRegionData = NEXUS_Security_GetRegionData_priv( x );
 
             if( pRegionData )
             {
@@ -478,7 +428,7 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( const NEXUS_SecurityReg
         /* lite initialisation if already initialised. Will be executed on exit from S3*/
         for( x = 0; x < NEXUS_REGVER_MAX_REGIONS; x++ )
         {
-            pRegionData = getRegionData( x );
+            pRegionData = NEXUS_Security_GetRegionData_priv( x );
 
             if( pRegionData )
             {
@@ -503,7 +453,7 @@ void NEXUS_Security_RegionVerification_UnInit_priv( void )
     /* Disable region verification  */
     for( regionId = 0; regionId < NEXUS_REGVER_MAX_REGIONS; regionId++ )
     {
-        pRegionData = getRegionData( regionId );
+        pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
         if( pRegionData )
         {
             if( pRegionData->verified )
@@ -647,7 +597,7 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
     NEXUS_ASSERT_MODULE();
 
     #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
-     dumpFirmwareBinary( regionId, regionAddress, regionSize );
+     NEXUS_Security_DumpFirmwareBinary_priv( regionId, regionAddress, regionSize );
     #endif
 
     NEXUS_Security_GetHsm_priv( &hHsm );
@@ -656,7 +606,7 @@ NEXUS_Error NEXUS_Security_RegionVerifyEnable_priv( NEXUS_SecurityRegverRegionID
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    pRegionData = getRegionData( regionId );
+    pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
     if( pRegionData == NULL ) {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
     }
@@ -752,7 +702,7 @@ void NEXUS_Security_RegionVerifyDisable_priv( NEXUS_SecurityRegverRegionID regio
         return;
     }
 
-    pRegionData = getRegionData( regionId );
+    pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
     if( pRegionData == NULL ) {
         BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
         return;
@@ -789,7 +739,7 @@ bool  NEXUS_Security_RegionVerification_IsRequired_priv( NEXUS_SecurityRegverReg
     BDBG_ENTER( NEXUS_Security_RegionVerification_IsRequired_priv );
     NEXUS_ASSERT_MODULE();
 
-    pRegionData = getRegionData( regionId );
+    pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
     if( pRegionData == NULL ) {
         (void)BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
         return true;
@@ -820,7 +770,7 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    pRegionData = getRegionData( regionId );
+    pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
     if( pRegionData == NULL ) {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
     }
@@ -894,7 +844,7 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
     regionConfiguration.unRSAKeyID               = pRegionData->rsaKeyIndex;
     regionConfiguration.codeRelocatable          = BHSM_CodeLocationRule_eRelocatable;
 
-    if( calculateCpuType ( &(regionConfiguration.cpuType), regionId ) != NEXUS_SUCCESS )
+    if( NEXUS_Security_CalculateCpuType_priv ( &(regionConfiguration.cpuType), regionId ) != NEXUS_SUCCESS )
     {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Unsupported region. */
     }
@@ -958,7 +908,7 @@ NEXUS_Error disableRegion( NEXUS_SecurityRegverRegionID regionId )
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    pRegionData = getRegionData( regionId );
+    pRegionData = NEXUS_Security_GetRegionData_priv( regionId );
     if( pRegionData == NULL ) {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
     }
@@ -1058,7 +1008,7 @@ NEXUS_Error NEXUS_Security_RegionQueryInformation_priv( NEXUS_SecurityRegionInfo
 Summary
     Determine the CPU type from the region ID
 */
-static NEXUS_Error calculateCpuType( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region )
+NEXUS_Error NEXUS_Security_CalculateCpuType_priv( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_SecurityRegverRegionID region )
 {
     BERR_Code rc = NEXUS_SUCCESS;
 
@@ -1174,135 +1124,6 @@ static NEXUS_Error calculateCpuType( BCMD_MemAuth_CpuType_e *pCpuType, NEXUS_Sec
 
 /*
 Summary
-    Function to dump the FIRMWARE binary to file.
-*/
-#if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-static void dumpFirmwareBinary( NEXUS_SecurityRegverRegionID regionId, NEXUS_Addr regionAddress, unsigned regionSize )
-{
-    FILE *pFile = NULL;
-    char fileName[256] = {0};
-    unsigned written = 0;
-    BCMD_MemAuth_CpuType_e cpuType;
-    NEXUS_Error rc;
-    char buffer[4];
-    unsigned i;
-    regionData_t *pRegionData;
-    void *pRegion;
-
-    BDBG_ENTER( dumpFirmwareBinary );
-
-    pRegion = NEXUS_OffsetToCachedAddr( regionAddress );
-    if( !pRegion )  {
-        BERR_TRACE( NEXUS_INVALID_PARAMETER );
-        return;
-    }
-
-    pRegionData = getRegionData( regionId );
-    if( pRegionData == NULL ) {
-        BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Currently unsupported Region ID */
-        return;
-    }
-
-    if( regionSize > 0)
-    {
-        rc = calculateCpuType( &cpuType, regionId );
-        if( rc != NEXUS_SUCCESS )
-        {
-            BERR_TRACE(rc);
-            return;
-        }
-
-        sprintf( fileName, "firmware_zeus%d%d_cpuType%02d_region0x%02X_%s%s.bin", NEXUS_SECURITY_ZEUS_VERSION_MAJOR
-                                                                             , NEXUS_SECURITY_ZEUS_VERSION_MINOR
-                                                                             , (unsigned)cpuType
-                                                                             , regionId
-                                                                             , pRegionData->description
-                                                                             #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-                                                                             , "_raw"
-                                                                             #else
-                                                                             , "_formatted"
-                                                                             #endif
-                                                                             );
-
-        BDBG_WRN(( "Dumping Firmware to %s  size[%d]", fileName, regionSize ));
-
-        pFile = fopen( fileName, "wb" );
-
-        if( pFile == NULL )
-        {
-            BDBG_ERR(( "Could not open file to dump firmware. Make sure to do chmod 777 -R <directory from which the app executable is being run>" ));
-            return;
-        }
-
-        if( regionId == NEXUS_SecurityRegverRegionID_eRave )  /* reverse endian for RAVE .. and mask out some bytes!*/
-        {
-            for ( i = 0; i < (regionSize/4); i++ )
-            {
-                unsigned tmp = ((uint32_t*)pRegion)[i];
-                buffer[0] = 0/*tmp >> 24*/;
-                buffer[1] = (tmp>>16) & 0x3F;
-                buffer[2] = (tmp>>8 ) & 0xFF;
-                buffer[3] = (tmp    ) & 0xFF;
-                written += fwrite( buffer, 1, 4, pFile );
-            }
-        }
-        else
-        {
-            for ( i = 0; i < (regionSize/4); i++ )
-            {
-                unsigned tmp = ((uint32_t*)pRegion)[i];
-                buffer[0] = (tmp >> 24);
-                buffer[1] = (tmp >> 16) & 0xFF;
-                buffer[2] = (tmp >> 8 ) & 0xFF;
-                buffer[3] = (tmp      ) & 0xFF;
-                written += fwrite( buffer, 1, 4, pFile );
-            }
-        }
-
-        if( written != regionSize )
-        {
-            BDBG_ERR(( "*****Failed to write FW [%s] size[%d] written[%d]", fileName, regionSize, written ));
-        }
-    }
-
-    #ifndef NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-    {
-        uint8_t header[256] = {0}; /* data to be added to end of firmware file for signing. */
-        unsigned headerLength = 0;
-
-        /* See command manual for description of header*/
-        header[SIGNATURE_HEADER_OFFSET_CPU_TYPE]  = cpuType & 0xFF;
-        BKNI_Memset( &header[SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK], 0xFF, 4);
-        header[SIGNATURE_HEADER_OFFSET_EPOCH_MASK]   = 0xFF;
-        headerLength = 16;
-       #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-        header[SIGNATURE_HEADER_OFFSET_EPOCH_SELECT] = pRegionData->epochSelect;
-        header[SIGNATURE_HEADER_OFFSET_SIG_VERSION]  = 0x01;  /*Default signature version*/
-        header[SIGNATURE_HEADER_OFFSET_SIG_TYPE]     = BCMD_SigType_eCode; /* Default signature type */
-        headerLength = 20; /*update length*/
-       #endif
-
-        for( i = 0, written = 0; i < headerLength; i++ )
-        {
-            written += fwrite( &header[i], 1, 1, pFile );
-        }
-
-        if( written != headerLength )
-        {
-            BDBG_ERR(( "*****Failed to write FW extension [%s] size[%d] written[%d]", fileName, headerLength, written ));
-        }
-    }
-    #endif
-
-    if( pFile ) fclose( pFile );
-
-    BDBG_LEAVE( dumpFirmwareBinary );
-    return;
-}
-#endif
-
-/*
-Summary
     Extract configuration paramters embedded in the augmented/extended signature.
 */
 static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, const uint8_t* pSignature )
@@ -1319,24 +1140,24 @@ static void parseSignatureHeader( NEXUS_SecuritySignedAtrributes *pSigHeader, co
     pRaw = (uint8_t*)(pSignature + NEXUS_REGIONVERIFY_SIGNATURE_SIZE); /* header is just after the signature */
 
 
-    pSigHeader->cpuType  = pRaw[SIGNATURE_HEADER_OFFSET_CPU_TYPE];
-    pSigHeader->marketId =     (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID+0] << 24) +
-                               (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID+1] << 16) +
-                               (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID+2] << 8)  +
-                               (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID+3] << 0);
+    pSigHeader->cpuType  = pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_CPU_TYPE];
+    pSigHeader->marketId =     (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID+0] << 24) +
+                               (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID+1] << 16) +
+                               (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID+2] << 8)  +
+                               (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID+3] << 0);
 
-    pSigHeader->marketIdMask = (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+0] << 24) +
-                               (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+1] << 16) +
-                               (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+2] << 8)  +
-                               (pRaw[SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+3] << 0);
+    pSigHeader->marketIdMask = (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+0] << 24) +
+                               (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+1] << 16) +
+                               (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+2] << 8)  +
+                               (pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_MARKET_ID_MASK+3] << 0);
 
-    pSigHeader->epochMask =  pRaw[SIGNATURE_HEADER_OFFSET_EPOCH_MASK];
-    pSigHeader->epoch =  pRaw[SIGNATURE_HEADER_OFFSET_EPOCH];
+    pSigHeader->epochMask =  pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_EPOCH_MASK];
+    pSigHeader->epoch =  pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_EPOCH];
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-    pSigHeader->svpFwReleaseVersion = pRaw[SIGNATURE_HEADER_OFFSET_SVP_REL_VER];
-    pSigHeader->epochSelect = pRaw[SIGNATURE_HEADER_OFFSET_EPOCH_SELECT];
-    pSigHeader->signatureVersion =  pRaw[SIGNATURE_HEADER_OFFSET_SIG_VERSION];
-    pSigHeader->signatureType =  pRaw[SIGNATURE_HEADER_OFFSET_SIG_TYPE];
+    pSigHeader->svpFwReleaseVersion = pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_SVP_REL_VER];
+    pSigHeader->epochSelect = pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_EPOCH_SELECT];
+    pSigHeader->signatureVersion =  pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_SIG_VERSION];
+    pSigHeader->signatureType =  pRaw[NEXUS_SECURITY_P_SIGNATURE_HEADER_OFFSET_SIG_TYPE];
    #endif
 
     BDBG_LEAVE( parseSignatureHeader );
@@ -1382,7 +1203,7 @@ static void cropDescriptionFromStr( char* pDest, unsigned destSize, char* pStr )
 Summary
     Return module data associated with region.
 */
-static regionData_t* getRegionData( NEXUS_SecurityRegverRegionID regionId )
+regionData_t* NEXUS_Security_GetRegionData_priv( NEXUS_SecurityRegverRegionID regionId )
 {
     regionData_t* pRegionData = NULL;
 

@@ -108,6 +108,7 @@ NEXUS_OS_ABSTRACTION := \
     PLATFORM/nexus_platform_cma.c \
     PLATFORM/qdivrem.c \
     BASE/nexus_base_os.c \
+    SECURITY/nexus_security_regver_dump.c \
     $(foreach module, $(NEXUS_MODULES), $(module)/nexus_$(shell echo $(module)|tr '[:upper:]' '[:lower:]')_kernel_export.c)
 NEXUS_OS_ABSTRACTION_OBJECTS := $(addprefix $(NEXUS_OBJ_DIR)/,$(patsubst %.c,%.$(NEXUS_OBJ_SUFFIX),$(NEXUS_OS_ABSTRACTION)))
 MAGNUM_OS_ABSTRACTION := \

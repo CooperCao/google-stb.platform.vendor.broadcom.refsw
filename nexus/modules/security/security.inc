@@ -77,6 +77,11 @@ ifneq ($(HSM_SOURCE_AVAILABLE),n)
   NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_security_misc.c
   ifeq ($(filter $(CORETECH), core40nm core28nm ),$(CORETECH))
     NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_security_regver.c
+    ifeq ($(findstring $(B_REFSW_OS), linuxkernel),${B_REFSW_OS})
+       NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/linuxkernel/nexus_security_regver_dump.c
+    else
+       NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/linuxuser/nexus_security_regver_dump.c
+    endif
     NEXUS_SECURITY_FW_SIGN ?= y
   endif
     NEXUS_SECURITY_SOURCES += $(NEXUS_TOP)/modules/security/src/nexus_region_verification.c
