@@ -200,6 +200,10 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 	{
 		BSYNClib_DelayElement_Reset_isr(psCurrent);
 	}
+	else if (sElementDiffResults.eLifecycleEvent == BSYNClib_DelayElement_LifecycleEvent_eStopped)
+	{
+        psSource->sResults.bMuteLastStarted = false;
+	}
 
 	/* create "desired" delay element config */
 	sDesired = *psCurrent;
@@ -233,6 +237,7 @@ BERR_Code BSYNClib_AudioSource_P_ProcessConfig_isr(
 			if (!psSource->sElement.sData.bStarted)
 			{
 				psSource->sResults.bMutePending = true;
+				psSource->sResults.bMuteLastStarted = false;
 			}
 			else
 			{

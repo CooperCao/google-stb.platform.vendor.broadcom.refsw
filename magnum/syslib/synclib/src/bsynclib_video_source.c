@@ -450,6 +450,10 @@ BERR_Code BSYNClib_VideoSource_P_ProcessConfig_isr(BSYNClib_VideoSource * psSour
             psSource->sElement.sDelay.sResults.uiApplied = psSource->sElement.sDelay.sResults.uiDesired;
 		}
 	}
+	else if (sElementDiffResults.eLifecycleEvent == BSYNClib_DelayElement_LifecycleEvent_eStopped)
+    {
+	    psSource->sResults.bMuteLastStarted = false;
+    }
 
 	/* create "desired" delay element config from current plus changes */
 	sDesired = *psCurrent;
@@ -488,6 +492,7 @@ BERR_Code BSYNClib_VideoSource_P_ProcessConfig_isr(BSYNClib_VideoSource * psSour
 			if (!psSource->sElement.sData.bStarted)
 			{
 				psSource->sResults.bMutePending = true;
+				psSource->sResults.bMuteLastStarted = false;
 			}
 			else
 			{
