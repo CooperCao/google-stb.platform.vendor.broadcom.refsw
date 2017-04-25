@@ -90,6 +90,7 @@ struct media_player
     struct {
         NxClient_AllocResults allocResults;
         unsigned connectId;
+        unsigned persistentMasterConnectId;
     } audio;
     NEXUS_SimpleVideoDecoderStartSettings videoProgram;
     NEXUS_SimpleAudioDecoderStartSettings audioProgram;

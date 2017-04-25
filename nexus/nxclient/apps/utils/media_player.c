@@ -201,6 +201,37 @@ static bool media_player_p_test_disconnect(media_player_t player, NEXUS_SimpleVi
          player->colorDepth != player->videoDecoderSettings.colorDepth);
 }
 
+static int media_player_p_connect_persistents(media_player_t player)
+{
+    NxClient_ConnectSettings audioConnectSettings;
+    int rc;
+
+    if (!player->master || !player->audio.allocResults.simpleAudioDecoder.id) {
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+    if (!player->create_settings.audio.usePersistent) {
+        BDBG_ERR(("media_player_p_connect_persistents should only used for connecting persisent decoders"));
+        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+    }
+
+    NxClient_GetDefaultConnectSettings(&audioConnectSettings);
+    audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
+    audioConnectSettings.simpleAudioDecoder.decoderCapabilities.type = NxClient_AudioDecoderType_ePersistent;
+
+    if (player->master && player->master->audio.persistentMasterConnectId != 0) {
+        audioConnectSettings.simpleAudioDecoder.primer = true;
+    }
+
+    rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
+    if (rc) return BERR_TRACE(rc);
+
+    if (player->master && player->master->audio.persistentMasterConnectId == 0) {
+        player->master->audio.persistentMasterConnectId = player->audio.connectId;
+    }
+
+    return 0;
+}
+
 /* connect client resources to server's resources */
 static int media_player_p_connect(media_player_t player)
 {
@@ -223,7 +254,11 @@ static int media_player_p_connect(media_player_t player)
         media_player_t p;
 
         if (player->master->mosaic_start_count) {
-            /* already connected */
+            /* already connected but get connectIds for persistent decoders */
+            if (player->create_settings.audio.usePersistent) {
+                rc = media_player_p_connect_persistents(player);
+                if (rc) return BERR_TRACE(rc);
+            }
             player->master->mosaic_start_count++;
             return 0;
         }
@@ -276,6 +311,7 @@ static int media_player_p_connect(media_player_t player)
         if (player->audioProgram.primary.pidChannel) {
             connectSettings.simpleAudioDecoder.id = player->allocResults.simpleAudioDecoder.id;
             connectSettings.simpleAudioDecoder.primer = (player->start_settings.audio_primers == media_player_audio_primers_immediate);
+            connectSettings.simpleAudioDecoder.decoderCapabilities.type = (player->create_settings.audio.usePersistent ? NxClient_AudioDecoderType_ePersistent : NxClient_AudioDecoderType_eDynamic);
         }
 #endif
     }
@@ -901,6 +937,12 @@ int media_player_start( media_player_t player, const media_player_start_settings
         NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder, NEXUS_SimpleAudioDecoderSelector_ePrimary, &settings);
     }
 
+    /* special start settings for persistent decode */
+    if (player->create_settings.audio.usePersistent) {
+        player->audioProgram.primary.mixingMode = player->start_settings.audio.mixingMode;
+        player->audioProgram.master = player->start_settings.audio.master;
+    }
+
     /* special start settings based on codec */
     switch (player->audioProgram.primary.codec) {
     case NEXUS_AudioCodec_eAc4: player->audioProgram.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eStandalone; break;
@@ -1125,16 +1167,39 @@ int media_player_switch_audio(media_player_t player)
     if (!player->master || !player->audio.allocResults.simpleAudioDecoder.id) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
-    if (player->audio.connectId) {
-        rc = NxClient_RefreshConnect(player->audio.connectId);
-        if (rc) return BERR_TRACE(rc);
+    if (!player->create_settings.audio.usePersistent) {
+        if (player->audio.connectId) {
+            rc = NxClient_RefreshConnect(player->audio.connectId);
+            if (rc) return BERR_TRACE(rc);
+        }
+        else {
+            NxClient_ConnectSettings audioConnectSettings;
+            NxClient_GetDefaultConnectSettings(&audioConnectSettings);
+            audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
+            rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
     else {
-        NxClient_ConnectSettings audioConnectSettings;
-        NxClient_GetDefaultConnectSettings(&audioConnectSettings);
-        audioConnectSettings.simpleAudioDecoder.id = player->audio.allocResults.simpleAudioDecoder.id;
-        rc = NxClient_Connect(&audioConnectSettings, &player->audio.connectId);
-        if (rc) return BERR_TRACE(rc);
+        if (player->audio.connectId)
+        {
+            if (player->master && player->master->audio.persistentMasterConnectId != 0)
+            {
+                NxClient_ReconfigSettings reconfig;
+                NxClient_GetDefaultReconfigSettings(&reconfig);
+                reconfig.command[0].connectId1 = player->audio.connectId;
+                reconfig.command[0].connectId2 = player->master->audio.persistentMasterConnectId;
+                reconfig.command[0].type = NxClient_ReconfigType_eRerouteAudio;
+                rc = NxClient_Reconfig(&reconfig);
+                if (rc) return BERR_TRACE(rc);
+                player->master->audio.persistentMasterConnectId = player->audio.connectId;
+
+            }
+        }
+        else {
+            rc = media_player_p_connect_persistents(player);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
     return 0;
 }

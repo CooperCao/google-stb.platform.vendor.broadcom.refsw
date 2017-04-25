@@ -108,7 +108,7 @@ static void print_usage(void)
     "  -standby_timeout X \tnumber of seconds to wait for clients to acknowledge standby\n"
     "  -heap NAME,SIZE    \tNAME is {main|gfx|gfx2|client|video_secure|export}. Use M or K suffix for units.\n"
     "  -audio_description \tenable audio description\n"
-    "  -persistent_sad \tenable support for persistent simple audio decoders\n"
+    "  -persistent_audio \tenable support for persistent simple audio decoders\n"
     "  -loudness [atsc|ebu]\tenable ATSC A/85 or EBU-R128 loudness equivalence.\n"
     "  -spdif4xCompressed \tenable support for spdif to output DDP compressed\n"
     );
@@ -931,7 +931,7 @@ static int nxserver_parse_cmdline_aux(int argc, char **argv, struct nxserver_set
         else if (!strcmp(argv[curarg], "-karaoke")) {
             settings->session[0].karaoke = true;
         }
-        else if (!strcmp(argv[curarg], "-persistent_sad")) {
+        else if (!strcmp(argv[curarg], "-persistent_audio") || !strcmp(argv[curarg], "-persistent_sad")) {
             settings->session[0].persistentDecoderSupport = true;
         }
         else if (!strcmp(argv[curarg], "-spdif4xCompressed")) {

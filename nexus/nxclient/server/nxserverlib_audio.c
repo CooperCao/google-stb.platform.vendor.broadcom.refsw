@@ -1147,6 +1147,10 @@ int acquire_audio_decoders(struct b_connect *connect, bool force_grab)
     else {
         b_audio_decoder_type decoder_type = b_audio_decoder_type_background;
         if ( connect->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent ) {
+            /* We just want to get a connectId and prepare for possible swapping */
+            if (connect->settings.simpleAudioDecoder.primer) {
+                return 0;
+            }
             decoder_type = b_audio_decoder_type_persistent;
         }
         else if ( connect->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_eStandalone ) {
@@ -2419,6 +2423,84 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
     return 0;
 }
 
+static int swap_persistent_audio_decoders(struct b_connect *destConnect, struct b_connect *srcConnect)
+{
+
+    NEXUS_SimpleAudioDecoderServerSettings settings;
+    NEXUS_SimpleAudioDecoderHandle srcDecoder, destDecoder;
+    struct b_session *session;
+    nxserver_t server;
+    struct b_req *destReq = destConnect->req[b_resource_simple_audio_decoder];
+    struct b_req *srcReq = srcConnect->req[b_resource_simple_audio_decoder];
+    struct b_audio_resource *r;
+    int rc;
+
+
+    if ( destConnect->settings.simpleAudioDecoder.decoderCapabilities.type != NxClient_AudioDecoderType_ePersistent ||
+         srcConnect->settings.simpleAudioDecoder.decoderCapabilities.type != NxClient_AudioDecoderType_ePersistent ) {
+         BDBG_ERR(("swap_persistent_audio_decoders requires persistent decoders"));
+         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    if (srcReq->handles.simpleAudioDecoder.r) {
+        if (srcReq->handles.simpleAudioDecoder.r->connect != srcConnect) {
+            BDBG_ERR(("already connected to %p", (void*)destReq->handles.simpleAudioDecoder.r->connect));
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        r = srcReq->handles.simpleAudioDecoder.r;
+        session = r->session;
+        server = r->session->server;
+    }
+    else
+    {
+        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+    }
+
+    srcDecoder = b_audio_get_decoder(destConnect);
+    destDecoder = b_audio_get_decoder(srcConnect);
+    audio_release_stc_index(srcConnect, srcDecoder);
+    BDBG_MSG(("transfer audio %p: connect %p(%p) -> connect %p(%p)",
+              (void*)r, (void*)srcConnect, (void*)srcDecoder,
+              (void*)destConnect, (void*)destDecoder));
+    rc = NEXUS_SimpleAudioDecoder_SwapServerSettings(session->audio.server, srcDecoder, destDecoder);
+    if (rc) {BERR_TRACE(rc); goto err_setsettings;}
+
+    rc = audio_acquire_stc_index(destConnect, destDecoder);
+    if (rc) { BERR_TRACE(rc); goto err_setsettings;}
+    destReq->handles.simpleAudioDecoder.r = r;
+    destReq->handles.simpleAudioDecoder.r->connect = destConnect;
+    srcReq->handles.simpleAudioDecoder.r = NULL;
+    return 0;
+
+err_setsettings:
+    {
+        int i;
+        NEXUS_SimpleAudioDecoderHandle activeDecoder;
+        activeDecoder = b_audio_get_active_decoder(session->main_audio);
+
+        NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, activeDecoder, &settings);
+        for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+            if (settings.persistent[i].decoder == r->audioDecoder[nxserver_audio_decoder_primary]) {
+                settings.persistent[i].decoder = NULL;
+                settings.persistent[i].suspended = false;
+                break;
+            }
+        }
+        NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, activeDecoder, &settings);
+
+        NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, srcDecoder, &settings);
+        settings.primary = NULL;
+        (void)NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, srcDecoder, &settings);
+
+        NEXUS_SimpleAudioDecoder_GetServerSettings(session->audio.server, destDecoder, &settings);
+        settings.primary = NULL;
+        (void)NEXUS_SimpleAudioDecoder_SetServerSettings(session->audio.server, destDecoder, &settings);
+        audio_decoder_destroy(r);
+    }
+    return rc;
+
+}
+
 int nxserverlib_p_swap_audio(struct b_connect *connect1, struct b_connect *connect2)
 {
     struct b_session *session = connect1->client->session;
@@ -2429,8 +2511,14 @@ int nxserverlib_p_swap_audio(struct b_connect *connect1, struct b_connect *conne
         return acquire_audio_decoders(connect1, true);
     }
     else {
-        /* neither has it, so it's a no-op */
-        return 0;
+        if (connect1->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent ||
+            connect2->settings.simpleAudioDecoder.decoderCapabilities.type == NxClient_AudioDecoderType_ePersistent) {
+            return swap_persistent_audio_decoders(connect1, connect2);
+        }
+        else {
+            /* neither has it, so it's a no-op */
+            return 0;
+        }
     }
 }
 #else

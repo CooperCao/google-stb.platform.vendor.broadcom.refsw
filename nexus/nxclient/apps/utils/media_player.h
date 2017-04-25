@@ -80,6 +80,9 @@ typedef struct media_player_create_settings
         unsigned surfaceClientId;
         unsigned id;
     } window; /* assign window to control position */
+    struct {
+        bool usePersistent; /* If true use persistent decoder */
+    } audio;
     NEXUS_VideoFormat maxFormat; /* Minimum source resolution from decoder. Takes precedence over maxWidth/maxHeight.
                                     Includes interlaced/progressive and frame rate, but doesn't work for sub-SD sizes. */
     unsigned maxWidth, maxHeight; /* Use if maxFormat not available for sub-SD sizes. Assumes p60. */
@@ -156,6 +159,8 @@ typedef struct media_player_start_settings
         unsigned pid; /* override probe */
         NEXUS_AudioCodec codec; /* override probe */
         NEXUS_AudioDecoderDolbyDrcMode dolbyDrcMode; /* applied to ac3, ac3+, aac and aac+ as able */
+        bool master; /* used with persistent decoders to specify mixing master */
+        NEXUS_AudioDecoderMixingMode mixingMode; /* used with persisent decoders to specify which type of decodcer */
     } audio;
 
     bool quiet; /* don't print status */
