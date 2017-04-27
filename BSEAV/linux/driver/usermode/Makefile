@@ -217,20 +217,19 @@ all: ${BCM_DRIVER}
 ifndef BCM_KBUILD_CFLAGS
 ${BCM_DRIVER}: ${BCM_DRIVER_SRCS} $(BCM_OBJ_PATH)/Kbuild_flags
 	$(eval $(shell grep -m 1 -e "BCM_KBUILD_CFLAGS:=" $(BCM_OBJ_PATH)/Kbuild_flags))
-	$(eval $(shell grep -m 1 -e "BCM_KBUILD_LDFLAGS:=" $(BCM_OBJ_PATH)/Kbuild_flags))
 	@[ -n "${BCM_KBUILD_CFLAGS}" ] || (echo "can't obtain BCM_KBUILD_CFLAGS";exit 1)
-	${Q_}${MAKE} BCM_KBUILD_CFLAGS='${BCM_KBUILD_CFLAGS}' BCM_KBUILD_LDFLAGS='${BCM_KBUILD_LDFLAGS}'
+	${Q_}${MAKE} BCM_KBUILD_CFLAGS='${BCM_KBUILD_CFLAGS}'
 
 
 else
 $(BCM_DRIVER): $(BCM_DRIVER_OBJS) $(BCM_DRIVER_OBJS_AS)
 	@echo [Link...... bcmdriver.ko]
 ifeq ($(LINUX_VER_GE_2_6_31),y)
-	$(Q_)cd ${LINUX} && $(LD) -Map $(BCM_DRIVER).map $(BCM_DRIVER_LDFLAGS) $(BCM_KBUILD_LDFLAGS) $(BCM_DRIVER_EXTRALDFLAGS) --strip-debug --build-id=none -r $^  -o $(BCM_OBJ_PATH)/bcmdriver.o_shipped
+	$(Q_)cd ${LINUX} && $(LD) -Map $(BCM_DRIVER).map $(BCM_DRIVER_LDFLAGS) $(BCM_DRIVER_EXTRALDFLAGS) --strip-debug --build-id=none -r $^  -o $(BCM_OBJ_PATH)/bcmdriver.o_shipped
 	${Q_}$(MAKE) -C $(LINUX) M=$(BCM_OBJ_PATH) modules srctree=$(LINUX) ARCH=$(B_REFSW_LINUX_ARCH) PLATFORM=$(NEXUS_PLATFORM) CROSS_COMPILE=$(B_REFSW_CROSS_COMPILE)
 else
 	@# do not use kbuild for 2.6.18
-	$(Q_)$(LD) -Map $(BCM_DRIVER).map $(BCM_DRIVER_LDFLAGS) $(BCM_KBUILD_LDFLAGS) $(BCM_DRIVER_EXTRALDFLAGS) --strip-debug -r $^  -o $@
+	$(Q_)$(LD) -Map $(BCM_DRIVER).map $(BCM_DRIVER_LDFLAGS) $(BCM_DRIVER_EXTRALDFLAGS) --strip-debug -r $^  -o $@
 endif
 	@# disable MODVERSIONS if kernel symvers are missing
 	@if [ -s $(LINUX)/Modules.symvers ]; then \
