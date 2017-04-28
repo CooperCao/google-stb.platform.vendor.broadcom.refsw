@@ -1079,8 +1079,10 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Start( NEXUS_SimpleAudioDecoderHandle handl
     /* If we are not configured for audio description,
        the primary decoder mixing mode should be configured
        for NEXUS_AudioDecoderMixingMode_eSoundEffects */
+    if (!handle->serverSettings.capabilities.ms11 && !handle->serverSettings.capabilities.ms12) {
     if (!handle->serverSettings.description && handle->startSettings.primary.mixingMode == NEXUS_AudioDecoderMixingMode_eDescription) {
         handle->startSettings.primary.mixingMode = NEXUS_AudioDecoderMixingMode_eSoundEffects;
+        }
     }
 
     if (!bypass_p_start) {
@@ -1953,27 +1955,29 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handl
 #if NEXUS_HAS_AUDIO
     int rc;
 
-    if (handle->mixers.suspended && nexus_simpleaudiodecoder_p_running_mixer_input_changes_allowed(handle)) {
-        handle->mixers.suspended = false;
-        if (handle->serverSettings.mixers.stereo) {
-            BDBG_MSG(("Start stereo mixer."));
-            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.stereo);
-            if (rc != NEXUS_SUCCESS) {
-                BERR_TRACE(rc);
+    if ( !NEXUS_GetEnv("audio_mixer_start_disabled") ) {
+        if (handle->mixers.suspended && nexus_simpleaudiodecoder_p_running_mixer_input_changes_allowed(handle)) {
+            handle->mixers.suspended = false;
+            if (handle->serverSettings.mixers.stereo) {
+                BDBG_MSG(("Start stereo mixer."));
+                rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.stereo);
+                if (rc != NEXUS_SUCCESS) {
+                    BERR_TRACE(rc);
+                }
             }
-        }
-        if (handle->serverSettings.mixers.multichannel) {
-            BDBG_MSG(("Start multichannel mixer."));
-            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.multichannel);
-            if (rc != NEXUS_SUCCESS) {
-                BERR_TRACE(rc);
+            if (handle->serverSettings.mixers.multichannel) {
+                BDBG_MSG(("Start multichannel mixer."));
+                rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.multichannel);
+                if (rc != NEXUS_SUCCESS) {
+                    BERR_TRACE(rc);
+                }
             }
-        }
-        if (handle->serverSettings.mixers.persistent) {
-            BDBG_MSG(("Start persistent mixer."));
-            rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.persistent);
-            if (rc != NEXUS_SUCCESS) {
-                BERR_TRACE(rc);
+            if (handle->serverSettings.mixers.persistent) {
+                BDBG_MSG(("Start persistent mixer."));
+                rc = NEXUS_AudioMixer_Start(handle->serverSettings.mixers.persistent);
+                if (rc != NEXUS_SUCCESS) {
+                    BERR_TRACE(rc);
+                }
             }
         }
     }
