@@ -66,6 +66,22 @@
 extern "C" {
 #endif
 
+/* 7435/7445 */
+#define BGRC_P_VER_1                        (1)
+/*7268/7271/7278 */
+#define BGRC_P_VER_2                        (2)
+
+
+#if (BCHP_M2MC_REVISION_MAJOR_DEFAULT ==2)
+/*  HW stripe improvement
+http://jira.broadcom.com/browse/CRM2MC-28
+http://jira.broadcom.com/browse/CRM2MC-29
+http://jira.broadcom.com/browse/CRM2MC-32
+*/
+#define BGRC_P_VER                          (2)
+#else
+#define BGRC_P_VER                          (1)
+#endif
 /****************************************************************************
 Basic concept and handling:
 
@@ -621,6 +637,7 @@ typedef struct BGRC_P_PacketContext
 
     bool      bResetState;
 
+    bool      bSwStripeBlit;
     uint8_t last_blit_type;
 
     uint32_t stored_registers[BGRC_PACKET_P_REGISTER_COUNT];
