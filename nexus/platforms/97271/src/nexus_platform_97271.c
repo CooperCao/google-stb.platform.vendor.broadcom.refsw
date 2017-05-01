@@ -96,7 +96,13 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    /* box mode specifc custom heaps */
+#if BCHP_VER == BCHP_VER_B0
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.base = 0;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.length = 512*1024*1024;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.valid = true;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.first = true;
+#endif
+    /* box mode specific custom heaps */
     switch(boxMode)
     {
     case 1:

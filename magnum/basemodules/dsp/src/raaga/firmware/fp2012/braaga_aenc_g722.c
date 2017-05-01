@@ -432,7 +432,7 @@ const uint32_t BDSP_IMG_g722_encode_array1[] = {
 	0x6c4397c4,
 	0x259f0527,
 	0xc8800107,
-	0x6d539372,
+	0x6d439372,
 	0x63400655,
 	0xfc1c9747,
 	0xdf7fc947,

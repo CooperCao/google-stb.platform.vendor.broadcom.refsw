@@ -94,6 +94,12 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
+#if BCHP_VER == BCHP_VER_B0
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.base = 0;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.length = 512*1024*1024;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.region.valid = true;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.first = true;
+#endif
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 160*MB;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 96*MB;
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 64*MB;

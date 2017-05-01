@@ -168,11 +168,11 @@ void BCHP_PWR_P_HW_ControlId(BCHP_Handle handle, unsigned id, bool activate);
 void BCHP_PWR_P_MUX_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mux, bool set);
 void BCHP_PWR_P_DIV_Control(BCHP_Handle handle, const BCHP_PWR_P_Resource *resource, unsigned *mult, unsigned *prediv, unsigned *postdiv, bool set);
 
-#define BCHP_PWR_P_NUM_NONLEAFS   70
+#define BCHP_PWR_P_NUM_NONLEAFS   68
 #define BCHP_PWR_P_NUM_NONLEAFSHW 40
 #define BCHP_PWR_P_NUM_LEAFS      50
 #define BCHP_PWR_P_NUM_MUXES      6
 #define BCHP_PWR_P_NUM_DIVS       11
-#define BCHP_PWR_P_NUM_ALLNODES   177
+#define BCHP_PWR_P_NUM_ALLNODES   175
 
 #endif

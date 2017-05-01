@@ -18,16 +18,16 @@ Release (URSR) Release Notes</title>
   <o:Template>Normal</o:Template>
   <o:LastAuthor>Manan Patel</o:LastAuthor>
   <o:Revision>3</o:Revision>
-  <o:TotalTime>1</o:TotalTime>
-  <o:Created>2017-03-09T22:59:00Z</o:Created>
-  <o:LastSaved>2017-03-09T23:00:00Z</o:LastSaved>
+  <o:TotalTime>0</o:TotalTime>
+  <o:Created>2017-03-24T00:51:00Z</o:Created>
+  <o:LastSaved>2017-03-24T00:51:00Z</o:LastSaved>
   <o:Pages>7</o:Pages>
-  <o:Words>2350</o:Words>
-  <o:Characters>15402</o:Characters>
+  <o:Words>2337</o:Words>
+  <o:Characters>15340</o:Characters>
   <o:Company>LSI Corporation</o:Company>
-  <o:Lines>128</o:Lines>
+  <o:Lines>127</o:Lines>
   <o:Paragraphs>35</o:Paragraphs>
-  <o:CharactersWithSpaces>17717</o:CharactersWithSpaces>
+  <o:CharactersWithSpaces>17642</o:CharactersWithSpaces>
   <o:Version>14.00</o:Version>
  </o:DocumentProperties>
 </xml><![endif]-->
@@ -2835,7 +2835,7 @@ Unified Reference Software Release Notes</strong></p>
 
 <blockquote style='margin-top:5.0pt;margin-right:0in;margin-bottom:5.0pt'>
 
-<p>March 22, 2017</p>
+<p>March 29, 2017</p>
 
 <p>Phase 17.1 Release </p>
 
@@ -2912,21 +2912,25 @@ boards</span></b><span style='mso-fareast-font-family:"Times New Roman"'> <o:p><
 
 <p class=MsoNormal style='text-indent:.5in'>&nbsp;</p>
 
-<p class=MsoNormal><a name="software_deliverables">
+<p class=MsoNormal><a name="software_deliverables"><span style='color:red'>The
+B0 versions of the 7268/71 include a new revision of the video decoder hardware
+which has dropped support for &#8221;legacy&#8221; video codecs. The supported
+video codecs can be found in the feature list at the end of this document. <o:p></o:p></span></a></p>
 
-<span style='color:red'>The B0 versions of the 7268/71 include a new revision of the video decoder hardware
-which has dropped support for &#8221legacy&#8221 video codecs. The supported video codecs can be found in the feature list
-at the end of this document.
-</p>
+<p><span style='mso-bookmark:software_deliverables'><span style='color:red'>&nbsp;<o:p></o:p></span></span></p>
+
+<p class=MsoNormal><span style='mso-bookmark:software_deliverables'><span
+style='mso-fareast-font-family:"Times New Roman";color:red'>The 7268 and 7271
+contain a 64 bit ARM CPU. The supplied kernel comes in 32bit and 64 bit
+flavors. The 64 bit kernel images can be identified by the &#8220;arm64&#8221;
+suffix. The BOLT <span class=SpellE><spanstyle='mso-bookmark:software_deliverables'>bootloader</span>
+is common to both variants and can boot both kernels types. Please refer to the
+&#8220;64 bit Migration Application Note&#8221; for more details.</span></span><span
+style='mso-bookmark:software_deliverables'></span><span style='mso-fareast-font-family:
+"Times New Roman"'> <o:p></o:p></span></p>
+
 <p>&nbsp;</p>
-<span style='color:red'>The 7268 and 7271 contain a 64 bit ARM CPU.
-The supplied kernel comes in 32bit and 64 bit flavors. The 64 bit kernel images can
-be identified by the &#8220;arm64&#8221; suffix.
-The BOLT </span></a><span class=SpellE><spanstyle='mso-bookmark:software_deliverables'><span style='color:red'>bootloader</span></span></span><span
-style='mso-bookmark:software_deliverables'><span style='color:red'> is common
-to both variants and can boot both kernels types. Please refer to the &#8220;64
-bit Migration Application Note&#8221; for more details.</span></span>
-<p>&nbsp;</p>
+
 <p class=MsoNormal><strong>&nbsp;</strong></p>
 
 <p class=MsoNormal><strong>Software Deliverables<span class=GramE>:</span></strong><br>
@@ -2975,7 +2979,7 @@ bit Migration Application Note&#8221; for more details.</span></span>
   <p class=MsoNormal>root <span class=SpellE>filesystem</span> source</p>
   </td>
   <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  <p class=MsoNormal>rootfs-4.1-1.9.tar.bz2</p>
   </td>
   <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>GPL 2.0</p>
@@ -2988,7 +2992,7 @@ bit Migration Application Note&#8221; for more details.</span></span>
   <p class=MsoNormal>[user/<span class=SpellE>lxc</span>]</p>
   </td>
   <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  <p class=MsoNormal>rootfs-4.1-1.9.tar.bz2</p>
   </td>
   <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>GPL 2.1</p>
@@ -3004,7 +3008,7 @@ bit Migration Application Note&#8221; for more details.</span></span>
   <p class=MsoNormal>[user/<span class=SpellE>lttcontrol</span>]</p>
   </td>
   <td width="57%" style='width:57.22%;padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>rootfs-4.1-[1.7|1.8].tar.bz2</p>
+  <p class=MsoNormal>rootfs-4.1-1.9.tar.bz2</p>
   </td>
   <td width="15%" style='width:15.94%;padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>GPL 3.0</p>
@@ -3053,7 +3057,7 @@ bit Migration Application Note&#8221; for more details.</span></span>
   <p class=MsoNormal>Kernel Source</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>stblinux-4.1-1.8.tar.bz2</p>
+  <p class=MsoNormal>stblinux-4.1-1.9.tar.bz2</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>GPL 2.0</p>
@@ -3088,7 +3092,7 @@ bit Migration Application Note&#8221; for more details.</span></span>
   <p class=MsoNormal>Reference Software source</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>refsw_release_unified_20170322.src.tgz</p>
+  <p class=MsoNormal>refsw_release_unified_20170329.src.tgz</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>Broadcom SLA </p>
@@ -3273,7 +3277,7 @@ bit Migration Application Note&#8221; for more details.</span></span>
   <p class=MsoNormal>Reference Software binary for 97271</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>refsw-20170322.97271a0_SV-linux-atlas.bin.tgz (Atlas
+  <p class=MsoNormal>refsw-20170329.97271a0_SV-linux-atlas.bin.tgz (Atlas
   application binary)</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
@@ -3324,8 +3328,8 @@ style='mso-bookmark:documentation'></span><br>
   <p class=MsoNormal>Reference Software auto-generated documentation</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal>doxygen_magnum_20170322.tgz<br>
-  doxygen_nexus_20170322.tgz</p>
+  <p class=MsoNormal>doxygen_magnum_20170329.tgz<br>
+  doxygen_nexus_20170329.tgz</p>
   </td>
  </tr>
  <tr style='mso-yfti-irow:3'>
@@ -3455,7 +3459,7 @@ style='mso-bookmark:documentation'></span><br>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal>BSEAV/lib/<span class=SpellE>playready</span>/2.5/doc/PlayReady_25_User_Guide.pdf<br>
-  in refsw_release_unified_20170322-prd_bin.tgz to licensed recipients only</p>
+  in refsw_release_unified_20170329-prd_bin.tgz to licensed recipients only</p>
   </td>
  </tr>
  <tr style='mso-yfti-irow:19;mso-yfti-lastrow:yes'>
@@ -3487,17 +3491,17 @@ Atlas as part of the Reference Software. </p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar -<span
-     class=SpellE>xvjf</span> rootfs-4.1-[1.7|1.8].tar.bz2 <o:p></o:p></span></li>
+     class=SpellE>xvjf</span> rootfs-4.1-1.9.tar.bz2 <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar -<span
-     class=SpellE>xvjf</span> stblinux-4.1-1.8.tar.bz2 <o:p></o:p></span></li>
+     class=SpellE>xvjf</span> stblinux-4.1-1.9.tar.bz2 <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># cd <span class=SpellE>rootfs</span>
      <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># make <span
-     class=SpellE>vmlinuz</span>-<span class=SpellE>initrd</span>-arm <i>(For 32-bit
-     version of the kernel build)</i><o:p></o:p></span></li>
+     class=SpellE>vmlinuz</span>-<span class=SpellE>initrd</span>-arm <i>(For
+     32-bit version of the kernel build)</i><o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l17 level1 lfo1;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># make
      vmlinuz-initrd-arm64 <i>(For 64-bit version of the kernel build)</i><o:p></o:p></span></li>
@@ -3534,11 +3538,11 @@ Atlas as part of the Reference Software. </p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l3 level1 lfo2;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; boot -z &lt;<span
-     class=SpellE>network_location</span>&gt;:41-1.8/<span class=SpellE>vmlinuz</span>-<span
+     class=SpellE>network_location</span>&gt;:41-1.9/<span class=SpellE>vmlinuz</span>-<span
      class=SpellE>initrd</span>-arm <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l3 level1 lfo2;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; boot -z &lt;<span
-     class=SpellE>network_location</span>&gt;:41-1.8/vmlinuz-initrd-arm64<span
+     class=SpellE>network_location</span>&gt;:41-1.9/vmlinuz-initrd-arm64<span
      class=GramE>&nbsp; -</span> This command will boot 64 bit kernel instead
      of 32 bit kernel. <o:p></o:p></span></li>
 </ul>
@@ -3553,13 +3557,13 @@ Atlas as part of the Reference Software. </p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l24 level1 lfo3;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>BOLT&gt; flash &lt;<span
-     class=SpellE>network_location</span>&gt;:41-1.8/<span class=SpellE>vmlinuz</span>-<span
+     class=SpellE>network_location</span>&gt;:41-1.9/<span class=SpellE>vmlinuz</span>-<span
      class=SpellE>initrd</span>-arm flash0.kernel <o:p></o:p></span></li>
 </ul>
 
 <p class=MsoListParagraph style='text-indent:-.25in'><span style='font-size:
 10.0pt;font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span>Or BOLT&gt; flash &lt;<span class=SpellE>network_location</span>&gt;:41-1.8/vmlinuz-initrd-arm64
+</span>Or BOLT&gt; flash &lt;<span class=SpellE>network_location</span>&gt;:41-1.9/vmlinuz-initrd-arm64
 flash0.kernel<span class=GramE>&nbsp; -</span> For 64 bit kernel</p>
 
 <ul style='margin-top:0in' type=disc>
@@ -3783,9 +3787,9 @@ try these box modes:</p>
   <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
   height:9.45pt'>
   <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p60 10bit decode(Limited
-  usages), Multi-PIP(3+1)(Limited usages),UHD display only(no SD) , MAIN+PIP,
-  HDMI input</p>
+  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p60 10bit
+  decode(Limited usages), Multi-PIP(3+1)(Limited usages),UHD display only(no
+  SD) , MAIN+PIP, HDMI input</p>
   </td>
  </tr>
  <tr style='mso-yfti-irow:6;height:9.45pt'>
@@ -3835,9 +3839,8 @@ try these box modes:</p>
   <td width="49%" valign=top style='width:49.98%;padding:0in 0in 0in 0in;
   height:9.45pt'>
   <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p30 10bit decode,
-  Multi-PIP(3+1),UHD display only(no SD) , MAIN+PIP(PIP has some mosaic
-  capabilities)</p>
+  mso-line-height-alt:9.45pt'>4Kp60 10 bit decode + 1080p30 10bit decode, Multi-PIP(3+1),UHD
+  display only(no SD) , MAIN+PIP(PIP has some mosaic capabilities)</p>
   </td>
  </tr>
  <tr style='mso-yfti-irow:9;mso-yfti-lastrow:yes;height:9.45pt'>
@@ -3871,9 +3874,8 @@ the <span class=SpellE>pmap</span> to 4 e.g. <span class=SpellE>pmap</span>
 <p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
 lang=EN-GB style='color:#1F497D;mso-ansi-language:EN-GB'>&nbsp;</span></p>
 
-<p class=MsoNormal><strong><span
-style='mso-spacerun:yes'>&nbsp;</span>Instructions to build the WLAN driver for
-<span class=SpellE>wi-fi</span> support:</strong></p>
+<p class=MsoNormal><strong><span style='mso-spacerun:yes'>&nbsp;</span>Instructions
+to build the WLAN driver for <span class=SpellE>wi-fi</span> support:</strong></p>
 
 <p style='margin-left:.5in;text-indent:-.25in'><span style='font-size:10.0pt;
 font-family:Symbol'>&middot;</span><span style='font-size:7.0pt'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -3889,7 +3891,7 @@ it to decode and display a UHD stream </strong></p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l11 level1 lfo5;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar <span
-     class=SpellE>xvfz</span> refsw_release_97271_20170322.src.tgz <o:p></o:p></span></li>
+     class=SpellE>xvfz</span> refsw_release_97271_20170329.src.tgz <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l11 level1 lfo5;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#cd nexus/<span
      class=SpellE>utils</span> <o:p></o:p></span></li>
@@ -3918,10 +3920,10 @@ stream </b></p>
 <ul style='margin-top:0in' type=disc>
  <li class=MsoNormal style='mso-list:l23 level1 lfo7;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'># tar <span
-     class=SpellE>xvfz</span> refsw_release_97271_20170322.src.tgz<o:p></o:p></span></li>
+     class=SpellE>xvfz</span> refsw_release_97271_20170329.src.tgz<o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l23 level1 lfo7;tab-stops:list .5in'><span
-     style='mso-fareast-font-family:"Times New Roman"'>#cd BSEAV/app/atlas/build
-     <o:p></o:p></span></li>
+     style='mso-fareast-font-family:"Times New Roman"'>#cd
+     BSEAV/app/atlas/build <o:p></o:p></span></li>
  <li class=MsoNormal style='mso-list:l23 level1 lfo7;tab-stops:list .5in'><span
      style='mso-fareast-font-family:"Times New Roman"'>#make install <o:p></o:p></span></li>
 </ul>
@@ -3979,809 +3981,27 @@ style='mso-bookmark:known_bugs'></span><br>
   </td>
  </tr>
  <u1:p></u1:p>
- <tr style='mso-yfti-irow:1'>
+ <tr style='mso-yfti-irow:1;mso-yfti-lastrow:yes'>
   <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>WOWL is only work with PM0&nbsp;</p>
-  </td>
-  <u1:p></u1:p>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'><span style='background:whitesmoke'>SWWLAN-139381</span></p>
-  </td>
-  <u1:p></u1:p>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>WIRELESS</p>
-  </td>
- </tr>
- <u1:p></u1:p>
- <tr style='mso-yfti-irow:2'>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'><span lang=EN-GB style='mso-ansi-language:EN-GB'>7268/7271
-  B0: S2 standby operation fails</span></p>
-  </td>
-  <u1:p></u1:p>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>SWLINUX-4257</p>
-  </td>
-  <u1:p></u1:p>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>POWER MANAGEMENT</p>
-  </td>
- </tr>
- <tr style='mso-yfti-irow:3'>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>Atlas: Bus error system crash doing UDP Wi-Fi decode</p>
+  <h1><span class=SpellE><span style='font-size:12.0pt;font-weight:normal;
+  mso-bidi-font-weight:bold'>Segfault</span></span><span style='font-size:12.0pt;
+  font-weight:normal;mso-bidi-font-weight:bold'> when run <span class=SpellE>crrurr_glrglr_decoder</span><o:p></o:p></span></h1>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>SWSTB-4214</p>
+  auto;text-align:center'>SWSTB-4506</p>
   </td>
   <td style='padding:.75pt .75pt .75pt .75pt'>
   <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>ATLAS</p>
-  </td>
- </tr>
- <tr style='mso-yfti-irow:4;mso-yfti-lastrow:yes'>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <h1><span style='font-size:12.0pt;font-weight:normal;mso-bidi-font-weight:
-  bold'>Atlas: BMRC_MONITOR reports a memory access violation in MEMC0 when
-  doing a channel change from QAM to HTTP.</span><span style='font-size:12.0pt'><o:p></o:p></span></h1>
-  </td>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>SWSTB-3960</p>
-  </td>
-  <td style='padding:.75pt .75pt .75pt .75pt'>
-  <p class=MsoNormal align=center style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-  auto;text-align:center'>ATLAS</p>
+  auto;text-align:center'>SECURITY</p>
   </td>
  </tr>
 </table>
 
 <p class=MsoNormal>&nbsp;</p>
 
-<p><a name=features><strong>Features in this </strong></a><span class=GramE><span
-style='mso-bookmark:features'><strong>Release</strong></span></span><span
-style='mso-bookmark:features'></span><br>
-<a href="#top">(Top)</a></p>
-
-<p>All features listed in <span style='color:green'>green</span> are new to
-this release. (However, this table is not yet current, will be updated by final
-release.)</p>
-
-<p>Platforms Supported</p>
-
-<p class=MsoNormal><span style='mso-hansi-font-family:Symbol'><span
-style='mso-spacerun:yes'>&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span
-style='font-family:Symbol;mso-ascii-font-family:"Times New Roman"'>&middot;</span><span
-style='mso-spacerun:yes'>&nbsp;&nbsp;&nbsp; </span>Board Support: SV, DV, WLAN,
-C/T/D and IP, <span class=GramE>HB(</span>7268), USFF(7268)<u1:p></u1:p> </p>
-
-<p class=MsoNormal><span style='mso-hansi-font-family:Symbol'><span
-style='mso-spacerun:yes'>&nbsp;&nbsp;&nbsp;&nbsp; </span></span><span
-style='font-family:Symbol;mso-ascii-font-family:"Times New Roman"'>&middot;</span><span
-style='mso-hansi-font-family:Symbol'><span style='mso-spacerun:yes'>&nbsp;
-</span></span><span style='mso-spacerun:yes'>&nbsp;&nbsp;</span>Chip Rev
-Support: A0/B0<span style='mso-fareast-font-family:"Times New Roman"'> <o:p></o:p></span></p>
-
-<ul style='margin-top:0in' type=disc>
- <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
-     style='mso-fareast-font-family:"Times New Roman"'>Kernel Version: 4.1-1.8<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-list:l16 level1 lfo10;tab-stops:list .5in'><span
-     style='mso-fareast-font-family:"Times New Roman"'>Toolchain:
-     stbgcc-4.8-1.5<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-class=SpellE><span style='mso-fareast-font-family:"Times New Roman"'>WiFi</span></span><span
-style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dual Band support (2G/5G band)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Security (all formats)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>SoftAP</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>WET (Wireless Ethernet)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Wifi</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> channel/Bandwidth -
-     (20MHz, 40MHz, 80MHz)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>WPS (<span class=SpellE>Wifi</span> Protected Setup)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>TDLS (Tunneled Direct Link Setup)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>WDS (Wireless distribution system)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Wifi</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> Direct<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>ZPL (Zero Packet Loss)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Protected Management Frame<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>WPSD+AEPD<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>NAS authenticator<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>NVRAM Daemon<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Wifi</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> Direct (aka P2P)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>WOWL (Wake on wireless LAN)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>CFG80211<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>WPA supplicant<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>HostAPD</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Android<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>11v&#8217;s BSS transition frame support<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MBSS (different SSID)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Power Management (WMMPS, PM1.PM2)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DFS Slave Radar detection<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DFS Master<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>TX-BF (<span class=SpellE>Beamformee</span> and <span
-     class=SpellE>Beamformer</span>)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>TDCS (Time Domain Channel Smoothing)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>ACI performance optimization, preemption, SWACI, HWACI<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l25 level1 lfo11;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Tempsense</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Video Decoder<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP,
-     HP} @L4.2, MVC {MP, HP}@L4.1)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>HD + SD<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>HEVC - (HDR Metadata Extraction, HDR pass-through,
-     HDR-HLG (<span class=SpellE>Hrybrid</span>-Log Gamma), {MP} @L5.1
-     4kx2k/24p, {MP} @L5.1 4kx2k/30p, {MP} @L5.1 4kx2k/60p)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>HW Still Image Decode - (GIF, JPEG, MJPEG, PNG)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>IP high jitter &amp; trick mode support<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Media File Format Support - (3GP, ASF, AVI, DVD <span
-     class=SpellE>vob</span>, MKV, MP4, OGG (<span class=SpellE>Vorbis</span>
-     audio only), <span class=SpellE>WebM</span> (VP9 video and <span
-     class=SpellE>Vorbis</span> audio))<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Mosaic<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MPEG-2 - (MP@{LL, ML, HL})<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Single MPEG2 I-frame Decode<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Still Picture decoding (Live HD video, MPEG2 and AVC, with
-     SD still)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SW Still image decode (BMP, TIFF, JPEG)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l0 level1 lfo12;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>VP9<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Audio Decoder<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>AAC - (HE 5.1, HE Stereo, LC 5.1, LC Stereo, V1, V2)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>AC3 - (5.1, Stereo)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dolby - (DD, DDP to DD convert, <span class=SpellE>DDPlus</span>
-     5.1, <span class=SpellE>DDPlus</span> 7.1, <span class=SpellE>DDPlus</span>
-     stereo, Dolby Pulse)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dolby MS10<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dolby MS11<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dolby MS11 + 2nd Audio Decode Mixing - (<span
-     class=SpellE>Vorbis</span> Audio)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dolby MS12 - (AC4 (A specific Box mode is required), <span
-     class=SpellE>Config</span> A (A specific Box mode is required), <span
-     class=SpellE>Config</span> B, <span class=SpellE>Config</span> C, Expanded
-     DAPv2 Volume Limiter Controls)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DRA<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DTS-HD<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DTS-MA - (<span class=SpellE>Passthrough</span>)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DVD-LPCM<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>FLAC<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Monkey's Audio<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MP3 - (Stereo)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MPEG Audio Descriptor<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MPEG Multi Channel<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MS11 + PCM Mixing<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Ogg</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> <span class=SpellE>Vorbis</span><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Real Audio - (10, 9)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SRS - (<span class=SpellE>TruVolume</span>)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l21 level1 lfo13;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Windows Media - (WMA (w/LSF, QSF), WMA Pro)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Security<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l7 level1 lfo14;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Common DRM Framework - (Adobe Access 5.0 with enhanced
-     robustness, DTCP-IP)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l7 level1 lfo14;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MCARD/Cable Card support<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l7 level1 lfo14;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SAGE - (SAGE Adobe Access 5.0 with enhanced robustness)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:1.0in;text-indent:-.25in;tab-stops:list 1.0in'><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Notable
-changes in this release</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Fixes
-for the defects found in various long term testing</span><span
-style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Added
-support for 7271B0 and 7268B0</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Allow
-Type 2 DRM bin file to use key other than OTP-A</span><span style='mso-fareast-font-family:
-"Times New Roman"'><o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:1.5in;text-indent:-.25in;tab-stops:list 1.5in'><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>Add
-support for larger than 4GB per memory controller</span><span style='mso-fareast-font-family:
-"Times New Roman"'><o:p></o:p></span></p>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-margin-left:1.0in;text-indent:-.25in;tab-stops:list 1.0in'><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;mso-fareast-font-family:Symbol;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span><span style='mso-fareast-font-family:"Times New Roman";color:#00B050'>SAGE
-Software Framework 3.1.8 requires SAGE <span class=SpellE>Bootloader</span>
-2.2.8 (bundled together)</span><span style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l19 level1 lfo15;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Smartcard<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l19 level1 lfo15;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SVP - (v2.6)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Audio Post Process<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>ATSC A/85 volume leveling<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Audio Decoder Fade effect<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Broadcom - (3D surround, AVL)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dolby - (DDRE, DV-258)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic
-     filtering, <span class=SpellE>Sub woofer</span> channel extraction, Tone
-     Balancing)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Independent SPDIF delay<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Karaoke support - (Karaoke Decode processing, Karaoke
-     Vocal processing)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>PCM Mixing<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Ramping Mute<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SRC<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l10 level1 lfo16;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SRS - (SRS-HD4, SRS-<span class=SpellE>TruVolume</span>)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>System<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Graphics - (2D GFX, 3D GFX (<span class=SpellE>openGL</span>))<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Kernel Mode<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>LE<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Nexus Multi Process Support<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l9 level1 lfo17;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>User Mode<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>A/V Display<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>All NTSC/ATSC/PAL resolutions<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Audio - HDMI output - (Compressed on HDMI, PCM on HDMI)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Audio - DAC output<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Audio - I2S - (Input, Output)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Audio Input - (HDMI (Compressed), HDMI (Multi-channel
-     PCM), HDMI (Stereo PCM), I2S)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Audio Output - (DAC, I2S (Stereo PCM), SPDIF
-     (Compressed), SPDIF (Stereo PCM))<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DSOLA<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>HDCP support - (HDCP 1.4 for HDMI Repeater, HDCP 1.4
-     for HDMI Rx, HDCP 1.4 for HDMI <span class=SpellE>Tx</span>, HDCP 2.2 for
-     HDMI Repeater/Rx, HDCP 2.2 for HDMI <span class=SpellE>Tx</span>)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>HDMI Input<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>HDMI support - (HDMI 2.0a for HDMI <span class=SpellE>Tx</span>)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>PIP: Simultaneous HD+SD display<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Stream Pan / Scan<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>TSM - (+/-20mSec)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Video - 4kx2k display<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Video - CVBS Output<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l13 level1 lfo18;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Video - HDMI output - (2.0) <o:p></o:p></span></li>
-</ul>
-
-<p class=gmail-m-5047815134937865191msolistparagraph style='margin-left:1.0in;
-text-indent:-.25in;mso-list:l13 level2 lfo18;tab-stops:list 1.0in'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol'><span
-style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span></span><![endif]><span class=gmail-m-5047815134937865191gmailmsg><span
-style='color:#00B050'>HDR 2.0 features supported in this release:</span></span></p>
-
-<p class=gmail-m-5047815134937865191msolistparagraph style='margin-left:1.0in;
-text-indent:.5in'><span style='font-size:10.0pt;font-family:Symbol;color:#00B050'>&middot;</span><span
-style='font-size:7.0pt;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
-class=gmail-m-5047815134937865191gmailmsg><span style='color:#00B050'>&nbsp;Conversion
-between SDR &lt;-&gt; HDR10,&nbsp;</span></span><span style='color:#00B050'>SDR
-&lt;-&gt; HLG, HDR10&nbsp;&lt;-&gt; HLG</span></p>
-
-<p class=gmail-m-5047815134937865191msolistparagraph style='margin-left:1.0in;
-text-indent:.5in'><span class=GramE><span style='font-size:10.0pt;font-family:
-Symbol;color:#00B050'>&middot;</span><span style='font-size:7.0pt;color:#00B050'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span
-class=gmail-m-5047815134937865191gmailmsg><span style='color:#00B050'>&nbsp;Conversion
-among 170M, Bt470_BG, BT709, BT2020-NCL and BT2020-CL.</span></span></span><span
-class=gmail-m-5047815134937865191gmailmsg><span style='color:#00B050'> &nbsp;</span></span></p>
-
-<p class=MsoListParagraph style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-auto;text-indent:-.25in;mso-list:l2 level1 lfo19;tab-stops:list .5in'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol'><span
-style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>PVR<o:p></o:p></span></p>
-
-<p class=MsoListParagraph style='mso-margin-top-alt:auto;mso-margin-bottom-alt:
-auto;text-indent:-.25in;mso-list:l2 level1 lfo19;tab-stops:list .5in'><![if !supportLists]><span
-style='font-size:10.0pt;mso-bidi-font-size:12.0pt;font-family:Symbol;
-mso-fareast-font-family:Symbol;mso-bidi-font-family:Symbol'><span
-style='mso-list:Ignore'>&middot;<span style='font:7.0pt "Times New Roman"'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-</span></span></span><![endif]><span style='mso-fareast-font-family:"Times New Roman"'>PVR
-encryption - (3DES, AES, DES)<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>PVR TSM<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Record - (AVC, MPEG2, MVC)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>STC rate based <span class=SpellE>trickmode</span><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Timeshift</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> - (AVC, MPEG2, MVC)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l2 level1 lfo19;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Trick mode - (AVC, Decoder <span class=SpellE>trickmode</span>,
-     DSOLA with audio, Host <span class=SpellE>trickmode</span>, Host <span
-     class=SpellE>trickmode</span> w/o index on MPEG-2, MPEG2, MVC, playback,
-     Slow motion)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>IPTV<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l8 level1 lfo20;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>BIP API - (Dynamic clock recovery reconfiguration, IGMP
-     <span class=SpellE>Linstener</span>, RTSP server, Streamer, HSL Server
-     side <span class=SpellE>trickmode</span>)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Networking<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l6 level1 lfo21;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Ethernet MAC - (10/100 Eth MAC, 1000 Eth MAC)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Miscellaneous<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Common Download via TR69<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>NxClient</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> <span class=SpellE>Multiprocess</span>
-     library - (AC3+ down-convert, API to control audio output configuration,
-     API to control slave display settings and sample aspect ratio, Audio
-     Primer for fast main/PIP audio swap, Auto Volume Level, Callback for
-     display changes, Display VBI functions, Explicit PIP window support, HDMI
-     input encoding supporting (included rework of <span class=SpellE>nxclient</span>
-     <span class=SpellE>hdmi</span> input <span class=SpellE>api</span>), <span
-     class=SpellE>Macrovision</span>, Main/PIP video swap, MS12, NRT
-     (non-real-time) transcode, <span class=SpellE>nxserver</span> external app
-     mode, Per-output audio volume control, Picture quality adjustments, PIP
-     mosaic, Video-as-graphics, SCMS for SPDIF)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>RCU - (IR)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Video image input interface<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l28 level1 lfo22;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Virtual L2 interrupt<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Transport<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Message Filtering<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MTSIF<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>PID Filtering<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>Remux</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l27 level1 lfo23;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>TSMF<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Power Management<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l20 level1 lfo24;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Adaptive Voltage Scaling<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l20 level1 lfo24;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Dynamic Power Management<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l20 level1 lfo24;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>S1: Active Standby<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Picture Quality<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>CAB (Color Alteration Block)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DNR (Digital Noise Reduction in 65nm) - (BNR (Block
-     Noise Reduction), DCR (Digital <span class=SpellE>Countour</span>
-     Reduction), MNR (Mosquito Noise Reduction))<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>GNR (Gaussian Noise Reduction) - (AND (Analog Noise
-     Detection), MCTF (Motion-Compensated Temporal Filter))<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>LAB &amp; HIST (<span class=SpellE>Luma</span>
-     Alteration Block &amp; <span class=SpellE>Luma</span> Histogram)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>MAD-R (Motion Adaptive <span class=SpellE>Deinterlacer</span>
-     Re-architected)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l4 level1 lfo25;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>TN2T-H (Sharpening)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>3D Video Display<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l12 level1 lfo26;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>3D packing format - (1920x1080i@50Hz,
-     1920x1080i@59.94/60Hz, 1920x1080p@24Hz)<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Linux<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>CMA<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Ethernet link and Ethernet <span class=SpellE>EPhy</span><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>File system - (UBIFS)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Flash - (NAND, NOR, SPI)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>MoCA</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> - (V2.0)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>PCIe</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'><o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>SATA - (Sata2, Sata3)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>UART port<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l22 level1 lfo27;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>USB<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>Cable FE<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>BCM3128 tuner support - (Full band capture with
-     TR69/135)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span class=SpellE><span
-     style='mso-fareast-font-family:"Times New Roman"'>CableCARD</span></span><span
-     style='mso-fareast-font-family:"Times New Roman"'> stack - (Basic, <span
-     class=SpellE>Basic+DSG</span>, <span class=SpellE>Basic+DSG+OOB</span>)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DOCSIS Frontend<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DOCSIS3.0 - (Annex-A (Europe), Annex-B (North America),
-     Annex-C (Japan))<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>DSG Client Controller, DSG Clients<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l14 level1 lfo28;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>QAM Tuning<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto'><span
-style='mso-fareast-font-family:"Times New Roman"'>VBI<o:p></o:p></span></p>
-
-<ul type=disc>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l1 level1 lfo29;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Copy Protection - (CGMS-A, DCS)<o:p></o:p></span></li>
- <li class=MsoNormal style='mso-margin-top-alt:auto;mso-margin-bottom-alt:auto;
-     mso-list:l1 level1 lfo29;tab-stops:list .5in'><span style='mso-fareast-font-family:
-     "Times New Roman"'>Data Re-encoding and Rendering - (AMOL I/II, ANSI/SCTE
-     20/21, CEA-608 (Analog Closed Captioning for RF, composite, S-video and
-     480i component signals), CEA-708 (Digital Closed Captioning), CEA-805 (for
-     480p, 720p and 1080i component signals), ETSI EN 300 743, Gemstar, NABTS
-     (Teletext), Nielsen, <span class=SpellE>TVGuide</span>, WSS/VPS (ETS 300
-     294))<o:p></o:p></span></li>
-</ul>
-
-<p class=MsoNormal>&nbsp;</p>
-
-<p><a name="features_future"><strong>Features Planned for the Next </strong></a><span
-class=GramE><span style='mso-bookmark:features_future'><strong>Release</strong></span></span><span
-style='mso-bookmark:features_future'></span><b><br>
-<a href="#top">(Top)</a></b></p>
+<p><strong><a name="features">Features in this Release</a></strong><br/><a href="#top">(Top)</a></p><p>All features listed in <span style="color:green">green</span> are new to this release.</p><p>Platforms Supported</p><ul><li>Board Support: SV, DV, WLAN, C/T/D and IP</li><li>Chip Rev Support: A0 and B0</li><li>Kernel Version: 4.1-1.8</li><li>Toolchain: stbgcc-4.8-1.5</li></ul><h4></h4><p>WiFi</p><ul><li>Dual Band support (2G/5G band)</li><li>Security (all formats)</li><li>SoftAP</li><li>WET (Wireless Ethernet)</li><li>Wifi channel/Bandwidth - (20MHz, 40MHz, 80MHz)</li><li>WPS (Wifi Protected Setup)</li><li>TDLS (Tunneled Direct Link Setup)</li><li>WDS (Wireless distribution system)</li><li>Wifi Direct</li><li>WOWL</li><li>ZPL (Zero Packet Loss)</li></ul><p>Video Decoder</p><ul><li>AVS1-P2 - (Jizhun Profile @ L6.0)</li><li>DivX - (DivX HD 3.11, 4.11, 5.x, 6.x, DivX SD 3.11, 4.11, 5.x, 6.x)</li><li>Dual HD</li><li>H.264 - (AVC Constrained BP, AVC {MP, HP} @L4.1, AVC {MP, HP} @L4.2, MVC {MP, HP}@L4.1)</li><li>HD + SD</li><li>HEVC - (HDR Metadata Extraction, HDR10 pass-through, HLG pass-through, SDR --> HDR conversion, {MP} @L5.1 4kx2k/24p, {MP} @L5.1 4kx2k/30p, {MP} @L5.1 4kx2k/60p, <span style="color:green">HDR10 --> SDR conversion</span>, <span style="color:green">HLG --> HDR10 conversion</span>)</li><li>HW Still Image Decode - (GIF, JPEG, MJPEG, PNG)</li><li>IP high jitter &amp; trick mode support</li><li>Media File Format Support - (3GP, ASF, AVI, DiVX, DVD vob, Flash Video, MKV, MP4, OGG (Vorbis audio only), RealMedia (rm/rmvb/ra/rv), WebM (VP8 video and Vorbis audio))</li><li>Mosaic</li><li>MPEG-1</li><li>MPEG-2 - (MP@{LL, ML, HL})</li><li>Real Video - (RV10, RV9)</li><li>Single MPEG2 I-frame Decode</li><li>Sorenson Spark</li><li>Still Picture decoding (Live HD video, MPEG2 and AVC, with SD still)</li><li>SW Still image decode (BMP, TIFF, JPEG)</li><li>VC-1 - (AP @ L3, MP, SP)</li><li>VP6</li><li>VP8</li><li>VP9</li></ul><p>Audio Decoder</p><ul><li>AAC - (HE 5.1, HE Stereo, LC 5.1, LC Stereo, V1, V2)</li><li>AC3 - (5.1, Stereo)</li><li>Dolby - (DD, DDP to DD convert, DDPlus 5.1, DDPlus 7.1, DDPlus stereo, Dolby Pulse)</li><li>Dolby MS10</li><li>Dolby MS11</li><li>Dolby MS11 + 2nd Audio Decode Mixing - (Vorbis Audio)</li><li>Dolby MS12 - (AC4 (A specific Box mode is required), Config A (A specific Box mode is required), Config B, Config C, Expanded DAPv2 Volume Limiter Controls)</li><li>DRA</li><li>DTS-HD</li><li>DTS-MA - (Passthrough)</li><li>DVD-LPCM</li><li>FLAC</li><li>Monkey's Audio</li><li>MP3 - (Stereo)</li><li>MPEG - (MPEG-2, MPEG-4, MPEG-I LI/LII/LIII)</li><li>MPEG Audio Descriptor</li><li>MPEG Multi Channel</li><li>MS11 + PCM Mixing</li><li>Ogg Vorbis</li><li>Real Audio - (10, 9)</li><li>SRS - (TruVolume)</li><li>Windows Media - (WMA (w/LSF, QSF), WMA Pro)</li></ul><p>Security</p><ul><li>Common DRM Framework - (Adobe Access 5.0 with enhanced robustness, DTCP-IP)</li><li>MCARD/Cable Card support</li><li>SAGE - (SAGE Adobe Access 5.0 with enhanced robustness)</li><li>Smartcard</li><li>SVP - (v2.6)</li></ul><p>Audio Post Process</p><ul><li>ATSC A/85 volume leveling</li><li>Audio Decoder Fade effect</li><li>Broadcom - (3D surround, AVL)</li><li>Dolby - (DDRE, DV-258)</li><li>Equalizer - (5-band Graphic EQ, 7-band PEQ, Sub sonic filtering, Sub woofer channel extraction, Tone Balancing)</li><li>Independent SPDIF delay</li><li>Karaoke support - (Karaoke Decode processing, Karaoke Vocal processing)</li><li>PCM Mixing</li><li>Ramping Mute</li><li>SRC</li><li>SRS - (SRS-HD4, SRS-TruVolume)</li></ul><p>System</p><ul><li>Graphics - (2D GFX, 3D GFX (openGL, OpenVG))</li><li>Kernel Mode</li><li>LE</li><li>Nexus Multi Process Support</li><li>User Mode</li></ul><p>A/V Display</p><ul><li>All NTSC/ATSC/PAL resolutions</li><li>Audio  - HDMI output - (Compressed on HDMI, PCM on HDMI)</li><li>Audio - DAC output</li><li>Audio - I2S - (Input, Output)</li><li>Audio Input - (HDMI (Compressed), HDMI (
+Multi-channel PCM), HDMI (Stereo PCM), I2S)</li><li>Audio Output - (DAC, I2S (Stereo PCM), SPDIF (Compressed), SPDIF (Stereo PCM))</li><li>DSOLA</li><li>HDCP support - (HDCP 1.4 for HDMI Repeater, HDCP 1.4 for HDMI Rx, HDCP 1.4 for HDMI Tx, HDCP 2.2 for HDMI Repeater/Rx, HDCP 2.2 for HDMI Tx)</li><li>HDMI Input</li><li>HDMI support - (HDMI 2.0a for HDMI Tx)</li><li>PIP: Simultaneous HD+SD display</li><li>Stream Pan / Scan</li><li>TSM - (+/-20mSec)</li><li>Video - 1080p display - (24p, 25p, 30p, 50p, 60p)</li><li>Video - 4kx2k display</li><li>Video - Component output</li><li>Video - CVBS and S Video Output</li><li>Video - HDMI output - (2.0)</li></ul><p>PVR</p><ul><li>PVR encryption - (3DES, AES, DES)</li><li>PVR TSM</li><li>Record - (AVC, MPEG2, MPEG4, MVC)</li><li>STC rate based trickmode</li><li>Timeshift - (AVC, MPEG2, MPEG4, MVC)</li><li>Trick mode - (AVC, Decoder trickmode, DSOLA with audio, Host trickmode, Host trickmode w/o index on MPEG-2, MPEG2, MPEG4, MVC, playback, Slow motion, <span style="color:green">Smooth 1x rewind using MDQT</span>)</li></ul><p>IPTV</p><ul><li>BIP API - (Dynamic clock recovery reconfiguration, IGMP Linstener, RTSP server, Streamer, HSL Server side trickmode)</li></ul><p>Networking</p><ul><li>Ethernet MAC - (10/100 Eth MAC, 1000 Eth MAC)</li></ul><p>Miscellaneous</p><ul><li>Common Download via TR69</li><li>NxClient Multiprocess library - (AC3+ down-convert, API to control audio output configuration, API to control slave display settings and sample aspect ratio, Audio Primer for fast main/PIP audio swap, Auto Volume Level, Callback for display changes, Display VBI functions, Explicit PIP window support, HDMI input encoding supporting (included rework of nxclient hdmi input api), Macrovision, Main/PIP video swap, MS12, NRT (non-real-time) transcode, nxserver external app mode, Per-output audio volume control, Picture quality adjustments, PIP mosaic, Video-as-graphics, SCMS for SPDIF, <span style="color:green">32/64 mixed mode</span>, <span style="color:green">HDCP Revocation list</span>)</li><li>RCU - (IR)</li><li>Video image input interface</li><li>Virtual L2 interrupt</li></ul><p>Transport</p><ul><li>Message Filtering</li><li>MTSIF</li><li>PID Filtering</li><li>Remux</li><li>TSMF</li></ul><p>Power Management</p><ul><li>Adaptive Voltage Scaling</li><li>Dynamic Power Management</li><li>S1: Active Standby</li><li>S2: Low Latency Standby</li><li>S3: Deep Standby - (cold boot mode, Initial warm boot suppport in Bolt and Kernel)</li></ul><p>Picture Quality</p><ul><li>CAB (Color Alteration Block)</li><li>DNR (Digital Noise Reduction in 65nm) - (BNR (Block Noise Reduction), DCR (Digital Countour Reduction), MNR (Mosquito Noise Reduction))</li><li>GNR (Gaussian Noise Reduction) - (AND (Analog Noise Detection), MCTF (Motion-Compensated Temporal Filter))</li><li>LAB &amp; HIST (Luma Alteration Block &amp; Luma Histogram)</li><li>MAD-R (Motion Adaptive Deinterlacer Re-architected)</li><li>TN2T-H (Sharpening)</li></ul><p>3D Video Display</p><ul><li>3D packing format - (1920x1080i@50Hz, 1920x1080i@59.94/60Hz, 1920x1080p@24Hz)</li></ul><p>Linux</p><ul><li>CMA</li><li>Ethernet link and Ethernet GPhy</li><li>Ethernet Switch</li><li>File system - (UBIFS)</li><li>Flash - (NAND, NOR, SPI)</li><li>MoCA - (V2.0)</li><li>PCIe</li><li>SATA - (Sata2, Sata3)</li><li>UART port</li><li>USB</li></ul><p>Cable FE</p><ul><li>BCM3128 tuner support - (Full band capture with TR69/135)</li><li>CableCARD stack - (Basic, Basic+DSG, Basic+DSG+OOB)</li><li>DOCSIS Frontend</li><li>DOCSIS3.0 - (Annex-A (Europe), Annex-B (North America), Annex-C (Japan))</li><li>DSG Client Controller, DSG Clients</li><li>QAM Tuning</li></ul><p>VBI</p><ul><li>Copy Protection - (CGMS-A, DCS)</li><li>Data Re-encoding and Rendering - (AMOL I/II, ANSI/SCTE 20/21, CEA-608 (Analog Closed Captioning for RF, composite, S-video and 480i component signals), CEA-708 (Digital Closed Captioning), CEA-805 (for 480p, 720p and 1080i component signals), ETSI EN 300 743, Gemstar, NABTS (Teletext), Nielsen, TVGuide, WSS/VPS (ETS 300 294))</li></ul><br><h4><p><strong><a name="features_future">Features Planned for the Next Release</a></strong><br/><a href="#top">(Top)</a></p></h4>
 
 </div>
 

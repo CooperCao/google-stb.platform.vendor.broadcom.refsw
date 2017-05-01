@@ -27,19 +27,19 @@
 
 #define	ROUTER_MINOR_VERSION		3
 
-#define	ROUTER_RC_NUMBER		13
+#define	ROUTER_RC_NUMBER		21
 
 #define	ROUTER_INCREMENTAL_NUMBER	0
 
 #define	ROUTER_BUILD_NUMBER		0
 
-#define	ROUTER_VERSION			2017, 3, 13, 0
+#define	ROUTER_VERSION			2017, 3, 21, 0
 
-#define	ROUTER_VERSION_NUM		0x7e1030d00
+#define	ROUTER_VERSION_NUM		0x7e1031500
 
 /* Version String, ASCII, 32 chars max */
-#define	ROUTER_VERSION_STR		"2017.3.13.0"
+#define	ROUTER_VERSION_STR		"2017.3.21.0"
 
-#define ROUTER_PACKAGE_VERSION 		2017.3.13.0
+#define ROUTER_PACKAGE_VERSION 		2017.3.21.0
 
 #endif /* _version_h_ */

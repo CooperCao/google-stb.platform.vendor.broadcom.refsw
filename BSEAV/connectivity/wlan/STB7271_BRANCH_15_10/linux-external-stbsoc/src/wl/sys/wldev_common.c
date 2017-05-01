@@ -101,7 +101,6 @@ s32 wldev_ioctl(
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 31) */
 	set_fs(fs);
 
-	ret = 0;
 #endif /* defined(BCMDONGLEHOST) */
 
 	return ret;

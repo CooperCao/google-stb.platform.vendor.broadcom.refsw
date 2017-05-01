@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2015-2016 Broadcom. All rights reserved.
+*  Copyright (C) 2015-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -113,6 +113,11 @@ typedef struct NEXUS_PlatformHeapSettings {
     struct {
         bool first; /* if set to true, then this HEAP would be placed at beginning of the first region available on a given MEMC */
         bool sage; /* if set to true, then this HEAP should be placed to confirm SAGE requirements */
+        struct {
+            bool valid;
+            NEXUS_Addr base;
+            uint64_t length;
+        } region; /* if region.valid  is set, then heap must be placed into the specified region */
     } placement;
 } NEXUS_PlatformHeapSettings;
 
@@ -267,6 +272,10 @@ HEAP_CONFIG_BEGIN(97271_SAGE_n)
 #include "heap_configs/heap_config_97271_SAGE_n.txt"
 HEAP_CONFIG_END(97271_SAGE_n)
 
+HEAP_CONFIG_BEGIN(97271_SAGE_y)
+#include "heap_configs/heap_config_97271_SAGE_y.txt"
+HEAP_CONFIG_END(97271_SAGE_y)
+
 #undef BOX_MODE_BEGIN
 #undef NEXUS_HEAP_BEGIN
 #undef NEXUS_HEAP_FIELD
@@ -326,6 +335,9 @@ HEAP_BYNAME_BEGIN(97271_SAGE_n)
 #include "heap_configs/heap_config_97271_SAGE_n.txt"
 HEAP_BYNAME_END(97271_SAGE_n)
 
+HEAP_BYNAME_BEGIN(97271_SAGE_y)
+#include "heap_configs/heap_config_97271_SAGE_y.txt"
+HEAP_BYNAME_END(97271_SAGE_y)
 
 #undef NEXUS_HEAP_BEGIN
 #undef BOX_MODE_BEGIN
@@ -380,6 +392,10 @@ BOXMODES_END(97439_SAGE_n)
 BOXMODES_BEGIN(97271_SAGE_n)
 #include "heap_configs/heap_config_97271_SAGE_n.txt"
 BOXMODES_END(97271_SAGE_n)
+
+BOXMODES_BEGIN(97271_SAGE_y)
+#include "heap_configs/heap_config_97271_SAGE_y.txt"
+BOXMODES_END(97271_SAGE_y)
 
 static const struct heap_config _97445_SAGE_y = {
     "97445_SAGE_y",
@@ -456,6 +472,13 @@ static const struct heap_config _97271_SAGE_n = {
     heap_config_97271_SAGE_n,
     heap_byName_97271_SAGE_n,
     boxModes_97271_SAGE_n
+};
+
+static const struct heap_config _97271_SAGE_y = {
+    "97271_SAGE_y",
+    heap_config_97271_SAGE_y,
+    heap_byName_97271_SAGE_y,
+    boxModes_97271_SAGE_y
 };
 
 static const struct memc_memory_range bcm97445_3GB_memc[] = {
@@ -668,6 +691,7 @@ static const struct picture_buffers pictures_7271[] = {
 
 static const struct heap_config const *_97271_configs[] = {
     &_97271_SAGE_n,
+    &_97271_SAGE_y,
     NULL
 };
 
@@ -869,6 +893,7 @@ int main(int argc, const char *argv[])
     }
     BSTD_UNUSED(rc);
 
+#if 1
     BDBG_LOG(("Testing %u custom tests", sizeof(custom_tests)/sizeof(custom_tests[0]) ));
     for(i=0;i<sizeof(custom_tests)/sizeof(custom_tests[0]);i++) {
         const struct custom_test *test = &custom_tests[i];
@@ -879,6 +904,7 @@ int main(int argc, const char *argv[])
         test->heap_settings(heaps);
         test_one(test->name, test->board, heaps);
     }
+#endif
 
     for(platformIndex=0;;platformIndex++) {
         const struct platform *platform = platforms[platformIndex];

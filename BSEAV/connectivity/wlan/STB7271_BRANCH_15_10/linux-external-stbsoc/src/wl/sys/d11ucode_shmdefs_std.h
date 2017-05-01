@@ -5,7 +5,7 @@
  * FILE-CSTYLED 
  *
  * Ucode directory: ../
- * Derived from major_rev = 1202, minor_rev = 208
+ * Derived from major_rev = 1202, minor_rev = 209
  *
  * Broadcom Proprietary and Confidential. Copyright (C) 2017, 
  * All Rights Reserved. 
@@ -18,7 +18,7 @@
  *
  * <<Broadcom-WL-IPTag/Proprietary:>> 
  *
- * $Id: /projects/hnd_video6/samat/ucode_git/refsw/ucode_branch/result/d11ucode_shmdefs_std.h Mar. 06, 2017 03:24:00 PM <ss888415> $
+ * $Id: /projects/hnd_video6/ytpark/git_refsw/refsw/wlan_ucode_repo_local_b/result/d11ucode_shmdefs_std.h Mar. 17, 2017 10:24:09 AM <ytpark> $
  */
 // COMMON SHMS
 //REVID Specific SHMs

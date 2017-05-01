@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2015 Broadcom Corporation
+ *  Copyright (C) 2008-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
  *****************************************************************************/
 #include "nexus_platform_priv.h"
 #include <stdio.h>
@@ -132,6 +121,10 @@ void print_heaps(unsigned boxmode)
         PRINT_HEAP_FIELD(heap,i,heapType,"%#x");
         PRINT_HEAP_FIELD(heap,i,placement.first,"%u");
         PRINT_HEAP_FIELD(heap,i,placement.sage,"%u");
+        PRINT_HEAP_FIELD(heap,i,placement.first,"%u");
+        PRINT_HEAP_FIELD(heap,i,placement.region.valid,"%u");
+        PRINT_HEAP_FIELD(heap,i,placement.region.base,"0x%lx");
+        PRINT_HEAP_FIELD(heap,i,placement.region.length,"0x%lx");
         printf("\tNEXUS_HEAP_END(%u)\n", i);
     }
     printf("BOX_MODE_END(%u)\n", boxmode);

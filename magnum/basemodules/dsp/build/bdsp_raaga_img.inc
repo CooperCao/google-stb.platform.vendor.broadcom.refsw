@@ -144,9 +144,12 @@ ifneq ($(filter $(BDSP_MS12_SUPPORT),A B C D Y a b c d y),)
 
 ifeq ($(BCHP_CHIP),7278)
 BDSP_UDC_SOURCES := \
-	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_adec_udc.c \
+	$(MAGNUM)/basemodules/dsp/src/raaga/firmware/$(BDSP_RAAGA_FP_VER)/braaga_aids_udc.c
 ifneq ($(wildcard $(BDSP_UDC_SOURCES)),)
 BDSP_UDC_SUPPORT ?= $(BDSP_DEFAULT_ALGO_SUPPORT)
+else
+BDSP_MS12_SUPPORT = n
 endif
 BDSP_AC4_SUPPORT = n
 BDSP_DPCMR_SUPPORT = n

@@ -100,23 +100,6 @@ BDBG_OBJECT_ID(BRDC_LST);
 #define BRDC_P_SUPPORT_TIMESTAMP           (0)
 #endif
 
-/* STC flag support */
-#if BCHP_RDC_stc_flag_5
-#define BRDC_P_STC_FLAG_COUNT              (6)
-#elif BCHP_RDC_stc_flag_4
-#define BRDC_P_STC_FLAG_COUNT              (5)
-#elif BCHP_RDC_stc_flag_3
-#define BRDC_P_STC_FLAG_COUNT              (4)
-#elif BCHP_RDC_stc_flag_2
-#define BRDC_P_STC_FLAG_COUNT              (3)
-#elif BCHP_RDC_stc_flag_1
-#define BRDC_P_STC_FLAG_COUNT              (2)
-#elif BCHP_RDC_stc_flag_0
-#define BRDC_P_STC_FLAG_COUNT              (1)
-#else
-#define BRDC_P_STC_FLAG_COUNT              (0)
-#endif
-
 /* Number of trigger */
 #ifdef BCHP_RDC_hw_configuration_max_trigger_number_MASK
 #if (BCHP_RDC_hw_configuration_max_trigger_number_DEFAULT == BCHP_RDC_hw_configuration_max_trigger_number_MAX128)
@@ -2354,16 +2337,7 @@ BERR_Code BRDC_Open
     }
 #endif
 
-#ifdef BCHP_RDC_stc_flag_0
-    BDBG_CASSERT(BRDC_P_STC_FLAG_COUNT <= BRDC_MAX_STC_FLAG_COUNT);
-    for(i = 0; i < BRDC_P_STC_FLAG_COUNT; i++)
-    {
-        hRdc->aeStcTrigger[i] = BRDC_Trigger_UNKNOWN;
-        BRDC_P_Write32(hRdc, BCHP_RDC_stc_flag_0 + i*sizeof(uint32_t), 0);
-    }
-#endif
-
-#if BRDC_P_SUPPORT_SYNCHRONIZER
+#if (BRDC_P_MAX_SYNC)
     for(i = 0; i < BRDC_P_MAX_SYNC; i++)
     {
         hRdc->abSyncUsed[i] = false;
@@ -2465,6 +2439,8 @@ BERR_Code BRDC_Resume
 #ifdef BCHP_PWR_RESOURCE_BVN
     BCHP_PWR_AcquireResource(hRdc->hChp, BCHP_PWR_RESOURCE_BVN);
 #endif
+    BRDC_P_SoftReset(hRdc);
+
     return BERR_SUCCESS;
 }
 
@@ -3137,7 +3113,7 @@ BERR_Code BRDC_Slots_Create
         goto done;
     }
 
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     if(ulSyncId >= BRDC_P_MAX_SYNC) {
         BDBG_ERR(( "Unsupported synchronizer %u", ulSyncId ));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -3190,7 +3166,7 @@ BERR_Code BRDC_Slots_Create
         hSlot->ulSyncId    = ulSyncId;
 
         /* link synchronizer */
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
         BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset,
             BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel, ulSyncId));
 #endif
@@ -3204,7 +3180,8 @@ BERR_Code BRDC_Slots_Create
 #endif
             hSlot->ulTrackCount     = 0;
             hSlot->ulTrackRegAddr   = s_aRdcSlotInfo[eSlotId].ulTrackRegAddr;
-            BDBG_MSG(("Creating slot[%d] with track executions!", hSlot->eSlotId));
+            BDBG_MSG(("Creating slot[%d] with track executions at 0x%08x!",
+                hSlot->eSlotId, s_aRdcSlotInfo[eSlotId].ulTrackRegAddr));
         }
         else
         {
@@ -3359,12 +3336,21 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
 
     /* Clear high_priority */
 #if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
-    ulRegVal &= ~BCHP_MASK(RDC_desc_0_config, high_priority);
+    ulRegVal &= ~(
+#if (BRDC_P_MAX_SYNC)
+        BCHP_MASK(RDC_desc_0_config, sync_sel     ) |
+#endif
+        BCHP_MASK(RDC_desc_0_config, segmented    ) |
+        BCHP_MASK(RDC_desc_0_config, high_priority));
 
     /* Set high_priority bit and update register */
-    ulRegVal |= BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority);
+    ulRegVal |= (
+#if (BRDC_P_MAX_SYNC)
+        BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel, hSlot->ulSyncId                        ) |
 #endif
-
+        BCHP_FIELD_ENUM(RDC_desc_0_config, segmented, SEGMENTED                             ) |
+        BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority));
+#endif
     BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
 
     /* Release semaphore */
@@ -3384,7 +3370,7 @@ BERR_Code BRDC_Slot_DisarmSync_isr
 {
     BERR_Code  err = BERR_SUCCESS;
     BDBG_ENTER(BRDC_Slot_DisarmSync_isr);
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     /* disarm synchronizer linked by this slot */
     BRDC_P_ArmSync_isr(hSlot->hRdc, hSlot->ulSyncId, false);
 #else
@@ -3450,7 +3436,7 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
     BRDC_P_DBG_WriteCaptures_isr(&hList->hRdc->captureBuffer, phSlots, hList, ulNum);
 #endif
 
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     /* disarm synchronizer (assume group of slots share the same sycnhronizer) */
     BRDC_P_ArmSync_isr(hList->hRdc, phSlots[0]->ulSyncId, false);
 #endif
@@ -3468,7 +3454,7 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
             }
         }
 
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
         /* check sync ID mismatch */
         if(phSlots[i]->ulSyncId != phSlots[0]->ulSyncId) {
             BDBG_ERR(("Mismatched syncId: 0:%u vs %u:%u", phSlots[i]->ulSyncId, i, phSlots[i]->ulSyncId));
@@ -3490,11 +3476,11 @@ BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
         BREG_WriteAddr_isrsafe(hList->hRdc->hReg, BCHP_RDC_desc_0_addr + phSlots[i]->ulRegOffset,
             hList->ulAddrOffset);
 
+#if BCHP_RDC_desc_0_config_count_MASK
         /* Read RDC_desc_x_config */
         ulRegVal = BRDC_Slot_P_Read32(phSlots[i], BCHP_RDC_desc_0_config + phSlots[i]->ulRegOffset);
 
         /* Clear count */
-#if BCHP_RDC_desc_0_config_count_MASK
         ulRegVal &= ~BCHP_MASK(RDC_desc_0_config, count);
 
         /* Set count and update register */
@@ -3548,7 +3534,7 @@ BERR_Code BRDC_P_Slots_SetList_isr
     if (err != BERR_SUCCESS)
         goto done;
 
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
     /* arm synchronizer */
     BRDC_P_ArmSync_isr(hList->hRdc, phSlots[0]->ulSyncId, true);
 #endif
@@ -3798,6 +3784,14 @@ bool BRDC_Slot_UpdateLastRulStatus_isr
                 BRDC_ReadScratch_isrsafe(hSlot->hRdc->hReg, hSlot->ulTrackRegAddr);
             hList->bLastExecuted = (hSlot->ulTrackCount == ulHwTrackCount)
                 ? true : false;
+
+            if(!hList->bLastExecuted)
+            {
+                BDBG_MSG(("**********************"));
+                BDBG_MSG(("Slot[%d] SwTrack[%d] vs HwTrack[%d]",
+                    hSlot->eSlotId, hSlot->ulTrackCount, ulHwTrackCount));
+                BDBG_MSG(("**********************"));
+            }
         }
     }
     else
@@ -3910,7 +3904,7 @@ BERR_Code BRDC_Slot_RulConfigSlaveTrigger_isr
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         bRecurring   ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect )
-#if BCHP_RDC_desc_0_config_sync_sel_MASK
+#if (BRDC_P_MAX_SYNC)
             /* keep the sync_sel setting correct! */
             | BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel,     hSlotSlave->ulSyncId)
 #endif
@@ -4005,7 +3999,7 @@ uint32_t BRDC_Slot_RulSetNextAddr_isr
     *pulCurrent++ = BRDC_P_OP_IMM_TO_ADDR();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_addr + hSlot->ulRegOffset);
     hList->ulEntries = (uint32_t)(pulCurrent + sizeof(BRDC_P_ADDR_OFFSET(hList->ulAddrOffset))/sizeof(uint32_t)
-#ifdef BCHP_RDC_sync_0_arm
+#if (BRDC_P_MAX_SYNC)
         + 3 /* with synchronizer, to add the sync re-arm RUL size */
 #endif
         - pulStart);
@@ -4013,7 +4007,7 @@ uint32_t BRDC_Slot_RulSetNextAddr_isr
     *BRDC_P_ADDR_PTR(pulCurrent) = BRDC_P_ADDR_OFFSET(hList->ulAddrOffset) +
         ((hList->ulEntries + ulBitMask) & (~ulBitMask)) * sizeof(uint32_t);
     pulCurrent = (uint32_t*)(BRDC_P_ADDR_PTR(pulCurrent) + 1);
-#ifdef BCHP_RDC_sync_0_arm /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
+#if (BRDC_P_MAX_SYNC) /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
     *pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm + hSlot->ulSyncId * (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm));
     *pulCurrent   = 1;
@@ -4054,7 +4048,7 @@ BERR_Code BRDC_List_RulSetSlaveListHead_isr
     BRDC_AddrRul_ImmToReg_isr(&pulCurrent,
         BCHP_RDC_desc_0_addr + hSlotSlave->ulRegOffset,
         BRDC_P_ADDR_OFFSET(hListSlave->ulAddrOffset));
-#ifdef BCHP_RDC_sync_0_arm /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
+#if (BRDC_P_MAX_SYNC) /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
     *pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm + hSlotSlave->ulSyncId * (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm));
     *pulCurrent++ = 1;
@@ -4094,7 +4088,7 @@ BERR_Code BRDC_Slot_RulConfigSlaveListTail_isr
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         0            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         0            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect )
-#if BCHP_RDC_desc_0_config_sync_sel_MASK
+#if (BRDC_P_MAX_SYNC)
             /* keep the sync_sel setting correct! */
             | BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel,     hSlot->ulSyncId)
 #endif

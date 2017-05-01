@@ -6430,7 +6430,7 @@ static s32 wl_wowlan_config(struct wiphy *wiphy, struct cfg80211_wowlan *wow)
 	wl_pkt_filter_enable_t	pkt_filter_enable;
 	u8 mask_bytes_len = 0, mask_byte_idx = 0, mask_bit_idx = 0;
 #else
-	uint32_t  wowl_flags = 0;
+	uint32_t  wowl_flags = 0, PM_mode;
 	char *arg = NULL;
 	char *smbuf = NULL;
 	const char *str;
@@ -6572,6 +6572,14 @@ exit:
 			err = -ENOMEM;
 			goto exit;
 		}
+#ifdef STB_SOC_WIFI
+		PM_mode = 0;
+		if ((err = wldev_ioctl(ndev, WLC_SET_PM, &PM_mode,
+			sizeof(PM_mode), true)) != 0) {
+			WL_ERR(("Setting PM to 0 returned error:%d\n", err));
+			goto exit;
+		}
+#endif  /* STB_SOC_WIFI */
 		/* configure wowlan pattern filters */
 
 		if (0 < wow->n_patterns) {

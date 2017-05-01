@@ -1,5 +1,5 @@
 ############################################################
-# Broadcom Proprietary and Confidential. (c)2015-2016 Broadcom. All rights reserved.
+# Copyright (C) 2015-2017 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -74,8 +74,10 @@ ${MAKEFILE_BUILD}:
 	mkdir -p ${BINDIR}
 	${NEXUS_TOP}/../BSEAV/tools/build/build.pl -Makefile ${MAKEFILE_BUILD} -log_stdout -default_board -single_revision autobuild
 
-SAGE_PLATFORMS="97250 97439 97445 97364 97366"
-NO_SAGE_PLATFORMS="974371 97271"
+#SAGE_PLATFORMS="97250 97439 97445 97364 97366 97271"
+SAGE_PLATFORMS="97271"
+#NO_SAGE_PLATFORMS="974371"
+NO_SAGE_PLATFORMS=""
 rebuild.all: ${MAKEFILE_BUILD}
 	for plat in ${SAGE_PLATFORMS} ; do \
 		${MAKE} -f ${MAKEFILE_BUILD} $$plat SAGE_SUPPORT=y B_REAL_TARGET=x86.clean; \

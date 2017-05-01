@@ -83,7 +83,8 @@ static const char * const g_selectorStr[NEXUS_SimpleAudioDecoderSelector_eMax] =
 #define SUSPEND_DECODER     0x01
 #define SUSPEND_PLAYBACK    0x02
 #define SUSPEND_MIXER       0x04
-#define SUSPEND_ALL (SUSPEND_DECODER|SUSPEND_PLAYBACK|SUSPEND_MIXER)
+#define SUSPEND_PERSISTENT  0x08
+#define SUSPEND_ALL (SUSPEND_DECODER|SUSPEND_PLAYBACK|SUSPEND_MIXER|SUSPEND_PERSISTENT)
 static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend);
 
 #define CONNECTED(handle) ((handle)->serverSettings.primary || (handle)->serverSettings.secondary || (handle)->serverSettings.description)
@@ -495,6 +496,7 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
     unsigned i;
     NEXUS_Error rc;
     bool configOutputs;
+    bool suspendedPersistents[NEXUS_MAX_AUDIO_DECODERS];
 
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleAudioDecoder);
     if (handle->server != server) return BERR_TRACE(NEXUS_INVALID_PARAMETER);
@@ -561,7 +563,16 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_SetServerSettings( NEXUS_SimpleAudioDecoder
     }
 #endif
 
+    /* Copy suspended persistents */
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        suspendedPersistents[i] = handle->serverSettings.persistent[i].suspended;
+    }
+
     handle->serverSettings = *pSettings;
+
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        handle->serverSettings.persistent[i].suspended = suspendedPersistents[i];
+    }
 
     if (!g_default && handle->serverSettings.primary) {
         /* this is added for backward compat with the risk that we wipe out client settings already made */
@@ -1222,7 +1233,7 @@ static NEXUS_Error nexus_simpleaudiodecoder_connect_mixer(NEXUS_SimpleAudioDecod
 
     tail = nexus_simpleaudiodecoder_get_current_decoder_connection(handle, selector, connectorType);
 
-    BDBG_MSG(("current decoder tail (%s) %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)tail));
+    BDBG_MSG(("current decoder tail (%s) %p selector %d", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)tail, selector));
     if ( mixer && tail ) {
         BDBG_MSG(("--> mixer (%s) %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)mixer));
         rc = NEXUS_AudioMixer_AddInput(mixer, tail);
@@ -1307,6 +1318,7 @@ static void nexus_simpleaudiodecoder_disconnect_mixer(NEXUS_SimpleAudioDecoderHa
 {
     NEXUS_AudioInputHandle tail;
     NEXUS_AudioMixerHandle mixer = NULL;
+    NEXUS_Error rc;
 
     /* connect to primary display */
     switch ( connectorType ) {
@@ -1325,6 +1337,19 @@ static void nexus_simpleaudiodecoder_disconnect_mixer(NEXUS_SimpleAudioDecoderHa
     if ( mixer && tail ) {
         BDBG_MSG(("remove input to mixer (%s) %p", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)mixer));
         NEXUS_AudioMixer_RemoveInput(mixer, tail);
+        if ( selector == NEXUS_SimpleAudioDecoderSelector_ePrimary ) {
+            NEXUS_AudioMixerSettings mixerSettings;
+            NEXUS_AudioMixer_GetSettings(mixer, &mixerSettings);
+            if ( mixerSettings.mixUsingDsp && mixerSettings.master == tail ) {
+                BDBG_MSG(("     setting mixer (%s) %p master to NULL", (connectorType == NEXUS_AudioConnectorType_eStereo)?"stereo":"multichannel", (void*)mixer));
+                mixerSettings.master = NULL;
+            }
+            rc = NEXUS_AudioMixer_SetSettings(mixer, &mixerSettings);
+            if ( rc != NEXUS_SUCCESS ) {
+                BERR_TRACE(rc);
+                return;
+            }
+        }
     }
     #if 0
     else {
@@ -1802,6 +1827,67 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Suspend(NEXUS_SimpleAudioDecoderHandle hand
 }
 
 #if NEXUS_HAS_AUDIO
+static bool nexus_p_is_connected_to_a_mixer(NEXUS_SimpleAudioDecoderHandle handle, NEXUS_AudioInputHandle input)
+{
+    bool connected = false;
+    bool anyConnected = false;
+    if (handle->serverSettings.mixers.persistent) {
+        NEXUS_AudioInput_IsConnectedToInput(input,
+                                            NEXUS_AudioMixer_GetConnector(handle->serverSettings.mixers.persistent),
+                                            &connected);
+        anyConnected |= connected;
+    }
+    if (handle->serverSettings.mixers.stereo) {
+        NEXUS_AudioInput_IsConnectedToInput(input,
+                                            NEXUS_AudioMixer_GetConnector(handle->serverSettings.mixers.stereo),
+                                            &connected);
+        anyConnected |= connected;
+    }
+    if (handle->serverSettings.mixers.multichannel) {
+        NEXUS_AudioInput_IsConnectedToInput(input,
+                                            NEXUS_AudioMixer_GetConnector(handle->serverSettings.mixers.multichannel),
+                                            &connected);
+        anyConnected |= connected;
+    }
+    return anyConnected;
+}
+
+static NEXUS_Error NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(NEXUS_SimpleAudioDecoderHandle handle)
+{
+    int i, j;
+    bool running;
+    bool found;
+
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        found = false;
+        if (handle->serverSettings.persistent[i].decoder != NULL) {
+            for (j = 0; j < NEXUS_AudioConnectorType_eMax && !found; j++)
+            {
+                NEXUS_AudioInput_IsRunning(NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, j), &running);
+                if (running && nexus_p_is_connected_to_a_mixer(handle, NEXUS_AudioDecoder_GetConnector(handle->serverSettings.persistent[i].decoder, j))) {
+                    NEXUS_AudioDecoder_Suspend(handle->serverSettings.persistent[i].decoder);
+                    handle->serverSettings.persistent[i].suspended = true;
+                    found = true;
+                }
+            }
+        }
+    }
+    return BERR_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_SimpleAudioDecoder_P_ResumePersistentDecoders(NEXUS_SimpleAudioDecoderHandle handle)
+{
+    int i;
+
+    for (i = 0; i < NEXUS_MAX_AUDIO_DECODERS; i++) {
+        if (handle->serverSettings.persistent[i].decoder != NULL && handle->serverSettings.persistent[i].suspended) {
+            NEXUS_AudioDecoder_Resume(handle->serverSettings.persistent[i].decoder);
+            handle->serverSettings.persistent[i].suspended = false;
+        }
+    }
+    return BERR_SUCCESS;
+}
+
 static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHandle handle, unsigned whatToSuspend)
 {
     int rc;
@@ -1830,6 +1916,10 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHa
         }
     }
 
+    if (whatToSuspend & SUSPEND_PERSISTENT) {
+        NEXUS_SimpleAudioDecoder_P_SuspendPersistentDecoders(handle);
+    }
+
     if (whatToSuspend & SUSPEND_PLAYBACK) {
         NEXUS_SimpleAudioPlaybackHandle audioPlayback;
         for (audioPlayback = BLST_S_FIRST(&handle->server->playbacks); audioPlayback; audioPlayback = BLST_S_NEXT(audioPlayback, link)) {
@@ -1854,7 +1944,6 @@ static NEXUS_Error NEXUS_SimpleAudioDecoder_P_Suspend(NEXUS_SimpleAudioDecoderHa
             handle->mixers.suspended = true;
         }
     }
-
     return 0;
 }
 #endif
@@ -1888,6 +1977,8 @@ NEXUS_Error NEXUS_SimpleAudioDecoder_Resume(NEXUS_SimpleAudioDecoderHandle handl
             }
         }
     }
+
+    NEXUS_SimpleAudioDecoder_P_ResumePersistentDecoders(handle);
 
     {
         NEXUS_SimpleAudioPlaybackHandle audioPlayback;

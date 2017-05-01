@@ -180,6 +180,11 @@ typedef struct NEXUS_PlatformHeapSettings {
     struct {
         bool first; /* if set to true, then this HEAP would be placed at beginning of the first region available on a given MEMC */
         bool sage; /* if set to true, then this HEAP should be placed to conform to SAGE requirements */
+        struct {
+            bool valid;
+            NEXUS_Addr base;
+            uint64_t length;
+        } region; /* if region.valid  is set, then heap must be placed into the specified region */
     } placement;
 } NEXUS_PlatformHeapSettings;
 

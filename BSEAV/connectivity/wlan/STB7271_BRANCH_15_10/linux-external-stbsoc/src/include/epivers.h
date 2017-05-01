@@ -27,24 +27,24 @@
 
 #define	EPI_MINOR_VERSION	10
 
-#define	EPI_RC_NUMBER		66
+#define	EPI_RC_NUMBER		68
 
 #define	EPI_INCREMENTAL_NUMBER	0
 
 #define EPI_BUILD_NUMBER	1
 
-#define	EPI_VERSION		15, 10, 66, 0
+#define	EPI_VERSION		15, 10, 68, 0
 
-#define	EPI_VERSION_NUM		0x0f0a4200
+#define	EPI_VERSION_NUM		0x0f0a4400
 
-#define EPI_VERSION_DEV		"15.10.66"
+#define EPI_VERSION_DEV		"15.10.68"
 
 /* Driver Version String, ASCII, 32 chars max */
-/*#define	EPI_VERSION_STR		" (84643555ff2f2f40fa0377f16f9f49c6d3e829bb)"*/
-#define	EPI_VERSION_STR		"84643555ff2f2f40fa0377f16f9f49c6d3e829bb"
-#define EPI_WL_VER_STR          ":STB7271_REL_15_10_66"
+/*#define	EPI_VERSION_STR		" (4e7e0e17fa0c8b7990aa8ae95ae42b4e1830cba8)"*/
+#define	EPI_VERSION_STR		"4e7e0e17fa0c8b7990aa8ae95ae42b4e1830cba8"
+#define EPI_WL_VER_STR          ":STB7271_REL_15_10_68"
 #define	EPI_VERSION_DATE	""
-#define	EPI_VERSION_TAG		"STB7271_REL_15_10_66"
+#define	EPI_VERSION_TAG		"STB7271_REL_15_10_68"
 #define	EPI_REMOTE_BRANCH	""
 
 #endif /* _epivers_h_ */

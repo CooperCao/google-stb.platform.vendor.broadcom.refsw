@@ -3967,6 +3967,11 @@ phy_ac_rxiqcal_save_cache(phy_ac_rxiqcal_info_t *rxiqcali, ch_calcache_t *ctx)
 		cache->rxa[core] = READ_PHYREGCE(pi, Core1RxIQCompA, core);
 		cache->rxb[core] = READ_PHYREGCE(pi, Core1RxIQCompB, core);
 		cache->rxs[core] = rxiqcali->fdiqi->slope[core];
+
+		PHY_CAL(("\tcore-%d: a/b = (0x%04x,0x%04x) s = %04x\n", core,
+					(int16)cache->rxa[core],   /* a */
+					(int16)cache->rxb[core],   /* b */
+					(int16)cache->rxs[core])); /* s */
 	}
 	cache->rxe =  rxiqcali->fdiqi->enabled;
 }
